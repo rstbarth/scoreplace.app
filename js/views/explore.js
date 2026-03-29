@@ -87,7 +87,7 @@ function _participantMatchesUser(p, email, displayName) {
 // ---- User card HTML builder ----
 function _userCardHtml(u, uid, actionHtml, isFriend) {
   var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
-  var name = u.displayName || 'Usuário';
+  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
   var infoChips = [];
   if (u.city) infoChips.push(u.city);
   if (u.preferredSports) infoChips.push(u.preferredSports);
@@ -290,24 +290,38 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     });
     if (!imIn) return;
 
-    // Find other participants
+    // Find other participants — split team strings like "Player A / Player B" into individuals
     parts.forEach(function(p) {
-      var email = typeof p === 'string' ? '' : (p.email || '');
-      var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-      // Skip myself
-      if (email && email === myEmail) return;
-      if (!email && name && myDisplayName && name.toLowerCase().indexOf(myDisplayName.toLowerCase()) !== -1) return;
-      // Need at least email or name to identify the person
-      var key = email || name;
-      if (!key) return;
+      var individuals = [];
+      if (typeof p === 'string') {
+        // Could be a team string "Player A / Player B" or a single name/email
+        var parts2 = p.split(' / ');
+        parts2.forEach(function(name) {
+          name = name.trim();
+          if (name) individuals.push({ email: '', displayName: name });
+        });
+      } else {
+        individuals.push({ email: p.email || '', displayName: p.displayName || p.name || '' });
+      }
 
-      if (!conhecidosMap[key]) {
-        conhecidosMap[key] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
-      }
-      conhecidosMap[key].sharedCount++;
-      if (t.name && conhecidosMap[key].tournamentNames.length < 3) {
-        conhecidosMap[key].tournamentNames.push(t.name);
-      }
+      individuals.forEach(function(ind) {
+        var email = ind.email;
+        var name = ind.displayName;
+        // Skip myself
+        if (email && email === myEmail) return;
+        if (!email && name && myDisplayName && name.toLowerCase() === myDisplayName.toLowerCase()) return;
+        // Need at least email or name to identify the person
+        var key = email || name;
+        if (!key) return;
+
+        if (!conhecidosMap[key]) {
+          conhecidosMap[key] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
+        }
+        conhecidosMap[key].sharedCount++;
+        if (t.name && conhecidosMap[key].tournamentNames.length < 3) {
+          conhecidosMap[key].tournamentNames.push(t.name);
+        }
+      });
     });
   });
 
@@ -399,7 +413,7 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 
       // Custom card for conhecidos (amber/yellow tint)
       var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
-      var name = u.displayName || 'Usuário';
+      var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
 
       html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
         '<img src="' + photo + '" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +

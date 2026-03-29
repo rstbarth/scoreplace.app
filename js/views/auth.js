@@ -280,8 +280,30 @@ async function simulateLoginSuccess(user) {
 
   // Load user profile from Firestore (merge extra fields like gender, sports)
   var uid = user.uid || user.email;
+  var existingProfile = null;
   if (window.AppStore.loadUserProfile) {
-    await window.AppStore.loadUserProfile(uid);
+    existingProfile = await window.AppStore.loadUserProfile(uid);
+  }
+
+  // Auto-save basic Google data to Firestore if profile is missing or has no displayName
+  if (window.FirestoreDB && window.FirestoreDB.db && uid) {
+    var needsSave = false;
+    var basicData = {};
+    if (!existingProfile || !existingProfile.displayName) {
+      if (user.displayName) { basicData.displayName = user.displayName; needsSave = true; }
+    }
+    if (!existingProfile || !existingProfile.email) {
+      if (user.email) { basicData.email = user.email; needsSave = true; }
+    }
+    if (!existingProfile || !existingProfile.photoURL) {
+      if (user.photoURL) { basicData.photoURL = user.photoURL; needsSave = true; }
+    }
+    if (needsSave) {
+      basicData.updatedAt = new Date().toISOString();
+      window.FirestoreDB.saveUserProfile(uid, basicData).catch(function(err) {
+        console.warn('Erro ao salvar dados básicos do Google:', err);
+      });
+    }
   }
 
   // Start real-time listener for tournaments (auto-updates on any change)
