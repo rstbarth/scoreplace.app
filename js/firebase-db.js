@@ -74,5 +74,147 @@ window.FirestoreDB = {
       console.error('Erro ao carregar perfil:', e);
       return null;
     }
+  },
+
+  // ---- Explore: list users who accept friend requests ----
+
+  async searchUsers(queryText) {
+    if (!this.db) return [];
+    try {
+      var snap = await this.db.collection('users')
+        .where('acceptFriendRequests', '==', true)
+        .get();
+      var users = [];
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        data._docId = doc.id;
+        users.push(data);
+      });
+      // Client-side filter by name/email/city
+      if (queryText && queryText.trim()) {
+        var q = queryText.trim().toLowerCase();
+        users = users.filter(function(u) {
+          return (u.displayName && u.displayName.toLowerCase().indexOf(q) !== -1) ||
+                 (u.email && u.email.toLowerCase().indexOf(q) !== -1) ||
+                 (u.city && u.city.toLowerCase().indexOf(q) !== -1) ||
+                 (u.preferredSports && u.preferredSports.toLowerCase().indexOf(q) !== -1);
+        });
+      }
+      return users;
+    } catch (e) {
+      console.error('Erro ao buscar usuários:', e);
+      return [];
+    }
+  },
+
+  // ---- Friend Requests ----
+
+  async sendFriendRequest(fromUid, toUid, fromData) {
+    if (!this.db || !fromUid || !toUid) return;
+    try {
+      // Add to sender's friendRequestsSent
+      await this.db.collection('users').doc(fromUid).set({
+        friendRequestsSent: firebase.firestore.FieldValue.arrayUnion(toUid)
+      }, { merge: true });
+      // Add to receiver's friendRequestsReceived
+      await this.db.collection('users').doc(toUid).set({
+        friendRequestsReceived: firebase.firestore.FieldValue.arrayUnion(fromUid)
+      }, { merge: true });
+      // Create notification for receiver
+      await this.addNotification(toUid, {
+        type: 'friend_request',
+        fromUid: fromUid,
+        fromName: fromData.displayName || '',
+        fromPhoto: fromData.photoURL || '',
+        fromEmail: fromData.email || '',
+        message: (fromData.displayName || 'Alguém') + ' quer ser seu amigo(a)!',
+        createdAt: new Date().toISOString(),
+        read: false
+      });
+    } catch (e) {
+      console.error('Erro ao enviar convite de amizade:', e);
+    }
+  },
+
+  async acceptFriendRequest(myUid, friendUid) {
+    if (!this.db || !myUid || !friendUid) return;
+    try {
+      // Add each other to friends arrays
+      await this.db.collection('users').doc(myUid).set({
+        friends: firebase.firestore.FieldValue.arrayUnion(friendUid),
+        friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(friendUid)
+      }, { merge: true });
+      await this.db.collection('users').doc(friendUid).set({
+        friends: firebase.firestore.FieldValue.arrayUnion(myUid),
+        friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(myUid)
+      }, { merge: true });
+    } catch (e) {
+      console.error('Erro ao aceitar amizade:', e);
+    }
+  },
+
+  async rejectFriendRequest(myUid, friendUid) {
+    if (!this.db || !myUid || !friendUid) return;
+    try {
+      await this.db.collection('users').doc(myUid).set({
+        friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(friendUid)
+      }, { merge: true });
+      await this.db.collection('users').doc(friendUid).set({
+        friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(myUid)
+      }, { merge: true });
+    } catch (e) {
+      console.error('Erro ao rejeitar amizade:', e);
+    }
+  },
+
+  // ---- Notifications ----
+
+  async addNotification(uid, notifData) {
+    if (!this.db || !uid) return;
+    try {
+      await this.db.collection('users').doc(uid).collection('notifications').add(notifData);
+    } catch (e) {
+      console.error('Erro ao criar notificação:', e);
+    }
+  },
+
+  async getNotifications(uid, limit) {
+    if (!this.db || !uid) return [];
+    try {
+      var query = this.db.collection('users').doc(uid).collection('notifications')
+        .orderBy('createdAt', 'desc');
+      if (limit) query = query.limit(limit);
+      var snap = await query.get();
+      var notifs = [];
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        data._id = doc.id;
+        notifs.push(data);
+      });
+      return notifs;
+    } catch (e) {
+      console.error('Erro ao carregar notificações:', e);
+      return [];
+    }
+  },
+
+  async markNotificationRead(uid, notifId) {
+    if (!this.db || !uid || !notifId) return;
+    try {
+      await this.db.collection('users').doc(uid).collection('notifications').doc(notifId).update({ read: true });
+    } catch (e) {
+      console.error('Erro ao marcar notificação como lida:', e);
+    }
+  },
+
+  async getUnreadNotificationCount(uid) {
+    if (!this.db || !uid) return 0;
+    try {
+      var snap = await this.db.collection('users').doc(uid).collection('notifications')
+        .where('read', '==', false).get();
+      return snap.size;
+    } catch (e) {
+      return 0;
+    }
   }
 };

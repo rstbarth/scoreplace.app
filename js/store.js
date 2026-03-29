@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.1.2-alpha';
+window.SCOREPLACE_VERSION = '0.1.3-alpha';
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
@@ -135,6 +135,22 @@ window.AppStore = {
         if (profile.preferredSports) this.currentUser.preferredSports = profile.preferredSports;
         if (profile.defaultCategory) this.currentUser.defaultCategory = profile.defaultCategory;
         if (profile.displayName) this.currentUser.displayName = profile.displayName;
+        if (profile.birthDate) this.currentUser.birthDate = profile.birthDate;
+        if (profile.age) this.currentUser.age = profile.age;
+        if (profile.city) this.currentUser.city = profile.city;
+        if (profile.state) this.currentUser.state = profile.state;
+        if (profile.country) this.currentUser.country = profile.country;
+        if (profile.locale) this.currentUser.locale = profile.locale;
+        if (profile.phone) this.currentUser.phone = profile.phone;
+        if (profile.photoURL) this.currentUser.photoURL = profile.photoURL;
+        // Boolean prefs — use !== undefined to allow false values
+        if (profile.acceptFriendRequests !== undefined) this.currentUser.acceptFriendRequests = profile.acceptFriendRequests;
+        if (profile.notifyPlatform !== undefined) this.currentUser.notifyPlatform = profile.notifyPlatform;
+        if (profile.notifyEmail !== undefined) this.currentUser.notifyEmail = profile.notifyEmail;
+        if (profile.notifyWhatsApp !== undefined) this.currentUser.notifyWhatsApp = profile.notifyWhatsApp;
+        if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
+        if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
+        if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
       }
       return profile;
     } catch (e) {
@@ -153,8 +169,22 @@ window.AppStore = {
       email: user.email || '',
       photoURL: user.photoURL || '',
       gender: user.gender || '',
+      birthDate: user.birthDate || '',
+      age: user.age || '',
+      city: user.city || '',
+      state: user.state || '',
+      country: user.country || '',
+      locale: user.locale || '',
+      phone: user.phone || '',
       preferredSports: user.preferredSports || '',
       defaultCategory: user.defaultCategory || '',
+      acceptFriendRequests: user.acceptFriendRequests !== false,
+      notifyPlatform: user.notifyPlatform !== false,
+      notifyEmail: user.notifyEmail !== false,
+      notifyWhatsApp: user.notifyWhatsApp !== false,
+      friends: user.friends || [],
+      friendRequestsSent: user.friendRequestsSent || [],
+      friendRequestsReceived: user.friendRequestsReceived || [],
       updatedAt: new Date().toISOString()
     });
   },
