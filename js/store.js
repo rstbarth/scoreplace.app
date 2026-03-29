@@ -12,6 +12,7 @@ window.AppStore = {
   viewMode: 'organizer',
   tournaments: [],
   _invitedTournamentIds: [],  // Track tournament IDs from invite links
+  _deletedTournamentIds: (function() { try { var d = localStorage.getItem('scoreplace_deleted_ids'); return d ? JSON.parse(d) : []; } catch(e) { return []; } })(),
   _syncDebounce: null,
   _loading: false,
   _realtimeUnsubscribe: null,  // Real-time listener unsubscribe function
@@ -32,8 +33,15 @@ window.AppStore = {
       var data = JSON.parse(raw);
       // Cache valid for 24h
       if (data && data.tournaments && (Date.now() - data.ts) < 86400000) {
-        this.tournaments = data.tournaments;
-        console.log('AppStore: ' + data.tournaments.length + ' torneios do cache local');
+        var deletedIds = this._deletedTournamentIds || [];
+        if (deletedIds.length > 0) {
+          this.tournaments = data.tournaments.filter(function(t) {
+            return deletedIds.indexOf(String(t.id)) === -1;
+          });
+        } else {
+          this.tournaments = data.tournaments;
+        }
+        console.log('AppStore: ' + this.tournaments.length + ' torneios do cache local');
         return true;
       }
     } catch(e) {}
@@ -66,11 +74,18 @@ window.AppStore = {
     this._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
       .onSnapshot(function(snap) {
         var tournaments = [];
-        snap.forEach(function(doc) { tournaments.push(doc.data()); });
+        var deletedIds = store._deletedTournamentIds || [];
+        snap.forEach(function(doc) {
+          var data = doc.data();
+          // Filter out recently deleted tournaments to prevent ghost re-appearance
+          if (deletedIds.indexOf(String(data.id)) === -1) {
+            tournaments.push(data);
+          }
+        });
         store.tournaments = tournaments;
         store._saveToCache();
         store._loading = false;
-        console.log('AppStore real-time: ' + tournaments.length + ' torneios atualizados');
+        console.log('AppStore real-time: ' + tournaments.length + ' torneios atualizados (filtrados ' + deletedIds.length + ' deletados)');
         // Re-render current view
         if (typeof initRouter === 'function') initRouter();
       }, function(err) {
@@ -93,6 +108,12 @@ window.AppStore = {
     this._loading = true;
     try {
       var tournaments = await window.FirestoreDB.loadAllTournaments();
+      var deletedIds = this._deletedTournamentIds || [];
+      if (deletedIds.length > 0) {
+        tournaments = tournaments.filter(function(t) {
+          return deletedIds.indexOf(String(t.id)) === -1;
+        });
+      }
       this.tournaments = tournaments;
       this._saveToCache();
       console.log('AppStore: ' + tournaments.length + ' torneios carregados');
