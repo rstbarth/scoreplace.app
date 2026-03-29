@@ -66,6 +66,24 @@ function renderExplore(container) {
   _performUserSearch('', myUid, myFriends, mySent, myReceived);
 }
 
+// ---- Helper: check if a participant entry matches a given user (by email OR displayName) ----
+function _participantMatchesUser(p, email, displayName) {
+  if (typeof p === 'string') {
+    // Post-draw: participant is a team string like "Rodrigo Barth / Eduardo Mange"
+    if (email && p === email) return true;
+    if (displayName && p.toLowerCase().indexOf(displayName.toLowerCase()) !== -1) return true;
+    return false;
+  }
+  // Object with email/displayName/name fields
+  var pEmail = p.email || '';
+  var pName = p.displayName || p.name || '';
+  if (email && pEmail === email) return true;
+  if (displayName && pName && pName.toLowerCase().indexOf(displayName.toLowerCase()) !== -1) return true;
+  // Also check if the whole string representation contains the displayName (for team names stored in name)
+  if (displayName && pEmail && pEmail.toLowerCase().indexOf(displayName.toLowerCase()) !== -1) return true;
+  return false;
+}
+
 // ---- User card HTML builder ----
 function _userCardHtml(u, uid, actionHtml, isFriend) {
   var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
@@ -96,11 +114,17 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
 
   window.FirestoreDB.searchUsers(query).then(function(users) {
     // Filter out self, friends, and conhecidos (shown in their own sections)
-    var conhecidosEmails = window._conhecidosEmails || [];
+    var conhecidosKeys = window._conhecidosEmails || [];
     users = users.filter(function(u) {
       var uid = u._docId || u.uid || u.email;
       var email = u.email || '';
-      return uid !== myUid && myFriends.indexOf(uid) === -1 && conhecidosEmails.indexOf(email) === -1 && conhecidosEmails.indexOf(uid) === -1;
+      var name = u.displayName || '';
+      if (uid === myUid) return false;
+      if (myFriends.indexOf(uid) !== -1) return false;
+      if (email && conhecidosKeys.indexOf(email) !== -1) return false;
+      if (uid && conhecidosKeys.indexOf(uid) !== -1) return false;
+      if (name && conhecidosKeys.indexOf(name) !== -1) return false;
+      return true;
     });
 
     if (users.length === 0) {
@@ -206,18 +230,18 @@ function _renderMyFriends(myUid, friendIds) {
     // Sort by interaction: users with more shared tournaments first,
     // then by most recently updated profile
     var myTournaments = window.AppStore.tournaments || [];
+    var _myEmail = (window.AppStore.currentUser && window.AppStore.currentUser.email) || '';
+    var _myName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName) || '';
     profiles.forEach(function(p) {
       var uid = p._docId;
       var sharedCount = 0;
       myTournaments.forEach(function(t) {
         var parts = Array.isArray(t.participants) ? t.participants : [];
-        var hasMe = parts.some(function(pp) {
-          var e = typeof pp === 'string' ? pp : (pp.email || '');
-          return e === (window.AppStore.currentUser.email || '');
+        var hasMe = t.organizerEmail === _myEmail || parts.some(function(pp) {
+          return _participantMatchesUser(pp, _myEmail, _myName);
         });
         var hasFriend = parts.some(function(pp) {
-          var e = typeof pp === 'string' ? pp : (pp.email || '');
-          return e === (p.email || uid);
+          return _participantMatchesUser(pp, p.email || '', p.displayName || '');
         });
         if (hasMe && hasFriend) sharedCount++;
       });
@@ -250,44 +274,55 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
   var div = document.getElementById('explore-conhecidos');
   if (!div) return;
 
-  var myEmail = (window.AppStore.currentUser && window.AppStore.currentUser.email) || '';
+  var cu = window.AppStore.currentUser;
+  var myEmail = (cu && cu.email) || '';
+  var myDisplayName = (cu && cu.displayName) || '';
   var tournaments = window.AppStore.tournaments || [];
 
   // Find all users who share tournaments with me
-  var conhecidosMap = {}; // uid -> { email, sharedCount, tournamentNames }
+  var conhecidosMap = {}; // key -> { email, displayName, sharedCount, tournamentNames }
 
   tournaments.forEach(function(t) {
     var parts = Array.isArray(t.participants) ? t.participants : [];
-    // Check if I'm in this tournament
-    var imIn = parts.some(function(p) {
-      var e = typeof p === 'string' ? p : (p.email || '');
-      return e === myEmail;
+    // Check if I'm in this tournament (by email OR displayName for post-draw team strings)
+    var imIn = t.organizerEmail === myEmail || parts.some(function(p) {
+      return _participantMatchesUser(p, myEmail, myDisplayName);
     });
     if (!imIn) return;
 
     // Find other participants
     parts.forEach(function(p) {
-      var email = typeof p === 'string' ? p : (p.email || '');
+      var email = typeof p === 'string' ? '' : (p.email || '');
       var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-      if (!email || email === myEmail) return;
+      // Skip myself
+      if (email && email === myEmail) return;
+      if (!email && name && myDisplayName && name.toLowerCase().indexOf(myDisplayName.toLowerCase()) !== -1) return;
+      // Need at least email or name to identify the person
+      var key = email || name;
+      if (!key) return;
 
-      if (!conhecidosMap[email]) {
-        conhecidosMap[email] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
+      if (!conhecidosMap[key]) {
+        conhecidosMap[key] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
       }
-      conhecidosMap[email].sharedCount++;
-      if (t.name && conhecidosMap[email].tournamentNames.length < 3) {
-        conhecidosMap[email].tournamentNames.push(t.name);
+      conhecidosMap[key].sharedCount++;
+      if (t.name && conhecidosMap[key].tournamentNames.length < 3) {
+        conhecidosMap[key].tournamentNames.push(t.name);
       }
     });
   });
 
   // Remove friends and self from conhecidos
   var conhecidos = Object.values(conhecidosMap).filter(function(c) {
-    return myFriends.indexOf(c.email) === -1;
+    var key = c.email || c.displayName;
+    return myFriends.indexOf(c.email) === -1 && myFriends.indexOf(key) === -1;
   });
 
-  // Store conhecidos emails for search filtering
-  window._conhecidosEmails = conhecidos.map(function(c) { return c.email; });
+  // Store conhecidos keys for search filtering (email + displayName)
+  window._conhecidosEmails = [];
+  conhecidos.forEach(function(c) {
+    if (c.email) window._conhecidosEmails.push(c.email);
+    if (c.displayName) window._conhecidosEmails.push(c.displayName);
+  });
 
   // Sort by shared tournament count (most interaction first)
   conhecidos.sort(function(a, b) { return b.sharedCount - a.sharedCount; });
@@ -299,8 +334,14 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 
   // Try to load full profiles for richer display
   var profilePromises = conhecidos.map(function(c) {
+    var fallback = { _docId: c.email || c.displayName, displayName: c.displayName, email: c.email, _sharedCount: c.sharedCount, _tournamentNames: c.tournamentNames };
+    if (!window.FirestoreDB || !window.FirestoreDB.db) return Promise.resolve(fallback);
+    // If we have an email, query by email; otherwise try displayName
+    var queryField = c.email ? 'email' : 'displayName';
+    var queryValue = c.email || c.displayName;
+    if (!queryValue) return Promise.resolve(fallback);
     return window.FirestoreDB.db.collection('users')
-      .where('email', '==', c.email)
+      .where(queryField, '==', queryValue)
       .limit(1)
       .get()
       .then(function(snap) {
@@ -311,11 +352,10 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
           data._tournamentNames = c.tournamentNames;
           return data;
         }
-        // Fallback: user not registered yet, use participant data
-        return { _docId: c.email, displayName: c.displayName, email: c.email, _sharedCount: c.sharedCount, _tournamentNames: c.tournamentNames };
+        return fallback;
       })
       .catch(function() {
-        return { _docId: c.email, displayName: c.displayName, email: c.email, _sharedCount: c.sharedCount, _tournamentNames: c.tournamentNames };
+        return fallback;
       });
   });
 
