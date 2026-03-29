@@ -17,16 +17,33 @@ window.FirestoreDB = {
     }
   },
 
+  // ---- Utilities ----
+
+  // Recursively strip undefined values from objects/arrays (Firestore rejects undefined)
+  _cleanUndefined(obj) {
+    if (obj === null || obj === undefined) return null;
+    if (Array.isArray(obj)) {
+      return obj.map(function(item) { return window.FirestoreDB._cleanUndefined(item); });
+    }
+    if (typeof obj === 'object' && obj.constructor === Object) {
+      var cleaned = {};
+      Object.keys(obj).forEach(function(key) {
+        if (obj[key] !== undefined) {
+          cleaned[key] = window.FirestoreDB._cleanUndefined(obj[key]);
+        }
+      });
+      return cleaned;
+    }
+    return obj;
+  },
+
   // ---- Tournaments ----
 
   async saveTournament(tourData) {
     if (!this.db) return;
-    try {
-      var docId = String(tourData.id);
-      await this.db.collection('tournaments').doc(docId).set(tourData, { merge: true });
-    } catch (e) {
-      console.error('Erro ao salvar torneio:', e);
-    }
+    var docId = String(tourData.id);
+    var cleanData = this._cleanUndefined(tourData);
+    await this.db.collection('tournaments').doc(docId).set(cleanData, { merge: true });
   },
 
   async deleteTournament(tournamentId) {
