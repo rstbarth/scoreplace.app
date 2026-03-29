@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.1.3-alpha';
+window.SCOREPLACE_VERSION = '0.1.4-alpha';
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
@@ -48,21 +48,47 @@ window.AppStore = {
     return false;
   },
 
-  // Sync: saves modified tournaments to Firestore (debounced)
+  // Sync: saves ALL organizer tournaments to Firestore IMMEDIATELY
+  // No more debounce — every mutation must persist to prevent data loss across devices
   sync() {
-    clearTimeout(this._syncDebounce);
-    this._syncDebounce = setTimeout(function() {
-      var store = window.AppStore;
-      if (!window.FirestoreDB || !window.FirestoreDB.db || !store.currentUser) return;
-      // Save all tournaments where this user is the organizer
-      store.tournaments.forEach(function(t) {
-        if (t.organizerEmail === store.currentUser.email) {
-          window.FirestoreDB.saveTournament(t).catch(function(err) {
-            console.warn('Sync error:', err);
-          });
-        }
-      });
-    }, 500);
+    var store = this;
+    if (!window.FirestoreDB || !window.FirestoreDB.db || !store.currentUser) return;
+    store.tournaments.forEach(function(t) {
+      if (t.organizerEmail === store.currentUser.email) {
+        window.FirestoreDB.saveTournament(t).catch(function(err) {
+          console.warn('Sync error:', err);
+        });
+      }
+    });
+    store._saveToCache();
+  },
+
+  // SyncImmediate: saves a specific tournament to Firestore RIGHT NOW (no debounce)
+  // Use for critical operations: draw, match results, status changes, enrollments
+  async syncImmediate(tournamentId) {
+    if (!window.FirestoreDB || !window.FirestoreDB.db) {
+      console.error('syncImmediate: Firestore not available');
+      return false;
+    }
+    var t = this.tournaments.find(function(tour) {
+      return String(tour.id) === String(tournamentId);
+    });
+    if (!t) {
+      console.error('syncImmediate: Tournament not found:', tournamentId);
+      return false;
+    }
+    try {
+      await window.FirestoreDB.saveTournament(t);
+      this._saveToCache();
+      console.log('syncImmediate: Tournament ' + tournamentId + ' saved to Firestore');
+      return true;
+    } catch (err) {
+      console.error('syncImmediate: FAILED to save tournament ' + tournamentId, err);
+      if (typeof showNotification === 'function') {
+        showNotification('Erro ao Salvar', 'Não foi possível salvar no servidor. Tente novamente.', 'error');
+      }
+      return false;
+    }
   },
 
   // Start real-time listener — auto-updates tournaments on any Firestore change
@@ -271,7 +297,8 @@ window.AppStore = {
         date: new Date().toISOString(),
         message: message
       });
-      this.sync();
+      // Note: does NOT call sync() here — the caller is responsible for saving.
+      // This avoids double Firestore writes since every logAction is followed by a sync().
     }
   },
 
