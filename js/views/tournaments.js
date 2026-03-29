@@ -358,6 +358,11 @@ function renderTournaments(container, tournamentId = null) {
                 () => {
                     const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === tId.toString());
                     if (idx !== -1) {
+                        // Marca como deletado para evitar que o listener traga de volta
+                        if (!window.AppStore._deletedTournamentIds) window.AppStore._deletedTournamentIds = [];
+                        window.AppStore._deletedTournamentIds.push(String(tId));
+                        try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
+
                         // Remove da memória
                         window.AppStore.tournaments.splice(idx, 1);
 
@@ -365,6 +370,10 @@ function renderTournaments(container, tournamentId = null) {
                         if (window.FirestoreDB && window.FirestoreDB.db) {
                             window.FirestoreDB.deleteTournament(tId).then(function() {
                                 console.log('Torneio ' + tId + ' deletado do Firestore');
+                                // Após confirmação do Firestore, remove da lista de deletados (já foi removido de verdade)
+                                var delIdx = window.AppStore._deletedTournamentIds.indexOf(String(tId));
+                                if (delIdx !== -1) window.AppStore._deletedTournamentIds.splice(delIdx, 1);
+                                try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
                             }).catch(function(err) {
                                 console.error('Erro ao deletar torneio do Firestore:', err);
                             });
@@ -372,6 +381,9 @@ function renderTournaments(container, tournamentId = null) {
 
                         // Atualiza cache local para refletir a remoção
                         window.AppStore._saveToCache();
+
+                        // Limpa cache antigo do boratime se existir
+                        try { localStorage.removeItem('boratime_state'); } catch(e) {}
 
                         showNotification('Torneio Apagado', 'O torneio foi removido permanentemente.', 'success');
                         window.location.hash = '#dashboard';
@@ -2700,36 +2712,70 @@ function renderTournaments(container, tournamentId = null) {
         // Ações Específicas da tela Explore
         let actionsHtml = '';
         if (tournamentId) {
+            const inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id;
+            const inviteText = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
             const inviteModalHtml = `
-             <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; cursor: default;" onclick="event.stopPropagation()">
-                <div style="background: var(--bg-card); width: 90%; max-width: 400px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease;">
-                   <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                      <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-bright);">📤 Convidar Jogadores</h3>
-                      <button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">&times;</button>
+             <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; cursor: default; overflow-y: auto; padding: 1rem;" onclick="event.stopPropagation()">
+                <div style="background: var(--bg-card); width: 100%; max-width: 380px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease; margin: auto;">
+
+                   <!-- Header -->
+                   <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-bright);">Convidar Jogadores</h3>
+                      <button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; line-height: 1;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">&times;</button>
                    </div>
-                   <div style="display: flex;">
-                      <button class="invite-tab-btn" style="flex: 1; padding: 12px; background: none; border: none; border-bottom: 2px solid var(--text-bright); color: var(--text-bright); font-weight: 700; cursor: pointer;" onclick="event.stopPropagation(); switchInviteTab(this, 'link', '${t.id}')">🔗 Link</button>
-                      <button class="invite-tab-btn" style="flex: 1; padding: 12px; background: none; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 500; cursor: pointer;" onclick="event.stopPropagation(); switchInviteTab(this, 'whats', '${t.id}')">💬 WhatsApp</button>
-                      <button class="invite-tab-btn" style="flex: 1; padding: 12px; background: none; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 500; cursor: pointer;" onclick="event.stopPropagation(); switchInviteTab(this, 'qr', '${t.id}')">🔳 QR Code</button>
-                   </div>
-                   <div style="padding: 1.5rem; color: var(--text-main);">
-                      <div class="invite-tab-content" id="tab-link-${t.id}" style="display: block; text-align: center;">
-                         <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Copie o convite público do evento.</p>
-                         <textarea id="invite-text-${t.id}" readonly style="width: 100%; height: 90px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); margin-bottom: 1rem; resize: none; font-family: inherit; font-size: 0.85rem; line-height: 1.4; text-align: left;">🏆 Torneio: ${t.name}
-Acesse o link abaixo para se inscrever:
-https://scoreplace.app/#tournaments/${t.id}</textarea>
-                         <button class="btn hover-lift" style="width: 100%; background: var(--primary-color); color: white; border: none; font-weight: 600; padding: 10px;" onclick="navigator.clipboard.writeText(document.getElementById('invite-text-${t.id}').value); showNotification('Copiado', 'Convite copiado para a Área de Transferência!', 'success')">Copiar Convite Inteiro</button>
+
+                   <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+
+                      <!-- 1. QR Code -->
+                      <div style="text-align: center;">
+                         <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.75rem;">QR Code</div>
+                         <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=111111&data=${encodeURIComponent(inviteUrl)}" alt="QR Code" width="160" height="160" style="display: block;">
+                         </div>
+                         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Escaneie com a câmera do celular</div>
                       </div>
-                      <div class="invite-tab-content" id="tab-whats-${t.id}" style="display: none; text-align: center;">
-                         <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Envie direto no WhatsApp.</p>
-                         <button class="btn hover-lift" style="width: 100%; background: #25D366; color: white; border: none; font-weight: 600; padding: 10px;" onclick="window.open('https://api.whatsapp.com/send?text=Participe do torneio: ${encodeURIComponent(t.name)}%0Ahttps://scoreplace.app/#tournaments/${t.id}', '_blank')">💬 Enviar Mensagem</button>
+
+                      <div style="height: 1px; background: var(--border-color);"></div>
+
+                      <!-- 2. WhatsApp -->
+                      <div>
+                         <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem;">WhatsApp</div>
+                         <button class="btn hover-lift" style="width: 100%; background: #25D366; color: white; border: none; font-weight: 600; padding: 10px 16px; border-radius: 10px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent('${inviteText.replace(/'/g, "\\'")}'), '_blank')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            Enviar via WhatsApp
+                         </button>
                       </div>
-                      <div class="invite-tab-content" id="tab-qr-${t.id}" style="display: none; text-align: center;">
-                         <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Escaneie o QR Code abaixo com a câmera.</p>
-                         <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block;">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=111111&data=https://scoreplace.app/#tournaments/${t.id}" alt="QR Code" width="150" height="150" style="display: block;">
+
+                      <div style="height: 1px; background: var(--border-color);"></div>
+
+                      <!-- 3. Copiar Link -->
+                      <div>
+                         <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem;">Link do Torneio</div>
+                         <div style="display: flex; gap: 8px; align-items: stretch;">
+                            <input type="text" readonly value="${inviteUrl}" id="invite-url-${t.id}" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.8rem; min-width: 0;" onclick="this.select()">
+                            <button class="btn hover-lift" style="background: var(--primary-color); color: white; border: none; font-weight: 600; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; white-space: nowrap;" onclick="navigator.clipboard.writeText(document.getElementById('invite-url-${t.id}').value); showNotification('Copiado!', 'Link copiado.', 'success')">Copiar</button>
+                         </div>
+                         <div style="margin-top: 6px;">
+                            <button style="background: none; border: none; color: var(--primary-color); font-size: 0.75rem; cursor: pointer; padding: 0; text-decoration: underline;" onclick="navigator.clipboard.writeText('${inviteText.replace(/'/g, "\\'")}'); showNotification('Copiado!', 'Convite completo copiado.', 'success')">Copiar convite completo com nome do torneio</button>
                          </div>
                       </div>
+
+                      <div style="height: 1px; background: var(--border-color);"></div>
+
+                      <!-- 4. Email -->
+                      <div>
+                         <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem;">Enviar por E-mail</div>
+                         <div style="display: flex; gap: 8px; align-items: stretch;">
+                            <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.85rem; min-width: 0;">
+                            <button class="btn hover-lift" style="background: rgba(99,102,241,0.9); color: white; border: none; font-weight: 600; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; white-space: nowrap;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification('Atenção','Digite um e-mail.','warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${t.name}') + '&body=' + encodeURIComponent('${inviteText.replace(/'/g, "\\'")}'), '_self'); showNotification('E-mail', 'Abrindo seu cliente de e-mail...', 'info');">Enviar</button>
+                         </div>
+                      </div>
+
+                   </div>
+
+                   <!-- Footer -->
+                   <div style="padding: 0.75rem 1.5rem 1.25rem; text-align: center;">
+                      <button style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; padding: 6px 16px;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">Fechar</button>
                    </div>
                 </div>
              </div>
