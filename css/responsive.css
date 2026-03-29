@@ -748,36 +748,78 @@ img {
 }
 
 /* ====================================================
-   HAMBURGER MENU FOR MOBILE
+   MOBILE TOPBAR — compact single-line icons
    ==================================================== */
 @media (max-width: 767px) {
   .hamburger-btn {
-    display: flex !important;
-    align-items: center;
-  }
-  .topbar-menu {
     display: none !important;
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    padding: 8px 0;
-  }
-  .topbar-menu.open {
-    display: flex !important;
-  }
-  .topbar-menu a,
-  .topbar-menu button {
-    justify-content: flex-start !important;
-    width: 100%;
   }
   .topbar {
     height: auto !important;
-    min-height: 60px;
-    flex-wrap: wrap;
+    min-height: 50px;
+    flex-wrap: nowrap !important;
+    padding: 0 0.75rem !important;
+    gap: 4px;
+  }
+  .page-title {
+    flex-shrink: 1;
+    min-width: 0;
+    gap: 6px !important;
   }
   .page-title h1 {
-    white-space: normal !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.1rem !important;
+  }
+  .page-title svg {
+    width: 22px !important;
+    height: 22px !important;
+    flex-shrink: 0;
+  }
+  .topbar-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  .topbar-menu.open {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+  .topbar-menu a,
+  .topbar-menu button {
+    justify-content: center !important;
+    width: auto !important;
+    padding: 0 6px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+  /* View mode selector compact */
+  #view-mode-container {
+    margin: 0 !important;
+  }
+  #view-mode-selector {
+    font-size: 0.7rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+  /* Login button compact */
+  #btn-login {
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.6rem !important;
+    min-height: 36px !important;
+  }
+  /* Logged-in user area: avatar + logoff tight, hide name */
+  #btn-login.d-flex {
+    gap: 2px !important;
+  }
+  .user-name-label {
+    display: none !important;
+  }
+  .logoff-btn {
+    margin-left: 4px !important;
   }
 }
 
