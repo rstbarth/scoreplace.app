@@ -40,21 +40,25 @@ if (firebase && firebase.auth) {
         photoURL: user.photoURL
       });
     } else {
-      // User is signed out — clear user but load public tournaments
+      // User is signed out — stop previous listener, load public tournaments
       if (window.AppStore) {
         window.AppStore.currentUser = null;
-        // Load public tournaments so non-logged-in users can browse them
+        if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
+        // Start real-time listener for public tournaments only
         if (window.FirestoreDB && window.FirestoreDB.db) {
-          window.FirestoreDB.db.collection('tournaments').where('isPublic', '==', true).get().then(function(snap) {
-            var publicTournaments = [];
-            snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
-            window.AppStore.tournaments = publicTournaments;
-            console.log('Public tournaments loaded:', publicTournaments.length);
-            if (typeof initRouter === 'function') initRouter();
-          }).catch(function(err) {
-            console.warn('Error loading public tournaments:', err);
-            window.AppStore.tournaments = [];
-          });
+          window.AppStore._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
+            .where('isPublic', '==', true)
+            .onSnapshot(function(snap) {
+              var publicTournaments = [];
+              snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
+              window.AppStore.tournaments = publicTournaments;
+              window.AppStore._saveToCache();
+              console.log('Public tournaments real-time:', publicTournaments.length);
+              if (typeof initRouter === 'function') initRouter();
+            }, function(err) {
+              console.warn('Public tournaments listener error:', err);
+              window.AppStore.tournaments = [];
+            });
         } else {
           window.AppStore.tournaments = [];
         }
@@ -113,8 +117,10 @@ async function simulateLoginSuccess(user) {
     await window.AppStore.loadUserProfile(uid);
   }
 
-  // Load tournaments from Firestore
-  if (window.AppStore.loadFromFirestore) {
+  // Start real-time listener for tournaments (auto-updates on any change)
+  if (window.AppStore.startRealtimeListener) {
+    window.AppStore.startRealtimeListener();
+  } else if (window.AppStore.loadFromFirestore) {
     await window.AppStore.loadFromFirestore();
   }
 
@@ -289,7 +295,8 @@ function handleLogout() {
     });
   }
 
-  // Clear AppStore state
+  // Stop real-time listener and clear AppStore state
+  if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
   window.AppStore.currentUser = null;
   window.AppStore.tournaments = [];
   window.AppStore.viewMode = 'participant';

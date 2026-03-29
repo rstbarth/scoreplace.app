@@ -1,10 +1,11 @@
-window.SCOREPLACE_VERSION = '0.1.1-alpha';
+window.SCOREPLACE_VERSION = '0.1.2-alpha';
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
 // ========================================
 // All tournament data persists in Cloud Firestore.
-// Only theme preference stays in localStorage.
+// Local cache in localStorage for instant first-paint.
+// Real-time listener (onSnapshot) keeps data fresh without refresh.
 
 window.AppStore = {
   currentUser: null,
@@ -13,6 +14,31 @@ window.AppStore = {
   _invitedTournamentIds: [],  // Track tournament IDs from invite links
   _syncDebounce: null,
   _loading: false,
+  _realtimeUnsubscribe: null,  // Real-time listener unsubscribe function
+  _cacheKey: 'scoreplace_tournaments_cache',
+
+  // --- Local Cache ---
+  _saveToCache() {
+    try {
+      var data = { ts: Date.now(), tournaments: this.tournaments };
+      localStorage.setItem(this._cacheKey, JSON.stringify(data));
+    } catch(e) { /* quota exceeded or private browsing */ }
+  },
+
+  _loadFromCache() {
+    try {
+      var raw = localStorage.getItem(this._cacheKey);
+      if (!raw) return false;
+      var data = JSON.parse(raw);
+      // Cache valid for 24h
+      if (data && data.tournaments && (Date.now() - data.ts) < 86400000) {
+        this.tournaments = data.tournaments;
+        console.log('AppStore: ' + data.tournaments.length + ' torneios do cache local');
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  },
 
   // Sync: saves modified tournaments to Firestore (debounced)
   sync() {
@@ -31,13 +57,44 @@ window.AppStore = {
     }, 500);
   },
 
-  // Load all tournaments from Firestore (called on login)
+  // Start real-time listener — auto-updates tournaments on any Firestore change
+  startRealtimeListener() {
+    if (this._realtimeUnsubscribe) return; // Already listening
+    if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+
+    var store = this;
+    this._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
+      .onSnapshot(function(snap) {
+        var tournaments = [];
+        snap.forEach(function(doc) { tournaments.push(doc.data()); });
+        store.tournaments = tournaments;
+        store._saveToCache();
+        store._loading = false;
+        console.log('AppStore real-time: ' + tournaments.length + ' torneios atualizados');
+        // Re-render current view
+        if (typeof initRouter === 'function') initRouter();
+      }, function(err) {
+        console.warn('Real-time listener error:', err);
+        // Fallback to one-time load
+        store.loadFromFirestore();
+      });
+  },
+
+  stopRealtimeListener() {
+    if (this._realtimeUnsubscribe) {
+      this._realtimeUnsubscribe();
+      this._realtimeUnsubscribe = null;
+    }
+  },
+
+  // Load all tournaments from Firestore (one-time, fallback)
   async loadFromFirestore() {
     if (!window.FirestoreDB || !window.FirestoreDB.db) return;
     this._loading = true;
     try {
       var tournaments = await window.FirestoreDB.loadAllTournaments();
       this.tournaments = tournaments;
+      this._saveToCache();
       console.log('AppStore: ' + tournaments.length + ' torneios carregados');
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);

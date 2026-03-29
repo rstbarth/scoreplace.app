@@ -135,8 +135,13 @@ setupEnrollModal();
 // Inicia Lógica de Temas (Select Element)
 initThemeSystem();
 
+// Load cached tournaments for instant first-paint (before Firebase auth resolves)
+if (window.AppStore && window.AppStore._loadFromCache) {
+  window.AppStore._loadFromCache();
+}
+
 // Inicia o Roteador SPA
-// Firebase onAuthStateChanged will handle auto-login and data loading from Firestore
+// Firebase onAuthStateChanged will handle auto-login and real-time data from Firestore
 initRouter();
 
-console.log("scoreplace.app Inicializado com Sucesso");
+console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Inicializado com Sucesso");
