@@ -86,8 +86,9 @@ function _participantMatchesUser(p, email, displayName) {
 
 // ---- User card HTML builder ----
 function _userCardHtml(u, uid, actionHtml, isFriend) {
-  var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
   var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var avatarSeed = encodeURIComponent(name || uid || 'User');
+  var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + avatarSeed;
   var infoChips = [];
   if (u.city) infoChips.push(u.city);
   if (u.preferredSports) infoChips.push(u.preferredSports);
@@ -115,12 +116,19 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   window.FirestoreDB.searchUsers(query).then(function(users) {
     // Filter out self, friends, and conhecidos (shown in their own sections)
     var conhecidosKeys = window._conhecidosEmails || [];
+    var friendEmails = window._friendEmails || [];
+    var friendNames = window._friendNames || [];
     users = users.filter(function(u) {
       var uid = u._docId || u.uid || u.email;
       var email = u.email || '';
       var name = u.displayName || '';
       if (uid === myUid) return false;
+      // Filter by friend UID, email, or name
       if (myFriends.indexOf(uid) !== -1) return false;
+      if (email && myFriends.indexOf(email) !== -1) return false;
+      if (email && friendEmails.indexOf(email) !== -1) return false;
+      if (name && friendNames.indexOf(name) !== -1) return false;
+      // Filter conhecidos
       if (email && conhecidosKeys.indexOf(email) !== -1) return false;
       if (uid && conhecidosKeys.indexOf(uid) !== -1) return false;
       if (name && conhecidosKeys.indexOf(name) !== -1) return false;
@@ -185,8 +193,8 @@ function _renderPendingRequests(myUid, receivedIds) {
 
     profiles.forEach(function(u) {
       var uid = u._docId;
-      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
       var name = u.displayName || 'Usuário';
+      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + encodeURIComponent(name || uid || 'User');
 
       html += '<div class="card" style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">' +
         '<img src="' + photo + '" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
@@ -225,6 +233,15 @@ function _renderMyFriends(myUid, friendIds) {
 
   Promise.all(promises).then(function(profiles) {
     profiles = profiles.filter(function(p) { return p; });
+
+    // Store friend emails and names for dedup in conhecidos/search
+    window._friendEmails = [];
+    window._friendNames = [];
+    profiles.forEach(function(p) {
+      if (p.email) window._friendEmails.push(p.email);
+      if (p.displayName) window._friendNames.push(p.displayName);
+    });
+
     if (profiles.length === 0) { div.innerHTML = ''; return; }
 
     // Sort by interaction: users with more shared tournaments first,
@@ -325,10 +342,23 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     });
   });
 
+  // Build a set of friend identifiers (uid + email + displayName) for dedup
+  var friendKeys = myFriends.slice(); // UIDs
+  // Also store friends' emails/names loaded from _renderMyFriends
+  if (window._friendEmails) {
+    window._friendEmails.forEach(function(k) { if (k && friendKeys.indexOf(k) === -1) friendKeys.push(k); });
+  }
+  if (window._friendNames) {
+    window._friendNames.forEach(function(k) { if (k && friendKeys.indexOf(k) === -1) friendKeys.push(k); });
+  }
+
   // Remove friends and self from conhecidos
   var conhecidos = Object.values(conhecidosMap).filter(function(c) {
     var key = c.email || c.displayName;
-    return myFriends.indexOf(c.email) === -1 && myFriends.indexOf(key) === -1;
+    if (friendKeys.indexOf(c.email) !== -1) return false;
+    if (friendKeys.indexOf(c.displayName) !== -1) return false;
+    if (friendKeys.indexOf(key) !== -1) return false;
+    return true;
   });
 
   // Store conhecidos keys for search filtering (email + displayName)
@@ -412,8 +442,9 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
       }
 
       // Custom card for conhecidos (amber/yellow tint)
-      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
       var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+      var avatarSeed = encodeURIComponent(name || uid || 'User');
+      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + avatarSeed;
 
       html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
         '<img src="' + photo + '" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
@@ -454,16 +485,27 @@ window._sendFriendRequest = function(toUid) {
   if (!cu) return;
   var myUid = cu.uid || cu.email;
 
-  if (!cu.friendRequestsSent) cu.friendRequestsSent = [];
-  cu.friendRequestsSent.push(toUid);
-
   window.FirestoreDB.sendFriendRequest(myUid, toUid, {
     displayName: cu.displayName,
     photoURL: cu.photoURL,
     email: cu.email
-  }).then(function() {
-    if (typeof showNotification !== 'undefined') {
-      showNotification('Convite Enviado', 'Seu convite de amizade foi enviado!', 'success');
+  }).then(function(result) {
+    if (result === 'auto-accepted') {
+      // Mutual request auto-accepted — update local state
+      if (!cu.friends) cu.friends = [];
+      if (cu.friends.indexOf(toUid) === -1) cu.friends.push(toUid);
+      cu.friendRequestsSent = (cu.friendRequestsSent || []).filter(function(id) { return id !== toUid; });
+      cu.friendRequestsReceived = (cu.friendRequestsReceived || []).filter(function(id) { return id !== toUid; });
+      if (typeof showNotification !== 'undefined') {
+        showNotification('Amizade Formada!', 'Vocês já tinham convites mútuos — agora são amigos!', 'success');
+      }
+    } else {
+      // Normal request sent
+      if (!cu.friendRequestsSent) cu.friendRequestsSent = [];
+      cu.friendRequestsSent.push(toUid);
+      if (typeof showNotification !== 'undefined') {
+        showNotification('Convite Enviado', 'Seu convite de amizade foi enviado!', 'success');
+      }
     }
     var container = document.getElementById('view-container');
     if (container) renderExplore(container);

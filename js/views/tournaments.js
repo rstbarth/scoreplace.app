@@ -36,6 +36,82 @@ function renderTournaments(container, tournamentId = null) {
             const mod = document.getElementById('invite-modal-' + id);
             if (mod) mod.style.display = 'none';
         };
+
+        // Convidar todos os amigos para o torneio (via notificação na plataforma)
+        window._inviteFriendsToTournament = async function(tournamentId, inviteTextSafe) {
+            var cu = window.AppStore.currentUser;
+            if (!cu || !cu.friends || cu.friends.length === 0) return;
+            var myUid = cu.uid || cu.email;
+            var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+            if (!t) return;
+
+            var btn = document.getElementById('invite-friends-btn-' + tournamentId);
+            var statusDiv = document.getElementById('invite-friends-status-' + tournamentId);
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Enviando...'; }
+
+            var inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id + '?ref=' + encodeURIComponent(myUid);
+            var sent = 0;
+            var whatsappNumbers = [];
+
+            for (var i = 0; i < cu.friends.length; i++) {
+                var friendUid = cu.friends[i];
+                try {
+                    var profile = await window.FirestoreDB.loadUserProfile(friendUid);
+                    if (!profile) continue;
+
+                    // Check if already enrolled
+                    var parts = Array.isArray(t.participants) ? t.participants : [];
+                    var alreadyIn = parts.some(function(p) {
+                        var str = typeof p === 'string' ? p : (p.email || p.displayName || '');
+                        return str && profile.email && str.indexOf(profile.email) !== -1;
+                    });
+                    if (alreadyIn) continue;
+
+                    // Send platform notification (always)
+                    if (profile.notifyPlatform !== false) {
+                        await window.FirestoreDB.addNotification(friendUid, {
+                            type: 'tournament_invite',
+                            fromUid: myUid,
+                            fromName: cu.displayName || '',
+                            fromPhoto: cu.photoURL || '',
+                            tournamentId: String(t.id),
+                            tournamentName: t.name || '',
+                            message: (cu.displayName || 'Um amigo') + ' convidou você para o torneio "' + (t.name || '') + '"!',
+                            inviteUrl: inviteUrl,
+                            createdAt: new Date().toISOString(),
+                            read: false
+                        });
+                        sent++;
+                    }
+
+                    // Collect WhatsApp numbers for bulk share
+                    if (profile.notifyWhatsApp !== false && profile.phone) {
+                        var countryCode = profile.phoneCountry || '55';
+                        var phoneDigits = (profile.phone || '').replace(/\D/g, '');
+                        if (phoneDigits) whatsappNumbers.push(countryCode + phoneDigits);
+                    }
+                } catch(e) {
+                    console.warn('Error inviting friend', friendUid, e);
+                }
+            }
+
+            // Update UI
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '👥 Convites Enviados!'; }
+            var statusMsg = sent + ' convite' + (sent !== 1 ? 's' : '') + ' enviado' + (sent !== 1 ? 's' : '') + ' na plataforma.';
+            if (whatsappNumbers.length > 0) {
+                statusMsg += ' ' + whatsappNumbers.length + ' amigo' + (whatsappNumbers.length !== 1 ? 's' : '') + ' também recebe' + (whatsappNumbers.length !== 1 ? 'm' : '') + ' por WhatsApp.';
+            }
+            if (statusDiv) statusDiv.textContent = statusMsg;
+            if (typeof showNotification !== 'undefined') {
+                showNotification('Convites Enviados!', statusMsg, 'success');
+            }
+
+            // Open WhatsApp with first friend who accepts WhatsApp (one-by-one for now)
+            if (whatsappNumbers.length > 0) {
+                var inviteMsg = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(inviteMsg), '_blank');
+            }
+        };
         window.switchInviteTab = function (btn, tabName, id) {
             const modal = btn.closest('.invite-modal-container');
             modal.querySelectorAll('.invite-tab-btn').forEach(b => {
@@ -2800,6 +2876,17 @@ function renderTournaments(container, tournamentId = null) {
                    </div>
 
                    <div style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box; overflow: hidden;">
+
+                      <!-- 0. Convidar Amigos -->
+                      ${(window.AppStore.currentUser && window.AppStore.currentUser.friends && window.AppStore.currentUser.friends.length > 0) ? `
+                      <div>
+                         <button class="btn hover-lift" id="invite-friends-btn-${t.id}" style="width: 100%; background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%); color: white; border: none; font-weight: 600; padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="event.stopPropagation(); window._inviteFriendsToTournament('${t.id}', '${inviteTextSafe}')">
+                            👥 Convidar Amigos (${window.AppStore.currentUser.friends.length})
+                         </button>
+                         <div id="invite-friends-status-${t.id}" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;"></div>
+                      </div>
+                      <div style="height: 1px; background: var(--border-color);"></div>
+                      ` : ''}
 
                       <!-- 1. QR Code -->
                       <div style="text-align: center;">
