@@ -153,6 +153,20 @@ window.FirestoreDB = {
     }
   },
 
+  async removeFriend(myUid, friendUid) {
+    if (!this.db || !myUid || !friendUid) return;
+    try {
+      await this.db.collection('users').doc(myUid).set({
+        friends: firebase.firestore.FieldValue.arrayRemove(friendUid)
+      }, { merge: true });
+      await this.db.collection('users').doc(friendUid).set({
+        friends: firebase.firestore.FieldValue.arrayRemove(myUid)
+      }, { merge: true });
+    } catch (e) {
+      console.error('Erro ao remover amizade:', e);
+    }
+  },
+
   async rejectFriendRequest(myUid, friendUid) {
     if (!this.db || !myUid || !friendUid) return;
     try {

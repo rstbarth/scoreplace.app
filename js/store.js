@@ -142,6 +142,7 @@ window.AppStore = {
         if (profile.country) this.currentUser.country = profile.country;
         if (profile.locale) this.currentUser.locale = profile.locale;
         if (profile.phone) this.currentUser.phone = profile.phone;
+        if (profile.phoneCountry) this.currentUser.phoneCountry = profile.phoneCountry;
         if (profile.photoURL) this.currentUser.photoURL = profile.photoURL;
         // Boolean prefs — use !== undefined to allow false values
         if (profile.acceptFriendRequests !== undefined) this.currentUser.acceptFriendRequests = profile.acceptFriendRequests;
@@ -176,6 +177,7 @@ window.AppStore = {
       country: user.country || '',
       locale: user.locale || '',
       phone: user.phone || '',
+      phoneCountry: user.phoneCountry || '55',
       preferredSports: user.preferredSports || '',
       defaultCategory: user.defaultCategory || '',
       acceptFriendRequests: user.acceptFriendRequests !== false,
