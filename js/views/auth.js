@@ -19,6 +19,7 @@ try {
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
     authProvider = new firebase.auth.GoogleAuthProvider();
+    authProvider.addScope('https://www.googleapis.com/auth/user.gender.read');
   }
   // Initialize Firestore
   if (window.FirestoreDB) {
@@ -93,6 +94,12 @@ function handleGoogleLogin() {
     .then(function(result) {
       var user = result.user;
       showNotification('Login Realizado', 'Bem-vindo(a), ' + user.displayName + '!', 'success');
+
+      // Tenta buscar o gênero do Google via People API
+      var credential = result.credential;
+      if (credential && credential.accessToken) {
+        _fetchGoogleGender(credential.accessToken, user.uid || user.email);
+      }
       // onAuthStateChanged will handle the rest
     })
     .catch(function(error) {
@@ -105,6 +112,40 @@ function handleGoogleLogin() {
         showNotification('Erro no Auth', 'Não foi possível realizar o login com Google.', 'error');
       }
     });
+}
+
+// Busca o gênero do perfil Google via People API e salva no Firestore
+function _fetchGoogleGender(accessToken, uid) {
+  fetch('https://people.googleapis.com/v1/people/me?personFields=genders', {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.genders && data.genders.length > 0) {
+      var googleGender = data.genders[0].value; // 'male', 'female', 'unspecified'
+      var genderMap = { 'male': 'masculino', 'female': 'feminino', 'unspecified': '' };
+      var genderPt = genderMap[googleGender] || '';
+
+      if (genderPt && window.AppStore.currentUser) {
+        // Só preenche se o usuário ainda não tiver gênero definido
+        if (!window.AppStore.currentUser.gender) {
+          window.AppStore.currentUser.gender = genderPt;
+          console.log('Gênero do Google detectado:', genderPt);
+
+          // Salva no Firestore
+          if (window.FirestoreDB && window.FirestoreDB.db && uid) {
+            window.FirestoreDB.saveUserProfile(uid, { gender: genderPt }).catch(function(err) {
+              console.warn('Erro ao salvar gênero:', err);
+            });
+          }
+        }
+      }
+    }
+  })
+  .catch(function(err) {
+    // Silencioso — gênero é opcional, não bloqueia o login
+    console.log('People API (gênero) não disponível:', err.message || err);
+  });
 }
 
 async function simulateLoginSuccess(user) {
