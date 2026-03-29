@@ -20,6 +20,8 @@ try {
     firebase.initializeApp(firebaseConfig);
     authProvider = new firebase.auth.GoogleAuthProvider();
     authProvider.addScope('https://www.googleapis.com/auth/user.gender.read');
+    authProvider.addScope('https://www.googleapis.com/auth/user.birthday.read');
+    authProvider.addScope('https://www.googleapis.com/auth/user.addresses.read');
   }
   // Initialize Firestore
   if (window.FirestoreDB) {
@@ -98,7 +100,7 @@ function handleGoogleLogin() {
       // Tenta buscar o gênero do Google via People API
       var credential = result.credential;
       if (credential && credential.accessToken) {
-        _fetchGoogleGender(credential.accessToken, user.uid || user.email);
+        _fetchGoogleDemographics(credential.accessToken, user.uid || user.email);
       }
       // onAuthStateChanged will handle the rest
     })
@@ -114,37 +116,84 @@ function handleGoogleLogin() {
     });
 }
 
-// Busca o gênero do perfil Google via People API e salva no Firestore
-function _fetchGoogleGender(accessToken, uid) {
-  fetch('https://people.googleapis.com/v1/people/me?personFields=genders', {
+// Busca dados demográficos do Google via People API e salva no Firestore
+function _fetchGoogleDemographics(accessToken, uid) {
+  fetch('https://people.googleapis.com/v1/people/me?personFields=genders,birthdays,ageRanges,locales,addresses', {
     headers: { 'Authorization': 'Bearer ' + accessToken }
   })
   .then(function(res) { return res.json(); })
   .then(function(data) {
+    if (!window.AppStore.currentUser) return;
+    var profileUpdates = {};
+
+    // Gênero
     if (data.genders && data.genders.length > 0) {
-      var googleGender = data.genders[0].value; // 'male', 'female', 'unspecified'
+      var googleGender = data.genders[0].value;
       var genderMap = { 'male': 'masculino', 'female': 'feminino', 'unspecified': '' };
       var genderPt = genderMap[googleGender] || '';
+      if (genderPt && !window.AppStore.currentUser.gender) {
+        window.AppStore.currentUser.gender = genderPt;
+        profileUpdates.gender = genderPt;
+        console.log('Gênero do Google detectado:', genderPt);
+      }
+    }
 
-      if (genderPt && window.AppStore.currentUser) {
-        // Só preenche se o usuário ainda não tiver gênero definido
-        if (!window.AppStore.currentUser.gender) {
-          window.AppStore.currentUser.gender = genderPt;
-          console.log('Gênero do Google detectado:', genderPt);
-
-          // Salva no Firestore
-          if (window.FirestoreDB && window.FirestoreDB.db && uid) {
-            window.FirestoreDB.saveUserProfile(uid, { gender: genderPt }).catch(function(err) {
-              console.warn('Erro ao salvar gênero:', err);
-            });
-          }
+    // Data de nascimento e idade
+    if (data.birthdays && data.birthdays.length > 0) {
+      var bd = data.birthdays[0].date;
+      if (bd && bd.year && bd.month && bd.day) {
+        var birthDateStr = bd.year + '-' + String(bd.month).padStart(2, '0') + '-' + String(bd.day).padStart(2, '0');
+        if (!window.AppStore.currentUser.birthDate) {
+          window.AppStore.currentUser.birthDate = birthDateStr;
+          profileUpdates.birthDate = birthDateStr;
+          // Calcula idade
+          var today = new Date();
+          var birthDate = new Date(bd.year, bd.month - 1, bd.day);
+          var age = today.getFullYear() - birthDate.getFullYear();
+          var monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+          window.AppStore.currentUser.age = age;
+          profileUpdates.age = age;
+          console.log('Idade do Google detectada:', age);
         }
       }
     }
+
+    // Localidade/idioma
+    if (data.locales && data.locales.length > 0) {
+      var locale = data.locales[0].value;
+      if (locale && !window.AppStore.currentUser.locale) {
+        window.AppStore.currentUser.locale = locale;
+        profileUpdates.locale = locale;
+      }
+    }
+
+    // Endereço/cidade
+    if (data.addresses && data.addresses.length > 0) {
+      var addr = data.addresses[0];
+      if (addr.city && !window.AppStore.currentUser.city) {
+        window.AppStore.currentUser.city = addr.city;
+        profileUpdates.city = addr.city;
+      }
+      if (addr.region && !window.AppStore.currentUser.state) {
+        window.AppStore.currentUser.state = addr.region;
+        profileUpdates.state = addr.region;
+      }
+      if (addr.country && !window.AppStore.currentUser.country) {
+        window.AppStore.currentUser.country = addr.country;
+        profileUpdates.country = addr.country;
+      }
+    }
+
+    // Salva no Firestore se houve atualizações
+    if (Object.keys(profileUpdates).length > 0 && window.FirestoreDB && window.FirestoreDB.db && uid) {
+      window.FirestoreDB.saveUserProfile(uid, profileUpdates).catch(function(err) {
+        console.warn('Erro ao salvar dados demográficos:', err);
+      });
+    }
   })
   .catch(function(err) {
-    // Silencioso — gênero é opcional, não bloqueia o login
-    console.log('People API (gênero) não disponível:', err.message || err);
+    console.log('People API (demográficos) não disponível:', err.message || err);
   });
 }
 
@@ -206,12 +255,24 @@ async function simulateLoginSuccess(user) {
         var cu = window.AppStore.currentUser;
         document.getElementById('profile-edit-name').value = cu.displayName || 'Usuário';
         document.getElementById('profile-edit-gender').value = cu.gender || '';
+        document.getElementById('profile-edit-birthdate').value = cu.birthDate || '';
+        document.getElementById('profile-edit-city').value = cu.city || '';
+        document.getElementById('profile-edit-phone').value = cu.phone || '';
         document.getElementById('profile-edit-sports').value = cu.preferredSports || '';
         document.getElementById('profile-edit-category').value = cu.defaultCategory || '';
+        document.getElementById('profile-accept-friends').checked = cu.acceptFriendRequests !== false;
+        document.getElementById('profile-notify-platform').checked = cu.notifyPlatform !== false;
+        document.getElementById('profile-notify-email').checked = cu.notifyEmail !== false;
+        document.getElementById('profile-notify-whatsapp').checked = cu.notifyWhatsApp !== false;
 
         if (typeof openModal === 'function') openModal('modal-profile');
       }
     });
+  }
+
+  // Update notification badge
+  if (typeof _updateNotificationBadge === 'function') {
+    _updateNotificationBadge();
   }
 
   // Set view mode to organizer
@@ -409,10 +470,22 @@ function setupProfileModal() {
               '<label class="form-label">Sexo</label>' +
               '<select id="profile-edit-gender" class="form-control full-width">' +
                 '<option value="">Não informar</option>' +
-                '<option value="M">Masculino</option>' +
-                '<option value="F">Feminino</option>' +
-                '<option value="Outro">Outro</option>' +
+                '<option value="masculino">Masculino</option>' +
+                '<option value="feminino">Feminino</option>' +
+                '<option value="outro">Outro</option>' +
               '</select>' +
+            '</div>' +
+            '<div class="form-group mb-3">' +
+              '<label class="form-label">Data de Nascimento</label>' +
+              '<input type="date" id="profile-edit-birthdate" class="form-control full-width">' +
+            '</div>' +
+            '<div class="form-group mb-3">' +
+              '<label class="form-label">Cidade</label>' +
+              '<input type="text" id="profile-edit-city" class="form-control full-width" placeholder="Ex: São Paulo">' +
+            '</div>' +
+            '<div class="form-group mb-3">' +
+              '<label class="form-label">WhatsApp (com DDD)</label>' +
+              '<input type="tel" id="profile-edit-phone" class="form-control full-width" placeholder="Ex: 11999998888">' +
             '</div>' +
             '<div class="form-group mb-3">' +
               '<label class="form-label">Esportes Preferidos (Opcional)</label>' +
@@ -423,14 +496,38 @@ function setupProfileModal() {
               '<input type="text" id="profile-edit-category" class="form-control full-width" placeholder="Ex: C, Iniciante">' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
+            '<div style="margin-bottom: 1.5rem;">' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.75rem;">Social</label>' +
+              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 0; font-size: 0.9rem; color: var(--text-main);">' +
+                '<input type="checkbox" id="profile-accept-friends" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
+                'Aceitar convites de amizade de outros usuários' +
+              '</label>' +
+            '</div>' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
+            '<div style="margin-bottom: 1.5rem;">' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.75rem;">Notificações</label>' +
+              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
+                '<input type="checkbox" id="profile-notify-platform" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
+                'Receber notificações na plataforma' +
+              '</label>' +
+              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
+                '<input type="checkbox" id="profile-notify-email" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
+                'Receber notificações por e-mail' +
+              '</label>' +
+              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
+                '<input type="checkbox" id="profile-notify-whatsapp" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
+                'Receber notificações por WhatsApp' +
+              '</label>' +
+            '</div>' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
             '<div class="form-group text-left" style="margin-bottom: 1.5rem;">' +
               '<label class="form-label" style="display: block; text-align: left; font-weight: 600; margin-bottom: 0.75rem;">Aparência da Plataforma</label>' +
               '<select id="theme-selector" class="form-control full-width" style="padding: 0.75rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);" title="Alterar Tema">' +
-                '<option value="auto">💻 Tema Auto (Sistema)</option>' +
-                '<option value="dark">🌙 Tema Escuro (Padrão)</option>' +
-                '<option value="light">☀️ Modo Claro (Light)</option>' +
-                '<option value="high-contrast">👁️ Alto Contraste</option>' +
-                '<option value="alternative">🎨 Alternativo (Catppuccin)</option>' +
+                '<option value="auto">Tema Auto (Sistema)</option>' +
+                '<option value="dark">Tema Escuro (Padrão)</option>' +
+                '<option value="light">Modo Claro (Light)</option>' +
+                '<option value="high-contrast">Alto Contraste</option>' +
+                '<option value="alternative">Alternativo (Catppuccin)</option>' +
               '</select>' +
             '</div>' +
             '<div style="display: flex; gap: 10px; margin-top: 1.5rem;">' +
@@ -455,16 +552,41 @@ function setupProfileModal() {
       if (!window.AppStore.currentUser) return;
       var name = document.getElementById('profile-edit-name').value.trim();
       var gender = document.getElementById('profile-edit-gender').value;
+      var birthDate = document.getElementById('profile-edit-birthdate').value;
+      var city = document.getElementById('profile-edit-city').value.trim();
+      var phone = document.getElementById('profile-edit-phone').value.trim();
       var sports = document.getElementById('profile-edit-sports').value.trim();
       var category = document.getElementById('profile-edit-category').value.trim();
+      var acceptFriends = document.getElementById('profile-accept-friends').checked;
+      var notifyPlatform = document.getElementById('profile-notify-platform').checked;
+      var notifyEmail = document.getElementById('profile-notify-email').checked;
+      var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').checked;
 
       if (name) {
         window.AppStore.currentUser.displayName = name;
         window.AppStore.currentUser.name = name;
       }
       window.AppStore.currentUser.gender = gender;
+      window.AppStore.currentUser.birthDate = birthDate;
+      window.AppStore.currentUser.city = city;
+      window.AppStore.currentUser.phone = phone;
       window.AppStore.currentUser.preferredSports = sports;
       window.AppStore.currentUser.defaultCategory = category;
+      window.AppStore.currentUser.acceptFriendRequests = acceptFriends;
+      window.AppStore.currentUser.notifyPlatform = notifyPlatform;
+      window.AppStore.currentUser.notifyEmail = notifyEmail;
+      window.AppStore.currentUser.notifyWhatsApp = notifyWhatsApp;
+
+      // Calcula idade se tem data de nascimento
+      if (birthDate) {
+        var parts = birthDate.split('-');
+        var bd = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        var today = new Date();
+        var age = today.getFullYear() - bd.getFullYear();
+        var m = today.getMonth() - bd.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+        window.AppStore.currentUser.age = age;
+      }
 
       // Save profile to Firestore
       if (window.AppStore.saveUserProfileToFirestore) {
