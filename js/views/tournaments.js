@@ -165,7 +165,7 @@ function renderTournaments(container, tournamentId = null) {
             }
             if (t) {
                 // Verifica se as inscrições estão realmente abertas
-                const sorteioRealizado = t.status === 'active' && (t.matches || t.rounds || t.groups);
+                const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
                 const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
                 const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
                 if (!inscricoesAbertas) {
@@ -210,7 +210,7 @@ function renderTournaments(container, tournamentId = null) {
             if (!t || !user) return;
 
             // Verifica se as inscrições estão realmente abertas
-            const sorteioRealizado = t.status === 'active' && (t.matches || t.rounds || t.groups);
+            const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
             const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
             const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
             if (!inscricoesAbertas) {
@@ -2587,7 +2587,7 @@ function renderTournaments(container, tournamentId = null) {
         const cats = (t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única';
 
         // Inscrições fecham após sorteio (status 'active'), exceto Liga com inscrições abertas na temporada
-        const sorteioRealizado = t.status === 'active' && (t.matches || t.rounds || t.groups);
+        const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
         const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
         const statusText = isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas');
@@ -2730,7 +2730,7 @@ https://scoreplace.app/#tournaments/${t.id}</textarea>
              <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
           ` : '');
 
-            const hasDraw = !!(t.matches || t.rounds || t.groups);
+            const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
             const tournamentStarted = !!t.tournamentStarted;
 
             if (isOrg) {
