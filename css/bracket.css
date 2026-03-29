@@ -1,0 +1,188 @@
+/* ==== TOURNAMENT BRACKET ==== */
+.bracket-container {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 3rem;
+  padding: 2rem 0;
+  min-height: 500px;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-width: 250px;
+}
+
+.bracket-round-title {
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.bracket-match {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  position: relative;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  min-width: 180px;
+}
+
+/* Mobile bracket adjustments */
+@media (max-width: 767px) {
+  .bracket-container {
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    min-height: 400px;
+  }
+
+  .bracket-round {
+    min-width: 160px;
+  }
+
+  .bracket-round-title {
+    font-size: 0.7rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .bracket-match {
+    margin-bottom: 1rem;
+    min-width: 140px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .bracket-container {
+    gap: 2rem;
+    padding: 1.5rem 0;
+  }
+
+  .bracket-round {
+    min-width: 220px;
+  }
+
+  .bracket-match {
+    min-width: 200px;
+  }
+}
+
+.bracket-match:hover {
+  border-color: var(--border-focus);
+}
+
+.bracket-match.active {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Linhas Conectando os Confrontos */
+.bracket-round:not(:last-child) .bracket-match::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -1.5rem;
+  width: 1.5rem;
+  height: 2px;
+  background-color: var(--border-color);
+}
+
+.bracket-round:not(:first-child) .bracket-match::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -1.5rem;
+  width: 1.5rem;
+  height: 2px;
+  background-color: var(--border-color);
+}
+
+/* Pseudo-elementos para linha vertical de ligação no lado direito */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  right: -1.5rem;
+  width: 1.5rem;
+  border-right: 2px solid var(--border-color);
+  border-top: 2px solid var(--border-color);
+  background: transparent;
+  height: calc(50% + 0.75rem); /* Half spacing to next match */
+  top: 50%;
+}
+/* Isso é um layout complexo de flexbox, usaremos uma abordagem simplificada de SVG ou conectores no renderizador JS se precisar. Aqui usamos bordas básicas */
+
+.match-player {
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.match-player:last-child {
+  border-bottom: none;
+}
+
+.match-player.winner {
+  font-weight: 700;
+  color: var(--success-color);
+  background-color: rgba(46, 160, 67, 0.05);
+}
+
+.match-player.loser {
+  color: var(--text-muted);
+}
+
+.match-score {
+  font-family: var(--font-display);
+  font-weight: 700;
+  background-color: var(--bg-darker);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.match-player.winner .match-score {
+  border-color: var(--primary-color);
+}
+
+/* Mobile bracket match adjustments */
+@media (max-width: 767px) {
+  .match-player {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .match-score {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+    min-width: 1.75rem;
+  }
+
+  .match-player.winner {
+    background-color: rgba(46, 160, 67, 0.08);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .match-player {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .match-score {
+    padding: 0.18rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}

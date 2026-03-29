@@ -1,0 +1,835 @@
+/* ====================================================
+   RESPONSIVE DESIGN - SCOREPLACE
+   Mobile-first approach with breakpoints:
+   - Mobile: max-width 767px
+   - Tablet: 768px - 1199px
+   - Desktop: 1200px+
+   ==================================================== */
+
+/* ====================================================
+   MOBILE FIRST BASE (320px - 767px)
+   ==================================================== */
+
+/* Topbar/Header */
+@media (max-width: 767px) {
+  .topbar {
+    height: 60px;
+    padding: 0 1rem;
+    margin-bottom: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .page-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Hide text labels on mobile, keep icons only */
+  .topbar-actions a span,
+  .topbar-actions button span {
+    display: none;
+  }
+
+  /* Reduce button padding for mobile */
+  .topbar-actions a,
+  .topbar-actions button {
+    padding: 0 0.75rem !important;
+    height: 36px !important;
+  }
+
+  /* Hide the divider on mobile */
+  .topbar-actions > div[style*="width: 1px"] {
+    display: none;
+  }
+
+  /* Login button styling */
+  #btn-login {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem !important;
+  }
+
+  /* View mode selector full width on small screens */
+  #view-mode-selector {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem !important;
+    white-space: nowrap;
+  }
+}
+
+/* Dashboard cards - Mobile Stack */
+@media (max-width: 767px) {
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .stat-card h3 {
+    font-size: 1rem;
+  }
+
+  .stat-card .stat-number {
+    font-size: 1.75rem;
+  }
+}
+
+/* Modal - Full-screen on mobile */
+@media (max-width: 767px) {
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateY(100%);
+  }
+
+  .modal-overlay.active .modal {
+    transform: translateY(0);
+  }
+
+  .modal-header {
+    padding: 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    padding: 1.25rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  /* Form groups stack vertically */
+  .d-flex.modal-body > * {
+    flex-direction: column;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-control {
+    font-size: 16px;
+  }
+}
+
+/* Bracket - Mobile scroll */
+@media (max-width: 767px) {
+  .bracket-container {
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    min-height: 400px;
+  }
+
+  .bracket-round {
+    min-width: 180px;
+  }
+
+  .bracket-match {
+    margin-bottom: 1rem;
+  }
+
+  .match-player {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .bracket-round-title {
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .match-score {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Tournament detail cards - Single column */
+@media (max-width: 767px) {
+  .tournament-details {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tournament-header {
+    gap: 1rem;
+  }
+
+  .tournament-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .detail-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Buttons - Full width on mobile */
+@media (max-width: 767px) {
+  .view-container .btn-primary,
+  .view-container .btn-secondary {
+    width: 100%;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+  }
+}
+
+/* Reduce padding and margins */
+@media (max-width: 767px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .card-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  h4, h5, h6 {
+    font-size: 1rem;
+  }
+
+  .mt-4 {
+    margin-top: 1rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 1rem;
+  }
+
+  .gap-3 {
+    gap: 1rem !important;
+  }
+}
+
+/* Tables - Horizontal scroll */
+@media (max-width: 767px) {
+  table {
+    font-size: 0.85rem;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table th,
+  table td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+/* Touch targets - At least 44px */
+@media (max-width: 767px) {
+  .btn {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 22px;
+    min-height: 22px;
+    width: 22px;
+    height: 22px;
+  }
+  /* Touch target via label instead */
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  button,
+  a[role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Flex layouts - Stack on mobile */
+@media (max-width: 767px) {
+  .d-flex {
+    flex-direction: column;
+  }
+
+  .d-flex.justify-between {
+    align-items: flex-start;
+  }
+
+  .justify-between {
+    justify-content: flex-start !important;
+  }
+
+  .flex-row {
+    flex-direction: column;
+  }
+}
+
+/* ====================================================
+   TABLET (768px - 1199px)
+   ==================================================== */
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .topbar {
+    padding: 0 1.5rem;
+  }
+
+  .page-title h1 {
+    font-size: 1.5rem;
+  }
+
+  .topbar-actions {
+    gap: 1rem;
+  }
+
+  /* Dashboard cards - 2+1 or 3 columns */
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .dashboard-cards .stat-card:nth-child(3) {
+    grid-column: 1 / 3;
+  }
+
+  .stat-card {
+    padding: 1.5rem;
+  }
+
+  /* Modal on tablet */
+  .modal {
+    width: 95%;
+    max-width: 700px;
+    max-height: 90vh;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Bracket on tablet */
+  .bracket-container {
+    gap: 2rem;
+    padding: 1.5rem 0;
+  }
+
+  .bracket-round {
+    min-width: 220px;
+  }
+
+  .tournament-details {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .view-container {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* ====================================================
+   DESKTOP (1200px+)
+   ==================================================== */
+
+@media (min-width: 1200px) {
+  .topbar {
+    height: 70px;
+    padding: 0 2rem;
+  }
+
+  .page-title h1 {
+    font-size: 1.8rem;
+  }
+
+  /* Dashboard cards - 3 columns */
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    padding: 1.5rem;
+  }
+
+  .stat-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .stat-card .stat-number {
+    font-size: 2rem;
+  }
+
+  /* Modal - Centered with max-width */
+  .modal {
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+  }
+
+  .modal-footer {
+    justify-content: flex-end;
+  }
+
+  .modal-footer .btn {
+    width: auto;
+    min-width: 100px;
+  }
+
+  /* Bracket - Normal horizontal layout */
+  .bracket-container {
+    gap: 3rem;
+    padding: 2rem 0;
+    min-height: 500px;
+  }
+
+  .bracket-round {
+    min-width: 250px;
+  }
+
+  .bracket-round-title {
+    font-size: 0.85rem;
+  }
+
+  .match-player {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .tournament-details {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .view-container {
+    padding: 2rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* ====================================================
+   UTILITY CLASSES FOR RESPONSIVE
+   ==================================================== */
+
+.hidden-mobile {
+  display: none;
+}
+
+.hidden-tablet {
+  display: block;
+}
+
+.hidden-desktop {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
+    display: block;
+  }
+
+  .hidden-tablet {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hidden-tablet {
+    display: block;
+  }
+
+  .hidden-desktop {
+    display: none;
+  }
+}
+
+/* Responsive spacing utilities */
+@media (max-width: 767px) {
+  .p-mobile {
+    padding: 0.75rem !important;
+  }
+
+  .m-mobile {
+    margin: 0.5rem !important;
+  }
+
+  .gap-mobile {
+    gap: 0.5rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .p-tablet {
+    padding: 1rem !important;
+  }
+
+  .m-tablet {
+    margin: 1rem !important;
+  }
+
+  .gap-tablet {
+    gap: 1rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .p-desktop {
+    padding: 1.5rem !important;
+  }
+
+  .m-desktop {
+    margin: 1.5rem !important;
+  }
+
+  .gap-desktop {
+    gap: 1.5rem !important;
+  }
+}
+
+/* ====================================================
+   RESPONSIVE IMAGES & MEDIA
+   ==================================================== */
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .image-large {
+    width: 100%;
+  }
+
+  .image-medium {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .image-large {
+    width: 80%;
+  }
+
+  .image-medium {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .image-large {
+    width: 100%;
+  }
+
+  .image-medium {
+    width: 80%;
+  }
+}
+
+/* ====================================================
+   RESPONSIVE GRID SYSTEMS
+   ==================================================== */
+
+.grid-auto {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .grid-auto {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .grid-auto {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .grid-auto {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ====================================================
+   RESPONSIVE TYPOGRAPHY
+   ==================================================== */
+
+@media (max-width: 767px) {
+  .text-lg {
+    font-size: 1rem;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .text-lg {
+    font-size: 1.1rem;
+  }
+
+  .text-xl {
+    font-size: 1.25rem;
+  }
+
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .text-lg {
+    font-size: 1.125rem;
+  }
+
+  .text-xl {
+    font-size: 1.375rem;
+  }
+
+  .text-2xl {
+    font-size: 1.875rem;
+  }
+}
+
+/* ====================================================
+   MOBILE LANDSCAPE
+   ==================================================== */
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .topbar {
+    height: 50px;
+    padding: 0 1rem;
+  }
+
+  .view-container {
+    padding: 0.75rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+  }
+}
+
+/* ====================================================
+   ACCESSIBILITY & PRINT
+   ==================================================== */
+
+@media print {
+  .topbar,
+  .sidebar,
+  .modal-overlay,
+  .btn,
+  .hidden-print {
+    display: none !important;
+  }
+
+  .view-container {
+    padding: 0;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ====================================================
+   HAMBURGER MENU FOR MOBILE
+   ==================================================== */
+@media (max-width: 767px) {
+  .hamburger-btn {
+    display: flex !important;
+    align-items: center;
+  }
+  .topbar-menu {
+    display: none !important;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 0;
+  }
+  .topbar-menu.open {
+    display: flex !important;
+  }
+  .topbar-menu a,
+  .topbar-menu button {
+    justify-content: flex-start !important;
+    width: 100%;
+  }
+  .topbar {
+    height: auto !important;
+    min-height: 60px;
+    flex-wrap: wrap;
+  }
+  .page-title h1 {
+    white-space: normal !important;
+  }
+}
+
+/* ====================================================
+   HERO CREATE BUTTON
+   ==================================================== */
+/* Desktop: absolute no canto superior direito do hero box */
+.btn-create-hero {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+}
+/* Mobile: static, full-width, above greeting */
+@media (max-width: 767px) {
+  .hero-box {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.2rem !important;
+  }
+  .btn-create-hero {
+    position: static !important;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    text-align: center;
+    order: -1;
+  }
+}
+
+/* ====================================================
+   DATES ROW — stack vertically on mobile
+   ==================================================== */
+@media (max-width: 767px) {
+  .dates-row {
+    flex-direction: column !important;
+  }
+  .dates-row > div {
+    flex: none !important;
+    width: 100% !important;
+  }
+}
+
+/* ====================================================
+   COURTS ROW — side by side on desktop/tablet/landscape,
+   stacked on portrait mobile
+   ==================================================== */
+@media (max-width: 767px) {
+  .courts-row {
+    flex-direction: column !important;
+  }
+  .courts-row .courts-count-field {
+    flex: none !important;
+    width: 100% !important;
+  }
+}
