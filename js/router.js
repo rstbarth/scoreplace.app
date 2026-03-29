@@ -22,10 +22,18 @@ function initRouter() {
     const view = parts[0];
     const param = parts[1] || null;
 
+    // --- Preserve ?ref= invite referrer in sessionStorage ---
+    var _refMatch = hash.match(/[?&]ref=([^&]+)/);
+    if (_refMatch) {
+      try { sessionStorage.setItem('_inviteRefUid', decodeURIComponent(_refMatch[1])); } catch(e) {}
+    }
+    // Clean param from query string if present
+    var cleanParam = param ? param.split('?')[0] : null;
+
     // --- Track invited tournament IDs for visibility (memory + sessionStorage) ---
-    if (view === 'tournaments' && param && window.AppStore) {
-      if (window.AppStore._invitedTournamentIds.indexOf(param) === -1) {
-        window.AppStore._invitedTournamentIds.push(param);
+    if (view === 'tournaments' && cleanParam && window.AppStore) {
+      if (window.AppStore._invitedTournamentIds.indexOf(cleanParam) === -1) {
+        window.AppStore._invitedTournamentIds.push(cleanParam);
       }
       try {
         sessionStorage.setItem('_invitedTournamentIds', JSON.stringify(window.AppStore._invitedTournamentIds));
@@ -34,7 +42,7 @@ function initRouter() {
 
     // --- For non-logged-in users visiting a tournament, save hash for post-login redirect ---
     const isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
-    if (!isLoggedIn && view === 'tournaments' && param) {
+    if (!isLoggedIn && view === 'tournaments' && cleanParam) {
       window._pendingInviteHash = hash;
       // Let them through to see tournament details with prominent enroll button
     }
@@ -53,23 +61,23 @@ function initRouter() {
         renderDashboard(viewContainer);
         break;
       case 'tournaments':
-        if (param) {
-          renderTournaments(viewContainer, param);
+        if (cleanParam) {
+          renderTournaments(viewContainer, cleanParam);
         } else {
           window.location.replace('#dashboard');
         }
         break;
       case 'pre-draw':
-        renderPreDraw(viewContainer, param);
+        renderPreDraw(viewContainer, cleanParam);
         break;
       case 'bracket':
-        renderBracket(viewContainer, param);
+        renderBracket(viewContainer, cleanParam);
         break;
       case 'participants':
-        renderParticipants(viewContainer, param);
+        renderParticipants(viewContainer, cleanParam);
         break;
       case 'rules':
-        renderRules(viewContainer, param);
+        renderRules(viewContainer, cleanParam);
         break;
       case 'explore':
         renderExplore(viewContainer);
