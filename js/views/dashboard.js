@@ -252,16 +252,17 @@ function renderDashboard(container) {
         position: relative;
     ">
       
-      <!-- Botão Canto Direito Superipr -->
-      <button class="btn hover-lift btn-create-hero" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); padding: 0.6rem 1.2rem; cursor: pointer; font-weight: 500; font-size: 0.95rem; transition: all 0.2s ease;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
-        + Novo Torneio
-      </button>
-
-      <div style="margin-bottom: 2.5rem; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
+      <div style="margin-bottom: 1rem; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
         <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">
           Olá, ${userName}
       </h2>
         <p style="margin: 0.5rem 0 0 0; opacity: 0.85; font-size: 1.1rem;">Gerencie seus torneios e partidas esportivas</p>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <button class="btn hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); padding: 0.85rem 2.2rem; cursor: pointer; font-weight: 600; font-size: 1.15rem; transition: all 0.2s ease; letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
+          + Novo Torneio
+        </button>
       </div>
       
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">

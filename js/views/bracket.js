@@ -374,7 +374,7 @@ window._substituteFromStandby = function (tId) {
         }));
 
         window.AppStore.logAction(tId, `Substituição individual: ${absentPlayer} → ${replacementName} (time: ${newTeamName})`);
-        window.AppStore.sync();
+        window.AppStore.syncImmediate(tId);
         showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentPlayer}`, 'success');
         renderBracket(document.getElementById('view-container'), tId);
       }, null,
@@ -434,7 +434,7 @@ window._substituteFromStandby = function (tId) {
         }));
 
         window.AppStore.logAction(tId, `Desclassificação: ${absentTeam} → ${replacementName}`);
-        window.AppStore.sync();
+        window.AppStore.syncImmediate(tId);
         showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentTeam}`, 'success');
         renderBracket(document.getElementById('view-container'), tId);
       }, null,
@@ -621,8 +621,8 @@ function _ensureFutureRounds(t) {
   }
 
   // Salvar a reparação
-  if (typeof window.AppStore !== 'undefined' && typeof window.AppStore.sync === 'function') {
-    window.AppStore.sync();
+  if (typeof window.AppStore !== 'undefined' && typeof window.AppStore.syncImmediate === 'function') {
+    window.AppStore.syncImmediate(t.id);
   }
 }
 
@@ -1210,7 +1210,7 @@ window._saveResultInline = function (tId, matchId) {
   if (!t.tournamentStarted) t.tournamentStarted = Date.now();
 
   window.AppStore.logAction(tId, `Resultado: ${m.p1} ${s1} × ${s2} ${m.p2}${m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner}`);
-  window.AppStore.sync();
+  window.AppStore.syncImmediate(tId);
   renderBracket(document.getElementById('view-container'), tId);
 };
 
@@ -1254,7 +1254,7 @@ window._editResult = function (tId, matchId) {
       m.scoreP2 = undefined;
 
       window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
-      window.AppStore.sync();
+      window.AppStore.syncImmediate(tId);
       renderBracket(document.getElementById('view-container'), tId);
     },
     null,
@@ -1469,7 +1469,7 @@ window._advanceToElimination = function (tId) {
   window._buildNextMatchLinks(t);
 
   window.AppStore.logAction(tId, `Fase Eliminatória iniciada com ${seeded.length} classificados`);
-  window.AppStore.sync();
+  window.AppStore.syncImmediate(tId);
 
   showNotification('Fase Eliminatória', `${seeded.length} classificados avançaram para as eliminatórias!`, 'success');
   renderBracket(document.getElementById('view-container'), tId);
@@ -1819,7 +1819,7 @@ function _doCloseRound(t, tId, roundIdx) {
   }
 
   window.AppStore.logAction(tId, `Rodada ${roundIdx + 1} encerrada`);
-  window.AppStore.sync();
+  window.AppStore.syncImmediate(tId);
   renderBracket(document.getElementById('view-container'), tId);
 }
 

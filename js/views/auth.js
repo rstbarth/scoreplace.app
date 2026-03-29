@@ -605,35 +605,36 @@ function _setupPhoneMask(inputEl, countryCode) {
 }
 
 // Toggle button helper — replaces checkboxes with friendly pill toggles
-function _toggleBtnHtml(id, label, checked) {
-  var onStyle = 'background: var(--primary-color); color: #fff; border-color: var(--primary-color);';
+// Optional customColor (hex) for on-state, optional icon (emoji/symbol)
+function _toggleBtnHtml(id, label, checked, customColor, icon) {
+  var onBg = customColor || 'var(--primary-color)';
+  var onBorder = customColor || 'var(--primary-color)';
+  var onStyle = 'background: ' + onBg + '; color: #fff; border-color: ' + onBorder + ';';
   var offStyle = 'background: transparent; color: var(--text-muted); border-color: var(--border-color);';
+  var iconHtml = icon ? '<span style="font-size: 0.95rem; flex-shrink: 0;">' + icon + '</span>' : '';
   return '<button type="button" id="' + id + '" data-on="' + (checked ? '1' : '0') + '" ' +
-    'style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; width: 100%; text-align: left; ' +
+    'data-color="' + (customColor || '') + '" ' +
+    'style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 6px; border-radius: 10px; border: 1.5px solid; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; box-sizing: border-box; ' +
     (checked ? onStyle : offStyle) + '" ' +
     'onclick="_toggleProfileBtn(this)">' +
-    '<span style="width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.7rem; transition: all 0.2s; ' +
-    (checked ? 'background: rgba(255,255,255,0.3);' : 'background: var(--border-color);') + '">' +
-    (checked ? '\u2713' : '') +
-    '</span>' +
+    iconHtml +
     '<span>' + label + '</span>' +
   '</button>';
 }
 
 window._toggleProfileBtn = function(btn) {
   var isOn = btn.getAttribute('data-on') === '1';
-  var onStyle = { background: 'var(--primary-color)', color: '#fff', borderColor: 'var(--primary-color)' };
+  var customColor = btn.getAttribute('data-color') || '';
+  var onBg = customColor || 'var(--primary-color)';
+  var onBorder = customColor || 'var(--primary-color)';
+  var onStyle = { background: onBg, color: '#fff', borderColor: onBorder };
   var offStyle = { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border-color)' };
   if (isOn) {
     btn.setAttribute('data-on', '0');
     Object.assign(btn.style, offStyle);
-    btn.querySelector('span').style.background = 'var(--border-color)';
-    btn.querySelector('span').textContent = '';
   } else {
     btn.setAttribute('data-on', '1');
     Object.assign(btn.style, onStyle);
-    btn.querySelector('span').style.background = 'rgba(255,255,255,0.3)';
-    btn.querySelector('span').textContent = '\u2713';
   }
 };
 
@@ -693,27 +694,27 @@ function setupProfileModal() {
                 '<input type="date" id="profile-edit-birthdate" class="form-control" style="width: 100%; box-sizing: border-box;">' +
               '</div>' +
             '</div>' +
-            // Row: Cidade + Esportes (2 colunas desktop, 1 mobile)
+            // Row: Cidade + Categoria (2 colunas)
             '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
               '<div class="form-group" style="margin: 0;">' +
                 '<label class="form-label" style="font-size: 0.75rem;">Cidade</label>' +
                 '<input type="text" id="profile-edit-city" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: São Paulo">' +
               '</div>' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">Esportes Preferidos</label>' +
-                '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel">' +
+                '<label class="form-label" style="font-size: 0.75rem;">Categoria</label>' +
+                '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
               '</div>' +
             '</div>' +
-            // Categoria
+            // Esportes Preferidos (linha inteira)
             '<div class="form-group" style="margin-bottom: 10px;">' +
-              '<label class="form-label" style="font-size: 0.75rem;">Categoria Padrão</label>' +
-              '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
+              '<label class="form-label" style="font-size: 0.75rem;">Esportes Preferidos</label>' +
+              '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel, Beach Tennis">' +
             '</div>' +
             // Telefone: País + Número
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">WhatsApp</label>' +
-              '<div style="display: flex; gap: 8px;">' +
-                '<select id="profile-phone-country" class="form-control" style="width: 100px; flex-shrink: 0; box-sizing: border-box; font-size: 0.9rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
+              '<div style="display: flex; gap: 6px;">' +
+                '<select id="profile-phone-country" class="form-control" style="width: 120px; flex-shrink: 0; box-sizing: border-box; font-size: 0.85rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
                   countryOpts +
                 '</select>' +
                 '<input type="tel" id="profile-edit-phone" class="form-control" style="flex: 1; min-width: 0; box-sizing: border-box;" placeholder="(11) 99723-7733" data-digits="">' +
@@ -729,10 +730,10 @@ function setupProfileModal() {
             // Notification toggles
             '<div style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Notificações</label>' +
-              '<div style="display: flex; flex-direction: column; gap: 6px;">' +
-                _toggleBtnHtml('profile-notify-platform', 'Plataforma', true) +
-                _toggleBtnHtml('profile-notify-email', 'E-mail', true) +
-                _toggleBtnHtml('profile-notify-whatsapp', 'WhatsApp', true) +
+              '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">' +
+                _toggleBtnHtml('profile-notify-platform', 'Plataforma', true, null, '\uD83D\uDD14') +
+                _toggleBtnHtml('profile-notify-email', 'E-mail', true, '#e67e22', '\u2709\uFE0F') +
+                _toggleBtnHtml('profile-notify-whatsapp', 'WhatsApp', true, '#25D366', '\uD83D\uDCAC') +
               '</div>' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +

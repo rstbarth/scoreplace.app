@@ -1936,11 +1936,13 @@ function renderTournaments(container, tournamentId = null) {
                 _generateNextRound(t);
 
                 window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${t.rounds[0].matches.length} partida(s)`);
-                window.AppStore.sync();
 
                 if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
                 showNotification('Torneio Iniciado', `Rodada 1 gerada com ${t.rounds[0].matches.length} partida(s)!`, 'success');
-                window.location.hash = `#bracket/${tId}`;
+                // Save immediately to Firestore, then navigate
+                window.AppStore.syncImmediate(tId).then(function() {
+                    window.location.hash = `#bracket/${tId}`;
+                });
                 return;
             }
 
@@ -2033,11 +2035,12 @@ function renderTournaments(container, tournamentId = null) {
                 t.status = 'active';
 
                 window.AppStore.logAction(tId, `Sorteio Realizado — ${numGroups} grupos criados com rodízio interno`);
-                window.AppStore.sync();
 
                 if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
                 showNotification('Fase de Grupos Iniciada', `${numGroups} grupos gerados!`, 'success');
-                window.location.hash = `#bracket/${tId}`;
+                window.AppStore.syncImmediate(tId).then(function() {
+                    window.location.hash = `#bracket/${tId}`;
+                });
                 return;
             }
 
@@ -2100,10 +2103,10 @@ function renderTournaments(container, tournamentId = null) {
             if (t.p2Resolution === 'swiss') {
                 t.status = 'active';
                 t.currentStage = 'swiss';
-                // Trigger swiss round generation (to be implemented/integrated)
                 showNotification('Sucesso', 'Fase Classificatória (Suíço) Iniciada!', 'success');
-                window.AppStore.sync();
-                window.location.hash = `#tournaments/${tId}`;
+                window.AppStore.syncImmediate(tId).then(function() {
+                    window.location.hash = `#tournaments/${tId}`;
+                });
                 return;
             }
 
@@ -2192,13 +2195,15 @@ function renderTournaments(container, tournamentId = null) {
             }
 
             window.AppStore.logAction(tId, 'Sorteio Realizado e Chaveamento Gerado');
-            window.AppStore.sync();
 
             if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
 
             showNotification('Sucesso', 'Sorteio realizado com sucesso!', 'success');
             window._lastActiveTournamentId = tId;
-            window.location.hash = `#bracket/${tId}`;
+            // Save immediately — critical: draw MUST persist to Firestore before navigating
+            window.AppStore.syncImmediate(tId).then(function() {
+                window.location.hash = `#bracket/${tId}`;
+            });
         };
 
         // Build nextMatchId links for single elim bracket
