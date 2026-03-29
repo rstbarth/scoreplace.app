@@ -98,14 +98,16 @@ window.FirestoreDB = {
   async searchUsers(queryText) {
     if (!this.db) return [];
     try {
-      var snap = await this.db.collection('users')
-        .where('acceptFriendRequests', '==', true)
-        .get();
+      // Load ALL users, filter client-side (acceptFriendRequests may be undefined = default true)
+      var snap = await this.db.collection('users').get();
       var users = [];
       snap.forEach(function(doc) {
         var data = doc.data();
         data._docId = doc.id;
-        users.push(data);
+        // Only include users who accept friend requests (default true if field missing)
+        if (data.acceptFriendRequests !== false) {
+          users.push(data);
+        }
       });
       // Client-side filter by name/email/city
       if (queryText && queryText.trim()) {
