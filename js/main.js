@@ -9,7 +9,7 @@
       <div class="modal" style="max-width:420px; text-align:center; padding:2rem;">
         <div style="font-size:2.5rem; margin-bottom:0.5rem;">🏆</div>
         <h2 style="margin:0 0 0.25rem; font-size:1.5rem; font-weight:800; color:var(--text-bright);">scoreplace.app</h2>
-        <p style="margin:0 0 1rem; font-size:0.85rem; color:var(--text-muted);">Versão ${window.SCOREPLACE_VERSION || '1.0.0'}</p>
+        <p style="margin:0 0 1rem; font-size:0.85rem; color:var(--text-muted);">Versão ${window.SCOREPLACE_VERSION || '0.1.1-alpha'}</p>
         <p style="font-size:0.85rem; color:var(--text-main); line-height:1.6; margin:0 0 1rem;">
           Plataforma de gestão de torneios esportivos e board games.<br>
           <span style="opacity:0.6;">Fase Alpha — funcionalidades em desenvolvimento.</span>
