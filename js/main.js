@@ -61,7 +61,14 @@
     const sportClean = sportRaw.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() || 'Esportes';
     const userName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName)
       ? window.AppStore.currentUser.displayName.split(' ')[0] : 'Organizador';
-    const autoName = 'Torneio Eliminatórias de ' + sportClean + ' de ' + userName;
+    let autoName = 'Torneio Eliminatórias de ' + sportClean + ' de ' + userName;
+
+    // Impede nome duplicado — adiciona sufixo numérico se necessário
+    let suffix = 1;
+    while (window.AppStore.tournaments.some(function(t) { return t.name && t.name.trim().toLowerCase() === autoName.toLowerCase(); })) {
+      suffix++;
+      autoName = 'Torneio Eliminatórias de ' + sportClean + ' de ' + userName + ' (' + suffix + ')';
+    }
 
     const tourData = {
       id: 'tour_' + Date.now(),
