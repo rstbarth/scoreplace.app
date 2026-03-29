@@ -133,6 +133,9 @@ async function simulateLoginSuccess(user) {
     btnLogin.style.padding = '0';
     btnLogin.style.color = 'var(--text-main)';
     btnLogin.style.cursor = 'pointer';
+    btnLogin.style.flexWrap = 'nowrap';
+    btnLogin.style.flexDirection = 'row';
+    btnLogin.style.alignItems = 'center';
 
     var displayFirstName = user.displayName ? user.displayName.split(' ')[0] : 'Usuário';
     var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
