@@ -2718,7 +2718,8 @@ function renderTournaments(container, tournamentId = null) {
         // Ações Específicas da tela Explore
         let actionsHtml = '';
         if (tournamentId) {
-            const inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id;
+            const _inviterUid = (window.AppStore.currentUser && (window.AppStore.currentUser.uid || window.AppStore.currentUser.email)) || '';
+            const inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id + (_inviterUid ? '?ref=' + encodeURIComponent(_inviterUid) : '');
             const inviteText = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
             const inviteModalHtml = `
              <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: flex-start; justify-content: center; cursor: default; overflow-y: auto; padding: 1.5rem 1rem; box-sizing: border-box;" onclick="event.stopPropagation()">

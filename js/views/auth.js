@@ -227,6 +227,53 @@ function _fetchGoogleDemographics(accessToken, uid) {
   });
 }
 
+// Auto-amizade quando alguém aceita convite de torneio (com ?ref=UID no link)
+function _autoFriendOnInvite(inviterUid, currentUser) {
+  if (!inviterUid || !currentUser || !window.FirestoreDB || !window.FirestoreDB.db) return;
+  var myUid = currentUser.uid || currentUser.email;
+  if (inviterUid === myUid) return; // Não se auto-adicionar
+
+  // Verifica se já são amigos
+  var myFriends = currentUser.friends || [];
+  if (myFriends.indexOf(inviterUid) !== -1) return;
+
+  // Torna amigos mutuamente (sem necessidade de aceite — veio via convite)
+  window.FirestoreDB.db.collection('users').doc(myUid).set({
+    friends: firebase.firestore.FieldValue.arrayUnion(inviterUid)
+  }, { merge: true });
+  window.FirestoreDB.db.collection('users').doc(inviterUid).set({
+    friends: firebase.firestore.FieldValue.arrayUnion(myUid)
+  }, { merge: true });
+
+  // Remove convites pendentes entre eles se houver
+  window.FirestoreDB.db.collection('users').doc(myUid).set({
+    friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(inviterUid),
+    friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(inviterUid)
+  }, { merge: true });
+  window.FirestoreDB.db.collection('users').doc(inviterUid).set({
+    friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(myUid),
+    friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(myUid)
+  }, { merge: true });
+
+  // Atualiza estado local
+  if (!currentUser.friends) currentUser.friends = [];
+  currentUser.friends.push(inviterUid);
+
+  // Notifica quem convidou
+  window.FirestoreDB.addNotification(inviterUid, {
+    type: 'friend_accepted',
+    fromUid: myUid,
+    fromName: currentUser.displayName || '',
+    fromPhoto: currentUser.photoURL || '',
+    fromEmail: currentUser.email || '',
+    message: (currentUser.displayName || 'Alguém') + ' aceitou seu convite e agora é seu amigo(a)!',
+    createdAt: new Date().toISOString(),
+    read: false
+  });
+
+  console.log('Auto-amizade via convite entre', myUid, 'e', inviterUid);
+}
+
 async function simulateLoginSuccess(user) {
   // Set AppStore.currentUser with the user object
   window.AppStore.currentUser = user;
@@ -352,6 +399,16 @@ async function simulateLoginSuccess(user) {
     if (!pendingEnrollId) pendingEnrollId = sessionStorage.getItem('_pendingEnrollTournamentId');
   } catch(e) {}
 
+  // Extrair ?ref= do hash (quem convidou)
+  var _inviteRefUid = null;
+  try {
+    var _hashFull = window.location.hash || '';
+    var _refMatch = _hashFull.match(/[?&]ref=([^&]+)/);
+    if (_refMatch) _inviteRefUid = decodeURIComponent(_refMatch[1]);
+    // Também checar sessionStorage (salvo pelo router)
+    if (!_inviteRefUid) _inviteRefUid = sessionStorage.getItem('_inviteRefUid');
+  } catch(e) {}
+
   if (pendingEnrollId) {
     window._pendingEnrollTournamentId = null;
     try { sessionStorage.removeItem('_pendingEnrollTournamentId'); } catch(e) {}
@@ -381,6 +438,12 @@ async function simulateLoginSuccess(user) {
           }
           if (typeof showNotification !== 'undefined') {
             showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
+          }
+
+          // Auto-amizade APENAS se veio via convite (link com ?ref=UID)
+          if (_inviteRefUid) {
+            _autoFriendOnInvite(_inviteRefUid, window.AppStore.currentUser);
+            try { sessionStorage.removeItem('_inviteRefUid'); } catch(e) {}
           }
         }
       }

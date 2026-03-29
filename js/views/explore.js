@@ -27,13 +27,16 @@ function renderExplore(container) {
       // My friends section (rendered first, above search)
       '<div id="explore-friends"></div>' +
 
+      // Conhecidos (same tournaments)
+      '<div id="explore-conhecidos"></div>' +
+
       // Search bar
       '<div style="display: flex; gap: 10px; margin-bottom: 1.25rem;">' +
         '<input type="text" id="explore-search-input" class="form-control" placeholder="Buscar por nome, cidade ou esporte..." style="flex: 1; box-sizing: border-box;">' +
         '<button class="btn btn-primary" id="explore-search-btn" style="white-space: nowrap; padding: 0 1.25rem;">Buscar</button>' +
       '</div>' +
 
-      // Non-friend results
+      // Non-friend, non-conhecido results
       '<div id="explore-results"></div>' +
     '</div>';
 
@@ -42,6 +45,9 @@ function renderExplore(container) {
 
   // Render my friends (card grid, sorted by interaction)
   _renderMyFriends(myUid, myFriends);
+
+  // Render conhecidos (shared tournaments, not friends)
+  _renderConhecidos(myUid, myFriends, mySent, myReceived);
 
   // Search handler
   var searchInput = document.getElementById('explore-search-input');
@@ -89,10 +95,12 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   resultsDiv.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">Buscando...</div>';
 
   window.FirestoreDB.searchUsers(query).then(function(users) {
-    // Filter out self and friends (friends shown separately above)
+    // Filter out self, friends, and conhecidos (shown in their own sections)
+    var conhecidosEmails = window._conhecidosEmails || [];
     users = users.filter(function(u) {
       var uid = u._docId || u.uid || u.email;
-      return uid !== myUid && myFriends.indexOf(uid) === -1;
+      var email = u.email || '';
+      return uid !== myUid && myFriends.indexOf(uid) === -1 && conhecidosEmails.indexOf(email) === -1 && conhecidosEmails.indexOf(uid) === -1;
     });
 
     if (users.length === 0) {
@@ -230,6 +238,137 @@ function _renderMyFriends(myUid, friendIds) {
       var uid = u._docId;
       var unfriendBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; width: 100%; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + uid + '\')">Desfazer amizade</button>';
       html += _userCardHtml(u, uid, unfriendBtn, true);
+    });
+
+    html += '</div></div>';
+    div.innerHTML = html;
+  });
+}
+
+// ---- Conhecidos (shared tournaments, not friends) ----
+function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
+  var div = document.getElementById('explore-conhecidos');
+  if (!div) return;
+
+  var myEmail = (window.AppStore.currentUser && window.AppStore.currentUser.email) || '';
+  var tournaments = window.AppStore.tournaments || [];
+
+  // Find all users who share tournaments with me
+  var conhecidosMap = {}; // uid -> { email, sharedCount, tournamentNames }
+
+  tournaments.forEach(function(t) {
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    // Check if I'm in this tournament
+    var imIn = parts.some(function(p) {
+      var e = typeof p === 'string' ? p : (p.email || '');
+      return e === myEmail;
+    });
+    if (!imIn) return;
+
+    // Find other participants
+    parts.forEach(function(p) {
+      var email = typeof p === 'string' ? p : (p.email || '');
+      var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+      if (!email || email === myEmail) return;
+
+      if (!conhecidosMap[email]) {
+        conhecidosMap[email] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
+      }
+      conhecidosMap[email].sharedCount++;
+      if (t.name && conhecidosMap[email].tournamentNames.length < 3) {
+        conhecidosMap[email].tournamentNames.push(t.name);
+      }
+    });
+  });
+
+  // Remove friends and self from conhecidos
+  var conhecidos = Object.values(conhecidosMap).filter(function(c) {
+    return myFriends.indexOf(c.email) === -1;
+  });
+
+  // Store conhecidos emails for search filtering
+  window._conhecidosEmails = conhecidos.map(function(c) { return c.email; });
+
+  // Sort by shared tournament count (most interaction first)
+  conhecidos.sort(function(a, b) { return b.sharedCount - a.sharedCount; });
+
+  if (conhecidos.length === 0) {
+    div.innerHTML = '';
+    return;
+  }
+
+  // Try to load full profiles for richer display
+  var profilePromises = conhecidos.map(function(c) {
+    return window.FirestoreDB.db.collection('users')
+      .where('email', '==', c.email)
+      .limit(1)
+      .get()
+      .then(function(snap) {
+        if (!snap.empty) {
+          var data = snap.docs[0].data();
+          data._docId = snap.docs[0].id;
+          data._sharedCount = c.sharedCount;
+          data._tournamentNames = c.tournamentNames;
+          return data;
+        }
+        // Fallback: user not registered yet, use participant data
+        return { _docId: c.email, displayName: c.displayName, email: c.email, _sharedCount: c.sharedCount, _tournamentNames: c.tournamentNames };
+      })
+      .catch(function() {
+        return { _docId: c.email, displayName: c.displayName, email: c.email, _sharedCount: c.sharedCount, _tournamentNames: c.tournamentNames };
+      });
+  });
+
+  Promise.all(profilePromises).then(function(profiles) {
+    profiles = profiles.filter(function(p) { return p; });
+    if (profiles.length === 0) { div.innerHTML = ''; return; }
+
+    // Re-sort after profile loading
+    profiles.sort(function(a, b) { return (b._sharedCount || 0) - (a._sharedCount || 0); });
+
+    var html = '<div style="margin-bottom: 1.5rem;">' +
+      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Conhecidos (' + profiles.length + ')</div>' +
+      '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+
+    profiles.forEach(function(u) {
+      var uid = u._docId || u.email;
+      var isSent = mySent.indexOf(uid) !== -1;
+      var isReceived = myReceived.indexOf(uid) !== -1;
+
+      // Info line: shared tournaments
+      var sharedText = (u._sharedCount || 0) + ' torneio' + ((u._sharedCount || 0) !== 1 ? 's' : '') + ' em comum';
+      u._extraInfo = sharedText;
+
+      var actionBtn = '';
+      if (isSent) {
+        actionBtn = '<span style="display: block; color: var(--text-muted); font-size: 0.7rem; font-weight: 500; padding: 4px 0;">Convite enviado</span>';
+      } else if (isReceived) {
+        actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
+          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
+          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _rejectFriend(\'' + uid + '\')">Recusar</button>' +
+        '</div>';
+      } else {
+        // Check if user accepts friend requests
+        var canInvite = u.acceptFriendRequests !== false;
+        if (canInvite) {
+          actionBtn = '<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + uid + '\')">Convidar</button>';
+        } else {
+          actionBtn = '';
+        }
+      }
+
+      // Custom card for conhecidos (amber/yellow tint)
+      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+      var name = u.displayName || 'Usuário';
+
+      html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
+        '<img src="' + photo + '" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
+        '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
+          '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + name + '</div>' +
+          '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + sharedText + '</div>' +
+        '</div>' +
+        (actionBtn ? '<div style="margin-top: auto; width: 100%;">' + actionBtn + '</div>' : '') +
+      '</div>';
     });
 
     html += '</div></div>';
