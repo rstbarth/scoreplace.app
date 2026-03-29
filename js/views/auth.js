@@ -188,9 +188,16 @@ async function simulateLoginSuccess(user) {
     window._pendingEnrollTournamentId = null;
     try { sessionStorage.removeItem('_pendingEnrollTournamentId'); } catch(e) {}
 
-    // Wait a tick for tournaments to be loaded, then enroll
-    setTimeout(function() {
+    // Wait for tournaments to be loaded, then enroll
+    var _enrollAttempts = 0;
+    var _tryAutoEnroll = function() {
+      _enrollAttempts++;
       var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(pendingEnrollId); });
+      if (!t && _enrollAttempts < 20) {
+        // Tournaments not loaded yet, retry
+        setTimeout(_tryAutoEnroll, 300);
+        return;
+      }
       if (t && window.AppStore.currentUser) {
         var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
         var already = arr.some(function(p) {
@@ -212,7 +219,8 @@ async function simulateLoginSuccess(user) {
       // Navigate to tournament page
       window.location.hash = '#tournaments/' + pendingEnrollId;
       if (typeof initRouter === 'function') initRouter();
-    }, 300);
+    };
+    setTimeout(_tryAutoEnroll, 300);
     return;
   }
 

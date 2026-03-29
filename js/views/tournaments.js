@@ -2528,12 +2528,13 @@ function renderTournaments(container, tournamentId = null) {
                     container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);">Torneio n\u00E3o encontrado.</div>';
                 }
             }).catch(function(err) {
-                // If not logged in and Firestore rejects, show invite page with enroll CTA
+                console.warn('Error loading tournament:', err);
                 if (!window.AppStore.currentUser) {
+                    // Not logged in — show invite card with enroll button
                     container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
                         '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
                         '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
-                        '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Clique abaixo para se inscrever. Voc\u00EA ser\u00E1 inscrito automaticamente ap\u00F3s o login.</p>' +
+                        '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Fa\u00E7a login para ver os detalhes e se inscrever.</p>' +
                         '<button class="btn hover-lift" onclick="window.enrollCurrentUser(\'' + String(tournamentId) + '\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
                         '\u2705 Inscrever-se</button></div>';
                 } else {
@@ -2783,19 +2784,23 @@ https://scoreplace.app/#tournaments/${t.id}</textarea>
                   </div>
                </div>
              `;
-            } else if (!window.AppStore.currentUser && isAberto) {
-                // Non-logged-in user viewing tournament with open registrations — prominent enroll CTA
-                actionsHtml = `
-               ${teamEnrollModalHtml}
-               <div style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.12));border:2px solid rgba(16,185,129,0.5);border-radius:16px;text-align:center;">
-                  <div style="font-size:2.5rem;margin-bottom:8px;">\u{1F3C6}</div>
-                  <h3 style="color:#4ade80;font-size:1.3rem;font-weight:800;margin-bottom:6px;">Participe deste torneio!</h3>
-                  <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Clique abaixo para se inscrever. Voc\u00EA ser\u00E1 inscrito automaticamente ap\u00F3s o login.</p>
-                  <button class="btn hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">
-                     \u2705 Inscrever-se
-                  </button>
-               </div>
-             `;
+            } else if (!window.AppStore.currentUser) {
+                // Non-logged-in user viewing public tournament — show only enroll CTA if open
+                if (isAberto) {
+                    actionsHtml = `
+                   ${teamEnrollModalHtml}
+                   <div style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.12));border:2px solid rgba(16,185,129,0.5);border-radius:16px;text-align:center;">
+                      <h3 style="color:#4ade80;font-size:1.3rem;font-weight:800;margin-bottom:6px;">Participe deste torneio!</h3>
+                      <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Fa\u00E7a login para se inscrever. Voc\u00EA ser\u00E1 inscrito automaticamente.</p>
+                      <button class="btn hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">
+                         \u2705 Inscrever-se
+                      </button>
+                   </div>
+                 `;
+                } else {
+                    // Inscriptions closed — just show status, no actions
+                    actionsHtml = '';
+                }
             } else {
                 actionsHtml = `
                ${teamEnrollModalHtml}
