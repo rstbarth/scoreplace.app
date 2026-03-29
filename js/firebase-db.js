@@ -131,6 +131,28 @@ window.FirestoreDB = {
   async sendFriendRequest(fromUid, toUid, fromData) {
     if (!this.db || !fromUid || !toUid) return;
     try {
+      // Check if the other person already sent us a request — if so, auto-accept (mutual)
+      var toDoc = await this.db.collection('users').doc(fromUid).get();
+      var toData = toDoc.exists ? toDoc.data() : {};
+      var receivedList = toData.friendRequestsReceived || [];
+      if (receivedList.indexOf(toUid) !== -1) {
+        // Mutual request! Auto-accept both directions
+        await this.acceptFriendRequest(fromUid, toUid);
+        // Notify both
+        await this.addNotification(toUid, {
+          type: 'friend_accepted',
+          fromUid: fromUid,
+          fromName: fromData.displayName || '',
+          fromPhoto: fromData.photoURL || '',
+          fromEmail: fromData.email || '',
+          message: (fromData.displayName || 'Alguém') + ' aceitou seu convite e agora é seu amigo(a)!',
+          createdAt: new Date().toISOString(),
+          read: false
+        });
+        console.log('Mutual friend request: auto-accepted between', fromUid, 'and', toUid);
+        return 'auto-accepted';
+      }
+      // Normal flow: send request
       // Add to sender's friendRequestsSent
       await this.db.collection('users').doc(fromUid).set({
         friendRequestsSent: firebase.firestore.FieldValue.arrayUnion(toUid)
