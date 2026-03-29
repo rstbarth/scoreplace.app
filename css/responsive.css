@@ -332,15 +332,39 @@
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .topbar {
-    padding: 0 1.5rem;
+    padding: 0 1rem;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+    gap: 4px;
   }
 
   .page-title h1 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
 
-  .topbar-actions {
-    gap: 1rem;
+  .topbar-actions,
+  .topbar-menu {
+    gap: 4px !important;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  /* Hide text labels on tablet, keep icons only */
+  .topbar-menu a > span,
+  .topbar-menu button > span:not(.user-name-label) {
+    display: none !important;
+  }
+
+  /* Compact view mode selector */
+  #view-mode-selector {
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.6rem !important;
+    white-space: nowrap;
+  }
+
+  /* Hide user name on tablet to save space */
+  .user-name-label {
+    display: none !important;
   }
 
   /* Dashboard cards - 2+1 or 3 columns */
