@@ -29,6 +29,11 @@ function setupCreateTournamentModal() {
                     <option>🎾 Tênis</option>
                     <option>🏐 Vôlei</option>
                     <option>♟️ Xadrez</option>
+                    <option>🎴 Dominó</option>
+                    <option>🏸 Padel</option>
+                    <option>🥒 Pickleball</option>
+                    <option>🏓 Tênis de Mesa</option>
+                    <option>🃏 Truco</option>
                     <option>🏅 Outro</option>
                   </select>
                 </div>
@@ -479,7 +484,8 @@ function setupCreateTournamentModal() {
 
   const _sportTeamDefaults = {
     'Beach Tennis': 2, 'Futebol': 5, 'Magic / TCG': 1, 'Tênis': 1,
-    'Vôlei': 6, 'Xadrez': 1, 'Outro': 2
+    'Vôlei': 6, 'Xadrez': 1, 'Dominó': 2, 'Padel': 2, 'Pickleball': 2,
+    'Tênis de Mesa': 1, 'Truco': 2, 'Outro': 2
   };
 
   window._onSportChange = function () {

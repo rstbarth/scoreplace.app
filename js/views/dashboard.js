@@ -41,9 +41,13 @@ function renderDashboard(container) {
     if (s.includes('futebol') || s.includes('society') || s.includes('futsal')) return '⚽';
     if (s.includes('vôlei') || s.includes('volei')) return '🏐';
     if (s.includes('basquete')) return '🏀';
-    if (s.includes('tênis de mesa') || s.includes('ping')) return '🏓';
-    if (s.includes('tênis') || s.includes('tennis') || s.includes('padel')) return '🎾';
+    if (s.includes('tênis de mesa') || s.includes('tenis de mesa') || s.includes('ping pong')) return '🏓';
+    if (s.includes('padel')) return '🏸';
+    if (s.includes('pickleball')) return '🥒';
+    if (s.includes('tênis') || s.includes('tennis')) return '🎾';
     if (s.includes('xadrez')) return '♟️';
+    if (s.includes('dominó') || s.includes('domino')) return '🎴';
+    if (s.includes('truco')) return '🃏';
     if (s.includes('magic') || s.includes('tcg') || s.includes('card')) return '🃏';
     if (s.includes('esports') || s.includes('game')) return '🎮';
     if (s.includes('kart') || s.includes('corrida')) return '🏎️';
