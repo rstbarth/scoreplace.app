@@ -848,25 +848,12 @@ img {
 /* ====================================================
    HERO CREATE BUTTON
    ==================================================== */
-/* Desktop: absolute no canto superior direito do hero box */
-.btn-create-hero {
-  position: absolute;
-  top: 1.5rem;
-  right: 2rem;
-}
-/* Mobile: keep absolute top-right, auto width */
+/* Botão +Novo Torneio — agora centralizado abaixo da saudação */
+/* .btn-create-hero class removed — button is now inline centered */
 @media (max-width: 767px) {
   .hero-box {
     position: relative;
     padding: 1.5rem 1.2rem !important;
-  }
-  .btn-create-hero {
-    position: absolute !important;
-    top: 1rem;
-    right: 1rem;
-    width: auto !important;
-    font-size: 0.8rem !important;
-    padding: 0.4rem 0.8rem !important;
   }
 }
 
