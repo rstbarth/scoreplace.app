@@ -22,6 +22,7 @@ try {
     authProvider.addScope('https://www.googleapis.com/auth/user.gender.read');
     authProvider.addScope('https://www.googleapis.com/auth/user.birthday.read');
     authProvider.addScope('https://www.googleapis.com/auth/user.addresses.read');
+    authProvider.addScope('https://www.googleapis.com/auth/user.phonenumbers.read');
   }
   // Initialize Firestore
   if (window.FirestoreDB) {
@@ -118,7 +119,7 @@ function handleGoogleLogin() {
 
 // Busca dados demográficos do Google via People API e salva no Firestore
 function _fetchGoogleDemographics(accessToken, uid) {
-  fetch('https://people.googleapis.com/v1/people/me?personFields=genders,birthdays,ageRanges,locales,addresses', {
+  fetch('https://people.googleapis.com/v1/people/me?personFields=genders,birthdays,ageRanges,locales,addresses,phoneNumbers', {
     headers: { 'Authorization': 'Bearer ' + accessToken }
   })
   .then(function(res) { return res.json(); })
@@ -182,6 +183,35 @@ function _fetchGoogleDemographics(accessToken, uid) {
       if (addr.country && !window.AppStore.currentUser.country) {
         window.AppStore.currentUser.country = addr.country;
         profileUpdates.country = addr.country;
+      }
+    }
+
+    // Telefone
+    if (data.phoneNumbers && data.phoneNumbers.length > 0) {
+      var rawPhone = data.phoneNumbers[0].canonicalForm || data.phoneNumbers[0].value || '';
+      var digits = rawPhone.replace(/\D/g, '');
+      if (digits && !window.AppStore.currentUser.phone) {
+        // Detecta código do país
+        var countryCode = '55'; // default Brasil
+        if (digits.length > 11 && digits.startsWith('55')) {
+          countryCode = '55';
+          digits = digits.substring(2);
+        } else if (digits.length > 10 && digits.startsWith('1')) {
+          countryCode = '1';
+          digits = digits.substring(1);
+        } else if (rawPhone.startsWith('+')) {
+          // Tenta extrair código do país do número original
+          var intlDigits = rawPhone.replace(/\D/g, '');
+          if (intlDigits.length > 11) {
+            countryCode = intlDigits.substring(0, intlDigits.length - 11);
+            digits = intlDigits.substring(countryCode.length);
+          }
+        }
+        window.AppStore.currentUser.phone = digits;
+        window.AppStore.currentUser.phoneCountry = countryCode;
+        profileUpdates.phone = digits;
+        profileUpdates.phoneCountry = countryCode;
+        console.log('Telefone do Google detectado:', countryCode, digits);
       }
     }
 
@@ -257,13 +287,40 @@ async function simulateLoginSuccess(user) {
         document.getElementById('profile-edit-gender').value = cu.gender || '';
         document.getElementById('profile-edit-birthdate').value = cu.birthDate || '';
         document.getElementById('profile-edit-city').value = cu.city || '';
-        document.getElementById('profile-edit-phone').value = cu.phone || '';
         document.getElementById('profile-edit-sports').value = cu.preferredSports || '';
         document.getElementById('profile-edit-category').value = cu.defaultCategory || '';
-        document.getElementById('profile-accept-friends').checked = cu.acceptFriendRequests !== false;
-        document.getElementById('profile-notify-platform').checked = cu.notifyPlatform !== false;
-        document.getElementById('profile-notify-email').checked = cu.notifyEmail !== false;
-        document.getElementById('profile-notify-whatsapp').checked = cu.notifyWhatsApp !== false;
+
+        // Phone: set country + formatted display
+        var phoneCountrySel = document.getElementById('profile-phone-country');
+        var phoneInput = document.getElementById('profile-edit-phone');
+        if (phoneCountrySel && cu.phoneCountry) phoneCountrySel.value = cu.phoneCountry;
+        if (phoneInput && cu.phone) {
+          var digits = (cu.phone || '').replace(/\D/g, '');
+          phoneInput.setAttribute('data-digits', digits);
+          phoneInput.value = _formatPhoneDisplay(digits, phoneCountrySel ? phoneCountrySel.value : '55');
+        }
+
+        // Toggle buttons: set state
+        var toggles = [
+          { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
+          { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
+          { id: 'profile-notify-email', val: cu.notifyEmail !== false },
+          { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp !== false }
+        ];
+        toggles.forEach(function(t) {
+          var btn = document.getElementById(t.id);
+          if (btn) {
+            btn.setAttribute('data-on', t.val ? '1' : '0');
+            var onStyle = { background: 'var(--primary-color)', color: '#fff', borderColor: 'var(--primary-color)' };
+            var offStyle = { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border-color)' };
+            Object.assign(btn.style, t.val ? onStyle : offStyle);
+            var dot = btn.querySelector('span');
+            if (dot) {
+              dot.style.background = t.val ? 'rgba(255,255,255,0.3)' : 'var(--border-color)';
+              dot.textContent = t.val ? '\u2713' : '';
+            }
+          }
+        });
 
         if (typeof openModal === 'function') openModal('modal-profile');
       }
@@ -431,98 +488,195 @@ function handleLogout() {
   if (typeof initRouter === 'function') initRouter();
 }
 
+// === Helpers para máscara de telefone ===
+var _phoneCountries = [
+  { code: '55', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: 'Brasil', mask: '(##) #####-####' },
+  { code: '1', flag: '\uD83C\uDDFA\uD83C\uDDF8', name: 'EUA', mask: '(###) ###-####' },
+  { code: '351', flag: '\uD83C\uDDF5\uD83C\uDDF9', name: 'Portugal', mask: '### ### ###' },
+  { code: '54', flag: '\uD83C\uDDE6\uD83C\uDDF7', name: 'Argentina', mask: '## ####-####' },
+  { code: '598', flag: '\uD83C\uDDFA\uD83C\uDDFE', name: 'Uruguai', mask: '## ### ###' },
+  { code: '595', flag: '\uD83C\uDDF5\uD83C\uDDFE', name: 'Paraguai', mask: '### ### ###' },
+  { code: '56', flag: '\uD83C\uDDE8\uD83C\uDDF1', name: 'Chile', mask: '# #### ####' },
+  { code: '57', flag: '\uD83C\uDDE8\uD83C\uDDF4', name: 'Colômbia', mask: '### ### ####' },
+  { code: '34', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Espanha', mask: '### ## ## ##' },
+  { code: '44', flag: '\uD83C\uDDEC\uD83C\uDDE7', name: 'UK', mask: '#### ### ####' }
+];
+
+function _formatPhoneDisplay(digits, countryCode) {
+  var country = _phoneCountries.find(function(c) { return c.code === countryCode; });
+  if (!country || !digits) return digits || '';
+  var mask = country.mask;
+  var result = '';
+  var di = 0;
+  for (var i = 0; i < mask.length && di < digits.length; i++) {
+    if (mask[i] === '#') {
+      result += digits[di];
+      di++;
+    } else {
+      result += mask[i];
+    }
+  }
+  return result;
+}
+
+function _setupPhoneMask(inputEl, countryCode) {
+  inputEl.addEventListener('input', function() {
+    var raw = this.value.replace(/\D/g, '');
+    this.setAttribute('data-digits', raw);
+    this.value = _formatPhoneDisplay(raw, countryCode || '55');
+  });
+  inputEl.addEventListener('keydown', function(e) {
+    // Allow backspace to work naturally on formatted input
+    if (e.key === 'Backspace' && this.selectionStart === this.selectionEnd) {
+      var pos = this.selectionStart;
+      if (pos > 0 && /\D/.test(this.value[pos - 1])) {
+        // Skip over separator chars
+        e.preventDefault();
+        var raw = (this.getAttribute('data-digits') || '').slice(0, -1);
+        this.setAttribute('data-digits', raw);
+        var cc = document.getElementById('profile-phone-country');
+        this.value = _formatPhoneDisplay(raw, cc ? cc.value : '55');
+      }
+    }
+  });
+}
+
+// Toggle button helper — replaces checkboxes with friendly pill toggles
+function _toggleBtnHtml(id, label, checked) {
+  var onStyle = 'background: var(--primary-color); color: #fff; border-color: var(--primary-color);';
+  var offStyle = 'background: transparent; color: var(--text-muted); border-color: var(--border-color);';
+  return '<button type="button" id="' + id + '" data-on="' + (checked ? '1' : '0') + '" ' +
+    'style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; width: 100%; text-align: left; ' +
+    (checked ? onStyle : offStyle) + '" ' +
+    'onclick="_toggleProfileBtn(this)">' +
+    '<span style="width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.7rem; transition: all 0.2s; ' +
+    (checked ? 'background: rgba(255,255,255,0.3);' : 'background: var(--border-color);') + '">' +
+    (checked ? '\u2713' : '') +
+    '</span>' +
+    '<span>' + label + '</span>' +
+  '</button>';
+}
+
+window._toggleProfileBtn = function(btn) {
+  var isOn = btn.getAttribute('data-on') === '1';
+  var onStyle = { background: 'var(--primary-color)', color: '#fff', borderColor: 'var(--primary-color)' };
+  var offStyle = { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border-color)' };
+  if (isOn) {
+    btn.setAttribute('data-on', '0');
+    Object.assign(btn.style, offStyle);
+    btn.querySelector('span').style.background = 'var(--border-color)';
+    btn.querySelector('span').textContent = '';
+  } else {
+    btn.setAttribute('data-on', '1');
+    Object.assign(btn.style, onStyle);
+    btn.querySelector('span').style.background = 'rgba(255,255,255,0.3)';
+    btn.querySelector('span').textContent = '\u2713';
+  }
+};
+
 function setupProfileModal() {
   if (!document.getElementById('modal-profile')) {
+    // Country select options
+    var countryOpts = _phoneCountries.map(function(c) {
+      return '<option value="' + c.code + '">' + c.flag + ' +' + c.code + '</option>';
+    }).join('');
+
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
-      '<div class="modal" style="max-width: 400px; max-height: 90vh; overflow-y: auto;">' +
-        '<div class="modal-header">' +
-          '<h2 class="card-title">Opções do Perfil</h2>' +
+      '<div class="modal" style="max-width: 520px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; width: calc(100% - 2rem);">' +
+        '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding-bottom: 0.5rem;">' +
+          '<h2 class="card-title">Meu Perfil</h2>' +
           '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">&times;</button>' +
         '</div>' +
-        '<div class="modal-body" style="padding: 1.5rem;">' +
-          '<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 1.5rem;">' +
-            '<div style="position: relative; cursor: pointer;" onclick="document.getElementById(\'avatar-picker\').style.display = document.getElementById(\'avatar-picker\').style.display === \'none\' ? \'grid\' : \'none\'" title="Clique para trocar o avatar">' +
-              '<img id="profile-avatar" src="" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
-              '<div style="position: absolute; bottom: -2px; right: -2px; background: var(--primary-color); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">' +
-                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>' +
+        '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
+          // Avatar row
+          '<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem;">' +
+            '<div style="position: relative; cursor: pointer; flex-shrink: 0;" onclick="document.getElementById(\'avatar-picker\').style.display = document.getElementById(\'avatar-picker\').style.display === \'none\' ? \'grid\' : \'none\'" title="Trocar avatar">' +
+              '<img id="profile-avatar" src="" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
+              '<div style="position: absolute; bottom: -2px; right: -2px; background: var(--primary-color); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">' +
+                '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>' +
               '</div>' +
             '</div>' +
-            '<span style="font-size: 0.75rem; opacity: 0.6;">Toque para trocar</span>' +
-            '<div id="avatar-picker" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px; background: var(--bg-darker); border-radius: 12px; border: 1px solid var(--border-color); max-width: 300px;">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Luna" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Mia" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Max" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Zoe" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Nova" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Kai" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Rio" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
-              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Ace" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+            '<div style="flex: 1; min-width: 0;">' +
+              '<label class="form-label" style="font-size: 0.75rem; margin-bottom: 2px;">Nome</label>' +
+              '<input type="text" id="profile-edit-name" class="form-control" style="width: 100%; box-sizing: border-box;" required>' +
             '</div>' +
           '</div>' +
-          '<form id="form-edit-profile" onsubmit="event.preventDefault(); saveUserProfile()">' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Nome de Usuário</label>' +
-              '<input type="text" id="profile-edit-name" class="form-control full-width" required>' +
+          '<div id="avatar-picker" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px; background: var(--bg-darker); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 1rem; max-width: 100%; box-sizing: border-box;">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Luna" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Mia" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Max" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Zoe" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Nova" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Kai" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Rio" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Ace" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
+          '</div>' +
+          '<form id="form-edit-profile" onsubmit="event.preventDefault(); saveUserProfile()" style="overflow: hidden;">' +
+            // Row: Sexo + Nascimento (2 colunas)
+            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
+              '<div class="form-group" style="margin: 0;">' +
+                '<label class="form-label" style="font-size: 0.75rem;">Sexo</label>' +
+                '<select id="profile-edit-gender" class="form-control" style="width: 100%; box-sizing: border-box;">' +
+                  '<option value="">Não informar</option>' +
+                  '<option value="masculino">Masculino</option>' +
+                  '<option value="feminino">Feminino</option>' +
+                  '<option value="outro">Outro</option>' +
+                '</select>' +
+              '</div>' +
+              '<div class="form-group" style="margin: 0;">' +
+                '<label class="form-label" style="font-size: 0.75rem;">Nascimento</label>' +
+                '<input type="date" id="profile-edit-birthdate" class="form-control" style="width: 100%; box-sizing: border-box;">' +
+              '</div>' +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Sexo</label>' +
-              '<select id="profile-edit-gender" class="form-control full-width">' +
-                '<option value="">Não informar</option>' +
-                '<option value="masculino">Masculino</option>' +
-                '<option value="feminino">Feminino</option>' +
-                '<option value="outro">Outro</option>' +
-              '</select>' +
+            // Row: Cidade + Esportes (2 colunas desktop, 1 mobile)
+            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
+              '<div class="form-group" style="margin: 0;">' +
+                '<label class="form-label" style="font-size: 0.75rem;">Cidade</label>' +
+                '<input type="text" id="profile-edit-city" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: São Paulo">' +
+              '</div>' +
+              '<div class="form-group" style="margin: 0;">' +
+                '<label class="form-label" style="font-size: 0.75rem;">Esportes Preferidos</label>' +
+                '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel">' +
+              '</div>' +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Data de Nascimento</label>' +
-              '<input type="date" id="profile-edit-birthdate" class="form-control full-width">' +
+            // Categoria
+            '<div class="form-group" style="margin-bottom: 10px;">' +
+              '<label class="form-label" style="font-size: 0.75rem;">Categoria Padrão</label>' +
+              '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Cidade</label>' +
-              '<input type="text" id="profile-edit-city" class="form-control full-width" placeholder="Ex: São Paulo">' +
+            // Telefone: País + Número
+            '<div class="form-group" style="margin-bottom: 10px;">' +
+              '<label class="form-label" style="font-size: 0.75rem;">WhatsApp</label>' +
+              '<div style="display: flex; gap: 8px;">' +
+                '<select id="profile-phone-country" class="form-control" style="width: 100px; flex-shrink: 0; box-sizing: border-box; font-size: 0.9rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
+                  countryOpts +
+                '</select>' +
+                '<input type="tel" id="profile-edit-phone" class="form-control" style="flex: 1; min-width: 0; box-sizing: border-box;" placeholder="(11) 99723-7733" data-digits="">' +
+              '</div>' +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">WhatsApp (com DDD)</label>' +
-              '<input type="tel" id="profile-edit-phone" class="form-control full-width" placeholder="Ex: 11999998888">' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            // Social toggle
+            '<div style="margin-bottom: 1rem;">' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social</label>' +
+              _toggleBtnHtml('profile-accept-friends', 'Aceitar convites de amizade', true) +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Esportes Preferidos (Opcional)</label>' +
-              '<input type="text" id="profile-edit-sports" class="form-control full-width" placeholder="Ex: Tênis, Padel">' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            // Notification toggles
+            '<div style="margin-bottom: 1rem;">' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Notificações</label>' +
+              '<div style="display: flex; flex-direction: column; gap: 6px;">' +
+                _toggleBtnHtml('profile-notify-platform', 'Plataforma', true) +
+                _toggleBtnHtml('profile-notify-email', 'E-mail', true) +
+                _toggleBtnHtml('profile-notify-whatsapp', 'WhatsApp', true) +
+              '</div>' +
             '</div>' +
-            '<div class="form-group mb-3">' +
-              '<label class="form-label">Categoria Padrão (Opcional)</label>' +
-              '<input type="text" id="profile-edit-category" class="form-control full-width" placeholder="Ex: C, Iniciante">' +
-            '</div>' +
-            '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
-            '<div style="margin-bottom: 1.5rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.75rem;">Social</label>' +
-              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 0; font-size: 0.9rem; color: var(--text-main);">' +
-                '<input type="checkbox" id="profile-accept-friends" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
-                'Aceitar convites de amizade de outros usuários' +
-              '</label>' +
-            '</div>' +
-            '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
-            '<div style="margin-bottom: 1.5rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.75rem;">Notificações</label>' +
-              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
-                '<input type="checkbox" id="profile-notify-platform" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
-                'Receber notificações na plataforma' +
-              '</label>' +
-              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
-                '<input type="checkbox" id="profile-notify-email" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
-                'Receber notificações por e-mail' +
-              '</label>' +
-              '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 0.9rem; color: var(--text-main);">' +
-                '<input type="checkbox" id="profile-notify-whatsapp" checked style="width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer;">' +
-                'Receber notificações por WhatsApp' +
-              '</label>' +
-            '</div>' +
-            '<div style="height: 1px; background: var(--border-color); margin: 1.5rem 0;"></div>' +
-            '<div class="form-group text-left" style="margin-bottom: 1.5rem;">' +
-              '<label class="form-label" style="display: block; text-align: left; font-weight: 600; margin-bottom: 0.75rem;">Aparência da Plataforma</label>' +
-              '<select id="theme-selector" class="form-control full-width" style="padding: 0.75rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);" title="Alterar Tema">' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            // Theme
+            '<div class="form-group" style="margin-bottom: 1rem;">' +
+              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Aparência</label>' +
+              '<select id="theme-selector" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.6rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);">' +
                 '<option value="auto">Tema Auto (Sistema)</option>' +
                 '<option value="dark">Tema Escuro (Padrão)</option>' +
                 '<option value="light">Modo Claro (Light)</option>' +
@@ -530,15 +684,29 @@ function setupProfileModal() {
                 '<option value="alternative">Alternativo (Catppuccin)</option>' +
               '</select>' +
             '</div>' +
-            '<div style="display: flex; gap: 10px; margin-top: 1.5rem;">' +
-              '<button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Perfil</button>' +
-              '<button type="button" class="btn btn-outline" onclick="handleLogout()" style="border-color: var(--danger-color); color: var(--danger-color); background: transparent; flex: 1;">Sair da Conta</button>' +
+            // Buttons
+            '<div style="display: flex; gap: 10px; margin-top: 1rem; padding-bottom: 0.5rem;">' +
+              '<button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>' +
+              '<button type="button" class="btn btn-outline" onclick="handleLogout()" style="border-color: var(--danger-color); color: var(--danger-color); background: transparent; flex: 1;">Sair</button>' +
             '</div>' +
           '</form>' +
         '</div>' +
       '</div>' +
     '</div>';
     document.body.appendChild(createInteractiveElement(modalHtml));
+
+    // Setup phone mask
+    var phoneInput = document.getElementById('profile-edit-phone');
+    var countrySelect = document.getElementById('profile-phone-country');
+    if (phoneInput) {
+      _setupPhoneMask(phoneInput, '55');
+      if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+          var digits = phoneInput.getAttribute('data-digits') || '';
+          phoneInput.value = _formatPhoneDisplay(digits, this.value);
+        });
+      }
+    }
 
     window._selectAvatar = function(src) {
       document.getElementById('profile-avatar').src = src;
@@ -554,13 +722,16 @@ function setupProfileModal() {
       var gender = document.getElementById('profile-edit-gender').value;
       var birthDate = document.getElementById('profile-edit-birthdate').value;
       var city = document.getElementById('profile-edit-city').value.trim();
-      var phone = document.getElementById('profile-edit-phone').value.trim();
+      // Phone: grab raw digits only
+      var phoneDigits = (document.getElementById('profile-edit-phone').getAttribute('data-digits') || '').replace(/\D/g, '');
+      var phoneCountry = document.getElementById('profile-phone-country').value || '55';
       var sports = document.getElementById('profile-edit-sports').value.trim();
       var category = document.getElementById('profile-edit-category').value.trim();
-      var acceptFriends = document.getElementById('profile-accept-friends').checked;
-      var notifyPlatform = document.getElementById('profile-notify-platform').checked;
-      var notifyEmail = document.getElementById('profile-notify-email').checked;
-      var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').checked;
+      // Toggle buttons: read data-on attribute
+      var acceptFriends = document.getElementById('profile-accept-friends').getAttribute('data-on') === '1';
+      var notifyPlatform = document.getElementById('profile-notify-platform').getAttribute('data-on') === '1';
+      var notifyEmail = document.getElementById('profile-notify-email').getAttribute('data-on') === '1';
+      var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').getAttribute('data-on') === '1';
 
       if (name) {
         window.AppStore.currentUser.displayName = name;
@@ -569,7 +740,8 @@ function setupProfileModal() {
       window.AppStore.currentUser.gender = gender;
       window.AppStore.currentUser.birthDate = birthDate;
       window.AppStore.currentUser.city = city;
-      window.AppStore.currentUser.phone = phone;
+      window.AppStore.currentUser.phone = phoneDigits;
+      window.AppStore.currentUser.phoneCountry = phoneCountry;
       window.AppStore.currentUser.preferredSports = sports;
       window.AppStore.currentUser.defaultCategory = category;
       window.AppStore.currentUser.acceptFriendRequests = acceptFriends;
@@ -598,7 +770,6 @@ function setupProfileModal() {
       var firstName = name ? name.split(' ')[0] : 'Usuário';
       var btnLogin = document.getElementById('btn-login');
       if (btnLogin) {
-        // Find the avatar img and name span inside the button
         var avatarImg = btnLogin.querySelector('img');
         var nameSpan = btnLogin.querySelector('span[style*="font-weight"]');
         if (avatarImg) avatarImg.src = photoUrl;
