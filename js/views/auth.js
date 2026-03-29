@@ -40,10 +40,24 @@ if (firebase && firebase.auth) {
         photoURL: user.photoURL
       });
     } else {
-      // User is signed out
-      if (window.AppStore && window.AppStore.currentUser) {
+      // User is signed out — clear user but load public tournaments
+      if (window.AppStore) {
         window.AppStore.currentUser = null;
-        window.AppStore.tournaments = [];
+        // Load public tournaments so non-logged-in users can browse them
+        if (window.FirestoreDB && window.FirestoreDB.db) {
+          window.FirestoreDB.db.collection('tournaments').where('isPublic', '==', true).get().then(function(snap) {
+            var publicTournaments = [];
+            snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
+            window.AppStore.tournaments = publicTournaments;
+            console.log('Public tournaments loaded:', publicTournaments.length);
+            if (typeof initRouter === 'function') initRouter();
+          }).catch(function(err) {
+            console.warn('Error loading public tournaments:', err);
+            window.AppStore.tournaments = [];
+          });
+        } else {
+          window.AppStore.tournaments = [];
+        }
       }
     }
   });
@@ -186,7 +200,10 @@ async function simulateLoginSuccess(user) {
         if (!already) {
           arr.push({ name: window.AppStore.currentUser.displayName, email: window.AppStore.currentUser.email, displayName: window.AppStore.currentUser.displayName });
           t.participants = arr;
-          if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+          // Save directly to Firestore (sync only saves organizer's tournaments)
+          if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Auto-enroll save error:', err); });
+          }
           if (typeof showNotification !== 'undefined') {
             showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
           }
