@@ -1574,6 +1574,13 @@ function setupCreateTournamentModal() {
         const name = document.getElementById('tourn-name').value.trim();
         if (!name) { showAlertDialog('Nome Obrigatório', 'Preencha o nome do torneio.', null, { type: 'warning' }); return; }
 
+        // Impede nome duplicado (ignora o próprio torneio em edição)
+        const nomeDuplicado = window.AppStore.tournaments.some(function(t) {
+          if (editId && String(t.id) === String(editId)) return false;
+          return t.name && t.name.trim().toLowerCase() === name.toLowerCase();
+        });
+        if (nomeDuplicado) { showAlertDialog('Nome Duplicado', 'Já existe um torneio com este nome. Escolha outro nome.', null, { type: 'warning' }); return; }
+
         const formatValue = document.getElementById('select-formato').value;
         const formatMap = {
           liga: 'Liga',

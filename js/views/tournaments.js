@@ -354,18 +354,31 @@ function renderTournaments(container, tournamentId = null) {
         window.deleteTournamentFunction = function (tId) {
             showConfirmDialog(
                 'Apagar Torneio',
-                'TEM CERTEZA absoluta que deseja apagar este torneios? Esta ação não pode ser desfeita.',
+                'TEM CERTEZA absoluta que deseja apagar este torneio? Esta ação NÃO pode ser desfeita. O torneio será removido permanentemente para todos os usuários.',
                 () => {
                     const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === tId.toString());
                     if (idx !== -1) {
+                        // Remove da memória
                         window.AppStore.tournaments.splice(idx, 1);
-                        window.AppStore.sync();
-                        showNotification('Torneio Apagado', 'O torneo foi removido com sucesso.', 'success');
+
+                        // Deleta do Firestore (banco de dados)
+                        if (window.FirestoreDB && window.FirestoreDB.db) {
+                            window.FirestoreDB.deleteTournament(tId).then(function() {
+                                console.log('Torneio ' + tId + ' deletado do Firestore');
+                            }).catch(function(err) {
+                                console.error('Erro ao deletar torneio do Firestore:', err);
+                            });
+                        }
+
+                        // Atualiza cache local para refletir a remoção
+                        window.AppStore._saveToCache();
+
+                        showNotification('Torneio Apagado', 'O torneio foi removido permanentemente.', 'success');
                         window.location.hash = '#dashboard';
                     }
                 },
                 null,
-                { type: 'danger', confirmText: 'Apagar', cancelText: 'Manter Torneio' }
+                { type: 'danger', confirmText: 'Apagar Permanentemente', cancelText: 'Manter Torneio' }
             );
         };
 
