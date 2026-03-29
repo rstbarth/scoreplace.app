@@ -2749,7 +2749,7 @@ https://scoreplace.app/#tournaments/${t.id}</textarea>
                       <span style="font-size:0.85rem;font-weight:700;color:#4ade80;">Torneio em andamento</span>
                   </div>` : '';
 
-                // Botões de +Participante e +Time baseados no modo de inscrição
+                // Botões de +Participante e +Time baseados no modo de inscrição (antes do sorteio)
                 const allowsIndividual = !t.enrollmentMode || t.enrollmentMode === 'individual' || t.enrollmentMode === 'misto';
                 const allowsTeams = t.enrollmentMode === 'time' || t.enrollmentMode === 'misto';
                 const addParticipantBtns = !hasDraw ? `
@@ -2757,33 +2757,56 @@ https://scoreplace.app/#tournaments/${t.id}</textarea>
                      ${allowsTeams ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.addTeamFunction('${t.id}')">👥 + Time</button>` : ''}
                 ` : '';
 
-                // Encerrar/Reabrir Inscrições — sempre visível para org antes do sorteio
+                // Encerrar/Reabrir Inscrições — visível para org antes do sorteio
                 const toggleRegBtn = !hasDraw ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
 
-                // Sortear — só aparece quando inscrições estão encerradas e não há sorteio feito
+                // Sortear — aparece quando inscrições encerradas e sem sorteio feito
                 const sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
 
-                actionsHtml = `
-               ${inviteModalHtml}
-               ${teamEnrollModalHtml}
-               ${startTournamentBanner}
-               ${startedBadge}
-               <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
-                  <!-- Esquerda -->
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                     ${t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 500;" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
-                     ${enrollBtnHtml}
-                     ${addParticipantBtns}
-                  </div>
+                // Sortear com inscrições abertas — usa _handleSortearClick que pergunta se quer encerrar
+                const sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
 
-                  <!-- Direita -->
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
-                     <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
-                     ${toggleRegBtn}
-                     ${sortearBtn}
-                  </div>
-               </div>
-             `;
+                // --- Build actionsHtml based on tournament state ---
+                if (hasDraw) {
+                    // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento + Ver Chaves
+                    actionsHtml = `
+                   ${inviteModalHtml}
+                   ${startTournamentBanner}
+                   ${startedBadge}
+                   <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                         <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
+                      </div>
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
+                         <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
+                      </div>
+                   </div>
+                 `;
+                } else {
+                    // Antes do sorteio — mostrar botões de gestão de inscrições
+                    actionsHtml = `
+                   ${inviteModalHtml}
+                   ${teamEnrollModalHtml}
+                   <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
+                      <!-- Esquerda: ações de inscrição -->
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                         ${t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 500;" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
+                         ${enrollBtnHtml}
+                         ${addParticipantBtns}
+                      </div>
+
+                      <!-- Direita: gestão do torneio -->
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
+                         ${toggleRegBtn}
+                         ${sortearBtn}
+                         ${sortearAberto}
+                      </div>
+                   </div>
+                   <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                      <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700; font-size: 0.75rem;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
+                   </div>
+                 `;
+                }
             } else if (!window.AppStore.currentUser) {
                 // Non-logged-in user viewing public tournament — show only enroll CTA if open
                 if (isAberto) {
