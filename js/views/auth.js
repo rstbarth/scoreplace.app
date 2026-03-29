@@ -462,10 +462,17 @@ async function simulateLoginSuccess(user) {
             showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
           }
 
-          // Auto-amizade APENAS se veio via convite (link com ?ref=UID)
+          // Auto-amizade: com quem convidou (ref) ou com o organizador como fallback
           if (_inviteRefUid) {
             _autoFriendOnInvite(_inviteRefUid, window.AppStore.currentUser);
             try { sessionStorage.removeItem('_inviteRefUid'); } catch(e) {}
+          } else if (t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
+            // Sem ref — fazer amizade com o organizador do torneio
+            window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+              if (!snap.empty) {
+                _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
+              }
+            }).catch(function(e) { console.warn('Auto-friend org lookup error:', e); });
           }
         }
       }
