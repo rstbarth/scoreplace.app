@@ -37,6 +37,11 @@
             <option>🎾 Tênis</option>
             <option>🏐 Vôlei</option>
             <option>♟️ Xadrez</option>
+            <option>🎴 Dominó</option>
+            <option>🏸 Padel</option>
+            <option>🥒 Pickleball</option>
+            <option>🏓 Tênis de Mesa</option>
+            <option>🃏 Truco</option>
             <option>🏅 Outro</option>
           </select>
         </div>
