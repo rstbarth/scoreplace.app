@@ -748,23 +748,26 @@ img {
 }
 
 /* ====================================================
-   MOBILE TOPBAR — compact single-line icons
+   MOBILE TOPBAR — hamburger + expanded single-line
    ==================================================== */
 @media (max-width: 767px) {
+  /* Show hamburger on mobile */
   .hamburger-btn {
-    display: none !important;
+    display: flex !important;
   }
   .topbar {
     height: auto !important;
     min-height: 50px;
-    flex-wrap: nowrap !important;
-    padding: 0 0.75rem !important;
+    flex-wrap: wrap !important;
+    padding: 0.5rem 0.75rem !important;
     gap: 4px;
   }
+  /* App name + icon always visible */
   .page-title {
     flex-shrink: 1;
     min-width: 0;
     gap: 6px !important;
+    flex: 1;
   }
   .page-title h1 {
     white-space: nowrap !important;
@@ -777,17 +780,22 @@ img {
     height: 22px !important;
     flex-shrink: 0;
   }
+  /* Menu hidden by default, shown as single row when .open */
   .topbar-menu {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 2px;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+    display: none !important;
+    width: 100%;
+    order: 10;
   }
   .topbar-menu.open {
     display: flex !important;
     flex-direction: row !important;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 4px;
   }
   .topbar-menu a,
   .topbar-menu button {
@@ -796,6 +804,11 @@ img {
     padding: 0 6px !important;
     height: 36px !important;
     min-height: 36px !important;
+  }
+  /* Hide text labels inside nav items on mobile */
+  .topbar-menu a > span,
+  .topbar-menu button > span:not(.user-name-label) {
+    display: none !important;
   }
   /* View mode selector compact */
   #view-mode-container {
@@ -811,8 +824,12 @@ img {
     padding: 0.3rem 0.6rem !important;
     min-height: 36px !important;
   }
-  /* Logged-in user area: avatar + logoff tight, hide name */
+  /* Logged-in user area: avatar + logoff always side by side */
   #btn-login.d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
     gap: 2px !important;
   }
   .user-name-label {
@@ -820,6 +837,11 @@ img {
   }
   .logoff-btn {
     margin-left: 4px !important;
+    flex-shrink: 0 !important;
+  }
+  /* Separator line hidden on mobile */
+  .topbar-menu > div[style*="width: 1px"] {
+    display: none !important;
   }
 }
 
@@ -832,20 +854,19 @@ img {
   top: 1.5rem;
   right: 2rem;
 }
-/* Mobile: static, full-width, above greeting */
+/* Mobile: keep absolute top-right, auto width */
 @media (max-width: 767px) {
   .hero-box {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     padding: 1.5rem 1.2rem !important;
   }
   .btn-create-hero {
-    position: static !important;
-    width: 100%;
-    margin-top: 0;
-    margin-bottom: 0.75rem;
-    text-align: center;
-    order: -1;
+    position: absolute !important;
+    top: 1rem;
+    right: 1rem;
+    width: auto !important;
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.8rem !important;
   }
 }
 
