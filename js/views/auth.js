@@ -140,9 +140,9 @@ async function simulateLoginSuccess(user) {
     btnLogin.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
         '<img src="' + photoUrl + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;">' +
-        '<span style="font-weight:600; font-size:1rem;">' + displayFirstName + '</span>' +
+        '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + displayFirstName + '</span>' +
       '</div>' +
-      '<div title="Sair da Conta" style="color: var(--danger-color); margin-left: 12px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
+      '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>' +
       '</div>';
 
@@ -335,8 +335,26 @@ function setupProfileModal() {
           '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">&times;</button>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1.5rem;">' +
-          '<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem; justify-content: center;">' +
-            '<img id="profile-avatar" src="" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
+          '<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 1.5rem;">' +
+            '<div style="position: relative; cursor: pointer;" onclick="document.getElementById(\'avatar-picker\').style.display = document.getElementById(\'avatar-picker\').style.display === \'none\' ? \'grid\' : \'none\'" title="Clique para trocar o avatar">' +
+              '<img id="profile-avatar" src="" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
+              '<div style="position: absolute; bottom: -2px; right: -2px; background: var(--primary-color); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>' +
+              '</div>' +
+            '</div>' +
+            '<span style="font-size: 0.75rem; opacity: 0.6;">Toque para trocar</span>' +
+            '<div id="avatar-picker" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px; background: var(--bg-darker); border-radius: 12px; border: 1px solid var(--border-color); max-width: 300px;">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Luna" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Mia" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Max" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Zoe" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Nova" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Kai" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Rio" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+              '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Ace" style="width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border 0.2s;" onclick="window._selectAvatar(this.src)" onmouseover="this.style.borderColor=\'var(--primary-color)\'" onmouseout="this.style.borderColor=\'transparent\'">' +
+            '</div>' +
           '</div>' +
           '<form id="form-edit-profile" onsubmit="event.preventDefault(); saveUserProfile()">' +
             '<div class="form-group mb-3">' +
@@ -365,7 +383,7 @@ function setupProfileModal() {
               '<label class="form-label" style="display: block; text-align: left; font-weight: 600; margin-bottom: 0.75rem;">Aparência da Plataforma</label>' +
               '<select id="theme-selector" class="form-control full-width" style="padding: 0.75rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);" title="Alterar Tema">' +
                 '<option value="auto">💻 Tema Auto (Sistema)</option>' +
-                '<option value="dark">🌙 Tema Antigravity (Padrão)</option>' +
+                '<option value="dark">🌙 Tema Escuro (Padrão)</option>' +
                 '<option value="light">☀️ Modo Claro (Light)</option>' +
                 '<option value="high-contrast">👁️ Alto Contraste</option>' +
                 '<option value="alternative">🎨 Alternativo (Catppuccin)</option>' +
@@ -380,6 +398,14 @@ function setupProfileModal() {
       '</div>' +
     '</div>';
     document.body.appendChild(createInteractiveElement(modalHtml));
+
+    window._selectAvatar = function(src) {
+      document.getElementById('profile-avatar').src = src;
+      document.getElementById('avatar-picker').style.display = 'none';
+      if (window.AppStore.currentUser) {
+        window.AppStore.currentUser.photoURL = src;
+      }
+    };
 
     window.saveUserProfile = async function() {
       if (!window.AppStore.currentUser) return;
@@ -401,16 +427,16 @@ function setupProfileModal() {
         await window.AppStore.saveUserProfileToFirestore();
       }
 
-      // Update header UI
+      // Update header UI with new name and photo
+      var photoUrl = window.AppStore.currentUser.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+      var firstName = name ? name.split(' ')[0] : 'Usuário';
       var btnLogin = document.getElementById('btn-login');
-      if (btnLogin && name) {
-        btnLogin.innerHTML =
-          '<div style="display: flex; align-items: center; gap: 8px;">' +
-            '<div style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">' +
-              name.charAt(0).toUpperCase() +
-            '</div>' +
-            '<span>' + name + '</span>' +
-          '</div>';
+      if (btnLogin) {
+        // Find the avatar img and name span inside the button
+        var avatarImg = btnLogin.querySelector('img');
+        var nameSpan = btnLogin.querySelector('span[style*="font-weight"]');
+        if (avatarImg) avatarImg.src = photoUrl;
+        if (nameSpan) nameSpan.textContent = firstName;
       }
 
       document.getElementById('modal-profile').classList.remove('active');
