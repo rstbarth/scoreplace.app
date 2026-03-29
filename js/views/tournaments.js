@@ -153,6 +153,16 @@ function renderTournaments(container, tournamentId = null) {
         window.splitParticipantSetupDone = true;
     }
 
+    // ─── Invite fallback card — shown when tournament can't be loaded yet ─────
+    window._renderInviteFallbackCard = function(container, tId) {
+        container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
+            '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
+            '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
+            '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Clique abaixo para se inscrever. Voc\u00EA ser\u00E1 direcionado ao login e inscrito automaticamente.</p>' +
+            '<button class="btn hover-lift" onclick="window.enrollCurrentUser(\'' + String(tId) + '\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
+            '\u2705 Inscrever-se</button></div>';
+    };
+
     if (!window.enrollDeenrollSetupDone) {
         window.enrollCurrentUser = function (tId) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -162,6 +172,12 @@ function renderTournaments(container, tournamentId = null) {
                 try { sessionStorage.setItem('_pendingEnrollTournamentId', String(tId)); } catch(e) {}
                 window._pendingEnrollTournamentId = String(tId);
                 window._pendingInviteHash = '#tournaments/' + tId;
+                // Preserve ref (who invited) — from hash or sessionStorage
+                try {
+                    var _hash = window.location.hash || '';
+                    var _rm = _hash.match(/[?&]ref=([^&]+)/);
+                    if (_rm) sessionStorage.setItem('_inviteRefUid', decodeURIComponent(_rm[1]));
+                } catch(e) {}
                 if (typeof handleGoogleLogin === 'function') {
                     handleGoogleLogin();
                 } else if (typeof openModal === 'function') {
@@ -2561,24 +2577,23 @@ function renderTournaments(container, tournamentId = null) {
                     // Re-render
                     renderTournaments(container, tournamentId);
                 } else {
-                    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);">Torneio n\u00E3o encontrado.</div>';
+                    // Tournament not found in Firestore
+                    window._renderInviteFallbackCard(container, tournamentId);
                 }
             }).catch(function(err) {
                 console.warn('Error loading tournament:', err);
-                if (!window.AppStore.currentUser) {
-                    // Not logged in — show invite card with enroll button
-                    container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
-                        '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
-                        '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
-                        '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Fa\u00E7a login para ver os detalhes e se inscrever.</p>' +
-                        '<button class="btn hover-lift" onclick="window.enrollCurrentUser(\'' + String(tournamentId) + '\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
-                        '\u2705 Inscrever-se</button></div>';
-                } else {
-                    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);">Erro ao carregar torneio. Tente novamente.</div>';
-                }
+                // Firestore read failed (permissions or network) — show invite card
+                window._renderInviteFallbackCard(container, tournamentId);
             });
             return;
         }
+    }
+
+    // Fallback card for non-logged users or when Firestore can't load the tournament
+    // Shows tournament name if available, and a single "Inscrever-se" button that handles everything
+    if (tournamentId && visible.length === 0) {
+        window._renderInviteFallbackCard(container, tournamentId);
+        return;
     }
 
     const cleanSportName = (sport) => sport ? sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
