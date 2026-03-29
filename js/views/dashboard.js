@@ -147,17 +147,14 @@ function renderDashboard(container) {
           ` : ''}
           <div class="card-body p-4">
             
-            <!-- Top Row: Icon/Modality | Status -->
-            <div class="d-flex justify-between" style="align-items: flex-start; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-               <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; margin-top: 2px;">
+            <!-- Top Row: Icon/Modality | Status (same line, consistent with detail page) -->
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: nowrap;">
+               <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; flex-shrink: 0;">
                   <span style="font-size: 1.1rem;">${getSportIcon(t.sport)}</span>
                   <span>${cleanSportName(t.sport) || 'Esporte'}</span>
                </div>
-               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                  <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; opacity: 1;">
-                     ${statusText}
-                  </div>
-                  <div style="font-size: 0.7rem; opacity: 0.8; font-weight: 600; text-transform: none; letter-spacing: 0;">Inscrição: ${enrollmentText}</div>
+               <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap; flex-shrink: 0;">
+                  ${statusText}
                </div>
             </div>
 
