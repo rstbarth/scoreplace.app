@@ -1023,6 +1023,33 @@ function _getCheckInStatus(tId, teamName) {
   return ci[teamName] ? 'full' : 'none';
 }
 
+// ─── Player avatars helper for bracket cards ────────────────────────────────
+function _teamAvatarHtml(teamName) {
+  if (!teamName || teamName === 'TBD') {
+    return `<span style="font-weight:600;font-size:0.85rem;opacity:0.4;font-style:italic;">A definir</span>`;
+  }
+  if (teamName === 'BYE') {
+    return `<span style="font-weight:600;font-size:0.85rem;opacity:0.5;">BYE</span>`;
+  }
+  const members = teamName.split(' / ').map(n => n.trim()).filter(n => n);
+  if (members.length === 0) return `<span style="opacity:0.4;">—</span>`;
+
+  let html = members.length > 1 ? '<div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;">' : '';
+  members.forEach(function(name) {
+    const seed = encodeURIComponent(name);
+    const avatarUrl = 'https://api.dicebear.com/9.x/notionists/svg?seed=' + seed;
+    const fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+    const size = members.length > 1 ? '20px' : '24px';
+    const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
+    html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
+      `<img src="${avatarUrl}" onerror="this.onerror=null;this.src='${fallback}'" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
+      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>` +
+    `</div>`;
+  });
+  if (members.length > 1) html += '</div>';
+  return html;
+}
+
 function renderMatchCard(m, canEnterResult, tId, matchNum) {
   if (!m) return '';
 
@@ -1068,7 +1095,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
-      ${ciDot(p1ci)}<span style="font-weight:600;font-size:0.88rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${(!m.p1 || m.p1 === 'TBD') ? 'opacity:0.4;font-style:italic;' : ''}">${(!m.p1 || m.p1 === 'TBD') ? 'A definir' : m.p1}</span>
+      ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
       ${showInputs
         ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
@@ -1079,7 +1106,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
-      ${ciDot(p2ci)}<span style="font-weight:600;font-size:0.88rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${(!m.p2 || m.p2 === 'TBD') ? 'opacity:0.4;font-style:italic;' : ''}">${(!m.p2 || m.p2 === 'TBD') ? 'A definir' : m.p2}</span>
+      ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
       ${showInputs
         ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"

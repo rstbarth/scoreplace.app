@@ -88,7 +88,8 @@ function _participantMatchesUser(p, email, displayName) {
 function _userCardHtml(u, uid, actionHtml, isFriend) {
   var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
   var avatarSeed = encodeURIComponent(name || uid || 'User');
-  var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + avatarSeed;
+  var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + avatarSeed;
+  var fallbackPhoto = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var infoChips = [];
   if (u.city) infoChips.push(u.city);
   if (u.preferredSports) infoChips.push(u.preferredSports);
@@ -98,7 +99,7 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
   var bgTint = isFriend ? 'rgba(34, 197, 94, 0.06)' : 'transparent';
 
   return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
-    '<img src="' + photo + '" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + borderColor + ';">' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + borderColor + ';">' +
     '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
       '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + name + '</div>' +
       (infoChips.length > 0 ? '<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + infoChips.join(' · ') + '</div>' : '') +
@@ -194,10 +195,11 @@ function _renderPendingRequests(myUid, receivedIds) {
     profiles.forEach(function(u) {
       var uid = u._docId;
       var name = u.displayName || 'Usuário';
-      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + encodeURIComponent(name || uid || 'User');
+      var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + encodeURIComponent(name || uid || 'User');
+      var fallbackPhoto2 = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(name || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
 
       html += '<div class="card" style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">' +
-        '<img src="' + photo + '" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
+        '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
         '<div style="flex: 1; min-width: 0;">' +
           '<span style="font-weight: 600; color: var(--text-bright); font-size: 0.9rem;">' + name + '</span>' +
           '<div style="font-size: 0.75rem; color: var(--text-muted);">quer ser seu amigo(a)</div>' +
@@ -444,10 +446,11 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
       // Custom card for conhecidos (amber/yellow tint)
       var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
       var avatarSeed = encodeURIComponent(name || uid || 'User');
-      var photo = u.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=' + avatarSeed;
+      var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + avatarSeed;
+      var fallbackPhotoC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
 
       html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
-        '<img src="' + photo + '" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
+        '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
         '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
           '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + name + '</div>' +
           '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + sharedText + '</div>' +
