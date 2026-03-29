@@ -186,6 +186,20 @@ window.FirestoreDB = {
     }
   },
 
+  async cancelFriendRequest(fromUid, toUid) {
+    if (!this.db || !fromUid || !toUid) return;
+    try {
+      await this.db.collection('users').doc(fromUid).set({
+        friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(toUid)
+      }, { merge: true });
+      await this.db.collection('users').doc(toUid).set({
+        friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(fromUid)
+      }, { merge: true });
+    } catch (e) {
+      console.error('Erro ao cancelar convite de amizade:', e);
+    }
+  },
+
   async rejectFriendRequest(myUid, friendUid) {
     if (!this.db || !myUid || !friendUid) return;
     try {
