@@ -24,7 +24,13 @@ function renderTournaments(container, tournamentId = null) {
     if (!window.inviteModalSetupDone) {
         window.openInviteModal = function (id) {
             const mod = document.getElementById('invite-modal-' + id);
-            if (mod) mod.style.display = 'flex';
+            if (mod) {
+                mod.style.display = 'flex';
+                mod.scrollTop = 0;
+                // Garante que o conteúdo interno também fique no topo
+                var inner = mod.querySelector('div');
+                if (inner) inner.scrollTop = 0;
+            }
         };
         window.closeInviteModal = function (id) {
             const mod = document.getElementById('invite-modal-' + id);
@@ -2715,16 +2721,16 @@ function renderTournaments(container, tournamentId = null) {
             const inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id;
             const inviteText = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
             const inviteModalHtml = `
-             <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; cursor: default; overflow-y: auto; padding: 1rem;" onclick="event.stopPropagation()">
-                <div style="background: var(--bg-card); width: 100%; max-width: 380px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease; margin: auto;">
+             <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: flex-start; justify-content: center; cursor: default; overflow-y: auto; padding: 1.5rem 1rem; box-sizing: border-box;" onclick="event.stopPropagation()">
+                <div style="background: var(--bg-card); width: calc(100% - 2rem); max-width: 380px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease; margin: 0 auto; box-sizing: border-box; overflow: hidden;">
 
                    <!-- Header -->
-                   <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                   <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                       <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-bright);">Convidar Jogadores</h3>
                       <button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; line-height: 1;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">&times;</button>
                    </div>
 
-                   <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                   <div style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box; overflow: hidden;">
 
                       <!-- 1. QR Code -->
                       <div style="text-align: center;">
@@ -2752,7 +2758,7 @@ function renderTournaments(container, tournamentId = null) {
                       <div>
                          <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem;">Link do Torneio</div>
                          <div style="display: flex; gap: 8px; align-items: stretch;">
-                            <input type="text" readonly value="${inviteUrl}" id="invite-url-${t.id}" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.8rem; min-width: 0;" onclick="this.select()">
+                            <input type="text" readonly value="${inviteUrl}" id="invite-url-${t.id}" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.75rem; min-width: 0; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis;" onclick="this.select()">
                             <button class="btn hover-lift" style="background: var(--primary-color); color: white; border: none; font-weight: 600; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; white-space: nowrap;" onclick="navigator.clipboard.writeText(document.getElementById('invite-url-${t.id}').value); showNotification('Copiado!', 'Link copiado.', 'success')">Copiar</button>
                          </div>
                          <div style="margin-top: 6px;">
@@ -2766,7 +2772,7 @@ function renderTournaments(container, tournamentId = null) {
                       <div>
                          <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem;">Enviar por E-mail</div>
                          <div style="display: flex; gap: 8px; align-items: stretch;">
-                            <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.85rem; min-width: 0;">
+                            <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.8rem; min-width: 0; box-sizing: border-box;">
                             <button class="btn hover-lift" style="background: rgba(99,102,241,0.9); color: white; border: none; font-weight: 600; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; white-space: nowrap;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification('Atenção','Digite um e-mail.','warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${t.name}') + '&body=' + encodeURIComponent('${inviteText.replace(/'/g, "\\'")}'), '_self'); showNotification('E-mail', 'Abrindo seu cliente de e-mail...', 'info');">Enviar</button>
                          </div>
                       </div>
@@ -2774,7 +2780,7 @@ function renderTournaments(container, tournamentId = null) {
                    </div>
 
                    <!-- Footer -->
-                   <div style="padding: 0.75rem 1.5rem 1.25rem; text-align: center;">
+                   <div style="padding: 0.75rem 1.25rem 1rem; text-align: center;">
                       <button style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; padding: 6px 16px;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">Fechar</button>
                    </div>
                 </div>
@@ -2849,7 +2855,7 @@ function renderTournaments(container, tournamentId = null) {
                    <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
                       <!-- Esquerda: ações de inscrição -->
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                         ${t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 500;" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
+                         ${isAberto ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
                          ${enrollBtnHtml}
                          ${addParticipantBtns}
                       </div>
