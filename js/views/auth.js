@@ -285,6 +285,67 @@ async function simulateLoginSuccess(user) {
     existingProfile = await window.AppStore.loadUserProfile(uid);
   }
 
+  // Migrate legacy doc: if user has a doc keyed by email, merge it into the UID doc
+  if (window.FirestoreDB && window.FirestoreDB.db && uid && user.email && uid !== user.email) {
+    try {
+      var legacyDoc = await window.FirestoreDB.db.collection('users').doc(user.email).get();
+      if (legacyDoc.exists) {
+        var legacyData = legacyDoc.data();
+        // Merge legacy data into UID doc (friends, requests, etc.)
+        var mergeData = {};
+        if (legacyData.friends && legacyData.friends.length > 0) mergeData.friends = firebase.firestore.FieldValue.arrayUnion.apply(null, legacyData.friends);
+        if (legacyData.friendRequestsReceived && legacyData.friendRequestsReceived.length > 0) mergeData.friendRequestsReceived = firebase.firestore.FieldValue.arrayUnion.apply(null, legacyData.friendRequestsReceived);
+        if (legacyData.friendRequestsSent && legacyData.friendRequestsSent.length > 0) mergeData.friendRequestsSent = firebase.firestore.FieldValue.arrayUnion.apply(null, legacyData.friendRequestsSent);
+        // Copy profile fields if not already set
+        if (legacyData.displayName && (!existingProfile || !existingProfile.displayName)) mergeData.displayName = legacyData.displayName;
+        if (legacyData.photoURL && (!existingProfile || !existingProfile.photoURL)) mergeData.photoURL = legacyData.photoURL;
+        if (Object.keys(mergeData).length > 0) {
+          mergeData.email = user.email;
+          await window.FirestoreDB.db.collection('users').doc(uid).set(mergeData, { merge: true });
+        }
+        // Update all other users who reference the old email ID in their friends/requests
+        var allUsers = await window.FirestoreDB.db.collection('users').get();
+        var batch = window.FirestoreDB.db.batch();
+        var batchCount = 0;
+        allUsers.forEach(function(doc) {
+          if (doc.id === user.email || doc.id === uid) return;
+          var d = doc.data();
+          var ref = window.FirestoreDB.db.collection('users').doc(doc.id);
+          var updates = {};
+          if (d.friends && d.friends.indexOf(user.email) !== -1) {
+            updates.friends = firebase.firestore.FieldValue.arrayUnion(uid);
+            batch.update(ref, { friends: firebase.firestore.FieldValue.arrayRemove(user.email) });
+            batchCount++;
+          }
+          if (d.friendRequestsSent && d.friendRequestsSent.indexOf(user.email) !== -1) {
+            updates.friendRequestsSent = firebase.firestore.FieldValue.arrayUnion(uid);
+            batch.update(ref, { friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(user.email) });
+            batchCount++;
+          }
+          if (d.friendRequestsReceived && d.friendRequestsReceived.indexOf(user.email) !== -1) {
+            updates.friendRequestsReceived = firebase.firestore.FieldValue.arrayUnion(uid);
+            batch.update(ref, { friendRequestsReceived: firebase.firestore.FieldValue.arrayRemove(user.email) });
+            batchCount++;
+          }
+          if (Object.keys(updates).length > 0) {
+            batch.update(ref, updates);
+            batchCount++;
+          }
+        });
+        if (batchCount > 0) await batch.commit();
+        // Delete the legacy doc
+        await window.FirestoreDB.db.collection('users').doc(user.email).delete();
+        console.log('Migrated legacy user doc from', user.email, 'to', uid);
+        // Reload profile after migration
+        if (window.AppStore.loadUserProfile) {
+          existingProfile = await window.AppStore.loadUserProfile(uid);
+        }
+      }
+    } catch (e) {
+      console.warn('Legacy doc migration error:', e);
+    }
+  }
+
   // Auto-save basic Google data to Firestore if profile is missing or has no displayName
   if (window.FirestoreDB && window.FirestoreDB.db && uid) {
     var needsSave = false;

@@ -144,7 +144,7 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
 
       var actionBtn = '';
       if (isSent) {
-        actionBtn = '<span style="display: block; color: var(--text-muted); font-size: 0.7rem; font-weight: 500; padding: 4px 0;">Convite enviado</span>';
+        actionBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 6px; width: 100%; cursor: pointer;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
           '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
@@ -395,7 +395,7 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 
       var actionBtn = '';
       if (isSent) {
-        actionBtn = '<span style="display: block; color: var(--text-muted); font-size: 0.7rem; font-weight: 500; padding: 4px 0;">Convite enviado</span>';
+        actionBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 6px; width: 100%; cursor: pointer;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
           '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
@@ -431,6 +431,23 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 }
 
 // ---- Global action functions ----
+
+window._cancelFriendRequest = function(toUid) {
+  var cu = window.AppStore.currentUser;
+  if (!cu) return;
+  var myUid = cu.uid || cu.email;
+
+  // Update local state
+  cu.friendRequestsSent = (cu.friendRequestsSent || []).filter(function(id) { return id !== toUid; });
+
+  window.FirestoreDB.cancelFriendRequest(myUid, toUid).then(function() {
+    if (typeof showNotification !== 'undefined') {
+      showNotification('Convite Cancelado', 'O convite de amizade foi cancelado.', 'info');
+    }
+    var container = document.getElementById('view-container');
+    if (container) renderExplore(container);
+  });
+};
 
 window._sendFriendRequest = function(toUid) {
   var cu = window.AppStore.currentUser;
