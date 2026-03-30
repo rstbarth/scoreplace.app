@@ -632,10 +632,87 @@ function renderTournaments(container, tournamentId = null) {
         return codes;
     };
 
-    // Resolves enrollment category for a tournament.
-    // If no categories configured → callback(null) (no category needed).
-    // If user profile matches exactly one combined category → callback(category) auto.
-    // Otherwise → shows category selection modal and calls callback when user picks.
+    // Get participant categories as array (backward compat: string → [string])
+    window._getParticipantCategories = function(p) {
+        if (!p || typeof p !== 'object') return [];
+        if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
+        if (p.category) return [p.category];
+        return [];
+    };
+
+    // Check if participant belongs to a specific category
+    window._participantInCategory = function(p, cat) {
+        return window._getParticipantCategories(p).indexOf(cat) !== -1;
+    };
+
+    // Set participant categories (writes both .categories array and .category for compat)
+    window._setParticipantCategories = function(p, cats) {
+        if (!p || typeof p !== 'object') return;
+        p.categories = Array.isArray(cats) ? cats : [cats];
+        p.category = p.categories[0] || '';
+    };
+
+    // Add a category to a participant (for non-exclusive enrollment)
+    window._addParticipantCategory = function(p, cat) {
+        var current = window._getParticipantCategories(p);
+        if (current.indexOf(cat) === -1) current.push(cat);
+        window._setParticipantCategories(p, current);
+    };
+
+    // Display name for categories: simplifies "Misto Aleat." and "Misto Obrig." to just "Misto"
+    // Full name only appears in rules, tournament card, and detail info.
+    window._displayCategoryName = function(cat) {
+        if (!cat) return '';
+        // "Misto Aleat. A" → "Misto A", "Misto Obrig. B" → "Misto B", "Misto Aleat." → "Misto"
+        return cat.replace(/^Misto Aleat\.\s*/i, 'Misto ').replace(/^Misto Obrig\.\s*/i, 'Misto ').trim();
+    };
+
+    // Exclusivity rules: Fem and Masc are mutually exclusive.
+    // Misto (Aleatório/Obrigatório) is non-exclusive with Fem and Masc.
+    // A participant can be in Masc A AND Misto Aleat. A, but NOT in Fem A AND Masc A.
+    window._exclusiveGenderPrefixes = ['Fem', 'Masc']; // These cannot coexist
+    window._nonExclusivePrefixes = ['Misto Aleat.', 'Misto Obrig.']; // These can combine with any
+
+    window._getCategoryGenderPrefix = function(cat) {
+        var prefixes = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.'];
+        for (var i = 0; i < prefixes.length; i++) {
+            if (cat.toLowerCase().startsWith(prefixes[i].toLowerCase())) return prefixes[i];
+        }
+        return '';
+    };
+
+    // Check if two categories are exclusive (can't both be selected)
+    window._areCategoriesExclusive = function(catA, catB) {
+        var prefA = window._getCategoryGenderPrefix(catA);
+        var prefB = window._getCategoryGenderPrefix(catB);
+        // Both must be in the exclusive group and different
+        var excl = window._exclusiveGenderPrefixes;
+        return prefA !== prefB && excl.indexOf(prefA) !== -1 && excl.indexOf(prefB) !== -1;
+    };
+
+    // Given eligible categories, group into exclusive (pick one) and non-exclusive (can add)
+    window._groupEligibleCategories = function(eligibleCats) {
+        var exclusive = [];
+        var nonExclusive = [];
+        var nonExclPrefixes = window._nonExclusivePrefixes;
+        eligibleCats.forEach(function(cat) {
+            var prefix = window._getCategoryGenderPrefix(cat);
+            var isNonExcl = nonExclPrefixes.some(function(np) {
+                return prefix.toLowerCase() === np.toLowerCase();
+            });
+            if (isNonExcl) {
+                nonExclusive.push(cat);
+            } else {
+                exclusive.push(cat);
+            }
+        });
+        return { exclusive: exclusive, nonExclusive: nonExclusive };
+    };
+
+    // Resolves enrollment categories for a tournament.
+    // callback receives an array of selected categories, or null if no categories.
+    // Exclusive categories (Fem/Masc) — user picks one.
+    // Non-exclusive (Misto) — user can also add these alongside the exclusive pick.
     window._resolveEnrollmentCategory = function(tId, callback) {
         var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
         if (!t) { callback(null); return; }
@@ -643,14 +720,9 @@ function renderTournaments(container, tournamentId = null) {
         var combined = t.combinedCategories || [];
         var genderCats = t.genderCategories || [];
         var skillCats = t.skillCategories || [];
-        // No categories configured → no category needed
         if (combined.length === 0 && genderCats.length === 0 && skillCats.length === 0) {
             callback(null); return;
         }
-
-        // If only skill categories (no gender) — user must pick skill
-        // If only gender categories (no skill) — filter by user gender
-        // If both — cross-product and filter by gender
 
         var user = window.AppStore.currentUser;
         var userGender = user ? user.gender : '';
@@ -660,7 +732,6 @@ function renderTournaments(container, tournamentId = null) {
         // Build list of eligible combined categories
         var eligible = [];
         if (combined.length > 0) {
-            // Filter combined by user gender eligibility
             if (userGender && genderCats.length > 0) {
                 combined.forEach(function(c) {
                     var matchesGender = eligibleGenderCodes.some(function(gc) {
@@ -669,14 +740,11 @@ function renderTournaments(container, tournamentId = null) {
                     if (matchesGender) eligible.push(c);
                 });
             } else if (genderCats.length === 0) {
-                // Only skill categories — all combined are just skills
                 eligible = combined.slice();
             } else {
-                // No user gender info — show all, user must pick
                 eligible = combined.slice();
             }
         } else if (genderCats.length > 0 && skillCats.length === 0) {
-            // Only gender categories
             if (userGender) {
                 genderCats.forEach(function(gc) {
                     if (eligibleGenderCodes.indexOf(gc) !== -1) eligible.push(genderLabels[gc] || gc);
@@ -688,45 +756,114 @@ function renderTournaments(container, tournamentId = null) {
             eligible = skillCats.slice();
         }
 
-        // Exactly one eligible → auto-select with confirmation
-        if (eligible.length === 1) {
-            showAlertDialog('Confirmar Categoria', 'Você será inscrito na categoria: <strong>' + eligible[0] + '</strong>. Confirmar?', function() {
-                callback(eligible[0]);
+        if (eligible.length === 0) { callback(null); return; }
+
+        // Group into exclusive (Fem/Masc — pick one) and non-exclusive (Misto — can add)
+        var groups = window._groupEligibleCategories(eligible);
+
+        // If exactly one exclusive and zero non-exclusive → auto-select
+        if (groups.exclusive.length <= 1 && groups.nonExclusive.length === 0) {
+            var single = groups.exclusive[0] || null;
+            if (single) {
+                showAlertDialog('Confirmar Categoria', 'Você será inscrito na categoria: <strong>' + window._displayCategoryName(single) + '</strong>. Confirmar?', function() {
+                    callback([single]);
+                }, { type: 'info', confirmText: 'Confirmar', cancelText: 'Cancelar', showCancel: true });
+            } else {
+                callback(null);
+            }
+            return;
+        }
+
+        // If zero exclusive and one non-exclusive → auto-select
+        if (groups.exclusive.length === 0 && groups.nonExclusive.length === 1) {
+            showAlertDialog('Confirmar Categoria', 'Você será inscrito na categoria: <strong>' + window._displayCategoryName(groups.nonExclusive[0]) + '</strong>. Confirmar?', function() {
+                callback([groups.nonExclusive[0]]);
             }, { type: 'info', confirmText: 'Confirmar', cancelText: 'Cancelar', showCancel: true });
             return;
         }
 
-        // Multiple eligible → show selection modal
-        if (eligible.length > 1) {
-            window._pendingCategoryCallback = callback;
-            var modalId = 'cat-enroll-modal-' + tId;
-            var existing = document.getElementById(modalId);
-            if (existing) existing.remove();
+        // Multiple options → show selection modal with exclusive (radio) + non-exclusive (checkboxes)
+        var modalId = 'cat-enroll-modal-' + tId;
+        var existing = document.getElementById(modalId);
+        if (existing) existing.remove();
 
-            var buttonsHtml = eligible.map(function(cat) {
-                return '<button class="btn hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer;" ' +
-                    'onclick="event.stopPropagation(); document.getElementById(\'' + modalId + '\').style.display=\'none\'; if(window._pendingCategoryCallback) window._pendingCategoryCallback(\'' + cat.replace(/'/g, "\\'") + '\');">' +
-                    cat + '</button>';
-            }).join('');
-
-            var modalHtml = '<div id="' + modalId + '" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 2rem 0;" onclick="event.stopPropagation();">' +
-                '<div style="background: var(--bg-card); width: 90%; max-width: 420px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin: auto; animation: fadeIn 0.2s ease;">' +
-                '<div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">' +
-                '<h3 style="margin: 0; font-size: 1.2rem; color: var(--text-bright);">🏷️ Escolha sua Categoria</h3>' +
-                '<button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;" onclick="event.stopPropagation(); document.getElementById(\'' + modalId + '\').style.display=\'none\'">&times;</button>' +
-                '</div>' +
-                '<div style="padding: 1.5rem; color: var(--text-main); font-size: 0.9rem;">' +
-                '<p style="margin-bottom: 1rem; color: var(--text-muted);">Este torneio possui categorias. Selecione a categoria na qual deseja se inscrever:</p>' +
-                '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">' + buttonsHtml + '</div>' +
-                '</div>' +
-                '</div></div>';
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            return;
+        // Build exclusive section (radio buttons — pick one)
+        var exclHtml = '';
+        if (groups.exclusive.length > 0) {
+            exclHtml = '<div style="margin-bottom:12px;">' +
+                '<div style="font-weight:600;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Categoria principal (escolha uma):</div>' +
+                groups.exclusive.map(function(cat, i) {
+                    var catSafe = cat.replace(/"/g, '&quot;');
+                    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);margin-bottom:6px;cursor:pointer;" onclick="this.querySelector(\'input\').checked=true;">' +
+                        '<input type="radio" name="cat-excl" value="' + catSafe + '" ' + (i === 0 ? 'checked' : '') + ' style="accent-color:#818cf8;width:18px;height:18px;cursor:pointer;">' +
+                        '<span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">' + window._displayCategoryName(cat) + '</span></label>';
+                }).join('') +
+                '</div>';
         }
 
-        // No eligible categories (shouldn't happen, but fallback)
-        callback(null);
+        // Build non-exclusive section (checkboxes — can select multiple)
+        var nonExclHtml = '';
+        if (groups.nonExclusive.length > 0) {
+            nonExclHtml = '<div style="margin-bottom:12px;">' +
+                '<div style="font-weight:600;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Categorias adicionais (opcional):</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">Você pode participar destas categorias junto com a principal.</div>' +
+                groups.nonExclusive.map(function(cat) {
+                    var catSafe = cat.replace(/"/g, '&quot;');
+                    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);margin-bottom:6px;cursor:pointer;" onclick="var cb=this.querySelector(\'input\');if(event.target!==cb)cb.checked=!cb.checked;">' +
+                        '<input type="checkbox" name="cat-nonexcl" value="' + catSafe + '" style="accent-color:#10b981;width:18px;height:18px;cursor:pointer;">' +
+                        '<span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">' + window._displayCategoryName(cat) + '</span></label>';
+                }).join('') +
+                '</div>';
+        }
+
+        // If no exclusive but multiple non-exclusive → all are checkboxes
+        if (groups.exclusive.length === 0 && groups.nonExclusive.length > 1) {
+            nonExclHtml = '<div style="margin-bottom:12px;">' +
+                '<div style="font-weight:600;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Selecione suas categorias:</div>' +
+                groups.nonExclusive.map(function(cat) {
+                    var catSafe = cat.replace(/"/g, '&quot;');
+                    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);margin-bottom:6px;cursor:pointer;" onclick="var cb=this.querySelector(\'input\');if(event.target!==cb)cb.checked=!cb.checked;">' +
+                        '<input type="checkbox" name="cat-nonexcl" value="' + catSafe + '" style="accent-color:#10b981;width:18px;height:18px;cursor:pointer;">' +
+                        '<span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">' + window._displayCategoryName(cat) + '</span></label>';
+                }).join('') +
+                '</div>';
+        }
+
+        var confirmBtnId = 'cat-enroll-confirm-' + tId;
+        var modalHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:10000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;" onclick="event.stopPropagation();">' +
+            '<div style="background:var(--bg-card);width:90%;max-width:420px;border-radius:16px;border:1px solid var(--border-color);box-shadow:0 20px 40px rgba(0,0,0,0.4);margin:auto;animation:fadeIn 0.2s ease;">' +
+            '<div style="padding:1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
+            '<h3 style="margin:0;font-size:1.2rem;color:var(--text-bright);">🏷️ Escolha suas Categorias</h3>' +
+            '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;" onclick="event.stopPropagation();document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
+            '</div>' +
+            '<div style="padding:1.5rem;color:var(--text-main);font-size:0.9rem;">' +
+            exclHtml + nonExclHtml +
+            '<button id="' + confirmBtnId + '" class="btn hover-lift" style="width:100%;background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:12px;border-radius:12px;font-weight:700;font-size:0.95rem;cursor:pointer;margin-top:8px;">Confirmar Inscrição</button>' +
+            '</div></div></div>';
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Attach confirm handler
+        setTimeout(function() {
+            var btn = document.getElementById(confirmBtnId);
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                var selected = [];
+                // Get exclusive selection (radio)
+                var exclRadio = document.querySelector('#' + modalId + ' input[name="cat-excl"]:checked');
+                if (exclRadio) selected.push(exclRadio.value);
+                // Get non-exclusive selections (checkboxes)
+                var nonExclChecks = document.querySelectorAll('#' + modalId + ' input[name="cat-nonexcl"]:checked');
+                nonExclChecks.forEach(function(cb) { selected.push(cb.value); });
+
+                if (selected.length === 0) {
+                    if (typeof showNotification === 'function') showNotification('Atenção', 'Selecione ao menos uma categoria.', 'warning');
+                    return;
+                }
+                document.getElementById(modalId).remove();
+                callback(selected);
+            });
+        }, 50);
     };
 
     // ========== Category Manager (Organizer) ==========
@@ -744,16 +881,22 @@ function renderTournaments(container, tournamentId = null) {
             var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
             // Count participants per category & find uncategorized
+            // A participant can belong to multiple categories (non-exclusive)
             var catCounts = {};
             categories.forEach(function(c) { catCounts[c] = 0; });
             var uncategorized = [];
             parts.forEach(function(p, idx) {
                 var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
-                var pCat = typeof p === 'object' ? (p.category || '') : '';
-                if (!pCat || categories.indexOf(pCat) === -1) {
+                var pCats = window._getParticipantCategories(p);
+                var hasValidCat = false;
+                pCats.forEach(function(pc) {
+                    if (categories.indexOf(pc) !== -1) {
+                        catCounts[pc] = (catCounts[pc] || 0) + 1;
+                        hasValidCat = true;
+                    }
+                });
+                if (!hasValidCat) {
                     uncategorized.push({ name: pName, idx: idx });
-                } else {
-                    catCounts[pCat] = (catCounts[pCat] || 0) + 1;
                 }
             });
 
@@ -776,14 +919,29 @@ function renderTournaments(container, tournamentId = null) {
                 catRows.push({ prefix: '', cats: otherCats });
             }
 
+            // Determine which categories are merged (have mergeHistory)
+            var mergedCatSet = {};
+            (t.mergeHistory || []).forEach(function(mh) {
+                mergedCatSet[mh.mergedName] = true;
+            });
+
             // Build category rows HTML — compact cards, clickable to see detail
             var catRowsHtml = catRows.map(function(row) {
                 var cardsHtml = row.cats.map(function(cat) {
                     var count = catCounts[cat] || 0;
                     var catEsc = cat.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                    var catDisplay = window._displayCategoryName(cat);
+                    var isMerged = !!mergedCatSet[cat];
+                    // Unmerge icon — small split icon in top-right corner, only for merged categories
+                    var unmergeIcon = isMerged
+                        ? '<div class="cat-unmerge-btn" data-unmerge-cat="' + cat.replace(/"/g, '&quot;') + '" title="Desmesclar" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;z-index:2;" onmouseenter="this.style.background=\'rgba(239,68,68,0.35)\'" onmouseleave="this.style.background=\'rgba(239,68,68,0.15)\'">' +
+                          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"><path d="M16 3h5v5M8 3H3v5M16 21h5v-5M8 21H3v-5"/></svg>' +
+                          '</div>'
+                        : '';
                     return '<div class="cat-mgr-card" draggable="true" data-cat="' + cat.replace(/"/g, '&quot;') + '" ' +
-                        'style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;background:rgba(99,102,241,0.08);border:2px solid rgba(99,102,241,0.2);cursor:pointer;transition:all 0.2s;min-width:80px;">' +
-                        '<div style="font-weight:700;font-size:0.8rem;color:#818cf8;white-space:nowrap;">' + cat + '</div>' +
+                        'style="position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;background:rgba(99,102,241,0.08);border:2px solid rgba(99,102,241,0.2);cursor:pointer;transition:all 0.2s;min-width:80px;">' +
+                        unmergeIcon +
+                        '<div style="font-weight:700;font-size:0.8rem;color:#818cf8;white-space:nowrap;">' + catDisplay + '</div>' +
                         '<div style="font-size:1.4rem;font-weight:900;color:var(--text-bright);line-height:1.2;">' + count + '</div>' +
                         '<div style="font-size:0.65rem;color:var(--text-muted);">inscrito' + (count !== 1 ? 's' : '') + '</div>' +
                         '</div>';
@@ -813,8 +971,8 @@ function renderTournaments(container, tournamentId = null) {
                 '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ Gerenciar Categorias</h3>' +
                 '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
                 '</div>' +
-                '<div style="padding:0 1.5rem;">' +
-                '<button id="cat-mgr-back-main" style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;cursor:pointer;padding:10px 0 4px 0;display:inline-flex;align-items:center;gap:4px;" onclick="document.getElementById(\'' + modalId + '\').remove();">← Voltar</button>' +
+                '<div style="padding:10px 1.5rem 0;">' +
+                '<button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-weight:500;font-size:0.8rem;cursor:pointer;" onclick="document.getElementById(\'' + modalId + '\').remove();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
                 '</div>' +
                 '<div style="padding:0 1.5rem 1.5rem;">' +
                 '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Arraste uma categoria sobre outra para mesclar. Arraste participantes sem categoria para atribuí-los.</div>' +
@@ -832,10 +990,22 @@ function renderTournaments(container, tournamentId = null) {
             var catCardEls = document.querySelectorAll('.cat-mgr-card');
             catCardEls.forEach(function(cardEl) {
                 cardEl.addEventListener('click', function(e) {
+                    // Don't open detail if clicking unmerge button
+                    if (e.target.closest && e.target.closest('.cat-unmerge-btn')) return;
                     // Only open detail if not a drag operation
                     if (cardEl._wasDragged) { cardEl._wasDragged = false; return; }
                     var catName = cardEl.getAttribute('data-cat');
                     _renderCategoryDetail(catName);
+                });
+            });
+
+            // Attach click handlers for unmerge buttons
+            var unmergeBtns = document.querySelectorAll('.cat-unmerge-btn');
+            unmergeBtns.forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var catName = btn.getAttribute('data-unmerge-cat');
+                    _unmergeCategoryAction(tId, catName);
                 });
             });
         };
@@ -846,22 +1016,24 @@ function renderTournaments(container, tournamentId = null) {
             if (!t) return;
             var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
-            // Filter participants in this category
+            // Filter participants in this category (supports multi-category) — track their index in parts[]
             var catParticipants = [];
-            parts.forEach(function(p) {
+            parts.forEach(function(p, idx) {
                 if (typeof p !== 'object') return;
-                if ((p.category || '') === catName) {
-                    catParticipants.push(p);
+                if (window._participantInCategory(p, catName)) {
+                    catParticipants.push({ p: p, idx: idx });
                 }
             });
 
-            // Build participant cards with source badges
+            // Build participant cards with source badges and remove button
             var pCardsHtml = catParticipants.length > 0
-                ? catParticipants.map(function(p) {
+                ? catParticipants.map(function(item) {
+                    var p = item.p;
+                    var pIdx = item.idx;
                     var name = p.displayName || p.name || 'Sem nome';
                     var email = p.email || '';
                     var initial = name.charAt(0).toUpperCase();
-                    var origCat = p.originalCategory ? ' <span style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;">(orig: ' + p.originalCategory + ')</span>' : '';
+                    var origCat = p.originalCategory ? ' <span style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;">(' + p.originalCategory + ')</span>' : '';
                     // Source badge
                     var srcBadge = '';
                     if (p.categorySource === 'perfil') {
@@ -869,12 +1041,19 @@ function renderTournaments(container, tournamentId = null) {
                     } else if (p.wasUncategorized) {
                         srcBadge = '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);margin-left:4px;">(sem cat.)</span>';
                     }
+                    // Remove button
+                    var removeBtn = '<button class="cat-remove-participant-btn" data-pidx="' + pIdx + '" data-cat="' + catName.replace(/"/g, '&quot;') + '" title="Remover da categoria" ' +
+                        'style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;" ' +
+                        'onmouseenter="this.style.background=\'rgba(239,68,68,0.3)\'" onmouseleave="this.style.background=\'rgba(239,68,68,0.1)\'">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+                        '</button>';
                     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);">' +
                         '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem;flex-shrink:0;">' + initial + '</div>' +
                         '<div style="flex:1;min-width:0;">' +
                         '<div style="font-weight:600;font-size:0.9rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + srcBadge + origCat + '</div>' +
                         (email ? '<div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + email + '</div>' : '') +
                         '</div>' +
+                        removeBtn +
                         '</div>';
                 }).join('')
                 : '<div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.9rem;font-style:italic;">Nenhum inscrito nesta categoria.</div>';
@@ -882,11 +1061,11 @@ function renderTournaments(container, tournamentId = null) {
             var detailHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;" onclick="event.stopPropagation();">' +
                 '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);margin:auto;animation:fadeIn 0.2s ease;">' +
                 '<div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
-                '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ ' + catName + '</h3>' +
+                '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ ' + window._displayCategoryName(catName) + '</h3>' +
                 '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
                 '</div>' +
-                '<div style="padding:0 1.5rem;">' +
-                '<button style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;cursor:pointer;padding:10px 0 4px 0;display:inline-flex;align-items:center;gap:4px;" onclick="window._catManagerRender();">← Voltar</button>' +
+                '<div style="padding:10px 1.5rem 0;">' +
+                '<button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-weight:500;font-size:0.8rem;cursor:pointer;" onclick="window._catManagerRender();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
                 '</div>' +
                 '<div style="padding:0 1.5rem 1.5rem;">' +
                 '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">' + catParticipants.length + ' inscrito' + (catParticipants.length !== 1 ? 's' : '') + '</div>' +
@@ -897,6 +1076,17 @@ function renderTournaments(container, tournamentId = null) {
             var el = document.getElementById(modalId);
             if (el) el.remove();
             document.body.insertAdjacentHTML('beforeend', detailHtml);
+
+            // Attach click handlers for remove-from-category buttons
+            var removeBtns = document.querySelectorAll('.cat-remove-participant-btn');
+            removeBtns.forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var pIdx = parseInt(btn.getAttribute('data-pidx'), 10);
+                    var cat = btn.getAttribute('data-cat');
+                    _removeParticipantFromCategory(tId, pIdx, cat);
+                });
+            });
         };
 
         _renderModal();
@@ -1046,17 +1236,51 @@ function renderTournaments(container, tournamentId = null) {
     }
 
     // Confirm and execute category merge
+    // Sort skill suffixes by strength (alphabetical = strongest first: A > B > C > D ...)
+    function _sortSkillParts(parts) {
+        return parts.slice().sort(function(a, b) {
+            // Compare alphabetically — A < B < C means A is stronger
+            return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+        });
+    }
+
     function _confirmMergeCategories(tId, sourceCat, targetCat) {
-        // Build merged name: "Fem A" + "Fem B" → "Fem A/B"
-        // Try to find common prefix
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        var skillCats = (t && t.skillCategories) ? t.skillCategories : [];
+
+        // Build merged name with skill suffixes sorted by strength (A before B before C...)
+        // "Fem C" + "Fem A" → "Fem A/C" (not "Fem C/A")
+        // "Fem B/C" + "Fem D" → "Fem B/C/D"
+        // If ALL skill categories are merged → simplify to just the prefix ("Masc A/B/C/D" → "Masc")
         var sParts = sourceCat.split(' ');
         var tParts = targetCat.split(' ');
         var mergedName = '';
         if (sParts.length > 1 && tParts.length > 1 && sParts[0] === tParts[0]) {
-            // Common prefix: "Fem A" + "Fem B" → "Fem A/B"
-            mergedName = sParts[0] + ' ' + sParts.slice(1).join(' ') + '/' + tParts.slice(1).join(' ');
+            // Common prefix — collect all skill suffixes, deduplicate and sort by strength
+            var prefix = sParts[0];
+            var sSuffixes = sParts.slice(1).join(' ').split('/').map(function(s) { return s.trim(); });
+            var tSuffixes = tParts.slice(1).join(' ').split('/').map(function(s) { return s.trim(); });
+            var allSuffixes = {};
+            sSuffixes.concat(tSuffixes).forEach(function(s) { if (s) allSuffixes[s] = true; });
+            var sorted = _sortSkillParts(Object.keys(allSuffixes));
+
+            // Check if all skill categories are now merged — simplify to just prefix
+            if (skillCats.length > 0 && sorted.length >= skillCats.length) {
+                var allPresent = skillCats.every(function(sc) { return allSuffixes[sc.trim()]; });
+                if (allPresent) {
+                    mergedName = prefix;
+                } else {
+                    mergedName = prefix + ' ' + sorted.join('/');
+                }
+            } else {
+                mergedName = prefix + ' ' + sorted.join('/');
+            }
         } else {
-            mergedName = sourceCat + '/' + targetCat;
+            // No common prefix — sort the two full names
+            var both = [sourceCat, targetCat].sort(function(a, b) {
+                return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+            });
+            mergedName = both.join('/');
         }
 
         showAlertDialog(
@@ -1081,11 +1305,21 @@ function renderTournaments(container, tournamentId = null) {
         // Update all participants in source or target category to new merged category
         parts.forEach(function(p) {
             if (typeof p !== 'object') return;
-            var pCat = p.category || '';
-            if (pCat === sourceCat || pCat === targetCat) {
-                // Store original category in parentheses
-                if (!p.originalCategory) p.originalCategory = pCat;
-                p.category = mergedName;
+            var pCats = window._getParticipantCategories(p);
+            var changed = false;
+            var newCats = pCats.map(function(c) {
+                if (c === sourceCat || c === targetCat) {
+                    if (!p.originalCategory) p.originalCategory = c;
+                    changed = true;
+                    return mergedName;
+                }
+                return c;
+            });
+            // Deduplicate (both source and target might be present)
+            var unique = [];
+            newCats.forEach(function(c) { if (unique.indexOf(c) === -1) unique.push(c); });
+            if (changed) {
+                window._setParticipantCategories(p, unique);
             }
         });
 
@@ -1111,6 +1345,29 @@ function renderTournaments(container, tournamentId = null) {
             }
         });
 
+        // Save merge history for undo support
+        if (!t.mergeHistory) t.mergeHistory = [];
+        // Store which participants came from which source category
+        var mergeRecord = {
+            mergedName: mergedName,
+            sourceCat: sourceCat,
+            targetCat: targetCat,
+            timestamp: Date.now(),
+            participants: {} // email → originalCat before this merge
+        };
+        parts.forEach(function(p) {
+            if (typeof p !== 'object') return;
+            var email = p.email || p.displayName || p.name || '';
+            if (p.originalCategory && (p.originalCategory === sourceCat || p.originalCategory === targetCat)) {
+                mergeRecord.participants[email] = p.originalCategory;
+            } else if (window._participantInCategory(p, mergedName)) {
+                // Infer from what we just changed
+                var orig = p.originalCategory || '';
+                if (orig) mergeRecord.participants[email] = orig;
+            }
+        });
+        t.mergeHistory.push(mergeRecord);
+
         // Log action
         window.AppStore.logAction(tId, 'Categorias mescladas: ' + sourceCat + ' + ' + targetCat + ' → ' + mergedName);
 
@@ -1131,6 +1388,191 @@ function renderTournaments(container, tournamentId = null) {
         }, 100);
     }
 
+    // ========== Remove a participant from a specific category (set as uncategorized) ==========
+    function _removeParticipantFromCategory(tId, pIdx, category) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t || !t.participants) return;
+
+        var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+        if (pIdx < 0 || pIdx >= parts.length) return;
+
+        var p = parts[pIdx];
+        if (typeof p !== 'object') return;
+        var pName = p.displayName || p.name || 'Sem nome';
+
+        showAlertDialog(
+            'Remover da Categoria',
+            'Deseja remover <strong>' + pName + '</strong> da categoria <strong>' + window._displayCategoryName(category) + '</strong>?<br><br>' +
+            'O participante ficará sem categoria e poderá ser reatribuído.',
+            function() {
+                _executeRemoveFromCategory(tId, pIdx, category);
+            },
+            { type: 'warning', confirmText: 'Remover', cancelText: 'Cancelar', showCancel: true }
+        );
+    }
+
+    function _executeRemoveFromCategory(tId, pIdx, category) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t || !t.participants) return;
+
+        var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+        if (pIdx < 0 || pIdx >= parts.length) return;
+
+        var p = parts[pIdx];
+        if (typeof p !== 'object') return;
+        var pName = p.displayName || p.name || 'Sem nome';
+
+        // Remove the specific category from the participant
+        var pCats = window._getParticipantCategories(p);
+        var newCats = pCats.filter(function(c) { return c !== category; });
+        window._setParticipantCategories(p, newCats);
+
+        // Mark as uncategorized if no categories left
+        if (newCats.length === 0) {
+            p.wasUncategorized = true;
+            p.categorySource = '';
+        }
+
+        // Ensure the array is written back
+        if (!Array.isArray(t.participants)) {
+            t.participants = parts;
+        }
+
+        // Log action
+        window.AppStore.logAction(tId, 'Participante removido da categoria: ' + pName + ' ← ' + category);
+
+        // Persist
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t);
+        } else {
+            window.AppStore.sync();
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('Participante Removido', pName + ' removido de ' + window._displayCategoryName(category), 'success');
+        }
+
+        // Re-render the category detail view (refreshed data)
+        setTimeout(function() {
+            if (window._catManagerRender) {
+                // Go back to main view since the detail might be stale
+                window._catManagerRender();
+            }
+        }, 100);
+    }
+
+    // ========== Unmerge a previously merged category ==========
+    function _unmergeCategoryAction(tId, catName) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t || !t.mergeHistory || t.mergeHistory.length === 0) return;
+
+        // Find the most recent merge that produced this category
+        var mergeIdx = -1;
+        for (var i = t.mergeHistory.length - 1; i >= 0; i--) {
+            if (t.mergeHistory[i].mergedName === catName) { mergeIdx = i; break; }
+        }
+        if (mergeIdx === -1) {
+            if (typeof showNotification === 'function') {
+                showNotification('Erro', 'Histórico de mesclagem não encontrado para esta categoria.', 'error');
+            }
+            return;
+        }
+
+        var record = t.mergeHistory[mergeIdx];
+        showAlertDialog(
+            'Desmesclar Categoria',
+            'Deseja desfazer a mesclagem de <strong>' + catName + '</strong>?<br><br>' +
+            'As categorias originais serão restauradas: <strong>' + record.sourceCat + '</strong> e <strong>' + record.targetCat + '</strong><br><br>' +
+            'Os participantes serão reatribuídos às suas categorias originais. Participantes sem histórico ficarão sem categoria.',
+            function() {
+                _executeUnmerge(tId, mergeIdx);
+            },
+            { type: 'warning', confirmText: 'Desmesclar', cancelText: 'Cancelar', showCancel: true }
+        );
+    }
+
+    function _executeUnmerge(tId, mergeIdx) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t || !t.mergeHistory || !t.mergeHistory[mergeIdx]) return;
+
+        var record = t.mergeHistory[mergeIdx];
+        var mergedName = record.mergedName;
+        var sourceCat = record.sourceCat;
+        var targetCat = record.targetCat;
+        var participantMap = record.participants || {};
+
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+
+        // Reassign participants back to their original categories or remove merged category
+        parts.forEach(function(p) {
+            if (typeof p !== 'object') return;
+            var pCats = window._getParticipantCategories(p);
+            var idx = pCats.indexOf(mergedName);
+            if (idx === -1) return;
+
+            var pKey = p.email || p.displayName || p.name || '';
+            var origCat = participantMap[pKey] || p.originalCategory || '';
+
+            if (origCat && (origCat === sourceCat || origCat === targetCat)) {
+                // Restore to original category
+                pCats[idx] = origCat;
+                window._setParticipantCategories(p, pCats);
+                // Clear the merge-related originalCategory if it matches
+                if (p.originalCategory === origCat) {
+                    delete p.originalCategory;
+                }
+            } else {
+                // No original info — set as uncategorized (remove merged cat)
+                pCats.splice(idx, 1);
+                if (pCats.length === 0) {
+                    window._setParticipantCategories(p, []);
+                    p.wasUncategorized = true;
+                } else {
+                    window._setParticipantCategories(p, pCats);
+                }
+            }
+        });
+
+        // Restore combinedCategories: remove merged, add back source and target
+        var cats = t.combinedCategories || [];
+        var newCats = cats.filter(function(c) { return c !== mergedName; });
+        if (newCats.indexOf(sourceCat) === -1) newCats.push(sourceCat);
+        if (newCats.indexOf(targetCat) === -1) newCats.push(targetCat);
+        t.combinedCategories = newCats;
+
+        // Revert rounds/matches category references
+        (t.rounds || []).forEach(function(r) {
+            (r.matches || []).forEach(function(m) {
+                if (m.category === mergedName) {
+                    // Can't know which original — leave as merged for safety
+                    // (matches shouldn't exist before a draw anyway)
+                }
+            });
+        });
+
+        // Remove this merge record from history
+        t.mergeHistory.splice(mergeIdx, 1);
+
+        // Log action
+        window.AppStore.logAction(tId, 'Mesclagem desfeita: ' + mergedName + ' → ' + sourceCat + ' + ' + targetCat);
+
+        // Persist
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t);
+        } else {
+            window.AppStore.sync();
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('Mesclagem Desfeita', mergedName + ' → ' + sourceCat + ' + ' + targetCat, 'success');
+        }
+
+        // Re-render
+        setTimeout(function() {
+            if (window._catManagerRender) window._catManagerRender();
+        }, 100);
+    }
+
     // Assign an uncategorized participant to a category (manual by organizer)
     function _assignParticipantCategory(tId, pIdx, category) {
         var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
@@ -1145,9 +1587,10 @@ function renderTournaments(container, tournamentId = null) {
 
         // Convert string participant to object if needed
         if (typeof p === 'string') {
-            parts[pIdx] = { name: p, displayName: p, category: category, categorySource: 'organizador', wasUncategorized: true };
+            parts[pIdx] = { name: p, displayName: p, categories: [category], category: category, categorySource: 'organizador', wasUncategorized: true };
+            p = parts[pIdx];
         } else {
-            p.category = category;
+            window._addParticipantCategory(p, category);
             p.categorySource = 'organizador';
             p.wasUncategorized = true;
         }
@@ -1168,7 +1611,7 @@ function renderTournaments(container, tournamentId = null) {
         }
 
         if (typeof showNotification === 'function') {
-            showNotification('Categoria Atribuída', pName + ' → ' + category, 'success');
+            showNotification('Categoria Atribuída', pName + ' → ' + window._displayCategoryName(category), 'success');
         }
 
         // Re-render the modal after a small delay to ensure data is settled
@@ -1195,7 +1638,10 @@ function renderTournaments(container, tournamentId = null) {
         parts.forEach(function(p, idx) {
             if (typeof p !== 'object') return;
             // Skip if already has a category
-            if (p.category && categories.indexOf(p.category) !== -1) return;
+            // Skip if already has a valid category
+            var existingCats = window._getParticipantCategories(p);
+            var hasValidCat = existingCats.some(function(c) { return categories.indexOf(c) !== -1; });
+            if (hasValidCat) return;
 
             // Get participant's gender (stored on enrollment or from profile)
             var pGender = p.gender || '';
@@ -1222,12 +1668,21 @@ function renderTournaments(container, tournamentId = null) {
                 });
             }
 
-            // Auto-assign only if exactly one eligible category
-            if (eligible.length === 1) {
-                p.category = eligible[0];
+            // Auto-assign: exclusive categories (pick the one matching), non-exclusive (add all)
+            var groups = window._groupEligibleCategories(eligible);
+            var autoAssigned = [];
+            // For exclusive, only auto-assign if exactly one match
+            if (groups.exclusive.length === 1) autoAssigned.push(groups.exclusive[0]);
+            // For non-exclusive, auto-assign all
+            autoAssigned = autoAssigned.concat(groups.nonExclusive);
+
+            if (autoAssigned.length > 0) {
+                window._setParticipantCategories(p, autoAssigned);
                 p.categorySource = 'perfil';
                 p.wasUncategorized = true;
-                _addCategoryNotification(t, p, eligible[0]);
+                autoAssigned.forEach(function(cat) {
+                    _addCategoryNotification(t, p, cat);
+                });
                 assigned++;
             }
         });
@@ -1290,7 +1745,7 @@ function renderTournaments(container, tournamentId = null) {
 
             showAlertDialog(
                 'Categoria Atribuída',
-                'Você foi atribuído à categoria <strong>' + n.category + '</strong> ' + sourceLabel + ' no torneio <strong>' + (t.name || '') + '</strong>.' +
+                'Você foi atribuído à categoria <strong>' + window._displayCategoryName(n.category) + '</strong> ' + sourceLabel + ' no torneio <strong>' + (t.name || '') + '</strong>.' +
                 '<br><br><button id="' + questionBtnId + '" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;padding:8px 16px;border-radius:10px;font-weight:600;font-size:0.85rem;cursor:pointer;">💬 Questionar Organizador</button>',
                 function() {
                     // Dialog dismissed
@@ -1361,9 +1816,9 @@ function renderTournaments(container, tournamentId = null) {
                               (t.genderCategories && t.genderCategories.length > 0) ||
                               (t.skillCategories && t.skillCategories.length > 0);
                 if (hasCats) {
-                    window._resolveEnrollmentCategory(tId, function(selectedCategory) {
-                        if (!selectedCategory) return; // user cancelled
-                        window._doEnrollCurrentUser(tId, selectedCategory);
+                    window._resolveEnrollmentCategory(tId, function(selectedCategories) {
+                        if (!selectedCategories) return; // user cancelled
+                        window._doEnrollCurrentUser(tId, selectedCategories);
                     });
                     return;
                 }
@@ -1374,16 +1829,25 @@ function renderTournaments(container, tournamentId = null) {
         };
 
         // Internal: performs actual enrollment with optional category
-        window._doEnrollCurrentUser = function(tId, selectedCategory) {
+        window._doEnrollCurrentUser = function(tId, selectedCategories) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
             const user = window.AppStore.currentUser;
             if (!t || !user) return;
 
+                // Normalize selectedCategories: accept string, array, or null
+                var catsArr = null;
+                if (Array.isArray(selectedCategories) && selectedCategories.length > 0) {
+                    catsArr = selectedCategories;
+                } else if (typeof selectedCategories === 'string' && selectedCategories) {
+                    catsArr = [selectedCategories];
+                }
+
                 // Use atomic Firestore transaction to prevent race conditions
                 const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName };
                 if (user.gender) participantObj.gender = user.gender;
-                if (selectedCategory) {
-                    participantObj.category = selectedCategory;
+                if (catsArr) {
+                    participantObj.categories = catsArr;
+                    participantObj.category = catsArr[0]; // backward compat
                     participantObj.categorySource = 'inscricao';
                 }
                 if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
@@ -1864,6 +2328,14 @@ function renderTournaments(container, tournamentId = null) {
                                     <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remanejar jogadores entre times (Arrastar e Soltar).</div>
                                 </div>
                             </button>
+
+                            <button class="res-option" style="grid-column:span 2;" onclick="window._handleIncompleteOption('${tId}', 'poll')">
+                                <span style="font-size:1.5rem;">🗳️</span>
+                                <div>
+                                    <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes</div>
+                                    <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</div>
+                                </div>
+                            </button>
                         </div>
                     </div>
 
@@ -1875,6 +2347,42 @@ function renderTournaments(container, tournamentId = null) {
             document.body.appendChild(overlay);
         };
 
+
+        // Handler for incomplete teams resolution options
+        window._handleIncompleteOption = function (tId, option) {
+            const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+            if (!t) return;
+
+            if (option === 'reopen') {
+                t.status = 'active';
+                t.enrollmentStatus = 'open';
+                window.AppStore.logAction(tId, 'Inscrições reabertas para completar times');
+                window.AppStore.sync();
+                document.getElementById('incomplete-teams-panel').remove();
+                if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Aguardando novos inscritos para completar os times.', 'success');
+                window.location.hash = '#tournaments/' + tId;
+            } else if (option === 'lottery') {
+                window.showLotteryIncompletePanel(tId);
+            } else if (option === 'standby') {
+                t.incompleteResolution = 'standby';
+                window.AppStore.logAction(tId, 'Jogadores sem time movidos para lista de espera');
+                window.AppStore.sync();
+                document.getElementById('incomplete-teams-panel').remove();
+                window.showPowerOf2Panel(tId);
+            } else if (option === 'dissolve') {
+                window.showDissolveTeamsPanel(tId);
+            } else if (option === 'poll') {
+                document.getElementById('incomplete-teams-panel').remove();
+                // Collect poll options from incomplete teams context (exclude 'poll' itself)
+                var pollOptions = [
+                    { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar novos jogadores para fechar os times faltantes.' },
+                    { key: 'lottery', icon: '🎲', title: 'Sorteio de Bots', desc: 'Preencher vagas com nomes fictícios ou convites aleatórios.' },
+                    { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: 'Os que sobrarem ficam fora do torneio principal, podendo substituir ausentes.' },
+                    { key: 'dissolve', icon: '🧩', title: 'Ajuste Manual', desc: 'Organizador redistribui jogadores entre times manualmente.' }
+                ];
+                window._showPollCreationDialog(tId, 'incomplete', pollOptions);
+            }
+        };
 
         window.showLotteryIncompletePanel = function (tId) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -2382,11 +2890,19 @@ function renderTournaments(container, tournamentId = null) {
                                 </div>
                             </button>
 
-                            <button class="p2-option shadow-xl" onclick="window._handleP2Option('${tId}', 'swiss')" style="grid-column: span 2;">
+                            <button class="p2-option shadow-xl" onclick="window._handleP2Option('${tId}', 'swiss')">
                                 <span style="font-size:2rem;">🏅</span>
                                 <div>
                                     <h4>Formato Suíço / Classificatória</h4>
                                     <p>Garantia de mais jogos para todos antes de afunilar para os melhores ${info.lo}.</p>
+                                </div>
+                            </button>
+
+                            <button class="p2-option shadow-xl" onclick="window._handleP2Option('${tId}', 'poll')" style="grid-column: span 2;">
+                                <span style="font-size:2rem;">🗳️</span>
+                                <div>
+                                    <h4>Enquete entre Participantes</h4>
+                                    <p>Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</p>
                                 </div>
                             </button>`;
                             })()}
@@ -2404,6 +2920,625 @@ function renderTournaments(container, tournamentId = null) {
 
         // (Check-in functions moved to participants.js)
 
+        // ═══════════════════════════════════════════════════════════
+        // ═══  ENQUETE ENTRE PARTICIPANTES (POLL SYSTEM)  ═════════
+        // ═══════════════════════════════════════════════════════════
+
+        // ── Nash Equilibrium Recommendation ──
+        // In a symmetric coordination game where all participants pick from the same options,
+        // the Nash equilibrium is the strategy that maximizes collective payoff.
+        // We model payoffs: each option has (fairness, inclusion, effort).
+        // Fairness = how equally all participants are treated.
+        // Inclusion = how many participants stay in the tournament.
+        // Effort = inverse of extra games/logistics needed.
+        // Nash equilibrium in pure strategies: the option where no individual gains by deviating,
+        // i.e., the option that is best-response for each player when all others pick it too.
+        // In practice this means the option with the highest weighted sum of payoff criteria.
+        window._computeNashRecommendation = function(pollOptions, context, info) {
+            // Payoff matrix: rate each option 0-10 on (fairness, inclusion, effort)
+            var payoffs = {
+                // Incomplete teams context
+                'reopen':   { fairness: 10, inclusion: 10, effort: 3 },  // fair but slow
+                'lottery':  { fairness: 4,  inclusion: 8,  effort: 8 },  // bots reduce fairness
+                'standby':  { fairness: 6,  inclusion: 4,  effort: 9 },  // excludes some
+                'dissolve': { fairness: 7,  inclusion: 7,  effort: 4 },  // manual work
+                // P2 context
+                'bye':      { fairness: 6,  inclusion: 10, effort: 9 },  // some get free pass
+                'playin':   { fairness: 8,  inclusion: 10, effort: 6 },  // extra games but fair
+                'swiss':    { fairness: 9,  inclusion: 10, effort: 5 }   // fair, more games
+            };
+
+            // Context-specific adjustments
+            if (info) {
+                // If only 1-2 missing for P2, reopen is easiest
+                if (info.missing && info.missing <= 2) {
+                    payoffs['reopen'] = { fairness: 10, inclusion: 10, effort: 8 };
+                }
+                // If BYE affects fewer than play-in
+                if (info.missing && info.excess) {
+                    if (info.missing <= info.excess * 2) {
+                        payoffs['bye'] = payoffs['bye'] || {};
+                        payoffs['bye'].effort = 10;
+                    }
+                }
+            }
+
+            // Weights: participants care most about fairness and inclusion
+            var wFairness = 0.45, wInclusion = 0.35, wEffort = 0.20;
+
+            var bestKey = '';
+            var bestScore = -1;
+            pollOptions.forEach(function(opt) {
+                var p = payoffs[opt.key];
+                if (!p) return;
+                var score = p.fairness * wFairness + p.inclusion * wInclusion + p.effort * wEffort;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestKey = opt.key;
+                }
+            });
+
+            return bestKey;
+        };
+
+        // ── Poll Creation Dialog ──
+        // Organizer chooses which options to include and sets a deadline
+        window._showPollCreationDialog = function(tId, context, pollOptions) {
+            var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+            if (!t) return;
+
+            var info = (context === 'p2') ? window.checkPowerOf2(t) : null;
+            var nashRec = window._computeNashRecommendation(pollOptions, context, info);
+
+            var existing = document.getElementById('poll-creation-dialog');
+            if (existing) existing.remove();
+
+            var overlay = document.createElement('div');
+            overlay.id = 'poll-creation-dialog';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
+
+            var optionsHtml = pollOptions.map(function(opt) {
+                var isNash = (opt.key === nashRec);
+                var nashBadge = isNash ? '<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);margin-left:6px;vertical-align:middle;">⚖️ Nash</span>' : '';
+                return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.03)\'">' +
+                    '<input type="checkbox" checked value="' + opt.key + '" style="margin-top:3px;width:18px;height:18px;accent-color:#6366f1;cursor:pointer;">' +
+                    '<div style="flex:1;">' +
+                    '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">' + opt.icon + ' ' + opt.title + nashBadge + '</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">' + opt.desc + '</div>' +
+                    '</div>' +
+                    '</label>';
+            }).join('');
+
+            overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:95%;max-width:600px;border-radius:24px;border:1px solid rgba(99,102,241,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);margin:auto;animation:fadeIn 0.2s ease;overflow:hidden;">' +
+                '<div style="background:linear-gradient(135deg,#312e81 0%,#6366f1 100%);padding:1.5rem 2rem;">' +
+                '<div style="display:flex;align-items:center;gap:15px;">' +
+                '<span style="font-size:2.5rem;">🗳️</span>' +
+                '<div>' +
+                '<h3 style="margin:0;color:#e0e7ff;font-size:1.25rem;font-weight:800;">Criar Enquete</h3>' +
+                '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.85rem;">Os participantes votarão na solução que preferem.</p>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div style="padding:1.5rem 2rem;">' +
+                '<div style="margin-bottom:1.25rem;">' +
+                '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Opções da Enquete</label>' +
+                '<p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 10px;">Desmarque opções que não deseja incluir. A opção com badge ⚖️ Nash é a recomendada pelo equilíbrio de Nash.</p>' +
+                '<div id="poll-options-list" style="display:flex;flex-direction:column;gap:8px;">' + optionsHtml + '</div>' +
+                '</div>' +
+
+                '<div style="margin-bottom:1.25rem;">' +
+                '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Prazo para Votação</label>' +
+                '<div style="display:flex;gap:12px;margin-top:8px;">' +
+                '<div style="flex:1;">' +
+                '<label style="font-size:0.7rem;color:var(--text-muted);">Horas</label>' +
+                '<input type="number" id="poll-deadline-hours" value="48" min="1" max="168" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:1rem;font-weight:700;text-align:center;">' +
+                '</div>' +
+                '<div style="display:flex;align-items:flex-end;padding-bottom:10px;color:var(--text-muted);font-size:0.85rem;">horas</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;padding:12px;margin-bottom:1rem;">' +
+                '<div style="font-size:0.75rem;font-weight:700;color:#4ade80;margin-bottom:4px;">⚖️ Equilíbrio de Nash</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;">A opção recomendada maximiza o equilíbrio entre <strong style="color:var(--text-bright);">justiça</strong> (todos em condições iguais), <strong style="color:var(--text-bright);">inclusão</strong> (ninguém excluído) e <strong style="color:var(--text-bright);">praticidade</strong> (menos logística extra). Nenhum participante ganharia individualmente ao desviar desta escolha se todos a adotassem.</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;gap:12px;border-top:1px solid rgba(255,255,255,0.05);">' +
+                '<button id="poll-cancel-btn" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Cancelar</button>' +
+                '<button id="poll-create-btn" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(99,102,241,0.3);">Criar Enquete</button>' +
+                '</div>' +
+                '</div>';
+
+            document.body.appendChild(overlay);
+
+            document.getElementById('poll-cancel-btn').addEventListener('click', function() {
+                overlay.remove();
+            });
+
+            document.getElementById('poll-create-btn').addEventListener('click', function() {
+                var checkboxes = document.querySelectorAll('#poll-options-list input[type="checkbox"]');
+                var selectedOptions = [];
+                checkboxes.forEach(function(cb) {
+                    if (cb.checked) selectedOptions.push(cb.value);
+                });
+                if (selectedOptions.length < 2) {
+                    if (typeof showNotification === 'function') showNotification('Erro', 'Selecione pelo menos 2 opções para a enquete.', 'error');
+                    return;
+                }
+                var hours = parseInt(document.getElementById('poll-deadline-hours').value) || 48;
+                if (hours < 1) hours = 1;
+                if (hours > 168) hours = 168;
+
+                // Create poll on tournament
+                var pollData = {
+                    id: 'poll_' + Date.now(),
+                    context: context,
+                    status: 'active',
+                    options: [],
+                    votes: {},       // email → optionKey
+                    deadline: Date.now() + (hours * 3600000),
+                    createdAt: Date.now(),
+                    nashRecommendation: nashRec
+                };
+
+                // Build options from the full list, filtered by selection
+                pollOptions.forEach(function(opt) {
+                    if (selectedOptions.indexOf(opt.key) !== -1) {
+                        pollData.options.push({
+                            key: opt.key,
+                            icon: opt.icon,
+                            title: opt.title,
+                            desc: opt.desc,
+                            isNash: (opt.key === nashRec)
+                        });
+                    }
+                });
+
+                if (!t.polls) t.polls = [];
+                t.polls.push(pollData);
+                t.activePollId = pollData.id;
+
+                // Add notification for all participants
+                var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+                if (!t.pollNotifications) t.pollNotifications = [];
+                parts.forEach(function(p) {
+                    if (typeof p !== 'object') return;
+                    var pEmail = p.email || '';
+                    if (!pEmail) return;
+                    t.pollNotifications.push({
+                        targetEmail: pEmail,
+                        pollId: pollData.id,
+                        timestamp: Date.now(),
+                        read: false
+                    });
+                });
+
+                window.AppStore.logAction(tId, 'Enquete criada: ' + selectedOptions.length + ' opções, prazo de ' + hours + 'h');
+
+                if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                    window.FirestoreDB.saveTournament(t);
+                } else {
+                    window.AppStore.sync();
+                }
+
+                overlay.remove();
+                if (typeof showNotification === 'function') {
+                    showNotification('Enquete Criada', 'Os participantes serão notificados para votar. Prazo: ' + hours + ' horas.', 'success');
+                }
+
+                // Re-render tournament detail
+                window.location.hash = '#tournaments/' + tId;
+            });
+        };
+
+        // ── Poll Voting UI (shown to participants) ──
+        window._showPollVotingDialog = function(tId, pollId) {
+            var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+            if (!t || !t.polls) return;
+
+            var poll = null;
+            for (var i = 0; i < t.polls.length; i++) {
+                if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
+            }
+            if (!poll) return;
+
+            var user = window.AppStore.currentUser;
+            var userEmail = (user && user.email) ? user.email : '';
+            var userVote = poll.votes[userEmail] || null;
+            var hasVoted = !!userVote;
+
+            // Calculate time remaining
+            var now = Date.now();
+            var remaining = Math.max(0, poll.deadline - now);
+            var isPollClosed = (remaining <= 0 || poll.status === 'closed');
+
+            // Count votes per option
+            var voteCounts = {};
+            var totalVotes = 0;
+            poll.options.forEach(function(opt) { voteCounts[opt.key] = 0; });
+            Object.keys(poll.votes).forEach(function(email) {
+                var k = poll.votes[email];
+                if (voteCounts[k] !== undefined) voteCounts[k]++;
+                totalVotes++;
+            });
+
+            var existing = document.getElementById('poll-voting-dialog');
+            if (existing) existing.remove();
+
+            var overlay = document.createElement('div');
+            overlay.id = 'poll-voting-dialog';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
+
+            // Countdown string
+            var countdownStr = '';
+            if (isPollClosed) {
+                countdownStr = '<span style="color:#f87171;font-weight:700;">Encerrada</span>';
+            } else {
+                var hrs = Math.floor(remaining / 3600000);
+                var mins = Math.floor((remaining % 3600000) / 60000);
+                var secs = Math.floor((remaining % 60000) / 1000);
+                countdownStr = '<span style="color:#fbbf24;font-weight:700;" id="poll-countdown">' + hrs + 'h ' + mins + 'm ' + secs + 's</span>';
+            }
+
+            // Build options HTML
+            var optionsHtml = poll.options.map(function(opt) {
+                var isMyVote = (userVote === opt.key);
+                var nashBadge = opt.isNash ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);margin-left:6px;">⚖️ Recomendado</span>' : '';
+
+                // Before voting: just show options and descriptions (no counts)
+                // After voting or closed: show counts and own vote
+                var voteInfo = '';
+                if (hasVoted || isPollClosed) {
+                    var count = voteCounts[opt.key] || 0;
+                    var pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                    voteInfo = '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;">' +
+                        '<div style="flex:1;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">' +
+                        '<div style="height:100%;background:' + (isMyVote ? '#6366f1' : 'rgba(255,255,255,0.2)') + ';border-radius:3px;width:' + pct + '%;transition:width 0.5s;"></div>' +
+                        '</div>' +
+                        '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:700;min-width:50px;text-align:right;">' + count + ' (' + pct + '%)</span>' +
+                        '</div>';
+                }
+
+                var myVoteBadge = isMyVote ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);margin-left:6px;">Seu voto</span>' : '';
+
+                var borderColor = isMyVote ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
+                var bgColor = isMyVote ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.03)';
+
+                var clickHandler = isPollClosed ? '' : ' onclick="window._castPollVote(\'' + tId + '\',\'' + pollId + '\',\'' + opt.key + '\')"';
+                var cursor = isPollClosed ? 'default' : 'pointer';
+
+                return '<div class="poll-vote-option" style="padding:14px;border-radius:14px;background:' + bgColor + ';border:1.5px solid ' + borderColor + ';cursor:' + cursor + ';transition:all 0.2s;"' + clickHandler + '>' +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<span style="font-size:1.3rem;">' + opt.icon + '</span>' +
+                    '<div style="flex:1;">' +
+                    '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">' + opt.title + nashBadge + myVoteBadge + '</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">' + opt.desc + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    voteInfo +
+                    '</div>';
+            }).join('');
+
+            var contextLabel = (poll.context === 'p2') ? 'Ajuste de Chaveamento' : 'Times Incompletos';
+
+            overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:95%;max-width:560px;border-radius:24px;border:1px solid rgba(99,102,241,0.2);box-shadow:0 30px 80px rgba(0,0,0,0.6);margin:auto;animation:fadeIn 0.2s ease;overflow:hidden;">' +
+                '<div style="background:linear-gradient(135deg,#312e81 0%,#6366f1 100%);padding:1.5rem 2rem;">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+                '<div style="display:flex;align-items:center;gap:12px;">' +
+                '<span style="font-size:2rem;">🗳️</span>' +
+                '<div>' +
+                '<h3 style="margin:0;color:#e0e7ff;font-size:1.15rem;font-weight:800;">Enquete: ' + contextLabel + '</h3>' +
+                '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.8rem;">Vote na solução que preferir' + (isPollClosed ? ' (encerrada)' : '') + '</p>' +
+                '</div>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                '<div style="font-size:0.65rem;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;">Tempo restante</div>' +
+                '<div style="font-size:1rem;margin-top:2px;">' + countdownStr + '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div style="padding:1.5rem 2rem;">' +
+                ((!hasVoted && !isPollClosed) ? '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 1rem;">Clique em uma opção para votar. Você poderá mudar seu voto até o encerramento.</p>' : '') +
+                '<div id="poll-vote-options" style="display:flex;flex-direction:column;gap:10px;">' + optionsHtml + '</div>' +
+                (hasVoted ? '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center;font-style:italic;">Você pode mudar seu voto clicando em outra opção' + (isPollClosed ? '' : ' até o encerramento') + '.</p>' : '') +
+                '</div>' +
+
+                '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
+                '<button onclick="document.getElementById(\'poll-voting-dialog\').remove();" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
+                '</div>' +
+                '</div>';
+
+            document.body.appendChild(overlay);
+
+            // Start countdown timer
+            if (!isPollClosed) {
+                var countdownEl = document.getElementById('poll-countdown');
+                if (countdownEl) {
+                    var _pollTimer = setInterval(function() {
+                        var rem = Math.max(0, poll.deadline - Date.now());
+                        if (rem <= 0) {
+                            countdownEl.textContent = 'Encerrada';
+                            countdownEl.style.color = '#f87171';
+                            clearInterval(_pollTimer);
+                            // Auto-close poll
+                            poll.status = 'closed';
+                            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                                window.FirestoreDB.saveTournament(t);
+                            }
+                            return;
+                        }
+                        var h = Math.floor(rem / 3600000);
+                        var m = Math.floor((rem % 3600000) / 60000);
+                        var s = Math.floor((rem % 60000) / 1000);
+                        countdownEl.textContent = h + 'h ' + m + 'm ' + s + 's';
+                    }, 1000);
+
+                    // Clear timer when dialog is removed
+                    var _observer = new MutationObserver(function(mutations) {
+                        if (!document.getElementById('poll-voting-dialog')) {
+                            clearInterval(_pollTimer);
+                            _observer.disconnect();
+                        }
+                    });
+                    _observer.observe(document.body, { childList: true });
+                }
+            }
+        };
+
+        // ── Cast a vote ──
+        window._castPollVote = function(tId, pollId, optionKey) {
+            var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+            if (!t || !t.polls) return;
+
+            var poll = null;
+            for (var i = 0; i < t.polls.length; i++) {
+                if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
+            }
+            if (!poll || poll.status === 'closed') return;
+            if (Date.now() > poll.deadline) {
+                poll.status = 'closed';
+                if (typeof showNotification === 'function') showNotification('Enquete Encerrada', 'O prazo para votação já expirou.', 'info');
+                return;
+            }
+
+            var user = window.AppStore.currentUser;
+            var userEmail = (user && user.email) ? user.email : '';
+            if (!userEmail) {
+                if (typeof showNotification === 'function') showNotification('Erro', 'Faça login para votar.', 'error');
+                return;
+            }
+
+            var previousVote = poll.votes[userEmail] || null;
+            poll.votes[userEmail] = optionKey;
+
+            // Persist
+            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                window.FirestoreDB.saveTournament(t);
+            } else {
+                window.AppStore.sync();
+            }
+
+            var optTitle = '';
+            poll.options.forEach(function(o) { if (o.key === optionKey) optTitle = o.title; });
+
+            if (typeof showNotification === 'function') {
+                if (previousVote && previousVote !== optionKey) {
+                    showNotification('Voto Alterado', 'Seu voto foi atualizado para: ' + optTitle, 'success');
+                } else {
+                    showNotification('Voto Registrado', 'Você votou em: ' + optTitle, 'success');
+                }
+            }
+
+            // Re-render the voting dialog to show updated counts
+            window._showPollVotingDialog(tId, pollId);
+        };
+
+        // ── Check for active polls and show notification to participant ──
+        window._checkPollNotifications = function(t) {
+            if (!t || !t.pollNotifications || !t.polls) return;
+            var user = window.AppStore.currentUser;
+            if (!user || !user.email) return;
+
+            var unreadNotifs = [];
+            t.pollNotifications.forEach(function(n) {
+                if (n.targetEmail === user.email && !n.read) {
+                    unreadNotifs.push(n);
+                }
+            });
+
+            if (unreadNotifs.length === 0) return;
+
+            // Find the active poll
+            var activePoll = null;
+            for (var i = 0; i < t.polls.length; i++) {
+                if (t.polls[i].status === 'active' && Date.now() < t.polls[i].deadline) {
+                    activePoll = t.polls[i]; break;
+                }
+            }
+            if (!activePoll) return;
+
+            // Mark notifications as read
+            unreadNotifs.forEach(function(n) { n.read = true; });
+
+            // Calculate time remaining
+            var remaining = Math.max(0, activePoll.deadline - Date.now());
+            var hrs = Math.floor(remaining / 3600000);
+            var mins = Math.floor((remaining % 3600000) / 60000);
+            var timeStr = hrs > 0 ? hrs + 'h ' + mins + 'm' : mins + ' minutos';
+
+            var contextLabel = (activePoll.context === 'p2') ? 'ajuste de chaveamento' : 'times incompletos';
+
+            showAlertDialog(
+                '🗳️ Enquete Aberta',
+                'O organizador abriu uma enquete sobre <strong>' + contextLabel + '</strong> neste torneio.<br><br>' +
+                'Tempo restante: <strong>' + timeStr + '</strong><br><br>' +
+                'Vote na solução que preferir!',
+                function() {
+                    window._showPollVotingDialog(String(t.id), activePoll.id);
+                },
+                { type: 'info', confirmText: 'Votar Agora', cancelText: 'Depois', showCancel: true }
+            );
+
+            // Persist read status
+            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                window.FirestoreDB.saveTournament(t);
+            }
+        };
+
+        // ── Show active poll banner in tournament detail ──
+        window._renderPollBanner = function(t) {
+            if (!t || !t.polls) return '';
+            var activePoll = null;
+            for (var i = 0; i < t.polls.length; i++) {
+                var p = t.polls[i];
+                if (p.status === 'active') {
+                    if (Date.now() >= p.deadline) {
+                        p.status = 'closed';
+                    } else {
+                        activePoll = p; break;
+                    }
+                }
+            }
+
+            if (!activePoll) {
+                // Check for recently closed polls (within last 24h) that need resolution
+                var recentClosed = null;
+                for (var j = 0; j < t.polls.length; j++) {
+                    if (t.polls[j].status === 'closed' && !t.polls[j].resolved && (Date.now() - t.polls[j].deadline < 86400000)) {
+                        recentClosed = t.polls[j]; break;
+                    }
+                }
+                if (recentClosed) {
+                    return window._renderClosedPollBanner(t, recentClosed);
+                }
+                return '';
+            }
+
+            var remaining = Math.max(0, activePoll.deadline - Date.now());
+            var hrs = Math.floor(remaining / 3600000);
+            var mins = Math.floor((remaining % 3600000) / 60000);
+            var timeStr = hrs > 0 ? hrs + 'h ' + mins + 'm' : mins + 'm';
+
+            var totalVotes = Object.keys(activePoll.votes).length;
+            var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+            var totalParticipants = parts.length;
+
+            var user = window.AppStore.currentUser;
+            var userEmail = (user && user.email) ? user.email : '';
+            var hasVoted = !!activePoll.votes[userEmail];
+            var isOrganizer = (user && user.email === t.organizerEmail);
+
+            var btnText = hasVoted ? 'Ver / Alterar Voto' : 'Votar Agora';
+            var statusText = hasVoted ? '✅ Você já votou' : '⏳ Aguardando seu voto';
+
+            return '<div style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(99,102,241,0.05));border:1px solid rgba(99,102,241,0.25);border-radius:16px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+                '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.5rem;">🗳️</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">Enquete em andamento</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);">' + totalVotes + '/' + totalParticipants + ' votos · Encerra em ' + timeStr + ' · ' + statusText + '</div>' +
+                '</div>' +
+                '</div>' +
+                '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">' + btnText + '</button>' +
+                '</div>';
+        };
+
+        // ── Closed poll banner — organizer can apply the result ──
+        window._renderClosedPollBanner = function(t, poll) {
+            // Find winner
+            var voteCounts = {};
+            var totalVotes = 0;
+            poll.options.forEach(function(opt) { voteCounts[opt.key] = 0; });
+            Object.keys(poll.votes).forEach(function(email) {
+                var k = poll.votes[email];
+                if (voteCounts[k] !== undefined) voteCounts[k]++;
+                totalVotes++;
+            });
+
+            var winnerKey = '';
+            var winnerCount = 0;
+            var winnerTitle = '';
+            poll.options.forEach(function(opt) {
+                if ((voteCounts[opt.key] || 0) > winnerCount) {
+                    winnerCount = voteCounts[opt.key];
+                    winnerKey = opt.key;
+                    winnerTitle = opt.title;
+                }
+            });
+
+            var pct = totalVotes > 0 ? Math.round((winnerCount / totalVotes) * 100) : 0;
+            var user = window.AppStore.currentUser;
+            var isOrganizer = (user && user.email === t.organizerEmail);
+
+            var applyBtn = isOrganizer
+                ? '<button onclick="window._applyPollResult(\'' + t.id + '\',\'' + poll.id + '\')" style="background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Aplicar Resultado</button>'
+                : '';
+            var viewBtn = '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Ver Detalhes</button>';
+
+            return '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(16,185,129,0.05));border:1px solid rgba(16,185,129,0.25);border-radius:16px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+                '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.5rem;">✅</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">Enquete encerrada</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);">Resultado: <strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' votos)</div>' +
+                '</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;">' + viewBtn + applyBtn + '</div>' +
+                '</div>';
+        };
+
+        // ── Apply poll result — trigger the winning option's action ──
+        window._applyPollResult = function(tId, pollId) {
+            var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+            if (!t || !t.polls) return;
+
+            var poll = null;
+            for (var i = 0; i < t.polls.length; i++) {
+                if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
+            }
+            if (!poll) return;
+
+            // Find winner
+            var voteCounts = {};
+            poll.options.forEach(function(opt) { voteCounts[opt.key] = 0; });
+            Object.keys(poll.votes).forEach(function(email) {
+                var k = poll.votes[email];
+                if (voteCounts[k] !== undefined) voteCounts[k]++;
+            });
+
+            var winnerKey = '';
+            var winnerCount = 0;
+            poll.options.forEach(function(opt) {
+                if ((voteCounts[opt.key] || 0) > winnerCount) {
+                    winnerCount = voteCounts[opt.key];
+                    winnerKey = opt.key;
+                }
+            });
+
+            if (!winnerKey) return;
+
+            poll.resolved = true;
+            poll.resolvedOption = winnerKey;
+            poll.resolvedAt = Date.now();
+
+            window.AppStore.logAction(tId, 'Resultado da enquete aplicado: ' + winnerKey);
+
+            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                window.FirestoreDB.saveTournament(t);
+            } else {
+                window.AppStore.sync();
+            }
+
+            // Trigger the winning option's action
+            if (poll.context === 'incomplete') {
+                window._handleIncompleteOption(tId, winnerKey);
+            } else if (poll.context === 'p2') {
+                window._handleP2Option(tId, winnerKey);
+            }
+        };
+
         window._handleP2Option = function (tId, option) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
             if (!t) return;
@@ -2420,6 +3555,21 @@ function renderTournaments(container, tournamentId = null) {
                 const p2Panel = document.getElementById('p2-resolution-panel');
                 if (p2Panel) p2Panel.style.display = 'none';
                 window._showReopenPanel(tId, info);
+                return;
+            }
+
+            if (option === 'poll') {
+                const p2Panel = document.getElementById('p2-resolution-panel');
+                if (p2Panel) p2Panel.remove();
+                // Collect poll options from P2 context
+                var pollOptions = [
+                    { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' inscritos para chegar a ' + info.hi + '. Igualdade total.' },
+                    { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' times avançam direto na primeira rodada. Chaveamento de ' + info.hi + '.' },
+                    { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' times disputam ' + info.excess + ' vaga(s). Chaveamento de ' + info.lo + '.' },
+                    { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' participantes vão para lista de espera. Chaveamento de ' + info.lo + '.' },
+                    { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' }
+                ];
+                window._showPollCreationDialog(tId, 'p2', pollOptions);
                 return;
             }
         };
@@ -3258,7 +4408,10 @@ function renderTournaments(container, tournamentId = null) {
                 t.standings = participants.map(p => {
                     const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
                     var entry = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
-                    if (typeof p === 'object' && p.category) entry.category = p.category;
+                    if (typeof p === 'object') {
+                        var _pcs = window._getParticipantCategories(p);
+                        if (_pcs.length > 0) { entry.category = _pcs[0]; entry.categories = _pcs; }
+                    }
                     return entry;
                 });
                 t.rounds = [];
@@ -4623,15 +5776,17 @@ function renderTournaments(container, tournamentId = null) {
                         else if (origin === 'formada') _teamLabel = 'Equipe Formada';
                         else _teamLabel = 'Equipe Formada';
                     }
-                    // Category badge with source indicator
-                    const _pCat = typeof p === 'object' ? (p.category || '') : '';
+                    // Category badges with source indicator (supports multiple categories)
+                    const _pCats = window._getParticipantCategories(p);
                     const _pCatSource = typeof p === 'object' ? (p.categorySource || '') : '';
                     const _pWasUncat = typeof p === 'object' ? (p.wasUncategorized || false) : false;
                     let catBadge = '';
-                    if (_pCat) {
+                    if (_pCats.length > 0) {
                         var srcLabel = _pCatSource === 'perfil' ? ' <span style="font-size:0.55rem;opacity:0.7;">(perfil)</span>'
                             : (_pWasUncat ? ' <span style="font-size:0.55rem;opacity:0.7;">(sem cat.)</span>' : '');
-                        catBadge = ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);margin-left:2px;">' + _pCat + srcLabel + '</span>';
+                        catBadge = _pCats.map(function(c) {
+                            return ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);margin-left:2px;">' + (window._displayCategoryName ? window._displayCategoryName(c) : c) + '</span>';
+                        }).join('') + srcLabel;
                     } else {
                         catBadge = ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:600;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);margin-left:2px;">(sem cat.)</span>';
                     }
@@ -4721,8 +5876,15 @@ function renderTournaments(container, tournamentId = null) {
       (Array.isArray(visible[0].groups) && visible[0].groups.length > 0)
     );
 
+    // Poll banner for tournament detail view
+    var pollBannerHtml = '';
+    if (tournamentId && visible.length > 0 && window._renderPollBanner) {
+        pollBannerHtml = window._renderPollBanner(visible[0]);
+    }
+
     const html = `
     ${headerHtml}
+    ${pollBannerHtml}
 
     <div class="tournaments-grid" style="display: grid; grid-template-columns: ${tournamentId ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'}; gap: 1.5rem;">
       ${gridHtml}
@@ -4746,6 +5908,10 @@ function renderTournaments(container, tournamentId = null) {
         var _nt = window.AppStore.tournaments.find(function(x) { return String(x.id) === String(tournamentId); });
         if (_nt && window._checkCategoryNotifications) {
             window._checkCategoryNotifications(_nt);
+        }
+        // Check poll notifications
+        if (_nt && window._checkPollNotifications) {
+            window._checkPollNotifications(_nt);
         }
     }
 
