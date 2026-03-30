@@ -13,7 +13,7 @@
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.1-alpha') + '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.2-alpha') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">© 2026 scoreplace.app. Todos os direitos reservados.</div>' +
@@ -77,7 +77,8 @@
       content: '<p><b>Antes do sorteio</b> — O organizador pode abrir a "Janela Pré-Sorteio" para organizar os participantes por categoria, mover entre grupos e definir a ordem de cabeças de chave.</p>' +
         '<p><b>Realizar o sorteio</b> — O organizador clica em "Sortear" para gerar as chaves oficiais. Em eliminatórias, os confrontos são definidos aleatoriamente. Em grupos, os participantes são distribuídos nos grupos.</p>' +
         '<p><b>Visualizar chaves</b> — Após o sorteio, a aba "Chaves" mostra a estrutura do torneio: árvore de eliminatórias, tabela de grupos, classificação da liga, etc.</p>' +
-        '<p><b>Iniciar torneio</b> — Após o sorteio, o organizador clica em "Iniciar Torneio" para habilitar check-in e lançamento de resultados.</p>'
+        '<p><b>Iniciar torneio</b> — Após o sorteio, o organizador clica em "Iniciar Torneio" para habilitar check-in e lançamento de resultados.</p>' +
+        '<p><b>Enquete entre participantes</b> — Em eliminatórias, quando há times incompletos ou o número de inscritos não é potência de 2, o organizador pode abrir uma enquete para que os próprios participantes votem na solução preferida (BYE, repescagem, lista de espera, etc.). O prazo padrão é 48h com contagem regressiva ao vivo. A opção recomendada é calculada pelo equilíbrio de Nash (maximizando justiça, inclusão e praticidade). Antes de votar, o participante vê apenas as descrições das opções; após votar, o resultado parcial e seu voto são revelados. É possível mudar o voto até o encerramento.</p>'
     },
     {
       id: 'checkin',
@@ -166,7 +167,8 @@
         '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga, Suíço e Ranking.</p>' +
         '<p><b>Misto Obrigatório</b> — Times devem ter 50% homens e 50% mulheres.</p>' +
         '<p><b>Misto Aleatório</b> — Aceita homens e mulheres sem restrição de proporção. A composição é definida pelo sorteio.</p>' +
-        '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria (agrupados por gênero), mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes sem categoria. Clique em uma categoria para ver os inscritos.</p>' +
+        '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria (agrupados por gênero), mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes sem categoria. Clique em uma categoria para ver os inscritos. Categorias mescladas exibem um ícone de desmesclagem no canto superior direito, permitindo desfazer a mesclagem e reatribuir participantes às categorias originais.</p>' +
+        '<p><b>Remover participante da categoria</b> — Na visualização detalhada de uma categoria, cada card de participante tem um botão para removê-lo daquela categoria. O participante fica "sem categoria" e pode ser reatribuído a qualquer outra.</p>' +
         '<p><b>Atribuição automática</b> — Quando o organizador cria categorias em um torneio que já tem inscritos, os participantes com gênero no perfil são atribuídos automaticamente. O badge "(perfil)" indica que a categoria veio do perfil do participante.</p>' +
         '<p><b>Notificação de categoria</b> — Participantes atribuídos a uma categoria recebem uma notificação ao acessar o torneio, com opção de questionar o organizador por e-mail.</p>' +
         '<p><b>Histórico</b> — Participantes que se inscreveram sem categoria e depois foram alocados mostram o indicador "(sem cat.)" ao lado da categoria, mantendo o histórico de que a inscrição ocorreu antes das categorias.</p>'
@@ -199,6 +201,16 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Enquete entre participantes</b> — Nova opção nos painéis de resolução de times incompletos e ajuste de potência de 2. O organizador cria uma enquete com prazo (padrão 48h), e os inscritos votam na solução preferida. Contagem regressiva ao vivo, notificação automática, voto secreto antes de votar e resultados revelados após o voto. A opção recomendada é calculada pelo equilíbrio de Nash. Organizador aplica o resultado com um clique.</p>' +
+        '<p><b>Desmesclar categorias</b> — Categorias mescladas agora mostram um ícone de desmesclagem. Ao clicar, desfaz a mesclagem e reatribui participantes às categorias originais usando histórico de mesclagem.</p>' +
+        '<p><b>Remover participante da categoria</b> — No detalhe da categoria, cada card de jogador tem botão para removê-lo, deixando-o como "sem categoria" para reatribuição.</p>' +
+        '<p><b>Simplificação Misto</b> — "Misto Aleatório" e "Misto Obrigatório" são exibidos como "Misto" em cards, badges e inscrição. Nome completo apenas nas regras, card do torneio e detalhes.</p>' +
+        '<p><b>Multi-categoria</b> — Participantes podem se inscrever em categorias não-excludentes (ex: Masc A + Misto A). Categorias Fem/Masc são mutuamente exclusivas (radio); Misto é aditivo (checkbox).</p>' +
+        '<p><b>Ordenação de mesclagem</b> — Ao mesclar categorias, os sufixos são ordenados por força (A antes de B). Se todas as habilidades forem mescladas, simplifica para apenas o prefixo (ex: "Masc" ao invés de "Masc A/B/C/D").</p>' +
+        '<p><b>Handler de times incompletos</b> — Implementada a função _handleIncompleteOption que estava ausente, habilitando todas as opções do painel de resolução.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Gerenciador de Categorias redesenhado</b> — Categorias agora aparecem acima dos participantes sem categoria. Cards compactos (sem lista de nomes, apenas contagem). Categorias agrupadas por gênero na mesma linha (Fem, Masc, etc.). Clique em uma categoria para ver os inscritos em detalhe com avatar e e-mail.</p>' +
         '<p><b>Navegação no gerenciador</b> — Botão "Voltar" abaixo do título em ambas as telas (visão geral e detalhe da categoria). Botão × mantido no canto superior direito para fechar.</p>' +
