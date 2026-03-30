@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.1.4-alpha';
+window.SCOREPLACE_VERSION = '0.1.5-alpha';
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
