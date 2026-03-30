@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.1.5-alpha';
+window.SCOREPLACE_VERSION = '0.1.6-alpha';
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
@@ -175,6 +175,8 @@ window.AppStore = {
         if (profile.notifyPlatform !== undefined) this.currentUser.notifyPlatform = profile.notifyPlatform;
         if (profile.notifyEmail !== undefined) this.currentUser.notifyEmail = profile.notifyEmail;
         if (profile.notifyWhatsApp !== undefined) this.currentUser.notifyWhatsApp = profile.notifyWhatsApp;
+        if (profile.notifyLevel) this.currentUser.notifyLevel = profile.notifyLevel;
+        if (profile.preferredCeps !== undefined) this.currentUser.preferredCeps = profile.preferredCeps;
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
@@ -210,6 +212,8 @@ window.AppStore = {
       notifyPlatform: user.notifyPlatform !== false,
       notifyEmail: user.notifyEmail !== false,
       notifyWhatsApp: user.notifyWhatsApp !== false,
+      notifyLevel: user.notifyLevel || 'todas',
+      preferredCeps: user.preferredCeps || '',
       friends: user.friends || [],
       friendRequestsSent: user.friendRequestsSent || [],
       friendRequestsReceived: user.friendRequestsReceived || [],
