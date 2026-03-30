@@ -60,9 +60,8 @@
               <span style="font-size: 0.95rem; font-weight: 500;">Notificações</span>
               <span id="notif-badge" style="display: none; position: absolute; top: 2px; left: 28px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
            </a>
-           <button class="hover-lift" title="Sobre" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-about');">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              <span style="font-size: 0.95rem; font-weight: 500;">Sobre</span>
+           <button class="hover-lift" title="Ajuda" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem; font-weight: 700;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-help');">
+              ?
            </button>
 
            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 5px;"></div>
@@ -87,23 +86,23 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
-  <script src="js/store.js?v=5"></script>
-  <script src="js/firebase-db.js?v=6"></script>
+  <script src="js/store.js?v=7"></script>
+  <script src="js/firebase-db.js?v=7"></script>
   <script src="js/notifications.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/views/dashboard.js?v=4"></script>
-  <script src="js/views/tournaments.js?v=11"></script>
-  <script src="js/views/create-tournament.js?v=3"></script>
+  <script src="js/views/dashboard.js?v=6"></script>
+  <script src="js/views/tournaments.js?v=14"></script>
+  <script src="js/views/create-tournament.js?v=5"></script>
   <script src="js/views/pre-draw.js"></script>
   <script src="js/views/bracket.js?v=5"></script>
-  <script src="js/views/participants.js?v=2"></script>
+  <script src="js/views/participants.js?v=3"></script>
   <script src="js/views/rules.js"></script>
   <script src="js/views/explore.js?v=8"></script>
   <script src="js/views/notifications-view.js"></script>
-  <script src="js/views/auth.js?v=8"></script>
+  <script src="js/views/auth.js?v=10"></script>
   <script src="js/views/result-modal.js"></script>
   <script src="js/views/enroll-modal.js"></script>
   <script src="js/router.js?v=8"></script>
-  <script src="js/main.js?v=2"></script>
+  <script src="js/main.js?v=3"></script>
 </body>
 </html>
