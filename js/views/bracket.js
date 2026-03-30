@@ -9,6 +9,22 @@ function renderBracket(container, tournamentId) {
     return;
   }
 
+  // Pre-load player photos from Firestore, then update bracket images
+  _preloadPlayerPhotos(t).then(function() {
+    // After photos loaded, update all bracket avatar images with real photos
+    var bracketImgs = container.querySelectorAll('img[data-player-name]');
+    bracketImgs.forEach(function(img) {
+      var name = img.getAttribute('data-player-name');
+      var realPhoto = window._playerPhotoCache[(name || '').toLowerCase()];
+      if (realPhoto && img.src.indexOf('dicebear.com') !== -1) {
+        var seed = encodeURIComponent(name);
+        var fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+        img.onerror = function() { this.onerror = null; this.src = fallback; };
+        img.src = realPhoto;
+      }
+    });
+  }).catch(function() {});
+
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
   const canEnterResult = isOrg || t.resultEntry === 'players' || t.resultEntry === 'referee';
   const isLiga = t.format === 'Liga';
@@ -1023,6 +1039,73 @@ function _getCheckInStatus(tId, teamName) {
   return ci[teamName] ? 'full' : 'none';
 }
 
+// ─── Player photo cache (loaded from Firestore) ─────────────────────────────
+// Maps displayName (lowercase) -> photoURL
+window._playerPhotoCache = window._playerPhotoCache || {};
+
+// Pre-load participant photos from Firestore for a tournament
+async function _preloadPlayerPhotos(tournament) {
+  if (!window.FirestoreDB || !window.FirestoreDB.db || !tournament) return;
+  const participants = Array.isArray(tournament.participants) ? tournament.participants : [];
+  const names = new Set();
+
+  participants.forEach(function(p) {
+    if (typeof p === 'string') {
+      p.split(' / ').forEach(function(n) { n = n.trim(); if (n && n !== 'TBD' && n !== 'BYE') names.add(n); });
+    } else {
+      var name = p.displayName || p.name || '';
+      if (name) names.add(name);
+      // If has email and photoURL already, cache it
+      if (name && p.photoURL) window._playerPhotoCache[name.toLowerCase()] = p.photoURL;
+    }
+  });
+
+  // Query Firestore for each unique name to get their photoURL
+  var promises = [];
+  names.forEach(function(name) {
+    if (window._playerPhotoCache[name.toLowerCase()]) return; // already cached
+    promises.push(
+      window.FirestoreDB.db.collection('users')
+        .where('displayName', '==', name)
+        .limit(1)
+        .get()
+        .then(function(snap) {
+          if (!snap.empty) {
+            var data = snap.docs[0].data();
+            if (data.photoURL) {
+              window._playerPhotoCache[name.toLowerCase()] = data.photoURL;
+            }
+          }
+        })
+        .catch(function() {})
+    );
+  });
+
+  // Also try matching by email for participants that have email
+  participants.forEach(function(p) {
+    if (typeof p !== 'object' || !p.email) return;
+    var name = p.displayName || p.name || '';
+    if (!name || window._playerPhotoCache[name.toLowerCase()]) return;
+    promises.push(
+      window.FirestoreDB.db.collection('users')
+        .where('email', '==', p.email)
+        .limit(1)
+        .get()
+        .then(function(snap) {
+          if (!snap.empty) {
+            var data = snap.docs[0].data();
+            if (data.photoURL && name) {
+              window._playerPhotoCache[name.toLowerCase()] = data.photoURL;
+            }
+          }
+        })
+        .catch(function() {})
+    );
+  });
+
+  await Promise.all(promises);
+}
+
 // ─── Player avatars helper for bracket cards ────────────────────────────────
 function _teamAvatarHtml(teamName) {
   if (!teamName || teamName === 'TBD') {
@@ -1037,12 +1120,15 @@ function _teamAvatarHtml(teamName) {
   let html = members.length > 1 ? '<div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;">' : '';
   members.forEach(function(name) {
     const seed = encodeURIComponent(name);
-    const avatarUrl = 'https://api.dicebear.com/9.x/notionists/svg?seed=' + seed;
-    const fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+    // Check photo cache for real user photo
+    const cachedPhoto = window._playerPhotoCache[name.toLowerCase()] || '';
+    const initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+    const photoSrc = cachedPhoto || initialsUrl;
+    const onerror = cachedPhoto ? `onerror="this.onerror=null;this.src='${initialsUrl}'"` : '';
     const size = members.length > 1 ? '20px' : '24px';
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
-      `<img src="${avatarUrl}" onerror="this.onerror=null;this.src='${fallback}'" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
+      `<img src="${photoSrc}" ${onerror} data-player-name="${name}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
       `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>` +
     `</div>`;
   });

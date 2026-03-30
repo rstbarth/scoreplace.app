@@ -117,6 +117,181 @@ function handleGoogleLogin() {
     });
 }
 
+// ─── Apple Login ─────────────────────────────────────────────────────────────
+function handleAppleLogin() {
+  if (window.location.protocol === 'file:') {
+    showNotification('Indisponível', 'Login com Apple não está disponível offline.', 'warning');
+    return;
+  }
+  var appleProvider = new firebase.auth.OAuthProvider('apple.com');
+  appleProvider.addScope('email');
+  appleProvider.addScope('name');
+
+  showNotification('Conectando...', 'Abrindo popup da Apple...', 'info');
+  firebase.auth().signInWithPopup(appleProvider)
+    .then(function(result) {
+      var user = result.user;
+      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+    })
+    .catch(function(error) {
+      console.error('Apple auth error:', error);
+      if (error.code === 'auth/popup-blocked') {
+        showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
+      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+        // cancelled
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Configurado', 'Login com Apple ainda não foi habilitado no Firebase Console.', 'warning');
+      } else {
+        showNotification('Erro', 'Não foi possível realizar o login com Apple.', 'error');
+      }
+    });
+}
+
+// ─── Facebook Login ──────────────────────────────────────────────────────────
+function handleFacebookLogin() {
+  if (window.location.protocol === 'file:') {
+    showNotification('Indisponível', 'Login com Facebook não está disponível offline.', 'warning');
+    return;
+  }
+  var fbProvider = new firebase.auth.FacebookAuthProvider();
+  fbProvider.addScope('email');
+  fbProvider.addScope('public_profile');
+
+  showNotification('Conectando...', 'Abrindo popup do Facebook...', 'info');
+  firebase.auth().signInWithPopup(fbProvider)
+    .then(function(result) {
+      var user = result.user;
+      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+    })
+    .catch(function(error) {
+      console.error('Facebook auth error:', error);
+      if (error.code === 'auth/popup-blocked') {
+        showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
+      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+        // cancelled
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente entrar com Google ou e-mail.', 'warning');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Configurado', 'Login com Facebook ainda não foi habilitado no Firebase Console.', 'warning');
+      } else {
+        showNotification('Erro', 'Não foi possível realizar o login com Facebook.', 'error');
+      }
+    });
+}
+
+// ─── Email/Password Login ────────────────────────────────────────────────────
+function handleEmailLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  if (!email || !password) {
+    showNotification('Campos Obrigatórios', 'Preencha e-mail e senha.', 'warning');
+    return;
+  }
+
+  showNotification('Entrando...', 'Verificando credenciais...', 'info');
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(function(result) {
+      var user = result.user;
+      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+      var modal = document.getElementById('modal-login');
+      if (modal) modal.classList.remove('active');
+    })
+    .catch(function(error) {
+      console.error('Email login error:', error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        showNotification('Credenciais Inválidas', 'E-mail ou senha incorretos. Verifique ou crie uma conta nova.', 'error');
+      } else if (error.code === 'auth/wrong-password') {
+        showNotification('Senha Incorreta', 'A senha está incorreta. Tente novamente ou redefina sua senha.', 'error');
+      } else if (error.code === 'auth/too-many-requests') {
+        showNotification('Muitas Tentativas', 'Muitas tentativas de login. Aguarde alguns minutos.', 'warning');
+      } else {
+        showNotification('Erro no Login', error.message || 'Não foi possível entrar.', 'error');
+      }
+    });
+}
+
+// ─── Email/Password Registration ─────────────────────────────────────────────
+function handleEmailRegister() {
+  var name = document.getElementById('register-name').value.trim();
+  var email = document.getElementById('register-email').value.trim();
+  var password = document.getElementById('register-password').value;
+  if (!name || !email || !password) {
+    showNotification('Campos Obrigatórios', 'Preencha nome, e-mail e senha.', 'warning');
+    return;
+  }
+  if (password.length < 6) {
+    showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+    return;
+  }
+
+  showNotification('Criando conta...', 'Registrando sua conta...', 'info');
+  firebase.auth().createUserWithEmailAndPassword(email, password)
+    .then(function(result) {
+      var user = result.user;
+      // Update profile with display name
+      return user.updateProfile({ displayName: name }).then(function() {
+        showNotification('Conta Criada!', 'Bem-vindo(a), ' + name + '!', 'success');
+        var modal = document.getElementById('modal-login');
+        if (modal) modal.classList.remove('active');
+        // Trigger simulateLoginSuccess with the name
+        return simulateLoginSuccess({
+          uid: user.uid,
+          email: user.email,
+          displayName: name,
+          photoURL: user.photoURL
+        });
+      });
+    })
+    .catch(function(error) {
+      console.error('Email register error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        showNotification('E-mail em Uso', 'Já existe uma conta com este e-mail. Tente fazer login.', 'error');
+      } else if (error.code === 'auth/invalid-email') {
+        showNotification('E-mail Inválido', 'O formato do e-mail está incorreto.', 'error');
+      } else if (error.code === 'auth/weak-password') {
+        showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+      } else {
+        showNotification('Erro no Registro', error.message || 'Não foi possível criar a conta.', 'error');
+      }
+    });
+}
+
+// ─── Password Reset ──────────────────────────────────────────────────────────
+function handlePasswordReset() {
+  var emailEl = document.getElementById('login-email');
+  var email = emailEl ? emailEl.value.trim() : '';
+  if (!email) {
+    showNotification('Informe o E-mail', 'Digite seu e-mail no campo acima e clique em "Esqueci a senha" novamente.', 'info');
+    if (emailEl) emailEl.focus();
+    return;
+  }
+
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function() {
+      showNotification('E-mail Enviado', 'Verifique sua caixa de entrada para redefinir a senha.', 'success');
+    })
+    .catch(function(error) {
+      if (error.code === 'auth/user-not-found') {
+        showNotification('E-mail Não Encontrado', 'Não existe conta com este e-mail.', 'error');
+      } else {
+        showNotification('Erro', error.message || 'Não foi possível enviar o e-mail de redefinição.', 'error');
+      }
+    });
+}
+
+// ─── Toggle between login and register mode ──────────────────────────────────
+function toggleEmailMode(mode) {
+  var loginDiv = document.getElementById('email-login-mode');
+  var registerDiv = document.getElementById('email-register-mode');
+  if (mode === 'register') {
+    if (loginDiv) loginDiv.style.display = 'none';
+    if (registerDiv) registerDiv.style.display = 'block';
+  } else {
+    if (loginDiv) loginDiv.style.display = 'block';
+    if (registerDiv) registerDiv.style.display = 'none';
+  }
+}
+
 // Busca dados demográficos do Google via People API e salva no Firestore
 function _fetchGoogleDemographics(accessToken, uid) {
   fetch('https://people.googleapis.com/v1/people/me?personFields=genders,birthdays,ageRanges,locales,addresses,phoneNumbers', {
@@ -566,28 +741,80 @@ function setupLoginModal() {
         '</div>' +
         '<div class="modal-body">' +
           '<p class="text-muted mb-4">Acesse sua conta para organizar ou participar de campeonatos.</p>' +
-          '<div style="margin-bottom: 1.5rem;">' +
-            '<button type="button" class="btn btn-primary full-width" onclick="handleGoogleLogin()" style="display: flex; align-items: center; justify-content: center; gap: 8px;">' +
-              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12c0-5.5-4.5-10-10-10S2 6.5 2 12s4.5 10 10 10 10-4.5 10-10z"></path></svg>' +
+
+          // --- Social login buttons ---
+          '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">' +
+
+            // Google
+            '<button type="button" class="btn full-width" onclick="handleGoogleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#fff;color:#444;border:1px solid #ddd;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.15)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+              '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
               'Entrar com Google' +
             '</button>' +
+
+            // Apple
+            '<button type="button" class="btn full-width" onclick="handleAppleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#000;color:#fff;border:1px solid #333;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.3)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>' +
+              'Entrar com Apple' +
+            '</button>' +
+
+            // Facebook
+            '<button type="button" class="btn full-width" onclick="handleFacebookLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#1877F2;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(24,119,242,0.4)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' +
+              'Entrar com Facebook' +
+            '</button>' +
+
           '</div>' +
+
           '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem;">' +
             '<div style="flex: 1; height: 1px; background: var(--border-color);"></div>' +
             '<span style="color: var(--text-muted); font-size: 0.875rem;">ou</span>' +
             '<div style="flex: 1; height: 1px; background: var(--border-color);"></div>' +
           '</div>' +
-          '<form id="form-login" onsubmit="event.preventDefault(); showAlertDialog(\'Em Breve\', \'Login por e-mail será implementado em breve.\', function() { }, { type: \'info\' })">' +
-            '<div class="form-group">' +
-              '<label class="form-label">E-mail</label>' +
-              '<input type="email" class="form-control" placeholder="seu@email.com" required>' +
+
+          // --- Email/password form ---
+          '<div id="email-login-mode" style="display:block;">' +
+            '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
+              '<div class="form-group">' +
+                '<label class="form-label">E-mail</label>' +
+                '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>' +
+              '</div>' +
+              '<div class="form-group mb-4">' +
+                '<label class="form-label">Senha</label>' +
+                '<input type="password" id="login-password" class="form-control" placeholder="••••••••" required minlength="6">' +
+              '</div>' +
+              '<button type="submit" class="btn btn-secondary full-width" style="font-weight:600;">Entrar com E-mail</button>' +
+            '</form>' +
+            '<div style="text-align:center;margin-top:12px;">' +
+              '<span style="color:var(--text-muted);font-size:0.8rem;">Não tem conta? </span>' +
+              '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'register\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Criar conta</a>' +
+              '<span style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">|</span>' +
+              '<a href="#" onclick="event.preventDefault();handlePasswordReset()" style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">Esqueci a senha</a>' +
             '</div>' +
-            '<div class="form-group mb-4">' +
-              '<label class="form-label">Senha</label>' +
-              '<input type="password" class="form-control" placeholder="••••••••" required>' +
+          '</div>' +
+
+          // --- Register mode (hidden by default) ---
+          '<div id="email-register-mode" style="display:none;">' +
+            '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
+              '<div class="form-group">' +
+                '<label class="form-label">Nome</label>' +
+                '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required>' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">E-mail</label>' +
+                '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required>' +
+              '</div>' +
+              '<div class="form-group mb-4">' +
+                '<label class="form-label">Senha (mínimo 6 caracteres)</label>' +
+                '<input type="password" id="register-password" class="form-control" placeholder="••••••••" required minlength="6">' +
+              '</div>' +
+              '<button type="submit" class="btn btn-primary full-width" style="font-weight:600;">Criar Conta</button>' +
+            '</form>' +
+            '<div style="text-align:center;margin-top:12px;">' +
+              '<span style="color:var(--text-muted);font-size:0.8rem;">Já tem conta? </span>' +
+              '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'login\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Entrar</a>' +
             '</div>' +
-            '<button type="submit" class="btn btn-secondary full-width" style="opacity: 0.6; cursor: not-allowed;">Entrar com E-mail (Em Breve)</button>' +
-          '</form>' +
+          '</div>' +
+
         '</div>' +
       '</div>' +
     '</div>';

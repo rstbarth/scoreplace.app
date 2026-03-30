@@ -88,8 +88,9 @@ function _participantMatchesUser(p, email, displayName) {
 function _userCardHtml(u, uid, actionHtml, isFriend) {
   var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
   var avatarSeed = encodeURIComponent(name || uid || 'User');
-  var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + avatarSeed;
-  var fallbackPhoto = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+  var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+  var photo = u.photoURL || initialsUrl;
+  var fallbackPhoto = initialsUrl;
   var infoChips = [];
   if (u.city) infoChips.push(u.city);
   if (u.preferredSports) infoChips.push(u.preferredSports);
@@ -195,8 +196,9 @@ function _renderPendingRequests(myUid, receivedIds) {
     profiles.forEach(function(u) {
       var uid = u._docId;
       var name = u.displayName || 'Usuário';
-      var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + encodeURIComponent(name || uid || 'User');
-      var fallbackPhoto2 = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(name || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+      var initialsUrlP = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(name || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+      var photo = u.photoURL || initialsUrlP;
+      var fallbackPhoto2 = initialsUrlP;
 
       html += '<div class="card" style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">' +
         '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
@@ -446,8 +448,9 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
       // Custom card for conhecidos (amber/yellow tint)
       var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
       var avatarSeed = encodeURIComponent(name || uid || 'User');
-      var photo = u.photoURL || 'https://api.dicebear.com/9.x/notionists/svg?seed=' + avatarSeed;
-      var fallbackPhotoC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+      var initialsUrlC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+      var photo = u.photoURL || initialsUrlC;
+      var fallbackPhotoC = initialsUrlC;
 
       html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
         '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
