@@ -168,6 +168,32 @@ function setupCreateTournamentModal() {
                     <span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span>
                   </label>
                 </div>
+                <div id="liga-draw-schedule" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
+                  <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios</p>
+                  <div class="d-flex gap-2 mb-2">
+                    <div class="form-group full-width">
+                      <label class="form-label">Data/Hora do Primeiro Sorteio</label>
+                      <div style="display:flex;gap:6px;">
+                        <input type="date" class="form-control" id="liga-first-draw-date" style="flex:1;">
+                        <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:90px;">
+                      </div>
+                    </div>
+                    <div class="form-group full-width">
+                      <label class="form-label">Repetir a cada</label>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <input type="number" class="form-control" id="liga-draw-interval" min="1" max="90" value="7" style="flex:1;">
+                        <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
+                      <input type="checkbox" id="liga-manual-draw" style="width:18px;height:18px;">
+                      <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
+                    </label>
+                    <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o sorteio não ocorre automaticamente. Use o botão na página do torneio.</p>
+                  </div>
+                </div>
               </div>
 
               <!-- Campos específicos: Ranking -->
@@ -908,9 +934,9 @@ function setupCreateTournamentModal() {
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
 
-    // Esconder estimativas de tempo para Ranking (não fazem sentido)
+    // Esconder estimativas de tempo para Ranking, Liga e Suíço (não fazem sentido)
     var estimContainer = document.getElementById('time-estimates-container');
-    if (estimContainer) estimContainer.style.display = isRanking ? 'none' : '';
+    if (estimContainer) estimContainer.style.display = (isRanking || isLiga || isSuico) ? 'none' : '';
 
     window._updateAutoCloseVisibility();
     window._updateRegDateVisibility();
@@ -1004,8 +1030,9 @@ function setupCreateTournamentModal() {
       skillCats.forEach(function(s) { combined.push(s); });
     }
 
+    var _dnPreview = (typeof window._displayCategoryName === 'function') ? window._displayCategoryName : function(c) { return c; };
     list.innerHTML = combined.map(function(c) {
-      return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + c + '</span>';
+      return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + _dnPreview(c) + '</span>';
     }).join('');
     preview.style.display = '';
   };
@@ -1436,6 +1463,18 @@ function setupCreateTournamentModal() {
     if (xContainer) xContainer.style.display = val === 'remove' ? 'block' : 'none';
   };
 
+  window._onLigaManualDrawChange = function () {
+    var manual = document.getElementById('liga-manual-draw');
+    var dateField = document.getElementById('liga-first-draw-date');
+    var timeField = document.getElementById('liga-first-draw-time');
+    var intervalField = document.getElementById('liga-draw-interval');
+    if (!manual) return;
+    var disabled = manual.checked;
+    if (dateField) dateField.disabled = disabled;
+    if (timeField) timeField.disabled = disabled;
+    if (intervalField) intervalField.disabled = disabled;
+  };
+
   // Wire up inactivity change
   setTimeout(() => {
     const el = document.getElementById('liga-inactivity');
@@ -1443,6 +1482,9 @@ function setupCreateTournamentModal() {
     // Wire up liga open enrollment checkbox to hide/show registration date
     const openEnrollEl = document.getElementById('liga-open-enrollment');
     if (openEnrollEl) openEnrollEl.addEventListener('change', window._updateRegDateVisibility);
+    // Wire up liga manual draw checkbox
+    const ligaManualEl = document.getElementById('liga-manual-draw');
+    if (ligaManualEl) ligaManualEl.addEventListener('change', window._onLigaManualDrawChange);
   }, 100);
 
   window._updateAutoCloseVisibility = function () {
@@ -2051,6 +2093,10 @@ function setupCreateTournamentModal() {
     if (t.ligaInactivity) document.getElementById('liga-inactivity').value = t.ligaInactivity;
     if (t.ligaInactivityX) document.getElementById('liga-inactivity-x').value = t.ligaInactivityX;
     document.getElementById('liga-open-enrollment').checked = t.ligaOpenEnrollment !== false;
+    if (t.format === 'Liga' && t.drawFirstDate) document.getElementById('liga-first-draw-date').value = t.drawFirstDate;
+    if (t.format === 'Liga' && t.drawFirstTime) document.getElementById('liga-first-draw-time').value = t.drawFirstTime;
+    if (t.format === 'Liga' && t.drawIntervalDays) document.getElementById('liga-draw-interval').value = t.drawIntervalDays;
+    if (t.format === 'Liga') document.getElementById('liga-manual-draw').checked = !!t.drawManual;
 
     // Ranking
     if (t.rankingSeasonMonths) {
@@ -2250,6 +2296,10 @@ function setupCreateTournamentModal() {
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
           tourData.ligaInactivityX = parseInt(document.getElementById('liga-inactivity-x').value) || 3;
           tourData.ligaOpenEnrollment = document.getElementById('liga-open-enrollment').checked;
+          tourData.drawFirstDate = document.getElementById('liga-first-draw-date').value || '';
+          tourData.drawFirstTime = document.getElementById('liga-first-draw-time').value || '19:00';
+          tourData.drawIntervalDays = parseInt(document.getElementById('liga-draw-interval').value) || 7;
+          tourData.drawManual = document.getElementById('liga-manual-draw').checked;
         }
 
         // Ranking

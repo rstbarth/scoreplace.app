@@ -1399,14 +1399,28 @@ function renderTournaments(container, tournamentId = null) {
         // "Fem C" + "Fem A" → "Fem A/C" (not "Fem C/A")
         // "Fem B/C" + "Fem D" → "Fem B/C/D"
         // If ALL skill categories are merged → simplify to just the prefix ("Masc A/B/C/D" → "Masc")
-        var sParts = sourceCat.split(' ');
-        var tParts = targetCat.split(' ');
+        // Gender prefixes can be multi-word: "Misto Aleat.", "Misto Obrig."
+        var _gPrefixes = ['Misto Aleat.', 'Misto Obrig.', 'Fem', 'Masc'];
+        function _extractGenderPrefix(cat) {
+            for (var i = 0; i < _gPrefixes.length; i++) {
+                if (cat.startsWith(_gPrefixes[i])) {
+                    var suffix = cat.substring(_gPrefixes[i].length).trim();
+                    return { prefix: _gPrefixes[i], suffix: suffix };
+                }
+            }
+            // Fallback: first word
+            var sp = cat.indexOf(' ');
+            if (sp !== -1) return { prefix: cat.substring(0, sp), suffix: cat.substring(sp + 1) };
+            return { prefix: cat, suffix: '' };
+        }
+        var sInfo = _extractGenderPrefix(sourceCat);
+        var tInfo = _extractGenderPrefix(targetCat);
         var mergedName = '';
-        if (sParts.length > 1 && tParts.length > 1 && sParts[0] === tParts[0]) {
+        if (sInfo.prefix === tInfo.prefix) {
             // Common prefix — collect all skill suffixes, deduplicate and sort by strength
-            var prefix = sParts[0];
-            var sSuffixes = sParts.slice(1).join(' ').split('/').map(function(s) { return s.trim(); });
-            var tSuffixes = tParts.slice(1).join(' ').split('/').map(function(s) { return s.trim(); });
+            var prefix = sInfo.prefix;
+            var sSuffixes = sInfo.suffix.split('/').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+            var tSuffixes = tInfo.suffix.split('/').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
             var allSuffixes = {};
             sSuffixes.concat(tSuffixes).forEach(function(s) { if (s) allSuffixes[s] = true; });
             var sorted = _sortSkillParts(Object.keys(allSuffixes));
@@ -1430,10 +1444,11 @@ function renderTournaments(container, tournamentId = null) {
             mergedName = both.join('/');
         }
 
+        var _dn = window._displayCategoryName || function(c) { return c; };
         showAlertDialog(
             'Mesclar Categorias',
-            'Deseja mesclar <strong>' + sourceCat + '</strong> com <strong>' + targetCat + '</strong>?<br><br>' +
-            'A nova categoria será: <strong>' + mergedName + '</strong><br><br>' +
+            'Deseja mesclar <strong>' + _dn(sourceCat) + '</strong> com <strong>' + _dn(targetCat) + '</strong>?<br><br>' +
+            'A nova categoria será: <strong>' + _dn(mergedName) + '</strong><br><br>' +
             'Todos os participantes de ambas as categorias serão movidos para a nova categoria.',
             function() {
                 _executeMerge(tId, sourceCat, targetCat, mergedName);
@@ -1626,10 +1641,11 @@ function renderTournaments(container, tournamentId = null) {
         if (mergeIdx !== -1) {
             // Has mergeHistory — use it
             var record = t.mergeHistory[mergeIdx];
+            var _dn2 = window._displayCategoryName || function(c) { return c; };
             showAlertDialog(
                 'Desmesclar Categoria',
-                'Deseja desfazer a mesclagem de <strong>' + catName + '</strong>?<br><br>' +
-                'As categorias originais serão restauradas: <strong>' + record.sourceCat + '</strong> e <strong>' + record.targetCat + '</strong><br><br>' +
+                'Deseja desfazer a mesclagem de <strong>' + _dn2(catName) + '</strong>?<br><br>' +
+                'As categorias originais serão restauradas: <strong>' + _dn2(record.sourceCat) + '</strong> e <strong>' + _dn2(record.targetCat) + '</strong><br><br>' +
                 'Os participantes serão reatribuídos às suas categorias originais. Participantes sem histórico ficarão sem categoria.',
                 function() {
                     _executeUnmerge(tId, mergeIdx);
@@ -1671,11 +1687,12 @@ function renderTournaments(container, tournamentId = null) {
             return;
         }
 
+        var _dn3 = window._displayCategoryName || function(c) { return c; };
         showAlertDialog(
             'Desmesclar Categoria',
-            'Deseja desfazer a mesclagem de <strong>' + catName + '</strong>?<br><br>' +
-            'As categorias originais serão restauradas: <strong>' + inferredCats.join('</strong>, <strong>') + '</strong><br><br>' +
-            'Os participantes ficarão sem categoria e poderão ser reatribuídos.',
+            'Deseja desfazer a mesclagem de <strong>' + _dn3(catName) + '</strong>?<br><br>' +
+            'As categorias originais serão restauradas: <strong>' + inferredCats.map(function(ic) { return _dn3(ic); }).join('</strong>, <strong>') + '</strong><br><br>' +
+            'Os participantes serão reatribuídos às suas categorias originais.',
             function() {
                 _executeInferredUnmerge(tId, catName, inferredCats);
             },
@@ -5814,7 +5831,7 @@ function renderTournaments(container, tournamentId = null) {
             <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 1.8rem 0;"></div>
 
             <!-- Bottom Section -->
-            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; opacity: 0.75;">
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
                
                <!-- Stats Column -->
                 <div style="display: inline-flex; flex-direction: column; gap: 8px; width: 100%;">
