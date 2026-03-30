@@ -717,6 +717,78 @@ function renderTournaments(container, tournamentId = null) {
         });
     };
 
+    // Build HTML for category count boxes grouped by gender prefix.
+    // Shows small boxes next to the total inscritos box: "Fem A (3) | Fem B (5) | Masc A (2) ..."
+    // Each gender prefix gets its own row. Uses _displayCategoryName for Misto simplification.
+    window._buildCategoryCountHtml = function(t) {
+        var cats = t.combinedCategories;
+        if (!cats || cats.length === 0) return '';
+        var sorted = window._sortCategoriesBySkillOrder(cats, t.skillCategories);
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+
+        // Count per category
+        var counts = {};
+        sorted.forEach(function(c) { counts[c] = 0; });
+        parts.forEach(function(p) {
+            if (typeof p !== 'object' && typeof p !== 'string') return;
+            var pCats = window._getParticipantCategories(p);
+            pCats.forEach(function(pc) {
+                if (counts.hasOwnProperty(pc)) counts[pc]++;
+            });
+        });
+
+        // Group by gender prefix for row layout
+        var genderPrefixes = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.'];
+        var rows = []; // { displayPrefix, cats: [{name, display, count}] }
+        var used = {};
+        genderPrefixes.forEach(function(gp) {
+            var rowCats = [];
+            sorted.forEach(function(c) {
+                if (used[c]) return;
+                if (c.toLowerCase().startsWith(gp.toLowerCase())) {
+                    rowCats.push({ name: c, display: window._displayCategoryName(c), count: counts[c] || 0 });
+                    used[c] = true;
+                }
+            });
+            if (rowCats.length > 0) {
+                var displayPrefix = gp.replace(/\s*Aleat\./, '').replace(/\s*Obrig\./, '');
+                // Merge Misto rows if both exist
+                var existingMisto = null;
+                for (var r = 0; r < rows.length; r++) {
+                    if (rows[r].displayPrefix === 'Misto') { existingMisto = rows[r]; break; }
+                }
+                if (displayPrefix === 'Misto' && existingMisto) {
+                    existingMisto.cats = existingMisto.cats.concat(rowCats);
+                } else {
+                    rows.push({ displayPrefix: displayPrefix, cats: rowCats });
+                }
+            }
+        });
+        // Any ungrouped
+        sorted.forEach(function(c) {
+            if (!used[c]) {
+                rows.push({ displayPrefix: '', cats: [{ name: c, display: c, count: counts[c] || 0 }] });
+                used[c] = true;
+            }
+        });
+
+        if (rows.length === 0) return '';
+
+        var html = '<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">';
+        rows.forEach(function(row) {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
+            row.cats.forEach(function(cat) {
+                html += '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);padding:3px 8px;border-radius:10px;">' +
+                    '<span style="font-size:0.65rem;font-weight:600;color:#818cf8;">' + cat.display + '</span>' +
+                    '<span style="font-size:0.75rem;font-weight:800;color:var(--text-bright,#e2e8f0);">' + cat.count + '</span>' +
+                    '</div>';
+            });
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    };
+
     // Exclusivity rules: Fem and Masc are mutually exclusive.
     // Misto (Aleatório/Obrigatório) is non-exclusive with Fem and Masc.
     // A participant can be in Masc A AND Misto Aleat. A, but NOT in Fem A AND Masc A.
@@ -5746,12 +5818,19 @@ function renderTournaments(container, tournamentId = null) {
                
                <!-- Stats Column -->
                 <div style="display: inline-flex; flex-direction: column; gap: 8px; width: 100%;">
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
                         <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
                            <span style="font-size: 1.1rem; margin-right: 4px;">👤</span>
                            <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Inscritos</span>
                         </div>
+                        ${teamCount > 0 ? `
+                        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
+                           <span style="font-size: 1.1rem; margin-right: 4px;">👥</span>
+                           <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
+                           <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Equipes</span>
+                        </div>
+                        ` : ''}
                         ${standbyCount > 0 ? `
                         <div style="display: flex; align-items: center; justify-content: center; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
                            <span style="font-size: 1.1rem; margin-right: 4px;">⏳</span>
@@ -5760,13 +5839,7 @@ function renderTournaments(container, tournamentId = null) {
                         </div>
                         ` : ''}
                     </div>
-                    ${teamCount > 0 ? `
-                    <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
-                       <span style="font-size: 1.1rem; margin-right: 4px;">👥</span>
-                       <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
-                       <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Equipes</span>
-                    </div>
-                    ` : ''}
+                    ${(typeof window._buildCategoryCountHtml === 'function') ? window._buildCategoryCountHtml(t) : ''}
                 </div>
 
                <!-- Formato, Regras e Categorias -->
@@ -5776,12 +5849,7 @@ function renderTournaments(container, tournamentId = null) {
                   ${(t.format === 'Ranking' && t.rankingSeasonMonths) ? `<div><strong>Temporada:</strong> ${t.rankingSeasonMonths} meses</div>` : ''}
                   ${(t.drawFirstDate) ? `<div><strong>1º Sorteio:</strong> ${(() => { try { var _dd = t.drawFirstDate.split('-'); return _dd[2] + '/' + _dd[1] + '/' + _dd[0]; } catch(e) { return t.drawFirstDate; } })()} às ${t.drawFirstTime || '19:00'}</div>` : ''}
                   ${(t.drawIntervalDays) ? `<div><strong>Intervalo:</strong> ${t.drawManual ? 'Manual' : 'A cada ' + t.drawIntervalDays + ' dia' + (t.drawIntervalDays > 1 ? 's' : '') + ' (automático)'}</div>` : ''}
-                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
-                    <strong>Categorias:</strong>
-                    ${(t.combinedCategories && t.combinedCategories.length > 0)
-                      ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">${c}</span>`).join('')
-                      : `<span>${cats}</span>`}
-                  </div>
+                  ${(!t.combinedCategories || t.combinedCategories.length === 0) ? `<div><strong>Categorias:</strong> ${cats}</div>` : ''}
                </div>
             </div>
 
@@ -6022,9 +6090,19 @@ function renderTournaments(container, tournamentId = null) {
 
                     const bgNum = isVip ? '⭐' : idx + 1;
 
+                    // Bottom row: type label on left, action buttons on right (same line)
+                    var bottomRow = '';
+                    if (typeLabel || actionsHtml) {
+                        var actionsInline = actionsHtml.replace('margin-top:6px;', 'margin-top:0;');
+                        bottomRow = '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;">' +
+                            '<div style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;">' + typeLabel + '</div>' +
+                            actionsInline +
+                            '</div>';
+                    }
+
                     return `
-                      <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                          <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:${String(bgNum).length > 2 ? '2.8rem' : '3.5rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
+                      <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                          <div style="position:absolute;right:8px;top:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
                           <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
                               <div style="display:flex;align-items:center;gap:12px;">
                                   <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
@@ -6032,8 +6110,7 @@ function renderTournaments(container, tournamentId = null) {
                                       ${catBadgeRow}
                                   </div>
                               </div>
-                              ${actionsHtml}
-                              <div style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;margin-top:6px;">${typeLabel}</div>
+                              ${bottomRow}
                           </div>
                       </div>`;
                 }).join('');

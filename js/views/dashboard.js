@@ -186,30 +186,32 @@ function renderDashboard(container) {
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; opacity: 0.75;">
                
                <!-- Stats Column -->
-               <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                   <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
-                      <div style="display: flex; align-items: center; gap: 4px;">
-                         <span style="font-size: 1.1rem;">👤</span>
-                         <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
-                      </div>
-                      <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Inscritos</span>
+               <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
+                       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
+                          <div style="display: flex; align-items: center; gap: 4px;">
+                             <span style="font-size: 1.1rem;">👤</span>
+                             <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
+                          </div>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Inscritos</span>
+                       </div>
+                       ${(teamCount > 0 && t.enrollmentMode !== 'individual') ? `
+                       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
+                          <div style="display: flex; align-items: center; gap: 4px;">
+                             <span style="font-size: 1.1rem;">👥</span>
+                             <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
+                          </div>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Equipes</span>
+                       </div>
+                       ` : ''}
                    </div>
-                   ${(teamCount > 0 && t.enrollmentMode !== 'individual') ? `
-                   <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
-                      <div style="display: flex; align-items: center; gap: 4px;">
-                         <span style="font-size: 1.1rem;">👥</span>
-                         <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
-                      </div>
-                      <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Equipes</span>
-                   </div>
-                   ` : ''}
+                   ${(typeof window._buildCategoryCountHtml === 'function') ? window._buildCategoryCountHtml(t) : ''}
                </div>
 
                <!-- Formato, Regras e Categorias -->
                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
-                  <div><strong>Categorias:</strong> ${cats}</div>
                </div>
             </div>
 
