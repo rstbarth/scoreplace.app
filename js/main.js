@@ -13,7 +13,7 @@
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.1.6-alpha') + '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.0-alpha') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">© 2026 scoreplace.app. Todos os direitos reservados.</div>' +
@@ -57,7 +57,8 @@
         '<p><b>Dupla Eliminatória</b> — Cada participante precisa perder 2 vezes para ser eliminado. Tem chave de vencedores e de perdedores.</p>' +
         '<p><b>Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Os participantes são divididos em grupos, jogam entre si, e os melhores de cada grupo avançam para as eliminatórias.</p>' +
         '<p><b>Suíço Clássico</b> — Todos jogam todas as rodadas. Os emparelhamentos são feitos por pontuação. Ótimo para xadrez e jogos de mesa. Número de rodadas configurável.</p>' +
-        '<p><b>Liga</b> — Temporada longa com rodadas periódicas (semanal, quinzenal, mensal). Permite inscrição aberta durante a temporada. Regras configuráveis para novos jogadores e inatividade.</p>'
+        '<p><b>Liga</b> — Temporada longa com rodadas periódicas (semanal, quinzenal, mensal). Permite inscrição aberta durante a temporada. Regras configuráveis para novos jogadores e inatividade.</p>' +
+        '<p><b>Ranking</b> — Temporada contínua (3, 6 ou 12 meses) com inscrições sempre abertas. Semelhante ao Suíço, mas sem limite de rodadas. Sorteios podem ser automáticos (com periodicidade configurável) ou manuais. Ideal para comunidades que jogam regularmente.</p>'
     },
     {
       id: 'inscricao',
@@ -99,8 +100,9 @@
       id: 'convidar',
       title: 'Convidar Amigos',
       icon: '👥',
-      content: '<p><b>Dentro do torneio</b> — Clique em "Convidar" para abrir o painel de convites. Você tem 3 opções:</p>' +
+      content: '<p><b>Dentro do torneio</b> — Clique em "Convidar" para abrir o painel de convites. Você tem 5 opções:</p>' +
         '<p><b>Amigos na plataforma</b> — Selecione amigos que já têm conta no scoreplace.app. Eles recebem uma notificação direta.</p>' +
+        '<p><b>QR Code</b> — Um código QR exclusivo é gerado para o torneio. Basta apontar a câmera do celular para escanear e acessar a página de inscrição. Ideal para compartilhar presencialmente em eventos, quadras e academias.</p>' +
         '<p><b>WhatsApp</b> — Um link de convite é gerado e aberto no WhatsApp para você compartilhar com quem quiser.</p>' +
         '<p><b>E-mail</b> — Um e-mail de convite é preparado com o link do torneio para enviar aos seus contatos.</p>' +
         '<p><b>Copiar link</b> — Copie o link de convite para colar em qualquer lugar (grupos, redes sociais, etc).</p>'
@@ -152,6 +154,21 @@
         '<p><b>Logo</b> — Gere um logo automático para dar identidade visual ao seu torneio. Ele aparece nos cards da dashboard e na página de detalhe.</p>'
     },
     {
+      id: 'categorias',
+      title: 'Categorias',
+      icon: '🏷️',
+      content: '<p>O organizador pode definir categorias para qualquer formato de torneio, permitindo que participantes de diferentes perfis disputem separadamente:</p>' +
+        '<p><b>Categorias de gênero</b> — Botões de alternância: Feminino (♀), Masculino (♂), Misto Aleatório (⚥) e Misto Obrigatório (⚤). Não são excludentes — o organizador pode ativar quantos quiser.</p>' +
+        '<p><b>Categorias de habilidade</b> — Campo de texto livre onde o organizador digita as categorias separadas por vírgula (ex: A, B, C, D).</p>' +
+        '<p><b>Categorias combinadas</b> — O sistema combina automaticamente gênero × habilidade. Exemplo: ativando Fem + Masc e digitando A, B gera: Fem A, Fem B, Masc A, Masc B.</p>' +
+        '<p><b>Inscrição com categoria</b> — Ao se inscrever em um torneio com categorias, o participante escolhe a categoria desejada. Se o perfil já tiver gênero preenchido, as opções são filtradas automaticamente.</p>' +
+        '<p><b>Sorteio e chaves por categoria</b> — O sorteio gera confrontos separados por categoria. Participantes só enfrentam adversários da mesma categoria.</p>' +
+        '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga, Suíço e Ranking.</p>' +
+        '<p><b>Misto Obrigatório</b> — Times devem ter 50% homens e 50% mulheres.</p>' +
+        '<p><b>Misto Aleatório</b> — Aceita homens e mulheres sem restrição de proporção. A composição é definida pelo sorteio.</p>' +
+        '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria, mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes que se inscreveram antes das categorias serem definidas.</p>'
+    },
+    {
       id: 'local',
       title: 'Local e Quadras',
       icon: '📍',
@@ -179,13 +196,21 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Formato Ranking</b> — Novo formato de torneio com temporada contínua (3, 6, 12 meses ou personalizado). Inscrições permanecem abertas durante toda a temporada. O botão "Encerrar Inscrições" não aparece. Estimativa de tempo é ocultada dos detalhes.</p>' +
+        '<p><b>Sorteios automáticos</b> — Formatos Ranking e Suíço agora suportam sorteios periódicos. O organizador define data/hora do primeiro sorteio e intervalo em dias para os próximos. Contagem regressiva (dias, horas, minutos) é exibida tanto na view de detalhes quanto na classificação. Modo manual disponível via toggle.</p>' +
+        '<p><b>Sistema de Categorias</b> — Funcionalidade transversal a todos os formatos de torneio. O organizador define categorias de gênero (Feminino, Masculino, Misto Aleatório, Misto Obrigatório) via botões toggle e categorias de habilidade (A, B, C, D...) via campo de texto. O sistema gera automaticamente as categorias combinadas (ex: Fem A, Fem B, Masc A, Masc B) com preview em tempo real.</p>' +
+        '<p><b>Inscrição com categoria</b> — Torneios com categorias pedem ao participante que escolha sua categoria no ato da inscrição. Se o perfil já tiver gênero, as opções são filtradas automaticamente. Modal de seleção com botões estilizados para múltiplas opções; confirmação automática quando há apenas uma opção elegível.</p>' +
+        '<p><b>Sorteio e classificação por categoria</b> — O algoritmo de emparelhamento Suíço agora gera confrontos separados por categoria. Cada categoria tem sua própria tabela de classificação com pontuação, vitórias, derrotas, saldo e desempates independentes.</p>' +
+        '<p><b>Gerenciador de Categorias</b> — Botão "Categorias" na view de detalhes permite ao organizador: visualizar cards de cada categoria com contagem de inscritos e lista de nomes; mesclar categorias por arrastar e soltar (Fem A + Fem B → Fem A/B) com confirmação e renomeação inteligente; atribuir categoria a participantes sem categoria arrastando-os para o card desejado. Categoria original preservada no registro.</p>' +
+        '<p><b>Convite por QR Code</b> — Painel de convite agora inclui QR Code exclusivo do torneio, gerado automaticamente. Basta apontar a câmera do celular para escanear e acessar a inscrição. Ideal para compartilhar em eventos presenciais.</p>' +
+        '<p><b>Dashboard</b> — Texto alterado de "Inscrições Abertas" para "Inscrições Disponíveis" na saudação do dashboard.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
-        '<p><b>Logo de Torneio</b> — Geração automática de logo via Canvas com paletas temáticas por esporte. Considera nome, local, modalidade e formato. Botões para regerar, travar, baixar e fazer upload de imagem própria. Logo aparece nos cards da dashboard e na página do torneio.</p>' +
-        '<p><b>Sistema de Notificações</b> — Notificações para inscrição/desinscrição, alterações no torneio pelo organizador, lembretes automáticos (7 dias, 2 dias e no dia do torneio), e torneios abertos próximos ao seu CEP de preferência.</p>' +
-        '<p><b>Comunicação do Organizador</b> — Novo botão "Comunicar Inscritos" permite ao organizador enviar mensagens para todos os participantes, escolhendo o nível de importância (Fundamental, Importante ou Geral).</p>' +
-        '<p><b>Filtros de Notificação</b> — No perfil, botões "Só Importantes" e "Só Fundamentais" permitem filtrar quais comunicações você deseja receber. Por padrão, todas estão ativas.</p>' +
-        '<p><b>CEP de Preferência</b> — Novo campo no perfil para informar seus CEPs preferidos e ser notificado sobre torneios próximos.</p>' +
-        '<p><b>Central de Ajuda</b> — Botão "?" no cabeçalho substitui o antigo "Sobre". Manual completo com 17 seções pesquisáveis, incluindo esta de notas de versão.</p>' +
+        '<p><b>Logo de Torneio</b> — Geração automática de logo via Canvas com paletas temáticas por esporte. Botões para regerar, travar, baixar e upload de imagem própria.</p>' +
+        '<p><b>Sistema de Notificações</b> — Notificações para inscrição/desinscrição, alterações, lembretes automáticos e torneios próximos ao CEP.</p>' +
+        '<p><b>Central de Ajuda</b> — Manual completo com seções pesquisáveis.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
