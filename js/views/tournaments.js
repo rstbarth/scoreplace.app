@@ -1,3 +1,346 @@
+// Navigate to tournament detail and scroll to highlight the enrolled participant
+window._scrollToParticipant = function(tId, participantName) {
+    window.location.hash = '#tournaments/' + tId;
+    // Wait for render, then scroll to the participant card
+    var _attempts = 0;
+    var _tryScroll = function() {
+        _attempts++;
+        var cards = document.querySelectorAll('.participant-card[data-participant-name]');
+        var target = null;
+        cards.forEach(function(c) {
+            var n = c.getAttribute('data-participant-name') || '';
+            if (n.toLowerCase().indexOf(participantName.toLowerCase()) !== -1 ||
+                participantName.toLowerCase().indexOf(n.toLowerCase()) !== -1) {
+                target = c;
+            }
+        });
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight animation
+            target.style.transition = 'box-shadow 0.3s, transform 0.3s';
+            target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.6), 0 0 20px rgba(16,185,129,0.3)';
+            target.style.transform = 'scale(1.03)';
+            setTimeout(function() {
+                target.style.boxShadow = '';
+                target.style.transform = '';
+            }, 2500);
+        } else if (_attempts < 15) {
+            setTimeout(_tryScroll, 200);
+        }
+    };
+    setTimeout(_tryScroll, 300);
+};
+
+// ── Centralized Notification System ──
+// Notification levels: 'fundamental' (always sent), 'important', 'all'
+// User pref notifyLevel: 'todas' (receives all), 'importantes' (fundamental+important), 'fundamentais' (only fundamental)
+window._notifLevelAllowed = function(userLevel, notifLevel) {
+    if (!userLevel || userLevel === 'todas') return true;
+    if (userLevel === 'importantes') return notifLevel === 'fundamental' || notifLevel === 'important';
+    if (userLevel === 'fundamentais') return notifLevel === 'fundamental';
+    return true;
+};
+
+/**
+ * Send notification to a specific user (by uid) via all their enabled channels.
+ * @param {string} uid - target user UID
+ * @param {object} notifData - { type, message, tournamentId, tournamentName, level ('fundamental'|'important'|'all') }
+ */
+window._sendUserNotification = async function(uid, notifData) {
+    if (!window.FirestoreDB || !window.FirestoreDB.db || !uid) return;
+    try {
+        var profile = await window.FirestoreDB.loadUserProfile(uid);
+        if (!profile) return;
+        var userLevel = profile.notifyLevel || 'todas';
+        var notifLevel = notifData.level || 'all';
+        if (!window._notifLevelAllowed(userLevel, notifLevel)) return;
+
+        var cu = window.AppStore.currentUser || {};
+        // Platform notification
+        if (profile.notifyPlatform !== false) {
+            await window.FirestoreDB.addNotification(uid, {
+                type: notifData.type || 'info',
+                fromUid: cu.uid || cu.email || '',
+                fromName: cu.displayName || '',
+                fromPhoto: cu.photoURL || '',
+                tournamentId: notifData.tournamentId || '',
+                tournamentName: notifData.tournamentName || '',
+                message: notifData.message || '',
+                createdAt: new Date().toISOString(),
+                read: false
+            });
+        }
+        // Email — collect for batch (returned)
+        var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;
+        // WhatsApp — collect phone
+        var phone = null;
+        if (profile.notifyWhatsApp !== false && profile.phone) {
+            var cc = profile.phoneCountry || '55';
+            var digits = (profile.phone || '').replace(/\D/g, '');
+            if (digits) phone = cc + digits;
+        }
+        return { email: email, phone: phone };
+    } catch(e) {
+        console.warn('_sendUserNotification error:', e);
+        return null;
+    }
+};
+
+/**
+ * Notify all enrolled participants of a tournament.
+ * @param {object} tournament - tournament object
+ * @param {object} notifData - { type, message, level }
+ * @param {string} [excludeEmail] - email to exclude (e.g. the person who triggered the event)
+ */
+window._notifyTournamentParticipants = async function(tournament, notifData, excludeEmail) {
+    if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+    var t = tournament;
+    var parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+    var emails = [];
+    parts.forEach(function(p) {
+        var e = typeof p === 'string' ? '' : (p.email || '');
+        if (e && e !== excludeEmail) emails.push(e);
+    });
+    // Also notify organizer (always involved in their tournament) if not excluded and not already in the list
+    if (t.organizerEmail && t.organizerEmail !== excludeEmail && emails.indexOf(t.organizerEmail) === -1) {
+        emails.push(t.organizerEmail);
+    }
+    // Deduplicate
+    emails = emails.filter(function(e, i) { return emails.indexOf(e) === i; });
+
+    var nd = Object.assign({}, notifData, { tournamentId: String(t.id), tournamentName: t.name || '' });
+    var allEmails = [];
+    var allPhones = [];
+
+    for (var i = 0; i < emails.length; i++) {
+        try {
+            // Look up uid by email
+            var snap = await window.FirestoreDB.db.collection('users').where('email', '==', emails[i]).limit(1).get();
+            if (!snap.empty) {
+                var uid = snap.docs[0].id;
+                var result = await window._sendUserNotification(uid, nd);
+                if (result && result.email) allEmails.push(result.email);
+                if (result && result.phone) allPhones.push(result.phone);
+            }
+        } catch(e) { console.warn('Notify participant error:', e); }
+    }
+    return { emails: allEmails, phones: allPhones };
+};
+
+/**
+ * Check and send countdown reminders for tournaments (7d, 2d, day-of).
+ * Should be called on app load / periodically.
+ */
+window._checkTournamentReminders = async function() {
+    if (!window.AppStore || !window.AppStore.currentUser || !window.FirestoreDB) return;
+    var cu = window.AppStore.currentUser;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var tournaments = window.AppStore.tournaments || [];
+
+    for (var i = 0; i < tournaments.length; i++) {
+        var t = tournaments[i];
+        if (!t.startDate || t.status === 'completed') continue;
+        // Check if user is enrolled
+        var parts = Array.isArray(t.participants) ? t.participants : [];
+        var enrolled = parts.some(function(p) {
+            var str = typeof p === 'string' ? p : (p.email || p.displayName || '');
+            return str && cu.email && str.indexOf(cu.email) !== -1;
+        });
+        if (!enrolled) continue;
+
+        var startStr = t.startDate.split('T')[0];
+        var startDate = new Date(startStr + 'T00:00:00');
+        var diffDays = Math.round((startDate - today) / (1000 * 60 * 60 * 24));
+
+        var reminderKey = null;
+        var reminderMsg = null;
+        var reminderLevel = 'all';
+        if (diffDays === 7) {
+            reminderKey = 'reminder_7d_' + t.id;
+            reminderMsg = 'Faltam 7 dias para o torneio "' + t.name + '"! Prepare-se!';
+            reminderLevel = 'all';
+        } else if (diffDays === 2) {
+            reminderKey = 'reminder_2d_' + t.id;
+            reminderMsg = 'Faltam 2 dias para o torneio "' + t.name + '"!';
+            reminderLevel = 'important';
+        } else if (diffDays === 0) {
+            reminderKey = 'reminder_0d_' + t.id;
+            reminderMsg = 'Hoje é o dia do torneio "' + t.name + '"! Boa sorte!';
+            reminderLevel = 'fundamental';
+        }
+
+        if (reminderKey && reminderMsg) {
+            // Avoid duplicate: check localStorage
+            var sentKey = '_notifSent_' + reminderKey + '_' + (cu.uid || cu.email);
+            try {
+                if (localStorage.getItem(sentKey)) continue;
+            } catch(e) {}
+
+            var uid = cu.uid || cu.email;
+            await window._sendUserNotification(uid, {
+                type: 'tournament_reminder',
+                message: reminderMsg,
+                tournamentId: String(t.id),
+                tournamentName: t.name || '',
+                level: reminderLevel
+            });
+            try { localStorage.setItem(sentKey, '1'); } catch(e) {}
+        }
+    }
+};
+
+/**
+ * Check for new tournaments near user's preferred CEPs.
+ * Called on app load when new tournaments exist.
+ */
+window._checkNearbyTournaments = async function() {
+    if (!window.AppStore || !window.AppStore.currentUser || !window.FirestoreDB) return;
+    var cu = window.AppStore.currentUser;
+    var userCeps = (cu.preferredCeps || '').split(',').map(function(c) { return c.trim().replace(/\D/g, ''); }).filter(function(c) { return c.length >= 5; });
+    if (userCeps.length === 0) return;
+
+    var tournaments = window.AppStore.tournaments || [];
+    var uid = cu.uid || cu.email;
+
+    for (var i = 0; i < tournaments.length; i++) {
+        var t = tournaments[i];
+        if (t.status === 'completed' || t.status === 'closed') continue;
+        if (!t.venueAddress && !t.venue) continue;
+        // Check if already notified
+        var nKey = '_notifNearby_' + t.id + '_' + uid;
+        try { if (localStorage.getItem(nKey)) continue; } catch(e) {}
+
+        // Simple CEP match: check if tournament venue address contains any user CEP
+        var venueText = ((t.venueAddress || '') + ' ' + (t.venue || '')).replace(/\D/g, ' ');
+        var matched = userCeps.some(function(cep) { return venueText.indexOf(cep) !== -1; });
+        // Also check if tournament sport matches user preferred sports
+        var userSports = (cu.preferredSports || '').toLowerCase();
+        var sportMatch = !userSports || (t.sport && userSports.indexOf(t.sport.toLowerCase()) !== -1);
+
+        if (matched || sportMatch) {
+            // Check if user is already enrolled
+            var parts = Array.isArray(t.participants) ? t.participants : [];
+            var enrolled = parts.some(function(p) {
+                var str = typeof p === 'string' ? p : (p.email || '');
+                return str && cu.email && str.indexOf(cu.email) !== -1;
+            });
+            if (enrolled) continue;
+
+            await window._sendUserNotification(uid, {
+                type: 'tournament_nearby',
+                message: 'Novo torneio perto de você: "' + t.name + '"' + (t.venue ? ' em ' + t.venue : '') + '. Inscrições abertas!',
+                tournamentId: String(t.id),
+                tournamentName: t.name || '',
+                level: 'all'
+            });
+            try { localStorage.setItem(nKey, '1'); } catch(e) {}
+        }
+    }
+};
+
+/**
+ * Organizer sends a communication to all enrolled participants.
+ * Prompts for message text and importance level.
+ */
+window._sendOrgCommunication = function(tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) return;
+
+    // Build a custom modal for the communication
+    var modalId = 'modal-org-comm-' + tId;
+    var existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    var html = '<div id="' + modalId + '" class="modal active" style="z-index: 10000;">' +
+      '<div class="modal-dialog" style="max-width: 480px; width: 95%;">' +
+        '<div class="modal-content" style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">' +
+          '<h5 style="margin: 0 0 1rem; color: var(--text-color); font-size: 1rem;">📢 Comunicar Inscritos</h5>' +
+          '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">Enviar comunicado para todos os inscritos do torneio "' + (t.name || '') + '".</p>' +
+          '<div class="form-group" style="margin-bottom: 1rem;">' +
+            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mensagem</label>' +
+            '<textarea id="org-comm-text-' + tId + '" class="form-control" rows="4" placeholder="Digite sua mensagem para os inscritos..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>' +
+          '</div>' +
+          '<div class="form-group" style="margin-bottom: 1rem;">' +
+            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nível de importância</label>' +
+            '<p style="font-size: 0.65rem; color: var(--text-muted); margin: 0 0 8px;">Determina quem recebe baseado nas preferências de cada usuário.</p>' +
+            '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="fundamental" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #f87171; cursor: pointer; text-align: center;">🔴 Fundamental</button>' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="important" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 2px solid rgba(251,191,36,0.7); background: rgba(251,191,36,0.25); color: #fbbf24; cursor: pointer; text-align: center; box-shadow: 0 0 8px rgba(251,191,36,0.2);">🟡 Importante</button>' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="all" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981; cursor: pointer; text-align: center;">🟢 Geral</button>' +
+            '</div>' +
+            '<input type="hidden" id="org-comm-level-' + tId + '" value="important">' +
+          '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button type="button" class="btn btn-primary" style="flex: 1;" onclick="window._confirmSendComm(\'' + tId + '\')">Enviar Comunicado</button>' +
+            '<button type="button" class="btn btn-outline" style="flex: 0.6;" onclick="document.getElementById(\'' + modalId + '\').remove();">Cancelar</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window._selectCommLevel = function(btn, tId) {
+    var level = btn.getAttribute('data-level');
+    document.getElementById('org-comm-level-' + tId).value = level;
+    var btns = btn.parentElement.querySelectorAll('.org-comm-level-btn');
+    var colors = { fundamental: 'rgba(239,68,68,', important: 'rgba(251,191,36,', all: 'rgba(16,185,129,' };
+    btns.forEach(function(b) {
+        var l = b.getAttribute('data-level');
+        var c = colors[l];
+        if (l === level) {
+            b.style.background = c + '0.25)';
+            b.style.border = '2px solid ' + c + '0.7)';
+            b.style.boxShadow = '0 0 8px ' + c + '0.2)';
+        } else {
+            b.style.background = c + '0.08)';
+            b.style.border = '1px solid ' + c + '0.3)';
+            b.style.boxShadow = 'none';
+        }
+    });
+};
+
+window._confirmSendComm = async function(tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) return;
+    var textEl = document.getElementById('org-comm-text-' + tId);
+    var levelEl = document.getElementById('org-comm-level-' + tId);
+    var message = textEl ? textEl.value.trim() : '';
+    var level = levelEl ? levelEl.value : 'important';
+    if (!message) {
+        if (typeof showAlertDialog !== 'undefined') showAlertDialog('Mensagem Obrigatória', 'Digite uma mensagem para enviar.', null, { type: 'warning' });
+        return;
+    }
+
+    var cu = window.AppStore.currentUser;
+    var fullMsg = '📢 Comunicado do organizador — "' + t.name + '": ' + message;
+
+    var result = await window._notifyTournamentParticipants(t, {
+        type: 'organizer_communication',
+        message: fullMsg,
+        level: level
+    }, cu ? cu.email : null);
+
+    var modalEl = document.getElementById('modal-org-comm-' + tId);
+    if (modalEl) modalEl.remove();
+
+    var count = result ? result.emails.length + result.phones.length : 0;
+    if (typeof showNotification !== 'undefined') showNotification('Comunicado Enviado!', 'Notificações enviadas para os inscritos do torneio.', 'success');
+
+    // Open email/WhatsApp if collected
+    if (result && result.emails.length > 0) {
+        var emailSubject = encodeURIComponent('📢 ' + t.name + ' — Comunicado do Organizador');
+        var emailBody = encodeURIComponent(message + '\n\n---\nTorneio: ' + t.name + '\nhttps://scoreplace.app/#tournaments/' + t.id);
+        window.open('mailto:?bcc=' + result.emails.join(',') + '&subject=' + emailSubject + '&body=' + emailBody, '_self');
+    }
+    if (result && result.phones.length > 0) {
+        var waMsg = '📢 ' + t.name + '\n' + message + '\n\nhttps://scoreplace.app/#tournaments/' + t.id;
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(waMsg), '_blank');
+    }
+};
+
 function renderTournaments(container, tournamentId = null) {
     if (!window.AppStore) return;
     let visible = window.AppStore.getVisibleTournaments() || [];
@@ -26,10 +369,12 @@ function renderTournaments(container, tournamentId = null) {
             const mod = document.getElementById('invite-modal-' + id);
             if (mod) {
                 mod.style.display = 'flex';
-                mod.scrollTop = 0;
-                // Garante que o conteúdo interno também fique no topo
-                var inner = mod.querySelector('div');
-                if (inner) inner.scrollTop = 0;
+                // Force scroll to top of modal overlay and inner content
+                requestAnimationFrame(function() {
+                    mod.scrollTop = 0;
+                    var children = mod.children;
+                    for (var i = 0; i < children.length; i++) children[i].scrollTop = 0;
+                });
             }
         };
         window.closeInviteModal = function (id) {
@@ -52,6 +397,7 @@ function renderTournaments(container, tournamentId = null) {
             var inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id + '?ref=' + encodeURIComponent(myUid);
             var sent = 0;
             var whatsappNumbers = [];
+            var emailRecipients = [];
 
             for (var i = 0; i < cu.friends.length; i++) {
                 var friendUid = cu.friends[i];
@@ -90,6 +436,11 @@ function renderTournaments(container, tournamentId = null) {
                         var phoneDigits = (profile.phone || '').replace(/\D/g, '');
                         if (phoneDigits) whatsappNumbers.push(countryCode + phoneDigits);
                     }
+
+                    // Collect emails for notification
+                    if (profile.notifyEmail !== false && profile.email) {
+                        emailRecipients.push(profile.email);
+                    }
                 } catch(e) {
                     console.warn('Error inviting friend', friendUid, e);
                 }
@@ -97,16 +448,24 @@ function renderTournaments(container, tournamentId = null) {
 
             // Update UI
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '👥 Convites Enviados!'; }
-            var statusMsg = sent + ' convite' + (sent !== 1 ? 's' : '') + ' enviado' + (sent !== 1 ? 's' : '') + ' na plataforma.';
-            if (whatsappNumbers.length > 0) {
-                statusMsg += ' ' + whatsappNumbers.length + ' amigo' + (whatsappNumbers.length !== 1 ? 's' : '') + ' também recebe' + (whatsappNumbers.length !== 1 ? 'm' : '') + ' por WhatsApp.';
-            }
+            var statusParts = [];
+            if (sent > 0) statusParts.push(sent + ' convite' + (sent !== 1 ? 's' : '') + ' na plataforma');
+            if (emailRecipients.length > 0) statusParts.push(emailRecipients.length + ' por e-mail');
+            if (whatsappNumbers.length > 0) statusParts.push(whatsappNumbers.length + ' por WhatsApp');
+            var statusMsg = statusParts.length > 0 ? statusParts.join(', ') + '.' : 'Nenhum convite enviado.';
             if (statusDiv) statusDiv.textContent = statusMsg;
             if (typeof showNotification !== 'undefined') {
                 showNotification('Convites Enviados!', statusMsg, 'success');
             }
 
-            // Open WhatsApp with first friend who accepts WhatsApp (one-by-one for now)
+            // Open email with all recipients (bcc for privacy)
+            if (emailRecipients.length > 0) {
+                var emailSubject = encodeURIComponent('🏆 Convite para torneio: ' + t.name);
+                var emailBody = encodeURIComponent('Olá!\n\nVocê foi convidado para o torneio "' + t.name + '" no scoreplace.app.\n\nAcesse o link abaixo para se inscrever:\n' + inviteUrl + '\n\nBoas partidas! 🎾');
+                window.open('mailto:?bcc=' + emailRecipients.join(',') + '&subject=' + emailSubject + '&body=' + emailBody, '_self');
+            }
+
+            // Open WhatsApp with invite message
             if (whatsappNumbers.length > 0) {
                 var inviteMsg = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
                 window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(inviteMsg), '_blank');
@@ -276,53 +635,77 @@ function renderTournaments(container, tournamentId = null) {
                     return;
                 }
 
-                const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-                const already = arr.some(p => {
-                    const str = typeof p === 'string' ? p : (p.email || p.displayName);
-                    return str && (str.includes(user.email) || str.includes(user.displayName));
-                });
-                if (!already) {
-                    arr.push({ name: user.displayName, email: user.email, displayName: user.displayName });
-                    t.participants = arr;
-                    // Save directly to Firestore (sync only saves org's tournaments)
-                    if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-                        window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Enroll save error:', err); });
-                    }
-                    if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
-                        t.status = 'closed';
-                        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-                            window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Auto-close save error:', err); });
+                // Use atomic Firestore transaction to prevent race conditions
+                const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName };
+                if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
+                    window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
+                        if (result.alreadyEnrolled) {
+                            if (typeof showNotification !== 'undefined') showNotification('Já Inscrito', 'Você já está inscrito neste torneio.', 'info');
+                            window._scrollToParticipant(tId, user.displayName);
+                            return;
                         }
-                        if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${t.name}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
-                    }
-                    if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Você foi inscrito com sucesso no torneio "' + t.name + '".', 'success');
+                        // Update local state from transaction result
+                        t.participants = result.participants;
+                        if (result.autoCloseTriggered) {
+                            t.status = 'closed';
+                            if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + t.name + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                        }
+                        if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Você foi inscrito com sucesso no torneio "' + t.name + '".', 'success');
 
-                    // Auto-amizade: via ref no link OU com o organizador do torneio
-                    try {
-                        var _refUid = null;
-                        var _h = window.location.hash || '';
-                        var _rm2 = _h.match(/[?&]ref=([^&]+)/);
-                        if (_rm2) _refUid = decodeURIComponent(_rm2[1]);
-                        if (!_refUid) _refUid = sessionStorage.getItem('_inviteRefUid');
-                        // Se não tem ref, usar o organizador do torneio como amigo automático
-                        if (!_refUid && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
-                            // Buscar UID do organizador pelo email
+                        // Notify organizer about new enrollment
+                        if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
                             window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
                                 if (!snap.empty) {
-                                    var orgUid = snap.docs[0].id;
-                                    if (typeof _autoFriendOnInvite === 'function') {
-                                        _autoFriendOnInvite(orgUid, window.AppStore.currentUser);
-                                    }
+                                    window._sendUserNotification(snap.docs[0].id, {
+                                        type: 'enrollment_new',
+                                        message: (user.displayName || 'Um participante') + ' se inscreveu no torneio "' + t.name + '".',
+                                        tournamentId: String(t.id),
+                                        tournamentName: t.name || '',
+                                        level: 'all'
+                                    });
                                 }
-                            }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
-                        } else if (_refUid && typeof _autoFriendOnInvite === 'function') {
-                            _autoFriendOnInvite(_refUid, user);
-                            try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
+                            }).catch(function(e) { console.warn('Notify organizer error:', e); });
                         }
-                    } catch(e) { console.warn('Auto-friend error:', e); }
 
-                    const container = document.getElementById('view-container');
-                    if (container) { renderTournaments(container, window.location.hash.split('/')[1]); }
+                        // Notify the enrolled user (confirmation)
+                        if (user.uid || user.email) {
+                            window._sendUserNotification(user.uid || user.email, {
+                                type: 'enrollment_confirmed',
+                                message: 'Inscrição confirmada no torneio "' + t.name + '"!',
+                                tournamentId: String(t.id),
+                                tournamentName: t.name || '',
+                                level: 'fundamental'
+                            });
+                        }
+
+                        // Auto-amizade: via ref no link OU com o organizador do torneio
+                        try {
+                            var _refUid = null;
+                            var _h = window.location.hash || '';
+                            var _rm2 = _h.match(/[?&]ref=([^&]+)/);
+                            if (_rm2) _refUid = decodeURIComponent(_rm2[1]);
+                            if (!_refUid) _refUid = sessionStorage.getItem('_inviteRefUid');
+                            if (!_refUid && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
+                                window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                                    if (!snap.empty) {
+                                        var orgUid = snap.docs[0].id;
+                                        if (typeof _autoFriendOnInvite === 'function') {
+                                            _autoFriendOnInvite(orgUid, window.AppStore.currentUser);
+                                        }
+                                    }
+                                }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
+                            } else if (_refUid && typeof _autoFriendOnInvite === 'function') {
+                                _autoFriendOnInvite(_refUid, user);
+                                try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
+                            }
+                        } catch(e) { console.warn('Auto-friend error:', e); }
+
+                        // Navigate to tournament detail and scroll to the enrolled participant
+                        window._scrollToParticipant(tId, user.displayName);
+                    }).catch(function(err) {
+                        console.warn('Enroll transaction error:', err);
+                        if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível completar a inscrição. Tente novamente.', 'error');
+                    });
                 }
             }
         };
@@ -357,51 +740,83 @@ function renderTournaments(container, tournamentId = null) {
             }
 
             const teamString = teamNames.join(' / ');
-            let arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+            const participantObj = { name: teamString, email: user.email, displayName: teamString };
+            // Registrar origem da equipe via extraUpdates
+            var _teamOrigins = t.teamOrigins || {};
+            _teamOrigins[teamString] = 'inscrita';
 
-            arr.push({ name: teamString, email: user.email, displayName: teamString });
-            t.participants = arr;
-            // Registrar origem da equipe
-            if (!t.teamOrigins) t.teamOrigins = {};
-            t.teamOrigins[teamString] = 'inscrita';
-            // Save directly to Firestore (sync only saves org's tournaments)
-            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-                window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Team enroll save error:', err); });
-            }
-            if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
-                t.status = 'closed';
-                if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-                    window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Auto-close save error:', err); });
-                }
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${t.name}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
-            }
             const mod = document.getElementById('team-enroll-modal-' + tId);
             if (mod) mod.style.display = 'none';
 
-            // Auto-amizade: com quem convidou (ref) ou com o organizador
-            try {
-                var _refUid3 = null;
-                var _h3 = window.location.hash || '';
-                var _rm3 = _h3.match(/[?&]ref=([^&]+)/);
-                if (_rm3) _refUid3 = decodeURIComponent(_rm3[1]);
-                if (!_refUid3) _refUid3 = sessionStorage.getItem('_inviteRefUid');
-                if (!_refUid3 && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
-                    window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                        if (!snap.empty) {
-                            if (typeof _autoFriendOnInvite === 'function') {
-                                _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
-                            }
-                        }
-                    }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
-                } else if (_refUid3 && typeof _autoFriendOnInvite === 'function') {
-                    _autoFriendOnInvite(_refUid3, user);
-                    try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
-                }
-            } catch(e) { console.warn('Auto-friend error:', e); }
+            // Use atomic Firestore transaction to prevent race conditions
+            if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
+                window.FirestoreDB.enrollParticipant(tId, participantObj, { teamOrigins: _teamOrigins }).then(function(result) {
+                    if (result.alreadyEnrolled) {
+                        if (typeof showNotification !== 'undefined') showNotification('Já Inscrito', 'Você já está inscrito neste torneio.', 'info');
+                        window._scrollToParticipant(tId, user.displayName);
+                        return;
+                    }
+                    t.participants = result.participants;
+                    t.teamOrigins = _teamOrigins;
+                    if (result.autoCloseTriggered) {
+                        t.status = 'closed';
+                        if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + t.name + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                    }
+                    if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Equipe inscrita com sucesso no torneio "' + t.name + '".', 'success');
 
-            const container = document.getElementById('view-container');
-            if (container) {
-                renderTournaments(container, window.location.hash.split('/')[1]);
+                    // Notify organizer about new team enrollment
+                    if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
+                        window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                            if (!snap.empty) {
+                                window._sendUserNotification(snap.docs[0].id, {
+                                    type: 'enrollment_new',
+                                    message: 'Equipe "' + teamString + '" se inscreveu no torneio "' + t.name + '".',
+                                    tournamentId: String(t.id),
+                                    tournamentName: t.name || '',
+                                    level: 'all'
+                                });
+                            }
+                        }).catch(function(e) { console.warn('Notify organizer error:', e); });
+                    }
+
+                    // Notify the enrolled user (confirmation)
+                    if (user.uid || user.email) {
+                        window._sendUserNotification(user.uid || user.email, {
+                            type: 'enrollment_confirmed',
+                            message: 'Sua equipe foi inscrita no torneio "' + t.name + '"!',
+                            tournamentId: String(t.id),
+                            tournamentName: t.name || '',
+                            level: 'fundamental'
+                        });
+                    }
+
+                    // Auto-amizade: com quem convidou (ref) ou com o organizador
+                    try {
+                        var _refUid3 = null;
+                        var _h3 = window.location.hash || '';
+                        var _rm3 = _h3.match(/[?&]ref=([^&]+)/);
+                        if (_rm3) _refUid3 = decodeURIComponent(_rm3[1]);
+                        if (!_refUid3) _refUid3 = sessionStorage.getItem('_inviteRefUid');
+                        if (!_refUid3 && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
+                            window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                                if (!snap.empty) {
+                                    if (typeof _autoFriendOnInvite === 'function') {
+                                        _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
+                                    }
+                                }
+                            }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
+                        } else if (_refUid3 && typeof _autoFriendOnInvite === 'function') {
+                            _autoFriendOnInvite(_refUid3, user);
+                            try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
+                        }
+                    } catch(e) { console.warn('Auto-friend error:', e); }
+
+                    // Navigate to tournament detail and scroll to the enrolled team
+                    window._scrollToParticipant(tId, teamString);
+                }).catch(function(err) {
+                    console.warn('Team enroll transaction error:', err);
+                    if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível completar a inscrição. Tente novamente.', 'error');
+                });
             }
         };
 
@@ -424,6 +839,34 @@ function renderTournaments(container, tournamentId = null) {
                         if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
                             window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Deenroll save error:', err); });
                         }
+
+                        // Notify organizer about unenrollment
+                        if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
+                            window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                                if (!snap.empty) {
+                                    window._sendUserNotification(snap.docs[0].id, {
+                                        type: 'enrollment_cancelled',
+                                        message: (user.displayName || 'Um participante') + ' cancelou a inscrição no torneio "' + t.name + '".',
+                                        tournamentId: String(t.id),
+                                        tournamentName: t.name || '',
+                                        level: 'important'
+                                    });
+                                }
+                            }).catch(function(e) { console.warn('Notify organizer unenroll error:', e); });
+                        }
+
+                        // Notify the user (confirmation of unenrollment)
+                        if (user.uid || user.email) {
+                            window._sendUserNotification(user.uid || user.email, {
+                                type: 'enrollment_cancelled_confirm',
+                                message: 'Sua inscrição no torneio "' + t.name + '" foi cancelada.',
+                                tournamentId: String(t.id),
+                                tournamentName: t.name || '',
+                                level: 'fundamental'
+                            });
+                        }
+
+                        if (typeof showNotification !== 'undefined') showNotification('Inscrição Cancelada', 'Sua inscrição foi removida do torneio "' + t.name + '".', 'info');
 
                         const container = document.getElementById('view-container');
                         if (container) {
@@ -3102,11 +3545,14 @@ function renderTournaments(container, tournamentId = null) {
                ${isOrg && t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 600; padding: 2px 8px; font-size: 0.7rem; text-transform: none; letter-spacing: 0;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
             </div>` : ''}
 
-            <!-- Middle Left: Nome -->
-            <h4 style="margin: 1.8rem 0 0.5rem 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
-              ${t.name}
-            </h4>
-            ${isOrg && tournamentId && t.status !== 'closed' ? `<div style="margin-bottom: 1rem;"><button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button></div>` : ''}
+            <!-- Middle Left: Nome + Logo -->
+            <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
+              ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
+              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
+                ${t.name}
+              </h4>
+            </div>
+            ${isOrg && tournamentId && t.status !== 'closed' ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;"><button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button><button class="hover-lift" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}');">📢 Comunicar Inscritos</button></div>` : ''}
 
             <!-- Below Name: Calendário + Data -->
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
@@ -3378,18 +3824,20 @@ function renderTournaments(container, tournamentId = null) {
                         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
                     }
 
-                    const numCircle = `<div style="width:40px;height:40px;border-radius:50%;background:${isVip ? 'linear-gradient(135deg, #eab308, #fbbf24)' : 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'};display:flex;align-items:center;justify-content:center;color:${isVip ? '#1a1a2e' : 'white'};font-weight:bold;font-size:1.1rem;flex-shrink:0;pointer-events:none;">${isVip ? '⭐' : idx + 1}</div>`;
+                    const bgNum = isVip ? '⭐' : idx + 1;
 
                     return `
-                      <div class="participant-card" ${dragProps} style="${cardStyle} border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:0;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                          <div style="display:flex;align-items:center;gap:12px;">
-                              ${numCircle}
-                              <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
-                                  ${pNameHtml}
-                                  <div style="font-size:0.7rem;color:var(--text-muted);opacity:0.6;margin-top:4px;">${typeText}</div>
+                      <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                          <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:${String(bgNum).length > 2 ? '2.8rem' : '3.5rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
+                          <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
+                              <div style="display:flex;align-items:center;gap:12px;">
+                                  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
+                                      ${pNameHtml}
+                                      <div style="font-size:0.7rem;color:var(--text-muted);opacity:0.6;margin-top:4px;">${typeText}</div>
+                                  </div>
                               </div>
+                              ${actionsHtml}
                           </div>
-                          ${actionsHtml}
                       </div>`;
                 }).join('');
             }

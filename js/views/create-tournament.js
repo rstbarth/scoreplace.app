@@ -39,6 +39,41 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
 
+              <!-- Logo do Torneio -->
+              <div id="logo-section" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a5b4fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Logo do Torneio</p>
+                <div style="display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                  <div id="logo-preview" style="width: 80px; height: 80px; border-radius: 16px; border: 2px dashed rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: rgba(0,0,0,0.2);">
+                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center; padding: 4px;">Sem logo</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px;">
+                    <button type="button" onclick="window._generateTournamentLogo()" style="padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.15); color: #a5b4fc; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; justify-content: center;" onmouseover="this.style.background='rgba(99,102,241,0.25)'" onmouseout="this.style.background='rgba(99,102,241,0.15)'">
+                      🎨 Gerar Logo
+                    </button>
+                    <div style="display: flex; gap: 6px;">
+                      <button type="button" onclick="window._generateTournamentLogo()" title="Regerar logo" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(99,102,241,0.2); background: rgba(99,102,241,0.08); color: #a5b4fc; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.18)'" onmouseout="this.style.background='rgba(99,102,241,0.08)'">
+                        🔄
+                      </button>
+                      <button type="button" id="btn-logo-lock" onclick="window._toggleLogoLock()" title="Travar logo (não regera ao salvar)" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                        🔓
+                      </button>
+                      <button type="button" onclick="window._downloadTournamentLogo()" title="Baixar logo" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                        ⬇️
+                      </button>
+                      <button type="button" onclick="document.getElementById('logo-file-input').click()" title="Upload de arquivo" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                        📁
+                      </button>
+                      <button type="button" onclick="window._clearTournamentLogo()" title="Remover logo" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.08); color: #f87171; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">
+                        ✕
+                      </button>
+                    </div>
+                    <input type="hidden" id="tourn-logo-locked" value="">
+                    <input type="file" id="logo-file-input" accept="image/*" style="display:none;" onchange="window._handleLogoUpload(event)">
+                    <input type="hidden" id="tourn-logo-data" value="">
+                  </div>
+                </div>
+              </div>
+
               <!-- Formato -->
               <div class="form-group mb-3">
                 <label class="form-label">Formato do Torneio</label>
@@ -486,6 +521,241 @@ function setupCreateTournamentModal() {
     'Beach Tennis': 2, 'Futebol': 5, 'Magic / TCG': 1, 'Tênis': 1,
     'Vôlei': 6, 'Xadrez': 1, 'Dominó': 2, 'Padel': 2, 'Pickleball': 2,
     'Tênis de Mesa': 1, 'Truco': 2, 'Outro': 2
+  };
+
+  // ── Logo Generator ──
+  window._logoLocked = false;
+
+  window._toggleLogoLock = function() {
+    window._logoLocked = !window._logoLocked;
+    var btn = document.getElementById('btn-logo-lock');
+    var hiddenLock = document.getElementById('tourn-logo-locked');
+    if (btn) {
+      btn.textContent = window._logoLocked ? '🔒' : '🔓';
+      btn.style.border = window._logoLocked ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.1)';
+      btn.style.background = window._logoLocked ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)';
+      btn.style.color = window._logoLocked ? '#fbbf24' : 'var(--text-muted)';
+    }
+    if (hiddenLock) hiddenLock.value = window._logoLocked ? '1' : '';
+  };
+
+  window._downloadTournamentLogo = function() {
+    var hidden = document.getElementById('tourn-logo-data');
+    var dataUrl = hidden ? hidden.value : '';
+    if (!dataUrl) {
+      if (typeof showNotification !== 'undefined') showNotification('Sem logo', 'Gere ou faça upload de um logo primeiro.', 'warning');
+      return;
+    }
+    var nameEl = document.getElementById('tourn-name');
+    var fileName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim().replace(/[^a-zA-Z0-9À-ÿ\s-]/g, '').replace(/\s+/g, '_') + '_logo' : 'torneio_logo';
+    var a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName + '.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  window._generateTournamentLogo = function() {
+    var nameEl = document.getElementById('tourn-name');
+    var sportEl = document.getElementById('select-sport');
+    var formatEl = document.getElementById('select-formato');
+    var venueEl = document.getElementById('tourn-venue');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) name = 'Torneio';
+    var sport = sportEl ? sportEl.options[sportEl.selectedIndex].text : '';
+    var formatValue = formatEl ? formatEl.value : 'elim_simples';
+    var venue = venueEl ? venueEl.value.trim() : '';
+
+    // Get sport emoji
+    var sportEmoji = '🏆';
+    var emojiMap = {'🎾':'🎾','⚽':'⚽','🏐':'🏐','♟':'♟️','🃏':'🃏','🎮':'🎮','🏸':'🏸','🥒':'🥒','🏓':'🏓','🎴':'🎴'};
+    Object.keys(emojiMap).forEach(function(k) { if (sport.includes(k)) sportEmoji = emojiMap[k]; });
+
+    // Clean sport name (remove emoji prefix)
+    var sportName = sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim();
+
+    // Format label
+    var formatMap = {
+      liga: 'Liga', suico: 'Suíço', elim_simples: 'Eliminatórias',
+      elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.'
+    };
+    var formatLabel = formatMap[formatValue] || '';
+
+    // Build initials (up to 3 chars from first letters of words)
+    var words = name.split(/\s+/).filter(function(w) { return w.length > 0 && w[0] === w[0].toUpperCase(); });
+    if (words.length === 0) words = name.split(/\s+/);
+    var initials = words.slice(0, 3).map(function(w) { return w[0].toUpperCase(); }).join('');
+    if (!initials) initials = name.substring(0, 2).toUpperCase();
+
+    // Sport-themed color palettes (more variety)
+    var sportPalettes = {
+      'Beach Tennis': [['#f59e0b', '#d97706'], ['#f97316', '#ea580c'], ['#eab308', '#ca8a04']],
+      'Futebol': [['#15803d', '#22c55e'], ['#166534', '#4ade80'], ['#047857', '#34d399']],
+      'Vôlei': [['#0369a1', '#38bdf8'], ['#0284c7', '#7dd3fc'], ['#1e40af', '#60a5fa']],
+      'Xadrez': [['#1e293b', '#475569'], ['#27272a', '#71717a'], ['#1c1917', '#78716c']],
+      'Padel': [['#4338ca', '#6366f1'], ['#4f46e5', '#818cf8'], ['#3730a3', '#a5b4fc']],
+      'Pickleball': [['#15803d', '#86efac'], ['#166534', '#6ee7b7'], ['#047857', '#a7f3d0']],
+      'Tênis de Mesa': [['#b91c1c', '#ef4444'], ['#dc2626', '#f87171'], ['#991b1b', '#fca5a5']],
+    };
+    var palettes = sportPalettes[sportName] || [
+      ['#4338ca', '#6366f1'], ['#0f766e', '#14b8a6'], ['#b91c1c', '#ef4444'],
+      ['#c2410c', '#f97316'], ['#15803d', '#22c55e'], ['#7c3aed', '#a78bfa'],
+      ['#0369a1', '#38bdf8'], ['#be185d', '#ec4899'], ['#854d0e', '#eab308'],
+      ['#1e40af', '#60a5fa']
+    ];
+    var pal = palettes[Math.floor(Math.random() * palettes.length)];
+
+    // Create canvas
+    var canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    var ctx = canvas.getContext('2d');
+
+    // Background gradient (diagonal)
+    var grad = ctx.createLinearGradient(0, 0, 400, 400);
+    grad.addColorStop(0, pal[0]);
+    grad.addColorStop(1, pal[1]);
+    ctx.fillStyle = grad;
+    // Rounded rect
+    ctx.beginPath();
+    ctx.moveTo(40, 0); ctx.lineTo(360, 0); ctx.quadraticCurveTo(400, 0, 400, 40);
+    ctx.lineTo(400, 360); ctx.quadraticCurveTo(400, 400, 360, 400);
+    ctx.lineTo(40, 400); ctx.quadraticCurveTo(0, 400, 0, 360);
+    ctx.lineTo(0, 40); ctx.quadraticCurveTo(0, 0, 40, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle pattern (diagonal lines)
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 2;
+    for (var i = -400; i < 800; i += 20) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 400, 400); ctx.stroke();
+    }
+
+    // Sport emoji (large, semi-transparent, top-right)
+    ctx.font = '120px serif';
+    ctx.globalAlpha = 0.12;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(sportEmoji, 310, 100);
+    ctx.globalAlpha = 1;
+
+    // Second sport emoji bottom-left (smaller, more subtle)
+    ctx.font = '80px serif';
+    ctx.globalAlpha = 0.06;
+    ctx.fillText(sportEmoji, 80, 340);
+    ctx.globalAlpha = 1;
+
+    // Initials (large centered text)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold ' + (initials.length > 2 ? '110' : '130') + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+    ctx.fillText(initials, 200, 155);
+    ctx.shadowColor = 'transparent';
+
+    // Tournament name (below initials)
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    var nameFontSize = name.length > 25 ? 20 : name.length > 15 ? 24 : 28;
+    ctx.font = '700 ' + nameFontSize + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var maxWidth = 340;
+    var words2 = name.split(' ');
+    var lines = [];
+    var line = '';
+    words2.forEach(function(w) {
+      var test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+      else { line = test; }
+    });
+    if (line) lines.push(line);
+    var lineH = nameFontSize + 6;
+    var nameBlockY = 265 - ((lines.length - 1) * lineH) / 2;
+    lines.forEach(function(l, i) { ctx.fillText(l, 200, nameBlockY + i * lineH); });
+
+    // Info line: sport + format (subtle pill below name)
+    var infoText = sportName;
+    if (formatLabel) infoText += ' • ' + formatLabel;
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '500 16px -apple-system, BlinkMacSystemFont, sans-serif';
+    var infoY = nameBlockY + lines.length * lineH + 10;
+    ctx.fillText(infoText, 200, infoY);
+
+    // Venue (if available, small at bottom)
+    if (venue) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '400 14px -apple-system, BlinkMacSystemFont, sans-serif';
+      var venueDisplay = venue.length > 35 ? venue.substring(0, 33) + '…' : venue;
+      ctx.fillText('📍 ' + venueDisplay, 200, infoY + 22);
+    }
+
+    // "scoreplace.app" watermark
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('scoreplace.app', 200, 388);
+
+    // Convert to data URL and apply (JPEG for smaller size in Firestore)
+    var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    window._applyTournamentLogo(dataUrl);
+  };
+
+  window._handleLogoUpload = function(event) {
+    var file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      if (typeof showNotification !== 'undefined') showNotification('Arquivo muito grande', 'O logo deve ter no máximo 5MB.', 'warning');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      // Resize to max 400x400 and compress as JPEG to keep Firestore doc size safe
+      var img = new Image();
+      img.onload = function() {
+        var maxSize = 400;
+        var w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var dataUrl = c.toDataURL('image/jpeg', 0.85);
+        window._applyTournamentLogo(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window._applyTournamentLogo = function(dataUrl) {
+    var preview = document.getElementById('logo-preview');
+    var hidden = document.getElementById('tourn-logo-data');
+    if (preview) {
+      preview.innerHTML = '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">';
+    }
+    if (hidden) hidden.value = dataUrl;
+  };
+
+  window._clearTournamentLogo = function() {
+    var preview = document.getElementById('logo-preview');
+    var hidden = document.getElementById('tourn-logo-data');
+    if (preview) preview.innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:4px;">Sem logo</span>';
+    if (hidden) hidden.value = '';
+    // Reset lock
+    window._logoLocked = false;
+    var btn = document.getElementById('btn-logo-lock');
+    if (btn) { btn.textContent = '🔓'; btn.style.border = '1px solid rgba(255,255,255,0.1)'; btn.style.background = 'rgba(255,255,255,0.05)'; btn.style.color = 'var(--text-muted)'; }
+    var hiddenLock = document.getElementById('tourn-logo-locked');
+    if (hiddenLock) hiddenLock.value = '';
   };
 
   window._onSportChange = function () {
@@ -1481,6 +1751,23 @@ function setupCreateTournamentModal() {
     if (t.venuePhotoUrl) {
       setTimeout(function() { window._applyVenuePhoto(t.venuePhotoUrl); }, 50);
     }
+    // Restore logo
+    document.getElementById('tourn-logo-data').value = t.logoData || '';
+    if (t.logoData) {
+      window._applyTournamentLogo(t.logoData);
+    } else {
+      window._clearTournamentLogo();
+    }
+    // Restore lock state
+    window._logoLocked = !!t.logoLocked;
+    document.getElementById('tourn-logo-locked').value = t.logoLocked ? '1' : '';
+    var lockBtn = document.getElementById('btn-logo-lock');
+    if (lockBtn) {
+      lockBtn.textContent = window._logoLocked ? '🔒' : '🔓';
+      lockBtn.style.border = window._logoLocked ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.1)';
+      lockBtn.style.background = window._logoLocked ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)';
+      lockBtn.style.color = window._logoLocked ? '#fbbf24' : 'var(--text-muted)';
+    }
     const venueAccessStored = t.venueAccess || '';
     document.getElementById('tourn-venue-access').value = venueAccessStored;
     window._applyVenueAccessUI(venueAccessStored ? venueAccessStored.split(',') : []);
@@ -1561,6 +1848,8 @@ function setupCreateTournamentModal() {
       document.getElementById('tourn-venue-address').value = '';
       document.getElementById('tourn-venue-place-id').value = '';
       document.getElementById('tourn-venue-photo-url').value = '';
+      document.getElementById('tourn-logo-data').value = '';
+      window._clearTournamentLogo();
       window._applyVenuePhoto('');
       const _infoEl = document.getElementById('venue-osm-info');
       if (_infoEl) { _infoEl.style.display = 'none'; _infoEl.innerHTML = ''; }
@@ -1625,6 +1914,8 @@ function setupCreateTournamentModal() {
         const venueAddressVal = document.getElementById('tourn-venue-address').value || '';
         const venuePlaceIdVal = document.getElementById('tourn-venue-place-id').value || '';
         const venuePhotoUrlVal = document.getElementById('tourn-venue-photo-url').value || '';
+        const logoDataVal = document.getElementById('tourn-logo-data').value || '';
+        const logoLockedVal = document.getElementById('tourn-logo-locked').value === '1';
         const courtCountVal = parseInt(document.getElementById('tourn-court-count').value) || 1;
         const courtNamesRaw = document.getElementById('tourn-court-names').value.trim();
         const courtNamesVal = courtNamesRaw ? courtNamesRaw.split(',').map(c => c.trim()).filter(c => c) : [];
@@ -1653,6 +1944,8 @@ function setupCreateTournamentModal() {
           venueAddress: venueAddressVal,
           venuePlaceId: venuePlaceIdVal,
           venuePhotoUrl: venuePhotoUrlVal,
+          logoData: logoDataVal,
+          logoLocked: logoLockedVal,
           courtCount: courtCountVal,
           courtNames: courtNamesVal,
           callTime: callTimeVal,
@@ -1697,9 +1990,31 @@ function setupCreateTournamentModal() {
           const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === editId.toString());
           if (idx !== -1) {
             const t = window.AppStore.tournaments[idx];
+            // Detect meaningful changes to notify participants
+            var _changes = [];
+            var _checkFields = {
+              name: 'Nome', startDate: 'Data de início', endDate: 'Data de término',
+              venue: 'Local', format: 'Formato', maxParticipants: 'Máx. participantes',
+              enrollmentMode: 'Modo de inscrição', registrationLimit: 'Prazo de inscrição'
+            };
+            Object.keys(_checkFields).forEach(function(k) {
+              if (tourData[k] !== undefined && String(tourData[k] || '') !== String(t[k] || '')) {
+                _changes.push(_checkFields[k]);
+              }
+            });
             // Aplica cada campo explicitamente
             Object.keys(tourData).forEach(k => { t[k] = tourData[k]; });
             window.AppStore.logAction(editId, `Regras atualizadas: formato ${format}, lançamento por ${resultEntryVal}`);
+
+            // Notify enrolled participants about changes
+            if (_changes.length > 0 && window._notifyTournamentParticipants) {
+              var changeMsg = 'O torneio "' + name + '" foi atualizado: ' + _changes.join(', ') + '.';
+              window._notifyTournamentParticipants(t, {
+                type: 'tournament_updated',
+                message: changeMsg,
+                level: 'important'
+              }, t.organizerEmail);
+            }
           }
           showNotification('Sucesso', 'Torneio atualizado!', 'success');
         } else {

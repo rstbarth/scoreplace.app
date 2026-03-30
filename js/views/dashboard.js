@@ -135,9 +135,9 @@ function renderDashboard(container) {
       });
     }
 
-    let participandoText = '';
+    let participandoBadge = '';
     if (isParticipating) {
-      participandoText = `<div style="margin-top: 1rem; text-align: right; font-weight: 700; color: #fef08a; font-size: 0.85rem; text-transform: uppercase;">Inscrito ✓</div>`;
+      participandoBadge = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; margin-top: 4px;">Inscrito ✓</div>`;
     }
 
     return `
@@ -157,15 +157,21 @@ function renderDashboard(container) {
                   <span style="font-size: 1.1rem;">${getSportIcon(t.sport)}</span>
                   <span>${cleanSportName(t.sport) || 'Esporte'}</span>
                </div>
-               <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap; flex-shrink: 0;">
-                  ${statusText}
+               <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
+                  <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
+                    ${statusText}
+                  </div>
+                  ${participandoBadge}
                </div>
             </div>
 
-            <!-- Middle Left: Nome -->
-            <h4 style="margin: 1.8rem 0 1.5rem 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
-              ${t.name}
-            </h4>
+            <!-- Middle Left: Nome + Logo -->
+            <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 1.5rem 0;">
+              ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 56px; height: 56px; border-radius: 10px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
+              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
+                ${t.name}
+              </h4>
+            </div>
 
             <!-- Below Name: Calendário + Data -->
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
@@ -207,8 +213,6 @@ function renderDashboard(container) {
                </div>
             </div>
 
-            ${participandoText}
-
           </div>
         </div>
       `;
@@ -228,24 +232,120 @@ function renderDashboard(container) {
   // Grupo 2: abertos para se inscrever (já excluem org e participante por definição)
   const abertos = abertosParaVoce; // já ordenado por sortByDate
 
-  let listsHtml = '';
-  if (meus.length > 0 || abertos.length > 0) {
-    const meusHtml = meus.map(t => renderTournamentCard(t, t.type)).join('');
-    const abertosHtml = abertos.map(t => renderTournamentCard(t, 'aberto')).join('');
+  // Collect unique sports and locations for filter bar
+  const allTournaments = [...meus, ...abertosParaVoce];
+  const uniqueIds = new Set();
+  const allUnique = [];
+  allTournaments.forEach(t => { if (!uniqueIds.has(t.id)) { uniqueIds.add(t.id); allUnique.push(t); } });
 
-    listsHtml = `<div class="dashboard-list" style="margin-bottom: 2rem;">
-        <div class="cards-grid">
-          ${meusHtml}
-          ${abertosHtml}
-        </div>
-      </div>`;
-  }
+  const sportsSet = new Set();
+  const locationsSet = new Set();
+  const formatsSet = new Set();
+  allUnique.forEach(t => {
+    if (t.sport) sportsSet.add(cleanSportName(t.sport));
+    if (t.venueName) locationsSet.add(t.venueName);
+    if (t.format) formatsSet.add(t.format);
+  });
 
+  const sportsArr = Array.from(sportsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const locationsArr = Array.from(locationsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const formatsArr = Array.from(formatsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   const userName = window.AppStore.currentUser ? window.AppStore.currentUser.displayName.split(' ')[0] : 'Visitante';
 
+  // Initialize filter state
+  if (!window._dashFilter) window._dashFilter = 'todos';
+  if (!window._dashSport) window._dashSport = '';
+  if (!window._dashLocation) window._dashLocation = '';
+  if (!window._dashFormat) window._dashFormat = '';
+
+  // Filter function
+  window._applyDashFilter = function(filter) {
+    window._dashFilter = filter;
+    var c = document.getElementById('view-container');
+    if (c && typeof renderDashboard === 'function') renderDashboard(c);
+  };
+  window._applyDashSport = function(sport) {
+    window._dashSport = (window._dashSport === sport) ? '' : sport;
+    var c = document.getElementById('view-container');
+    if (c && typeof renderDashboard === 'function') renderDashboard(c);
+  };
+  window._applyDashLocation = function(loc) {
+    window._dashLocation = (window._dashLocation === loc) ? '' : loc;
+    var c = document.getElementById('view-container');
+    if (c && typeof renderDashboard === 'function') renderDashboard(c);
+  };
+  window._applyDashFormat = function(fmt) {
+    window._dashFormat = (window._dashFormat === fmt) ? '' : fmt;
+    var c = document.getElementById('view-container');
+    if (c && typeof renderDashboard === 'function') renderDashboard(c);
+  };
+
+  const curFilter = window._dashFilter || 'todos';
+  const curSport = window._dashSport || '';
+  const curLocation = window._dashLocation || '';
+  const curFormat = window._dashFormat || '';
+
+  // Apply main filter
+  let filtered = [];
+  if (curFilter === 'organizados') filtered = [...organizadosSorted];
+  else if (curFilter === 'participando') filtered = [...participacoesSorted];
+  else if (curFilter === 'abertos') filtered = [...abertosParaVoce];
+  else {
+    const seen = new Set();
+    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
+      if (!seen.has(t.id)) { seen.add(t.id); filtered.push(t); }
+    });
+    filtered.sort(sortByDate);
+  }
+
+  // Apply secondary filters
+  if (curSport) filtered = filtered.filter(t => cleanSportName(t.sport) === curSport);
+  if (curLocation) filtered = filtered.filter(t => t.venueName === curLocation);
+  if (curFormat) filtered = filtered.filter(t => t.format === curFormat);
+
+  const filteredHtml = filtered.length > 0
+    ? filtered.map(t => renderTournamentCard(t, '')).join('')
+    : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado para este filtro.</div>';
+
+  // Build filter pills for sports
+  let sportsPills = sportsArr.map(s => {
+    const active = curSport === s;
+    return `<button onclick="window._applyDashSport('${s.replace(/'/g, "\\'")}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;border:1px solid ${active ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${active ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${active ? '#a5b4fc' : 'var(--text-muted)'};font-size:0.75rem;font-weight:${active ? '700' : '500'};cursor:pointer;white-space:nowrap;transition:all 0.2s;"><span>${getSportIcon(s)}</span>${s}</button>`;
+  }).join('');
+
+  // Build filter pills for locations
+  let locationPills = locationsArr.map(l => {
+    const active = curLocation === l;
+    return `<button onclick="window._applyDashLocation('${l.replace(/'/g, "\\'")}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;border:1px solid ${active ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.1)'};background:${active ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.04)'};color:${active ? '#4ade80' : 'var(--text-muted)'};font-size:0.75rem;font-weight:${active ? '700' : '500'};cursor:pointer;white-space:nowrap;transition:all 0.2s;">📍${l}</button>`;
+  }).join('');
+
+  // Build filter pills for formats
+  let formatPills = formatsArr.map(f => {
+    const active = curFormat === f;
+    return `<button onclick="window._applyDashFormat('${f.replace(/'/g, "\\'")}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;border:1px solid ${active ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.1)'};background:${active ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)'};color:${active ? '#fbbf24' : 'var(--text-muted)'};font-size:0.75rem;font-weight:${active ? '700' : '500'};cursor:pointer;white-space:nowrap;transition:all 0.2s;">🏅${f}</button>`;
+  }).join('');
+
+  const hasSecondaryFilters = sportsArr.length > 0 || locationsArr.length > 0 || formatsArr.length > 0;
+  const filterBarHtml = hasSecondaryFilters ? `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.2rem;align-items:center;">
+      ${sportsPills}${locationPills}${formatPills}
+      ${(curSport || curLocation || curFormat) ? `<button onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">✕ Limpar filtros</button>` : ''}
+    </div>
+  ` : '';
+
+  // Main filter card styles
+  const _fStyle = (key, emoji, count, label) => {
+    const active = curFilter === key;
+    return `<div style="background:${active ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.05)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px rgba(255,255,255,0.1);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px rgba(255,255,255,0.1)' : 'none'}'">
+      <div style="font-size:2rem;margin-bottom:0.25rem;">${emoji}</div>
+      <span style="font-size:2.5rem;font-weight:700;line-height:1;">${count}</span>
+      <h3 style="margin:0.5rem 0 0 0;font-size:1rem;font-weight:600;opacity:0.9;">${label}</h3>
+    </div>`;
+  };
+
   const html = `
-    <!-- Header Hero Box com Degrade Simples e Elegante -->
+    <!-- Header Hero Box -->
     <div class="mb-4 hero-box" style="
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         border-radius: 24px;
@@ -255,11 +355,9 @@ function renderDashboard(container) {
         filter: saturate(0.9) brightness(0.95);
         position: relative;
     ">
-      
+
       <div style="margin-bottom: 1rem; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
-        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">
-          Olá, ${userName}
-      </h2>
+        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">Olá, ${userName}</h2>
         <p style="margin: 0.5rem 0 0 0; opacity: 0.85; font-size: 1.1rem;">Gerencie seus torneios e partidas esportivas</p>
       </div>
 
@@ -268,34 +366,24 @@ function renderDashboard(container) {
           + Novo Torneio
         </button>
       </div>
-      
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
-        
-        <!-- Card 1: Meus Torneios -->
-        <div style="background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 1.5rem 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;" onclick="document.querySelector('.dashboard-list') && document.querySelector('.dashboard-list').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-          <div style="font-size: 2rem; margin-bottom: 0.25rem;">🏆</div>
-          <span style="font-size: 2.5rem; font-weight: 700; line-height: 1;">${organizadosCount}</span>
-          <h3 style="margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: 600; opacity: 0.9;">Meus Torneios</h3>
-        </div>
 
-        <!-- Card 2: Participando -->
-        <div style="background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 1.5rem 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;" onclick="document.querySelector('.dashboard-list') && document.querySelector('.dashboard-list').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-          <div style="font-size: 2rem; margin-bottom: 0.25rem;">👤</div>
-          <span style="font-size: 2.5rem; font-weight: 700; line-height: 1;">${participacoesCount}</span>
-          <h3 style="margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: 600; opacity: 0.9;">Participando</h3>
-        </div>
-
-        <!-- Card 3: Inscrições Abertas -->
-        <div style="background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 1.5rem 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;" onclick="document.querySelector('.dashboard-list') && document.querySelector('.dashboard-list').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-          <div style="font-size: 2rem; margin-bottom: 0.25rem;">🗓️</div>
-          <span style="font-size: 2.5rem; font-weight: 700; line-height: 1;">${inscricoesAbertas}</span>
-          <h3 style="margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: 600; opacity: 0.9;">Inscrições Abertas</h3>
-        </div>
-
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
+        ${_fStyle('todos', '📋', allUnique.length, 'Todos')}
+        ${_fStyle('organizados', '🏆', organizadosCount, 'Meus Torneios')}
+        ${_fStyle('participando', '👤', participacoesCount, 'Participando')}
+        ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Abertas')}
       </div>
     </div>
-    
-    ${listsHtml}
+
+    <!-- Filter Bar -->
+    ${filterBarHtml}
+
+    <!-- Tournament Cards -->
+    <div class="dashboard-list" style="margin-bottom: 2rem;">
+      <div class="cards-grid">
+        ${filteredHtml}
+      </div>
+    </div>
   `;
   container.innerHTML = html;
 }

@@ -549,6 +549,16 @@ async function simulateLoginSuccess(user) {
     await window.AppStore.loadFromFirestore();
   }
 
+  // Check tournament reminders and nearby tournaments (delayed to let data load)
+  setTimeout(function() {
+    if (typeof window._checkTournamentReminders === 'function') {
+      window._checkTournamentReminders().catch(function(e) { console.warn('Reminder check error:', e); });
+    }
+    if (typeof window._checkNearbyTournaments === 'function') {
+      window._checkNearbyTournaments().catch(function(e) { console.warn('Nearby check error:', e); });
+    }
+  }, 3000);
+
   // Update the topbar button with user avatar and name
   var btnLogin = document.getElementById('btn-login');
   if (btnLogin) {
@@ -627,6 +637,16 @@ async function simulateLoginSuccess(user) {
           }
         });
 
+        // CEPs de preferência
+        var cepsEl = document.getElementById('profile-edit-ceps');
+        if (cepsEl) cepsEl.value = cu.preferredCeps || '';
+
+        // Notify level filter
+        var notifyLevelVal = cu.notifyLevel || 'todas';
+        var nlHidden = document.getElementById('profile-notify-level');
+        if (nlHidden) nlHidden.value = notifyLevelVal;
+        if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
+
         if (typeof openModal === 'function') openModal('modal-profile');
       }
     });
@@ -682,39 +702,44 @@ async function simulateLoginSuccess(user) {
         return;
       }
       if (t && window.AppStore.currentUser) {
-        var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-        var already = arr.some(function(p) {
-          var str = typeof p === 'string' ? p : (p.email || p.displayName);
-          return str && (str.includes(window.AppStore.currentUser.email) || str.includes(window.AppStore.currentUser.displayName));
-        });
-        if (!already) {
-          arr.push({ name: window.AppStore.currentUser.displayName, email: window.AppStore.currentUser.email, displayName: window.AppStore.currentUser.displayName });
-          t.participants = arr;
-          // Save directly to Firestore (sync only saves organizer's tournaments)
-          if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-            window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Auto-enroll save error:', err); });
-          }
-          if (typeof showNotification !== 'undefined') {
-            showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
-          }
-
-          // Auto-amizade: com quem convidou (ref) ou com o organizador como fallback
-          if (_inviteRefUid) {
-            _autoFriendOnInvite(_inviteRefUid, window.AppStore.currentUser);
-            try { sessionStorage.removeItem('_inviteRefUid'); } catch(e) {}
-          } else if (t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
-            // Sem ref — fazer amizade com o organizador do torneio
-            window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-              if (!snap.empty) {
-                _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
-              }
-            }).catch(function(e) { console.warn('Auto-friend org lookup error:', e); });
-          }
+        var _u = window.AppStore.currentUser;
+        var participantObj = { name: _u.displayName, email: _u.email, displayName: _u.displayName };
+        // Use atomic Firestore transaction to prevent race conditions
+        if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
+          window.FirestoreDB.enrollParticipant(pendingEnrollId, participantObj).then(function(result) {
+            if (result.alreadyEnrolled) return;
+            t.participants = result.participants;
+            if (typeof showNotification !== 'undefined') {
+              showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
+            }
+            // Auto-amizade: com quem convidou (ref) ou com o organizador como fallback
+            if (_inviteRefUid) {
+              _autoFriendOnInvite(_inviteRefUid, window.AppStore.currentUser);
+              try { sessionStorage.removeItem('_inviteRefUid'); } catch(e) {}
+            } else if (t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
+              window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                if (!snap.empty) {
+                  _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
+                }
+              }).catch(function(e) { console.warn('Auto-friend org lookup error:', e); });
+            }
+            // Navigate and scroll to participant after render
+            if (typeof window._scrollToParticipant === 'function') {
+              window._scrollToParticipant(pendingEnrollId, _u.displayName);
+            }
+          }).catch(function(err) {
+            console.warn('Auto-enroll transaction error:', err);
+          });
+        } else {
+          // Fallback: navigate to tournament page
+          window.location.hash = '#tournaments/' + pendingEnrollId;
+          if (typeof initRouter === 'function') initRouter();
         }
+      } else {
+        // Tournament not found but still navigate
+        window.location.hash = '#tournaments/' + pendingEnrollId;
+        if (typeof initRouter === 'function') initRouter();
       }
-      // Navigate to tournament page
-      window.location.hash = '#tournaments/' + pendingEnrollId;
-      if (typeof initRouter === 'function') initRouter();
     };
     setTimeout(_tryAutoEnroll, 300);
     return;
@@ -923,15 +948,16 @@ function _setupPhoneMask(inputEl, countryCode) {
 
 // Toggle button helper — replaces checkboxes with friendly pill toggles
 // Optional customColor (hex) for on-state, optional icon (emoji/symbol)
-function _toggleBtnHtml(id, label, checked, customColor, icon) {
+function _toggleBtnHtml(id, label, checked, customColor, icon, autoWidth) {
   var onBg = customColor || 'var(--primary-color)';
   var onBorder = customColor || 'var(--primary-color)';
   var onStyle = 'background: ' + onBg + '; color: #fff; border-color: ' + onBorder + ';';
   var offStyle = 'background: transparent; color: var(--text-muted); border-color: var(--border-color);';
   var iconHtml = icon ? '<span style="font-size: 0.95rem; flex-shrink: 0;">' + icon + '</span>' : '';
+  var widthStyle = autoWidth ? 'width: auto; padding: 8px 20px;' : 'width: 100%; padding: 8px 6px;';
   return '<button type="button" id="' + id + '" data-on="' + (checked ? '1' : '0') + '" ' +
     'data-color="' + (customColor || '') + '" ' +
-    'style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 6px; border-radius: 10px; border: 1.5px solid; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; box-sizing: border-box; ' +
+    'style="display: flex; align-items: center; justify-content: center; gap: 6px; ' + widthStyle + ' border-radius: 10px; border: 1.5px solid; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; box-sizing: border-box; ' +
     (checked ? onStyle : offStyle) + '" ' +
     'onclick="_toggleProfileBtn(this)">' +
     iconHtml +
@@ -1026,6 +1052,7 @@ function setupProfileModal() {
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">Esportes Preferidos</label>' +
               '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel, Beach Tennis">' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 2px; display: block;">Separe os esportes por vírgula</span>' +
             '</div>' +
             // Telefone: País + Número
             '<div class="form-group" style="margin-bottom: 10px;">' +
@@ -1038,15 +1065,27 @@ function setupProfileModal() {
               '</div>' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            // Social toggle
+            // Social toggle + notification filters (same row)
             '<div style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social</label>' +
-              _toggleBtnHtml('profile-accept-friends', 'Aceitar convites de amizade', true) +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social &amp; Comunicações</label>' +
+              '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
+              '<div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: center;">' +
+                _toggleBtnHtml('profile-accept-friends', 'Aceitar convites', true, null, null, true) +
+                '<button type="button" id="profile-filter-importantes" onclick="window._toggleNotifyFilter(\'importantes\')" style="padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(251,191,36,0.25); background: transparent; color: rgba(251,191,36,0.5); cursor: pointer; transition: all 0.2s; white-space: nowrap;" title="Ativo: recebe só importantes e fundamentais. Desativado: recebe todas.">🟡 Só Importantes</button>' +
+                '<button type="button" id="profile-filter-fundamentais" onclick="window._toggleNotifyFilter(\'fundamentais\')" style="padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(239,68,68,0.25); background: transparent; color: rgba(239,68,68,0.5); cursor: pointer; transition: all 0.2s; white-space: nowrap;" title="Ativo: recebe só fundamentais. Desativado: recebe todas.">🔴 Só Fundamentais</button>' +
+              '</div>' +
+              '<input type="hidden" id="profile-notify-level" value="todas">' +
+            '</div>' +
+            // CEPs de preferência
+            '<div class="form-group" style="margin-bottom: 1rem;">' +
+              '<label class="form-label" for="profile-edit-ceps" style="font-size: 0.8rem; font-weight: 600;">CEP(s) de preferência para jogar</label>' +
+              '<input type="text" id="profile-edit-ceps" class="form-control" placeholder="01310-100, 04538-132" style="width: 100%; box-sizing: border-box;">' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Separe os CEPs por vírgula. Você será notificado de torneios próximos.</span>' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Notification toggles
             '<div style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Notificações</label>' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Canais de Notificação</label>' +
               '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">' +
                 _toggleBtnHtml('profile-notify-platform', 'Plataforma', true, null, '\uD83D\uDD14') +
                 _toggleBtnHtml('profile-notify-email', 'E-mail', true, '#e67e22', '\u2709\uFE0F') +
@@ -1089,6 +1128,36 @@ function setupProfileModal() {
       }
     }
 
+    // Notification filter toggle — only two buttons, both off = "todas"
+    // Clicking one activates it and deactivates the other. Clicking an active one deactivates it (back to "todas").
+    window._toggleNotifyFilter = function(level) {
+      var hidden = document.getElementById('profile-notify-level');
+      var current = hidden ? hidden.value : 'todas';
+      var newLevel = (current === level) ? 'todas' : level;
+      if (hidden) hidden.value = newLevel;
+      window._applyNotifyFilterUI(newLevel);
+    };
+
+    window._applyNotifyFilterUI = function(level) {
+      var btnImp = document.getElementById('profile-filter-importantes');
+      var btnFun = document.getElementById('profile-filter-fundamentais');
+      // Reset both to inactive (dim)
+      if (btnImp) {
+        var isImp = (level === 'importantes');
+        btnImp.style.background = isImp ? 'rgba(251,191,36,0.2)' : 'transparent';
+        btnImp.style.border = isImp ? '2px solid rgba(251,191,36,0.7)' : '1px solid rgba(251,191,36,0.25)';
+        btnImp.style.color = isImp ? '#fbbf24' : 'rgba(251,191,36,0.5)';
+        btnImp.style.boxShadow = isImp ? '0 0 8px rgba(251,191,36,0.15)' : 'none';
+      }
+      if (btnFun) {
+        var isFun = (level === 'fundamentais');
+        btnFun.style.background = isFun ? 'rgba(239,68,68,0.2)' : 'transparent';
+        btnFun.style.border = isFun ? '2px solid rgba(239,68,68,0.7)' : '1px solid rgba(239,68,68,0.25)';
+        btnFun.style.color = isFun ? '#f87171' : 'rgba(239,68,68,0.5)';
+        btnFun.style.boxShadow = isFun ? '0 0 8px rgba(239,68,68,0.15)' : 'none';
+      }
+    };
+
     window._selectAvatar = function(src) {
       document.getElementById('profile-avatar').src = src;
       document.getElementById('avatar-picker').style.display = 'none';
@@ -1113,6 +1182,8 @@ function setupProfileModal() {
       var notifyPlatform = document.getElementById('profile-notify-platform').getAttribute('data-on') === '1';
       var notifyEmail = document.getElementById('profile-notify-email').getAttribute('data-on') === '1';
       var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').getAttribute('data-on') === '1';
+      var notifyLevel = document.getElementById('profile-notify-level').value || 'todas';
+      var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
 
       if (name) {
         window.AppStore.currentUser.displayName = name;
@@ -1129,6 +1200,8 @@ function setupProfileModal() {
       window.AppStore.currentUser.notifyPlatform = notifyPlatform;
       window.AppStore.currentUser.notifyEmail = notifyEmail;
       window.AppStore.currentUser.notifyWhatsApp = notifyWhatsApp;
+      window.AppStore.currentUser.notifyLevel = notifyLevel;
+      window.AppStore.currentUser.preferredCeps = preferredCeps;
 
       // Calcula idade se tem data de nascimento
       if (birthDate) {
