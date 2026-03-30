@@ -120,12 +120,13 @@ window._markNotifRead = function(notifId, el) {
   }
 };
 
-// Update the notification badge count in the header
+// Update the notification badge count in the header + show banner
 window._updateNotificationBadge = function() {
   var cu = window.AppStore.currentUser;
   if (!cu) return;
   var uid = cu.uid || cu.email;
   window.FirestoreDB.getUnreadNotificationCount(uid).then(function(count) {
+    // Update the small badge on the bell icon
     var badge = document.getElementById('notif-badge');
     if (badge) {
       if (count > 0) {
@@ -133,6 +134,29 @@ window._updateNotificationBadge = function() {
         badge.style.display = 'flex';
       } else {
         badge.style.display = 'none';
+      }
+    }
+
+    // Show/hide prominent notification banner below header
+    var banner = document.getElementById('notif-banner');
+    if (!banner && count > 0) {
+      // Create banner element below header
+      banner = document.createElement('div');
+      banner.id = 'notif-banner';
+      banner.style.cssText = 'background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#fff;padding:8px 16px;text-align:center;font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(239,68,68,0.3);z-index:99;';
+      banner.onclick = function() { window.location.hash = '#notifications'; };
+      var header = document.querySelector('header');
+      if (header && header.parentNode) {
+        header.parentNode.insertBefore(banner, header.nextSibling);
+      }
+    }
+    if (banner) {
+      if (count > 0) {
+        var plural = count === 1 ? 'nova notificação' : 'novas notificações';
+        banner.innerHTML = '<span style="font-size:1rem;">🔔</span> Você tem ' + count + ' ' + plural + ' — toque para ver';
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
       }
     }
   });

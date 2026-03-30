@@ -36,6 +36,11 @@ try {
 if (firebase && firebase.auth) {
   firebase.auth().onAuthStateChanged(async function(user) {
     if (user) {
+      // Skip if email registration is still updating displayName profile
+      if (window._pendingProfileUpdate) {
+        console.log('onAuthStateChanged: skipping — pending profile update (email register)');
+        return;
+      }
       // User is signed in — load data from Firestore and update UI
       await simulateLoginSuccess({
         uid: user.uid,
@@ -225,15 +230,18 @@ function handleEmailRegister() {
   }
 
   showNotification('Criando conta...', 'Registrando sua conta...', 'info');
+  // Flag to delay onAuthStateChanged until profile is updated with displayName
+  window._pendingProfileUpdate = true;
   firebase.auth().createUserWithEmailAndPassword(email, password)
     .then(function(result) {
       var user = result.user;
-      // Update profile with display name
+      // Update profile with display name FIRST, then let onAuthStateChanged handle login
       return user.updateProfile({ displayName: name }).then(function() {
         showNotification('Conta Criada!', 'Bem-vindo(a), ' + name + '!', 'success');
         var modal = document.getElementById('modal-login');
         if (modal) modal.classList.remove('active');
-        // Trigger simulateLoginSuccess with the name
+        // Clear flag and trigger login flow via simulateLoginSuccess (onAuthStateChanged may have fired before updateProfile)
+        window._pendingProfileUpdate = false;
         return simulateLoginSuccess({
           uid: user.uid,
           email: user.email,
@@ -430,9 +438,11 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
     friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(myUid)
   }, { merge: true });
 
-  // Atualiza estado local
+  // Atualiza estado local (com dedup)
   if (!currentUser.friends) currentUser.friends = [];
-  currentUser.friends.push(inviterUid);
+  if (currentUser.friends.indexOf(inviterUid) === -1) {
+    currentUser.friends.push(inviterUid);
+  }
 
   // Notifica quem convidou
   window.FirestoreDB.addNotification(inviterUid, {
@@ -450,6 +460,13 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
 }
 
 async function simulateLoginSuccess(user) {
+  // Guard against double execution (e.g. onAuthStateChanged + explicit call)
+  if (window._simulateLoginInProgress) {
+    console.log('simulateLoginSuccess: skipping — already in progress');
+    return;
+  }
+  window._simulateLoginInProgress = true;
+
   // Set AppStore.currentUser with the user object
   window.AppStore.currentUser = user;
 
@@ -542,7 +559,12 @@ async function simulateLoginSuccess(user) {
     }
   }
 
-  // Start real-time listener for tournaments (auto-updates on any change)
+  // Stop old (public-only) listener before starting full listener for logged-in user
+  if (window.AppStore.stopRealtimeListener) {
+    window.AppStore.stopRealtimeListener();
+  }
+
+  // Start real-time listener for ALL tournaments (auto-updates on any change)
   if (window.AppStore.startRealtimeListener) {
     window.AppStore.startRealtimeListener();
   } else if (window.AppStore.loadFromFirestore) {
@@ -652,9 +674,16 @@ async function simulateLoginSuccess(user) {
     });
   }
 
-  // Update notification badge
+  // Update notification badge (immediate + periodic refresh every 30s)
   if (typeof _updateNotificationBadge === 'function') {
     _updateNotificationBadge();
+    if (!window._notifBadgeInterval) {
+      window._notifBadgeInterval = setInterval(function() {
+        if (window.AppStore.currentUser && typeof _updateNotificationBadge === 'function') {
+          _updateNotificationBadge();
+        }
+      }, 30000);
+    }
   }
 
   // Set view mode to organizer
@@ -742,6 +771,7 @@ async function simulateLoginSuccess(user) {
       }
     };
     setTimeout(_tryAutoEnroll, 300);
+    window._simulateLoginInProgress = false;
     return;
   }
 
@@ -754,6 +784,7 @@ async function simulateLoginSuccess(user) {
 
   // Initialize router to load appropriate views
   if (typeof initRouter === 'function') initRouter();
+  window._simulateLoginInProgress = false;
 }
 
 function setupLoginModal() {

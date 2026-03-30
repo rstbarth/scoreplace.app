@@ -2074,9 +2074,8 @@ function renderTournaments(container, tournamentId = null) {
                     var _rm = _hash.match(/[?&]ref=([^&]+)/);
                     if (_rm) sessionStorage.setItem('_inviteRefUid', decodeURIComponent(_rm[1]));
                 } catch(e) {}
-                if (typeof handleGoogleLogin === 'function') {
-                    handleGoogleLogin();
-                } else if (typeof openModal === 'function') {
+                // Open login modal with all options (Google, Apple, Facebook, email/password)
+                if (typeof openModal === 'function') {
                     openModal('modal-login');
                 }
                 return;

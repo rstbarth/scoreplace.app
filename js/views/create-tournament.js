@@ -130,15 +130,6 @@ function setupCreateTournamentModal() {
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações da Liga</p>
                 <div class="d-flex gap-2 mb-2">
                   <div class="form-group full-width">
-                    <label class="form-label">Periodicidade das Rodadas</label>
-                    <select class="form-control" id="liga-periodicity">
-                      <option value="weekly">Semanal</option>
-                      <option value="biweekly">Quinzenal</option>
-                      <option value="monthly">Mensal</option>
-                      <option value="custom">Definida pelo organizador</option>
-                    </select>
-                  </div>
-                  <div class="form-group full-width">
                     <label class="form-label">Pontuação de Novos Inscritos</label>
                     <select class="form-control" id="liga-new-player-score">
                       <option value="zero">Zero absoluto</option>
@@ -170,28 +161,29 @@ function setupCreateTournamentModal() {
                 </div>
                 <div id="liga-draw-schedule" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
                   <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios</p>
-                  <div class="d-flex gap-2 mb-2">
-                    <div class="form-group full-width">
-                      <label class="form-label">Data/Hora do Primeiro Sorteio</label>
-                      <div style="display:flex;gap:6px;">
-                        <input type="date" class="form-control" id="liga-first-draw-date" style="flex:1;">
-                        <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:90px;">
-                      </div>
+                  <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
+                    <div class="form-group" style="margin:0;flex:0 0 auto;">
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
+                      <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;">
                     </div>
-                    <div class="form-group full-width">
-                      <label class="form-label">Repetir a cada</label>
-                      <div style="display:flex;align-items:center;gap:6px;">
-                        <input type="number" class="form-control" id="liga-draw-interval" min="1" max="90" value="7" style="flex:1;">
-                        <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                    <div class="form-group" style="margin:0;flex:0 0 auto;">
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
+                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:80px;padding:6px 8px;font-size:0.85rem;">
+                    </div>
+                    <div class="form-group" style="margin:0;flex:0 0 auto;">
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <input type="number" class="form-control" id="liga-draw-interval" min="1" max="90" value="7" style="width:55px;padding:6px 8px;font-size:0.85rem;text-align:center;">
+                        <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">dias</span>
                       </div>
                     </div>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" style="margin:0;">
                     <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
                       <input type="checkbox" id="liga-manual-draw" style="width:18px;height:18px;">
                       <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
                     </label>
-                    <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o sorteio não ocorre automaticamente. Use o botão na página do torneio.</p>
+                    <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o sorteio não ocorre automaticamente.</p>
                   </div>
                 </div>
               </div>
@@ -266,29 +258,30 @@ function setupCreateTournamentModal() {
 
               <!-- Campos periocidade de sorteio: Suíço -->
               <div id="suico-draw-schedule-fields" style="display:none; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios (Suíço)</p>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Primeiro Sorteio</label>
-                    <div style="display:flex;gap:6px;">
-                      <input type="date" class="form-control" id="suico-first-draw-date" style="flex:1;">
-                      <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:90px;">
-                    </div>
+                <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios (Suíço)</p>
+                <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
+                  <div class="form-group" style="margin:0;flex:0 0 auto;">
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
+                    <input type="date" class="form-control" id="suico-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;">
                   </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">Repetir a cada</label>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <input type="number" class="form-control" id="suico-draw-interval" min="1" max="90" value="7" style="flex:1;">
-                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                  <div class="form-group" style="margin:0;flex:0 0 auto;">
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
+                    <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:80px;padding:6px 8px;font-size:0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin:0;flex:0 0 auto;">
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                      <input type="number" class="form-control" id="suico-draw-interval" min="1" max="90" value="7" style="width:55px;padding:6px 8px;font-size:0.85rem;text-align:center;">
+                      <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">dias</span>
                     </div>
                   </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin:0;">
                   <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
                     <input type="checkbox" id="suico-manual-draw" style="width:18px;height:18px;">
                     <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
                   </label>
-                  <small class="text-muted" style="display:block;margin-left:28px;">Se ativado, o organizador decide quando gerar cada rodada.</small>
+                  <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o organizador decide quando gerar cada rodada.</p>
                 </div>
               </div>
 

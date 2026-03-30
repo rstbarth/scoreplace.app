@@ -43,11 +43,10 @@ function renderExplore(container) {
   // Render pending friend requests
   _renderPendingRequests(myUid, myReceived);
 
-  // Render my friends (card grid, sorted by interaction)
-  _renderMyFriends(myUid, myFriends);
-
-  // Render conhecidos (shared tournaments, not friends)
-  _renderConhecidos(myUid, myFriends, mySent, myReceived);
+  // Render my friends first, THEN conhecidos (so friend emails/names are available for filtering)
+  _renderMyFriends(myUid, myFriends).then(function() {
+    _renderConhecidos(myUid, myFriends, mySent, myReceived);
+  });
 
   // Search handler
   var searchInput = document.getElementById('explore-search-input');
@@ -227,7 +226,9 @@ function _renderMyFriends(myUid, friendIds) {
   var div = document.getElementById('explore-friends');
   if (!div || !friendIds || friendIds.length === 0) {
     if (div) div.innerHTML = '';
-    return;
+    window._friendEmails = [];
+    window._friendNames = [];
+    return Promise.resolve();
   }
 
   div.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">Carregando amigos...</div>';
@@ -239,7 +240,7 @@ function _renderMyFriends(myUid, friendIds) {
     });
   });
 
-  Promise.all(promises).then(function(profiles) {
+  return Promise.all(promises).then(function(profiles) {
     profiles = profiles.filter(function(p) { return p; });
 
     // Store friend emails and names for dedup in conhecidos/search
@@ -360,9 +361,13 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     window._friendNames.forEach(function(k) { if (k && friendKeys.indexOf(k) === -1) friendKeys.push(k); });
   }
 
-  // Remove friends and self from conhecidos
+  // Remove friends, bots and self from conhecidos
   var conhecidos = Object.values(conhecidosMap).filter(function(c) {
     var key = c.email || c.displayName;
+    // Filter out bots (names like "Bot 01", "Bot 02", etc.)
+    var name = (c.displayName || '').trim();
+    if (/^Bot\s+\d/i.test(name)) return false;
+    // Filter out friends
     if (friendKeys.indexOf(c.email) !== -1) return false;
     if (friendKeys.indexOf(c.displayName) !== -1) return false;
     if (friendKeys.indexOf(key) !== -1) return false;
@@ -528,7 +533,10 @@ window._acceptFriend = function(friendUid) {
   var myUid = cu.uid || cu.email;
 
   if (!cu.friends) cu.friends = [];
-  cu.friends.push(friendUid);
+  // Prevent duplicate: only add if not already in friends list
+  if (cu.friends.indexOf(friendUid) === -1) {
+    cu.friends.push(friendUid);
+  }
   cu.friendRequestsReceived = (cu.friendRequestsReceived || []).filter(function(id) { return id !== friendUid; });
 
   window.FirestoreDB.acceptFriendRequest(myUid, friendUid).then(function() {
