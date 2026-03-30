@@ -1324,7 +1324,21 @@ function renderTournaments(container, tournamentId = null) {
 
         var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
-        // Update all participants in source or target category to new merged category
+        // FIRST: Record pre-merge mapping BEFORE moving participants
+        // This is critical for unmerge — we need to know who was in sourceCat vs targetCat
+        var premergeMap = {};
+        parts.forEach(function(p) {
+            if (typeof p !== 'object') return;
+            var email = p.email || p.displayName || p.name || '';
+            if (!email) return;
+            if (window._participantInCategory(p, sourceCat)) {
+                premergeMap[email] = sourceCat;
+            } else if (window._participantInCategory(p, targetCat)) {
+                premergeMap[email] = targetCat;
+            }
+        });
+
+        // THEN: Update all participants in source or target category to new merged category
         parts.forEach(function(p) {
             if (typeof p !== 'object') return;
             var pCats = window._getParticipantCategories(p);
@@ -1367,27 +1381,15 @@ function renderTournaments(container, tournamentId = null) {
             }
         });
 
-        // Save merge history for undo support
+        // Save merge history for undo support — uses premergeMap captured BEFORE moving
         if (!t.mergeHistory) t.mergeHistory = [];
-        // Store which participants came from which source category
         var mergeRecord = {
             mergedName: mergedName,
             sourceCat: sourceCat,
             targetCat: targetCat,
             timestamp: Date.now(),
-            participants: {} // email → originalCat before this merge
+            participants: premergeMap // email → category before this merge (sourceCat or targetCat)
         };
-        parts.forEach(function(p) {
-            if (typeof p !== 'object') return;
-            var email = p.email || p.displayName || p.name || '';
-            if (p.originalCategory && (p.originalCategory === sourceCat || p.originalCategory === targetCat)) {
-                mergeRecord.participants[email] = p.originalCategory;
-            } else if (window._participantInCategory(p, mergedName)) {
-                // Infer from what we just changed
-                var orig = p.originalCategory || '';
-                if (orig) mergeRecord.participants[email] = orig;
-            }
-        });
         t.mergeHistory.push(mergeRecord);
 
         // Log action
@@ -1568,7 +1570,8 @@ function renderTournaments(container, tournamentId = null) {
 
         var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
-        // Reassign participants back to their original categories or remove merged category
+        // Reassign participants back to their original categories
+        // Priority: 1) mergeRecord.participants (pre-merge map), 2) p.originalCategory, 3) uncategorized
         parts.forEach(function(p) {
             if (typeof p !== 'object') return;
             var pCats = window._getParticipantCategories(p);
@@ -1576,14 +1579,24 @@ function renderTournaments(container, tournamentId = null) {
             if (idx === -1) return;
 
             var pKey = p.email || p.displayName || p.name || '';
-            var origCat = participantMap[pKey] || p.originalCategory || '';
+            // participantMap has the exact pre-merge category (sourceCat or targetCat)
+            var fromMap = participantMap[pKey] || '';
+            var fromOrig = p.originalCategory || '';
 
-            if (origCat && (origCat === sourceCat || origCat === targetCat)) {
-                // Restore to original category
-                pCats[idx] = origCat;
+            // Determine restore target: prefer mergeRecord map, fallback to originalCategory
+            var restoreTo = '';
+            if (fromMap && (fromMap === sourceCat || fromMap === targetCat)) {
+                restoreTo = fromMap;
+            } else if (fromOrig && (fromOrig === sourceCat || fromOrig === targetCat)) {
+                restoreTo = fromOrig;
+            }
+
+            if (restoreTo) {
+                // Restore to the pre-merge category
+                pCats[idx] = restoreTo;
                 window._setParticipantCategories(p, pCats);
-                // Clear the merge-related originalCategory if it matches
-                if (p.originalCategory === origCat) {
+                // Clear originalCategory if it matches (participant is back to their original)
+                if (p.originalCategory === restoreTo) {
                     delete p.originalCategory;
                 }
             } else {
@@ -1645,21 +1658,22 @@ function renderTournaments(container, tournamentId = null) {
 
         var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
-        // Remove merged category from participants, set as uncategorized
+        // Restore participants to their original categories using p.originalCategory
         parts.forEach(function(p) {
             if (typeof p !== 'object') return;
             var pCats = window._getParticipantCategories(p);
             var idx = pCats.indexOf(mergedName);
             if (idx === -1) return;
 
-            // Try to restore from originalCategory if it matches one of the inferred cats
+            // p.originalCategory (shown in parentheses) tells us where the participant came from
             var origCat = p.originalCategory || '';
             if (origCat && inferredCats.indexOf(origCat) !== -1) {
+                // Restore to the original category shown in parentheses
                 pCats[idx] = origCat;
                 window._setParticipantCategories(p, pCats);
-                if (p.originalCategory === origCat) delete p.originalCategory;
+                delete p.originalCategory;
             } else {
-                // No original info — set as uncategorized
+                // No matching original — set as uncategorized for manual reassignment
                 pCats.splice(idx, 1);
                 if (pCats.length === 0) {
                     window._setParticipantCategories(p, []);
