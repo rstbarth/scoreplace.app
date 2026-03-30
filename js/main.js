@@ -13,7 +13,7 @@
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.0-alpha') + '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.1-alpha') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">© 2026 scoreplace.app. Todos os direitos reservados.</div>' +
@@ -166,7 +166,10 @@
         '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga, Suíço e Ranking.</p>' +
         '<p><b>Misto Obrigatório</b> — Times devem ter 50% homens e 50% mulheres.</p>' +
         '<p><b>Misto Aleatório</b> — Aceita homens e mulheres sem restrição de proporção. A composição é definida pelo sorteio.</p>' +
-        '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria, mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes que se inscreveram antes das categorias serem definidas.</p>'
+        '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria (agrupados por gênero), mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes sem categoria. Clique em uma categoria para ver os inscritos.</p>' +
+        '<p><b>Atribuição automática</b> — Quando o organizador cria categorias em um torneio que já tem inscritos, os participantes com gênero no perfil são atribuídos automaticamente. O badge "(perfil)" indica que a categoria veio do perfil do participante.</p>' +
+        '<p><b>Notificação de categoria</b> — Participantes atribuídos a uma categoria recebem uma notificação ao acessar o torneio, com opção de questionar o organizador por e-mail.</p>' +
+        '<p><b>Histórico</b> — Participantes que se inscreveram sem categoria e depois foram alocados mostram o indicador "(sem cat.)" ao lado da categoria, mantendo o histórico de que a inscrição ocorreu antes das categorias.</p>'
     },
     {
       id: 'local',
@@ -196,6 +199,16 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Gerenciador de Categorias redesenhado</b> — Categorias agora aparecem acima dos participantes sem categoria. Cards compactos (sem lista de nomes, apenas contagem). Categorias agrupadas por gênero na mesma linha (Fem, Masc, etc.). Clique em uma categoria para ver os inscritos em detalhe com avatar e e-mail.</p>' +
+        '<p><b>Navegação no gerenciador</b> — Botão "Voltar" abaixo do título em ambas as telas (visão geral e detalhe da categoria). Botão × mantido no canto superior direito para fechar.</p>' +
+        '<p><b>Drag-and-drop corrigido</b> — Arrastar e soltar participantes para categorias agora funciona de forma consistente para todos os participantes (não apenas o primeiro). Suporte a toque para dispositivos móveis.</p>' +
+        '<p><b>Atribuição automática de categorias</b> — Quando o organizador cria ou edita categorias em um torneio com inscritos, participantes com gênero no perfil são atribuídos automaticamente à categoria correspondente. Badge "(perfil)" indica a origem da atribuição.</p>' +
+        '<p><b>Indicadores de categoria nos participantes</b> — "(perfil)" para categorias atribuídas pelo perfil; "(sem cat.)" em vermelho para participantes sem categoria; "(sem cat.)" ao lado da categoria para quem foi alocado manualmente, preservando o histórico.</p>' +
+        '<p><b>Notificação de atribuição de categoria</b> — Participantes recebem um alerta ao acessar o torneio informando sua categoria atribuída, com botão "Questionar Organizador" que abre e-mail pré-preenchido.</p>' +
+        '<p><b>Gênero salvo na inscrição</b> — O gênero do perfil do participante é agora salvo no registro de inscrição, permitindo atribuição automática futura caso categorias sejam adicionadas depois.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Formato Ranking</b> — Novo formato de torneio com temporada contínua (3, 6, 12 meses ou personalizado). Inscrições permanecem abertas durante toda a temporada. O botão "Encerrar Inscrições" não aparece. Estimativa de tempo é ocultada dos detalhes.</p>' +
         '<p><b>Sorteios automáticos</b> — Formatos Ranking e Suíço agora suportam sorteios periódicos. O organizador define data/hora do primeiro sorteio e intervalo em dias para os próximos. Contagem regressiva (dias, horas, minutos) é exibida tanto na view de detalhes quanto na classificação. Modo manual disponível via toggle.</p>' +
