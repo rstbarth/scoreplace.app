@@ -919,10 +919,32 @@ function renderTournaments(container, tournamentId = null) {
                 catRows.push({ prefix: '', cats: otherCats });
             }
 
-            // Determine which categories are merged (have mergeHistory)
+            // Determine which categories are merged:
+            // 1. Has mergeHistory entry
+            // 2. Name contains "/" (e.g., "Fem A/B")
+            // 3. Name is a bare gender prefix when skill categories exist (e.g., "Masc" when skillCats has A,B,C,D)
             var mergedCatSet = {};
             (t.mergeHistory || []).forEach(function(mh) {
                 mergedCatSet[mh.mergedName] = true;
+            });
+            var _skillCats = t.skillCategories || [];
+            var _genderPrefixList = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.'];
+            categories.forEach(function(cat) {
+                if (mergedCatSet[cat]) return; // already marked
+                // Contains "/" → result of a merge
+                if (cat.indexOf('/') !== -1) {
+                    mergedCatSet[cat] = true;
+                    return;
+                }
+                // Bare prefix when skill categories exist → all skills were merged
+                if (_skillCats.length > 0) {
+                    var isBarePrefix = _genderPrefixList.some(function(gp) {
+                        return cat === gp;
+                    });
+                    if (isBarePrefix) {
+                        mergedCatSet[cat] = true;
+                    }
+                }
             });
 
             // Build category rows HTML — compact cards, clickable to see detail
@@ -1464,28 +1486,71 @@ function renderTournaments(container, tournamentId = null) {
     // ========== Unmerge a previously merged category ==========
     function _unmergeCategoryAction(tId, catName) {
         var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
-        if (!t || !t.mergeHistory || t.mergeHistory.length === 0) return;
+        if (!t) return;
 
-        // Find the most recent merge that produced this category
+        // Find the most recent merge that produced this category in mergeHistory
         var mergeIdx = -1;
-        for (var i = t.mergeHistory.length - 1; i >= 0; i--) {
-            if (t.mergeHistory[i].mergedName === catName) { mergeIdx = i; break; }
+        if (t.mergeHistory && t.mergeHistory.length > 0) {
+            for (var i = t.mergeHistory.length - 1; i >= 0; i--) {
+                if (t.mergeHistory[i].mergedName === catName) { mergeIdx = i; break; }
+            }
         }
-        if (mergeIdx === -1) {
+
+        if (mergeIdx !== -1) {
+            // Has mergeHistory — use it
+            var record = t.mergeHistory[mergeIdx];
+            showAlertDialog(
+                'Desmesclar Categoria',
+                'Deseja desfazer a mesclagem de <strong>' + catName + '</strong>?<br><br>' +
+                'As categorias originais serão restauradas: <strong>' + record.sourceCat + '</strong> e <strong>' + record.targetCat + '</strong><br><br>' +
+                'Os participantes serão reatribuídos às suas categorias originais. Participantes sem histórico ficarão sem categoria.',
+                function() {
+                    _executeUnmerge(tId, mergeIdx);
+                },
+                { type: 'warning', confirmText: 'Desmesclar', cancelText: 'Cancelar', showCancel: true }
+            );
+            return;
+        }
+
+        // No mergeHistory — infer original categories from the name
+        var skillCats = t.skillCategories || [];
+        var inferredCats = [];
+
+        if (catName.indexOf('/') !== -1) {
+            // "Fem A/B" → split into "Fem A" and "Fem B"
+            var spaceIdx = catName.indexOf(' ');
+            if (spaceIdx !== -1) {
+                var prefix = catName.substring(0, spaceIdx);
+                var suffixPart = catName.substring(spaceIdx + 1);
+                var suffixes = suffixPart.split('/').map(function(s) { return s.trim(); });
+                suffixes.forEach(function(s) { if (s) inferredCats.push(prefix + ' ' + s); });
+            } else {
+                // No space — full names joined by /
+                inferredCats = catName.split('/').map(function(s) { return s.trim(); });
+            }
+        } else if (skillCats.length > 0) {
+            // Bare prefix like "Masc" → expand to "Masc A", "Masc B", etc.
+            var genderPrefixes = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.'];
+            var isBare = genderPrefixes.indexOf(catName) !== -1;
+            if (isBare) {
+                skillCats.forEach(function(sc) { inferredCats.push(catName + ' ' + sc.trim()); });
+            }
+        }
+
+        if (inferredCats.length < 2) {
             if (typeof showNotification === 'function') {
-                showNotification('Erro', 'Histórico de mesclagem não encontrado para esta categoria.', 'error');
+                showNotification('Erro', 'Não foi possível determinar as categorias originais para desmesclar.', 'error');
             }
             return;
         }
 
-        var record = t.mergeHistory[mergeIdx];
         showAlertDialog(
             'Desmesclar Categoria',
             'Deseja desfazer a mesclagem de <strong>' + catName + '</strong>?<br><br>' +
-            'As categorias originais serão restauradas: <strong>' + record.sourceCat + '</strong> e <strong>' + record.targetCat + '</strong><br><br>' +
-            'Os participantes serão reatribuídos às suas categorias originais. Participantes sem histórico ficarão sem categoria.',
+            'As categorias originais serão restauradas: <strong>' + inferredCats.join('</strong>, <strong>') + '</strong><br><br>' +
+            'Os participantes ficarão sem categoria e poderão ser reatribuídos.',
             function() {
-                _executeUnmerge(tId, mergeIdx);
+                _executeInferredUnmerge(tId, catName, inferredCats);
             },
             { type: 'warning', confirmText: 'Desmesclar', cancelText: 'Cancelar', showCancel: true }
         );
@@ -1565,6 +1630,71 @@ function renderTournaments(container, tournamentId = null) {
 
         if (typeof showNotification === 'function') {
             showNotification('Mesclagem Desfeita', mergedName + ' → ' + sourceCat + ' + ' + targetCat, 'success');
+        }
+
+        // Re-render
+        setTimeout(function() {
+            if (window._catManagerRender) window._catManagerRender();
+        }, 100);
+    }
+
+    // Unmerge without mergeHistory — infer from name pattern
+    function _executeInferredUnmerge(tId, mergedName, inferredCats) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) return;
+
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+
+        // Remove merged category from participants, set as uncategorized
+        parts.forEach(function(p) {
+            if (typeof p !== 'object') return;
+            var pCats = window._getParticipantCategories(p);
+            var idx = pCats.indexOf(mergedName);
+            if (idx === -1) return;
+
+            // Try to restore from originalCategory if it matches one of the inferred cats
+            var origCat = p.originalCategory || '';
+            if (origCat && inferredCats.indexOf(origCat) !== -1) {
+                pCats[idx] = origCat;
+                window._setParticipantCategories(p, pCats);
+                if (p.originalCategory === origCat) delete p.originalCategory;
+            } else {
+                // No original info — set as uncategorized
+                pCats.splice(idx, 1);
+                if (pCats.length === 0) {
+                    window._setParticipantCategories(p, []);
+                    p.wasUncategorized = true;
+                } else {
+                    window._setParticipantCategories(p, pCats);
+                }
+            }
+        });
+
+        // Restore combinedCategories: remove merged, add back inferred originals
+        var cats = t.combinedCategories || [];
+        var newCats = cats.filter(function(c) { return c !== mergedName; });
+        inferredCats.forEach(function(ic) {
+            if (newCats.indexOf(ic) === -1) newCats.push(ic);
+        });
+        t.combinedCategories = newCats;
+
+        // Remove any mergeHistory entries for this merged name (cleanup)
+        if (t.mergeHistory) {
+            t.mergeHistory = t.mergeHistory.filter(function(mh) { return mh.mergedName !== mergedName; });
+        }
+
+        // Log action
+        window.AppStore.logAction(tId, 'Mesclagem desfeita: ' + mergedName + ' → ' + inferredCats.join(' + '));
+
+        // Persist
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t);
+        } else {
+            window.AppStore.sync();
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('Mesclagem Desfeita', mergedName + ' → ' + inferredCats.join(' + '), 'success');
         }
 
         // Re-render
