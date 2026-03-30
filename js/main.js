@@ -173,6 +173,31 @@
         '<p><b>Sonneborn-Berger</b> — Qualidade das vitórias (pontos dos adversários derrotados).</p>' +
         '<p><b>Sorteio</b> — Desempate aleatório como último recurso.</p>' +
         '<p>O organizador pode arrastar para reordenar a prioridade dos critérios na criação do torneio.</p>'
+    },
+    {
+      id: 'notas-versoes',
+      title: 'Notas das Versões',
+      icon: '📋',
+      content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Logo de Torneio</b> — Geração automática de logo via Canvas com paletas temáticas por esporte. Considera nome, local, modalidade e formato. Botões para regerar, travar, baixar e fazer upload de imagem própria. Logo aparece nos cards da dashboard e na página do torneio.</p>' +
+        '<p><b>Sistema de Notificações</b> — Notificações para inscrição/desinscrição, alterações no torneio pelo organizador, lembretes automáticos (7 dias, 2 dias e no dia do torneio), e torneios abertos próximos ao seu CEP de preferência.</p>' +
+        '<p><b>Comunicação do Organizador</b> — Novo botão "Comunicar Inscritos" permite ao organizador enviar mensagens para todos os participantes, escolhendo o nível de importância (Fundamental, Importante ou Geral).</p>' +
+        '<p><b>Filtros de Notificação</b> — No perfil, botões "Só Importantes" e "Só Fundamentais" permitem filtrar quais comunicações você deseja receber. Por padrão, todas estão ativas.</p>' +
+        '<p><b>CEP de Preferência</b> — Novo campo no perfil para informar seus CEPs preferidos e ser notificado sobre torneios próximos.</p>' +
+        '<p><b>Central de Ajuda</b> — Botão "?" no cabeçalho substitui o antigo "Sobre". Manual completo com 17 seções pesquisáveis, incluindo esta de notas de versão.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Explorar e Comunidade</b> — Nova aba para encontrar jogadores, enviar pedidos de amizade, ver conhecidos de torneios anteriores e buscar por nome, cidade ou esporte.</p>' +
+        '<p><b>Dashboard aprimorada</b> — Cards de resumo clicáveis, filtros por modalidade/local/formato com pills coloridas, cards de torneio com foto do local como fundo.</p>' +
+        '<p><b>Notificações</b> — View dedicada para visualizar notificações recebidas.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Lançamento Alpha</b> — Primeira versão funcional com Firebase Auth (Google Sign-In), Cloud Firestore, 5 formatos de torneio, criação rápida, fluxo de convite por link/WhatsApp/e-mail, CSS responsivo completo, 5 temas visuais e busca de local via Google Places.</p>' +
+        '</div>' +
+        '<p style="font-size:0.7rem; color:var(--text-muted); opacity:0.7; text-align:center; margin-top:1rem;">scoreplace.app está em fase Alpha. Novas funcionalidades são adicionadas frequentemente!</p>'
     }
   ];
 
