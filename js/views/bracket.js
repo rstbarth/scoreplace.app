@@ -29,6 +29,7 @@ function renderBracket(container, tournamentId) {
   const canEnterResult = isOrg || t.resultEntry === 'players' || t.resultEntry === 'referee';
   const isLiga = t.format === 'Liga';
   const isSuico = t.format === 'Suíço Clássico';
+  const isRanking = t.format === 'Ranking';
   const isDupla = t.format === 'Dupla Eliminatória';
 
   const isGrupos = t.format === 'Fase de Grupos + Eliminatórias';
@@ -44,7 +45,7 @@ function renderBracket(container, tournamentId) {
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
-        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${t.name}</h2>
+        <h2 style="margin:0;">${isLiga || isSuico || isRanking ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${t.name}</h2>
         <div class="d-flex gap-2 mt-1">
           ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
@@ -69,9 +70,9 @@ function renderBracket(container, tournamentId) {
         </button>
     </div>` : '';
 
-  // ── Liga / Suíço ───────────────────────────────────────────────────────────
-  if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + renderStandings(t, isOrg, canEnterResult);
+  // ── Liga / Suíço / Ranking ──────────────────────────────────────────────────
+  if (isLiga || isSuico || isRanking) {
+    container.innerHTML = headerHtml + (isRanking ? '' : startTournamentBanner) + renderStandings(t, isOrg, canEnterResult);
     return;
   }
 
@@ -1603,12 +1604,14 @@ function renderStandings(t, isOrg, canEnterResult) {
       </div>`;
   }
 
-  const computed = _computeStandings(t);
+  const categories = t.combinedCategories || [];
+  const hasCats = categories.length > 0;
 
   const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
   const posColor = i => i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-muted)';
 
-  const rows = computed.map((s, i) => `
+  const _buildStandingsRows = function(computed) {
+    return computed.map((s, i) => `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
       <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);">${s.name}</td>
@@ -1618,15 +1621,54 @@ function renderStandings(t, isOrg, canEnterResult) {
       <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>
       <td style="padding:11px 14px;text-align:center;color:var(--text-muted);">${s.played}</td>
     </tr>`).join('');
+  };
+
+  // If tournament has categories, compute per-category; otherwise single table
+  var standingsSections = [];
+  if (hasCats) {
+    categories.forEach(function(cat) {
+      var catComputed = _computeStandings(t, cat);
+      if (catComputed.length === 0) return; // skip empty categories
+      standingsSections.push({ label: cat, rows: _buildStandingsRows(catComputed) });
+    });
+  }
+  if (standingsSections.length === 0) {
+    // Fallback: single standings table (no categories or all empty)
+    standingsSections.push({ label: null, rows: _buildStandingsRows(_computeStandings(t)) });
+  }
 
   const currentRoundData = rounds[currentRound - 1];
   const allComplete = (currentRoundData.matches || []).every(m => m.winner);
   const isSuico = t.format === 'Suíço Clássico';
+  const isRanking = t.format === 'Ranking';
   const maxRounds = t.swissRounds || 99;
   const isFinished = isSuico && currentRound >= maxRounds && allComplete;
 
+  // Ranking: show auto-draw countdown if applicable
+  let rankingCountdownHtml = '';
+  if (isRanking && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
+    const _nextDraw = window._calcNextDrawDate(t);
+    if (_nextDraw) {
+      const _now = new Date();
+      const _diff = _nextDraw.getTime() - _now.getTime();
+      if (_diff > 0) {
+        const _d = Math.floor(_diff / 86400000);
+        const _h = Math.floor((_diff % 86400000) / 3600000);
+        const _m = Math.floor((_diff % 3600000) / 60000);
+        const _parts = [];
+        if (_d > 0) _parts.push(_d + 'd');
+        if (_h > 0) _parts.push(_h + 'h');
+        _parts.push(_m + 'min');
+        rankingCountdownHtml = `<div style="text-align:center;margin-bottom:1rem;padding:10px 16px;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.25);border-radius:10px;font-size:0.85rem;">
+          <span style="color:#fb923c;font-weight:700;">⏱️ Próximo sorteio automático em <b>${_parts.join(' ')}</b></span>
+        </div>`;
+      }
+    }
+  }
+
   const currentRoundHtml = `
     <div class="card" style="margin-top:1.5rem;">
+      ${rankingCountdownHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
         <h3 class="card-title" style="margin:0;">Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— Encerrada ✓' : '— Em andamento'}</h3>
         ${isOrg && !isFinished && allComplete ? `
@@ -1641,14 +1683,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       </div>
     </div>`;
 
-  return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-        <h3 class="card-title" style="margin:0;">Classificação — Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''}</h3>
-      </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
+  const _tableHeader = `<thead>
             <tr style="border-bottom:2px solid var(--border-color);">
               <th style="padding:9px 14px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">#</th>
               <th style="padding:9px 14px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Participante</th>
@@ -1658,30 +1693,51 @@ function renderStandings(t, isOrg, canEnterResult) {
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Saldo</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">J</th>
             </tr>
-          </thead>
-          <tbody>${rows}</tbody>
+          </thead>`;
+
+  const standingsTablesHtml = standingsSections.map(function(sec) {
+    var title = sec.label
+      ? `${isRanking ? 'Ranking' : 'Classificação'} — ${sec.label} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
+      : `${isRanking ? 'Ranking' : 'Classificação'} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`;
+    return `<div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <h3 class="card-title" style="margin:0;">${title}</h3>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          ${_tableHeader}
+          <tbody>${sec.rows}</tbody>
         </table>
       </div>
-    </div>
-    ${currentRoundHtml}`;
+    </div>`;
+  }).join('');
+
+  return standingsTablesHtml + currentRoundHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
-function _computeStandings(t) {
+function _computeStandings(t, category) {
   const scoreMap = {};
 
   const allP = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
   allP.forEach(p => {
     const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+    // If filtering by category, only include participants in that category
+    if (category) {
+      var pCat = typeof p === 'object' ? (p.category || '') : '';
+      if (pCat !== category) return;
+    }
+    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
   });
 
   (t.rounds || []).forEach(round => {
     (round.matches || []).forEach(m => {
+      // If filtering by category, only count matches in that category
+      if (category && m.category !== category) return;
       if (!m.winner || m.isBye) return;
       const loser = m.winner === m.p1 ? m.p2 : m.p1;
-      if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
-      if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+      if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
+      if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
 
       scoreMap[m.winner].wins++;
       scoreMap[m.winner].points += 3;
@@ -1704,7 +1760,8 @@ function _computeStandings(t) {
   const standings = Object.values(scoreMap);
 
   // Build Buchholz scores (sum of opponents' points)
-  const allRoundMatches = (t.rounds || []).flatMap(r => r.matches || []);
+  var allRoundMatches = (t.rounds || []).flatMap(r => r.matches || []);
+  if (category) allRoundMatches = allRoundMatches.filter(m => m.category === category);
   standings.forEach(s => {
     s.buchholz = 0;
     allRoundMatches.forEach(m => {
@@ -1939,14 +1996,29 @@ function _doCloseRound(t, tId, roundIdx) {
 
 // ─── Swiss pairing ────────────────────────────────────────────────────────────
 function _generateNextRound(t) {
-  const standings = _computeStandings(t);
+  var categories = t.combinedCategories || [];
+  if (categories.length === 0) {
+    // No categories — original behavior
+    _generateNextRoundForPlayers(t, null);
+  } else {
+    // Generate pairings per category
+    categories.forEach(function(cat) {
+      _generateNextRoundForPlayers(t, cat);
+    });
+  }
+}
+
+function _generateNextRoundForPlayers(t, category) {
+  const standings = _computeStandings(t, category);
   const roundNum = (t.rounds || []).length + 1;
   const roundIdx = (t.rounds || []).length;
   const timestamp = Date.now();
+  const catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
 
   const played = new Set();
   (t.rounds || []).forEach(r => {
     (r.matches || []).forEach(m => {
+      if (category && m.category !== category) return;
       if (m.p1 && m.p2 && m.p2 !== 'BYE') {
         played.add(`${m.p1}|||${m.p2}`);
         played.add(`${m.p2}|||${m.p1}`);
@@ -1965,13 +2037,15 @@ function _generateNextRound(t) {
     for (let j = i + 1; j < players.length; j++) {
       if (matched.has(players[j])) continue;
       if (!played.has(`${players[i]}|||${players[j]}`)) {
-        newMatches.push({
-          id: `match-r${roundNum}-${newMatches.length}-${timestamp}`,
+        var matchObj = {
+          id: `match-r${roundNum}-${newMatches.length}${catSuffix}-${timestamp}`,
           round: roundNum, roundIndex: roundIdx,
           p1: players[i], p2: players[j],
           winner: null,
-          label: `R${roundNum} • Partida ${newMatches.length + 1}`
-        });
+          label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${category})` : '')
+        };
+        if (category) matchObj.category = category;
+        newMatches.push(matchObj);
         matched.add(players[i]); matched.add(players[j]);
         paired = true; break;
       }
@@ -1980,13 +2054,15 @@ function _generateNextRound(t) {
       // Allow repeat
       for (let j = i + 1; j < players.length; j++) {
         if (!matched.has(players[j])) {
-          newMatches.push({
-            id: `match-r${roundNum}-${newMatches.length}-${timestamp}`,
+          var matchObj2 = {
+            id: `match-r${roundNum}-${newMatches.length}${catSuffix}-${timestamp}`,
             round: roundNum, roundIndex: roundIdx,
             p1: players[i], p2: players[j],
             winner: null,
-            label: `R${roundNum} • Partida ${newMatches.length + 1}`
-          });
+            label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${category})` : '')
+          };
+          if (category) matchObj2.category = category;
+          newMatches.push(matchObj2);
           matched.add(players[i]); matched.add(players[j]);
           break;
         }
@@ -1996,14 +2072,22 @@ function _generateNextRound(t) {
 
   // BYE for odd player
   players.filter(p => !matched.has(p)).forEach(p => {
-    newMatches.push({
-      id: `bye-r${roundNum}-${timestamp}`,
+    var byeObj = {
+      id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
       round: roundNum, roundIndex: roundIdx,
       p1: p, p2: 'BYE', winner: p, isBye: true,
-      label: `R${roundNum} • BYE`
-    });
+      label: `R${roundNum} • BYE` + (category ? ` (${category})` : '')
+    };
+    if (category) byeObj.category = category;
+    newMatches.push(byeObj);
   });
 
   if (!t.rounds) t.rounds = [];
-  t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
+  // If first category in a new round, push new round; otherwise append to existing round
+  if (t.rounds.length < roundNum) {
+    t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
+  } else {
+    // Append matches for this category to existing round
+    t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(newMatches);
+  }
 }

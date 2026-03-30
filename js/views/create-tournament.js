@@ -83,6 +83,7 @@ function setupCreateTournamentModal() {
                   <option value="grupos_mata">Fase de Grupos + Eliminatórias — estilo Copa do Mundo</option>
                   <option value="suico">Suíço Clássico — pontos corridos com emparelhamentos por pontos</option>
                   <option value="liga">Liga — temporada com duração definida pelo organizador</option>
+                  <option value="ranking">Ranking — temporada contínua com sorteios periódicos</option>
                 </select>
               </div>
 
@@ -166,6 +167,102 @@ function setupCreateTournamentModal() {
                     <input type="checkbox" id="liga-open-enrollment" checked style="width:18px;height:18px;">
                     <span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span>
                   </label>
+                </div>
+              </div>
+
+              <!-- Campos específicos: Ranking -->
+              <div id="ranking-fields" style="display:none; background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fb923c; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações do Ranking</p>
+                <div class="d-flex gap-2 mb-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">Duração da Temporada</label>
+                    <select class="form-control" id="ranking-season-duration">
+                      <option value="3">3 meses</option>
+                      <option value="6" selected>6 meses</option>
+                      <option value="12">12 meses (1 ano)</option>
+                      <option value="custom">Personalizado</option>
+                    </select>
+                  </div>
+                  <div class="form-group full-width" id="ranking-custom-duration-container" style="display:none;">
+                    <label class="form-label">Meses de duração</label>
+                    <input type="number" class="form-control" id="ranking-custom-months" min="1" max="36" value="6" placeholder="Ex: 9">
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mb-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">Primeiro Sorteio</label>
+                    <div style="display:flex;gap:6px;">
+                      <input type="date" class="form-control" id="ranking-first-draw-date" style="flex:1;">
+                      <input type="time" class="form-control" id="ranking-first-draw-time" value="19:00" style="width:90px;">
+                    </div>
+                    <small class="text-muted" style="display:block;margin-top:4px;">Data e hora do primeiro sorteio de rodada.</small>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">Repetir a cada</label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <input type="number" class="form-control" id="ranking-draw-interval" min="1" max="90" value="7" style="flex:1;">
+                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                    </div>
+                    <small class="text-muted" style="display:block;margin-top:4px;">Intervalo entre sorteios automáticos.</small>
+                  </div>
+                </div>
+                <div class="form-group mb-2">
+                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="ranking-manual-draw" style="width:18px;height:18px;" onchange="window._onRankingManualChange()">
+                    <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
+                  </label>
+                  <small class="text-muted" style="display:block;margin-left:28px;">Se ativado, o organizador decide quando gerar cada rodada (sem automação).</small>
+                </div>
+                <div class="d-flex gap-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">Pontuação de Novos Inscritos</label>
+                    <select class="form-control" id="ranking-new-player-score">
+                      <option value="zero">Zero absoluto</option>
+                      <option value="min">Mínima atual da tabela</option>
+                      <option value="avg">Média atual da tabela</option>
+                      <option value="organizer">Organizador decide na hora</option>
+                    </select>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">Regra de Inatividade</label>
+                    <select class="form-control" id="ranking-inactivity">
+                      <option value="keep">Manter pontos</option>
+                      <option value="decay">Decaimento fixo por rodada</option>
+                      <option value="remove">Remover após X rodadas sem jogar</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group" id="ranking-inactivity-x-container" style="display:none; margin-top:0.5rem;">
+                  <label class="form-label">Rodadas sem jogar para remoção</label>
+                  <input type="number" class="form-control" id="ranking-inactivity-x" min="1" value="3" style="max-width:120px;">
+                </div>
+              </div>
+
+              <!-- Campos periocidade de sorteio: Suíço -->
+              <div id="suico-draw-schedule-fields" style="display:none; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios (Suíço)</p>
+                <div class="d-flex gap-2 mb-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">Primeiro Sorteio</label>
+                    <div style="display:flex;gap:6px;">
+                      <input type="date" class="form-control" id="suico-first-draw-date" style="flex:1;">
+                      <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:90px;">
+                    </div>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">Repetir a cada</label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <input type="number" class="form-control" id="suico-draw-interval" min="1" max="90" value="7" style="flex:1;">
+                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="suico-manual-draw" style="width:18px;height:18px;">
+                    <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
+                  </label>
+                  <small class="text-muted" style="display:block;margin-left:28px;">Se ativado, o organizador decide quando gerar cada rodada.</small>
                 </div>
               </div>
 
@@ -331,6 +428,31 @@ function setupCreateTournamentModal() {
                   <span style="font-weight:bold;color:var(--text-color);">⚡ Encerrar inscrições automaticamente ao atingir o limite</span>
                 </label>
                 <small class="text-muted" style="display:block;margin-left:28px;">Disponível apenas quando o máximo for uma potência de 2 (4, 8, 16, 32...) e o formato for Eliminatórias.</small>
+              </div>
+
+              <!-- Categorias do Torneio -->
+              <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a855f7; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Categorias</p>
+                <div style="margin-bottom:0.75rem;">
+                  <label class="form-label" style="margin-bottom:6px;">Categorias por Sexo</label>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;" id="gender-cat-buttons">
+                    <button type="button" id="btn-cat-fem" onclick="window._toggleGenderCat('fem')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♀ Feminino</button>
+                    <button type="button" id="btn-cat-masc" onclick="window._toggleGenderCat('masc')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♂ Masculino</button>
+                    <button type="button" id="btn-cat-misto-ale" onclick="window._toggleGenderCat('misto_aleatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚥ Misto Aleatório</button>
+                    <button type="button" id="btn-cat-misto-obr" onclick="window._toggleGenderCat('misto_obrigatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚤ Misto Obrigatório</button>
+                  </div>
+                  <input type="hidden" id="tourn-gender-categories" value="">
+                  <small class="text-muted" style="display:block;margin-top:6px;">Fem = só mulheres. Masc = só homens. Misto Obrigatório = times 50/50. Misto Aleatório = sem restrição de proporção.</small>
+                </div>
+                <div>
+                  <label class="form-label" style="margin-bottom:6px;">Categorias por Habilidade</label>
+                  <input type="text" class="form-control" id="tourn-skill-categories" placeholder="Ex: A, B, C, D" oninput="window._updateCategoryPreview()">
+                  <small class="text-muted" style="display:block;margin-top:4px;">Separe por vírgula. Deixe em branco para categoria única.</small>
+                </div>
+                <div id="category-preview" style="display:none; margin-top:0.75rem; padding:8px 12px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:8px;">
+                  <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Categorias do Torneio</div>
+                  <div id="category-preview-list" style="display:flex; flex-wrap:wrap; gap:4px; font-size:0.8rem;"></div>
+                </div>
               </div>
 
               <!-- Lançamento de Resultados -->
@@ -577,7 +699,7 @@ function setupCreateTournamentModal() {
 
     // Format label
     var formatMap = {
-      liga: 'Liga', suico: 'Suíço', elim_simples: 'Eliminatórias',
+      liga: 'Liga', suico: 'Suíço', ranking: 'Ranking', elim_simples: 'Eliminatórias',
       elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.'
     };
     var formatLabel = formatMap[formatValue] || '';
@@ -776,17 +898,140 @@ function setupCreateTournamentModal() {
     const isElim = fmt === 'elim_simples' || fmt === 'elim_dupla';
     const isSuico = fmt === 'suico';
     const isLiga = fmt === 'liga';
+    const isRanking = fmt === 'ranking';
     const isGrupos = fmt === 'grupos_mata';
 
     document.getElementById('suico-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('liga-fields').style.display = isLiga ? 'block' : 'none';
+    document.getElementById('ranking-fields').style.display = isRanking ? 'block' : 'none';
+    document.getElementById('suico-draw-schedule-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
+
+    // Esconder estimativas de tempo para Ranking (não fazem sentido)
+    var estimBox = document.getElementById('duration-estimate-box');
+    var estimParent = estimBox ? estimBox.closest('div[style*="rgba(245,158,11"]') : null;
+    if (!estimParent) {
+      // Fallback: find the parent container with the "Estimativas de Tempo" header
+      var allDivs = document.querySelectorAll('#form-create-tournament div');
+      allDivs.forEach(function(d) { if (d.textContent.trim().startsWith('Estimativas de Tempo') && d.querySelector('#tourn-call-time')) estimParent = d; });
+    }
+    if (estimParent) estimParent.style.display = isRanking ? 'none' : '';
 
     window._updateAutoCloseVisibility();
     window._updateRegDateVisibility();
     window._onInscricaoChange();
     window._recalcDuration();
+  };
+
+  window._onRankingManualChange = function () {
+    var manual = document.getElementById('ranking-manual-draw');
+    var intervalContainer = document.getElementById('ranking-draw-interval');
+    if (intervalContainer) {
+      var parent = intervalContainer.closest('.form-group');
+      if (parent) parent.style.opacity = (manual && manual.checked) ? '0.4' : '1';
+      intervalContainer.disabled = manual && manual.checked;
+    }
+  };
+
+  // Toggle ranking season custom duration
+  (function() {
+    var sel = document.getElementById('ranking-season-duration');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var c = document.getElementById('ranking-custom-duration-container');
+        if (c) c.style.display = sel.value === 'custom' ? '' : 'none';
+      });
+    }
+    var inact = document.getElementById('ranking-inactivity');
+    if (inact) {
+      inact.addEventListener('change', function() {
+        var c = document.getElementById('ranking-inactivity-x-container');
+        if (c) c.style.display = inact.value === 'remove' ? '' : 'none';
+      });
+    }
+  })();
+
+  // ─── Category management ──────────────────────────────────────────────────
+  window._toggleGenderCat = function(cat) {
+    var hidden = document.getElementById('tourn-gender-categories');
+    var current = hidden.value ? hidden.value.split(',').filter(Boolean) : [];
+    var idx = current.indexOf(cat);
+    if (idx !== -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(cat);
+    }
+    hidden.value = current.join(',');
+    window._applyGenderCatUI(current);
+    window._updateCategoryPreview();
+  };
+
+  window._applyGenderCatUI = function(values) {
+    if (!values) {
+      var h = document.getElementById('tourn-gender-categories');
+      values = h && h.value ? h.value.split(',').filter(Boolean) : [];
+    }
+    var map = { fem: 'btn-cat-fem', masc: 'btn-cat-masc', misto_aleatorio: 'btn-cat-misto-ale', misto_obrigatorio: 'btn-cat-misto-obr' };
+    var onStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #a855f7;background:rgba(168,85,247,0.22);color:#d8b4fe;font-weight:700;box-shadow:0 0 0 1px rgba(168,85,247,0.3);';
+    var offStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;';
+    Object.keys(map).forEach(function(k) {
+      var btn = document.getElementById(map[k]);
+      if (btn) btn.style.cssText = values.indexOf(k) !== -1 ? onStyle : offStyle;
+    });
+  };
+
+  window._updateCategoryPreview = function() {
+    var genderVals = (document.getElementById('tourn-gender-categories').value || '').split(',').filter(Boolean);
+    var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
+    var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+
+    var preview = document.getElementById('category-preview');
+    var list = document.getElementById('category-preview-list');
+    if (!preview || !list) return;
+
+    var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
+    var combined = [];
+
+    if (genderVals.length === 0 && skillCats.length === 0) {
+      preview.style.display = 'none';
+      return;
+    }
+
+    if (genderVals.length > 0 && skillCats.length > 0) {
+      genderVals.forEach(function(g) {
+        skillCats.forEach(function(s) {
+          combined.push((genderLabels[g] || g) + ' ' + s);
+        });
+      });
+    } else if (genderVals.length > 0) {
+      genderVals.forEach(function(g) { combined.push(genderLabels[g] || g); });
+    } else {
+      skillCats.forEach(function(s) { combined.push(s); });
+    }
+
+    list.innerHTML = combined.map(function(c) {
+      return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + c + '</span>';
+    }).join('');
+    preview.style.display = '';
+  };
+
+  window._getTournamentCategories = function() {
+    var genderVals = (document.getElementById('tourn-gender-categories').value || '').split(',').filter(Boolean);
+    var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
+    var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+    var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
+    var combined = [];
+    if (genderVals.length > 0 && skillCats.length > 0) {
+      genderVals.forEach(function(g) {
+        skillCats.forEach(function(s) { combined.push((genderLabels[g] || g) + ' ' + s); });
+      });
+    } else if (genderVals.length > 0) {
+      genderVals.forEach(function(g) { combined.push(genderLabels[g] || g); });
+    } else if (skillCats.length > 0) {
+      combined = skillCats.slice();
+    }
+    return { genderCategories: genderVals, skillCategories: skillCats, combinedCategories: combined };
   };
 
   window._onInscricaoChange = function () {
@@ -802,8 +1047,10 @@ function setupCreateTournamentModal() {
     const regBox = document.getElementById('reg-date-container');
     if (!regBox) return;
     const isLiga = fmt === 'liga';
+    const isRanking = fmt === 'ranking';
     const openEnroll = document.getElementById('liga-open-enrollment');
-    regBox.style.display = (isLiga && openEnroll && openEnroll.checked) ? 'none' : '';
+    // Ranking always has open enrollment; Liga hides if open enrollment checked
+    regBox.style.display = (isRanking || (isLiga && openEnroll && openEnroll.checked)) ? 'none' : '';
   };
 
   window._toggleVenueAccess = function (key) {
@@ -1711,6 +1958,7 @@ function setupCreateTournamentModal() {
     let fmtValue = 'elim_simples';
     if (t.format === 'Liga') fmtValue = 'liga';
     else if (t.format === 'Suíço Clássico') fmtValue = 'suico';
+    else if (t.format === 'Ranking') fmtValue = 'ranking';
     else if (t.format === 'Eliminatórias Simples') fmtValue = 'elim_simples';
     else if (t.format === 'Dupla Eliminatória') fmtValue = 'elim_dupla';
     else if (t.format === 'Fase de Grupos + Eliminatórias') fmtValue = 'grupos_mata';
@@ -1797,6 +2045,11 @@ function setupCreateTournamentModal() {
 
     // Suíço
     if (t.swissRounds) document.getElementById('suico-rounds').value = t.swissRounds;
+    // Suíço draw schedule
+    if (t.drawFirstDate) document.getElementById('suico-first-draw-date').value = t.drawFirstDate;
+    if (t.drawFirstTime) document.getElementById('suico-first-draw-time').value = t.drawFirstTime;
+    if (t.drawIntervalDays) document.getElementById('suico-draw-interval').value = t.drawIntervalDays;
+    if (t.drawManual) document.getElementById('suico-manual-draw').checked = t.drawManual;
 
     // Liga
     if (t.ligaPeriodicity) document.getElementById('liga-periodicity').value = t.ligaPeriodicity;
@@ -1804,6 +2057,28 @@ function setupCreateTournamentModal() {
     if (t.ligaInactivity) document.getElementById('liga-inactivity').value = t.ligaInactivity;
     if (t.ligaInactivityX) document.getElementById('liga-inactivity-x').value = t.ligaInactivityX;
     document.getElementById('liga-open-enrollment').checked = t.ligaOpenEnrollment !== false;
+
+    // Ranking
+    if (t.rankingSeasonMonths) {
+      var rsd = document.getElementById('ranking-season-duration');
+      if (['3','6','12'].indexOf(String(t.rankingSeasonMonths)) !== -1) {
+        rsd.value = String(t.rankingSeasonMonths);
+      } else {
+        rsd.value = 'custom';
+        document.getElementById('ranking-custom-months').value = t.rankingSeasonMonths;
+        document.getElementById('ranking-custom-duration-container').style.display = '';
+      }
+    }
+    if (t.format === 'Ranking' && t.drawFirstDate) document.getElementById('ranking-first-draw-date').value = t.drawFirstDate;
+    if (t.format === 'Ranking' && t.drawFirstTime) document.getElementById('ranking-first-draw-time').value = t.drawFirstTime;
+    if (t.format === 'Ranking' && t.drawIntervalDays) document.getElementById('ranking-draw-interval').value = t.drawIntervalDays;
+    if (t.format === 'Ranking') {
+      document.getElementById('ranking-manual-draw').checked = !!t.drawManual;
+      window._onRankingManualChange();
+    }
+    if (t.rankingNewPlayerScore) document.getElementById('ranking-new-player-score').value = t.rankingNewPlayerScore;
+    if (t.rankingInactivity) document.getElementById('ranking-inactivity').value = t.rankingInactivity;
+    if (t.rankingInactivityX) document.getElementById('ranking-inactivity-x').value = t.rankingInactivityX;
 
     // Elim settings
     document.getElementById('elim-third-place').checked = t.elimThirdPlace !== false;
@@ -1824,6 +2099,16 @@ function setupCreateTournamentModal() {
         });
       }
     }
+
+    // Categorias (gênero + habilidade)
+    if (t.genderCategories && t.genderCategories.length > 0) {
+      document.getElementById('tourn-gender-categories').value = t.genderCategories.join(',');
+      window._applyGenderCatUI(t.genderCategories);
+    }
+    if (t.skillCategories && t.skillCategories.length > 0) {
+      document.getElementById('tourn-skill-categories').value = t.skillCategories.join(', ');
+    }
+    window._updateCategoryPreview();
 
     window._onFormatoChange();
     window._onLigaInactivityChange();
@@ -1880,6 +2165,7 @@ function setupCreateTournamentModal() {
         const formatMap = {
           liga: 'Liga',
           suico: 'Suíço Clássico',
+          ranking: 'Ranking',
           elim_simples: 'Eliminatórias Simples',
           elim_dupla: 'Dupla Eliminatória',
           grupos_mata: 'Fase de Grupos + Eliminatórias'
@@ -1957,6 +2243,10 @@ function setupCreateTournamentModal() {
         // Suíço
         if (formatValue === 'suico') {
           tourData.swissRounds = parseInt(document.getElementById('suico-rounds').value) || 5;
+          tourData.drawFirstDate = document.getElementById('suico-first-draw-date').value || '';
+          tourData.drawFirstTime = document.getElementById('suico-first-draw-time').value || '19:00';
+          tourData.drawIntervalDays = parseInt(document.getElementById('suico-draw-interval').value) || 7;
+          tourData.drawManual = document.getElementById('suico-manual-draw').checked;
         }
 
         // Liga
@@ -1966,6 +2256,22 @@ function setupCreateTournamentModal() {
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
           tourData.ligaInactivityX = parseInt(document.getElementById('liga-inactivity-x').value) || 3;
           tourData.ligaOpenEnrollment = document.getElementById('liga-open-enrollment').checked;
+        }
+
+        // Ranking
+        if (formatValue === 'ranking') {
+          var seasonSel = document.getElementById('ranking-season-duration').value;
+          tourData.rankingSeasonMonths = seasonSel === 'custom'
+            ? (parseInt(document.getElementById('ranking-custom-months').value) || 6)
+            : parseInt(seasonSel);
+          tourData.drawFirstDate = document.getElementById('ranking-first-draw-date').value || '';
+          tourData.drawFirstTime = document.getElementById('ranking-first-draw-time').value || '19:00';
+          tourData.drawIntervalDays = parseInt(document.getElementById('ranking-draw-interval').value) || 7;
+          tourData.drawManual = document.getElementById('ranking-manual-draw').checked;
+          tourData.rankingNewPlayerScore = document.getElementById('ranking-new-player-score').value;
+          tourData.rankingInactivity = document.getElementById('ranking-inactivity').value;
+          tourData.rankingInactivityX = parseInt(document.getElementById('ranking-inactivity-x').value) || 3;
+          tourData.rankingOpenEnrollment = true; // Ranking always open
         }
 
         // Eliminatórias
@@ -1985,6 +2291,12 @@ function setupCreateTournamentModal() {
         if (tbList) {
           tourData.tiebreakers = Array.from(tbList.querySelectorAll('li')).map(li => li.dataset.tb).filter(Boolean);
         }
+
+        // Categorias (gênero + habilidade) — todos os formatos
+        var catData = window._getTournamentCategories ? window._getTournamentCategories() : {};
+        tourData.genderCategories = catData.genderCategories || [];
+        tourData.skillCategories = catData.skillCategories || [];
+        tourData.combinedCategories = catData.combinedCategories || [];
 
         if (editId) {
           const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === editId.toString());

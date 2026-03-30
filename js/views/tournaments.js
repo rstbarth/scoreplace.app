@@ -1,3 +1,20 @@
+// Calculate next automatic draw date for Ranking/Suíço tournaments
+window._calcNextDrawDate = function(t) {
+    if (!t || !t.drawFirstDate) return null;
+    var firstDrawStr = t.drawFirstDate + 'T' + (t.drawFirstTime || '19:00');
+    var firstDraw = new Date(firstDrawStr);
+    if (isNaN(firstDraw.getTime())) return null;
+    var intervalMs = (t.drawIntervalDays || 7) * 86400000;
+    var now = new Date();
+    // If first draw is in the future, that's the next one
+    if (firstDraw > now) return firstDraw;
+    // Calculate how many intervals have passed
+    var elapsed = now.getTime() - firstDraw.getTime();
+    var intervals = Math.floor(elapsed / intervalMs);
+    var next = new Date(firstDraw.getTime() + (intervals + 1) * intervalMs);
+    return next;
+};
+
 // Navigate to tournament detail and scroll to highlight the enrolled participant
 window._scrollToParticipant = function(tId, participantName) {
     window.location.hash = '#tournaments/' + tId;
@@ -598,6 +615,393 @@ function renderTournaments(container, tournamentId = null) {
             '\u2705 Inscrever-se</button></div>';
     };
 
+    // ========== Category enrollment helpers ==========
+    // Maps user gender to tournament gender category codes
+    window._userGenderToCatCodes = function(userGender) {
+        if (!userGender) return [];
+        var g = userGender.toLowerCase().trim();
+        var codes = [];
+        if (g === 'feminino' || g === 'female' || g === 'fem' || g === 'f') {
+            codes.push('fem', 'misto_aleatorio', 'misto_obrigatorio');
+        } else if (g === 'masculino' || g === 'male' || g === 'masc' || g === 'm') {
+            codes.push('masc', 'misto_aleatorio', 'misto_obrigatorio');
+        } else {
+            // Non-binary or other — eligible for misto categories
+            codes.push('misto_aleatorio', 'misto_obrigatorio');
+        }
+        return codes;
+    };
+
+    // Resolves enrollment category for a tournament.
+    // If no categories configured → callback(null) (no category needed).
+    // If user profile matches exactly one combined category → callback(category) auto.
+    // Otherwise → shows category selection modal and calls callback when user picks.
+    window._resolveEnrollmentCategory = function(tId, callback) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) { callback(null); return; }
+
+        var combined = t.combinedCategories || [];
+        var genderCats = t.genderCategories || [];
+        var skillCats = t.skillCategories || [];
+        // No categories configured → no category needed
+        if (combined.length === 0 && genderCats.length === 0 && skillCats.length === 0) {
+            callback(null); return;
+        }
+
+        // If only skill categories (no gender) — user must pick skill
+        // If only gender categories (no skill) — filter by user gender
+        // If both — cross-product and filter by gender
+
+        var user = window.AppStore.currentUser;
+        var userGender = user ? user.gender : '';
+        var eligibleGenderCodes = window._userGenderToCatCodes(userGender);
+        var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
+
+        // Build list of eligible combined categories
+        var eligible = [];
+        if (combined.length > 0) {
+            // Filter combined by user gender eligibility
+            if (userGender && genderCats.length > 0) {
+                combined.forEach(function(c) {
+                    var matchesGender = eligibleGenderCodes.some(function(gc) {
+                        return c.toLowerCase().startsWith((genderLabels[gc] || gc).toLowerCase());
+                    });
+                    if (matchesGender) eligible.push(c);
+                });
+            } else if (genderCats.length === 0) {
+                // Only skill categories — all combined are just skills
+                eligible = combined.slice();
+            } else {
+                // No user gender info — show all, user must pick
+                eligible = combined.slice();
+            }
+        } else if (genderCats.length > 0 && skillCats.length === 0) {
+            // Only gender categories
+            if (userGender) {
+                genderCats.forEach(function(gc) {
+                    if (eligibleGenderCodes.indexOf(gc) !== -1) eligible.push(genderLabels[gc] || gc);
+                });
+            } else {
+                genderCats.forEach(function(gc) { eligible.push(genderLabels[gc] || gc); });
+            }
+        } else if (skillCats.length > 0 && genderCats.length === 0) {
+            eligible = skillCats.slice();
+        }
+
+        // Exactly one eligible → auto-select with confirmation
+        if (eligible.length === 1) {
+            showAlertDialog('Confirmar Categoria', 'Você será inscrito na categoria: <strong>' + eligible[0] + '</strong>. Confirmar?', function() {
+                callback(eligible[0]);
+            }, { type: 'info', confirmText: 'Confirmar', cancelText: 'Cancelar', showCancel: true });
+            return;
+        }
+
+        // Multiple eligible → show selection modal
+        if (eligible.length > 1) {
+            window._pendingCategoryCallback = callback;
+            var modalId = 'cat-enroll-modal-' + tId;
+            var existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            var buttonsHtml = eligible.map(function(cat) {
+                return '<button class="btn hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer;" ' +
+                    'onclick="event.stopPropagation(); document.getElementById(\'' + modalId + '\').style.display=\'none\'; if(window._pendingCategoryCallback) window._pendingCategoryCallback(\'' + cat.replace(/'/g, "\\'") + '\');">' +
+                    cat + '</button>';
+            }).join('');
+
+            var modalHtml = '<div id="' + modalId + '" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 2rem 0;" onclick="event.stopPropagation();">' +
+                '<div style="background: var(--bg-card); width: 90%; max-width: 420px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin: auto; animation: fadeIn 0.2s ease;">' +
+                '<div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">' +
+                '<h3 style="margin: 0; font-size: 1.2rem; color: var(--text-bright);">🏷️ Escolha sua Categoria</h3>' +
+                '<button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;" onclick="event.stopPropagation(); document.getElementById(\'' + modalId + '\').style.display=\'none\'">&times;</button>' +
+                '</div>' +
+                '<div style="padding: 1.5rem; color: var(--text-main); font-size: 0.9rem;">' +
+                '<p style="margin-bottom: 1rem; color: var(--text-muted);">Este torneio possui categorias. Selecione a categoria na qual deseja se inscrever:</p>' +
+                '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">' + buttonsHtml + '</div>' +
+                '</div>' +
+                '</div></div>';
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            return;
+        }
+
+        // No eligible categories (shouldn't happen, but fallback)
+        callback(null);
+    };
+
+    // ========== Category Manager (Organizer) ==========
+    window._openCategoryManager = function(tId) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) return;
+
+        var categories = (t.combinedCategories || []).slice();
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+
+        // Count participants per category & find uncategorized
+        var catCounts = {};
+        categories.forEach(function(c) { catCounts[c] = 0; });
+        var uncategorized = [];
+        parts.forEach(function(p, idx) {
+            var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+            var pCat = typeof p === 'object' ? (p.category || '') : '';
+            if (!pCat || categories.indexOf(pCat) === -1) {
+                uncategorized.push({ name: pName, idx: idx });
+            } else {
+                catCounts[pCat] = (catCounts[pCat] || 0) + 1;
+            }
+        });
+
+        var modalId = 'cat-manager-modal';
+        var existing = document.getElementById(modalId);
+        if (existing) existing.remove();
+
+        var _renderModal = function() {
+            // Re-count after changes
+            catCounts = {};
+            categories.forEach(function(c) { catCounts[c] = 0; });
+            uncategorized = [];
+            parts.forEach(function(p, idx) {
+                var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+                var pCat = typeof p === 'object' ? (p.category || '') : '';
+                if (!pCat || categories.indexOf(pCat) === -1) {
+                    uncategorized.push({ name: pName, idx: idx });
+                } else {
+                    catCounts[pCat] = (catCounts[pCat] || 0) + 1;
+                }
+            });
+
+            // Uncategorized participants HTML
+            var uncatHtml = '';
+            if (uncategorized.length > 0) {
+                var uncatCards = uncategorized.map(function(u) {
+                    return '<div class="cat-mgr-participant" draggable="true" data-pidx="' + u.idx + '" ' +
+                        'style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);cursor:grab;font-size:0.85rem;font-weight:500;color:#fca5a5;">' +
+                        '<span style="font-size:0.7rem;">👤</span> ' + (u.name || 'Sem nome') +
+                        '</div>';
+                }).join('');
+                uncatHtml = '<div style="margin-bottom:1.5rem;padding:1rem;background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:12px;">' +
+                    '<div style="font-weight:700;color:#fca5a5;font-size:0.85rem;margin-bottom:8px;">⚠️ Sem Categoria (' + uncategorized.length + ')</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Arraste para uma categoria abaixo para atribuir.</div>' +
+                    '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + uncatCards + '</div>' +
+                    '</div>';
+            }
+
+            // Category cards HTML
+            var catCardsHtml = categories.map(function(cat, ci) {
+                var count = catCounts[cat] || 0;
+                // List participants in this category
+                var catParticipants = [];
+                parts.forEach(function(p) {
+                    var pCat = typeof p === 'object' ? (p.category || '') : '';
+                    if (pCat === cat) {
+                        catParticipants.push(typeof p === 'string' ? p : (p.displayName || p.name || ''));
+                    }
+                });
+                var pListHtml = catParticipants.length > 0
+                    ? catParticipants.map(function(n) { return '<div style="font-size:0.75rem;color:var(--text-muted);padding:2px 0;">• ' + n + '</div>'; }).join('')
+                    : '<div style="font-size:0.75rem;color:var(--text-muted);opacity:0.5;font-style:italic;">Nenhum inscrito</div>';
+                return '<div class="cat-mgr-card" draggable="true" data-cat="' + cat.replace(/"/g, '&quot;') + '" data-ci="' + ci + '" ' +
+                    'style="flex:1;min-width:140px;max-width:220px;padding:14px;border-radius:14px;background:rgba(99,102,241,0.08);border:2px solid rgba(99,102,241,0.2);cursor:grab;transition:all 0.2s;">' +
+                    '<div style="font-weight:800;font-size:1rem;color:#818cf8;margin-bottom:4px;">' + cat + '</div>' +
+                    '<div style="font-size:2rem;font-weight:900;color:var(--text-bright);line-height:1;">' + count + '</div>' +
+                    '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;">inscrito' + (count !== 1 ? 's' : '') + '</div>' +
+                    '<div style="max-height:120px;overflow-y:auto;">' + pListHtml + '</div>' +
+                    '</div>';
+            }).join('');
+
+            var modalHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;" onclick="event.stopPropagation();">' +
+                '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);margin:auto;animation:fadeIn 0.2s ease;">' +
+                '<div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
+                '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ Gerenciar Categorias</h3>' +
+                '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
+                '</div>' +
+                '<div style="padding:1.5rem;">' +
+                '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Arraste uma categoria sobre outra para mesclar. Arraste participantes sem categoria para atribuí-los.</div>' +
+                uncatHtml +
+                '<div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;" id="cat-mgr-cards">' + catCardsHtml + '</div>' +
+                '</div>' +
+                '</div></div>';
+
+            var el = document.getElementById(modalId);
+            if (el) el.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            _attachCatManagerDragDrop(tId);
+        };
+
+        _renderModal();
+
+        // Save reference for re-render
+        window._catManagerRender = _renderModal;
+        window._catManagerTid = tId;
+    };
+
+    // Attach drag-and-drop events for category manager
+    function _attachCatManagerDragDrop(tId) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) return;
+
+        // Category card drag (for merging)
+        var catCards = document.querySelectorAll('.cat-mgr-card');
+        catCards.forEach(function(card) {
+            card.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/cat-drag', card.getAttribute('data-cat'));
+                e.dataTransfer.effectAllowed = 'move';
+                card.style.opacity = '0.5';
+            });
+            card.addEventListener('dragend', function() {
+                card.style.opacity = '1';
+                catCards.forEach(function(c) { c.style.border = '2px solid rgba(99,102,241,0.2)'; });
+            });
+            card.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                card.style.border = '2px solid #fbbf24';
+            });
+            card.addEventListener('dragleave', function() {
+                card.style.border = '2px solid rgba(99,102,241,0.2)';
+            });
+            card.addEventListener('drop', function(e) {
+                e.preventDefault();
+                card.style.border = '2px solid rgba(99,102,241,0.2)';
+                var sourceCat = e.dataTransfer.getData('text/cat-drag');
+                var sourcePidx = e.dataTransfer.getData('text/participant-drag');
+                var targetCat = card.getAttribute('data-cat');
+
+                if (sourceCat && sourceCat !== targetCat) {
+                    // Merge categories
+                    _confirmMergeCategories(tId, sourceCat, targetCat);
+                } else if (sourcePidx !== '') {
+                    // Assign participant to category
+                    _assignParticipantCategory(tId, parseInt(sourcePidx), targetCat);
+                }
+            });
+        });
+
+        // Participant drag (for assigning to category)
+        var pCards = document.querySelectorAll('.cat-mgr-participant');
+        pCards.forEach(function(pc) {
+            pc.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/participant-drag', pc.getAttribute('data-pidx'));
+                e.dataTransfer.effectAllowed = 'move';
+                pc.style.opacity = '0.5';
+            });
+            pc.addEventListener('dragend', function() {
+                pc.style.opacity = '1';
+            });
+        });
+    }
+
+    // Confirm and execute category merge
+    function _confirmMergeCategories(tId, sourceCat, targetCat) {
+        // Build merged name: "Fem A" + "Fem B" → "Fem A/B"
+        // Try to find common prefix
+        var sParts = sourceCat.split(' ');
+        var tParts = targetCat.split(' ');
+        var mergedName = '';
+        if (sParts.length > 1 && tParts.length > 1 && sParts[0] === tParts[0]) {
+            // Common prefix: "Fem A" + "Fem B" → "Fem A/B"
+            mergedName = sParts[0] + ' ' + sParts.slice(1).join(' ') + '/' + tParts.slice(1).join(' ');
+        } else {
+            mergedName = sourceCat + '/' + targetCat;
+        }
+
+        showAlertDialog(
+            'Mesclar Categorias',
+            'Deseja mesclar <strong>' + sourceCat + '</strong> com <strong>' + targetCat + '</strong>?<br><br>' +
+            'A nova categoria será: <strong>' + mergedName + '</strong><br><br>' +
+            'Todos os participantes de ambas as categorias serão movidos para a nova categoria.',
+            function() {
+                _executeMerge(tId, sourceCat, targetCat, mergedName);
+            },
+            { type: 'warning', confirmText: 'Mesclar', cancelText: 'Cancelar', showCancel: true }
+        );
+    }
+
+    // Execute the actual merge
+    function _executeMerge(tId, sourceCat, targetCat, mergedName) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) return;
+
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+
+        // Update all participants in source or target category to new merged category
+        parts.forEach(function(p) {
+            if (typeof p !== 'object') return;
+            var pCat = p.category || '';
+            if (pCat === sourceCat || pCat === targetCat) {
+                // Store original category in parentheses
+                if (!p.originalCategory) p.originalCategory = pCat;
+                p.category = mergedName;
+            }
+        });
+
+        // Update combinedCategories: remove source and target, add merged
+        var cats = t.combinedCategories || [];
+        var newCats = cats.filter(function(c) { return c !== sourceCat && c !== targetCat; });
+        newCats.push(mergedName);
+        t.combinedCategories = newCats;
+
+        // Also update rounds/matches category references
+        (t.rounds || []).forEach(function(r) {
+            (r.matches || []).forEach(function(m) {
+                if (m.category === sourceCat || m.category === targetCat) {
+                    m.category = mergedName;
+                }
+            });
+        });
+
+        // Also update standings category references
+        (t.standings || []).forEach(function(s) {
+            if (s.category === sourceCat || s.category === targetCat) {
+                s.category = mergedName;
+            }
+        });
+
+        // Log action
+        window.AppStore.logAction(tId, 'Categorias mescladas: ' + sourceCat + ' + ' + targetCat + ' → ' + mergedName);
+
+        // Persist and re-render
+        window.AppStore.sync();
+        if (window.AppStore.syncImmediate) window.AppStore.syncImmediate(tId);
+
+        if (typeof showNotification === 'function') {
+            showNotification('Categorias Mescladas', sourceCat + ' + ' + targetCat + ' → ' + mergedName, 'success');
+        }
+
+        // Re-render the modal
+        if (window._catManagerRender) window._catManagerRender();
+    }
+
+    // Assign an uncategorized participant to a category
+    function _assignParticipantCategory(tId, pIdx, category) {
+        var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+        if (!t) return;
+
+        var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+        if (pIdx < 0 || pIdx >= parts.length) return;
+
+        var p = parts[pIdx];
+        var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+
+        // Convert string participant to object if needed
+        if (typeof p === 'string') {
+            parts[pIdx] = { name: p, displayName: p, category: category };
+        } else {
+            p.category = category;
+        }
+
+        // Persist
+        window.AppStore.sync();
+        if (window.AppStore.syncImmediate) window.AppStore.syncImmediate(tId);
+
+        if (typeof showNotification === 'function') {
+            showNotification('Categoria Atribuída', pName + ' → ' + category, 'success');
+        }
+
+        // Re-render the modal
+        if (window._catManagerRender) window._catManagerRender();
+    }
+
     if (!window.enrollDeenrollSetupDone) {
         window.enrollCurrentUser = function (tId) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -624,7 +1028,8 @@ function renderTournaments(container, tournamentId = null) {
                 // Verifica se as inscrições estão realmente abertas
                 const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
                 const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-                const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
+                const rankingAberto = t.format === 'Ranking' && sorteioRealizado;
+                const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta || rankingAberto;
                 if (!inscricoesAbertas) {
                     showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                     return;
@@ -635,8 +1040,32 @@ function renderTournaments(container, tournamentId = null) {
                     return;
                 }
 
+                // Check if tournament has categories — resolve before enrolling
+                var hasCats = (t.combinedCategories && t.combinedCategories.length > 0) ||
+                              (t.genderCategories && t.genderCategories.length > 0) ||
+                              (t.skillCategories && t.skillCategories.length > 0);
+                if (hasCats) {
+                    window._resolveEnrollmentCategory(tId, function(selectedCategory) {
+                        if (!selectedCategory) return; // user cancelled
+                        window._doEnrollCurrentUser(tId, selectedCategory);
+                    });
+                    return;
+                }
+
+                // No categories — enroll directly
+                window._doEnrollCurrentUser(tId, null);
+            }
+        };
+
+        // Internal: performs actual enrollment with optional category
+        window._doEnrollCurrentUser = function(tId, selectedCategory) {
+            const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+            const user = window.AppStore.currentUser;
+            if (!t || !user) return;
+
                 // Use atomic Firestore transaction to prevent race conditions
                 const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName };
+                if (selectedCategory) participantObj.category = selectedCategory;
                 if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
                     window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
                         if (result.alreadyEnrolled) {
@@ -707,7 +1136,6 @@ function renderTournaments(container, tournamentId = null) {
                         if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível completar a inscrição. Tente novamente.', 'error');
                     });
                 }
-            }
         };
 
         window.submitTeamEnroll = function (tId) {
@@ -718,7 +1146,8 @@ function renderTournaments(container, tournamentId = null) {
             // Verifica se as inscrições estão realmente abertas
             const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
             const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-            const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
+            const rankingAberto = t.format === 'Ranking' && sorteioRealizado;
+            const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta || rankingAberto;
             if (!inscricoesAbertas) {
                 showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                 return;
@@ -2495,8 +2924,8 @@ function renderTournaments(container, tournamentId = null) {
                 return;
             }
 
-            // ── Liga / Suíço: generate first round standings ──────────────────
-            if (t.format === 'Liga' || t.format === 'Suíço Clássico') {
+            // ── Liga / Suíço / Ranking: generate first round standings ──────────────────
+            if (t.format === 'Liga' || t.format === 'Suíço Clássico' || t.format === 'Ranking') {
                 let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
 
                 // Shuffle participants
@@ -2505,15 +2934,17 @@ function renderTournaments(container, tournamentId = null) {
                     [participants[i], participants[j]] = [participants[j], participants[i]];
                 }
 
-                // Initialize standings
+                // Initialize standings (with category if applicable)
                 t.standings = participants.map(p => {
                     const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-                    return { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+                    var entry = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+                    if (typeof p === 'object' && p.category) entry.category = p.category;
+                    return entry;
                 });
                 t.rounds = [];
                 t.status = 'active';
 
-                // Generate first round using Swiss pairing
+                // Generate first round using Swiss pairing (respects categories automatically)
                 _generateNextRound(t);
 
                 window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${t.rounds[0].matches.length} partida(s)`);
@@ -3204,12 +3635,13 @@ function renderTournaments(container, tournamentId = null) {
         const end = formatDateBr(t.endDate);
         const dates = start ? (end ? `${start} A ${end}` : `${start}`) : 'A DEFINIR';
         const regLimit = formatDateBr(t.registrationLimit);
-        const cats = (t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única';
+        const cats = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories.join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
 
-        // Inscrições fecham após sorteio (status 'active'), exceto Liga com inscrições abertas na temporada
+        // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
         const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-        const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
+        const rankingAberto = t.format === 'Ranking' && sorteioRealizado; // Ranking always open
+        const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta || rankingAberto;
         const statusText = isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas');
         const statusBg = isAberto ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
         const statusColor = isAberto ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
@@ -3425,25 +3857,76 @@ function renderTournaments(container, tournamentId = null) {
                      ${allowsTeams ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.addTeamFunction('${t.id}')">👥 + Time</button>` : ''}
                 ` : '';
 
-                // Encerrar/Reabrir Inscrições — visível para org antes do sorteio
-                const toggleRegBtn = !hasDraw ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+                // Botão Categorias — visível apenas para organizador quando torneio tem categorias
+                const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0);
+                const categoriasBtn = _hasTournCats ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; font-weight: 600;" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
 
-                // Sortear — aparece quando inscrições encerradas e sem sorteio feito
-                const sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                const isRankingFormat = t.format === 'Ranking';
+                const isSuicoFormat = t.format === 'Suíço Clássico';
+                const isAutoDrawFormat = isRankingFormat || isSuicoFormat;
 
-                // Sortear com inscrições abertas — usa _handleSortearClick que pergunta se quer encerrar
-                const sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                // Encerrar/Reabrir Inscrições — NÃO aparece para Ranking (sempre aberto)
+                const toggleRegBtn = (!hasDraw && !isRankingFormat) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+
+                // Contagem regressiva de sorteio automático (Ranking / Suíço com auto-draw)
+                let autoDrawCountdownHtml = '';
+                if (isAutoDrawFormat && !t.drawManual && t.drawFirstDate) {
+                    const _nextDraw = window._calcNextDrawDate(t);
+                    if (_nextDraw) {
+                        const _now = new Date();
+                        const _diff = _nextDraw.getTime() - _now.getTime();
+                        if (_diff > 0) {
+                            const _d = Math.floor(_diff / 86400000);
+                            const _h = Math.floor((_diff % 86400000) / 3600000);
+                            const _m = Math.floor((_diff % 3600000) / 60000);
+                            const _parts = [];
+                            if (_d > 0) _parts.push(_d + 'd');
+                            if (_h > 0) _parts.push(_h + 'h');
+                            _parts.push(_m + 'min');
+                            autoDrawCountdownHtml = `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.3);border-radius:10px;font-size:0.8rem;">
+                                <span style="color:#fb923c;font-weight:700;">⏱️ Sorteios automáticos</span>
+                                <span style="color:var(--text-muted);">Próximo em <b style="color:#fb923c;">${_parts.join(' ')}</b></span>
+                            </div>`;
+                        } else {
+                            autoDrawCountdownHtml = `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:10px;font-size:0.8rem;">
+                                <span style="color:#34d399;font-weight:700;">⏱️ Sorteio pendente</span>
+                                <span style="color:var(--text-muted);">Rodada pronta para ser gerada</span>
+                            </div>`;
+                        }
+                    }
+                }
+
+                // Sortear — para Ranking/Suíço auto: escondido (mostra countdown); manual: aparece
+                let sortearBtn = '';
+                let sortearAberto = '';
+                if (isRankingFormat) {
+                    // Ranking: sortear só aparece em modo manual
+                    if (t.drawManual && !hasDraw) {
+                        sortearAberto = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
+                    } else if (t.drawManual && hasDraw) {
+                        // After first draw, manual mode still allows generating next round
+                        sortearBtn = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
+                    }
+                } else {
+                    // Standard behavior for other formats
+                    sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                    sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                }
 
                 // --- Build actionsHtml based on tournament state ---
                 if (hasDraw) {
                     // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento + Ver Chaves
                     actionsHtml = `
                    ${inviteModalHtml}
-                   ${startTournamentBanner}
-                   ${startedBadge}
+                   ${isRankingFormat ? '' : startTournamentBanner}
+                   ${isRankingFormat ? '' : startedBadge}
+                   ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
                    <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                          <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
+                         ${isAberto ? enrollBtnHtml : ''}
+                         ${sortearBtn}
+                         ${categoriasBtn}
                       </div>
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
                          <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
@@ -3455,6 +3938,7 @@ function renderTournaments(container, tournamentId = null) {
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${teamEnrollModalHtml}
+                   ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
                    <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
                       <!-- Esquerda: ações de inscrição -->
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
@@ -3465,6 +3949,7 @@ function renderTournaments(container, tournamentId = null) {
 
                       <!-- Direita: gestão do torneio -->
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
+                         ${categoriasBtn}
                          ${toggleRegBtn}
                          ${sortearBtn}
                          ${sortearAberto}
@@ -3604,7 +4089,12 @@ function renderTournaments(container, tournamentId = null) {
                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
-                  <div><strong>Categorias:</strong> ${cats}</div>
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+                    <strong>Categorias:</strong>
+                    ${(t.combinedCategories && t.combinedCategories.length > 0)
+                      ? t.combinedCategories.map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">${c}</span>`).join('')
+                      : `<span>${cats}</span>`}
+                  </div>
                </div>
             </div>
 
@@ -3809,7 +4299,10 @@ function renderTournaments(container, tournamentId = null) {
                         else if (origin === 'formada') _teamLabel = 'Equipe Formada';
                         else _teamLabel = 'Equipe Formada';
                     }
-                    const typeText = _teamLabel + vipBadge;
+                    // Category badge
+                    const _pCat = typeof p === 'object' ? (p.category || '') : '';
+                    const catBadge = _pCat ? ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);margin-left:2px;">' + _pCat + '</span>' : '';
+                    const typeText = _teamLabel + vipBadge + catBadge;
 
                     let actionsHtml = '';
                     let dragProps = '';
