@@ -5337,10 +5337,12 @@ function renderTournaments(container, tournamentId = null) {
 
                 const isRankingFormat = t.format === 'Ranking';
                 const isSuicoFormat = t.format === 'Suíço Clássico';
-                const isAutoDrawFormat = isRankingFormat || isSuicoFormat;
+                const isLigaFormat = t.format === 'Liga';
+                const isAutoDrawFormat = isRankingFormat || isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
 
-                // Encerrar/Reabrir Inscrições — NÃO aparece para Ranking (sempre aberto)
-                const toggleRegBtn = (!hasDraw && !isRankingFormat) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+                // Encerrar/Reabrir Inscrições — NÃO aparece para Ranking (sempre aberto) nem para Liga com inscrições abertas na temporada
+                const isLigaOpenEnroll = t.format === 'Liga' && t.ligaOpenEnrollment !== false;
+                const toggleRegBtn = (!hasDraw && !isRankingFormat && !isLigaOpenEnroll) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
 
                 // Contagem regressiva de sorteio automático (Ranking / Suíço com auto-draw)
                 let autoDrawCountdownHtml = '';
@@ -5358,8 +5360,8 @@ function renderTournaments(container, tournamentId = null) {
                             if (_h > 0) _parts.push(_h + 'h');
                             _parts.push(_m + 'min');
                             autoDrawCountdownHtml = `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.3);border-radius:10px;font-size:0.8rem;">
-                                <span style="color:#fb923c;font-weight:700;">⏱️ Sorteios automáticos</span>
-                                <span style="color:var(--text-muted);">Próximo em <b style="color:#fb923c;">${_parts.join(' ')}</b></span>
+                                <span style="color:#fb923c;font-weight:700;">⏱️ Próximo sorteio em</span>
+                                <span style="color:#fb923c;font-weight:800;">${_parts.join(' ')}</span>
                             </div>`;
                         } else {
                             autoDrawCountdownHtml = `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:10px;font-size:0.8rem;">
@@ -5370,7 +5372,7 @@ function renderTournaments(container, tournamentId = null) {
                     }
                 }
 
-                // Sortear — para Ranking/Suíço auto: escondido (mostra countdown); manual: aparece
+                // Sortear — para Ranking/Suíço/Liga auto: escondido (mostra countdown); manual: aparece
                 let sortearBtn = '';
                 let sortearAberto = '';
                 if (isRankingFormat) {
@@ -5378,11 +5380,22 @@ function renderTournaments(container, tournamentId = null) {
                     if (t.drawManual && !hasDraw) {
                         sortearAberto = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
                     } else if (t.drawManual && hasDraw) {
-                        // After first draw, manual mode still allows generating next round
+                        sortearBtn = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
+                    }
+                } else if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
+                    // Liga com sorteio automático: sem botão Sortear, countdown substitui
+                    // Em modo manual, mostra botão normalmente
+                    sortearBtn = '';
+                    sortearAberto = '';
+                } else if (isLigaFormat && t.drawManual) {
+                    // Liga manual: botão padrão
+                    sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                    sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                    if (hasDraw) {
                         sortearBtn = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
                     }
                 } else {
-                    // Standard behavior for other formats
+                    // Standard behavior for other formats (Eliminatórias, Grupos, etc.)
                     sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
                     sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
                 }
@@ -5776,24 +5789,26 @@ function renderTournaments(container, tournamentId = null) {
                         else if (origin === 'formada') _teamLabel = 'Equipe Formada';
                         else _teamLabel = 'Equipe Formada';
                     }
-                    // Category badges with source indicator (supports multiple categories)
+                    // Category badges — displayed below name as a separate row
                     const _pCats = window._getParticipantCategories(p);
                     const _pCatSource = typeof p === 'object' ? (p.categorySource || '') : '';
                     const _pWasUncat = typeof p === 'object' ? (p.wasUncategorized || false) : false;
-                    let catBadge = '';
-                    if (_pCats.length > 0) {
-                        var srcLabel = _pCatSource === 'perfil' ? ' <span style="font-size:0.55rem;opacity:0.7;">(perfil)</span>'
-                            : (_pWasUncat ? ' <span style="font-size:0.55rem;opacity:0.7;">(sem cat.)</span>' : '');
-                        catBadge = _pCats.map(function(c) {
-                            return ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);margin-left:2px;">' + (window._displayCategoryName ? window._displayCategoryName(c) : c) + '</span>';
-                        }).join('') + srcLabel;
-                    } else {
-                        catBadge = ' <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.6rem;font-weight:600;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);margin-left:2px;">(sem cat.)</span>';
-                    }
-                    // Only show catBadge if tournament has categories
+                    let catBadgeRow = '';
                     const _hasCatsForBadge = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0);
-                    if (!_hasCatsForBadge) catBadge = '';
-                    const typeText = _teamLabel + vipBadge + catBadge;
+                    if (_hasCatsForBadge) {
+                        if (_pCats.length > 0) {
+                            var srcLabel = _pCatSource === 'perfil' ? ' <span style="font-size:0.55rem;color:var(--text-muted);opacity:0.7;">(perfil)</span>'
+                                : (_pWasUncat ? ' <span style="font-size:0.55rem;color:var(--text-muted);opacity:0.7;">(sem cat.)</span>' : '');
+                            catBadgeRow = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center;">' +
+                                _pCats.map(function(c) {
+                                    return '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">' + (window._displayCategoryName ? window._displayCategoryName(c) : c) + '</span>';
+                                }).join('') + srcLabel + '</div>';
+                        } else {
+                            catBadgeRow = '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);">(sem cat.)</span></div>';
+                        }
+                    }
+                    // Enrollment type label — shown at bottom-left
+                    const typeLabel = _teamLabel + vipBadge;
 
                     let actionsHtml = '';
                     let dragProps = '';
@@ -5817,10 +5832,11 @@ function renderTournaments(container, tournamentId = null) {
                               <div style="display:flex;align-items:center;gap:12px;">
                                   <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
                                       ${pNameHtml}
-                                      <div style="font-size:0.7rem;color:var(--text-muted);opacity:0.6;margin-top:4px;">${typeText}</div>
+                                      ${catBadgeRow}
                                   </div>
                               </div>
                               ${actionsHtml}
+                              <div style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;margin-top:6px;">${typeLabel}</div>
                           </div>
                       </div>`;
                 }).join('');
