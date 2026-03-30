@@ -2331,6 +2331,15 @@ function setupCreateTournamentModal() {
         // Persiste no localStorage
         window.AppStore.sync();
 
+        // Auto-assign categories to uncategorized participants based on profile gender
+        var _autoAssignTid = editId || (window.AppStore.tournaments.length > 0 ? window.AppStore.tournaments[window.AppStore.tournaments.length - 1].id : null);
+        if (_autoAssignTid && window._autoAssignCategories) {
+          var _autoCount = window._autoAssignCategories(_autoAssignTid);
+          if (_autoCount > 0) {
+            showNotification('Categorias Auto-atribuídas', _autoCount + ' participante' + (_autoCount > 1 ? 's foram atribuídos' : ' foi atribuído') + ' a categorias com base no perfil.', 'info');
+          }
+        }
+
         if (typeof window.updateViewModeVisibility === 'function') window.updateViewModeVisibility();
         closeModal('modal-create-tournament');
 
