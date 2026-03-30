@@ -371,7 +371,7 @@ function renderDashboard(container) {
         ${_fStyle('todos', '📋', allUnique.length, 'Todos')}
         ${_fStyle('organizados', '🏆', organizadosCount, 'Meus Torneios')}
         ${_fStyle('participando', '👤', participacoesCount, 'Participando')}
-        ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Abertas')}
+        ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Disponíveis')}
       </div>
     </div>
 
