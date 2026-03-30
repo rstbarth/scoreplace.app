@@ -667,6 +667,56 @@ function renderTournaments(container, tournamentId = null) {
         return cat.replace(/^Misto Aleat\.\s*/i, 'Misto ').replace(/^Misto Obrig\.\s*/i, 'Misto ').trim();
     };
 
+    // Sort categories respecting the skill order defined by the organizer.
+    // E.g., if skillCategories = ['A','B','C','D'], then:
+    //   "Fem A" < "Fem B" < "Fem C/D" < "Masc A" < "Masc A/B" < "Masc C"
+    // Merged categories like "A/B" sort by their earliest component.
+    // Gender prefix order: Fem, Masc, Misto Aleat., Misto Obrig.
+    window._sortCategoriesBySkillOrder = function(categories, skillCats) {
+        if (!categories || categories.length <= 1) return categories;
+        if (!skillCats || skillCats.length === 0) return categories;
+
+        var genderOrder = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.'];
+        var skillOrder = {};
+        skillCats.forEach(function(sc, i) { skillOrder[sc.trim()] = i; });
+
+        function getCatSortKey(cat) {
+            // Determine gender prefix index
+            var genderIdx = genderOrder.length; // default: after all known prefixes
+            var suffix = cat;
+            for (var g = 0; g < genderOrder.length; g++) {
+                if (cat.toLowerCase().startsWith(genderOrder[g].toLowerCase())) {
+                    genderIdx = g;
+                    suffix = cat.substring(genderOrder[g].length).trim();
+                    break;
+                }
+            }
+            // Determine skill index from the suffix (possibly merged like "A/B")
+            // Use the earliest (lowest-index) component
+            var skillIdx = 9999;
+            if (suffix === '') {
+                // Bare prefix (all skills merged) — sort at position 0 within this gender
+                skillIdx = -1;
+            } else {
+                var parts = suffix.split('/');
+                parts.forEach(function(s) {
+                    var trimmed = s.trim();
+                    if (skillOrder.hasOwnProperty(trimmed) && skillOrder[trimmed] < skillIdx) {
+                        skillIdx = skillOrder[trimmed];
+                    }
+                });
+            }
+            return { gender: genderIdx, skill: skillIdx };
+        }
+
+        return categories.slice().sort(function(a, b) {
+            var ka = getCatSortKey(a);
+            var kb = getCatSortKey(b);
+            if (ka.gender !== kb.gender) return ka.gender - kb.gender;
+            return ka.skill - kb.skill;
+        });
+    };
+
     // Exclusivity rules: Fem and Masc are mutually exclusive.
     // Misto (Aleatório/Obrigatório) is non-exclusive with Fem and Masc.
     // A participant can be in Masc A AND Misto Aleat. A, but NOT in Fem A AND Masc A.
@@ -757,6 +807,9 @@ function renderTournaments(container, tournamentId = null) {
         }
 
         if (eligible.length === 0) { callback(null); return; }
+
+        // Sort eligible categories by skill order
+        eligible = window._sortCategoriesBySkillOrder(eligible, skillCats);
 
         // Group into exclusive (Fem/Masc — pick one) and non-exclusive (Misto — can add)
         var groups = window._groupEligibleCategories(eligible);
@@ -877,7 +930,7 @@ function renderTournaments(container, tournamentId = null) {
             // Always re-read fresh data from AppStore (fixes stale closure after sync)
             var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
             if (!t) return;
-            var categories = (t.combinedCategories || []).slice();
+            var categories = window._sortCategoriesBySkillOrder((t.combinedCategories || []).slice(), t.skillCategories);
             var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
 
             // Count participants per category & find uncategorized
@@ -5252,7 +5305,7 @@ function renderTournaments(container, tournamentId = null) {
         const end = formatDateBr(t.endDate);
         const dates = start ? (end ? `${start} A ${end}` : `${start}`) : 'A DEFINIR';
         const regLimit = formatDateBr(t.registrationLimit);
-        const cats = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories.join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
+        const cats = (t.combinedCategories && t.combinedCategories.length) ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
 
         // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
@@ -5726,7 +5779,7 @@ function renderTournaments(container, tournamentId = null) {
                   <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
                     <strong>Categorias:</strong>
                     ${(t.combinedCategories && t.combinedCategories.length > 0)
-                      ? t.combinedCategories.map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">${c}</span>`).join('')
+                      ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">${c}</span>`).join('')
                       : `<span>${cats}</span>`}
                   </div>
                </div>
@@ -5944,7 +5997,7 @@ function renderTournaments(container, tournamentId = null) {
                             var srcLabel = _pCatSource === 'perfil' ? ' <span style="font-size:0.55rem;color:var(--text-muted);opacity:0.7;">(perfil)</span>'
                                 : (_pWasUncat ? ' <span style="font-size:0.55rem;color:var(--text-muted);opacity:0.7;">(sem cat.)</span>' : '');
                             catBadgeRow = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center;">' +
-                                _pCats.map(function(c) {
+                                window._sortCategoriesBySkillOrder(_pCats, t.skillCategories).map(function(c) {
                                     return '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25);">' + (window._displayCategoryName ? window._displayCategoryName(c) : c) + '</span>';
                                 }).join('') + srcLabel + '</div>';
                         } else {

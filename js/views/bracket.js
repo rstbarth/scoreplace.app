@@ -1604,7 +1604,9 @@ function renderStandings(t, isOrg, canEnterResult) {
       </div>`;
   }
 
-  const categories = t.combinedCategories || [];
+  const categories = (typeof window._sortCategoriesBySkillOrder === 'function')
+    ? window._sortCategoriesBySkillOrder(t.combinedCategories || [], t.skillCategories)
+    : (t.combinedCategories || []);
   const hasCats = categories.length > 0;
 
   const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
@@ -1696,8 +1698,9 @@ function renderStandings(t, isOrg, canEnterResult) {
           </thead>`;
 
   const standingsTablesHtml = standingsSections.map(function(sec) {
-    var title = sec.label
-      ? `${isRanking ? 'Ranking' : 'Classificação'} — ${sec.label} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
+    var displayLabel = sec.label && window._displayCategoryName ? window._displayCategoryName(sec.label) : sec.label;
+    var title = displayLabel
+      ? `${isRanking ? 'Ranking' : 'Classificação'} — ${displayLabel} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
       : `${isRanking ? 'Ranking' : 'Classificação'} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`;
     return `<div class="card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
@@ -1722,10 +1725,14 @@ function _computeStandings(t, category) {
   const allP = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
   allP.forEach(p => {
     const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-    // If filtering by category, only include participants in that category
+    // If filtering by category, only include participants in that category (supports multi-cat)
     if (category) {
-      var pCat = typeof p === 'object' ? (p.category || '') : '';
-      if (pCat !== category) return;
+      if (typeof p === 'object' && window._participantInCategory) {
+        if (!window._participantInCategory(p, category)) return;
+      } else {
+        var pCat = typeof p === 'object' ? (p.category || '') : '';
+        if (pCat !== category) return;
+      }
     }
     if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
   });
@@ -1996,7 +2003,9 @@ function _doCloseRound(t, tId, roundIdx) {
 
 // ─── Swiss pairing ────────────────────────────────────────────────────────────
 function _generateNextRound(t) {
-  var categories = t.combinedCategories || [];
+  var categories = (typeof window._sortCategoriesBySkillOrder === 'function')
+    ? window._sortCategoriesBySkillOrder(t.combinedCategories || [], t.skillCategories)
+    : (t.combinedCategories || []);
   if (categories.length === 0) {
     // No categories — original behavior
     _generateNextRoundForPlayers(t, null);
@@ -2042,7 +2051,7 @@ function _generateNextRoundForPlayers(t, category) {
           round: roundNum, roundIndex: roundIdx,
           p1: players[i], p2: players[j],
           winner: null,
-          label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${category})` : '')
+          label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
         };
         if (category) matchObj.category = category;
         newMatches.push(matchObj);
@@ -2059,7 +2068,7 @@ function _generateNextRoundForPlayers(t, category) {
             round: roundNum, roundIndex: roundIdx,
             p1: players[i], p2: players[j],
             winner: null,
-            label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${category})` : '')
+            label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
           };
           if (category) matchObj2.category = category;
           newMatches.push(matchObj2);
@@ -2076,7 +2085,7 @@ function _generateNextRoundForPlayers(t, category) {
       id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
       round: roundNum, roundIndex: roundIdx,
       p1: p, p2: 'BYE', winner: p, isBye: true,
-      label: `R${roundNum} • BYE` + (category ? ` (${category})` : '')
+      label: `R${roundNum} • BYE` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
     };
     if (category) byeObj.category = category;
     newMatches.push(byeObj);
