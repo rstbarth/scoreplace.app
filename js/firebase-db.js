@@ -46,6 +46,46 @@ window.FirestoreDB = {
     await this.db.collection('tournaments').doc(docId).set(cleanData, { merge: true });
   },
 
+  // Atomic enrollment — uses Firestore transaction to prevent race conditions
+  // where concurrent enrollments overwrite each other's participants array
+  async enrollParticipant(tournamentId, participantObj, extraUpdates) {
+    if (!this.db) throw new Error('Firestore not initialized');
+    var docRef = this.db.collection('tournaments').doc(String(tournamentId));
+    var self = this;
+    return this.db.runTransaction(async function(transaction) {
+      var doc = await transaction.get(docRef);
+      if (!doc.exists) throw new Error('Tournament not found');
+      var data = doc.data();
+      var participants = Array.isArray(data.participants) ? data.participants : (data.participants ? Object.values(data.participants) : []);
+
+      // Check if already enrolled (by email or displayName)
+      var pEmail = participantObj.email || '';
+      var pName = participantObj.displayName || participantObj.name || '';
+      var already = participants.some(function(p) {
+        var str = typeof p === 'string' ? p : (p.email || p.displayName || '');
+        return str && (str.includes(pEmail) || str.includes(pName));
+      });
+      if (already) return { alreadyEnrolled: true, participants: participants };
+
+      participants.push(self._cleanUndefined(participantObj));
+
+      var updateData = { participants: participants };
+      if (extraUpdates) {
+        Object.keys(extraUpdates).forEach(function(k) {
+          updateData[k] = self._cleanUndefined(extraUpdates[k]);
+        });
+      }
+
+      // Auto-close check
+      if (data.autoCloseOnFull && data.maxParticipants && participants.length >= parseInt(data.maxParticipants)) {
+        updateData.status = 'closed';
+      }
+
+      transaction.update(docRef, updateData);
+      return { alreadyEnrolled: false, participants: participants, autoCloseTriggered: !!updateData.status };
+    });
+  },
+
   async deleteTournament(tournamentId) {
     if (!this.db) return;
     try {
