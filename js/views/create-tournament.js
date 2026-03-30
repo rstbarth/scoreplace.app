@@ -345,7 +345,7 @@ function setupCreateTournamentModal() {
               </div>
 
               <!-- Estimativas de Tempo -->
-              <div style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+              <div id="time-estimates-container" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Estimativas de Tempo</p>
                 <div class="d-flex gap-2 mb-2">
                   <div class="form-group full-width">
@@ -909,14 +909,8 @@ function setupCreateTournamentModal() {
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
 
     // Esconder estimativas de tempo para Ranking (não fazem sentido)
-    var estimBox = document.getElementById('duration-estimate-box');
-    var estimParent = estimBox ? estimBox.closest('div[style*="rgba(245,158,11"]') : null;
-    if (!estimParent) {
-      // Fallback: find the parent container with the "Estimativas de Tempo" header
-      var allDivs = document.querySelectorAll('#form-create-tournament div');
-      allDivs.forEach(function(d) { if (d.textContent.trim().startsWith('Estimativas de Tempo') && d.querySelector('#tourn-call-time')) estimParent = d; });
-    }
-    if (estimParent) estimParent.style.display = isRanking ? 'none' : '';
+    var estimContainer = document.getElementById('time-estimates-container');
+    if (estimContainer) estimContainer.style.display = isRanking ? 'none' : '';
 
     window._updateAutoCloseVisibility();
     window._updateRegDateVisibility();

@@ -3642,9 +3642,10 @@ function renderTournaments(container, tournamentId = null) {
         const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const rankingAberto = t.format === 'Ranking' && sorteioRealizado; // Ranking always open
         const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta || rankingAberto;
-        const statusText = isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas');
-        const statusBg = isAberto ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
-        const statusColor = isAberto ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
+        const _isRkFmt = t.format === 'Ranking';
+        const statusText = _isRkFmt && sorteioRealizado ? 'Ranking Ativo' : (_isRkFmt && isAberto ? 'Inscrições Abertas (Permanente)' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
+        const statusBg = isAberto || (_isRkFmt && sorteioRealizado) ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
+        const statusColor = isAberto || (_isRkFmt && sorteioRealizado) ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
         const statusFontWeight = isAberto ? '700' : '600';
 
         let enrollmentText = 'Misto (Individual e Times)';
@@ -4089,6 +4090,9 @@ function renderTournaments(container, tournamentId = null) {
                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
+                  ${(t.format === 'Ranking' && t.rankingSeasonMonths) ? `<div><strong>Temporada:</strong> ${t.rankingSeasonMonths} meses</div>` : ''}
+                  ${(t.drawFirstDate) ? `<div><strong>1º Sorteio:</strong> ${(() => { try { var _dd = t.drawFirstDate.split('-'); return _dd[2] + '/' + _dd[1] + '/' + _dd[0]; } catch(e) { return t.drawFirstDate; } })()} às ${t.drawFirstTime || '19:00'}</div>` : ''}
+                  ${(t.drawIntervalDays) ? `<div><strong>Intervalo:</strong> ${t.drawManual ? 'Manual' : 'A cada ' + t.drawIntervalDays + ' dia' + (t.drawIntervalDays > 1 ? 's' : '') + ' (automático)'}</div>` : ''}
                   <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
                     <strong>Categorias:</strong>
                     ${(t.combinedCategories && t.combinedCategories.length > 0)
