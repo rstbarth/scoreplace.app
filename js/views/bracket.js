@@ -16,7 +16,7 @@ function renderBracket(container, tournamentId) {
     bracketImgs.forEach(function(img) {
       var name = img.getAttribute('data-player-name');
       var realPhoto = window._playerPhotoCache[(name || '').toLowerCase()];
-      if (realPhoto && img.src.indexOf('dicebear.com') !== -1) {
+      if (realPhoto && realPhoto.indexOf('dicebear.com') === -1 && img.src.indexOf('dicebear.com') !== -1) {
         var seed = encodeURIComponent(name);
         var fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         img.onerror = function() { this.onerror = null; this.src = fallback; };
@@ -1056,7 +1056,7 @@ async function _preloadPlayerPhotos(tournament) {
       var name = p.displayName || p.name || '';
       if (name) names.add(name);
       // If has email and photoURL already, cache it
-      if (name && p.photoURL) window._playerPhotoCache[name.toLowerCase()] = p.photoURL;
+      if (name && p.photoURL && p.photoURL.indexOf('dicebear.com') === -1) window._playerPhotoCache[name.toLowerCase()] = p.photoURL;
     }
   });
 
@@ -1072,7 +1072,7 @@ async function _preloadPlayerPhotos(tournament) {
         .then(function(snap) {
           if (!snap.empty) {
             var data = snap.docs[0].data();
-            if (data.photoURL) {
+            if (data.photoURL && data.photoURL.indexOf('dicebear.com') === -1) {
               window._playerPhotoCache[name.toLowerCase()] = data.photoURL;
             }
           }
@@ -1094,7 +1094,7 @@ async function _preloadPlayerPhotos(tournament) {
         .then(function(snap) {
           if (!snap.empty) {
             var data = snap.docs[0].data();
-            if (data.photoURL && name) {
+            if (data.photoURL && data.photoURL.indexOf('dicebear.com') === -1 && name) {
               window._playerPhotoCache[name.toLowerCase()] = data.photoURL;
             }
           }
@@ -1121,7 +1121,8 @@ function _teamAvatarHtml(teamName) {
   members.forEach(function(name) {
     const seed = encodeURIComponent(name);
     // Check photo cache for real user photo
-    const cachedPhoto = window._playerPhotoCache[name.toLowerCase()] || '';
+    const rawCached = window._playerPhotoCache[name.toLowerCase()] || '';
+    const cachedPhoto = (rawCached && rawCached.indexOf('dicebear.com') === -1) ? rawCached : '';
     const initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
     const photoSrc = cachedPhoto || initialsUrl;
     const onerror = cachedPhoto ? `onerror="this.onerror=null;this.src='${initialsUrl}'"` : '';
