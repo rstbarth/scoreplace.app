@@ -13,7 +13,7 @@
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.2-alpha') + '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.3-alpha') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">© 2026 scoreplace.app. Todos os direitos reservados.</div>' +
@@ -24,7 +24,7 @@
       title: 'Primeiros Passos',
       icon: '🚀',
       content: '<p><b>Bem-vindo ao scoreplace.app!</b> Aqui vai um guia rápido para começar:</p>' +
-        '<p><b>1. Faça login</b> — Clique no botão de login no canto superior direito e entre com sua conta Google. Seu perfil é criado automaticamente.</p>' +
+        '<p><b>1. Faça login</b> — Clique no botão de login no canto superior direito. Você pode criar uma conta com e-mail e senha ou entrar com sua rede social preferida (Google, Facebook ou Apple). Seu perfil é criado automaticamente.</p>' +
         '<p><b>2. Complete seu perfil</b> — Clique no seu avatar (canto superior direito) para abrir o perfil. Preencha seu nome, cidade, esportes preferidos e telefone para receber notificações por WhatsApp.</p>' +
         '<p><b>3. Crie ou participe de um torneio</b> — Na dashboard, clique em "+ Novo Torneio" para criar, ou navegue pelos torneios públicos e clique em "Inscrever-se".</p>' +
         '<p><b>4. Convide amigos</b> — Dentro de um torneio, use o botão "Convidar" para enviar convites por WhatsApp, e-mail ou link direto.</p>'
@@ -201,6 +201,11 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Detecção de mesclagem aprimorada</b> — O ícone de desmesclar agora aparece em qualquer categoria resultante de mesclagem: categorias com "/" no nome (ex: "Fem A/B"), prefixos puros quando há categorias de habilidade (ex: "Masc"), e categorias com histórico de mesclagem. Unmerge inferido para categorias sem mergeHistory.</p>' +
+        '<p><b>Cache-buster por versão</b> — Todos os arquivos JS e CSS agora usam ?v=0.2.3-alpha em vez de numeração sequencial, facilitando o rastreamento de versão no cache do navegador.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Enquete entre participantes</b> — Nova opção nos painéis de resolução de times incompletos e ajuste de potência de 2. O organizador cria uma enquete com prazo (padrão 48h), e os inscritos votam na solução preferida. Contagem regressiva ao vivo, notificação automática, voto secreto antes de votar e resultados revelados após o voto. A opção recomendada é calculada pelo equilíbrio de Nash. Organizador aplica o resultado com um clique.</p>' +
         '<p><b>Desmesclar categorias</b> — Categorias mescladas agora mostram um ícone de desmesclagem. Ao clicar, desfaz a mesclagem e reatribui participantes às categorias originais usando histórico de mesclagem.</p>' +
@@ -245,7 +250,7 @@
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.1.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
-        '<p><b>Lançamento Alpha</b> — Primeira versão funcional com Firebase Auth (Google Sign-In), Cloud Firestore, 5 formatos de torneio, criação rápida, fluxo de convite por link/WhatsApp/e-mail, CSS responsivo completo, 5 temas visuais e busca de local via Google Places.</p>' +
+        '<p><b>Lançamento Alpha</b> — Primeira versão funcional com Firebase Auth (e-mail/senha, Google, Facebook, Apple), Cloud Firestore, 5 formatos de torneio, criação rápida, fluxo de convite por link/WhatsApp/e-mail, CSS responsivo completo, 5 temas visuais e busca de local via Google Places.</p>' +
         '</div>' +
         '<p style="font-size:0.7rem; color:var(--text-muted); opacity:0.7; text-align:center; margin-top:1rem;">scoreplace.app está em fase Alpha. Novas funcionalidades são adicionadas frequentemente!</p>'
     }
