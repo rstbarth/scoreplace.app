@@ -344,6 +344,7 @@ function renderDashboard(container) {
   // Filter function
   window._applyDashFilter = function(filter) {
     window._dashFilter = filter;
+    window._dashPage = 1;
     var c = document.getElementById('view-container');
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
@@ -504,21 +505,34 @@ function renderDashboard(container) {
   if (curLocation) filtered = filtered.filter(t => t.venueName === curLocation);
   if (curFormat) filtered = filtered.filter(t => t.format === curFormat);
 
+  // Pagination — show N items initially, with "load more" button
+  const PAGE_SIZE = 12;
+  const pageNum = window._dashPage || 1;
+  const totalFiltered = filtered.length;
+
   // Separate active and finished when showing "Todos"
   let filteredHtml = '';
   if (curFilter === 'todos' && !curSport && !curLocation && !curFormat && encerradosCount > 0) {
     const activeList = filtered.filter(t => t.status !== 'finished');
     const finishedList = filtered.filter(t => t.status === 'finished');
-    filteredHtml = activeList.length > 0
-      ? activeList.map(t => renderTournamentCard(t, '')).join('')
+    const visibleActive = activeList.slice(0, pageNum * PAGE_SIZE);
+    filteredHtml = visibleActive.length > 0
+      ? visibleActive.map(t => renderTournamentCard(t, '')).join('')
       : '<div style="text-align:center;padding:1rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio ativo no momento.</div>';
+    if (activeList.length > visibleActive.length) {
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">Carregar mais (' + (activeList.length - visibleActive.length) + ' restantes)</button></div>';
+    }
     if (finishedList.length > 0) {
       filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">🏆 Torneios Encerrados (' + finishedList.length + ')</summary><div class="cards-grid" style="margin-top:0.75rem;">' + finishedList.map(t => renderTournamentCard(t, '')).join('') + '</div></details></div>';
     }
   } else {
-    filteredHtml = filtered.length > 0
-      ? filtered.map(t => renderTournamentCard(t, '')).join('')
+    const visibleItems = filtered.slice(0, pageNum * PAGE_SIZE);
+    filteredHtml = visibleItems.length > 0
+      ? visibleItems.map(t => renderTournamentCard(t, '')).join('')
       : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado para este filtro.</div>';
+    if (filtered.length > visibleItems.length) {
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">Carregar mais (' + (filtered.length - visibleItems.length) + ' restantes)</button></div>';
+    }
   }
 
   // Build filter pills for sports
