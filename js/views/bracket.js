@@ -1514,17 +1514,26 @@ window._advanceToElimination = function (tId) {
   t.groups.forEach(g => {
     const scoreMap = {};
     g.participants.forEach(name => {
-      scoreMap[name] = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+      scoreMap[name] = { name, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
     });
     (g.rounds || []).forEach(r => {
       (r.matches || []).forEach(m => {
-        if (!m.winner) return;
+        if (!m.winner && !m.draw) return;
+        const s1 = parseInt(m.scoreP1) || 0; const s2 = parseInt(m.scoreP2) || 0;
+        // Handle draws
+        if (m.winner === 'draw' || m.draw) {
+          if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+          if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+          scoreMap[m.p1].draws++; scoreMap[m.p1].points += 1; scoreMap[m.p1].played++;
+          scoreMap[m.p2].draws++; scoreMap[m.p2].points += 1; scoreMap[m.p2].played++;
+          scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1);
+          return;
+        }
         const loser = m.winner === m.p1 ? m.p2 : m.p1;
-        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
-        if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+        if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
         scoreMap[m.winner].wins++; scoreMap[m.winner].points += 3; scoreMap[m.winner].played++;
         scoreMap[loser].losses++; scoreMap[loser].played++;
-        const s1 = parseInt(m.scoreP1) || 0; const s2 = parseInt(m.scoreP2) || 0;
         if (m.winner === m.p1) { scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1); }
         else { scoreMap[m.p2].pointsDiff += (s2 - s1); scoreMap[m.p1].pointsDiff += (s1 - s2); }
       });
@@ -1540,14 +1549,22 @@ window._advanceToElimination = function (tId) {
   t.groups.forEach(g => {
     const scoreMap = {};
     g.participants.forEach(name => {
-      scoreMap[name] = { name, points: 0, wins: 0, pointsDiff: 0 };
+      scoreMap[name] = { name, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
     });
     (g.rounds || []).forEach(r => {
       (r.matches || []).forEach(m => {
-        if (!m.winner) return;
-        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, pointsDiff: 0 };
-        scoreMap[m.winner].wins++; scoreMap[m.winner].points += 3;
+        if (!m.winner && !m.draw) return;
         const s1 = parseInt(m.scoreP1) || 0; const s2 = parseInt(m.scoreP2) || 0;
+        if (m.winner === 'draw' || m.draw) {
+          if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+          if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+          scoreMap[m.p1].draws++; scoreMap[m.p1].points += 1;
+          scoreMap[m.p2].draws++; scoreMap[m.p2].points += 1;
+          scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1);
+          return;
+        }
+        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+        scoreMap[m.winner].wins++; scoreMap[m.winner].points += 3;
         if (m.winner === m.p1) scoreMap[m.p1].pointsDiff += (s1 - s2);
         else scoreMap[m.p2].pointsDiff += (s2 - s1);
       });

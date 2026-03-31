@@ -2476,6 +2476,7 @@ function renderTournaments(container, tournamentId = null) {
                                 try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
                             }).catch(function(err) {
                                 console.error('Erro ao deletar torneio do Firestore:', err);
+                                showNotification('Erro ao Apagar', 'Não foi possível apagar do servidor. Tente novamente mais tarde.', 'error');
                             });
                         }
 
@@ -5280,10 +5281,7 @@ function renderTournaments(container, tournamentId = null) {
                     lowerRoundNum++;
                 } else {
                     // "Merge" round: lower winners vs upper losers dropping down
-                    const prevLowerCount = (lowerRounds[lowerRoundNum - 1] || []).length;
-                    const mergeCount = Math.max(prevLowerCount, Math.ceil(upperLosersCount / 1));
-                    // Actually, the merge count = previous lower round winners count
-                    const actualMergeCount = prevLowerCount;
+                    const actualMergeCount = (lowerRounds[lowerRoundNum - 1] || []).length;
 
                     lowerRounds[lowerRoundNum] = [];
                     for (let i = 0; i < actualMergeCount; i++) {
