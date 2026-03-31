@@ -1056,10 +1056,42 @@ window._executeDeleteAccount = async function() {
 
   // Show loading state
   var btn = document.getElementById('btn-confirm-delete-account');
-  if (btn) { btn.textContent = 'Excluindo...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
+  if (btn) { btn.textContent = 'Verificando...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
 
   try {
-    // 1. Delete user notifications subcollection
+    // 1. FIRST: Ensure we can delete the auth account (re-authenticate if needed)
+    // This must happen BEFORE deleting data, otherwise we'd orphan the auth account
+    try {
+      await firebaseUser.delete();
+      // If delete succeeds immediately, great — but we need a fresh reference
+      // since the user is now deleted. We skip re-auth.
+    } catch (e) {
+      if (e.code === 'auth/requires-recent-login') {
+        // Need re-authentication — show popup BEFORE deleting any data
+        if (btn) btn.textContent = 'Confirme seu login...';
+        var provider = new firebase.auth.GoogleAuthProvider();
+        try {
+          await firebaseUser.reauthenticateWithPopup(provider);
+        } catch (reAuthErr) {
+          // Re-auth failed (popup blocked, user cancelled, etc.)
+          // SAFE: no data was deleted yet
+          console.warn('Reautenticação necessária:', reAuthErr.code || reAuthErr.message);
+          var msg = reAuthErr.code === 'auth/popup-blocked'
+            ? 'O popup de login foi bloqueado pelo navegador. Permita popups para scoreplace.app e tente novamente.'
+            : 'Não foi possível verificar sua identidade. Tente fazer login novamente e repetir o processo.';
+          showNotification('Erro', msg, 'error');
+          if (btn) { btn.textContent = 'Excluir Conta'; btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
+          return;
+        }
+      } else {
+        throw e;
+      }
+    }
+
+    // 2. Now safe to delete data — auth is confirmed
+    if (btn) btn.textContent = 'Excluindo dados...';
+
+    // 2a. Delete user notifications subcollection
     try {
       var notifsSnap = await db.collection('users').doc(uid).collection('notifications').get();
       var batch = db.batch();
@@ -1067,7 +1099,6 @@ window._executeDeleteAccount = async function() {
       notifsSnap.forEach(function(doc) {
         batch.delete(doc.ref);
         count++;
-        // Firestore batch limit is 500
         if (count >= 450) {
           batch.commit();
           batch = db.batch();
@@ -1077,7 +1108,7 @@ window._executeDeleteAccount = async function() {
       if (count > 0) await batch.commit();
     } catch (e) { console.warn('Erro ao excluir notificações:', e); }
 
-    // 2. Remove user from tournament participants
+    // 2b. Remove user from tournament participants
     try {
       var tournsSnap = await db.collection('tournaments').get();
       var tBatch = db.batch();
@@ -1101,7 +1132,7 @@ window._executeDeleteAccount = async function() {
       if (tCount > 0) await tBatch.commit();
     } catch (e) { console.warn('Erro ao remover inscrições:', e); }
 
-    // 3. Delete tournaments organized by this user
+    // 2c. Delete tournaments organized by this user
     try {
       var myTournsSnap = await db.collection('tournaments').where('organizerEmail', '==', email).get();
       var dBatch = db.batch();
@@ -1113,34 +1144,21 @@ window._executeDeleteAccount = async function() {
       if (dCount > 0) await dBatch.commit();
     } catch (e) { console.warn('Erro ao excluir torneios:', e); }
 
-    // 4. Delete user profile document
+    // 2d. Delete user profile document
     try {
       await db.collection('users').doc(uid).delete();
     } catch (e) { console.warn('Erro ao excluir perfil:', e); }
 
-    // 5. Delete Firebase Auth account
+    // 3. Delete Firebase Auth account (if not already deleted in step 1)
     try {
-      await firebaseUser.delete();
+      var currentUser = firebase.auth().currentUser;
+      if (currentUser) await currentUser.delete();
     } catch (e) {
-      // If requires re-authentication, sign in again
-      if (e.code === 'auth/requires-recent-login') {
-        var provider = new firebase.auth.GoogleAuthProvider();
-        try {
-          await firebaseUser.reauthenticateWithPopup(provider);
-          await firebaseUser.delete();
-        } catch (reAuthErr) {
-          console.error('Erro na reautenticação:', reAuthErr);
-          showNotification('Erro', 'Não foi possível excluir a conta de autenticação. Tente fazer login novamente e repetir o processo.', 'error');
-          var modal = document.getElementById('modal-delete-account');
-          if (modal) modal.remove();
-          return;
-        }
-      } else {
-        throw e;
-      }
+      // Already deleted or session expired — ok
+      console.warn('Auth delete final:', e.code || e.message);
     }
 
-    // 6. Clean up local state
+    // 4. Clean up local state
     if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
     window.AppStore.currentUser = null;
     window.AppStore.tournaments = [];
@@ -1148,7 +1166,7 @@ window._executeDeleteAccount = async function() {
     try { localStorage.removeItem('boratime_state'); } catch (e) {}
     try { localStorage.removeItem('scoreplace_fcm_dismissed'); } catch (e) {}
 
-    // 7. Close modals and update UI
+    // 5. Close modals and update UI
     var modal = document.getElementById('modal-delete-account');
     if (modal) modal.remove();
     var profileModal = document.getElementById('modal-profile');
@@ -1164,7 +1182,6 @@ window._executeDeleteAccount = async function() {
       newBtn.addEventListener('click', function() { openModal('modal-login'); });
     }
 
-    // Hide Pro button
     var proBtn = document.getElementById('btn-upgrade-pro');
     if (proBtn) proBtn.style.display = 'none';
 
