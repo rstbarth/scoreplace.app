@@ -1,7 +1,59 @@
 // scoreplace.app — Service Worker
 // Cache-first for static assets, network-first for API/Firebase
+// Also handles FCM push notification background messages
 
-var CACHE_NAME = 'scoreplace-v0.2.39';
+// Import Firebase Messaging SW scripts for background push handling
+importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
+
+// Initialize Firebase in the service worker context
+firebase.initializeApp({
+  apiKey: "AIzaSyB7AyOojV_Pm50Kr7bovVY4jVTTNbKOK0A",
+  authDomain: "scoreplace-app.firebaseapp.com",
+  projectId: "scoreplace-app",
+  storageBucket: "scoreplace-app.firebasestorage.app",
+  messagingSenderId: "382268772878",
+  appId: "1:382268772878:web:7c164933f3beacba4be25f"
+});
+
+// Handle background push notifications
+var messaging = firebase.messaging();
+messaging.onBackgroundMessage(function(payload) {
+  console.log('[SW] Background push received:', payload);
+  var title = (payload.notification && payload.notification.title) || 'scoreplace.app';
+  var body = (payload.notification && payload.notification.body) || '';
+  var link = (payload.data && payload.data.link) || '/';
+  return self.registration.showNotification(title, {
+    body: body,
+    icon: '/icons/icon-192.svg',
+    badge: '/icons/icon-192.svg',
+    data: { url: link },
+    vibrate: [200, 100, 200]
+  });
+});
+
+// Handle notification click — open the app at the relevant tournament
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // If app is already open, focus it and navigate
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url.indexOf(self.location.origin) === 0 && 'focus' in client) {
+          client.focus();
+          if (url !== '/') client.navigate(url);
+          return;
+        }
+      }
+      // Otherwise open a new window
+      return clients.openWindow(url);
+    })
+  );
+});
+
+var CACHE_NAME = 'scoreplace-v0.2.40';
 var STATIC_ASSETS = [
   '/',
   '/index.html',

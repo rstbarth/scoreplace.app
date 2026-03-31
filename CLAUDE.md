@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.39-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.40-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.40-alpha (Marco 2026)**
+- Push Notifications (FCM) client-side: Firebase Messaging SDK adicionado (firebase-messaging-compat.js). Funcao window._initFCM() em notifications.js solicita permissao de notificacao no browser, obtem token FCM e salva no Firestore (campo fcmToken no perfil do usuario). Chamada automaticamente 3s apos login via simulateLoginSuccess. Service worker atualizado com importScripts do Firebase, onBackgroundMessage para exibir push em background, e notificationclick para abrir o app no torneio relevante. Token refresh automatico via onTokenRefresh. Mensagens foreground exibidas como toast via showNotification. Cloud Functions autoDraw e sendPushNotification ja deployados no Firebase completam o fluxo end-to-end.
 
 **v0.2.39-alpha (Marco 2026)**
 - Previsao do Tempo ativada: API key do OpenWeatherMap configurada em create-tournament.js. Ao criar/editar torneio com local (lat/lon) e data de inicio nos proximos 5 dias, exibe previsao automatica com icone, temperatura e descricao. Plano gratuito: 1000 chamadas/dia.
@@ -470,9 +473,9 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 
 ### Fase 3 — Features Novas (Client-Side COMPLETAS)
 5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11 + v0.2.33** — Perfil com estatisticas + modal de stats global ao clicar no nome.
-6. **Auto-draw Cloud Function:** Requer Firebase Cloud Functions — backend. *(Acao do usuario)*
+6. ~~**Auto-draw Cloud Function:**~~ **FEITO em v0.2.40** — Cloud Function `autoDraw` deployada (onSchedule every 1 hour). Gera rounds automaticos para Liga/Ranking.
 7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12.**
-8. **Notificacoes push:** Requer Firebase Cloud Messaging — backend. *(Acao do usuario)*
+8. ~~**Notificacoes push:**~~ **FEITO em v0.2.40** — Cloud Function `sendPushNotification` deployada + client-side FCM token registration. Fluxo end-to-end completo.
 9. ~~**PWA:**~~ **FEITO em v0.2.13.**
 10. ~~**Previsao do tempo:**~~ **FEITO em v0.2.39** — API key configurada, previsao exibida automaticamente.
 11. ~~**Imprimir Chaveamento:**~~ **FEITO em v0.2.21.**
@@ -492,10 +495,11 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 25. ~~**Paginacao Dashboard:**~~ **FEITO em v0.2.38.**
 
 ### Pendencias que requerem acao do usuario (backend/config)
-- Firestore rules (Firebase Console)
-- Auto-draw Cloud Function (Firebase Cloud Functions)
-- Push Notifications (Firebase Cloud Messaging)
-- Weather API (OpenWeatherMap API key)
+- ~~Firestore rules (Firebase Console)~~ **FEITO em v0.2.39**
+- ~~Auto-draw Cloud Function (Firebase Cloud Functions)~~ **FEITO em v0.2.40** — deployada
+- ~~Push Notifications (Firebase Cloud Messaging)~~ **FEITO em v0.2.40** — Cloud Function + client-side
+- ~~Weather API (OpenWeatherMap API key)~~ **FEITO em v0.2.39**
+- **VAPID Key:** Usuario precisa gerar Web Push certificate no Firebase Console > Project Settings > Cloud Messaging e configurar em window._FCM_VAPID_KEY no codigo
 
 ## Deploy
 
