@@ -1,3 +1,9 @@
+// Normalize format: 'Ranking' → 'Liga' (unificado em v0.2.6)
+// Defined at top level so it's available immediately on script load
+window._isLigaFormat = window._isLigaFormat || function(t) {
+    return t && (t.format === 'Liga' || t.format === 'Ranking');
+};
+
 // Calculate tournament match progress (total matches, completed, percentage)
 window._getTournamentProgress = function(t) {
     if (!t) return { total: 0, completed: 0, pct: 0 };
