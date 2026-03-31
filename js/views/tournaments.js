@@ -5569,6 +5569,36 @@ function renderTournaments(container, tournamentId = null) {
         const regLimit = formatDateBr(t.registrationLimit);
         const cats = (t.combinedCategories && t.combinedCategories.length) ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
 
+        // Liga season auto-closure: se a temporada expirou, encerra automaticamente
+        if (window._isLigaFormat(t) && t.status !== 'finished') {
+          const _seasonMonths = t.ligaSeasonMonths || t.rankingSeasonMonths;
+          if (_seasonMonths && t.startDate) {
+            const _seasonStart = new Date(t.startDate);
+            if (!isNaN(_seasonStart.getTime())) {
+              const _seasonEnd = new Date(_seasonStart);
+              _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_seasonMonths));
+              if (new Date() >= _seasonEnd) {
+                // Temporada expirou — marcar como finished
+                t.status = 'finished';
+                // Computar standings finais se necessário
+                if (!t.standings || !t.standings.length) {
+                  if (typeof window._computeStandings === 'function') {
+                    var _cats = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories : ['default'];
+                    for (var _ci = 0; _ci < _cats.length; _ci++) {
+                      var _st = window._computeStandings(t, _cats[_ci]);
+                      if (_st && _st.length) { t.standings = _st; break; }
+                    }
+                  }
+                }
+                // Salvar no Firestore
+                if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+                  window.FirestoreDB.saveTournament(t).catch(function() {});
+                }
+              }
+            }
+          }
+        }
+
         // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
         const isFinished = t.status === 'finished';
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
@@ -6103,7 +6133,22 @@ function renderTournaments(container, tournamentId = null) {
                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
-                  ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? `<div><strong>Temporada:</strong> ${t.ligaSeasonMonths || t.rankingSeasonMonths} meses</div>` : ''}
+                  ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? (() => {
+                    const _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
+                    let _seasonInfo = `<div><strong>Temporada:</strong> ${_sm} meses`;
+                    if (t.startDate) {
+                      const _sd = new Date(t.startDate);
+                      if (!isNaN(_sd.getTime())) {
+                        const _ed = new Date(_sd); _ed.setMonth(_ed.getMonth() + parseInt(_sm));
+                        const _daysLeft = Math.ceil((_ed - new Date()) / 86400000);
+                        _seasonInfo += ` (encerra ${_ed.toLocaleDateString('pt-BR')})`;
+                        if (_daysLeft > 0 && _daysLeft <= 7) {
+                          _seasonInfo += ` <span style="color:#f59e0b;font-weight:700;">⚠️ ${_daysLeft}d restante${_daysLeft > 1 ? 's' : ''}</span>`;
+                        }
+                      }
+                    }
+                    return _seasonInfo + '</div>';
+                  })() : ''}
                   ${(t.drawFirstDate) ? `<div><strong>1º Sorteio:</strong> ${(() => { try { var _dd = t.drawFirstDate.split('-'); return _dd[2] + '/' + _dd[1] + '/' + _dd[0]; } catch(e) { return t.drawFirstDate; } })()} às ${t.drawFirstTime || '19:00'}</div>` : ''}
                   ${(t.drawIntervalDays) ? `<div><strong>Intervalo:</strong> ${t.drawManual ? 'Manual' : 'A cada ' + t.drawIntervalDays + ' dia' + (t.drawIntervalDays > 1 ? 's' : '') + ' (automático)'}</div>` : ''}
                   ${(!t.combinedCategories || t.combinedCategories.length === 0) ? `<div><strong>Categorias:</strong> ${cats}</div>` : ''}
@@ -6429,11 +6474,28 @@ function renderTournaments(container, tournamentId = null) {
         pollBannerHtml = window._renderPollBanner(visible[0]);
     }
 
+    // Search/filter bar (only on list view, not detail)
+    var filterBarHtml = '';
+    if (!tournamentId && visible.length > 3) {
+      filterBarHtml = `
+        <div style="display:flex;gap:8px;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="tourn-filter-input" class="form-control" placeholder="Filtrar por nome, esporte ou formato..." style="flex:1;min-width:180px;box-sizing:border-box;padding:8px 12px;font-size:0.85rem;">
+          <select id="tourn-filter-status" class="form-control" style="width:auto;padding:8px 10px;font-size:0.85rem;background:var(--bg-darker);border:1px solid var(--border-color);cursor:pointer;">
+            <option value="">Todos</option>
+            <option value="open">Inscrições Abertas</option>
+            <option value="active">Em Andamento</option>
+            <option value="finished">Encerrados</option>
+          </select>
+        </div>
+      `;
+    }
+
     const html = `
     ${headerHtml}
+    ${filterBarHtml}
     ${pollBannerHtml}
 
-    <div class="tournaments-grid" style="display: grid; grid-template-columns: ${tournamentId ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'}; gap: 1.5rem;">
+    <div class="tournaments-grid" id="tourn-grid-container" style="display: grid; grid-template-columns: ${tournamentId ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'}; gap: 1.5rem;">
       ${gridHtml}
     </div>
 
@@ -6449,6 +6511,37 @@ function renderTournaments(container, tournamentId = null) {
     ` : ''}
   `;
     container.innerHTML = html;
+
+    // Setup filter bar handlers
+    var _filterInput = document.getElementById('tourn-filter-input');
+    var _filterStatus = document.getElementById('tourn-filter-status');
+    if (_filterInput || _filterStatus) {
+      var _allCards = document.querySelectorAll('#tourn-grid-container > div');
+      var _applyFilter = function() {
+        var q = (_filterInput ? _filterInput.value : '').toLowerCase().trim();
+        var statusFilter = _filterStatus ? _filterStatus.value : '';
+        _allCards.forEach(function(card) {
+          var text = (card.textContent || '').toLowerCase();
+          var matchesText = !q || text.indexOf(q) !== -1;
+          var matchesStatus = true;
+          if (statusFilter) {
+            var hasInscAbertas = text.indexOf('inscrições abertas') !== -1 || text.indexOf('liga ativa') !== -1;
+            var hasEmAndamento = text.indexOf('em andamento') !== -1;
+            var hasEncerrado = text.indexOf('encerrado') !== -1;
+            if (statusFilter === 'open') matchesStatus = hasInscAbertas;
+            else if (statusFilter === 'active') matchesStatus = hasEmAndamento;
+            else if (statusFilter === 'finished') matchesStatus = hasEncerrado;
+          }
+          card.style.display = (matchesText && matchesStatus) ? '' : 'none';
+        });
+      };
+      if (_filterInput) {
+        _filterInput.addEventListener('input', _applyFilter);
+      }
+      if (_filterStatus) {
+        _filterStatus.addEventListener('change', _applyFilter);
+      }
+    }
 
     // Check category notifications for current user on this tournament
     if (tournamentId) {
