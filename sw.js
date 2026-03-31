@@ -1,7 +1,7 @@
 // scoreplace.app — Service Worker
 // Cache-first for static assets, network-first for API/Firebase
 
-var CACHE_NAME = 'scoreplace-v0.2.14';
+var CACHE_NAME = 'scoreplace-v0.2.15';
 var STATIC_ASSETS = [
   '/',
   '/index.html',
