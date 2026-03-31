@@ -226,6 +226,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Meu Desempenho</b> — O perfil do jogador agora exibe estatísticas pessoais: torneios participados, partidas jogadas, vitórias, derrotas, empates, aproveitamento (%) e títulos conquistados. Os dados são calculados em tempo real a partir de todos os torneios no sistema.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Validação de datas</b> — Ao criar ou editar torneio, o sistema agora valida que a data de fim é posterior à de início e que o prazo de inscrição é anterior ao início.</p>' +
         '<p><b>Inscrição automática</b> — Se a inscrição automática após login falhar (conexão lenta), o usuário agora recebe um aviso para tentar manualmente.</p>' +
