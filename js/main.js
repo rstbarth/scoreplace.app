@@ -222,10 +222,51 @@
         '<p>O organizador pode arrastar para reordenar a prioridade dos critérios na criação do torneio.</p>'
     },
     {
+      id: 'atalhos-teclado',
+      title: 'Atalhos de Teclado',
+      icon: '⌨️',
+      content: '<div style="display:grid;grid-template-columns:80px 1fr;gap:8px 16px;font-size:0.85rem;">' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">Ctrl+K</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir busca rápida global</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">/</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir busca rápida</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">D</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Ir para Dashboard</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">E</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Explorar torneios</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">N</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Criar novo torneio</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">?</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir/fechar esta ajuda</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">ESC</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Fechar modal atual</span>' +
+        '</div>' +
+        '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">Os atalhos funcionam quando nenhum campo de texto está focado.</p>'
+    },
+    {
       id: 'notas-versoes',
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.36-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Modo Compacto do Dashboard</b> — Toggle "Cards/Lista" no dashboard para alternar entre visualização em cards (padrão) e lista compacta. Modo lista mostra nome, esporte, formato, data, participantes, progresso e status em uma linha por torneio. Ideal para quem gerencia muitos torneios. Preferência salva em localStorage.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.35-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Atalhos de Teclado Globais</b> — Navegação rápida: D (Dashboard), E (Explorar), N (Novo Torneio), / (Busca), ? (Ajuda), ESC (Fechar modal). Atalhos desativados automaticamente quando digitando em campos de texto. Nova seção "⌨️ Atalhos de Teclado" no modal de Ajuda.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Histórico de Atividades</b> — Seção "📜 Histórico de Atividades" na página de detalhes do torneio. Log visual cronológico com: criação, inscrições, sorteio, início, resultados de partidas e encerramento. Colapsável, mostra últimos 15 eventos com opção de expandir anteriores. Construído dinamicamente dos dados existentes sem necessidade de banco extra.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.33-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Estatísticas do Jogador</b> — Clique no nome de qualquer jogador para ver suas estatísticas consolidadas. Modal com: torneios disputados, vitórias, derrotas, empates, partidas totais, % de aproveitamento, títulos. Lista de torneios disputados com links. Disponível no chaveamento, classificação e lista de inscritos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.32-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>QR Code do Torneio</b> — Botão "📱 QR Code" na página do torneio e no chaveamento. Modal com QR code para compartilhar link. Ideal para projetar em eventos presenciais. Opções: copiar link, baixar PNG e imprimir. Suporta tema claro/escuro.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.31-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Busca Rápida (Ctrl+K)</b> — Pressione Ctrl+K (ou Cmd+K no Mac) para abrir busca global. Encontre torneios por nome, esporte, formato ou local. Busque jogadores inscritos. Ações rápidas: Novo Torneio, Dashboard, Explorar, Notificações, Ajuda. Busca com debounce de 150ms.</p>' +
+        '<p><b>Torneios Encerrados</b> — Separados em seção colapsável no dashboard.</p>' +
+        '<p><b>Compartilhar Resultado</b> — Botão "📤" em partidas concluídas para WhatsApp/clipboard.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.28-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Tema Claro/Escuro</b> — Botão 🌙/☀️ no header para alternar entre tema escuro e claro. Preferência salva em localStorage. Transição suave de 300ms. CSS com overrides específicos para o tema claro.</p>' +
         '<p><b>Countdown de Início</b> — Torneios com data futura mostram "Começa hoje/amanhã/em X dias" nos cards e detalhes.</p>' +
@@ -640,4 +681,202 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
   if (!navigator.onLine) {
     showBanner('Sem conexão — modo offline', 'rgba(239,68,68,0.95)', '#fff', false);
   }
+})();
+
+// === Quick Search (Ctrl+K / Cmd+K) ===
+(function() {
+  // Create search overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'quick-search-overlay';
+  overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:99998;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);';
+  overlay.onclick = function(e) { if (e.target === overlay) window._closeQuickSearch(); };
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:15%;left:50%;transform:translateX(-50%);width:90%;max-width:540px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,0.5);z-index:99999;overflow:hidden;';
+
+  modal.innerHTML =
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;">' +
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+    '<input type="text" id="quick-search-input" placeholder="Buscar torneios, jogadores..." style="flex:1;background:transparent;border:none;color:var(--text-bright);font-size:1.05rem;outline:none;" autocomplete="off">' +
+    '<kbd style="font-size:0.65rem;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);">ESC</kbd>' +
+    '</div>' +
+    '<div id="quick-search-results" style="max-height:360px;overflow-y:auto;padding:8px;"></div>';
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  window._openQuickSearch = function() {
+    overlay.style.display = 'block';
+    var input = document.getElementById('quick-search-input');
+    if (input) { input.value = ''; input.focus(); }
+    _showQuickSearchDefaults();
+  };
+
+  window._closeQuickSearch = function() {
+    overlay.style.display = 'none';
+  };
+
+  function _showQuickSearchDefaults() {
+    var resultsDiv = document.getElementById('quick-search-results');
+    if (!resultsDiv) return;
+    var html = '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Ações rápidas</div>';
+    var actions = [
+      { icon: '➕', label: 'Novo Torneio', action: "if(typeof openModal==='function')openModal('modal-quick-create');window._closeQuickSearch();" },
+      { icon: '🏠', label: 'Dashboard', action: "window.location.hash='#dashboard';window._closeQuickSearch();" },
+      { icon: '🔍', label: 'Explorar Comunidade', action: "window.location.hash='#explore';window._closeQuickSearch();" },
+      { icon: '🔔', label: 'Notificações', action: "window.location.hash='#notifications';window._closeQuickSearch();" },
+      { icon: '❓', label: 'Ajuda / Manual', action: "if(typeof openModal==='function')openModal('modal-help');window._closeQuickSearch();" }
+    ];
+    actions.forEach(function(a) {
+      html += '<div onclick="' + a.action + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+        '<span style="font-size:1.1rem;">' + a.icon + '</span>' +
+        '<span style="font-size:0.9rem;color:var(--text-bright);">' + a.label + '</span>' +
+        '</div>';
+    });
+    resultsDiv.innerHTML = html;
+  }
+
+  function _performQuickSearch(query) {
+    var resultsDiv = document.getElementById('quick-search-results');
+    if (!resultsDiv) return;
+    if (!query || query.length < 2) { _showQuickSearchDefaults(); return; }
+
+    var q = query.toLowerCase();
+    var tournaments = (window.AppStore && window.AppStore.tournaments) ? window.AppStore.tournaments : [];
+    var html = '';
+
+    // Search tournaments
+    var matchedTournaments = tournaments.filter(function(t) {
+      return (t.name && t.name.toLowerCase().indexOf(q) !== -1) ||
+             (t.sport && t.sport.toLowerCase().indexOf(q) !== -1) ||
+             (t.venueName && t.venueName.toLowerCase().indexOf(q) !== -1) ||
+             (t.format && t.format.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 6);
+
+    if (matchedTournaments.length > 0) {
+      html += '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Torneios</div>';
+      matchedTournaments.forEach(function(t) {
+        var status = t.status === 'finished' ? '🏆 Encerrado' : (t.status === 'active' ? '▶ Ativo' : '📋 Aberto');
+        html += '<div onclick="window.location.hash=\'#tournaments/' + t.id + '\';window._closeQuickSearch();" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+          '<span style="font-size:1.1rem;">🏅</span>' +
+          '<div style="flex:1;overflow:hidden;">' +
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (window._safeHtml ? window._safeHtml(t.name) : t.name) + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);">' + (t.format || '') + ' — ' + (t.sport || '') + '</div>' +
+          '</div>' +
+          '<span style="font-size:0.65rem;color:var(--text-muted);">' + status + '</span>' +
+          '</div>';
+      });
+    }
+
+    // Search players across tournaments
+    var playerSet = {};
+    tournaments.forEach(function(t) {
+      if (!t.participants) return;
+      var arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+      arr.forEach(function(p) {
+        var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        if (name && name.toLowerCase().indexOf(q) !== -1 && !name.includes('BYE')) {
+          if (!playerSet[name]) playerSet[name] = [];
+          playerSet[name].push(t.name);
+        }
+      });
+    });
+
+    var playerNames = Object.keys(playerSet).slice(0, 5);
+    if (playerNames.length > 0) {
+      html += '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Jogadores</div>';
+      playerNames.forEach(function(name) {
+        var tourneys = playerSet[name].slice(0, 2).join(', ');
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:default;">' +
+          '<span style="font-size:1.1rem;">👤</span>' +
+          '<div style="flex:1;overflow:hidden;">' +
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text-bright);">' + (window._safeHtml ? window._safeHtml(name) : name) + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);">' + tourneys + '</div>' +
+          '</div></div>';
+      });
+    }
+
+    if (!html) {
+      html = '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.85rem;">Nenhum resultado para "' + (window._safeHtml ? window._safeHtml(query) : query) + '"</div>';
+    }
+    resultsDiv.innerHTML = html;
+  }
+
+  // Input handler with debounce
+  var _searchTimeout = null;
+  document.getElementById('quick-search-input').addEventListener('input', function() {
+    var val = this.value.trim();
+    clearTimeout(_searchTimeout);
+    _searchTimeout = setTimeout(function() { _performQuickSearch(val); }, 150);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+K or Cmd+K to open
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (overlay.style.display === 'none') window._openQuickSearch();
+      else window._closeQuickSearch();
+    }
+    // ESC to close
+    if (e.key === 'Escape' && overlay.style.display !== 'none') {
+      window._closeQuickSearch();
+    }
+  });
+})();
+
+// === Global Keyboard Shortcuts ===
+(function setupGlobalShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    // Skip if typing in an input, textarea, select, or contentEditable
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+    // Skip if any modifier key is held (except for specific combos)
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Skip if a modal is open
+    if (document.getElementById('qr-modal-overlay') || document.getElementById('player-stats-overlay')) return;
+    var quickSearchOverlay = document.getElementById('quick-search-overlay');
+    if (quickSearchOverlay && quickSearchOverlay.style.display !== 'none') return;
+
+    switch (e.key.toLowerCase()) {
+      case 'd':
+        e.preventDefault();
+        window.location.hash = '#dashboard';
+        break;
+      case 'e':
+        e.preventDefault();
+        window.location.hash = '#tournaments';
+        break;
+      case 'n':
+        e.preventDefault();
+        if (typeof window.quickCreate === 'function') window.quickCreate();
+        else window.location.hash = '#create';
+        break;
+      case '?':
+        e.preventDefault();
+        var helpModal = document.getElementById('modal-help');
+        if (helpModal) {
+          helpModal.style.display = helpModal.style.display === 'none' ? 'flex' : 'none';
+        }
+        break;
+      case '/':
+        // Focus quick search
+        e.preventDefault();
+        if (typeof window._openQuickSearch === 'function') window._openQuickSearch();
+        break;
+    }
+  });
+
+  // Show keyboard shortcuts hint in help modal
+  window._keyboardShortcutsHtml = '<div style="margin-top:1rem;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;">' +
+    '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">⌨️ Atalhos de Teclado</div>' +
+    '<div style="display:grid;grid-template-columns:60px 1fr;gap:4px 12px;font-size:0.78rem;">' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">Ctrl+K</kbd><span style="color:var(--text-muted);">Busca rápida</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">/</kbd><span style="color:var(--text-muted);">Busca rápida</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">D</kbd><span style="color:var(--text-muted);">Dashboard</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">E</kbd><span style="color:var(--text-muted);">Explorar torneios</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">N</kbd><span style="color:var(--text-muted);">Novo torneio</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">?</kbd><span style="color:var(--text-muted);">Ajuda</span>' +
+    '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">ESC</kbd><span style="color:var(--text-muted);">Fechar modal</span>' +
+    '</div></div>';
 })();
