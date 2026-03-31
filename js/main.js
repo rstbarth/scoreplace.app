@@ -226,6 +226,15 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Suas Próximas Partidas</b> — O dashboard agora exibe um widget com suas partidas pendentes em torneios ativos. Mostra o oponente, torneio e esporte — clique para ir direto à partida.</p>' +
+        '<p><b>Modo Offline</b> — Banner informativo quando a conexão cai e confirmação quando reconecta. Complemento do PWA para melhor experiência offline.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Filtro de Torneios</b> — A lista de torneios agora possui barra de busca por nome, esporte ou formato, além de filtro por status (Inscrições Abertas, Em Andamento, Encerrados). Filtragem instantânea sem recarregar a página.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.13-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>PWA — Instale no celular!</b> — scoreplace.app agora pode ser instalado como app no seu dispositivo. Acesse pelo navegador e toque em "Adicionar à tela inicial". Carregamento mais rápido com cache inteligente (stale-while-revalidate).</p>' +
         '<p><b>Histórico de Torneios</b> — O perfil agora mostra a lista dos últimos torneios com posição final (🥇🥈🥉), formato e status. Clique para ir direto ao torneio.</p>' +
@@ -541,3 +550,41 @@ if (window.AppStore && window.AppStore._loadFromCache) {
 initRouter();
 
 console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Inicializado com Sucesso");
+
+// === Offline/Online indicator ===
+(function() {
+  var banner = document.createElement('div');
+  banner.id = 'offline-banner';
+  banner.style.cssText = 'display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:10px 16px;text-align:center;font-size:0.85rem;font-weight:600;transition:transform 0.3s ease;';
+  banner.innerHTML = '<span id="offline-banner-text"></span>';
+  document.body.appendChild(banner);
+
+  function showBanner(text, bg, color, autoHide) {
+    var b = document.getElementById('offline-banner');
+    var t = document.getElementById('offline-banner-text');
+    if (!b || !t) return;
+    t.textContent = text;
+    b.style.background = bg;
+    b.style.color = color;
+    b.style.display = 'block';
+    b.style.transform = 'translateY(0)';
+    if (autoHide) {
+      setTimeout(function() {
+        b.style.transform = 'translateY(100%)';
+        setTimeout(function() { b.style.display = 'none'; }, 350);
+      }, 3000);
+    }
+  }
+
+  window.addEventListener('offline', function() {
+    showBanner('Sem conexão — modo offline', 'rgba(239,68,68,0.95)', '#fff', false);
+  });
+  window.addEventListener('online', function() {
+    showBanner('Conexão restaurada', 'rgba(16,185,129,0.95)', '#fff', true);
+  });
+
+  // Show immediately if already offline
+  if (!navigator.onLine) {
+    showBanner('Sem conexão — modo offline', 'rgba(239,68,68,0.95)', '#fff', false);
+  }
+})();

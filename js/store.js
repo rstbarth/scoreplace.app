@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.2.13-alpha';
+window.SCOREPLACE_VERSION = '0.2.15-alpha';
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
@@ -50,7 +50,7 @@ window.AppStore = {
         console.log('AppStore: ' + this.tournaments.length + ' torneios do cache local');
         return true;
       }
-    } catch(e) {}
+    } catch(e) { console.warn('[AppStore] Erro ao carregar cache local:', e.message); }
     return false;
   },
 
