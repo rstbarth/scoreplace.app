@@ -1097,7 +1097,8 @@ function _populatePlayerStats() {
     wins: 0,
     losses: 0,
     draws: 0,
-    titles: 0        // 1st place finishes
+    titles: 0,       // 1st place finishes
+    history: []      // [{name, id, format, status, position}]
   };
 
   // Helper: check if a participant string/object matches the current user
@@ -1199,23 +1200,46 @@ function _populatePlayerStats() {
       }
     }
 
-    // Check for titles (1st place)
+    // Check for titles and position
+    var _myPosition = null;
     if (t.status === 'finished') {
       // Eliminatórias: check if won the final
       if (Array.isArray(t.matches) && t.matches.length > 0) {
         var finalMatch = t.matches[t.matches.length - 1];
         if (finalMatch && finalMatch.winner && _isMyLabel(finalMatch.winner)) {
           stats.titles++;
+          _myPosition = 1;
+        } else if (finalMatch && finalMatch.winner) {
+          // Lost the final = 2nd place
+          if (_isMyLabel(finalMatch.p1) || _isMyLabel(finalMatch.p2)) _myPosition = 2;
+        }
+        // Check 3rd place match
+        if (!_myPosition && t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+          if (_isMyLabel(t.thirdPlaceMatch.winner)) _myPosition = 3;
         }
       }
       // Liga/Suíço: check standings
       if (Array.isArray(t.standings) && t.standings.length > 0) {
-        var first = t.standings[0];
-        if (first && _isMyLabel(first.name || first.player || first.displayName)) {
-          stats.titles++;
+        for (var si = 0; si < t.standings.length; si++) {
+          var _sp = t.standings[si];
+          if (_sp && _isMyLabel(_sp.name || _sp.player || _sp.displayName)) {
+            _myPosition = si + 1;
+            if (si === 0) stats.titles++;
+            break;
+          }
         }
       }
     }
+
+    // Build history entry
+    stats.history.push({
+      name: t.name || 'Sem nome',
+      id: t.id,
+      format: t.format || '?',
+      status: t.status || 'open',
+      position: _myPosition,
+      date: t.startDate || t.createdAt || ''
+    });
   }
 
   // Render stats
@@ -1267,6 +1291,40 @@ function _populatePlayerStats() {
     html += '<div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">' +
       '📋 Você organizou ' + stats.tournamentsOrganized + ' torneio' + (stats.tournamentsOrganized > 1 ? 's' : '') +
     '</div>';
+  }
+
+  // Tournament history list (most recent first, max 8)
+  if (stats.history.length > 0) {
+    stats.history.sort(function(a, b) {
+      return (b.date || '').localeCompare(a.date || '');
+    });
+    var maxShow = Math.min(stats.history.length, 8);
+    html += '<div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 10px;">';
+    html += '<div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Histórico de Torneios</div>';
+    for (var hi = 0; hi < maxShow; hi++) {
+      var h = stats.history[hi];
+      var posIcon = '';
+      if (h.position === 1) posIcon = '🥇';
+      else if (h.position === 2) posIcon = '🥈';
+      else if (h.position === 3) posIcon = '🥉';
+      else if (h.position) posIcon = h.position + 'º';
+
+      var statusIcon = h.status === 'finished' ? '✅' : (h.status === 'active' ? '▶️' : '⏳');
+      var safeName = window._safeHtml ? window._safeHtml(h.name) : h.name;
+
+      html += '<div onclick="window.location.hash=\'#tournament/' + h.id + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
+        'style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:background 0.15s;" ' +
+        'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
+        '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">' + safeName + '</span>' +
+        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + h.format + '</span>' +
+        (posIcon ? '<span style="flex-shrink:0;min-width:24px;text-align:right;">' + posIcon + '</span>' : '') +
+      '</div>';
+    }
+    if (stats.history.length > maxShow) {
+      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px;">e mais ' + (stats.history.length - maxShow) + ' torneio' + ((stats.history.length - maxShow) > 1 ? 's' : '') + '...</div>';
+    }
+    html += '</div>';
   }
 
   el.innerHTML = html;

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.2.12-alpha';
+window.SCOREPLACE_VERSION = '0.2.13-alpha';
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {

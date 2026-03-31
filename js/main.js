@@ -226,7 +226,9 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.13-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>PWA — Instale no celular!</b> — scoreplace.app agora pode ser instalado como app no seu dispositivo. Acesse pelo navegador e toque em "Adicionar à tela inicial". Carregamento mais rápido com cache inteligente (stale-while-revalidate).</p>' +
+        '<p><b>Histórico de Torneios</b> — O perfil agora mostra a lista dos últimos torneios com posição final (🥇🥈🥉), formato e status. Clique para ir direto ao torneio.</p>' +
         '<p><b>Temporada Liga — Auto-encerramento</b> — Torneios Liga com duração de temporada definida agora são encerrados automaticamente quando o prazo expira. Standings finais são calculados e salvos. Aviso visual "⚠️ X dias restantes" quando faltam 7 dias ou menos.</p>' +
         '<p><b>Segurança</b> — Nomes de participantes são agora sanitizados contra XSS na lista de participantes. Utilitário global <code>_safeHtml()</code> disponível para uso em todo o app.</p>' +
         '</div>' +
