@@ -2293,6 +2293,11 @@ function setupCreateTournamentModal() {
           }
           showNotification('Sucesso', 'Torneio atualizado!', 'success');
         } else {
+          // Feature gate: limite de torneios no plano Free
+          if (!window._canCreateTournament()) {
+            window._showUpgradeModal('tournaments');
+            return;
+          }
           window.AppStore.addTournament(tourData);
           showNotification('Torneio Criado', `O torneio "${name}" foi salvo com sucesso.`, 'success');
         }

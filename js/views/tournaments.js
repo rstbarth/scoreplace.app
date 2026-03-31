@@ -2813,6 +2813,11 @@ function renderTournaments(container, tournamentId = null) {
                     participantObj.category = catsArr[0]; // backward compat
                     participantObj.categorySource = 'inscricao';
                 }
+                // Feature gate: limite de participantes no plano Free (organizador do torneio)
+                if (window.AppStore.isOrganizer(t) && !window._canAddParticipant(t)) {
+                    window._showUpgradeModal('participants');
+                    return;
+                }
                 if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
                     window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
                         if (result.alreadyEnrolled) {

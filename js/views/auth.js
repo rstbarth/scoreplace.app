@@ -849,6 +849,12 @@ async function simulateLoginSuccess(user) {
     window.location.hash = dest;
   }
 
+  // Show/hide Pro upgrade button based on plan
+  var proBtn = document.getElementById('btn-upgrade-pro');
+  if (proBtn) {
+    proBtn.style.display = window._isPro() ? 'none' : 'flex';
+  }
+
   // Initialize router to load appropriate views
   if (typeof initRouter === 'function') initRouter();
   window._simulateLoginInProgress = false;
