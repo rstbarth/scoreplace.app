@@ -5363,6 +5363,13 @@ function renderTournaments(container, tournamentId = null) {
          </div>
       `;
 
+        // Botão inscrever/desinscrever — disponível em todos os contextos (detalhe e listagem)
+        const enrollBtnHtml = (isParticipating && isAberto) ? `
+             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>
+          ` : (isAberto ? `
+             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
+          ` : '');
+
         // Ações Específicas da tela Explore
         let actionsHtml = '';
         if (tournamentId) {
@@ -5448,12 +5455,6 @@ function renderTournaments(container, tournamentId = null) {
           `;
 
             const editModalHtml = '';
-
-            const enrollBtnHtml = (isParticipating && isAberto) ? `
-             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>
-          ` : (isAberto ? `
-             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
-          ` : '');
 
             const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
             const tournamentStarted = !!t.tournamentStarted;
@@ -5693,12 +5694,6 @@ function renderTournaments(container, tournamentId = null) {
              `;
             }
         } else {
-            const enrollBtnHtml = (isParticipating && isAberto) ? `
-             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>
-          ` : (isAberto ? `
-             <button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
-          ` : '');
-
             actionsHtml = `
             ${teamEnrollModalHtml}
             <div class="d-flex justify-between align-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.15);">
