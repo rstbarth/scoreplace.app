@@ -201,6 +201,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Auto-inscrição com categorias</b> — Ao aceitar convite, o participante agora é inscrito automaticamente na categoria correta com base no gênero do perfil. Organizador recebe notificação da nova inscrição.</p>' +
+        '<p><b>Cancelar inscrição seguro</b> — Corrigido bug onde nomes parciais podiam causar remoção do participante errado (ex: "Ana" removendo "Ana Paula"). Agora usa comparação exata.</p>' +
+        '<p><b>Criar torneio — limpeza</b> — Removida referência a campo de periodicidade de Liga que não existia mais no HTML, eliminando erros silenciosos na criação e edição.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Detecção de mesclagem aprimorada</b> — O ícone de desmesclar agora aparece em qualquer categoria resultante de mesclagem: categorias com "/" no nome (ex: "Fem A/B"), prefixos puros quando há categorias de habilidade (ex: "Masc"), e categorias com histórico de mesclagem. Unmerge inferido para categorias sem mergeHistory.</p>' +
         '<p><b>Cache-buster por versão</b> — Todos os arquivos JS e CSS agora usam ?v=0.2.3-alpha em vez de numeração sequencial, facilitando o rastreamento de versão no cache do navegador.</p>' +
