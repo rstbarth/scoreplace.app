@@ -1765,7 +1765,110 @@ function renderStandings(t, isOrg, canEnterResult) {
     </div>`;
   }).join('');
 
-  return standingsTablesHtml + currentRoundHtml;
+  // ── Previous rounds (collapsed, expandable) ──────────────────────────────
+  let previousRoundsHtml = '';
+  if (currentRound > 1) {
+    let prevRoundsInner = '';
+    for (var ri = currentRound - 2; ri >= 0; ri--) {
+      var rd = rounds[ri];
+      if (!rd || !rd.matches || rd.matches.length === 0) continue;
+      var prevMatchOffset = rounds.slice(0, ri).reduce(function(sum, r) { return sum + (r.matches || []).length; }, 0);
+      var rdComplete = (rd.matches || []).every(function(m) { return m.winner; });
+      prevRoundsInner += '<div style="margin-bottom: 12px;">' +
+        '<div style="font-weight: 700; font-size: 0.85rem; color: var(--text-bright); margin-bottom: 8px;">Rodada ' + (ri + 1) + (rdComplete ? ' — Encerrada ✓' : '') + '</div>' +
+        '<div style="display: flex; flex-wrap: wrap; gap: 12px;">';
+      rd.matches.forEach(function(m, mi) {
+        if (!m.p1 && !m.p2) return;
+        var w = m.winner;
+        var isDraw = w === 'draw' || m.draw;
+        var p1Style = w === m.p1 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
+        var p2Style = w === m.p2 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
+        var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : (w ? (isDraw ? 'Empate' : '') : 'Pendente');
+        prevRoundsInner += '<div style="min-width: 200px; flex: 1; max-width: 280px; background: rgba(0,0,0,0.15); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem;">' +
+          '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+          '<span style="' + p1Style + '">' + (m.p1 || 'TBD') + '</span>' +
+          '<span style="font-size: 0.7rem; color: var(--text-muted); margin: 0 6px;">' + score + '</span>' +
+          '<span style="' + p2Style + '">' + (m.p2 || 'TBD') + '</span>' +
+          '</div></div>';
+      });
+      prevRoundsInner += '</div></div>';
+    }
+    if (prevRoundsInner) {
+      previousRoundsHtml = '<div class="card" style="margin-top: 1rem;">' +
+        '<details>' +
+        '<summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-bright); padding: 4px 0; user-select: none;">📜 Rodadas Anteriores (' + (currentRound - 1) + ')</summary>' +
+        '<div style="margin-top: 12px;">' + prevRoundsInner + '</div>' +
+        '</details></div>';
+    }
+  }
+
+  // ── Tournament statistics summary ─────────────────────────────────────────
+  let statsHtml = '';
+  if (currentRound >= 2) {
+    // Compute from all standings sections
+    var allPlayers = [];
+    standingsSections.forEach(function(sec) {
+      var catLabel = sec.label;
+      var computed = typeof window._computeStandings === 'function'
+        ? window._computeStandings(t, catLabel || undefined)
+        : [];
+      computed.forEach(function(s) { allPlayers.push(s); });
+    });
+    if (allPlayers.length > 0) {
+      // Sort by different metrics
+      var byWins = allPlayers.slice().sort(function(a, b) { return b.wins - a.wins || b.points - a.points; });
+      var byStreak = []; // find current win streaks
+      allPlayers.forEach(function(p) {
+        var streak = 0;
+        // Count consecutive wins from most recent matches
+        for (var ri2 = rounds.length - 1; ri2 >= 0; ri2--) {
+          var foundMatch = false;
+          (rounds[ri2].matches || []).forEach(function(m) {
+            if (foundMatch) return;
+            if (m.p1 === p.name || m.p2 === p.name) {
+              foundMatch = true;
+              if (m.winner === p.name) { streak++; }
+              else { streak = -1; } // break
+            }
+          });
+          if (streak === -1) { streak = 0; break; }
+          if (!foundMatch) break;
+        }
+        if (streak >= 2) byStreak.push({ name: p.name, streak: streak });
+      });
+      byStreak.sort(function(a, b) { return b.streak - a.streak; });
+
+      var statItems = [];
+      if (byWins[0] && byWins[0].wins > 0) {
+        statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(251,191,36,0.08); border-radius: 10px; border-left: 3px solid #fbbf24;">' +
+          '<span style="font-size: 1.1rem;">⚡</span>' +
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Mais vitórias</div>' +
+          '<div style="font-weight: 700; color: var(--text-bright);">' + byWins[0].name + ' <span style="color: #4ade80;">(' + byWins[0].wins + 'V)</span></div></div></div>');
+      }
+      if (byStreak[0] && byStreak[0].streak >= 2) {
+        statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(16,185,129,0.08); border-radius: 10px; border-left: 3px solid #10b981;">' +
+          '<span style="font-size: 1.1rem;">🔥</span>' +
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Sequência de vitórias</div>' +
+          '<div style="font-weight: 700; color: var(--text-bright);">' + byStreak[0].name + ' <span style="color: #10b981;">(' + byStreak[0].streak + ' seguidas)</span></div></div></div>');
+      }
+      var totalMatches = rounds.reduce(function(sum, r) { return sum + (r.matches || []).filter(function(m) { return m.winner && !m.isBye; }).length; }, 0);
+      var totalDraws = rounds.reduce(function(sum, r) { return sum + (r.matches || []).filter(function(m) { return m.winner === 'draw' || m.draw; }).length; }, 0);
+      if (totalMatches > 0) {
+        statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(99,102,241,0.08); border-radius: 10px; border-left: 3px solid #6366f1;">' +
+          '<span style="font-size: 1.1rem;">📈</span>' +
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Partidas disputadas</div>' +
+          '<div style="font-weight: 700; color: var(--text-bright);">' + totalMatches + ' partidas' + (totalDraws > 0 ? ' <span style="color: #94a3b8;">(' + totalDraws + ' empate' + (totalDraws > 1 ? 's' : '') + ')</span>' : '') + '</div></div></div>');
+      }
+
+      if (statItems.length > 0) {
+        statsHtml = '<div class="card" style="margin-top: 1rem;">' +
+          '<h3 class="card-title" style="margin: 0 0 12px 0; font-size: 0.95rem;">📊 Estatísticas do Torneio</h3>' +
+          '<div style="display: flex; flex-wrap: wrap; gap: 10px;">' + statItems.join('') + '</div></div>';
+      }
+    }
+  }
+
+  return standingsTablesHtml + currentRoundHtml + statsHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
