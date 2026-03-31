@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.17-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.18-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,10 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.18-alpha (Marco 2026)**
+- Rodadas Anteriores: na classificacao de Liga e Suico, secao expansivel "Rodadas Anteriores" mostra todas as rodadas passadas com resultados compactos de cada partida (jogador1 x jogador2, placar, vencedor). Usa elemento <details> para nao poluir a tela. Rodadas listadas da mais recente para a mais antiga.
+- Estatisticas do Torneio: resumo visual com destaques automaticos a partir da 2a rodada. Mostra: jogador com mais vitorias (icone raio), maior sequencia de vitorias consecutivas (icone fogo, minimo 2), e total de partidas disputadas com contagem de empates. Dados calculados em tempo real a partir de _computeStandings e historico de rodadas.
 
 **v0.2.17-alpha (Marco 2026)**
 - Exportar Resultados CSV: botao "Exportar CSV" na pagina do torneio e no chaveamento. Gera arquivo CSV com classificacao (Liga/Suico: posicao, pontos, V/E/D, saldo, jogos) ou resultados das partidas (Eliminatorias: jogador 1, jogador 2, placar, vencedor, fase). BOM UTF-8 para compatibilidade com Excel. Funcao global window._exportTournamentCSV(tId).
