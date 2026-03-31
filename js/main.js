@@ -83,8 +83,7 @@
         '<p><b>Dupla Eliminatória</b> — Cada participante precisa perder 2 vezes para ser eliminado. Tem chave de vencedores e de perdedores.</p>' +
         '<p><b>Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Os participantes são divididos em grupos, jogam entre si, e os melhores de cada grupo avançam para as eliminatórias.</p>' +
         '<p><b>Suíço Clássico</b> — Todos jogam todas as rodadas. Os emparelhamentos são feitos por pontuação. Ótimo para xadrez e jogos de mesa. Número de rodadas configurável.</p>' +
-        '<p><b>Liga</b> — Temporada longa com rodadas periódicas (semanal, quinzenal, mensal). Permite inscrição aberta durante a temporada. Regras configuráveis para novos jogadores e inatividade.</p>' +
-        '<p><b>Ranking</b> — Temporada contínua (3, 6 ou 12 meses) com inscrições sempre abertas. Semelhante ao Suíço, mas sem limite de rodadas. Sorteios podem ser automáticos (com periodicidade configurável) ou manuais. Ideal para comunidades que jogam regularmente.</p>'
+        '<p><b>Liga</b> — Temporada contínua com classificação por pontos corridos. Duração configurável (indefinida, 3, 6, 12 meses ou personalizada). Inscrições podem permanecer abertas durante toda a temporada. Sorteios automáticos ou manuais com intervalo configurável. Regras de inatividade e pontuação de novos jogadores. Ideal para comunidades que jogam regularmente.</p>'
     },
     {
       id: 'inscricao',
@@ -190,7 +189,7 @@
         '<p><b>Categorias combinadas</b> — O sistema combina automaticamente gênero × habilidade. Exemplo: ativando Fem + Masc e digitando A, B gera: Fem A, Fem B, Masc A, Masc B.</p>' +
         '<p><b>Inscrição com categoria</b> — Ao se inscrever em um torneio com categorias, o participante escolhe a categoria desejada. Se o perfil já tiver gênero preenchido, as opções são filtradas automaticamente.</p>' +
         '<p><b>Sorteio e chaves por categoria</b> — O sorteio gera confrontos separados por categoria. Participantes só enfrentam adversários da mesma categoria.</p>' +
-        '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga, Suíço e Ranking.</p>' +
+        '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga e Suíço.</p>' +
         '<p><b>Misto Obrigatório</b> — Times devem ter 50% homens e 50% mulheres.</p>' +
         '<p><b>Misto Aleatório</b> — Aceita homens e mulheres sem restrição de proporção. A composição é definida pelo sorteio.</p>' +
         '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria (agrupados por gênero), mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes sem categoria. Clique em uma categoria para ver os inscritos. Categorias mescladas exibem um ícone de desmesclagem no canto superior direito, permitindo desfazer a mesclagem e reatribuir participantes às categorias originais.</p>' +
@@ -227,11 +226,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
-        '<p><b>Proteção contra re-sorteio</b> — Refazer o sorteio agora pede confirmação. Se já houver resultados registrados, avisa que serão perdidos. Sem resultados, aviso leve.</p>' +
-        '<p><b>Eliminatórias com categorias</b> — Torneios Eliminatórias agora geram chaveamento separado por categoria (Masc, Fem, Misto, etc.), cada um com seu bracket independente.</p>' +
-        '<p><b>Validação pré-sorteio</b> — Antes do sorteio, participantes sem categoria atribuída são identificados com aviso. Organizador pode prosseguir ou voltar para atribuir categorias.</p>' +
-        '<p><b>Reportar Problema</b> — Botão no manual (Sobre) para enviar feedback por e-mail com versão, dispositivo e dados do usuário preenchidos automaticamente.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Liga unificada</b> — Os formatos Liga e Ranking foram unificados em um único formato "Liga" com todas as opções combinadas: duração de temporada (indefinida, 3, 6, 12 meses ou personalizada), inscrições abertas configuráveis, agendamento de sorteios automáticos, regras de inatividade e pontuação de novos jogadores. Torneios existentes no formato Ranking continuam funcionando normalmente.</p>' +
+        '<p><b>Empate em Liga/Suíço</b> — Empates agora são permitidos em partidas de Liga e Suíço (1 ponto para cada). Classificação atualizada com coluna "E" (empates). Cálculo de Buchholz e Sonneborn-Berger corrigido para considerar empates.</p>' +
+        '<p><b>Proteção contra re-sorteio</b> — Refazer o sorteio agora pede confirmação. Se já houver resultados registrados, avisa que serão perdidos.</p>' +
+        '<p><b>Eliminatórias com categorias</b> — Torneios Eliminatórias agora geram chaveamento separado por categoria (Masc, Fem, Misto, etc.).</p>' +
+        '<p><b>Validação pré-sorteio</b> — Participantes sem categoria são identificados com aviso antes do sorteio.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
