@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.20-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.21-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.21-alpha (Marco 2026)**
+- Imprimir Chaveamento: botao "Imprimir" na pagina do bracket/classificacao. CSS @media print completo com fundo branco, tabelas com bordas visiveis, avatares ocultados, badges com borda, orientacao paisagem automatica (@page landscape). Classe .no-print para ocultar elementos na impressao. Funcao window._printBracket().
 
 **v0.2.20-alpha (Marco 2026)**
 - Testes Automatizados: arquivo tests.html com 21 testes unitarios cobrindo funcoes core. Framework de testes minimalista (describe/it/expect) sem dependencias externas. Testes cobrem: _safeHtml, _isLigaFormat, _getTournamentProgress, _computeStandings, _calcNextDrawDate, _shareTournament, _exportTournamentCSV, _cloneTournament, SCOREPLACE_VERSION. Pode ser rodado no browser (tests.html) ou via Node.js.
@@ -408,8 +411,8 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 ### Fase 2 — Infraestrutura e Qualidade
 1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console.
 2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes.
-3. **Otimizacao:** tournaments.js (~210KB) e bracket.js (~100KB) sao muito grandes — modularizar em arquivos menores.
-4. **Testes:** Nenhum teste automatizado existe ainda.
+3. **Otimizacao:** tournaments.js (~430KB) e bracket.js (~110KB) sao muito grandes — modularizar em arquivos menores.
+4. ~~**Testes:**~~ **FEITO em v0.2.20** — 21 testes unitarios em tests.html cobrindo funcoes core (classificacao, progresso, formatos, sanitizacao HTML). Framework minimalista sem dependencias.
 
 ### Fase 3 — Features Novas
 5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11** — Perfil com estatisticas (vitorias, derrotas, empates, aproveitamento, titulos) calculadas em tempo real.
