@@ -135,7 +135,7 @@ window._showSupportModal = function() {
         '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;line-height:1.6;">Sua contribuição ajuda a manter o scoreplace.app no ar e financiar novas funcionalidades. Qualquer valor faz diferença!</p>' +
         '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
           '<div style="margin-bottom:0.8rem;">' +
-            '<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;" />' +
+            '<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="display:block;margin:0 auto;width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;" />' +
           '</div>' +
           '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">Chave PIX (CNPJ):</div>' +
           '<div style="display:flex;align-items:center;gap:8px;justify-content:center;">' +
