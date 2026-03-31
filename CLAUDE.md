@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.0-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.1-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,11 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.3.1-alpha (Marco 2026)**
+- Layout do card de torneio: Botao Convidar logo abaixo do nome (esquerda). Botoes de organizador (Add Bot, CSV, Clonar, Editar, Comunicar) movidos para rodape do card separados por titulo "Ferramentas do Organizador".
+- Modo TV redesenhado: Hero com foto do local de fundo, nome grande, detalhes do torneio, relogio. Secao "Proximos Jogos" com cards dos confrontos pendentes e indicador de presenca. Secao "Aguardando Presenca" com contagem. Bracket/standings abaixo.
+- CSV export: Cabecalho horizontal (Torneio, Formato, Esporte, Data, Local, Inscritos) em uma linha para melhor visualizacao em paisagem.
 
 **v0.3.0-alpha (Marco 2026)**
 - Auto-inscricao por convite: Pessoa clica no link de convite, faz login e ja fica inscrita automaticamente no torneio + amizade com quem convidou. Sem cliques extras.
