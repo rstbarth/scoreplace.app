@@ -333,8 +333,8 @@
 @media (min-width: 768px) and (max-width: 1199px) {
   .topbar {
     padding: 0 1rem;
-    flex-wrap: nowrap !important;
-    overflow: hidden;
+    flex-wrap: wrap;
+    overflow: visible;
     gap: 4px;
   }
 
