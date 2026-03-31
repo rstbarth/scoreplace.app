@@ -82,8 +82,7 @@ function setupCreateTournamentModal() {
                   <option value="elim_dupla">Dupla Eliminatória — eliminação na segunda derrota</option>
                   <option value="grupos_mata">Fase de Grupos + Eliminatórias — estilo Copa do Mundo</option>
                   <option value="suico">Suíço Clássico — pontos corridos com emparelhamentos por pontos</option>
-                  <option value="liga">Liga — temporada com duração definida pelo organizador</option>
-                  <option value="ranking">Ranking — temporada contínua com sorteios periódicos</option>
+                  <option value="liga">Liga — temporada contínua com classificação por pontos</option>
                 </select>
               </div>
 
@@ -125,9 +124,25 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
 
-              <!-- Campos específicos: Liga -->
+              <!-- Campos específicos: Liga (unificado com antigo Ranking) -->
               <div id="liga-fields" style="display:none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações da Liga</p>
+                <div class="d-flex gap-2 mb-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">Duração da Temporada</label>
+                    <select class="form-control" id="liga-season-duration" onchange="window._onLigaSeasonChange()">
+                      <option value="indefinida">Indefinida (sem prazo)</option>
+                      <option value="3">3 meses</option>
+                      <option value="6">6 meses</option>
+                      <option value="12">12 meses (1 ano)</option>
+                      <option value="custom">Personalizado</option>
+                    </select>
+                  </div>
+                  <div class="form-group full-width" id="liga-custom-duration-container" style="display:none;">
+                    <label class="form-label">Meses de duração</label>
+                    <input type="number" class="form-control" id="liga-custom-months" min="1" max="36" value="6" placeholder="Ex: 9">
+                  </div>
+                </div>
                 <div class="d-flex gap-2 mb-2">
                   <div class="form-group full-width">
                     <label class="form-label">Pontuação de Novos Inscritos</label>
@@ -138,8 +153,6 @@ function setupCreateTournamentModal() {
                       <option value="organizer">Organizador decide na hora</option>
                     </select>
                   </div>
-                </div>
-                <div class="d-flex gap-2">
                   <div class="form-group full-width">
                     <label class="form-label">Regra de Inatividade</label>
                     <select class="form-control" id="liga-inactivity">
@@ -148,10 +161,10 @@ function setupCreateTournamentModal() {
                       <option value="remove">Remover após X rodadas sem jogar</option>
                     </select>
                   </div>
-                  <div class="form-group full-width" id="liga-inactivity-x-container" style="display:none;">
-                    <label class="form-label">Rodadas sem jogar para remoção</label>
-                    <input type="number" class="form-control" id="liga-inactivity-x" min="1" value="3">
-                  </div>
+                </div>
+                <div class="form-group" id="liga-inactivity-x-container" style="display:none;">
+                  <label class="form-label">Rodadas sem jogar para remoção</label>
+                  <input type="number" class="form-control" id="liga-inactivity-x" min="1" value="3">
                 </div>
                 <div class="form-group mt-2">
                   <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
@@ -187,74 +200,7 @@ function setupCreateTournamentModal() {
                   </div>
                 </div>
               </div>
-
-              <!-- Campos específicos: Ranking -->
-              <div id="ranking-fields" style="display:none; background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fb923c; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações do Ranking</p>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Duração da Temporada</label>
-                    <select class="form-control" id="ranking-season-duration">
-                      <option value="3">3 meses</option>
-                      <option value="6" selected>6 meses</option>
-                      <option value="12">12 meses (1 ano)</option>
-                      <option value="custom">Personalizado</option>
-                    </select>
-                  </div>
-                  <div class="form-group full-width" id="ranking-custom-duration-container" style="display:none;">
-                    <label class="form-label">Meses de duração</label>
-                    <input type="number" class="form-control" id="ranking-custom-months" min="1" max="36" value="6" placeholder="Ex: 9">
-                  </div>
-                </div>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Primeiro Sorteio</label>
-                    <div style="display:flex;gap:6px;">
-                      <input type="date" class="form-control" id="ranking-first-draw-date" style="flex:1;">
-                      <input type="time" class="form-control" id="ranking-first-draw-time" value="19:00" style="width:90px;">
-                    </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">Data e hora do primeiro sorteio de rodada.</small>
-                  </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">Repetir a cada</label>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <input type="number" class="form-control" id="ranking-draw-interval" min="1" max="90" value="7" style="flex:1;">
-                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">dias</span>
-                    </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">Intervalo entre sorteios automáticos.</small>
-                  </div>
-                </div>
-                <div class="form-group mb-2">
-                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="ranking-manual-draw" style="width:18px;height:18px;" onchange="window._onRankingManualChange()">
-                    <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
-                  </label>
-                  <small class="text-muted" style="display:block;margin-left:28px;">Se ativado, o organizador decide quando gerar cada rodada (sem automação).</small>
-                </div>
-                <div class="d-flex gap-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Pontuação de Novos Inscritos</label>
-                    <select class="form-control" id="ranking-new-player-score">
-                      <option value="zero">Zero absoluto</option>
-                      <option value="min">Mínima atual da tabela</option>
-                      <option value="avg">Média atual da tabela</option>
-                      <option value="organizer">Organizador decide na hora</option>
-                    </select>
-                  </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">Regra de Inatividade</label>
-                    <select class="form-control" id="ranking-inactivity">
-                      <option value="keep">Manter pontos</option>
-                      <option value="decay">Decaimento fixo por rodada</option>
-                      <option value="remove">Remover após X rodadas sem jogar</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group" id="ranking-inactivity-x-container" style="display:none; margin-top:0.5rem;">
-                  <label class="form-label">Rodadas sem jogar para remoção</label>
-                  <input type="number" class="form-control" id="ranking-inactivity-x" min="1" value="3" style="max-width:120px;">
-                </div>
-              </div>
+              <!-- ranking-fields removido em v0.2.6: unificado com liga-fields -->
 
               <!-- Campos periocidade de sorteio: Suíço -->
               <div id="suico-draw-schedule-fields" style="display:none; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
@@ -718,7 +664,7 @@ function setupCreateTournamentModal() {
 
     // Format label
     var formatMap = {
-      liga: 'Liga', suico: 'Suíço', ranking: 'Ranking', elim_simples: 'Eliminatórias',
+      liga: 'Liga', suico: 'Suíço', elim_simples: 'Eliminatórias',
       elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.'
     };
     var formatLabel = formatMap[formatValue] || '';
@@ -917,19 +863,17 @@ function setupCreateTournamentModal() {
     const isElim = fmt === 'elim_simples' || fmt === 'elim_dupla';
     const isSuico = fmt === 'suico';
     const isLiga = fmt === 'liga';
-    const isRanking = fmt === 'ranking';
     const isGrupos = fmt === 'grupos_mata';
 
     document.getElementById('suico-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('liga-fields').style.display = isLiga ? 'block' : 'none';
-    document.getElementById('ranking-fields').style.display = isRanking ? 'block' : 'none';
     document.getElementById('suico-draw-schedule-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
 
-    // Esconder estimativas de tempo para Ranking, Liga e Suíço (não fazem sentido)
+    // Esconder estimativas de tempo para Liga e Suíço (não fazem sentido)
     var estimContainer = document.getElementById('time-estimates-container');
-    if (estimContainer) estimContainer.style.display = (isRanking || isLiga || isSuico) ? 'none' : '';
+    if (estimContainer) estimContainer.style.display = (isLiga || isSuico) ? 'none' : '';
 
     window._updateAutoCloseVisibility();
     window._updateRegDateVisibility();
@@ -937,29 +881,23 @@ function setupCreateTournamentModal() {
     window._recalcDuration();
   };
 
-  window._onRankingManualChange = function () {
-    var manual = document.getElementById('ranking-manual-draw');
-    var intervalContainer = document.getElementById('ranking-draw-interval');
-    if (intervalContainer) {
-      var parent = intervalContainer.closest('.form-group');
-      if (parent) parent.style.opacity = (manual && manual.checked) ? '0.4' : '1';
-      intervalContainer.disabled = manual && manual.checked;
-    }
+  // _onRankingManualChange mantida como alias para backward compat
+  window._onRankingManualChange = function () {};
+
+  // Toggle liga season custom duration
+  window._onLigaSeasonChange = function () {
+    var sel = document.getElementById('liga-season-duration');
+    var c = document.getElementById('liga-custom-duration-container');
+    if (sel && c) c.style.display = sel.value === 'custom' ? '' : 'none';
   };
 
-  // Toggle ranking season custom duration
   (function() {
-    var sel = document.getElementById('ranking-season-duration');
-    if (sel) {
-      sel.addEventListener('change', function() {
-        var c = document.getElementById('ranking-custom-duration-container');
-        if (c) c.style.display = sel.value === 'custom' ? '' : 'none';
-      });
-    }
-    var inact = document.getElementById('ranking-inactivity');
+    var sel = document.getElementById('liga-season-duration');
+    if (sel) sel.addEventListener('change', window._onLigaSeasonChange);
+    var inact = document.getElementById('liga-inactivity');
     if (inact) {
       inact.addEventListener('change', function() {
-        var c = document.getElementById('ranking-inactivity-x-container');
+        var c = document.getElementById('liga-inactivity-x-container');
         if (c) c.style.display = inact.value === 'remove' ? '' : 'none';
       });
     }
@@ -1061,10 +999,9 @@ function setupCreateTournamentModal() {
     const regBox = document.getElementById('reg-date-container');
     if (!regBox) return;
     const isLiga = fmt === 'liga';
-    const isRanking = fmt === 'ranking';
     const openEnroll = document.getElementById('liga-open-enrollment');
-    // Ranking always has open enrollment; Liga hides if open enrollment checked
-    regBox.style.display = (isRanking || (isLiga && openEnroll && openEnroll.checked)) ? 'none' : '';
+    // Liga com inscrições abertas esconde prazo de inscrição
+    regBox.style.display = (isLiga && openEnroll && openEnroll.checked) ? 'none' : '';
   };
 
   window._toggleVenueAccess = function (key) {
@@ -1987,7 +1924,7 @@ function setupCreateTournamentModal() {
     let fmtValue = 'elim_simples';
     if (t.format === 'Liga') fmtValue = 'liga';
     else if (t.format === 'Suíço Clássico') fmtValue = 'suico';
-    else if (t.format === 'Ranking') fmtValue = 'ranking';
+    else if (t.format === 'Ranking') fmtValue = 'liga'; // Ranking unificado com Liga
     else if (t.format === 'Eliminatórias Simples') fmtValue = 'elim_simples';
     else if (t.format === 'Dupla Eliminatória') fmtValue = 'elim_dupla';
     else if (t.format === 'Fase de Grupos + Eliminatórias') fmtValue = 'grupos_mata';
@@ -2080,39 +2017,36 @@ function setupCreateTournamentModal() {
     if (t.drawIntervalDays) document.getElementById('suico-draw-interval').value = t.drawIntervalDays;
     if (t.drawManual) document.getElementById('suico-manual-draw').checked = t.drawManual;
 
-    // Liga (ligaPeriodicity field removed — now uses drawIntervalDays)
-    if (t.ligaNewPlayerScore) document.getElementById('liga-new-player-score').value = t.ligaNewPlayerScore;
-    if (t.ligaInactivity) document.getElementById('liga-inactivity').value = t.ligaInactivity;
-    if (t.ligaInactivityX) document.getElementById('liga-inactivity-x').value = t.ligaInactivityX;
-    document.getElementById('liga-open-enrollment').checked = t.ligaOpenEnrollment !== false;
+    // Liga (unificado — carrega dados de Liga e antigo Ranking)
+    // Backward compat: migrar campos ranking* → liga* se necessário
+    var _nps = t.ligaNewPlayerScore || t.rankingNewPlayerScore;
+    var _inact = t.ligaInactivity || t.rankingInactivity;
+    var _inactX = t.ligaInactivityX || t.rankingInactivityX;
+    var _season = t.ligaSeasonMonths || t.rankingSeasonMonths;
+    var _openEnroll = (t.ligaOpenEnrollment !== undefined) ? t.ligaOpenEnrollment : (t.rankingOpenEnrollment !== undefined ? t.rankingOpenEnrollment : true);
+
+    if (_nps) document.getElementById('liga-new-player-score').value = _nps;
+    if (_inact) document.getElementById('liga-inactivity').value = _inact;
+    if (_inactX) document.getElementById('liga-inactivity-x').value = _inactX;
+    document.getElementById('liga-open-enrollment').checked = _openEnroll !== false;
+
+    // Temporada
+    if (_season) {
+      var lsd = document.getElementById('liga-season-duration');
+      if (['3','6','12'].indexOf(String(_season)) !== -1) {
+        lsd.value = String(_season);
+      } else {
+        lsd.value = 'custom';
+        document.getElementById('liga-custom-months').value = _season;
+        document.getElementById('liga-custom-duration-container').style.display = '';
+      }
+    }
+
+    // Agendamento (shared field drawFirstDate, drawFirstTime, drawIntervalDays, drawManual)
     if (t.format === 'Liga' && t.drawFirstDate) document.getElementById('liga-first-draw-date').value = t.drawFirstDate;
     if (t.format === 'Liga' && t.drawFirstTime) document.getElementById('liga-first-draw-time').value = t.drawFirstTime;
     if (t.format === 'Liga' && t.drawIntervalDays) document.getElementById('liga-draw-interval').value = t.drawIntervalDays;
     if (t.format === 'Liga') document.getElementById('liga-manual-draw').checked = !!t.drawManual;
-
-    // Ranking
-    if (t.rankingSeasonMonths) {
-      var rsd = document.getElementById('ranking-season-duration');
-      if (['3','6','12'].indexOf(String(t.rankingSeasonMonths)) !== -1) {
-        rsd.value = String(t.rankingSeasonMonths);
-      } else {
-        rsd.value = 'custom';
-        document.getElementById('ranking-custom-months').value = t.rankingSeasonMonths;
-        document.getElementById('ranking-custom-duration-container').style.display = '';
-      }
-    }
-    if (t.format === 'Ranking' && t.drawFirstDate) document.getElementById('ranking-first-draw-date').value = t.drawFirstDate;
-    if (t.format === 'Ranking' && t.drawFirstTime) document.getElementById('ranking-first-draw-time').value = t.drawFirstTime;
-    if (t.format === 'Ranking' && t.drawIntervalDays) document.getElementById('ranking-draw-interval').value = t.drawIntervalDays;
-    if (t.format === 'Ranking') {
-      document.getElementById('ranking-manual-draw').checked = !!t.drawManual;
-      window._onRankingManualChange();
-    }
-    if (t.rankingNewPlayerScore) document.getElementById('ranking-new-player-score').value = t.rankingNewPlayerScore;
-    if (t.rankingInactivity) document.getElementById('ranking-inactivity').value = t.rankingInactivity;
-    if (t.rankingInactivityX) document.getElementById('ranking-inactivity-x').value = t.rankingInactivityX;
-    // rankingOpenEnrollment é sempre true para Ranking (inscrições permanecem abertas)
-    // Não há toggle no form — valor é forçado no save.
 
     // Elim settings
     document.getElementById('elim-third-place').checked = t.elimThirdPlace !== false;
@@ -2175,7 +2109,6 @@ function setupCreateTournamentModal() {
         const formatMap = {
           liga: 'Liga',
           suico: 'Suíço Clássico',
-          ranking: 'Ranking',
           elim_simples: 'Eliminatórias Simples',
           elim_dupla: 'Dupla Eliminatória',
           grupos_mata: 'Fase de Grupos + Eliminatórias'
@@ -2259,32 +2192,25 @@ function setupCreateTournamentModal() {
           tourData.drawManual = document.getElementById('suico-manual-draw').checked;
         }
 
-        // Liga
+        // Liga (unificado — inclui antigo Ranking)
         if (formatValue === 'liga') {
+          // Temporada
+          var ligaSeasonSel = document.getElementById('liga-season-duration').value;
+          if (ligaSeasonSel !== 'indefinida') {
+            tourData.ligaSeasonMonths = ligaSeasonSel === 'custom'
+              ? (parseInt(document.getElementById('liga-custom-months').value) || 6)
+              : parseInt(ligaSeasonSel);
+          }
+          // Configurações
           tourData.ligaNewPlayerScore = document.getElementById('liga-new-player-score').value;
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
           tourData.ligaInactivityX = parseInt(document.getElementById('liga-inactivity-x').value) || 3;
           tourData.ligaOpenEnrollment = document.getElementById('liga-open-enrollment').checked;
+          // Agendamento
           tourData.drawFirstDate = document.getElementById('liga-first-draw-date').value || '';
           tourData.drawFirstTime = document.getElementById('liga-first-draw-time').value || '19:00';
           tourData.drawIntervalDays = parseInt(document.getElementById('liga-draw-interval').value) || 7;
           tourData.drawManual = document.getElementById('liga-manual-draw').checked;
-        }
-
-        // Ranking
-        if (formatValue === 'ranking') {
-          var seasonSel = document.getElementById('ranking-season-duration').value;
-          tourData.rankingSeasonMonths = seasonSel === 'custom'
-            ? (parseInt(document.getElementById('ranking-custom-months').value) || 6)
-            : parseInt(seasonSel);
-          tourData.drawFirstDate = document.getElementById('ranking-first-draw-date').value || '';
-          tourData.drawFirstTime = document.getElementById('ranking-first-draw-time').value || '19:00';
-          tourData.drawIntervalDays = parseInt(document.getElementById('ranking-draw-interval').value) || 7;
-          tourData.drawManual = document.getElementById('ranking-manual-draw').checked;
-          tourData.rankingNewPlayerScore = document.getElementById('ranking-new-player-score').value;
-          tourData.rankingInactivity = document.getElementById('ranking-inactivity').value;
-          tourData.rankingInactivityX = parseInt(document.getElementById('ranking-inactivity-x').value) || 3;
-          tourData.rankingOpenEnrollment = true; // Ranking always open
         }
 
         // Eliminatórias

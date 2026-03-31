@@ -27,9 +27,8 @@ function renderBracket(container, tournamentId) {
 
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
   const canEnterResult = isOrg || t.resultEntry === 'players' || t.resultEntry === 'referee';
-  const isLiga = t.format === 'Liga';
+  const isLiga = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
   const isSuico = t.format === 'Suíço Clássico';
-  const isRanking = t.format === 'Ranking';
   const isDupla = t.format === 'Dupla Eliminatória';
 
   const isGrupos = t.format === 'Fase de Grupos + Eliminatórias';
@@ -45,7 +44,7 @@ function renderBracket(container, tournamentId) {
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
-        <h2 style="margin:0;">${isLiga || isSuico || isRanking ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${t.name}</h2>
+        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${t.name}</h2>
         <div class="d-flex gap-2 mt-1">
           ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
@@ -70,9 +69,9 @@ function renderBracket(container, tournamentId) {
         </button>
     </div>` : '';
 
-  // ── Liga / Suíço / Ranking ──────────────────────────────────────────────────
-  if (isLiga || isSuico || isRanking) {
-    container.innerHTML = headerHtml + (isRanking ? '' : startTournamentBanner) + renderStandings(t, isOrg, canEnterResult);
+  // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
+  if (isLiga || isSuico) {
+    container.innerHTML = headerHtml + startTournamentBanner + renderStandings(t, isOrg, canEnterResult);
     return;
   }
 
@@ -1283,8 +1282,14 @@ window._saveResultInline = function (tId, matchId) {
     return;
   }
   const isGroupMatch = m.group !== undefined;
+  // Empate é permitido em: Grupos, Liga, Suíço, Ranking (rodadas)
+  // Empate NÃO é permitido em: Eliminatórias (simples e dupla)
+  const isRoundMatch = m.roundIndex !== undefined || (t.rounds && t.rounds.some(function(r) {
+    return (r.matches || []).some(function(rm) { return rm.id === matchId; });
+  }));
+  const allowDraw = isGroupMatch || isRoundMatch;
 
-  if (s1 === s2 && !isGroupMatch) {
+  if (s1 === s2 && !allowDraw) {
     showAlertDialog('Empate não permitido', 'O torneio eliminatório não aceita empate. Corrija o placar.', null, { type: 'warning' });
     return;
   }
@@ -1292,8 +1297,8 @@ window._saveResultInline = function (tId, matchId) {
   m.scoreP1 = s1;
   m.scoreP2 = s2;
 
-  if (s1 === s2) {
-    // Empate em fase de grupos — ambos ganham 1 ponto (tratado na standings)
+  if (s1 === s2 && allowDraw) {
+    // Empate — ambos ganham 1 ponto (tratado na standings)
     m.winner = 'draw';
     m.draw = true;
   } else {
@@ -1301,9 +1306,13 @@ window._saveResultInline = function (tId, matchId) {
     m.draw = false;
   }
 
-  if (!isGroupMatch) {
+  if (!isGroupMatch && !isRoundMatch) {
+    // Eliminatórias — vencedor avança
     _advanceWinner(t, m);
     showNotification('Resultado Salvo', `${m.winner} avança!`, 'success');
+  } else if (isRoundMatch) {
+    // Liga/Suíço/Ranking — atualizar standings
+    showNotification('Resultado Salvo', `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
   } else {
     // Check if current group round is complete, activate next
     _checkGroupRoundComplete(t, m.group);
@@ -1434,6 +1443,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
         <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${s.name} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
         <td style="padding:8px 12px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
         <td style="padding:8px 12px;text-align:center;color:#4ade80;">${s.wins}</td>
+        <td style="padding:8px 12px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
         <td style="padding:8px 12px;text-align:center;color:#f87171;">${s.losses}</td>
         <td style="padding:8px 12px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>
       </tr>`).join('');
@@ -1467,6 +1477,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
                 <th style="padding:6px 12px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Participante</th>
                 <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:var(--primary-color);text-transform:uppercase;">Pts</th>
                 <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#4ade80;text-transform:uppercase;">V</th>
+                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#94a3b8;text-transform:uppercase;">E</th>
                 <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#f87171;text-transform:uppercase;">D</th>
                 <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Saldo</th>
               </tr>
@@ -1619,6 +1630,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);">${s.name}</td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
+      <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
       <td style="padding:11px 14px;text-align:center;color:#f87171;">${s.losses}</td>
       <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>
       <td style="padding:11px 14px;text-align:center;color:var(--text-muted);">${s.played}</td>
@@ -1642,13 +1654,13 @@ function renderStandings(t, isOrg, canEnterResult) {
   const currentRoundData = rounds[currentRound - 1];
   const allComplete = (currentRoundData.matches || []).every(m => m.winner);
   const isSuico = t.format === 'Suíço Clássico';
-  const isRanking = t.format === 'Ranking';
+  const isLigaFmt = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
   const maxRounds = t.swissRounds || 99;
   const isFinished = isSuico && currentRound >= maxRounds && allComplete;
 
-  // Ranking: show auto-draw countdown if applicable
+  // Liga/Ranking: show auto-draw countdown if applicable
   let rankingCountdownHtml = '';
-  if (isRanking && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
+  if (isLigaFmt && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
     const _nextDraw = window._calcNextDrawDate(t);
     if (_nextDraw) {
       const _now = new Date();
@@ -1691,6 +1703,7 @@ function renderStandings(t, isOrg, canEnterResult) {
               <th style="padding:9px 14px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Participante</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--primary-color);text-transform:uppercase;letter-spacing:1px;">Pts</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#4ade80;text-transform:uppercase;letter-spacing:1px;">V</th>
+              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">E</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;">D</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Saldo</th>
               <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">J</th>
@@ -1700,8 +1713,8 @@ function renderStandings(t, isOrg, canEnterResult) {
   const standingsTablesHtml = standingsSections.map(function(sec) {
     var displayLabel = sec.label && window._displayCategoryName ? window._displayCategoryName(sec.label) : sec.label;
     var title = displayLabel
-      ? `${isRanking ? 'Ranking' : 'Classificação'} — ${displayLabel} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
-      : `${isRanking ? 'Ranking' : 'Classificação'} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`;
+      ? `Classificação — ${displayLabel} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
+      : `Classificação — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`;
     return `<div class="card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <h3 class="card-title" style="margin:0;">${title}</h3>
@@ -1742,9 +1755,27 @@ function _computeStandings(t, category) {
       // If filtering by category, only count matches in that category
       if (category && m.category !== category) return;
       if (!m.winner || m.isBye) return;
+
+      // Handle draws — both players get 1 point each
+      if (m.winner === 'draw' || m.draw) {
+        if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+        if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+        scoreMap[m.p1].draws = (scoreMap[m.p1].draws || 0) + 1;
+        scoreMap[m.p2].draws = (scoreMap[m.p2].draws || 0) + 1;
+        scoreMap[m.p1].points += 1;
+        scoreMap[m.p2].points += 1;
+        scoreMap[m.p1].played++;
+        scoreMap[m.p2].played++;
+        var ds1 = parseInt(m.scoreP1) || 0;
+        var ds2 = parseInt(m.scoreP2) || 0;
+        scoreMap[m.p1].pointsDiff += (ds1 - ds2);
+        scoreMap[m.p2].pointsDiff += (ds2 - ds1);
+        return;
+      }
+
       const loser = m.winner === m.p1 ? m.p2 : m.p1;
-      if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
-      if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
+      if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+      if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
 
       scoreMap[m.winner].wins++;
       scoreMap[m.winner].points += 3;
@@ -1773,6 +1804,12 @@ function _computeStandings(t, category) {
     s.buchholz = 0;
     allRoundMatches.forEach(m => {
       if (m.isBye || !m.winner) return;
+      if (m.winner === 'draw' || m.draw) {
+        // Empate: ambos jogaram contra o outro — contar pontos do oponente
+        if (m.p1 === s.name && scoreMap[m.p2]) s.buchholz += scoreMap[m.p2].points;
+        if (m.p2 === s.name && scoreMap[m.p1]) s.buchholz += scoreMap[m.p1].points;
+        return;
+      }
       if (m.p1 === s.name && scoreMap[m.p2]) s.buchholz += scoreMap[m.p2].points;
       if (m.p2 === s.name && scoreMap[m.p1]) s.buchholz += scoreMap[m.p1].points;
     });
@@ -1780,6 +1817,12 @@ function _computeStandings(t, category) {
     s.sonnebornBerger = 0;
     allRoundMatches.forEach(m => {
       if (m.isBye || !m.winner) return;
+      if (m.winner === 'draw' || m.draw) {
+        // Empate: metade dos pontos do oponente
+        var opp = m.p1 === s.name ? m.p2 : (m.p2 === s.name ? m.p1 : null);
+        if (opp && scoreMap[opp]) s.sonnebornBerger += scoreMap[opp].points * 0.5;
+        return;
+      }
       if (m.winner === s.name) {
         const opp = m.p1 === s.name ? m.p2 : m.p1;
         if (scoreMap[opp]) s.sonnebornBerger += scoreMap[opp].points;
@@ -1794,6 +1837,7 @@ function _computeStandings(t, category) {
   const h2h = {};
   allRoundMatches.forEach(m => {
     if (!m.winner || m.isBye) return;
+    if (m.winner === 'draw' || m.draw) return; // Empates não contam no confronto direto
     const key = `${m.winner}|||${m.winner === m.p1 ? m.p2 : m.p1}`;
     h2h[key] = (h2h[key] || 0) + 1;
   });

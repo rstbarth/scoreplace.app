@@ -632,6 +632,11 @@ function renderTournaments(container, tournamentId = null) {
         return codes;
     };
 
+    // Normalize format: 'Ranking' → 'Liga' (unificado em v0.2.6)
+    window._isLigaFormat = function(t) {
+      return t && (t.format === 'Liga' || t.format === 'Ranking');
+    };
+
     // Get participant categories as array (backward compat: string → [string])
     window._getParticipantCategories = function(p) {
         if (!p || typeof p !== 'object') return [];
@@ -2083,9 +2088,8 @@ function renderTournaments(container, tournamentId = null) {
             if (t) {
                 // Verifica se as inscrições estão realmente abertas
                 const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
-                const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-                const rankingAberto = t.format === 'Ranking' && sorteioRealizado;
-                const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta || rankingAberto;
+                const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
+                const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
                 if (!inscricoesAbertas) {
                     showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                     return;
@@ -2214,9 +2218,8 @@ function renderTournaments(container, tournamentId = null) {
 
             // Verifica se as inscrições estão realmente abertas
             const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
-            const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-            const rankingAberto = t.format === 'Ranking' && sorteioRealizado;
-            const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta || rankingAberto;
+            const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
+            const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
             if (!inscricoesAbertas) {
                 showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                 return;
@@ -4758,7 +4761,7 @@ function renderTournaments(container, tournamentId = null) {
             }
 
             // ── Liga / Suíço / Ranking: generate first round standings ──────────────────
-            if (t.format === 'Liga' || t.format === 'Suíço Clássico' || t.format === 'Ranking') {
+            if (window._isLigaFormat(t) || t.format === 'Suíço Clássico') {
                 let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
 
                 // Shuffle participants
@@ -5526,13 +5529,11 @@ function renderTournaments(container, tournamentId = null) {
 
         // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
-        const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
-        const rankingAberto = t.format === 'Ranking' && sorteioRealizado; // Ranking always open
-        const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta || rankingAberto;
-        const _isRkFmt = t.format === 'Ranking';
-        const statusText = _isRkFmt && sorteioRealizado ? 'Ranking Ativo' : (_isRkFmt && isAberto ? 'Inscrições Abertas (Permanente)' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
-        const statusBg = isAberto || (_isRkFmt && sorteioRealizado) ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
-        const statusColor = isAberto || (_isRkFmt && sorteioRealizado) ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
+        const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
+        const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
+        const statusText = ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas'));
+        const statusBg = isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
+        const statusColor = isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
         const statusFontWeight = isAberto ? '700' : '600';
 
         let enrollmentText = 'Misto (Individual e Times)';
@@ -5749,10 +5750,9 @@ function renderTournaments(container, tournamentId = null) {
                 const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0);
                 const categoriasBtn = _hasTournCats ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; font-weight: 600;" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
 
-                const isRankingFormat = t.format === 'Ranking';
                 const isSuicoFormat = t.format === 'Suíço Clássico';
-                const isLigaFormat = t.format === 'Liga';
-                const isAutoDrawFormat = isRankingFormat || isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
+                const isLigaFormat = window._isLigaFormat(t);
+                const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
 
                 // Encerrar/Reabrir Inscrições — NÃO aparece para Ranking (sempre aberto) nem para Liga com inscrições abertas na temporada
                 const isLigaOpenEnroll = t.format === 'Liga' && t.ligaOpenEnrollment !== false;
@@ -5991,7 +5991,7 @@ function renderTournaments(container, tournamentId = null) {
                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
-                  ${(t.format === 'Ranking' && t.rankingSeasonMonths) ? `<div><strong>Temporada:</strong> ${t.rankingSeasonMonths} meses</div>` : ''}
+                  ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? `<div><strong>Temporada:</strong> ${t.ligaSeasonMonths || t.rankingSeasonMonths} meses</div>` : ''}
                   ${(t.drawFirstDate) ? `<div><strong>1º Sorteio:</strong> ${(() => { try { var _dd = t.drawFirstDate.split('-'); return _dd[2] + '/' + _dd[1] + '/' + _dd[0]; } catch(e) { return t.drawFirstDate; } })()} às ${t.drawFirstTime || '19:00'}</div>` : ''}
                   ${(t.drawIntervalDays) ? `<div><strong>Intervalo:</strong> ${t.drawManual ? 'Manual' : 'A cada ' + t.drawIntervalDays + ' dia' + (t.drawIntervalDays > 1 ? 's' : '') + ' (automático)'}</div>` : ''}
                   ${(!t.combinedCategories || t.combinedCategories.length === 0) ? `<div><strong>Categorias:</strong> ${cats}</div>` : ''}
