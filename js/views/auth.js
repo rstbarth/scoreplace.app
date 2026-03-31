@@ -579,6 +579,10 @@ async function simulateLoginSuccess(user) {
     if (typeof window._checkNearbyTournaments === 'function') {
       window._checkNearbyTournaments().catch(function(e) { console.warn('Nearby check error:', e); });
     }
+    // Initialize FCM push notifications (requests permission + saves token)
+    if (typeof window._initFCM === 'function') {
+      window._initFCM().catch(function(e) { console.warn('FCM init error:', e); });
+    }
   }, 3000);
 
   // Update the topbar button with user avatar and name
@@ -670,6 +674,9 @@ async function simulateLoginSuccess(user) {
         if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
 
         if (typeof openModal === 'function') openModal('modal-profile');
+
+        // Populate player stats after modal opens
+        setTimeout(function() { _populatePlayerStats(); }, 50);
       }
     });
   }
@@ -1072,6 +1079,261 @@ window._toggleProfileBtn = function(btn) {
   }
 };
 
+// === Player Stats Calculator ===
+function _populatePlayerStats() {
+  var el = document.getElementById('profile-stats-content');
+  if (!el) return;
+
+  var cu = window.AppStore.currentUser;
+  if (!cu || !cu.email) {
+    el.innerHTML = '<span style="color:var(--text-muted);">Faça login para ver suas estatísticas.</span>';
+    return;
+  }
+
+  var email = cu.email.toLowerCase();
+  var displayName = (cu.displayName || '').toLowerCase();
+  var tournaments = window.AppStore.tournaments || [];
+
+  var stats = {
+    tournamentsParticipated: 0,
+    tournamentsOrganized: 0,
+    matchesPlayed: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    titles: 0,       // 1st place finishes
+    history: []      // [{name, id, format, status, position}]
+  };
+
+  // Helper: check if a participant string/object matches the current user
+  function _isMe(p) {
+    if (!p) return false;
+    var str = typeof p === 'string' ? p : (p.email || p.displayName || p.name || '');
+    str = str.toLowerCase();
+    return str.includes(email) || (displayName && str === displayName);
+  }
+
+  // Helper: check if a player label in a match belongs to current user
+  function _isMyLabel(label) {
+    if (!label) return false;
+    var l = label.toLowerCase();
+    return l.includes(email) || (displayName && l === displayName);
+  }
+
+  // Iterate all tournaments
+  for (var ti = 0; ti < tournaments.length; ti++) {
+    var t = tournaments[ti];
+
+    // Check if organized
+    if (t.organizerEmail && t.organizerEmail.toLowerCase() === email) {
+      stats.tournamentsOrganized++;
+    }
+
+    // Check if participant
+    var pList = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+    var isParticipant = pList.some(function(p) { return _isMe(p); });
+    if (!isParticipant) continue;
+
+    stats.tournamentsParticipated++;
+
+    // Collect all matches from various structures
+    var allMatches = [];
+
+    // Direct matches array (Eliminatórias single/double)
+    if (Array.isArray(t.matches)) {
+      allMatches = allMatches.concat(t.matches);
+    }
+    // Third place match
+    if (t.thirdPlaceMatch) {
+      allMatches.push(t.thirdPlaceMatch);
+    }
+    // Rounds (Suíço)
+    if (Array.isArray(t.rounds)) {
+      for (var ri = 0; ri < t.rounds.length; ri++) {
+        if (Array.isArray(t.rounds[ri])) {
+          allMatches = allMatches.concat(t.rounds[ri]);
+        } else if (t.rounds[ri] && Array.isArray(t.rounds[ri].matches)) {
+          allMatches = allMatches.concat(t.rounds[ri].matches);
+        }
+      }
+    }
+    // Groups (group stage)
+    if (Array.isArray(t.groups)) {
+      for (var gi = 0; gi < t.groups.length; gi++) {
+        var group = t.groups[gi];
+        if (group && Array.isArray(group.matches)) {
+          allMatches = allMatches.concat(group.matches);
+        }
+        if (group && Array.isArray(group.rounds)) {
+          for (var gri = 0; gri < group.rounds.length; gri++) {
+            if (Array.isArray(group.rounds[gri])) {
+              allMatches = allMatches.concat(group.rounds[gri]);
+            }
+          }
+        }
+      }
+    }
+    // Liga rodadas
+    if (Array.isArray(t.rodadas)) {
+      for (var li = 0; li < t.rodadas.length; li++) {
+        if (Array.isArray(t.rodadas[li])) {
+          allMatches = allMatches.concat(t.rodadas[li]);
+        } else if (t.rodadas[li] && Array.isArray(t.rodadas[li].matches)) {
+          allMatches = allMatches.concat(t.rodadas[li].matches);
+        }
+      }
+    }
+
+    // Count wins/losses/draws from matches
+    for (var mi = 0; mi < allMatches.length; mi++) {
+      var m = allMatches[mi];
+      if (!m || !m.winner) continue;  // No result yet
+
+      var imP1 = _isMyLabel(m.p1);
+      var imP2 = _isMyLabel(m.p2);
+      if (!imP1 && !imP2) continue;
+
+      stats.matchesPlayed++;
+
+      if (m.winner === 'draw' || m.draw) {
+        stats.draws++;
+      } else if (_isMyLabel(m.winner)) {
+        stats.wins++;
+      } else {
+        stats.losses++;
+      }
+    }
+
+    // Check for titles and position
+    var _myPosition = null;
+    if (t.status === 'finished') {
+      // Eliminatórias: check if won the final
+      if (Array.isArray(t.matches) && t.matches.length > 0) {
+        var finalMatch = t.matches[t.matches.length - 1];
+        if (finalMatch && finalMatch.winner && _isMyLabel(finalMatch.winner)) {
+          stats.titles++;
+          _myPosition = 1;
+        } else if (finalMatch && finalMatch.winner) {
+          // Lost the final = 2nd place
+          if (_isMyLabel(finalMatch.p1) || _isMyLabel(finalMatch.p2)) _myPosition = 2;
+        }
+        // Check 3rd place match
+        if (!_myPosition && t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+          if (_isMyLabel(t.thirdPlaceMatch.winner)) _myPosition = 3;
+        }
+      }
+      // Liga/Suíço: check standings
+      if (Array.isArray(t.standings) && t.standings.length > 0) {
+        for (var si = 0; si < t.standings.length; si++) {
+          var _sp = t.standings[si];
+          if (_sp && _isMyLabel(_sp.name || _sp.player || _sp.displayName)) {
+            _myPosition = si + 1;
+            if (si === 0) stats.titles++;
+            break;
+          }
+        }
+      }
+    }
+
+    // Build history entry
+    stats.history.push({
+      name: t.name || 'Sem nome',
+      id: t.id,
+      format: t.format || '?',
+      status: t.status || 'open',
+      position: _myPosition,
+      date: t.startDate || t.createdAt || ''
+    });
+  }
+
+  // Render stats
+  if (stats.tournamentsParticipated === 0) {
+    el.innerHTML = '<span style="color:var(--text-muted);">Você ainda não participou de nenhum torneio.</span>';
+    return;
+  }
+
+  var winRate = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
+
+  var html = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">';
+
+  // Row 1: Tournaments, Matches, Win Rate
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: var(--primary-color);">' + stats.tournamentsParticipated + '</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Torneios</div>' +
+  '</div>';
+
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: var(--text-color);">' + stats.matchesPlayed + '</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Partidas</div>' +
+  '</div>';
+
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: ' + (winRate >= 50 ? '#22c55e' : '#ef4444') + ';">' + winRate + '%</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Aproveitamento</div>' +
+  '</div>';
+
+  // Row 2: Wins, Losses/Draws, Titles
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: #22c55e;">' + stats.wins + '</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Vitórias</div>' +
+  '</div>';
+
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: #ef4444;">' + stats.losses + (stats.draws > 0 ? '<span style="color:var(--text-muted);font-size:0.85rem;">/' + stats.draws + 'E</span>' : '') + '</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Derrotas' + (stats.draws > 0 ? '/Empates' : '') + '</div>' +
+  '</div>';
+
+  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
+    '<div style="font-size: 1.3rem; font-weight: 700; color: #fbbf24;">🏆 ' + stats.titles + '</div>' +
+    '<div style="font-size: 0.7rem; color: var(--text-muted);">Títulos</div>' +
+  '</div>';
+
+  html += '</div>';
+
+  // Organized count if > 0
+  if (stats.tournamentsOrganized > 0) {
+    html += '<div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">' +
+      '📋 Você organizou ' + stats.tournamentsOrganized + ' torneio' + (stats.tournamentsOrganized > 1 ? 's' : '') +
+    '</div>';
+  }
+
+  // Tournament history list (most recent first, max 8)
+  if (stats.history.length > 0) {
+    stats.history.sort(function(a, b) {
+      return (b.date || '').localeCompare(a.date || '');
+    });
+    var maxShow = Math.min(stats.history.length, 8);
+    html += '<div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 10px;">';
+    html += '<div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Histórico de Torneios</div>';
+    for (var hi = 0; hi < maxShow; hi++) {
+      var h = stats.history[hi];
+      var posIcon = '';
+      if (h.position === 1) posIcon = '🥇';
+      else if (h.position === 2) posIcon = '🥈';
+      else if (h.position === 3) posIcon = '🥉';
+      else if (h.position) posIcon = h.position + 'º';
+
+      var statusIcon = h.status === 'finished' ? '✅' : (h.status === 'active' ? '▶️' : '⏳');
+      var safeName = window._safeHtml ? window._safeHtml(h.name) : h.name;
+
+      html += '<div onclick="window.location.hash=\'#tournament/' + h.id + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
+        'style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:background 0.15s;" ' +
+        'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
+        '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">' + safeName + '</span>' +
+        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + h.format + '</span>' +
+        (posIcon ? '<span style="flex-shrink:0;min-width:24px;text-align:right;">' + posIcon + '</span>' : '') +
+      '</div>';
+    }
+    if (stats.history.length > maxShow) {
+      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px;">e mais ' + (stats.history.length - maxShow) + ' torneio' + ((stats.history.length - maxShow) > 1 ? 's' : '') + '...</div>';
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
 function setupProfileModal() {
   if (!document.getElementById('modal-profile')) {
     // Country select options
@@ -1194,6 +1456,12 @@ function setupProfileModal() {
                 '<option value="high-contrast">Alto Contraste</option>' +
                 '<option value="alternative">Alternativo (Catppuccin)</option>' +
               '</select>' +
+            '</div>' +
+            // Player Stats Section
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            '<div id="profile-stats-section">' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Meu Desempenho</label>' +
+              '<div id="profile-stats-content" style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">Calculando...</div>' +
             '</div>' +
             // Buttons
             '<div style="display: flex; gap: 10px; margin-top: 1rem; padding-bottom: 0.5rem;">' +
