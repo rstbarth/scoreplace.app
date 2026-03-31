@@ -243,6 +243,39 @@ function renderDashboard(container) {
                </div>
             </div>
 
+            ${(() => {
+              var _html = '';
+              // Progress bar for active tournaments
+              if (typeof window._getTournamentProgress === 'function') {
+                var _prog = window._getTournamentProgress(t);
+                if (_prog.total > 0) {
+                  var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
+                  _html += '<div style="margin-top: 10px; padding: 8px 12px; background: rgba(0,0,0,0.12); border-radius: 10px;">';
+                  _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">';
+                  _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
+                  _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
+                  _html += '</div>';
+                  _html += '<div style="width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
+                  _html += '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 3px;"></div>';
+                  _html += '</div></div>';
+                }
+              }
+              // Registration deadline countdown
+              if (isAberto && t.registrationLimit && !isFinished) {
+                var _regDate = new Date(t.registrationLimit);
+                if (!isNaN(_regDate.getTime())) {
+                  var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
+                  if (_daysLeft > 0 && _daysLeft <= 14) {
+                    var _urgColor = _daysLeft <= 2 ? '#ef4444' : (_daysLeft <= 5 ? '#f59e0b' : '#a5b4fc');
+                    _html += '<div style="margin-top: 6px; font-size: 0.7rem; font-weight: 600; color: ' + _urgColor + '; display: flex; align-items: center; gap: 4px;">';
+                    _html += '<span>⏰</span> Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '');
+                    _html += '</div>';
+                  }
+                }
+              }
+              return _html;
+            })()}
+
           </div>
         </div>
       `;

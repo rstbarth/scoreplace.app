@@ -1,3 +1,71 @@
+// Calculate tournament match progress (total matches, completed, percentage)
+window._getTournamentProgress = function(t) {
+    if (!t) return { total: 0, completed: 0, pct: 0 };
+    var allMatches = [];
+    // Collect matches from all structures
+    if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
+    if (Array.isArray(t.rounds)) {
+        t.rounds.forEach(function(r) {
+            if (Array.isArray(r.matches)) allMatches = allMatches.concat(r.matches);
+        });
+    }
+    if (Array.isArray(t.groups)) {
+        t.groups.forEach(function(g) {
+            if (Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
+        });
+    }
+    if (Array.isArray(t.rodadas)) {
+        t.rodadas.forEach(function(rd) {
+            if (Array.isArray(rd.matches)) allMatches = allMatches.concat(rd.matches);
+            if (Array.isArray(rd.jogos)) allMatches = allMatches.concat(rd.jogos);
+        });
+    }
+    if (t.thirdPlaceMatch) allMatches.push(t.thirdPlaceMatch);
+    // Filter out BYE matches
+    var realMatches = allMatches.filter(function(m) {
+        var p1 = m.p1 || m.player1 || '';
+        var p2 = m.p2 || m.player2 || '';
+        return p1 && p2 && p1 !== 'BYE' && p2 !== 'BYE' && p1 !== 'TBD' && p2 !== 'TBD';
+    });
+    var completed = realMatches.filter(function(m) {
+        return m.winner || m.result || (m.score1 !== undefined && m.score2 !== undefined && (m.score1 !== null && m.score2 !== null));
+    });
+    var total = realMatches.length;
+    var pct = total > 0 ? Math.round((completed.length / total) * 100) : 0;
+    return { total: total, completed: completed.length, pct: pct };
+};
+
+// Copy tournament link to clipboard (with native share fallback on mobile)
+window._shareTournament = function(tournamentId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+    if (!t) return;
+    var url = 'https://scoreplace.app/#tournaments/' + t.id;
+    var title = t.name;
+    var text = '\uD83C\uDFC6 ' + t.name + ' — scoreplace.app';
+    // Try native share API first (mobile)
+    if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function() {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(url).then(function() {
+                if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+            });
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(function() {
+            if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+        }).catch(function() {
+            // Very old browser fallback
+            var inp = document.createElement('input');
+            inp.value = url;
+            document.body.appendChild(inp);
+            inp.select();
+            document.execCommand('copy');
+            document.body.removeChild(inp);
+            if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+        });
+    }
+};
+
 // Calculate next automatic draw date for Ranking/Suíço tournaments
 window._calcNextDrawDate = function(t) {
     if (!t || !t.drawFirstDate) return null;
@@ -6080,7 +6148,10 @@ function renderTournaments(container, tournamentId = null) {
                 ${t.name}
               </h4>
             </div>
-            ${isOrg && tournamentId && t.status !== 'closed' ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;"><button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button><button class="hover-lift" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}');">📢 Comunicar Inscritos</button></div>` : ''}
+            ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
+              ${isOrg && t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button><button class="hover-lift" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}');">📢 Comunicar Inscritos</button>` : ''}
+            </div>` : ''}
 
             <!-- Below Name: Calendário + Data -->
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
@@ -6154,6 +6225,43 @@ function renderTournaments(container, tournamentId = null) {
                   ${(!t.combinedCategories || t.combinedCategories.length === 0) ? `<div><strong>Categorias:</strong> ${cats}</div>` : ''}
                </div>
             </div>
+
+            ${(() => {
+              if (!tournamentId) return '';
+              var _prog = window._getTournamentProgress(t);
+              var _html = '';
+              // Progress bar — only show after draw
+              if (_prog.total > 0) {
+                var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
+                _html += '<div style="margin-top: 1rem; padding: 12px 16px; background: rgba(0,0,0,0.15); border-radius: 12px;">';
+                _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">';
+                _html += '<span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">Progresso do Torneio</span>';
+                _html += '<span style="font-size: 0.8rem; font-weight: 700;">' + _prog.completed + '/' + _prog.total + ' partidas (' + _prog.pct + '%)</span>';
+                _html += '</div>';
+                _html += '<div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">';
+                _html += '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 4px; transition: width 0.5s ease;"></div>';
+                _html += '</div>';
+                if (_prog.pct === 100 && !isFinished) {
+                  _html += '<div style="margin-top: 6px; font-size: 0.75rem; color: #10b981; font-weight: 600;">✅ Todas as partidas concluídas!</div>';
+                }
+                _html += '</div>';
+              }
+              // Registration deadline countdown
+              if (isAberto && t.registrationLimit && !isFinished) {
+                var _regDate = new Date(t.registrationLimit);
+                if (!isNaN(_regDate.getTime())) {
+                  var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
+                  if (_daysLeft > 0 && _daysLeft <= 14) {
+                    var _urgColor = _daysLeft <= 2 ? '#ef4444' : (_daysLeft <= 5 ? '#f59e0b' : '#818cf8');
+                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; border-left: 3px solid ' + _urgColor + '; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<span style="font-size: 1rem;">⏰</span>';
+                    _html += '<span style="font-size: 0.8rem; font-weight: 600; color: ' + _urgColor + ';">Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '') + '</span>';
+                    _html += '</div>';
+                  }
+                }
+              }
+              return _html;
+            })()}
 
             ${actionsHtml}
 
