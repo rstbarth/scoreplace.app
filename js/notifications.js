@@ -35,24 +35,8 @@ window._registerFCMToken = async function() {
       console.warn('[FCM] No token received');
     }
 
-    // Listen for token refresh
-    messaging.onTokenRefresh(async function() {
-      try {
-        var newToken = await messaging.getToken({
-          vapidKey: vapidKey,
-          serviceWorkerRegistration: swReg
-        });
-        if (newToken && window.FirestoreDB && window.FirestoreDB.db && user.uid) {
-          await window.FirestoreDB.db.collection('users').doc(user.uid).set({
-            fcmToken: newToken,
-            fcmTokenUpdatedAt: new Date().toISOString()
-          }, { merge: true });
-          console.log('[FCM] Refreshed token saved');
-        }
-      } catch (err) {
-        console.warn('[FCM] Token refresh error:', err);
-      }
-    });
+    // Note: onTokenRefresh was removed in Firebase 10+. Token refresh is handled
+    // automatically by getToken() on each page load, which already saves the latest token.
 
     // Handle foreground messages (show as toast notification)
     messaging.onMessage(function(payload) {
