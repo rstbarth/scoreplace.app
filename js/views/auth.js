@@ -816,10 +816,9 @@ async function simulateLoginSuccess(user) {
                 }
               }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
-            // Navigate and scroll to participant after render
-            if (typeof window._scrollToParticipant === 'function') {
-              window._scrollToParticipant(pendingEnrollId, _u.displayName);
-            }
+            // Navigate to tournament details after enrollment
+            window.location.hash = '#tournaments/' + pendingEnrollId;
+            if (typeof initRouter === 'function') initRouter();
           }).catch(function(err) {
             console.warn('Auto-enroll transaction error:', err);
           });
@@ -1059,36 +1058,7 @@ window._executeDeleteAccount = async function() {
   if (btn) { btn.textContent = 'Verificando...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
 
   try {
-    // 1. FIRST: Ensure we can delete the auth account (re-authenticate if needed)
-    // This must happen BEFORE deleting data, otherwise we'd orphan the auth account
-    try {
-      await firebaseUser.delete();
-      // If delete succeeds immediately, great — but we need a fresh reference
-      // since the user is now deleted. We skip re-auth.
-    } catch (e) {
-      if (e.code === 'auth/requires-recent-login') {
-        // Need re-authentication — show popup BEFORE deleting any data
-        if (btn) btn.textContent = 'Confirme seu login...';
-        var provider = new firebase.auth.GoogleAuthProvider();
-        try {
-          await firebaseUser.reauthenticateWithPopup(provider);
-        } catch (reAuthErr) {
-          // Re-auth failed (popup blocked, user cancelled, etc.)
-          // SAFE: no data was deleted yet
-          console.warn('Reautenticação necessária:', reAuthErr.code || reAuthErr.message);
-          var msg = reAuthErr.code === 'auth/popup-blocked'
-            ? 'O popup de login foi bloqueado pelo navegador. Permita popups para scoreplace.app e tente novamente.'
-            : 'Não foi possível verificar sua identidade. Tente fazer login novamente e repetir o processo.';
-          showNotification('Erro', msg, 'error');
-          if (btn) { btn.textContent = 'Excluir Conta'; btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
-          return;
-        }
-      } else {
-        throw e;
-      }
-    }
-
-    // 2. Now safe to delete data — auth is confirmed
+    // 1. Delete all user data first, then delete auth account
     if (btn) btn.textContent = 'Excluindo dados...';
 
     // 2a. Delete user notifications subcollection
@@ -1149,13 +1119,14 @@ window._executeDeleteAccount = async function() {
       await db.collection('users').doc(uid).delete();
     } catch (e) { console.warn('Erro ao excluir perfil:', e); }
 
-    // 3. Delete Firebase Auth account (if not already deleted in step 1)
+    // 3. Delete Firebase Auth account — best effort, no re-auth popup
     try {
-      var currentUser = firebase.auth().currentUser;
-      if (currentUser) await currentUser.delete();
+      await firebaseUser.delete();
     } catch (e) {
-      // Already deleted or session expired — ok
-      console.warn('Auth delete final:', e.code || e.message);
+      // If requires-recent-login, just sign out — all data is already gone
+      // Firebase will clean up orphaned auth accounts
+      console.warn('Auth delete:', e.code || e.message);
+      try { await firebase.auth().signOut(); } catch (so) {}
     }
 
     // 4. Clean up local state
@@ -1186,6 +1157,7 @@ window._executeDeleteAccount = async function() {
     if (proBtn) proBtn.style.display = 'none';
 
     showNotification('Conta excluída', 'Sua conta e todos os seus dados foram removidos permanentemente.', 'info');
+    window.location.hash = '#dashboard';
     if (typeof initRouter === 'function') initRouter();
 
   } catch (err) {

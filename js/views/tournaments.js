@@ -42,7 +42,13 @@ function renderTournaments(container, tournamentId = null) {
         // Convidar todos os amigos para o torneio (via notificação na plataforma)
         window._inviteFriendsToTournament = async function(tournamentId, inviteTextSafe) {
             var cu = window.AppStore.currentUser;
-            if (!cu || !cu.friends || cu.friends.length === 0) return;
+            if (!cu) return;
+            if (!cu.friends || cu.friends.length === 0) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Sem amigos ainda', 'Você ainda não tem amigos na plataforma. Convide usando QR Code, WhatsApp ou link abaixo.', 'info');
+                }
+                return;
+            }
             var myUid = cu.uid || cu.email;
             var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
             if (!t) return;
@@ -247,12 +253,23 @@ function renderTournaments(container, tournamentId = null) {
 
     // ─── Invite fallback card — shown when tournament can't be loaded yet ─────
     window._renderInviteFallbackCard = function(container, tId) {
-        container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
-            '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
-            '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
-            '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Clique abaixo para se inscrever. Voc\u00EA ser\u00E1 direcionado ao login e inscrito automaticamente.</p>' +
-            '<button class="btn hover-lift" onclick="window.enrollCurrentUser(\'' + String(tId) + '\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
-            '\u2705 Inscrever-se</button></div>';
+        var isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
+        if (isLoggedIn) {
+            // Logged-in user, tournament not loaded yet — show loading with retry
+            container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
+                '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
+                '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Carregando torneio...</h2>' +
+                '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Aguarde enquanto carregamos os dados do torneio.</p>' +
+                '<button class="btn hover-lift" onclick="window.location.hash=\'#dashboard\'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);font-weight:600;font-size:0.9rem;padding:10px 24px;border-radius:10px;">Voltar ao Início</button></div>';
+        } else {
+            // Not logged in — login opens automatically, show friendly message
+            container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
+                '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
+                '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
+                '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Fa\u00E7a login para ser inscrito automaticamente.</p>' +
+                '<button class="btn hover-lift" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
+                '\u{1F511} Fazer Login</button></div>';
+        }
     };
 
     // ========== Category enrollment helpers ==========
@@ -5150,8 +5167,11 @@ function renderTournaments(container, tournamentId = null) {
                     // Re-render
                     renderTournaments(container, tournamentId);
                 } else {
-                    // Tournament not found in Firestore
-                    window._renderInviteFallbackCard(container, tournamentId);
+                    // Tournament deleted or doesn't exist — go to dashboard
+                    if (typeof showNotification === 'function') {
+                        showNotification('Torneio não encontrado', 'Este torneio foi excluído ou não existe mais.', 'warning');
+                    }
+                    window.location.hash = '#dashboard';
                 }
             }).catch(function(err) {
                 console.warn('Error loading tournament:', err);
@@ -5364,15 +5384,13 @@ function renderTournaments(container, tournamentId = null) {
                    <div style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box; overflow: hidden;">
 
                       <!-- 0. Convidar Amigos -->
-                      ${(window.AppStore.currentUser && window.AppStore.currentUser.friends && window.AppStore.currentUser.friends.length > 0) ? `
                       <div>
                          <button class="btn hover-lift" id="invite-friends-btn-${t.id}" style="width: 100%; background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%); color: white; border: none; font-weight: 600; padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="event.stopPropagation(); window._inviteFriendsToTournament('${t.id}', '${inviteTextSafe}')">
-                            👥 Convidar Amigos (${window.AppStore.currentUser.friends.length})
+                            👥 Convidar Amigos${(window.AppStore.currentUser && window.AppStore.currentUser.friends && window.AppStore.currentUser.friends.length > 0) ? ' (' + window.AppStore.currentUser.friends.length + ')' : ''}
                          </button>
                          <div id="invite-friends-status-${t.id}" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;"></div>
                       </div>
                       <div style="height: 1px; background: var(--border-color);"></div>
-                      ` : ''}
 
                       <!-- 1. QR Code -->
                       <div style="text-align: center;">
@@ -5611,7 +5629,6 @@ function renderTournaments(container, tournamentId = null) {
                    <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                          <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
-                         ${isAberto ? enrollBtnHtml : ''}
                          ${sortearBtn}
                          ${categoriasBtn}
                       </div>
@@ -5631,7 +5648,6 @@ function renderTournaments(container, tournamentId = null) {
                       <!-- Esquerda: ações de inscrição -->
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                          ${isAberto ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
-                         ${enrollBtnHtml}
                          ${addParticipantBtns}
                       </div>
 
@@ -5671,7 +5687,6 @@ function renderTournaments(container, tournamentId = null) {
                <div class="d-flex justify-between align-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.15);">
                   <div class="d-flex gap-2">
                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal()">Convites</button>
-                     ${enrollBtnHtml}
                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window.location.hash='#rules/${t.id}'">Regras</button>
                   </div>
                </div>
@@ -5692,7 +5707,6 @@ function renderTournaments(container, tournamentId = null) {
                </div>
                <div class="d-flex gap-2">
                   <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal()">Convites</button>
-                  ${enrollBtnHtml}
                   ${isOrg ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 600;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">Sorteio Mágico</button>` : `<button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window.location.hash='#rules/${t.id}'">Regras</button>`}
                </div>
             </div>
@@ -5717,6 +5731,7 @@ function renderTournaments(container, tournamentId = null) {
                <div style="opacity: 0.8;">Inscrição: ${enrollmentText}</div>
                ${isOrg && t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 600; padding: 2px 8px; font-size: 0.7rem; text-transform: none; letter-spacing: 0;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
             </div>` : ''}
+            ${enrollBtnHtml ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px;">${enrollBtnHtml}</div>` : ''}
 
             <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
