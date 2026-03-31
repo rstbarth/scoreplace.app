@@ -5754,9 +5754,9 @@ function renderTournaments(container, tournamentId = null) {
                 const isLigaFormat = window._isLigaFormat(t);
                 const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
 
-                // Encerrar/Reabrir Inscrições — NÃO aparece para Ranking (sempre aberto) nem para Liga com inscrições abertas na temporada
-                const isLigaOpenEnroll = t.format === 'Liga' && t.ligaOpenEnrollment !== false;
-                const toggleRegBtn = (!hasDraw && !isRankingFormat && !isLigaOpenEnroll) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+                // Encerrar/Reabrir Inscrições — NÃO aparece para Liga com inscrições abertas na temporada
+                const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
+                const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
 
                 // Contagem regressiva de sorteio automático (Ranking / Suíço com auto-draw)
                 let autoDrawCountdownHtml = '';
@@ -5789,8 +5789,8 @@ function renderTournaments(container, tournamentId = null) {
                 // Sortear — para Ranking/Suíço/Liga auto: escondido (mostra countdown); manual: aparece
                 let sortearBtn = '';
                 let sortearAberto = '';
-                if (isRankingFormat) {
-                    // Ranking: sortear só aparece em modo manual
+                if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
+                    // Liga com auto-draw: sortear só aparece em modo manual
                     if (t.drawManual && !hasDraw) {
                         sortearAberto = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
                     } else if (t.drawManual && hasDraw) {
@@ -5819,8 +5819,8 @@ function renderTournaments(container, tournamentId = null) {
                     // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento + Ver Chaves
                     actionsHtml = `
                    ${inviteModalHtml}
-                   ${isRankingFormat ? '' : startTournamentBanner}
-                   ${isRankingFormat ? '' : startedBadge}
+                   ${isLigaFormat ? '' : startTournamentBanner}
+                   ${isLigaFormat ? '' : startedBadge}
                    ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
                    <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
