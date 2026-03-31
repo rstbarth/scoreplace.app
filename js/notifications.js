@@ -15,7 +15,6 @@ window._registerFCMToken = async function() {
   try {
     var messaging = firebase.messaging();
     var swReg = await navigator.serviceWorker.ready;
-    messaging.useServiceWorker(swReg);
 
     var vapidKey = 'BKLdZXuFwED9m1XmGz57ektn5vPPsH8TTsHmeAcBHsVwR4ZoRcPIIjv2kUY20S2Hf3kcCP3strJ9CbLGbKJmuSo';
     var token = await messaging.getToken({
