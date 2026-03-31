@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.6-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.7-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,13 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.7-alpha (Marco 2026)**
+- Encerramento automatico de torneio: Eliminatorias e Dupla Eliminatoria marcam status='finished' automaticamente quando todas as partidas sao concluidas (incluindo disputa de 3o lugar). Notificacao de campeao exibida.
+- Status padronizado: 'finished' e o status unico para torneios encerrados em todo o app. Dashboard e tournaments.js reconhecem e exibem "Encerrado" com icone de trofeu.
+- Dashboard truthy fix: sorteioRealizado no dashboard agora usa Array.isArray(x) && x.length > 0 em vez de truthy check direto.
+- Inscricoes bloqueadas em torneios encerrados: tentativa de inscricao em torneio finished mostra alerta "Torneio Encerrado".
+- Liga format no dashboard: usa _isLigaFormat() para consistencia com unificacao Liga/Ranking.
 
 **v0.2.6-alpha (Marco 2026)**
 - UNIFICACAO Liga/Ranking: formatos unificados em "Liga" unico. Campos de temporada, inatividade, pontuacao de novos jogadores agora todos sob liga-*. Torneios existentes com format='Ranking' continuam funcionando via helper _isLigaFormat().
