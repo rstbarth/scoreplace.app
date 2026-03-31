@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.21-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.22-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.22-alpha (Marco 2026)**
+- Favoritar Torneios: estrela (☆/★) nos cards do dashboard e na pagina de detalhes do torneio. Favoritos salvos em localStorage por usuario (chave scoreplace_favorites_email). Helpers globais: window._getFavorites(), window._isFavorite(tId), window._toggleFavorite(tId, event). Filtro "Favoritos" no dashboard aparece quando ha ao menos 1 favorito. Estrelas atualizam em tempo real sem re-render da pagina via querySelectorAll('[data-fav-id]').
 
 **v0.2.21-alpha (Marco 2026)**
 - Imprimir Chaveamento: botao "Imprimir" na pagina do bracket/classificacao. CSS @media print completo com fundo branco, tabelas com bordas visiveis, avatares ocultados, badges com borda, orientacao paisagem automatica (@page landscape). Classe .no-print para ocultar elementos na impressao. Funcao window._printBracket().
