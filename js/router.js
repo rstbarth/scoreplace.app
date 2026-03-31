@@ -40,11 +40,17 @@ function initRouter() {
       } catch(e) {}
     }
 
-    // --- For non-logged-in users visiting a tournament, save hash for post-login redirect ---
+    // --- For non-logged-in users visiting a tournament, auto-enroll after login ---
     const isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
     if (!isLoggedIn && view === 'tournaments' && cleanParam) {
       window._pendingInviteHash = hash;
-      // Let them through to see tournament details with prominent enroll button
+      // Auto-save pending enrollment so login → auto-enroll → tournament details
+      window._pendingEnrollTournamentId = cleanParam;
+      try { sessionStorage.setItem('_pendingEnrollTournamentId', cleanParam); } catch(e) {}
+      // Open login modal after brief delay (let page render first)
+      setTimeout(function() {
+        if (typeof openModal === 'function') openModal('modal-login');
+      }, 600);
     }
 
     links.forEach(l => {
@@ -112,4 +118,12 @@ function initRouter() {
   window._routerHandler = handleRoute;
   window.addEventListener('hashchange', handleRoute);
   handleRoute();
+
+  // Safety net: never leave a blank screen — if view-container is empty after 5s, go to dashboard
+  setTimeout(function() {
+    var vc = document.getElementById('view-container');
+    if (vc && vc.innerHTML.trim() === '' && window.location.hash !== '#dashboard') {
+      window.location.hash = '#dashboard';
+    }
+  }, 5000);
 }
