@@ -10,6 +10,7 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
 - **Auth:** Firebase Auth com Google Sign-In (popup)
 - **localStorage:** `boratime_state` (chave legada mantida por compatibilidade)
+- **Email de suporte:** scoreplace.app@gmail.com
 
 ## Historico do Projeto
 
