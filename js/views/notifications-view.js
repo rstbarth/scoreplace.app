@@ -143,15 +143,6 @@ window._updateNotificationBadge = function() {
         badge.style.display = 'none';
       }
     }
-    // Sync mobile quick-nav badge(s)
-    document.querySelectorAll('.notif-badge-sync').forEach(function(el) {
-      if (count > 0) {
-        el.textContent = count > 9 ? '9+' : count;
-        el.style.display = 'flex';
-      } else {
-        el.style.display = 'none';
-      }
-    });
 
     // Show/hide prominent notification banner below header
     var banner = document.getElementById('notif-banner');
