@@ -226,6 +226,13 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Fase de Grupos — empates</b> — Empates agora são contabilizados corretamente na classificação dos grupos e no cross-seeding para a fase eliminatória (1 ponto por empate).</p>' +
+        '<p><b>Dupla Eliminatória — limpeza</b> — Removido código morto na geração do lower bracket que poderia causar inconsistências.</p>' +
+        '<p><b>Notificações seguras</b> — Mensagens de notificação agora são sanitizadas contra XSS. Convites de torneio exibem botão "Ver Torneio" direto na notificação.</p>' +
+        '<p><b>Exclusão de torneio</b> — Feedback de erro melhorado quando a exclusão no servidor falha.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.8-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Botão Encerrar Torneio</b> — O organizador agora pode encerrar qualquer torneio manualmente a qualquer momento. Confirmação com aviso de partidas pendentes.</p>' +
         '<p><b>Pódio / Classificação Final</b> — Torneios encerrados exibem pódio visual com 🥇🥈🥉 na página de detalhes. Eliminatórias mostram campeão, vice e 3º lugar. Suíço/Liga mostram top 3 por pontos.</p>' +
