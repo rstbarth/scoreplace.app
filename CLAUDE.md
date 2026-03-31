@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.42-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.0-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,16 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.3.0-alpha (Marco 2026)**
+- Auto-inscricao por convite: Pessoa clica no link de convite, faz login e ja fica inscrita automaticamente no torneio + amizade com quem convidou. Sem cliques extras.
+- Nunca mais tela branca: Torneio excluido redireciona ao dashboard com aviso. Exclusao de conta redireciona ao dashboard. Safety net global de 5s contra tela em branco.
+- Botao Inscrever-se/Desinscrever-se reposicionado logo abaixo do status de inscricoes, alinhado a direita.
+- QR Code modal: Botao fechar maior e visivel (fundo branco, 40px). Overlay com padding mobile.
+- Convidar Amigos: Botao sempre visivel no modal de convite, mesmo sem amigos (mostra mensagem orientativa).
+- Topbar desktop: overflow visivel, min-height em vez de height fixa, flex-wrap para nao truncar botoes.
+- Excluir conta simplificado: Sem popup de re-autenticacao. Exclui dados primeiro, depois tenta auth delete best-effort.
+- Limpeza: ~30 console.logs removidos, URLs hardcoded substituidas por helpers globais.
 
 **v0.2.42-alpha (Marco 2026)**
 - Excluir conta: Opcao para usuario excluir permanentemente sua conta e todos os dados (perfil, notificacoes, inscricoes em torneios, torneios organizados). Disponivel no modal de perfil com dupla confirmacao (digitar "EXCLUIR"). Reautenticacao automatica se necessario. Conformidade LGPD.
