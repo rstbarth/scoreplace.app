@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.15-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.16-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,11 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.16-alpha (Marco 2026)**
+- Compartilhar Torneio: botao "Compartilhar" na pagina de detalhes, visivel para todos os usuarios (nao apenas organizador). Usa navigator.share() nativo no mobile com fallback para clipboard.
+- Progresso do Torneio: barra de progresso visual mostrando % de partidas concluidas. Aparece nos cards do dashboard e na pagina de detalhes apos o sorteio. Helper global window._getTournamentProgress(t) conta partidas de todas as estruturas (matches, rounds, groups, rodadas, thirdPlaceMatch).
+- Countdown de Inscricoes: aviso "Inscricoes encerram em X dias" nos cards e na pagina do torneio quando o prazo esta proximo (ate 14 dias). Cor urgente para prazos <= 2 dias (vermelho), <= 5 dias (amarelo).
 
 **v0.2.15-alpha (Marco 2026)**
 - Proximas Partidas: dashboard exibe widget "Suas Proximas Partidas" com partidas pendentes do usuario (sem resultado) em torneios ativos. Mostra oponente, torneio, esporte e link direto. Max 5 visiveis.
