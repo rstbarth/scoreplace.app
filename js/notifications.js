@@ -42,7 +42,7 @@ window._initFCM = async function() {
 
     // Get FCM token — VAPID key from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
     // If VAPID key is not yet configured, getToken will use default Firebase setup
-    var vapidKey = window._FCM_VAPID_KEY || null;
+    var vapidKey = window._FCM_VAPID_KEY || 'BKLdZXuFwED9m1XmGz57ektn5vPPsH8TTsHmeAcBHsVwR4ZoRcPIIjv2kUY20S2Hf3kcCP3strJ9CbLGbKJmuSo';
     var tokenOptions = { serviceWorkerRegistration: swReg };
     if (vapidKey) tokenOptions.vapidKey = vapidKey;
     var token = await messaging.getToken(tokenOptions);
