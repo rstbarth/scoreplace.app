@@ -1,0 +1,831 @@
+// ── Bracket UI Handlers ──
+window._substituteFromStandby = function (tId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t) return;
+
+  const select = document.getElementById('standby-wo-select');
+  if (!select || !select.value) {
+    showAlertDialog('Selecione o Ausente', 'Escolha quem não compareceu para realizar a substituição.', null, { type: 'warning' });
+    return;
+  }
+
+  const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  if (standby.length === 0) {
+    showAlertDialog('Lista Vazia', 'Não há mais participantes na lista de espera.', null, { type: 'warning' });
+    return;
+  }
+
+  const mode = (t.standbyMode === 'disqualify') ? 'teams' : (t.standbyMode || 'teams');
+  const teamSize = parseInt(t.teamSize) || 1;
+  const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?');
+
+  if (mode === 'individual') {
+    // Individual mode: replace one member inside a team
+    const parts = select.value.split('|');
+    const matchId = parts[0];
+    const slot = parts[1];
+    const memberIdx = parseInt(parts[2]);
+    const absentPlayer = parts[3];
+
+    const m = _findMatch(t, matchId);
+    if (!m) return;
+
+    const replacement = standby[0];
+    const replacementName = getName(replacement);
+    const teamName = m[slot];
+
+    let confirmMsg = '';
+    let newTeamName = teamName;
+    if (teamName.includes(' / ') && memberIdx >= 0) {
+      const members = teamName.split(' / ');
+      members[memberIdx] = replacementName;
+      newTeamName = members.join(' / ');
+      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${absentPlayer} (do time "${teamName}")</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>
+        <div style="margin-top:6px;"><strong>Novo time:</strong> ${newTeamName}</div>`;
+    } else {
+      newTeamName = replacementName;
+      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${absentPlayer}</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>`;
+    }
+
+    showConfirmDialog('Confirmar Substituição Individual',
+      `<div style="text-align:left;line-height:1.8;">${confirmMsg}
+        <div style="margin-top:8px;font-size:0.85rem;color:#94a3b8;">O jogador ausente será substituído dentro do time.</div>
+      </div>`,
+      function () {
+        const oldTeamName = m[slot];
+        m[slot] = newTeamName;
+        t.standbyParticipants = standby.slice(1);
+
+        // Update participants array
+        const partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+        const idx = partsArr.findIndex(p => getName(p) === oldTeamName);
+        if (idx !== -1) partsArr[idx] = newTeamName;
+        t.participants = partsArr;
+
+        // Update all match references
+        (t.matches || []).forEach(match => {
+          if (match.p1 === oldTeamName) match.p1 = newTeamName;
+          if (match.p2 === oldTeamName) match.p2 = newTeamName;
+          if (match.winner === oldTeamName) match.winner = newTeamName;
+        });
+        (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
+          if (match.p1 === oldTeamName) match.p1 = newTeamName;
+          if (match.p2 === oldTeamName) match.p2 = newTeamName;
+          if (match.winner === oldTeamName) match.winner = newTeamName;
+        }));
+
+        window.AppStore.logAction(tId, `Substituição individual: ${absentPlayer} → ${replacementName} (time: ${newTeamName})`);
+        window.AppStore.syncImmediate(tId);
+        showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentPlayer}`, 'success');
+        renderBracket(document.getElementById('view-container'), tId);
+      }, null,
+      { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' }
+    );
+
+  } else {
+    // Teams mode: disqualify incomplete team and replace with standby team
+    const [matchId, slot] = select.value.split('|');
+    const m = _findMatch(t, matchId);
+    if (!m) return;
+
+    const absentTeam = m[slot];
+
+    // Build replacement team from standby list
+    let replacementName = '';
+    let consumeCount = 1;
+    if (teamSize > 1 && !standby[0].toString().includes(' / ')) {
+      // Need to form a team from individual standby players
+      consumeCount = Math.min(teamSize, standby.length);
+      if (consumeCount < teamSize) {
+        showAlertDialog('Jogadores Insuficientes', `São necessários ${teamSize} jogadores para formar um time, mas só há ${standby.length} na lista de espera.`, null, { type: 'warning' });
+        return;
+      }
+      replacementName = standby.slice(0, teamSize).map(p => getName(p)).join(' / ');
+    } else {
+      replacementName = getName(standby[0]);
+      consumeCount = 1;
+    }
+
+    showConfirmDialog(
+      'Desclassificar e Substituir Time',
+      `<div style="text-align:left;line-height:1.8;">
+        <div><strong style="color:#ef4444;">Desclassificado:</strong> ${absentTeam}</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>
+        <div style="margin-top:8px;font-size:0.85rem;color:#94a3b8;">O time incompleto será desclassificado e o substituto ocupará a vaga na mesma partida.</div>
+      </div>`,
+      function () {
+        m[slot] = replacementName;
+        t.standbyParticipants = standby.slice(consumeCount);
+
+        const partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+        const absentIdx = partsArr.findIndex(p => getName(p) === absentTeam);
+        if (absentIdx !== -1) partsArr.splice(absentIdx, 1);
+        partsArr.push(replacementName);
+        t.participants = partsArr;
+
+        (t.matches || []).forEach(match => {
+          if (match.p1 === absentTeam) match.p1 = replacementName;
+          if (match.p2 === absentTeam) match.p2 = replacementName;
+          if (match.winner === absentTeam) match.winner = replacementName;
+        });
+        (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
+          if (match.p1 === absentTeam) match.p1 = replacementName;
+          if (match.p2 === absentTeam) match.p2 = replacementName;
+          if (match.winner === absentTeam) match.winner = replacementName;
+        }));
+
+        window.AppStore.logAction(tId, `Desclassificação: ${absentTeam} → ${replacementName}`);
+        window.AppStore.syncImmediate(tId);
+        showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentTeam}`, 'success');
+        renderBracket(document.getElementById('view-container'), tId);
+      }, null,
+      { type: 'warning', confirmText: 'Desclassificar e Substituir', cancelText: 'Cancelar' }
+    );
+  }
+};
+
+window._toggleBracketMode = function (tId) {
+  window._bracketMirrorMode = !window._bracketMirrorMode;
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
+window._setBracketZoom = function (tId, delta) {
+  const steps = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+  let cur = steps.indexOf(window._bracketZoom);
+  if (cur === -1) cur = steps.length - 1; // default to 1.0
+  cur = Math.max(0, Math.min(steps.length - 1, cur + delta));
+  window._bracketZoom = steps[cur];
+  // Apply zoom without full re-render for smooth experience
+  const content = document.querySelector('.bracket-scroll-content');
+  if (content) {
+    content.style.transform = `scale(${window._bracketZoom})`;
+    content.style.transformOrigin = 'top left';
+  }
+  // Update zoom label
+  const label = document.getElementById('bracket-zoom-label');
+  if (label) label.textContent = Math.round(window._bracketZoom * 100) + '%';
+  // Recalculate fixed scrollbar width
+  _recalcFixedScrollbar();
+};
+
+window._resetBracketZoom = function (tId) {
+  window._bracketZoom = 1;
+  const content = document.querySelector('.bracket-scroll-content');
+  if (content) {
+    content.style.transform = '';
+    content.style.transformOrigin = '';
+  }
+  const label = document.getElementById('bracket-zoom-label');
+  if (label) label.textContent = '100%';
+  _recalcFixedScrollbar();
+};
+
+function _recalcFixedScrollbar() {
+  const wrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
+  const content = wrapper ? wrapper.querySelector('.bracket-scroll-content') : null;
+  const bar = document.getElementById('bracket-fixed-scrollbar');
+  if (!wrapper || !content) return;
+  const scaledWidth = content.scrollWidth * window._bracketZoom;
+  wrapper.style.height = (content.scrollHeight * window._bracketZoom) + 'px';
+  if (bar) {
+    const inner = bar.firstChild;
+    if (inner) inner.style.width = scaledWidth + 'px';
+  }
+}
+
+window._toggleRoundVisibility = function (tId, roundNum) {
+  if (!window._hiddenRounds[tId]) window._hiddenRounds[tId] = new Set();
+  const set = window._hiddenRounds[tId];
+  if (set.has(roundNum)) {
+    // "Mostrar" — unhide this round AND all rounds before it (restore everything up to this point)
+    const toShow = [];
+    set.forEach(r => { if (r <= roundNum) toShow.push(r); });
+    toShow.forEach(r => set.delete(r));
+  } else {
+    // "Ocultar" — hide this round
+    set.add(roundNum);
+  }
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
+window._highlightWinner = function (matchId) {
+  const s1El = document.getElementById(`s1-${matchId}`);
+  const s2El = document.getElementById(`s2-${matchId}`);
+  if (!s1El || !s2El) return;
+  const s1 = parseInt(s1El.value);
+  const s2 = parseInt(s2El.value);
+  if (isNaN(s1) || isNaN(s2)) return;
+  s1El.style.color = s1 > s2 ? '#4ade80' : s1 < s2 ? '#f87171' : 'var(--text-bright)';
+  s2El.style.color = s2 > s1 ? '#4ade80' : s2 < s1 ? '#f87171' : 'var(--text-bright)';
+};
+
+// ─── Save result inline ───────────────────────────────────────────────────────
+window._saveResultInline = function (tId, matchId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t) return;
+  const m = _findMatch(t, matchId);
+  if (!m) return;
+
+  const s1El = document.getElementById(`s1-${matchId}`);
+  const s2El = document.getElementById(`s2-${matchId}`);
+
+  const s1 = s1El ? parseInt(s1El.value) : NaN;
+  const s2 = s2El ? parseInt(s2El.value) : NaN;
+
+  if (isNaN(s1) || isNaN(s2)) {
+    showAlertDialog('Placar Inválido', 'Preencha o placar dos dois times antes de confirmar.', null, { type: 'warning' });
+    return;
+  }
+  const isGroupMatch = m.group !== undefined;
+  // Empate é permitido em: Grupos, Liga, Suíço, Ranking (rodadas)
+  // Empate NÃO é permitido em: Eliminatórias (simples e dupla)
+  const isRoundMatch = m.roundIndex !== undefined || (t.rounds && t.rounds.some(function(r) {
+    return (r.matches || []).some(function(rm) { return rm.id === matchId; });
+  }));
+  const allowDraw = isGroupMatch || isRoundMatch;
+
+  if (s1 === s2 && !allowDraw) {
+    showAlertDialog('Empate não permitido', 'O torneio eliminatório não aceita empate. Corrija o placar.', null, { type: 'warning' });
+    return;
+  }
+
+  m.scoreP1 = s1;
+  m.scoreP2 = s2;
+
+  if (s1 === s2 && allowDraw) {
+    // Empate — ambos ganham 1 ponto (tratado na standings)
+    m.winner = 'draw';
+    m.draw = true;
+  } else {
+    m.winner = s1 > s2 ? m.p1 : m.p2;
+    m.draw = false;
+  }
+
+  if (!isGroupMatch && !isRoundMatch) {
+    // Eliminatórias — vencedor avança
+    _advanceWinner(t, m);
+    showNotification('Resultado Salvo', `${m.winner} avança!`, 'success');
+  } else if (isRoundMatch) {
+    // Liga/Suíço/Ranking — atualizar standings
+    showNotification('Resultado Salvo', `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+  } else {
+    // Check if current group round is complete, activate next
+    _checkGroupRoundComplete(t, m.group);
+    showNotification('Resultado Salvo', `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+  }
+
+  // Auto check-in: marcar presença de todos os participantes deste jogo (e limpar ausência se existia)
+  if (!t.checkedIn) t.checkedIn = {};
+  if (!t.absent) t.absent = {};
+  [m.p1, m.p2].forEach(side => {
+    if (!side || side === 'TBD' || side === 'BYE') return;
+    if (side.includes(' / ')) {
+      side.split(' / ').forEach(n => { const nm = n.trim(); if (nm) { t.checkedIn[nm] = t.checkedIn[nm] || Date.now(); delete t.absent[nm]; } });
+    } else {
+      t.checkedIn[side] = t.checkedIn[side] || Date.now();
+      delete t.absent[side];
+    }
+  });
+  if (!t.tournamentStarted) t.tournamentStarted = Date.now();
+
+  window.AppStore.logAction(tId, `Resultado: ${m.p1} ${s1} × ${s2} ${m.p2}${m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner}`);
+  window.AppStore.syncImmediate(tId);
+
+  // Notify match participants about the result
+  if (typeof window._sendUserNotification === 'function') {
+    var _resultText = m.draw
+      ? (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Empate')
+      : (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Vencedor: ' + m.winner);
+    var _notifData = {
+      type: 'result',
+      title: 'Resultado registrado',
+      message: _resultText,
+      tournamentId: tId,
+      tournamentName: t.name,
+      level: 'all',
+      timestamp: Date.now()
+    };
+    // Find UIDs for both players and send notifications
+    var _parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    [m.p1, m.p2].forEach(function(playerName) {
+      if (!playerName || playerName === 'TBD' || playerName === 'BYE') return;
+      var _found = _parts.find(function(p) {
+        var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return pName === playerName;
+      });
+      if (_found && typeof _found === 'object' && _found.uid) {
+        window._sendUserNotification(_found.uid, _notifData);
+      }
+    });
+  }
+
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
+window._editResult = function (tId, matchId) {
+  showConfirmDialog(
+    'Editar Resultado',
+    'Apagar o resultado atual e permitir novo lançamento? O avanço do vencedor anterior será revertido.',
+    () => {
+      const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+      if (!t) return;
+      const m = _findMatch(t, matchId);
+      if (!m) return;
+
+      // Undo winner advancement: clear p1/p2 from next match where this winner was placed
+      if (m.nextMatchId) {
+        const next = _findMatch(t, m.nextMatchId);
+        if (next && !next.winner) {
+          if (next.p1 === m.winner) next.p1 = 'TBD';
+          if (next.p2 === m.winner) next.p2 = 'TBD';
+        }
+      }
+
+      const prevWinner = m.winner;
+      m.winner = null;
+      m.scoreP1 = undefined;
+      m.scoreP2 = undefined;
+
+      window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
+      window.AppStore.syncImmediate(tId);
+      renderBracket(document.getElementById('view-container'), tId);
+    },
+    null,
+    { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
+  );
+};
+
+// ─── Share match result ──────────────────────────────────────────────────────
+window._shareMatchResult = function(tId, matchId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+  var m = null;
+  // Find match in all structures
+  var sources = [];
+  if (Array.isArray(t.matches)) sources = sources.concat(t.matches);
+  if (t.thirdPlaceMatch) sources.push(t.thirdPlaceMatch);
+  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); });
+  if (Array.isArray(t.groups)) t.groups.forEach(function(g) { if (g && Array.isArray(g.matches)) sources = sources.concat(g.matches); if (g && Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) sources = sources.concat(gr); }); });
+  if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); else if (Array.isArray(r)) sources = sources.concat(r); });
+  m = sources.find(function(mx) { return mx && String(mx.id) === String(matchId); });
+  if (!m || !m.winner) return;
+
+  var isDraw = m.winner === 'draw' || m.draw;
+  var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : '';
+  var resultText = isDraw ? 'Empate' : ('🏆 ' + m.winner);
+  var text = '⚔️ ' + (m.p1 || '?') + ' vs ' + (m.p2 || '?');
+  if (score) text += ' (' + score + ')';
+  text += '\n' + resultText;
+  text += '\n📋 ' + (t.name || 'Torneio');
+  if (t.sport) text += ' — ' + t.sport;
+  text += '\n\n🔗 scoreplace.app/#tournaments/' + tId;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Resultado — ' + t.name, text: text, url: 'https://scoreplace.app/#tournaments/' + tId }).catch(function() {});
+  } else {
+    // Clipboard fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        if (typeof window.showAlertDialog === 'function') {
+          window.showAlertDialog('📋 Resultado copiado!', 'Cole no WhatsApp, Instagram ou onde quiser.');
+        }
+      }).catch(function() {});
+    }
+  }
+};
+
+// ─── Print bracket ───────────────────────────────────────────────────────────
+window._printBracket = function() {
+  window.print();
+};
+
+// ─── Sort standings table by clicking column headers ─────────────────────────
+window._sortStandingsTable = function(thElement) {
+  var table = thElement.closest('table');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  var colIdx = parseInt(thElement.getAttribute('data-sort-col'));
+  var sortType = thElement.getAttribute('data-sort-type') || 'num';
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  if (rows.length === 0) return;
+
+  // Determine sort direction
+  var currentDir = thElement.getAttribute('data-sort-dir') || 'none';
+  var newDir = (currentDir === 'desc') ? 'asc' : 'desc';
+  // Default: first click on # is asc, first click on text cols is asc, first click on numeric cols is desc
+  if (currentDir === 'none') {
+    newDir = (colIdx === 0 || sortType === 'text') ? 'asc' : 'desc';
+  }
+
+  // Reset all arrows in this table header
+  var allThs = table.querySelectorAll('th[data-sort-col]');
+  allThs.forEach(function(th) {
+    th.setAttribute('data-sort-dir', 'none');
+    var arrow = th.querySelector('.sort-arrow');
+    if (arrow) { arrow.textContent = '⇅'; arrow.style.opacity = '0.4'; }
+  });
+
+  // Set active arrow
+  thElement.setAttribute('data-sort-dir', newDir);
+  var activeArrow = thElement.querySelector('.sort-arrow');
+  if (activeArrow) {
+    activeArrow.textContent = newDir === 'desc' ? '▼' : '▲';
+    activeArrow.style.opacity = '1';
+  }
+
+  // Sort rows
+  rows.sort(function(a, b) {
+    var cellA = a.querySelectorAll('td')[colIdx];
+    var cellB = b.querySelectorAll('td')[colIdx];
+    if (!cellA || !cellB) return 0;
+    var valA = cellA.textContent.trim();
+    var valB = cellB.textContent.trim();
+
+    if (sortType === 'text') {
+      var cmp = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' });
+      return newDir === 'asc' ? cmp : -cmp;
+    } else {
+      // Parse numeric: handle medals (🥇=1, 🥈=2, 🥉=3), +/- signs
+      var numA = parseFloat(valA.replace(/[^\d\-\.]/g, '')) || 0;
+      var numB = parseFloat(valB.replace(/[^\d\-\.]/g, '')) || 0;
+      // Special handling for medal emojis in position column
+      if (colIdx === 0) {
+        if (valA.includes('🥇')) numA = 1;
+        else if (valA.includes('🥈')) numA = 2;
+        else if (valA.includes('🥉')) numA = 3;
+        else numA = parseInt(valA.replace(/[^\d]/g, '')) || 999;
+        if (valB.includes('🥇')) numB = 1;
+        else if (valB.includes('🥈')) numB = 2;
+        else if (valB.includes('🥉')) numB = 3;
+        else numB = parseInt(valB.replace(/[^\d]/g, '')) || 999;
+      }
+      return newDir === 'asc' ? (numA - numB) : (numB - numA);
+    }
+  });
+
+  // Re-insert sorted rows
+  rows.forEach(function(row) { tbody.appendChild(row); });
+};
+
+
+window._tvModeInterval = null;
+window._tvMode = function(tId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+
+  // Create overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'tv-mode-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:99999;overflow:auto;display:flex;flex-direction:column;';
+
+  // Header
+  var header = '<div style="padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">';
+  header += '<div style="display:flex;align-items:center;gap:16px;">';
+  if (t.logoData) header += '<img src="' + t.logoData + '" style="width:48px;height:48px;border-radius:10px;object-fit:cover;">';
+  header += '<div>';
+  header += '<h2 style="margin:0;color:white;font-size:1.6rem;font-weight:800;">' + (window._safeHtml ? window._safeHtml(t.name) : t.name) + '</h2>';
+  header += '<div style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:2px;">' + (t.format || '') + ' — ' + (t.sport || '') + '</div>';
+  header += '</div></div>';
+  header += '<div style="display:flex;align-items:center;gap:16px;">';
+  header += '<div id="tv-mode-clock" style="color:rgba(255,255,255,0.6);font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums;"></div>';
+  header += '<div id="tv-mode-refresh-indicator" style="color:rgba(255,255,255,0.3);font-size:0.7rem;">Auto-refresh: 30s</div>';
+  header += '<button onclick="window._exitTvMode()" style="background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">✕ Sair</button>';
+  header += '</div></div>';
+
+  // Progress bar
+  var progHtml = '';
+  if (typeof window._getTournamentProgress === 'function') {
+    var prog = window._getTournamentProgress(t);
+    if (prog.total > 0) {
+      var barCol = prog.pct === 100 ? '#10b981' : (prog.pct > 50 ? '#3b82f6' : '#f59e0b');
+      progHtml = '<div style="padding:8px 30px;flex-shrink:0;">';
+      progHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+      progHtml += '<span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);">Progresso</span>';
+      progHtml += '<span style="font-size:0.85rem;font-weight:700;color:white;">' + prog.completed + '/' + prog.total + ' partidas (' + prog.pct + '%)</span>';
+      progHtml += '</div>';
+      progHtml += '<div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">';
+      progHtml += '<div style="width:' + prog.pct + '%;height:100%;background:' + barCol + ';border-radius:3px;transition:width 0.5s;"></div>';
+      progHtml += '</div></div>';
+    }
+  }
+
+  // Content: grab existing bracket/standings content
+  var viewContainer = document.getElementById('view-container');
+  var contentHtml = '';
+  if (viewContainer) {
+    // Clone the bracket/standings content, excluding header buttons
+    var cards = viewContainer.querySelectorAll('.bracket-container, table, .card');
+    var tempDiv = document.createElement('div');
+    cards.forEach(function(el) {
+      var clone = el.cloneNode(true);
+      // Remove buttons from clone
+      var btns = clone.querySelectorAll('button, .btn, a.btn');
+      btns.forEach(function(b) { b.remove(); });
+      // Remove inline result forms
+      var forms = clone.querySelectorAll('select, input');
+      forms.forEach(function(f) { f.remove(); });
+      tempDiv.appendChild(clone);
+    });
+    contentHtml = tempDiv.innerHTML;
+  }
+
+  overlay.innerHTML = header + progHtml +
+    '<div id="tv-mode-content" style="flex:1;overflow:auto;padding:20px 30px;color:white;">' +
+    '<style>' +
+    '#tv-mode-overlay table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }' +
+    '#tv-mode-overlay table th { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 10px 14px; font-size: 0.85rem; font-weight: 700; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.15); }' +
+    '#tv-mode-overlay table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); font-size: 0.95rem; }' +
+    '#tv-mode-overlay table tr:hover td { background: rgba(255,255,255,0.03); }' +
+    '#tv-mode-overlay .bracket-container { overflow: visible; }' +
+    '#tv-mode-overlay .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }' +
+    '#tv-mode-overlay .match-player { color: rgba(255,255,255,0.8); border-bottom-color: rgba(255,255,255,0.08); }' +
+    '#tv-mode-overlay .match-player.winner { color: #4ade80; background: rgba(16,185,129,0.1); }' +
+    '#tv-mode-overlay .match-score { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: white; }' +
+    '#tv-mode-overlay .bracket-round-title { color: rgba(255,255,255,0.5); }' +
+    '#tv-mode-overlay details { color: rgba(255,255,255,0.7); }' +
+    '#tv-mode-overlay h3, #tv-mode-overlay h4 { color: white; }' +
+    '#tv-mode-overlay .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: white; }' +
+    '</style>' +
+    contentHtml +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Try fullscreen
+  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(function() {});
+  else if (overlay.webkitRequestFullscreen) overlay.webkitRequestFullscreen();
+
+  // Clock update
+  function updateClock() {
+    var clockEl = document.getElementById('tv-mode-clock');
+    if (clockEl) {
+      var now = new Date();
+      clockEl.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+  }
+  updateClock();
+  var clockInterval = setInterval(updateClock, 1000);
+
+  // Auto-refresh every 30s
+  window._tvModeInterval = setInterval(function() {
+    var ov = document.getElementById('tv-mode-overlay');
+    if (!ov) { clearInterval(window._tvModeInterval); clearInterval(clockInterval); return; }
+    // Re-render bracket in background, then update TV content
+    var vc = document.getElementById('view-container');
+    if (vc && typeof renderBracket === 'function') {
+      renderBracket(vc, tId);
+      setTimeout(function() {
+        var contentDiv = document.getElementById('tv-mode-content');
+        if (!contentDiv || !vc) return;
+        var newCards = vc.querySelectorAll('.bracket-container, table, .card');
+        var tmp = document.createElement('div');
+        newCards.forEach(function(el) {
+          var cl = el.cloneNode(true);
+          var bs = cl.querySelectorAll('button, .btn, a.btn, select, input');
+          bs.forEach(function(b) { b.remove(); });
+          tmp.appendChild(cl);
+        });
+        // Keep style tag
+        var styleTag = contentDiv.querySelector('style');
+        contentDiv.innerHTML = (styleTag ? styleTag.outerHTML : '') + tmp.innerHTML;
+
+        // Flash refresh indicator
+        var ind = document.getElementById('tv-mode-refresh-indicator');
+        if (ind) {
+          ind.textContent = '🔄 Atualizado';
+          ind.style.color = '#4ade80';
+          setTimeout(function() { if (ind) { ind.textContent = 'Auto-refresh: 30s'; ind.style.color = 'rgba(255,255,255,0.3)'; } }, 2000);
+        }
+      }, 500);
+    }
+  }, 30000);
+
+  // ESC to exit
+  window._tvModeEscHandler = function(e) {
+    if (e.key === 'Escape') window._exitTvMode();
+  };
+  document.addEventListener('keydown', window._tvModeEscHandler);
+
+  // Exit on fullscreen change (user presses ESC in fullscreen)
+  window._tvModeFullscreenHandler = function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      var ov = document.getElementById('tv-mode-overlay');
+      if (ov) window._exitTvMode();
+    }
+  };
+  document.addEventListener('fullscreenchange', window._tvModeFullscreenHandler);
+  document.addEventListener('webkitfullscreenchange', window._tvModeFullscreenHandler);
+};
+
+window._exitTvMode = function() {
+  if (window._tvModeInterval) { clearInterval(window._tvModeInterval); window._tvModeInterval = null; }
+  var overlay = document.getElementById('tv-mode-overlay');
+  if (overlay) overlay.remove();
+  if (document.fullscreenElement) document.exitFullscreen().catch(function() {});
+  else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  if (window._tvModeEscHandler) { document.removeEventListener('keydown', window._tvModeEscHandler); window._tvModeEscHandler = null; }
+  if (window._tvModeFullscreenHandler) {
+    document.removeEventListener('fullscreenchange', window._tvModeFullscreenHandler);
+    document.removeEventListener('webkitfullscreenchange', window._tvModeFullscreenHandler);
+    window._tvModeFullscreenHandler = null;
+  }
+};
+
+// ─── Player match history popup ──────────────────────────────────────────────
+window._showPlayerHistory = function(tId, playerName) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+  var rounds = t.rounds || [];
+  var matches = [];
+  rounds.forEach(function(r, ri) {
+    (r.matches || []).forEach(function(m) {
+      if (m.p1 === playerName || m.p2 === playerName) {
+        matches.push({ round: ri + 1, m: m });
+      }
+    });
+  });
+  // Also check t.matches (elimination) and t.groups
+  if (Array.isArray(t.matches)) {
+    t.matches.forEach(function(m) {
+      if (m.p1 === playerName || m.p2 === playerName) {
+        matches.push({ round: null, m: m });
+      }
+    });
+  }
+  if (Array.isArray(t.groups)) {
+    t.groups.forEach(function(g, gi) {
+      (g.matches || []).forEach(function(m) {
+        if (m.p1 === playerName || m.p2 === playerName) {
+          matches.push({ round: null, m: m, group: gi + 1 });
+        }
+      });
+    });
+  }
+
+  if (matches.length === 0) {
+    showAlertDialog('Confrontos — ' + playerName, 'Nenhuma partida encontrada.', null, { type: 'info' });
+    return;
+  }
+
+  var wins = 0, losses = 0, draws = 0;
+  var rows = matches.map(function(item) {
+    var m = item.m;
+    var opponent = m.p1 === playerName ? m.p2 : m.p1;
+    var isDraw = m.winner === 'draw' || m.draw;
+    var isWin = m.winner === playerName;
+    var isLoss = m.winner && !isDraw && !isWin;
+    if (isWin) wins++;
+    else if (isDraw) draws++;
+    else if (isLoss) losses++;
+    var scoreStr = (m.scoreP1 !== undefined && m.scoreP1 !== null)
+      ? (m.p1 === playerName ? m.scoreP1 + ' × ' + m.scoreP2 : m.scoreP2 + ' × ' + m.scoreP1)
+      : (m.winner ? '' : '—');
+    var resultIcon = isDraw ? '🤝' : (isWin ? '✅' : (isLoss ? '❌' : '⏳'));
+    var roundLabel = item.round ? 'Rodada ' + item.round : (item.group ? 'Grupo ' + item.group : (m.label || ''));
+    return '<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">' +
+      '<td style="padding:8px 10px;font-size:0.8rem;color:var(--text-muted);">' + roundLabel + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.8rem;font-weight:600;color:var(--text-bright);">' + (opponent || 'BYE') + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.8rem;text-align:center;">' + scoreStr + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.85rem;text-align:center;">' + resultIcon + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var summary = '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">' +
+    '<span style="font-weight:700;color:#4ade80;">' + wins + 'V</span>' +
+    '<span style="font-weight:700;color:#94a3b8;">' + draws + 'E</span>' +
+    '<span style="font-weight:700;color:#f87171;">' + losses + 'D</span>' +
+    '<span style="color:var(--text-muted);">' + matches.length + ' partidas</span>' +
+    '</div>';
+
+  var tableHtml = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Fase</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Adversário</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Placar</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Resultado</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  showAlertDialog('Confrontos — ' + playerName, summary + tableHtml, null, { type: 'info' });
+};
+
+window._saveGroupResult = window._saveResultInline; // Reuse existing inline save
+
+// ─── Advance from Groups to Elimination ─────────────────────────────────────
+window._advanceToElimination = function (tId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t || !t.groups) return;
+
+  const classified = t.gruposClassified || 2;
+  const qualifiedPlayers = [];
+
+  t.groups.forEach(g => {
+    const scoreMap = {};
+    g.participants.forEach(name => {
+      scoreMap[name] = { name, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+    });
+    (g.rounds || []).forEach(r => {
+      (r.matches || []).forEach(m => {
+        if (!m.winner && !m.draw) return;
+        const s1 = parseInt(m.scoreP1) || 0; const s2 = parseInt(m.scoreP2) || 0;
+        // Handle draws
+        if (m.winner === 'draw' || m.draw) {
+          if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+          if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+          scoreMap[m.p1].draws++; scoreMap[m.p1].points += 1; scoreMap[m.p1].played++;
+          scoreMap[m.p2].draws++; scoreMap[m.p2].points += 1; scoreMap[m.p2].played++;
+          scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1);
+          return;
+        }
+        const loser = m.winner === m.p1 ? m.p2 : m.p1;
+        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+        if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, draws: 0, losses: 0, pointsDiff: 0, played: 0 };
+        scoreMap[m.winner].wins++; scoreMap[m.winner].points += 3; scoreMap[m.winner].played++;
+        scoreMap[loser].losses++; scoreMap[loser].played++;
+        if (m.winner === m.p1) { scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1); }
+        else { scoreMap[m.p2].pointsDiff += (s2 - s1); scoreMap[m.p1].pointsDiff += (s1 - s2); }
+      });
+    });
+    const sorted = Object.values(scoreMap).sort((a, b) => b.points - a.points || b.wins - a.wins || b.pointsDiff - a.pointsDiff);
+    qualifiedPlayers.push(...sorted.slice(0, classified).map(s => s.name));
+  });
+
+  // Shuffle qualified slightly (cross-seed: 1st of group A vs 2nd of group B etc)
+  // Simple cross-seeding: group winners in one half, runners-up in other half
+  const groupWinners = [];
+  const groupRunnersUp = [];
+  t.groups.forEach(g => {
+    const scoreMap = {};
+    g.participants.forEach(name => {
+      scoreMap[name] = { name, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+    });
+    (g.rounds || []).forEach(r => {
+      (r.matches || []).forEach(m => {
+        if (!m.winner && !m.draw) return;
+        const s1 = parseInt(m.scoreP1) || 0; const s2 = parseInt(m.scoreP2) || 0;
+        if (m.winner === 'draw' || m.draw) {
+          if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+          if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+          scoreMap[m.p1].draws++; scoreMap[m.p1].points += 1;
+          scoreMap[m.p2].draws++; scoreMap[m.p2].points += 1;
+          scoreMap[m.p1].pointsDiff += (s1 - s2); scoreMap[m.p2].pointsDiff += (s2 - s1);
+          return;
+        }
+        if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, draws: 0, pointsDiff: 0 };
+        scoreMap[m.winner].wins++; scoreMap[m.winner].points += 3;
+        if (m.winner === m.p1) scoreMap[m.p1].pointsDiff += (s1 - s2);
+        else scoreMap[m.p2].pointsDiff += (s2 - s1);
+      });
+    });
+    const sorted = Object.values(scoreMap).sort((a, b) => b.points - a.points || b.wins - a.wins || b.pointsDiff - a.pointsDiff);
+    if (sorted[0]) groupWinners.push(sorted[0].name);
+    if (sorted[1]) groupRunnersUp.push(sorted[1].name);
+    // Additional classified beyond 2
+    for (let i = 2; i < classified && i < sorted.length; i++) {
+      groupRunnersUp.push(sorted[i].name);
+    }
+  });
+
+  // Cross-seed: 1st of group A vs runner-up from opposite group
+  const seeded = [];
+  const numGroups = t.groups.length;
+  for (let i = 0; i < groupWinners.length; i++) {
+    seeded.push(groupWinners[i]);
+    const oppositeIdx = (numGroups - 1 - i) % groupRunnersUp.length;
+    if (groupRunnersUp[oppositeIdx]) {
+      seeded.push(groupRunnersUp[oppositeIdx]);
+    }
+  }
+  // Add any remaining runners-up
+  groupRunnersUp.forEach(r => { if (!seeded.includes(r)) seeded.push(r); });
+
+  // Generate elimination bracket
+  const ts = Date.now();
+  const matches = [];
+  for (let i = 0; i < seeded.length; i += 2) {
+    const p1 = seeded[i];
+    const p2 = i + 1 < seeded.length ? seeded[i + 1] : 'BYE (Avança Direto)';
+    const isBye = p2 === 'BYE (Avança Direto)';
+    matches.push({
+      id: `elim-${ts}-${i}`,
+      round: 1,
+      p1, p2,
+      winner: isBye ? p1 : null,
+      isBye
+    });
+  }
+
+  t.matches = matches;
+  t.currentStage = 'elimination';
+  window._buildNextMatchLinks(t);
+
+  window.AppStore.logAction(tId, `Fase Eliminatória iniciada com ${seeded.length} classificados`);
+  window.AppStore.syncImmediate(tId);
+
+  showNotification('Fase Eliminatória', `${seeded.length} classificados avançaram para as eliminatórias!`, 'success');
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
+// _closeRound is in bracket-logic.js
