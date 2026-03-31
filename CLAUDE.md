@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.38-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.39-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.39-alpha (Marco 2026)**
+- Previsao do Tempo ativada: API key do OpenWeatherMap configurada em create-tournament.js. Ao criar/editar torneio com local (lat/lon) e data de inicio nos proximos 5 dias, exibe previsao automatica com icone, temperatura e descricao. Plano gratuito: 1000 chamadas/dia.
 
 **v0.2.38-alpha (Marco 2026)**
 - Paginacao no Dashboard: torneios carregam em lotes de 12 (PAGE_SIZE). Botao "Carregar mais (N restantes)" aparece quando ha mais de 12 torneios visiveis. Funciona com todos os filtros (Todos, Organizados, Participando, etc.) e com modo compacto. Paginacao reseta ao trocar filtro via window._dashPage. Variavel global window._dashPage controlada pelos filtros e botao.
@@ -471,7 +474,7 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12.**
 8. **Notificacoes push:** Requer Firebase Cloud Messaging — backend. *(Acao do usuario)*
 9. ~~**PWA:**~~ **FEITO em v0.2.13.**
-10. **Previsao do tempo:** Requer API key OpenWeatherMap. *(Acao do usuario — campo OPENWEATHER_API_KEY vazio)*
+10. ~~**Previsao do tempo:**~~ **FEITO em v0.2.39** — API key configurada, previsao exibida automaticamente.
 11. ~~**Imprimir Chaveamento:**~~ **FEITO em v0.2.21.**
 12. ~~**Favoritar Torneios:**~~ **FEITO em v0.2.22.**
 13. ~~**Modo TV:**~~ **FEITO em v0.2.23.**
