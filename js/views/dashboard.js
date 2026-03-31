@@ -362,6 +362,16 @@ function renderDashboard(container) {
     var c = document.getElementById('view-container');
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
+  window._setDashView = function(view) {
+    window._dashView = view;
+    try { localStorage.setItem('scoreplace_dashView', view); } catch(e) {}
+    var c = document.getElementById('view-container');
+    if (c && typeof renderDashboard === 'function') renderDashboard(c);
+  };
+  // Restore saved view preference
+  if (!window._dashView) {
+    try { window._dashView = localStorage.getItem('scoreplace_dashView') || 'cards'; } catch(e) { window._dashView = 'cards'; }
+  }
 
   // Build upcoming matches widget for current user
   function _buildUpcomingMatchesHtml() {
@@ -461,6 +471,9 @@ function renderDashboard(container) {
   const favIds = typeof window._getFavorites === 'function' ? window._getFavorites() : [];
   const favoritosCount = allUnique.filter(t => favIds.indexOf(String(t.id)) !== -1).length;
 
+  // Count finished tournaments
+  const encerradosCount = allUnique.filter(t => t.status === 'finished').length;
+
   // Apply main filter
   let filtered = [];
   if (curFilter === 'organizados') filtered = [...organizadosSorted];
@@ -470,6 +483,12 @@ function renderDashboard(container) {
     const seen = new Set();
     [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
       if (!seen.has(t.id) && favIds.indexOf(String(t.id)) !== -1) { seen.add(t.id); filtered.push(t); }
+    });
+    filtered.sort(sortByDate);
+  } else if (curFilter === 'encerrados') {
+    const seen = new Set();
+    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
+      if (!seen.has(t.id) && t.status === 'finished') { seen.add(t.id); filtered.push(t); }
     });
     filtered.sort(sortByDate);
   } else {
@@ -485,9 +504,22 @@ function renderDashboard(container) {
   if (curLocation) filtered = filtered.filter(t => t.venueName === curLocation);
   if (curFormat) filtered = filtered.filter(t => t.format === curFormat);
 
-  const filteredHtml = filtered.length > 0
-    ? filtered.map(t => renderTournamentCard(t, '')).join('')
-    : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado para este filtro.</div>';
+  // Separate active and finished when showing "Todos"
+  let filteredHtml = '';
+  if (curFilter === 'todos' && !curSport && !curLocation && !curFormat && encerradosCount > 0) {
+    const activeList = filtered.filter(t => t.status !== 'finished');
+    const finishedList = filtered.filter(t => t.status === 'finished');
+    filteredHtml = activeList.length > 0
+      ? activeList.map(t => renderTournamentCard(t, '')).join('')
+      : '<div style="text-align:center;padding:1rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio ativo no momento.</div>';
+    if (finishedList.length > 0) {
+      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">🏆 Torneios Encerrados (' + finishedList.length + ')</summary><div class="cards-grid" style="margin-top:0.75rem;">' + finishedList.map(t => renderTournamentCard(t, '')).join('') + '</div></details></div>';
+    }
+  } else {
+    filteredHtml = filtered.length > 0
+      ? filtered.map(t => renderTournamentCard(t, '')).join('')
+      : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado para este filtro.</div>';
+  }
 
   // Build filter pills for sports
   let sportsPills = sportsArr.map(s => {
@@ -514,6 +546,43 @@ function renderDashboard(container) {
       ${(curSport || curLocation || curFormat) ? `<button onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">✕ Limpar filtros</button>` : ''}
     </div>
   ` : '';
+
+  // Build compact list view
+  const _buildCompactList = function(items) {
+    if (!items || items.length === 0) return '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado.</div>';
+    return '<div style="display:flex;flex-direction:column;gap:2px;">' + items.map(function(t) {
+      var isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
+      var statusText = '', statusColor = '';
+      var isFinished = t.status === 'finished' || t.status === 'closed';
+      var hasDraw = (t.matches && t.matches.length) || (t.rounds && t.rounds.length) || (t.groups && t.groups.length);
+      if (isFinished) { statusText = 'Encerrado'; statusColor = '#94a3b8'; }
+      else if (hasDraw) { statusText = 'Em andamento'; statusColor = '#4ade80'; }
+      else { statusText = 'Inscrições abertas'; statusColor = '#60a5fa'; }
+      var pCount = Array.isArray(t.participants) ? t.participants.length : 0;
+      var prog = typeof window._getTournamentProgress === 'function' ? window._getTournamentProgress(t) : { pct: 0 };
+      var dateStr = '';
+      if (t.startDate) { try { dateStr = new Date(t.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); } catch(e) {} }
+      var isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
+
+      return '<a href="#tournaments/' + t.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.07)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">' +
+        (t.logoData ? '<img src="' + t.logoData + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">' : '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">' + (getSportIcon(t.sport)) + '</div>') +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (isFav ? '★ ' : '') + window._safeHtml(t.name) + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);display:flex;gap:8px;margin-top:2px;">' +
+            '<span>' + (t.sport || '—') + '</span>' +
+            '<span>' + (t.format || '—') + '</span>' +
+            (dateStr ? '<span>' + dateStr + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">' +
+          '<span style="font-size:0.7rem;color:var(--text-muted);">👥 ' + pCount + '</span>' +
+          (hasDraw && !isFinished ? '<span style="font-size:0.7rem;color:' + (prog.pct === 100 ? '#10b981' : '#f59e0b') + ';">' + prog.pct + '%</span>' : '') +
+          '<span style="font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(' + (statusColor === '#4ade80' ? '16,185,129' : statusColor === '#60a5fa' ? '96,165,250' : '148,163,184') + ',0.15);color:' + statusColor + ';">' + statusText + '</span>' +
+          (isOrg ? '<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,0.15);color:#fbbf24;">Org</span>' : '') +
+        '</div>' +
+      '</a>';
+    }).join('') + '</div>';
+  };
 
   // Main filter card styles
   const _fStyle = (key, emoji, count, label) => {
@@ -554,6 +623,7 @@ function renderDashboard(container) {
         ${_fStyle('participando', '👤', participacoesCount, 'Participando')}
         ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Disponíveis')}
         ${favoritosCount > 0 ? _fStyle('favoritos', '⭐', favoritosCount, 'Favoritos') : ''}
+        ${encerradosCount > 0 ? _fStyle('encerrados', '🏆', encerradosCount, 'Encerrados') : ''}
       </div>
     </div>
 
@@ -563,11 +633,15 @@ function renderDashboard(container) {
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
 
-    <!-- Tournament Cards -->
-    <div class="dashboard-list" style="margin-bottom: 2rem;">
-      <div class="cards-grid">
-        ${filteredHtml}
+    <!-- View Toggle + Tournament Cards -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
+      <div style="display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
+        <button onclick="window._setDashView('cards')" style="padding:6px 12px;font-size:0.75rem;cursor:pointer;border:none;background:${(window._dashView||'cards')==='cards'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${(window._dashView||'cards')==='cards'?'#a5b4fc':'var(--text-muted)'};font-weight:600;transition:all 0.2s;" title="Visualização em cards">▦ Cards</button>
+        <button onclick="window._setDashView('compact')" style="padding:6px 12px;font-size:0.75rem;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,0.1);background:${window._dashView==='compact'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${window._dashView==='compact'?'#a5b4fc':'var(--text-muted)'};font-weight:600;transition:all 0.2s;" title="Visualização compacta">☰ Lista</button>
       </div>
+    </div>
+    <div class="dashboard-list" style="margin-bottom: 2rem;">
+      ${(window._dashView === 'compact') ? '<div class="compact-list">' + _buildCompactList(filtered) + '</div>' : '<div class="cards-grid">' + filteredHtml + '</div>'}
     </div>
   `;
   container.innerHTML = html;

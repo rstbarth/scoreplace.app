@@ -442,6 +442,7 @@ function renderParticipants(container, tournamentId) {
       const isVipPlayer = !!vipMap[ind.name] || (ind.teamName && !!vipMap[ind.teamName]);
       const vipTag = isVipPlayer ? '<span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.55rem;font-weight:900;padding:1px 5px;border-radius:3px;letter-spacing:0.5px;flex-shrink:0;">⭐ VIP</span>' : '';
 
+      const _safeName = (ind.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
       const _pSeed = encodeURIComponent(ind.name);
       const _pCached = (window._playerPhotoCache && window._playerPhotoCache[ind.name.toLowerCase()] && window._playerPhotoCache[ind.name.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[ind.name.toLowerCase()] : '';
       const _pInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
@@ -450,9 +451,9 @@ function renderParticipants(container, tournamentId) {
 
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;">
-            <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${ind.name}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};" />
+            <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};" />
             <div style="flex:1;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}">${ind.name}</span>${vipTag}${isStandby ? presenceDot : ''}</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}">${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>
                 ${infoLine}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
@@ -488,7 +489,7 @@ function renderParticipants(container, tournamentId) {
           const _mInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _mSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
           const _mPhoto = _mCached || _mInitials;
           const _mErr = _mCached ? `onerror="this.onerror=null;this.src='${_mInitials}'"` : '';
-          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${n.trim()}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${n.trim()}">${n.trim()}</span></div>`;
+          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${n.trim()}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" title="${n.trim()}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${n.trim().replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${n.trim()}</span></div>`;
         }).join('');
       } else {
         const _pSeedN = encodeURIComponent(pName);
@@ -496,7 +497,7 @@ function renderParticipants(container, tournamentId) {
         const _pInitialsN = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeedN + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         const _pPhotoN = _pCachedN || _pInitialsN;
         const _pErrN = _pCachedN ? `onerror="this.onerror=null;this.src='${_pInitialsN}'"` : '';
-        pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhotoN}" ${_pErrN} data-player-name="${pName}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;" title="${pName}">${pName}</span></div>`;
+        pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhotoN}" ${_pErrN} data-player-name="${pName}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer;" title="${pName}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${pName.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${pName}</span></div>`;
       }
 
       const vips = t.vips || {};
@@ -529,16 +530,19 @@ function renderParticipants(container, tournamentId) {
         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
       }
 
+      const bgNum = isVip ? '⭐' : idx + 1;
       return `
-        <div class="participant-card" ${dragProps} style="${cardStyle} border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:0;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:1.1rem;flex-shrink:0;pointer-events:none;">${idx + 1}</div>
-                <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
-                    ${pNameHtml}
-                    <div style="font-size:0.7rem;color:var(--text-muted);opacity:0.6;margin-top:4px;">${typeText}</div>
+        <div class="participant-card" ${dragProps} style="${cardStyle} border-radius:12px;padding:12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:${String(bgNum).length > 2 ? '2.8rem' : '3.5rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
+            <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
+                        ${pNameHtml}
+                        <div style="font-size:0.7rem;color:var(--text-muted);opacity:0.6;margin-top:4px;">${typeText}</div>
+                    </div>
                 </div>
+                ${actionsDiv}
             </div>
-            ${actionsDiv}
         </div>`;
     }).join('');
   }

@@ -57,6 +57,7 @@ function renderBracket(container, tournamentId) {
         ${hasContent ? `<button class="btn btn-secondary" onclick="window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
         ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : ''}
         ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._tvMode('${t.id}')">📺 Modo TV</button>` : ''}
+        <button class="btn btn-secondary no-print" onclick="window._showQRCode('${t.id}')">📱 QR Code</button>
         <a href="#participants/${t.id}" class="btn btn-secondary">👥 Inscritos</a>
         <a href="#rules/${t.id}" class="btn btn-secondary">📋 Regras</a>
       </div>
@@ -1152,7 +1153,7 @@ function _teamAvatarHtml(teamName) {
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
       `<img src="${photoSrc}" ${onerror} data-player-name="${name}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
-      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>` +
+      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${name}">${name}</span>` +
     `</div>`;
   });
   if (members.length > 1) html += '</div>';
@@ -1245,6 +1246,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
         title="Editar resultado">✏️ Editar</button>` : '';
 
+  const shareBtn = isDecided && !isByeMatch
+    ? `<button onclick="event.stopPropagation(); window._shareMatchResult('${tId}','${m.id}')"
+        style="background:transparent;border:none;color:var(--text-muted);font-size:0.72rem;cursor:pointer;padding:2px 4px;line-height:1;"
+        onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
+        title="Compartilhar resultado">📤 Compartilhar</button>` : '';
+
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
 
   // Card border color based on check-in readiness
@@ -1264,7 +1271,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${matchLabel}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${editBtn}</div>
+        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${shareBtn}${editBtn}</div>
       </div>
       ${p1Row}
       ${vsRow}
@@ -1435,6 +1442,45 @@ window._editResult = function (tId, matchId) {
     null,
     { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
   );
+};
+
+// ─── Share match result ──────────────────────────────────────────────────────
+window._shareMatchResult = function(tId, matchId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+  var m = null;
+  // Find match in all structures
+  var sources = [];
+  if (Array.isArray(t.matches)) sources = sources.concat(t.matches);
+  if (t.thirdPlaceMatch) sources.push(t.thirdPlaceMatch);
+  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); });
+  if (Array.isArray(t.groups)) t.groups.forEach(function(g) { if (g && Array.isArray(g.matches)) sources = sources.concat(g.matches); if (g && Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) sources = sources.concat(gr); }); });
+  if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); else if (Array.isArray(r)) sources = sources.concat(r); });
+  m = sources.find(function(mx) { return mx && String(mx.id) === String(matchId); });
+  if (!m || !m.winner) return;
+
+  var isDraw = m.winner === 'draw' || m.draw;
+  var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : '';
+  var resultText = isDraw ? 'Empate' : ('🏆 ' + m.winner);
+  var text = '⚔️ ' + (m.p1 || '?') + ' vs ' + (m.p2 || '?');
+  if (score) text += ' (' + score + ')';
+  text += '\n' + resultText;
+  text += '\n📋 ' + (t.name || 'Torneio');
+  if (t.sport) text += ' — ' + t.sport;
+  text += '\n\n🔗 scoreplace.app/#tournaments/' + tId;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Resultado — ' + t.name, text: text, url: 'https://scoreplace.app/#tournaments/' + tId }).catch(function() {});
+  } else {
+    // Clipboard fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        if (typeof window.showAlertDialog === 'function') {
+          window.showAlertDialog('📋 Resultado copiado!', 'Cole no WhatsApp, Instagram ou onde quiser.');
+        }
+      }).catch(function() {});
+    }
+  }
 };
 
 // ─── Print bracket ───────────────────────────────────────────────────────────
@@ -2010,7 +2056,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     return computed.map((s, i) => `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${s.name}</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${s.name}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
