@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.13-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.14-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.14-alpha (Marco 2026)**
+- Filtro de torneios: barra de busca por nome/esporte/formato + dropdown de status (Todos, Inscrições Abertas, Em Andamento, Encerrados) na lista de torneios. Aparece quando ha mais de 3 torneios. Filtragem instantanea por texto e status.
 
 **v0.2.13-alpha (Marco 2026)**
 - PWA: manifest.json, service worker (sw.js) com stale-while-revalidate para assets estaticos e network-only para Firebase/APIs. Icones SVG em icons/. Meta tags apple-mobile-web-app. Registro do SW em index.html.
