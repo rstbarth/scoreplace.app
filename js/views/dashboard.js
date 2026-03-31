@@ -79,6 +79,33 @@ function renderDashboard(container) {
     const regLimit = formatDateBr(t.registrationLimit);
     const cats = (t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única';
 
+    // Liga season auto-closure: se a temporada expirou, encerra automaticamente
+    if ((typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.status !== 'finished') {
+      const _seasonMonths = t.ligaSeasonMonths || t.rankingSeasonMonths;
+      if (_seasonMonths && t.startDate) {
+        const _seasonStart = new Date(t.startDate);
+        if (!isNaN(_seasonStart.getTime())) {
+          const _seasonEnd = new Date(_seasonStart);
+          _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_seasonMonths));
+          if (new Date() >= _seasonEnd) {
+            t.status = 'finished';
+            if (!t.standings || !t.standings.length) {
+              if (typeof window._computeStandings === 'function') {
+                var _cats = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories : ['default'];
+                for (var _ci = 0; _ci < _cats.length; _ci++) {
+                  var _st = window._computeStandings(t, _cats[_ci]);
+                  if (_st && _st.length) { t.standings = _st; break; }
+                }
+              }
+            }
+            if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+              window.FirestoreDB.saveTournament(t).catch(function() {});
+            }
+          }
+        }
+      }
+    }
+
     // Inscrições fecham após sorteio (status 'active'), exceto Liga com inscrições abertas na temporada
     const isFinished = t.status === 'finished';
     const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
@@ -284,6 +311,95 @@ function renderDashboard(container) {
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
 
+  // Build upcoming matches widget for current user
+  function _buildUpcomingMatchesHtml() {
+    var cu = window.AppStore.currentUser;
+    if (!cu || !cu.email) return '';
+
+    var email = cu.email.toLowerCase();
+    var dName = (cu.displayName || '').toLowerCase();
+    var pending = [];
+
+    function _isMe(label) {
+      if (!label) return false;
+      var l = label.toLowerCase();
+      return l.includes(email) || (dName && l === dName);
+    }
+
+    participacoes.forEach(function(t) {
+      if (t.status === 'finished') return;
+      var tName = t.name || 'Torneio';
+      var tId = t.id;
+
+      // Collect pending matches (no winner yet, player is p1 or p2)
+      var matchSources = [];
+      if (Array.isArray(t.matches)) matchSources = matchSources.concat(t.matches);
+      if (t.thirdPlaceMatch) matchSources.push(t.thirdPlaceMatch);
+      if (Array.isArray(t.rounds)) {
+        t.rounds.forEach(function(r) {
+          if (Array.isArray(r)) matchSources = matchSources.concat(r);
+          else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
+        });
+      }
+      if (Array.isArray(t.groups)) {
+        t.groups.forEach(function(g) {
+          if (g && Array.isArray(g.matches)) matchSources = matchSources.concat(g.matches);
+          if (g && Array.isArray(g.rounds)) {
+            g.rounds.forEach(function(gr) {
+              if (Array.isArray(gr)) matchSources = matchSources.concat(gr);
+            });
+          }
+        });
+      }
+      if (Array.isArray(t.rodadas)) {
+        t.rodadas.forEach(function(r) {
+          if (Array.isArray(r)) matchSources = matchSources.concat(r);
+          else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
+        });
+      }
+
+      matchSources.forEach(function(m) {
+        if (!m || m.winner) return; // Already has result
+        if (m.p1 === 'TBD' || m.p2 === 'TBD' || m.p1 === 'BYE' || m.p2 === 'BYE') return;
+        var imP1 = _isMe(m.p1);
+        var imP2 = _isMe(m.p2);
+        if (!imP1 && !imP2) return;
+
+        var opponent = imP1 ? (m.p2 || '?') : (m.p1 || '?');
+        pending.push({
+          tournament: tName,
+          tournamentId: tId,
+          opponent: opponent,
+          round: m.round || m.roundLabel || '',
+          sport: t.sport || ''
+        });
+      });
+    });
+
+    if (pending.length === 0) return '';
+
+    var maxShow = Math.min(pending.length, 5);
+    var html = '<div style="margin-bottom:1.25rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px 16px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:1.1rem;">⚔️</span><span style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">Suas Próximas Partidas</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">' + pending.length + ' pendente' + (pending.length > 1 ? 's' : '') + '</span></div>';
+
+    for (var i = 0; i < maxShow; i++) {
+      var p = pending[i];
+      var safeOpp = window._safeHtml ? window._safeHtml(p.opponent) : p.opponent;
+      var safeTourney = window._safeHtml ? window._safeHtml(p.tournament) : p.tournament;
+      html += '<div onclick="window.location.hash=\'#tournaments/' + p.tournamentId + '\'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
+      html += '<span style="font-size:1.1rem;">' + getSportIcon(p.sport) + '</span>';
+      html += '<div style="flex:1;overflow:hidden;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ' + safeOpp + '</div>';
+      html += '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + safeTourney + (p.round ? ' — ' + p.round : '') + '</div></div>';
+      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;"><path d="M9 18l6-6-6-6"/></svg>';
+      html += '</div>';
+    }
+    if (pending.length > maxShow) {
+      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">e mais ' + (pending.length - maxShow) + '...</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   const curFilter = window._dashFilter || 'todos';
   const curSport = window._dashSport || '';
   const curLocation = window._dashLocation || '';
@@ -380,6 +496,9 @@ function renderDashboard(container) {
 
     <!-- Filter Bar -->
     ${filterBarHtml}
+
+    <!-- Upcoming Matches -->
+    ${_buildUpcomingMatchesHtml()}
 
     <!-- Tournament Cards -->
     <div class="dashboard-list" style="margin-bottom: 2rem;">
