@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.28-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.36-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,30 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.36-alpha (Marco 2026)**
+- Modo Compacto do Dashboard: toggle "Cards/Lista" no canto superior direito do dashboard. Modo cards (padrao) exibe cards com visual completo. Modo lista compacta mostra uma linha por torneio com: logo/icone, nome, esporte, formato, data, contagem de participantes, progresso (%), status e badge de organizador. Preferencia salva em localStorage (scoreplace_dashView). Funcao window._setDashView(view) e _buildCompactList(items) em dashboard.js.
+
+**v0.2.35-alpha (Marco 2026)**
+- Atalhos de Teclado Globais: navegacao rapida pelo teclado. D=Dashboard, E=Explorar Torneios, N=Novo Torneio, /=Busca Rapida, ?=Ajuda, ESC=Fechar modal. Atalhos desativados automaticamente quando um campo de texto esta focado ou quando modais estao abertos. Nova secao "⌨️ Atalhos de Teclado" no modal de Ajuda com listagem visual dos atalhos. Funcao setupGlobalShortcuts() em main.js.
+
+**v0.2.34-alpha (Marco 2026)**
+- Historico de Atividades: secao "📜 Historico de Atividades" na pagina de detalhes do torneio. Log visual cronologico com: criacao do torneio, inscricoes de jogadores, encerramento de inscricoes, sorteio realizado, inicio do torneio, resultados de partidas e encerramento. Collapsible via <details>, mostra ultimos 15 eventos com opcao de expandir anteriores. Construido dinamicamente dos dados existentes do torneio (nao requer collection extra no Firestore). Funcao window._buildActivityLog(tournamentId).
+
+**v0.2.33-alpha (Marco 2026)**
+- Estatisticas do Jogador: clicar no nome de qualquer jogador abre modal com estatisticas consolidadas em todos os torneios. Exibe: torneios disputados, vitorias, derrotas, empates, total de partidas, % de aproveitamento, titulos e podios. Lista de torneios disputados com links clicaveis. Nomes clicaveis no chaveamento (bracket.js), classificacao (standings) e lista de inscritos (participants.js). Funcao global window._showPlayerStats(playerName, currentTournamentId).
+
+**v0.2.32-alpha (Marco 2026)**
+- QR Code do Torneio: botao "📱 QR Code" na pagina de detalhes do torneio e no chaveamento. Abre modal com QR code gerado via API (api.qrserver.com) contendo o link do torneio. Modal com opcoes: copiar link, baixar imagem PNG e imprimir em pagina dedicada. Suporta tema claro/escuro (QR code adapta cores). Funcoes: window._showQRCode(tId), window._downloadQRCode(tId), window._printQRCode(). Ideal para projetar em eventos presenciais.
+
+**v0.2.31-alpha (Marco 2026)**
+- Busca Rapida Global (Ctrl+K): modal de busca acessivel via Ctrl+K / Cmd+K ou botao no header. Busca torneios por nome, esporte, formato e local, e jogadores em todos os torneios. Acoes rapidas padrao: Novo Torneio, Dashboard, Explorar, Notificacoes, Ajuda. Input com debounce de 150ms. ESC para fechar. Overlay escuro com animacao. Funcoes: window._openQuickSearch(), window._closeQuickSearch(), window._performQuickSearch(query), window._showQuickSearchDefaults().
+
+**v0.2.30-alpha (Marco 2026)**
+- Torneios Encerrados separados: no dashboard, quando filtro "Todos" esta ativo e ha torneios encerrados, estes sao agrupados em secao colapsavel "Torneios Encerrados (N)" via <details> abaixo dos torneios ativos. Novo filtro "Encerrados" no painel de filtros do hero box (aparece quando ha ao menos 1 encerrado).
+
+**v0.2.29-alpha (Marco 2026)**
+- Compartilhar Resultado: botao "📤 Compartilhar" em cada card de partida concluida no chaveamento. Usa navigator.share() no mobile com fallback para clipboard. Texto formatado com jogadores, placar, resultado e link do torneio. Funcao window._shareMatchResult(tId, matchId). Busca a partida em todas as estruturas (matches, rounds, groups, rodadas).
 
 **v0.2.28-alpha (Marco 2026)**
 - Tema Claro/Escuro: botao 🌙/☀️ no header da topbar para alternar entre tema escuro e claro. Usa data-theme="light" no <html>. Preferencia salva em localStorage (scoreplace_theme). CSS ja tinha variaveis para light theme em style.css — agora ativado via toggle. Overrides CSS em style.css para cards, hero-box, badges e topbar no tema claro. Transicao suave de 300ms. Funcao window._toggleTheme() em store.js. Auto-apply do tema salvo no carregamento.
