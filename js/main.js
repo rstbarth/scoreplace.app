@@ -226,6 +226,11 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Exportar Resultados (CSV)</b> — Botão "Exportar CSV" na página do torneio e no chaveamento. Baixa um arquivo CSV com classificação (Liga/Suíço) ou resultados das partidas (Eliminatórias). Compatível com Excel.</p>' +
+        '<p><b>Clonar Torneio</b> — Botão "Clonar" na página do torneio cria uma cópia com mesmas configurações (formato, local, categorias, regras) mas sem participantes nem resultados. Ideal para torneios recorrentes.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Compartilhar Torneio</b> — Botão "Compartilhar" na página de detalhes, visível para todos. Usa compartilhamento nativo no mobile ou copia o link.</p>' +
         '<p><b>Progresso do Torneio</b> — Barra visual mostrando % de partidas concluídas nos cards e na página de detalhes.</p>' +
