@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.16-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.17-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,10 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.17-alpha (Marco 2026)**
+- Exportar Resultados CSV: botao "Exportar CSV" na pagina do torneio e no chaveamento. Gera arquivo CSV com classificacao (Liga/Suico: posicao, pontos, V/E/D, saldo, jogos) ou resultados das partidas (Eliminatorias: jogador 1, jogador 2, placar, vencedor, fase). BOM UTF-8 para compatibilidade com Excel. Funcao global window._exportTournamentCSV(tId).
+- Clonar Torneio: botao "Clonar" na pagina de detalhes cria copia do torneio com mesmas configuracoes (formato, local, categorias, regras, modo de inscricao) mas sem participantes, resultados ou sorteio. Redireciona para o novo torneio apos criacao. Funcao global window._cloneTournament(tId).
 
 **v0.2.16-alpha (Marco 2026)**
 - Compartilhar Torneio: botao "Compartilhar" na pagina de detalhes, visivel para todos os usuarios (nao apenas organizador). Usa navigator.share() nativo no mobile com fallback para clipboard.
