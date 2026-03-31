@@ -226,6 +226,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Validação de datas</b> — Ao criar ou editar torneio, o sistema agora valida que a data de fim é posterior à de início e que o prazo de inscrição é anterior ao início.</p>' +
+        '<p><b>Inscrição automática</b> — Se a inscrição automática após login falhar (conexão lenta), o usuário agora recebe um aviso para tentar manualmente.</p>' +
+        '<p><b>Migração Liga/Ranking</b> — Ao salvar torneio no formato Liga, campos legados do formato Ranking são removidos automaticamente do banco de dados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Fase de Grupos — empates</b> — Empates agora são contabilizados corretamente na classificação dos grupos e no cross-seeding para a fase eliminatória (1 ponto por empate).</p>' +
         '<p><b>Dupla Eliminatória — limpeza</b> — Removido código morto na geração do lower bracket que poderia causar inconsistências.</p>' +
