@@ -56,6 +56,7 @@ function renderBracket(container, tournamentId) {
         ${isOrg && !hasContent ? `<button class="btn btn-primary" onclick="window.generateDrawFunction('${t.id}')">🎲 Realizar Sorteio</button>` : ''}
         ${hasContent ? `<button class="btn btn-secondary" onclick="window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
         ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : ''}
+        ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._tvMode('${t.id}')">📺 Modo TV</button>` : ''}
         <a href="#participants/${t.id}" class="btn btn-secondary">👥 Inscritos</a>
         <a href="#rules/${t.id}" class="btn btn-secondary">📋 Regras</a>
       </div>
@@ -1439,6 +1440,170 @@ window._editResult = function (tId, matchId) {
 // ─── Print bracket ───────────────────────────────────────────────────────────
 window._printBracket = function() {
   window.print();
+};
+
+// ─── Modo TV (fullscreen live scoreboard) ────────────────────────────────────
+window._tvModeInterval = null;
+window._tvMode = function(tId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+
+  // Create overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'tv-mode-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:99999;overflow:auto;display:flex;flex-direction:column;';
+
+  // Header
+  var header = '<div style="padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">';
+  header += '<div style="display:flex;align-items:center;gap:16px;">';
+  if (t.logoData) header += '<img src="' + t.logoData + '" style="width:48px;height:48px;border-radius:10px;object-fit:cover;">';
+  header += '<div>';
+  header += '<h2 style="margin:0;color:white;font-size:1.6rem;font-weight:800;">' + (window._safeHtml ? window._safeHtml(t.name) : t.name) + '</h2>';
+  header += '<div style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:2px;">' + (t.format || '') + ' — ' + (t.sport || '') + '</div>';
+  header += '</div></div>';
+  header += '<div style="display:flex;align-items:center;gap:16px;">';
+  header += '<div id="tv-mode-clock" style="color:rgba(255,255,255,0.6);font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums;"></div>';
+  header += '<div id="tv-mode-refresh-indicator" style="color:rgba(255,255,255,0.3);font-size:0.7rem;">Auto-refresh: 30s</div>';
+  header += '<button onclick="window._exitTvMode()" style="background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">✕ Sair</button>';
+  header += '</div></div>';
+
+  // Progress bar
+  var progHtml = '';
+  if (typeof window._getTournamentProgress === 'function') {
+    var prog = window._getTournamentProgress(t);
+    if (prog.total > 0) {
+      var barCol = prog.pct === 100 ? '#10b981' : (prog.pct > 50 ? '#3b82f6' : '#f59e0b');
+      progHtml = '<div style="padding:8px 30px;flex-shrink:0;">';
+      progHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+      progHtml += '<span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);">Progresso</span>';
+      progHtml += '<span style="font-size:0.85rem;font-weight:700;color:white;">' + prog.completed + '/' + prog.total + ' partidas (' + prog.pct + '%)</span>';
+      progHtml += '</div>';
+      progHtml += '<div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">';
+      progHtml += '<div style="width:' + prog.pct + '%;height:100%;background:' + barCol + ';border-radius:3px;transition:width 0.5s;"></div>';
+      progHtml += '</div></div>';
+    }
+  }
+
+  // Content: grab existing bracket/standings content
+  var viewContainer = document.getElementById('view-container');
+  var contentHtml = '';
+  if (viewContainer) {
+    // Clone the bracket/standings content, excluding header buttons
+    var cards = viewContainer.querySelectorAll('.bracket-container, table, .card');
+    var tempDiv = document.createElement('div');
+    cards.forEach(function(el) {
+      var clone = el.cloneNode(true);
+      // Remove buttons from clone
+      var btns = clone.querySelectorAll('button, .btn, a.btn');
+      btns.forEach(function(b) { b.remove(); });
+      // Remove inline result forms
+      var forms = clone.querySelectorAll('select, input');
+      forms.forEach(function(f) { f.remove(); });
+      tempDiv.appendChild(clone);
+    });
+    contentHtml = tempDiv.innerHTML;
+  }
+
+  overlay.innerHTML = header + progHtml +
+    '<div id="tv-mode-content" style="flex:1;overflow:auto;padding:20px 30px;color:white;">' +
+    '<style>' +
+    '#tv-mode-overlay table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }' +
+    '#tv-mode-overlay table th { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 10px 14px; font-size: 0.85rem; font-weight: 700; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.15); }' +
+    '#tv-mode-overlay table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); font-size: 0.95rem; }' +
+    '#tv-mode-overlay table tr:hover td { background: rgba(255,255,255,0.03); }' +
+    '#tv-mode-overlay .bracket-container { overflow: visible; }' +
+    '#tv-mode-overlay .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }' +
+    '#tv-mode-overlay .match-player { color: rgba(255,255,255,0.8); border-bottom-color: rgba(255,255,255,0.08); }' +
+    '#tv-mode-overlay .match-player.winner { color: #4ade80; background: rgba(16,185,129,0.1); }' +
+    '#tv-mode-overlay .match-score { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: white; }' +
+    '#tv-mode-overlay .bracket-round-title { color: rgba(255,255,255,0.5); }' +
+    '#tv-mode-overlay details { color: rgba(255,255,255,0.7); }' +
+    '#tv-mode-overlay h3, #tv-mode-overlay h4 { color: white; }' +
+    '#tv-mode-overlay .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: white; }' +
+    '</style>' +
+    contentHtml +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Try fullscreen
+  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(function() {});
+  else if (overlay.webkitRequestFullscreen) overlay.webkitRequestFullscreen();
+
+  // Clock update
+  function updateClock() {
+    var clockEl = document.getElementById('tv-mode-clock');
+    if (clockEl) {
+      var now = new Date();
+      clockEl.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+  }
+  updateClock();
+  var clockInterval = setInterval(updateClock, 1000);
+
+  // Auto-refresh every 30s
+  window._tvModeInterval = setInterval(function() {
+    var ov = document.getElementById('tv-mode-overlay');
+    if (!ov) { clearInterval(window._tvModeInterval); clearInterval(clockInterval); return; }
+    // Re-render bracket in background, then update TV content
+    var vc = document.getElementById('view-container');
+    if (vc && typeof renderBracket === 'function') {
+      renderBracket(vc, tId);
+      setTimeout(function() {
+        var contentDiv = document.getElementById('tv-mode-content');
+        if (!contentDiv || !vc) return;
+        var newCards = vc.querySelectorAll('.bracket-container, table, .card');
+        var tmp = document.createElement('div');
+        newCards.forEach(function(el) {
+          var cl = el.cloneNode(true);
+          var bs = cl.querySelectorAll('button, .btn, a.btn, select, input');
+          bs.forEach(function(b) { b.remove(); });
+          tmp.appendChild(cl);
+        });
+        // Keep style tag
+        var styleTag = contentDiv.querySelector('style');
+        contentDiv.innerHTML = (styleTag ? styleTag.outerHTML : '') + tmp.innerHTML;
+
+        // Flash refresh indicator
+        var ind = document.getElementById('tv-mode-refresh-indicator');
+        if (ind) {
+          ind.textContent = '🔄 Atualizado';
+          ind.style.color = '#4ade80';
+          setTimeout(function() { if (ind) { ind.textContent = 'Auto-refresh: 30s'; ind.style.color = 'rgba(255,255,255,0.3)'; } }, 2000);
+        }
+      }, 500);
+    }
+  }, 30000);
+
+  // ESC to exit
+  window._tvModeEscHandler = function(e) {
+    if (e.key === 'Escape') window._exitTvMode();
+  };
+  document.addEventListener('keydown', window._tvModeEscHandler);
+
+  // Exit on fullscreen change (user presses ESC in fullscreen)
+  window._tvModeFullscreenHandler = function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      var ov = document.getElementById('tv-mode-overlay');
+      if (ov) window._exitTvMode();
+    }
+  };
+  document.addEventListener('fullscreenchange', window._tvModeFullscreenHandler);
+  document.addEventListener('webkitfullscreenchange', window._tvModeFullscreenHandler);
+};
+
+window._exitTvMode = function() {
+  if (window._tvModeInterval) { clearInterval(window._tvModeInterval); window._tvModeInterval = null; }
+  var overlay = document.getElementById('tv-mode-overlay');
+  if (overlay) overlay.remove();
+  if (document.fullscreenElement) document.exitFullscreen().catch(function() {});
+  else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  if (window._tvModeEscHandler) { document.removeEventListener('keydown', window._tvModeEscHandler); window._tvModeEscHandler = null; }
+  if (window._tvModeFullscreenHandler) {
+    document.removeEventListener('fullscreenchange', window._tvModeFullscreenHandler);
+    document.removeEventListener('webkitfullscreenchange', window._tvModeFullscreenHandler);
+    window._tvModeFullscreenHandler = null;
+  }
 };
 
 // ─── Player match history popup ──────────────────────────────────────────────
