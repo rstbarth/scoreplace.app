@@ -6326,6 +6326,10 @@ function renderTournaments(container, tournamentId = null) {
                <span style="font-size: 1.1rem;">🗓️</span>
                <span>${dates}</span>
             </div>
+            ${tournamentId && t.updatedAt ? `<div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 400; opacity: 0.5; margin-top: 4px;">
+               <span>🔄</span>
+               <span>Atualizado em ${(() => { try { var d = new Date(t.updatedAt); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); } catch(e) { return t.updatedAt; } })()}</span>
+            </div>` : ''}
             ${t.venue ? `
             <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; font-weight: 500; opacity: 0.65; margin-top: 6px;">
                <span style="font-size: 1rem; flex-shrink:0;">📍</span>

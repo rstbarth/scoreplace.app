@@ -1355,6 +1355,35 @@ window._saveResultInline = function (tId, matchId) {
 
   window.AppStore.logAction(tId, `Resultado: ${m.p1} ${s1} × ${s2} ${m.p2}${m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner}`);
   window.AppStore.syncImmediate(tId);
+
+  // Notify match participants about the result
+  if (typeof window._sendUserNotification === 'function') {
+    var _resultText = m.draw
+      ? (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Empate')
+      : (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Vencedor: ' + m.winner);
+    var _notifData = {
+      type: 'result',
+      title: 'Resultado registrado',
+      message: _resultText,
+      tournamentId: tId,
+      tournamentName: t.name,
+      level: 'all',
+      timestamp: Date.now()
+    };
+    // Find UIDs for both players and send notifications
+    var _parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    [m.p1, m.p2].forEach(function(playerName) {
+      if (!playerName || playerName === 'TBD' || playerName === 'BYE') return;
+      var _found = _parts.find(function(p) {
+        var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return pName === playerName;
+      });
+      if (_found && typeof _found === 'object' && _found.uid) {
+        window._sendUserNotification(_found.uid, _notifData);
+      }
+    });
+  }
+
   renderBracket(document.getElementById('view-container'), tId);
 };
 
@@ -1404,6 +1433,83 @@ window._editResult = function (tId, matchId) {
     null,
     { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
   );
+};
+
+// ─── Player match history popup ──────────────────────────────────────────────
+window._showPlayerHistory = function(tId, playerName) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+  var rounds = t.rounds || [];
+  var matches = [];
+  rounds.forEach(function(r, ri) {
+    (r.matches || []).forEach(function(m) {
+      if (m.p1 === playerName || m.p2 === playerName) {
+        matches.push({ round: ri + 1, m: m });
+      }
+    });
+  });
+  // Also check t.matches (elimination) and t.groups
+  if (Array.isArray(t.matches)) {
+    t.matches.forEach(function(m) {
+      if (m.p1 === playerName || m.p2 === playerName) {
+        matches.push({ round: null, m: m });
+      }
+    });
+  }
+  if (Array.isArray(t.groups)) {
+    t.groups.forEach(function(g, gi) {
+      (g.matches || []).forEach(function(m) {
+        if (m.p1 === playerName || m.p2 === playerName) {
+          matches.push({ round: null, m: m, group: gi + 1 });
+        }
+      });
+    });
+  }
+
+  if (matches.length === 0) {
+    showAlertDialog('Confrontos — ' + playerName, 'Nenhuma partida encontrada.', null, { type: 'info' });
+    return;
+  }
+
+  var wins = 0, losses = 0, draws = 0;
+  var rows = matches.map(function(item) {
+    var m = item.m;
+    var opponent = m.p1 === playerName ? m.p2 : m.p1;
+    var isDraw = m.winner === 'draw' || m.draw;
+    var isWin = m.winner === playerName;
+    var isLoss = m.winner && !isDraw && !isWin;
+    if (isWin) wins++;
+    else if (isDraw) draws++;
+    else if (isLoss) losses++;
+    var scoreStr = (m.scoreP1 !== undefined && m.scoreP1 !== null)
+      ? (m.p1 === playerName ? m.scoreP1 + ' × ' + m.scoreP2 : m.scoreP2 + ' × ' + m.scoreP1)
+      : (m.winner ? '' : '—');
+    var resultIcon = isDraw ? '🤝' : (isWin ? '✅' : (isLoss ? '❌' : '⏳'));
+    var roundLabel = item.round ? 'Rodada ' + item.round : (item.group ? 'Grupo ' + item.group : (m.label || ''));
+    return '<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">' +
+      '<td style="padding:8px 10px;font-size:0.8rem;color:var(--text-muted);">' + roundLabel + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.8rem;font-weight:600;color:var(--text-bright);">' + (opponent || 'BYE') + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.8rem;text-align:center;">' + scoreStr + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.85rem;text-align:center;">' + resultIcon + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var summary = '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">' +
+    '<span style="font-weight:700;color:#4ade80;">' + wins + 'V</span>' +
+    '<span style="font-weight:700;color:#94a3b8;">' + draws + 'E</span>' +
+    '<span style="font-weight:700;color:#f87171;">' + losses + 'D</span>' +
+    '<span style="color:var(--text-muted);">' + matches.length + ' partidas</span>' +
+    '</div>';
+
+  var tableHtml = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Fase</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Adversário</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Placar</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Resultado</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  showAlertDialog('Confrontos — ' + playerName, summary + tableHtml, null, { type: 'info' });
 };
 
 // ─── Group Stage (Fase de Grupos + Eliminatórias) ───────────────────────────
@@ -1664,7 +1770,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     return computed.map((s, i) => `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);">${s.name}</td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${s.name}</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
