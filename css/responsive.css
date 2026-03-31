@@ -289,12 +289,19 @@
     gap: 4px;
   }
 
+  /* Quick nav icons visible on tablet */
+  .topbar-quick {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+  }
+
   .hamburger-btn {
     display: flex !important;
   }
 
   .page-title {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
   }
 
@@ -426,6 +433,11 @@
     padding: 0 2rem;
     flex-wrap: nowrap;
     overflow: hidden;
+  }
+
+  /* Desktop: hide quick-nav (full menu visible), hide hamburger */
+  .topbar-quick {
+    display: none !important;
   }
 
   .hamburger-btn {
@@ -951,12 +963,18 @@ img {
     overflow: visible !important;
     position: relative !important;
   }
+  /* Quick nav icons always visible on mobile */
+  .topbar-quick {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+  }
   /* App name + icon always visible */
   .page-title {
     flex-shrink: 1;
     min-width: 0;
     gap: 6px !important;
-    flex: 1;
+    flex: 0 1 auto;
   }
   .page-title h1 {
     white-space: nowrap !important;
