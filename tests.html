@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>scoreplace.app — Testes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f172a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 2rem; }
+  h1 { color: #f8fafc; margin-bottom: 0.5rem; }
+  .summary { margin-bottom: 1.5rem; font-size: 1.1rem; }
+  .pass { color: #4ade80; }
+  .fail { color: #f87171; }
+  .skip { color: #fbbf24; }
+  .suite { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .suite h3 { color: #38bdf8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+  .test-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .test-row:last-child { border-bottom: none; }
+  .icon { font-size: 1rem; width: 20px; text-align: center; }
+  .test-name { flex: 1; }
+  .test-detail { font-size: 0.75rem; color: #94a3b8; }
+  .error-msg { color: #f87171; font-size: 0.75rem; margin-left: 28px; padding: 4px 0; }
+</style>
+</head>
+<body>
+<h1>scoreplace.app — Testes Automatizados</h1>
+<div class="summary" id="summary">Executando...</div>
+<div id="results"></div>
+
+<script>
+// ─── Minimal test framework ──────────────────────────────────────────────────
+var _tests = [];
+var _currentSuite = '';
+function describe(name, fn) { _currentSuite = name; fn(); _currentSuite = ''; }
+function it(name, fn) { _tests.push({ suite: _currentSuite, name: name, fn: fn }); }
+function expect(val) {
+  return {
+    toBe: function(exp) { if (val !== exp) throw new Error('Expected ' + JSON.stringify(exp) + ' but got ' + JSON.stringify(val)); },
+    toEqual: function(exp) { if (JSON.stringify(val) !== JSON.stringify(exp)) throw new Error('Expected ' + JSON.stringify(exp) + ' but got ' + JSON.stringify(val)); },
+    toBeGreaterThan: function(exp) { if (!(val > exp)) throw new Error('Expected ' + val + ' > ' + exp); },
+    toBeGreaterThanOrEqual: function(exp) { if (!(val >= exp)) throw new Error('Expected ' + val + ' >= ' + exp); },
+    toBeLessThanOrEqual: function(exp) { if (!(val <= exp)) throw new Error('Expected ' + val + ' <= ' + exp); },
+    toBeTruthy: function() { if (!val) throw new Error('Expected truthy but got ' + JSON.stringify(val)); },
+    toBeFalsy: function() { if (val) throw new Error('Expected falsy but got ' + JSON.stringify(val)); },
+    toContain: function(exp) { if (String(val).indexOf(exp) === -1) throw new Error('Expected "' + val + '" to contain "' + exp + '"'); },
+    toBeInstanceOf: function(exp) { if (!(val instanceof exp)) throw new Error('Expected instance of ' + exp.name); }
+  };
+}
+
+// ─── Setup: minimal global stubs ─────────────────────────────────────────────
+window.AppStore = { tournaments: [], currentUser: null };
+window.FirestoreDB = null;
+function showNotification() {}
+function showAlertDialog() {}
+function showConfirmDialog() {}
+</script>
+
+<!-- Load only the functions we need to test (they attach to window) -->
+<script src="js/store.js"></script>
+<script src="js/views/tournaments.js"></script>
+<script src="js/views/bracket.js"></script>
+
+<script>
+// ─── Test Suites ─────────────────────────────────────────────────────────────
+
+// === 1. _safeHtml ===
+describe('_safeHtml', function() {
+  it('should escape HTML special characters', function() {
+    expect(window._safeHtml('<script>alert("xss")</script>')).toContain('&lt;script&gt;');
+  });
+  it('should escape quotes', function() {
+    expect(window._safeHtml('"hello" & \'world\'')).toContain('&quot;');
+    expect(window._safeHtml('"hello" & \'world\'')).toContain('&#039;');
+  });
+  it('should handle empty/null input', function() {
+    expect(window._safeHtml('')).toBe('');
+    expect(window._safeHtml(null)).toBe('');
+    expect(window._safeHtml(undefined)).toBe('');
+  });
+  it('should handle numbers', function() {
+    expect(window._safeHtml(123)).toBe('123');
+  });
+});
+
+// === 2. _isLigaFormat ===
+describe('_isLigaFormat', function() {
+  it('should return true for Liga format', function() {
+    expect(window._isLigaFormat({ format: 'Liga' })).toBe(true);
+  });
+  it('should return true for Ranking format (legacy)', function() {
+    expect(window._isLigaFormat({ format: 'Ranking' })).toBe(true);
+  });
+  it('should return false for Eliminatórias', function() {
+    expect(window._isLigaFormat({ format: 'Eliminatórias' })).toBe(false);
+  });
+  it('should return false for Suíço', function() {
+    expect(window._isLigaFormat({ format: 'Suíço Clássico' })).toBe(false);
+  });
+  it('should handle null/undefined tournament', function() {
+    expect(window._isLigaFormat(null)).toBeFalsy();
+    expect(window._isLigaFormat(undefined)).toBeFalsy();
+  });
+});
+
+// === 3. _getTournamentProgress ===
+describe('_getTournamentProgress', function() {
+  it('should return 0% for tournament without matches', function() {
+    var t = { participants: ['A', 'B'] };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(0);
+    expect(prog.completed).toBe(0);
+    expect(prog.pct).toBe(0);
+  });
+
+  it('should calculate progress for matches array', function() {
+    var t = {
+      matches: [
+        { p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 1 },
+        { p1: 'C', p2: 'D', winner: null },
+        { p1: 'E', p2: 'F', winner: 'F', scoreP1: 0, scoreP2: 2 }
+      ]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(3);
+    expect(prog.completed).toBe(2);
+    expect(prog.pct).toBe(67);
+  });
+
+  it('should exclude BYE matches', function() {
+    var t = {
+      matches: [
+        { p1: 'A', p2: 'BYE', winner: 'A' },
+        { p1: 'B', p2: 'C', winner: 'B', scoreP1: 2, scoreP2: 0 }
+      ]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(1);
+    expect(prog.completed).toBe(1);
+    expect(prog.pct).toBe(100);
+  });
+
+  it('should exclude TBD matches', function() {
+    var t = {
+      matches: [
+        { p1: 'A', p2: 'TBD' },
+        { p1: 'B', p2: 'C', winner: 'C', scoreP1: 1, scoreP2: 3 }
+      ]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(1);
+    expect(prog.completed).toBe(1);
+  });
+
+  it('should handle rounds array (Liga/Suíço)', function() {
+    var t = {
+      rounds: [
+        { matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 1 },
+          { p1: 'C', p2: 'D', winner: 'draw', scoreP1: 1, scoreP2: 1 }
+        ]},
+        { matches: [
+          { p1: 'A', p2: 'C', winner: null },
+          { p1: 'B', p2: 'D', winner: null }
+        ]}
+      ]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(4);
+    expect(prog.completed).toBe(2);
+    expect(prog.pct).toBe(50);
+  });
+
+  it('should count thirdPlaceMatch', function() {
+    var t = {
+      matches: [
+        { p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 0 }
+      ],
+      thirdPlaceMatch: { p1: 'C', p2: 'D', winner: null }
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(2);
+    expect(prog.completed).toBe(1);
+    expect(prog.pct).toBe(50);
+  });
+
+  it('should handle null tournament', function() {
+    var prog = window._getTournamentProgress(null);
+    expect(prog.total).toBe(0);
+    expect(prog.pct).toBe(0);
+  });
+});
+
+// === 4. _computeStandings ===
+describe('_computeStandings', function() {
+  it('should compute basic standings from rounds', function() {
+    var t = {
+      participants: [
+        { displayName: 'Alice' },
+        { displayName: 'Bob' },
+        { displayName: 'Carol' }
+      ],
+      rounds: [{
+        matches: [
+          { p1: 'Alice', p2: 'Bob', winner: 'Alice', scoreP1: 2, scoreP2: 1 },
+          { p1: 'Carol', p2: 'Alice', winner: 'Carol', scoreP1: 3, scoreP2: 0 }
+        ]
+      }]
+    };
+    var standings = window._computeStandings(t);
+    expect(standings.length).toBe(3);
+    // Carol and Alice both have 3 points (1 win each), but Carol has better point diff
+    var carol = standings.find(function(s) { return s.name === 'Carol'; });
+    var alice = standings.find(function(s) { return s.name === 'Alice'; });
+    var bob = standings.find(function(s) { return s.name === 'Bob'; });
+    expect(carol.wins).toBe(1);
+    expect(alice.wins).toBe(1);
+    expect(bob.wins).toBe(0);
+    expect(bob.losses).toBe(1);
+  });
+
+  it('should handle draws correctly (1 point each)', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }],
+      rounds: [{
+        matches: [
+          { p1: 'A', p2: 'B', winner: 'draw', draw: true, scoreP1: 1, scoreP2: 1 }
+        ]
+      }]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    var b = standings.find(function(s) { return s.name === 'B'; });
+    expect(a.points).toBe(1);
+    expect(b.points).toBe(1);
+    expect(a.draws).toBe(1);
+    expect(b.draws).toBe(1);
+    expect(a.wins).toBe(0);
+  });
+
+  it('should filter by category when provided', function() {
+    var t = {
+      participants: [
+        { displayName: 'A', category: 'Masc A' },
+        { displayName: 'B', category: 'Masc A' },
+        { displayName: 'C', category: 'Fem A' }
+      ],
+      rounds: [{
+        matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 0, category: 'Masc A' },
+          { p1: 'C', p2: 'A', winner: 'C', scoreP1: 3, scoreP2: 1, category: 'Fem A' }
+        ]
+      }]
+    };
+    var mascStandings = window._computeStandings(t, 'Masc A');
+    expect(mascStandings.length).toBe(2);
+    var a = mascStandings.find(function(s) { return s.name === 'A'; });
+    expect(a.wins).toBe(1);
+    expect(a.played).toBe(1); // only counted Masc A match
+  });
+
+  it('should sort by points desc, then wins, then point diff', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }],
+      rounds: [
+        { matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 3, scoreP2: 0 },
+          { p1: 'B', p2: 'C', winner: 'B', scoreP1: 2, scoreP2: 1 }
+        ]},
+        { matches: [
+          { p1: 'A', p2: 'C', winner: 'A', scoreP1: 2, scoreP2: 0 }
+        ]}
+      ]
+    };
+    var standings = window._computeStandings(t);
+    expect(standings[0].name).toBe('A');
+    expect(standings[0].points).toBe(6);
+    expect(standings[1].name).toBe('B');
+    expect(standings[1].points).toBe(3);
+    expect(standings[2].name).toBe('C');
+    expect(standings[2].points).toBe(0);
+  });
+});
+
+// === 5. _calcNextDrawDate ===
+describe('_calcNextDrawDate', function() {
+  it('should return null for tournament without drawFirstDate', function() {
+    expect(window._calcNextDrawDate({})).toBe(null);
+    expect(window._calcNextDrawDate(null)).toBe(null);
+  });
+
+  it('should return future first draw date as-is', function() {
+    var future = new Date();
+    future.setDate(future.getDate() + 7);
+    var t = {
+      drawFirstDate: future.toISOString().split('T')[0],
+      drawFirstTime: '19:00',
+      drawIntervalDays: 7
+    };
+    var next = window._calcNextDrawDate(t);
+    expect(next).toBeInstanceOf(Date);
+    expect(next.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('should calculate next draw after first has passed', function() {
+    var past = new Date();
+    past.setDate(past.getDate() - 10);
+    var t = {
+      drawFirstDate: past.toISOString().split('T')[0],
+      drawFirstTime: '19:00',
+      drawIntervalDays: 7
+    };
+    var next = window._calcNextDrawDate(t);
+    expect(next).toBeInstanceOf(Date);
+    expect(next.getTime()).toBeGreaterThan(Date.now());
+  });
+});
+
+// === 6. _shareTournament ===
+describe('_shareTournament', function() {
+  it('should not crash when tournament not found', function() {
+    window.AppStore.tournaments = [];
+    // Should not throw
+    window._shareTournament('nonexistent');
+  });
+});
+
+// === 7. _exportTournamentCSV ===
+describe('_exportTournamentCSV', function() {
+  it('should not crash when tournament has no results', function() {
+    window.AppStore.tournaments = [{ id: 'test1', name: 'Test', format: 'Eliminatórias', participants: ['A', 'B'] }];
+    // Should show notification, not throw
+    window._exportTournamentCSV('test1');
+  });
+
+  it('should not crash for nonexistent tournament', function() {
+    window.AppStore.tournaments = [];
+    window._exportTournamentCSV('nonexistent');
+  });
+});
+
+// === 8. _cloneTournament ===
+describe('_cloneTournament', function() {
+  it('should not clone without logged-in user', function() {
+    window.AppStore.currentUser = null;
+    window.AppStore.tournaments = [{ id: 'test1', name: 'Test' }];
+    window._cloneTournament('test1');
+    // Should not create a new tournament
+    expect(window.AppStore.tournaments.length).toBe(1);
+  });
+});
+
+// === 9. SCOREPLACE_VERSION ===
+describe('SCOREPLACE_VERSION', function() {
+  it('should be defined', function() {
+    expect(!!window.SCOREPLACE_VERSION).toBeTruthy();
+  });
+  it('should follow semver alpha pattern', function() {
+    expect(window.SCOREPLACE_VERSION).toContain('-alpha');
+    expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// ─── Run all tests ───────────────────────────────────────────────────────────
+(function runTests() {
+  var results = document.getElementById('results');
+  var summary = document.getElementById('summary');
+  var passed = 0, failed = 0, errors = [];
+  var suites = {};
+
+  _tests.forEach(function(test) {
+    if (!suites[test.suite]) suites[test.suite] = [];
+    var result = { name: test.name, pass: true, error: null };
+    try {
+      test.fn();
+      passed++;
+    } catch(e) {
+      result.pass = false;
+      result.error = e.message;
+      failed++;
+      errors.push(test.suite + ' > ' + test.name + ': ' + e.message);
+    }
+    suites[test.suite].push(result);
+  });
+
+  // Render results
+  Object.keys(suites).forEach(function(suiteName) {
+    var suite = suites[suiteName];
+    var suiteDiv = document.createElement('div');
+    suiteDiv.className = 'suite';
+    var suitePass = suite.every(function(r) { return r.pass; });
+    suiteDiv.innerHTML = '<h3>' + (suitePass ? '✅' : '❌') + ' ' + suiteName + '</h3>';
+    suite.forEach(function(r) {
+      var row = document.createElement('div');
+      row.className = 'test-row';
+      row.innerHTML = '<span class="icon">' + (r.pass ? '✓' : '✗') + '</span>' +
+        '<span class="test-name" style="color:' + (r.pass ? '#4ade80' : '#f87171') + ';">' + r.name + '</span>';
+      suiteDiv.appendChild(row);
+      if (r.error) {
+        var errDiv = document.createElement('div');
+        errDiv.className = 'error-msg';
+        errDiv.textContent = r.error;
+        suiteDiv.appendChild(errDiv);
+      }
+    });
+    results.appendChild(suiteDiv);
+  });
+
+  var total = passed + failed;
+  summary.innerHTML = '<span class="pass">' + passed + ' passou</span> · ' +
+    (failed > 0 ? '<span class="fail">' + failed + ' falhou</span>' : '<span class="pass">0 falhou</span>') +
+    ' · ' + total + ' total' +
+    (failed === 0 ? ' <span class="pass">— Todos os testes passaram! 🎉</span>' : '');
+
+  document.title = (failed === 0 ? '✅' : '❌') + ' scoreplace.app — Testes (' + passed + '/' + total + ')';
+})();
+</script>
+</body>
+</html>

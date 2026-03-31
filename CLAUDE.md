@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.19-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.20-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,10 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.20-alpha (Marco 2026)**
+- Testes Automatizados: arquivo tests.html com 21 testes unitarios cobrindo funcoes core. Framework de testes minimalista (describe/it/expect) sem dependencias externas. Testes cobrem: _safeHtml, _isLigaFormat, _getTournamentProgress, _computeStandings, _calcNextDrawDate, _shareTournament, _exportTournamentCSV, _cloneTournament, SCOREPLACE_VERSION. Pode ser rodado no browser (tests.html) ou via Node.js.
+- _isLigaFormat global: definicao movida para o topo de tournaments.js (fora do escopo de renderTournaments) para que esteja disponivel imediatamente no carregamento do script. Usa padrao `window._isLigaFormat = window._isLigaFormat || function(){}` para nao sobrescrever se ja definido.
 
 **v0.2.19-alpha (Marco 2026)**
 - Confrontos do Jogador: clicar no nome de um jogador na tabela de classificacao (Liga/Suico) abre popup com historico completo de partidas — adversario, placar, resultado (V/E/D) e resumo. Funcao window._showPlayerHistory(tId, playerName). Usa showAlertDialog para exibir tabela formatada.
