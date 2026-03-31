@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.18-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.19-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,11 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.19-alpha (Marco 2026)**
+- Confrontos do Jogador: clicar no nome de um jogador na tabela de classificacao (Liga/Suico) abre popup com historico completo de partidas — adversario, placar, resultado (V/E/D) e resumo. Funcao window._showPlayerHistory(tId, playerName). Usa showAlertDialog para exibir tabela formatada.
+- Notificacao de Resultado: ao salvar resultado de partida via _saveResultInline, ambos os jogadores recebem notificacao automatica via _sendUserNotification (tipo 'result', level 'all'). Requer que participante tenha uid no objeto de participante.
+- Ultima Atualizacao: torneios agora registram t.updatedAt (ISO string) a cada syncImmediate. Exibido na pagina de detalhes do torneio como "Atualizado em DD/MM/AAAA as HH:MM".
 
 **v0.2.18-alpha (Marco 2026)**
 - Rodadas Anteriores: na classificacao de Liga e Suico, secao expansivel "Rodadas Anteriores" mostra todas as rodadas passadas com resultados compactos de cada partida (jogador1 x jogador2, placar, vencedor). Usa elemento <details> para nao poluir a tela. Rodadas listadas da mais recente para a mais antiga.
