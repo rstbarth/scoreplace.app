@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.9-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.10-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,11 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.10-alpha (Marco 2026)**
+- Validacao de datas: criar/editar torneio agora valida que data fim > data inicio e prazo inscricao < data inicio.
+- Auto-enrollment feedback: se inscricao automatica apos login falhar por timeout, usuario recebe aviso para tentar manualmente.
+- Migracao Liga/Ranking: ao salvar torneio Liga, campos legados ranking* sao limpos (setados null) no Firestore.
 
 **v0.2.9-alpha (Marco 2026)**
 - Fase de Grupos empates: cross-seeding e classificacao agora contabilizam empates corretamente (1pt cada) em vez de tratar winner='draw' como nome de jogador.
