@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Previsão do Tempo</b> — Ao criar/editar torneio, se o local e data de início estiverem definidos (até 5 dias no futuro), a previsão do tempo é exibida automaticamente. Integração com OpenWeatherMap (temperatura, descrição, ícone).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Paginação no Dashboard</b> — Torneios carregam em lotes de 12. Botão "Carregar mais (N restantes)" aparece quando há mais de 12 torneios. Melhora performance para quem gerencia muitos torneios. Paginação reseta ao trocar de filtro.</p>' +
         '</div>' +
