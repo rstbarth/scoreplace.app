@@ -5612,39 +5612,19 @@ function renderTournaments(container, tournamentId = null) {
                    ${podiumHtml}
                  `;
                 } else if (hasDraw) {
-                    // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento + Ver Chaves
+                    // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${isLigaFormat ? '' : startTournamentBanner}
                    ${isLigaFormat ? '' : startedBadge}
                    ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
-                   <div class="mt-4" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
-                      ${sortearBtn}
-                      ${categoriasBtn}
-                   </div>
                  `;
                 } else {
-                    // Antes do sorteio — mostrar botões de gestão de inscrições
+                    // Antes do sorteio
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${teamEnrollModalHtml}
                    ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
-                   <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
-                      <!-- Esquerda: ações de inscrição -->
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                         ${isAberto ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
-                         ${addParticipantBtns}
-                      </div>
-
-                      <!-- Direita: gestão do torneio -->
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
-                         ${categoriasBtn}
-                         ${toggleRegBtn}
-                         ${sortearBtn}
-                         ${sortearAberto}
-                      </div>
-                   </div>
                  `;
                 }
             } else if (!window.AppStore.currentUser) {
@@ -5678,15 +5658,6 @@ function renderTournaments(container, tournamentId = null) {
         } else {
             actionsHtml = `
             ${teamEnrollModalHtml}
-            <div class="d-flex justify-between align-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.15);">
-               <div>
-                  <button class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">Ver Chaves</button>
-               </div>
-               <div class="d-flex gap-2">
-                  <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal()">Convites</button>
-                  ${isOrg ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 600;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">Sorteio Mágico</button>` : `<button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window.location.hash='#rules/${t.id}'">Regras</button>`}
-               </div>
-            </div>
           `;
         }
 
@@ -5704,10 +5675,10 @@ function renderTournaments(container, tournamentId = null) {
                   ${statusText}
                </div>
             </div>
-            ${tournamentId ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-               <div style="opacity: 0.8;">Inscrição: ${enrollmentText}</div>
-            </div>` : ''}
-            ${enrollBtnHtml ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px;">${enrollBtnHtml}</div>` : ''}
+            ${enrollBtnHtml ? `<div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
+               ${enrollBtnHtml}
+               ${tournamentId ? `<div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : ''}
+            </div>` : (tournamentId ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : '')}
 
             <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
@@ -5862,9 +5833,14 @@ function renderTournaments(container, tournamentId = null) {
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.12);">
               <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">Ferramentas do Organizador</div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(255,255,255,0.15); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
+                ${hasDraw ? `<button class="hover-lift" style="background: rgba(255,255,255,0.15); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
+                ${addParticipantBtns}
                 ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
-                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
+                ${toggleRegBtn}
+                ${sortearBtn}
+                ${sortearAberto}
+                ${categoriasBtn}
+                ${hasDraw ? `<button class="hover-lift" style="background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
                 ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.18); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
                 ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.12); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar</button>` : ''}
                 ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(99,102,241,0.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar</button>` : ''}
