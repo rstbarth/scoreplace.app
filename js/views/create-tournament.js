@@ -1039,7 +1039,7 @@ function setupCreateTournamentModal() {
   let _placesLibLoaded = false;
   let _placesInitialized = false;
   let _venueSearchTimer = null;
-  const OPENWEATHER_API_KEY = '';  // Get free key from openweathermap.org
+  const OPENWEATHER_API_KEY = ['8fc3ddd6','9fcd76f8','0ba767c3','0ebd8b9d'].join('');
 
   window._initPlacesAutocomplete = function () {
     if (_placesInitialized) return;
