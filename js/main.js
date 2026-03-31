@@ -227,6 +227,13 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Proteção contra re-sorteio</b> — Refazer o sorteio agora pede confirmação. Se já houver resultados registrados, avisa que serão perdidos. Sem resultados, aviso leve.</p>' +
+        '<p><b>Eliminatórias com categorias</b> — Torneios Eliminatórias agora geram chaveamento separado por categoria (Masc, Fem, Misto, etc.), cada um com seu bracket independente.</p>' +
+        '<p><b>Validação pré-sorteio</b> — Antes do sorteio, participantes sem categoria atribuída são identificados com aviso. Organizador pode prosseguir ou voltar para atribuir categorias.</p>' +
+        '<p><b>Reportar Problema</b> — Botão no manual (Sobre) para enviar feedback por e-mail com versão, dispositivo e dados do usuário preenchidos automaticamente.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Auto-inscrição com categorias</b> — Ao aceitar convite, o participante agora é inscrito automaticamente na categoria correta com base no gênero do perfil. Organizador recebe notificação da nova inscrição.</p>' +
         '<p><b>Cancelar inscrição seguro</b> — Corrigido bug onde nomes parciais podiam causar remoção do participante errado (ex: "Ana" removendo "Ana Paula"). Agora usa comparação exata.</p>' +
