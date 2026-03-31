@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.7-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.9-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,17 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.9-alpha (Marco 2026)**
+- Fase de Grupos empates: cross-seeding e classificacao agora contabilizam empates corretamente (1pt cada) em vez de tratar winner='draw' como nome de jogador.
+- Dupla Eliminatoria: removido dead code (mergeCount nao utilizado) na geracao do lower bracket.
+- Notificacoes XSS fix: mensagens sanitizadas com escape de HTML. Botao "Ver Torneio" adicionado em notificacoes de convite de torneio.
+- Delete tournament: notificacao de erro melhorada quando exclusao no Firestore falha.
+
+**v0.2.8-alpha (Marco 2026)**
+- Botao Encerrar Torneio: organizador pode encerrar qualquer torneio manualmente via botao na pagina de detalhes. Confirmacao com aviso de partidas pendentes. Seta status='finished'.
+- Podio/classificacao final: torneios encerrados exibem podio visual com medalhas (ouro, prata, bronze). Eliminatorias mostram campeao, vice e 3o lugar. Suico/Liga mostram top 3 por pontos da tabela standings.
+- _computeStandings exposta globalmente (window._computeStandings) para uso em finishTournament.
 
 **v0.2.7-alpha (Marco 2026)**
 - Encerramento automatico de torneio: Eliminatorias e Dupla Eliminatoria marcam status='finished' automaticamente quando todas as partidas sao concluidas (incluindo disputa de 3o lugar). Notificacao de campeao exibida.
