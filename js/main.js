@@ -241,6 +241,14 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Paginação no Dashboard</b> — Torneios carregam em lotes de 12. Botão "Carregar mais (N restantes)" aparece quando há mais de 12 torneios. Melhora performance para quem gerencia muitos torneios. Paginação reseta ao trocar de filtro.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.37-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Acessibilidade</b> — Link "Pular para o conteúdo" para navegação por teclado. ARIA roles e labels na topbar, navegação e conteúdo principal. aria-expanded no menu hamburger. Focus trap em modais (Tab circula dentro do modal). Live region para leitores de tela (notificações anunciadas). Melhoria geral de acessibilidade WCAG 2.1.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.36-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Modo Compacto do Dashboard</b> — Toggle "Cards/Lista" no dashboard para alternar entre visualização em cards (padrão) e lista compacta. Modo lista mostra nome, esporte, formato, data, participantes, progresso e status em uma linha por torneio. Ideal para quem gerencia muitos torneios. Preferência salva em localStorage.</p>' +
         '</div>' +
@@ -879,4 +887,79 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
     '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">?</kbd><span style="color:var(--text-muted);">Ajuda</span>' +
     '<kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-align:center;font-family:monospace;color:var(--text-bright);">ESC</kbd><span style="color:var(--text-muted);">Fechar modal</span>' +
     '</div></div>';
+})();
+
+// === Accessibility Helpers ===
+(function setupA11y() {
+  // Focus trap for modals — keeps Tab focus within the modal
+  window._trapFocus = function(modalEl) {
+    if (!modalEl) return;
+    var focusable = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    first.focus();
+    modalEl._focusTrapHandler = function(e) {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    modalEl.addEventListener('keydown', modalEl._focusTrapHandler);
+  };
+  window._releaseFocusTrap = function(modalEl) {
+    if (modalEl && modalEl._focusTrapHandler) {
+      modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+      delete modalEl._focusTrapHandler;
+    }
+  };
+
+  // Announce to screen readers via live region
+  var liveRegion = document.createElement('div');
+  liveRegion.setAttribute('role', 'status');
+  liveRegion.setAttribute('aria-live', 'polite');
+  liveRegion.setAttribute('aria-atomic', 'true');
+  liveRegion.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
+  liveRegion.id = 'a11y-announcer';
+  document.body.appendChild(liveRegion);
+
+  window._announce = function(message) {
+    var el = document.getElementById('a11y-announcer');
+    if (el) { el.textContent = ''; setTimeout(function() { el.textContent = message; }, 50); }
+  };
+
+  // Enhance existing openModal/closeModal with ARIA + focus trap
+  var _origOpenModal = window.openModal;
+  if (typeof _origOpenModal === 'function') {
+    window.openModal = function(id) {
+      _origOpenModal(id);
+      var modal = document.getElementById(id);
+      if (modal) {
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        window._trapFocus(modal);
+        window._announce('Modal aberto');
+      }
+    };
+  }
+  var _origCloseModal = window.closeModal;
+  if (typeof _origCloseModal === 'function') {
+    window.closeModal = function(id) {
+      var modal = document.getElementById(id);
+      if (modal) window._releaseFocusTrap(modal);
+      _origCloseModal(id);
+      window._announce('Modal fechado');
+    };
+  }
+
+  // Add ARIA labels to notification toasts
+  var _origNotif = window.showNotification;
+  if (typeof _origNotif === 'function') {
+    window.showNotification = function(title, msg, type) {
+      _origNotif(title, msg, type);
+      window._announce(title + ': ' + msg);
+    };
+  }
 })();
