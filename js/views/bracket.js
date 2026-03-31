@@ -55,6 +55,7 @@ function renderBracket(container, tournamentId) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${isOrg && !hasContent ? `<button class="btn btn-primary" onclick="window.generateDrawFunction('${t.id}')">🎲 Realizar Sorteio</button>` : ''}
         ${hasContent ? `<button class="btn btn-secondary" onclick="window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
+        ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : ''}
         <a href="#participants/${t.id}" class="btn btn-secondary">👥 Inscritos</a>
         <a href="#rules/${t.id}" class="btn btn-secondary">📋 Regras</a>
       </div>
@@ -1433,6 +1434,11 @@ window._editResult = function (tId, matchId) {
     null,
     { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
   );
+};
+
+// ─── Print bracket ───────────────────────────────────────────────────────────
+window._printBracket = function() {
+  window.print();
 };
 
 // ─── Player match history popup ──────────────────────────────────────────────
