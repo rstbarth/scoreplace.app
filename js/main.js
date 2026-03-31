@@ -16,8 +16,34 @@
         '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.3-alpha') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
-        '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">© 2026 scoreplace.app. Todos os direitos reservados.</div>' +
-      '</div>'
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); border-radius:10px; padding:12px 14px; margin-bottom:1rem;">' +
+        '<div style="font-weight:700; font-size:0.85rem; color:#f59e0b; margin-bottom:6px;">⚠️ App em Desenvolvimento</div>' +
+        '<p style="font-size:0.78rem; color:var(--text-main); line-height:1.6; margin:0;">Este aplicativo está em fase <b>Alpha</b> e pode apresentar bugs, erros e falhas inesperadas. Estamos trabalhando continuamente para melhorar a experiência. Sua paciência e feedback são fundamentais!</p>' +
+        '</div>' +
+        '<div style="text-align:center; margin-bottom:1rem;">' +
+        '<button onclick="(function(){' +
+        "var v=window.SCOREPLACE_VERSION||'?';" +
+        "var ua=navigator.userAgent;" +
+        "var user=(window.AppStore&&window.AppStore.currentUser)?window.AppStore.currentUser.displayName:'(não logado)';" +
+        "var email=(window.AppStore&&window.AppStore.currentUser)?window.AppStore.currentUser.email:'';" +
+        "var subject=encodeURIComponent('scoreplace.app v'+v+' — Feedback');" +
+        "var body=encodeURIComponent(" +
+        "'Olá equipe scoreplace!\\n\\n'" +
+        "+'Descreva aqui o problema ou sugestão:\\n\\n\\n'" +
+        "+'---\\n'" +
+        "+'Versão: '+v+'\\n'" +
+        "+'Usuário: '+user+'\\n'" +
+        "+'Email: '+email+'\\n'" +
+        "+'Dispositivo: '+ua+'\\n'" +
+        "+'Data: '+new Date().toLocaleString('pt-BR')+'\\n'" +
+        ");" +
+        "window.open('mailto:rstbarth@gmail.com?subject='+subject+'&body='+body,'_blank');" +
+        '})()" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%); color:#fff; border:none; border-radius:10px; font-size:0.85rem; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.3); transition:all 0.2s;" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 12px rgba(99,102,241,0.4)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 2px 8px rgba(99,102,241,0.3)\'">' +
+        '<span style="font-size:1.1rem;">📩</span> Reportar Problema ou Sugestão</button>' +
+        '</div>' +
+        '<p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-bottom:0.5rem;">Ao clicar, será aberto seu app de e-mail com informações técnicas preenchidas automaticamente para nos ajudar a resolver mais rápido.</p>' +
+        '<div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">© 2026 scoreplace.app. Todos os direitos reservados.</div>'
     },
     {
       id: 'primeiros-passos',
