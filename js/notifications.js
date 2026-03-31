@@ -3,53 +3,28 @@
 // ========================================
 // Registers FCM token after user login, saves to Firestore user profile.
 // The Cloud Function sendPushNotification reads this token to deliver pushes.
+// Browser requires user gesture (click) to grant notification permission,
+// so we show a banner prompting the user to enable notifications.
 
-window._initFCM = async function() {
-  // Only works in browsers that support notifications + service workers
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-    console.log('[FCM] Browser does not support push notifications');
-    return;
-  }
-  // Need Firebase Messaging SDK loaded
-  if (!firebase || !firebase.messaging) {
-    console.warn('[FCM] Firebase Messaging SDK not loaded');
-    return;
-  }
-  // Need a logged-in user
+// Internal: register FCM token after permission is already granted
+window._registerFCMToken = async function() {
   var user = window.AppStore && window.AppStore.currentUser;
-  if (!user || !user.uid) {
-    console.log('[FCM] No user logged in, skipping FCM init');
-    return;
-  }
+  if (!user || !user.uid) return;
+  if (!firebase || !firebase.messaging) return;
 
   try {
-    // Request notification permission
-    var permission = Notification.permission;
-    if (permission === 'default') {
-      permission = await Notification.requestPermission();
-    }
-    if (permission !== 'granted') {
-      console.log('[FCM] Notification permission denied');
-      return;
-    }
-
-    // Get the messaging instance
     var messaging = firebase.messaging();
-
-    // Use the existing service worker registration (our sw.js)
     var swReg = await navigator.serviceWorker.ready;
     messaging.useServiceWorker(swReg);
 
-    // Get FCM token — VAPID key from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-    // If VAPID key is not yet configured, getToken will use default Firebase setup
-    var vapidKey = window._FCM_VAPID_KEY || 'BKLdZXuFwED9m1XmGz57ektn5vPPsH8TTsHmeAcBHsVwR4ZoRcPIIjv2kUY20S2Hf3kcCP3strJ9CbLGbKJmuSo';
-    var tokenOptions = { serviceWorkerRegistration: swReg };
-    if (vapidKey) tokenOptions.vapidKey = vapidKey;
-    var token = await messaging.getToken(tokenOptions);
+    var vapidKey = 'BKLdZXuFwED9m1XmGz57ektn5vPPsH8TTsHmeAcBHsVwR4ZoRcPIIjv2kUY20S2Hf3kcCP3strJ9CbLGbKJmuSo';
+    var token = await messaging.getToken({
+      vapidKey: vapidKey,
+      serviceWorkerRegistration: swReg
+    });
 
     if (token) {
       console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
-      // Save to Firestore user profile
       if (window.FirestoreDB && window.FirestoreDB.db) {
         await window.FirestoreDB.db.collection('users').doc(user.uid).set({
           fcmToken: token,
@@ -64,9 +39,10 @@ window._initFCM = async function() {
     // Listen for token refresh
     messaging.onTokenRefresh(async function() {
       try {
-        var refreshOptions = { serviceWorkerRegistration: swReg };
-        if (vapidKey) refreshOptions.vapidKey = vapidKey;
-        var newToken = await messaging.getToken(refreshOptions);
+        var newToken = await messaging.getToken({
+          vapidKey: vapidKey,
+          serviceWorkerRegistration: swReg
+        });
         if (newToken && window.FirestoreDB && window.FirestoreDB.db && user.uid) {
           await window.FirestoreDB.db.collection('users').doc(user.uid).set({
             fcmToken: newToken,
@@ -90,8 +66,109 @@ window._initFCM = async function() {
     });
 
   } catch (err) {
-    console.warn('[FCM] Init error:', err);
+    console.warn('[FCM] Token registration error:', err);
   }
+};
+
+// Called from user click on the "Ativar Notificações" banner button
+window._enablePushNotifications = async function() {
+  try {
+    var permission = await Notification.requestPermission();
+    console.log('[FCM] Permission result:', permission);
+    // Remove the banner regardless of result
+    var banner = document.getElementById('fcm-permission-banner');
+    if (banner) banner.remove();
+
+    if (permission === 'granted') {
+      // Save preference so banner doesn't show again
+      try { localStorage.setItem('scoreplace_fcm_dismissed', 'granted'); } catch(e) {}
+      await window._registerFCMToken();
+      if (typeof showNotification === 'function') {
+        showNotification('Notificações Ativadas', 'Você receberá alertas de torneios, rodadas e resultados.', 'success');
+      }
+    } else {
+      try { localStorage.setItem('scoreplace_fcm_dismissed', 'denied'); } catch(e) {}
+      if (typeof showNotification === 'function') {
+        showNotification('Notificações Bloqueadas', 'Você pode ativar depois nas configurações do navegador.', 'warning');
+      }
+    }
+  } catch (err) {
+    console.warn('[FCM] Permission request error:', err);
+  }
+};
+
+// Dismiss the banner without asking permission
+window._dismissFCMBanner = function() {
+  var banner = document.getElementById('fcm-permission-banner');
+  if (banner) {
+    banner.style.transform = 'translateY(-100%)';
+    banner.style.opacity = '0';
+    setTimeout(function() { banner.remove(); }, 300);
+  }
+  try { localStorage.setItem('scoreplace_fcm_dismissed', 'later'); } catch(e) {}
+};
+
+// Main init: decides whether to show banner or silently register token
+window._initFCM = async function() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    console.log('[FCM] Browser does not support push notifications');
+    return;
+  }
+  if (!firebase || !firebase.messaging) {
+    console.warn('[FCM] Firebase Messaging SDK not loaded');
+    return;
+  }
+  var user = window.AppStore && window.AppStore.currentUser;
+  if (!user || !user.uid) {
+    console.log('[FCM] No user logged in, skipping FCM init');
+    return;
+  }
+
+  var permission = Notification.permission;
+
+  // Already granted — just register token silently
+  if (permission === 'granted') {
+    console.log('[FCM] Permission already granted, registering token...');
+    await window._registerFCMToken();
+    return;
+  }
+
+  // Already denied — nothing we can do
+  if (permission === 'denied') {
+    console.log('[FCM] Permission previously denied by user');
+    return;
+  }
+
+  // Permission is "default" — show a banner if not previously dismissed
+  var dismissed = null;
+  try { dismissed = localStorage.getItem('scoreplace_fcm_dismissed'); } catch(e) {}
+  if (dismissed === 'granted' || dismissed === 'denied') {
+    console.log('[FCM] Banner previously dismissed:', dismissed);
+    return;
+  }
+
+  // Show the permission banner
+  console.log('[FCM] Showing notification permission banner');
+  var existing = document.getElementById('fcm-permission-banner');
+  if (existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'fcm-permission-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:0.9rem;box-shadow:0 4px 20px rgba(0,0,0,0.3);transform:translateY(-100%);opacity:0;transition:all 0.4s ease;flex-wrap:wrap;';
+  banner.innerHTML =
+    '<span style="font-size:1.3rem;">🔔</span>' +
+    '<span>Quer receber notificações de torneios, rodadas e resultados?</span>' +
+    '<button onclick="window._enablePushNotifications()" style="background:#fff;color:#3b82f6;border:none;padding:8px 18px;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;">Ativar Notificações</button>' +
+    '<button onclick="window._dismissFCMBanner()" style="background:transparent;color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;font-size:0.85rem;cursor:pointer;white-space:nowrap;">Agora não</button>';
+  document.body.appendChild(banner);
+
+  // Animate in
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      banner.style.transform = 'translateY(0)';
+      banner.style.opacity = '1';
+    });
+  });
 };
 
 // Sistema Global de Notificações (Toastings)
