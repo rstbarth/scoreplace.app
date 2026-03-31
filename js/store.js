@@ -1,4 +1,155 @@
-window.SCOREPLACE_VERSION = '0.2.40-alpha';
+window.SCOREPLACE_VERSION = '0.2.41-alpha';
+
+// ─── Plano Pro ──────────────────────────────────────────────────────────────
+// Verifica se o usuário logado tem plano Pro ativo
+window._isPro = function() {
+  var user = window.AppStore && window.AppStore.currentUser;
+  if (!user) return false;
+  if (user.plan !== 'pro') return false;
+  // Checa expiração
+  if (user.planExpiresAt) {
+    var exp = new Date(user.planExpiresAt);
+    if (exp < new Date()) return false;
+  }
+  return true;
+};
+
+// Limites do plano Free
+window.PLAN_LIMITS = {
+  FREE_MAX_TOURNAMENTS: 3,
+  FREE_MAX_PARTICIPANTS: 32
+};
+
+// Verifica se pode criar mais torneios (Free: 3 ativos)
+window._canCreateTournament = function() {
+  if (window._isPro()) return true;
+  var user = window.AppStore && window.AppStore.currentUser;
+  if (!user) return false;
+  var active = window.AppStore.tournaments.filter(function(t) {
+    return t.organizerEmail === user.email && t.status !== 'finished' && t.status !== 'cancelled';
+  });
+  return active.length < window.PLAN_LIMITS.FREE_MAX_TOURNAMENTS;
+};
+
+// Verifica se pode adicionar mais participantes (Free: 32 por torneio)
+window._canAddParticipant = function(tournament) {
+  if (window._isPro()) return true;
+  var pList = Array.isArray(tournament.participants) ? tournament.participants : [];
+  return pList.length < window.PLAN_LIMITS.FREE_MAX_PARTICIPANTS;
+};
+
+// Abre a página/modal de upgrade Pro
+window._showUpgradeModal = function(reason) {
+  var reasonText = '';
+  if (reason === 'tournaments') reasonText = 'Você atingiu o limite de 3 torneios ativos no plano gratuito.';
+  else if (reason === 'participants') reasonText = 'Você atingiu o limite de 32 participantes no plano gratuito.';
+  else if (reason === 'logo') reasonText = 'Upload de logo personalizada é exclusivo do plano Pro.';
+  else if (reason === 'tv') reasonText = 'Modo TV sem marca é exclusivo do plano Pro.';
+  else reasonText = 'Desbloqueie todo o potencial do scoreplace.app.';
+
+  var modal = document.getElementById('modal-upgrade');
+  if (modal) { modal.style.display = 'flex'; return; }
+
+  modal = document.createElement('div');
+  modal.id = 'modal-upgrade';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
+  modal.innerHTML =
+    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:460px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+      '<div style="background:linear-gradient(135deg,#3b82f6,#6366f1);padding:2rem;text-align:center;">' +
+        '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🚀</div>' +
+        '<div style="font-size:1.4rem;font-weight:800;color:#fff;">scoreplace Pro</div>' +
+        '<div style="font-size:0.9rem;color:rgba(255,255,255,0.8);margin-top:6px;">R$19,90/mês</div>' +
+      '</div>' +
+      '<div style="padding:1.5rem;">' +
+        '<p style="color:var(--text-muted);font-size:0.9rem;text-align:center;margin-bottom:1.2rem;">' + reasonText + '</p>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem;">' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.2rem;">♾️</span><span style="color:var(--text-color);font-size:0.9rem;">Torneios ilimitados</span></div>' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.2rem;">👥</span><span style="color:var(--text-color);font-size:0.9rem;">Participantes ilimitados</span></div>' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.2rem;">🎨</span><span style="color:var(--text-color);font-size:0.9rem;">Upload de logo personalizada</span></div>' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.2rem;">📺</span><span style="color:var(--text-color);font-size:0.9rem;">Modo TV sem marca scoreplace</span></div>' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.2rem;">⚡</span><span style="color:var(--text-color);font-size:0.9rem;">Suporte prioritário</span></div>' +
+        '</div>' +
+        '<button onclick="window._startProCheckout()" style="width:100%;padding:14px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'none\'">Assinar Pro — R$19,90/mês</button>' +
+        '<button onclick="document.getElementById(\'modal-upgrade\').remove()" style="width:100%;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;cursor:pointer;">Agora não</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
+
+// Inicia o checkout do Stripe para assinatura Pro
+window._startProCheckout = async function() {
+  var user = window.AppStore && window.AppStore.currentUser;
+  if (!user || !user.uid) {
+    if (typeof showNotification === 'function') showNotification('Login necessário', 'Faça login para assinar o Pro.', 'warning');
+    return;
+  }
+  try {
+    var btn = document.querySelector('#modal-upgrade button');
+    if (btn) { btn.textContent = 'Processando...'; btn.disabled = true; }
+
+    var resp = await fetch('https://southamerica-east1-scoreplace-app.cloudfunctions.net/createCheckoutSession', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.uid,
+        priceId: window._STRIPE_PRICE_ID || 'price_1TGzhZIhfnsIPruFsz4plxaX'
+      })
+    });
+    var data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || 'Erro ao criar sessão de pagamento');
+    }
+  } catch (err) {
+    console.error('Checkout error:', err);
+    if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível iniciar o pagamento. Tente novamente.', 'error');
+    var btn2 = document.querySelector('#modal-upgrade button');
+    if (btn2) { btn2.textContent = 'Assinar Pro — R$19,90/mês'; btn2.disabled = false; }
+  }
+};
+
+// Mostra modal de apoio voluntário via PIX
+window._showSupportModal = function() {
+  var existing = document.getElementById('modal-support-pix');
+  if (existing) { existing.style.display = 'flex'; return; }
+
+  var pixKey = '51590996000173';
+  var modal = document.createElement('div');
+  modal.id = 'modal-support-pix';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
+  modal.innerHTML =
+    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:400px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+      '<div style="background:linear-gradient(135deg,#10b981,#059669);padding:1.5rem;text-align:center;">' +
+        '<div style="font-size:2.2rem;margin-bottom:0.3rem;">💚</div>' +
+        '<div style="font-size:1.2rem;font-weight:800;color:#fff;">Apoie o scoreplace.app</div>' +
+        '<div style="font-size:0.8rem;color:rgba(255,255,255,0.8);margin-top:4px;">Contribuição voluntária — qualquer valor</div>' +
+      '</div>' +
+      '<div style="padding:1.5rem;text-align:center;">' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;line-height:1.6;">Sua contribuição ajuda a manter o scoreplace.app no ar e financiar novas funcionalidades. Qualquer valor faz diferença!</p>' +
+        '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
+          '<div style="margin-bottom:0.8rem;">' +
+            '<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;" />' +
+          '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">Chave PIX (CNPJ):</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;justify-content:center;">' +
+            '<code id="pix-key-text" style="background:rgba(255,255,255,0.08);padding:8px 14px;border-radius:8px;font-size:0.95rem;color:var(--text-color);letter-spacing:0.5px;">' + pixKey + '</code>' +
+            '<button onclick="navigator.clipboard.writeText(\'' + pixKey + '\').then(function(){var b=event.target;b.textContent=\'Copiado!\';setTimeout(function(){b.textContent=\'Copiar\'},2000)})" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copiar</button>' +
+          '</div>' +
+        '</div>' +
+        '<p style="color:var(--text-muted);font-size:0.75rem;margin-bottom:1rem;">Escaneie o QR code ou copie a chave PIX e cole no app do seu banco. Escolha o valor que quiser.</p>' +
+        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="width:100%;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
@@ -254,6 +405,11 @@ window.AppStore = {
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
+        // Plan fields
+        if (profile.plan) this.currentUser.plan = profile.plan;
+        if (profile.planExpiresAt) this.currentUser.planExpiresAt = profile.planExpiresAt;
+        if (profile.stripeCustomerId) this.currentUser.stripeCustomerId = profile.stripeCustomerId;
+        if (profile.stripeSubscriptionId) this.currentUser.stripeSubscriptionId = profile.stripeSubscriptionId;
       }
       return profile;
     } catch (e) {
