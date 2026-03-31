@@ -226,6 +226,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Compartilhar Torneio</b> — Botão "Compartilhar" na página de detalhes, visível para todos. Usa compartilhamento nativo no mobile ou copia o link.</p>' +
+        '<p><b>Progresso do Torneio</b> — Barra visual mostrando % de partidas concluídas nos cards e na página de detalhes.</p>' +
+        '<p><b>Countdown de Inscrições</b> — Aviso "Inscrições encerram em X dias" quando o prazo está próximo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Suas Próximas Partidas</b> — O dashboard agora exibe um widget com suas partidas pendentes em torneios ativos. Mostra o oponente, torneio e esporte — clique para ir direto à partida.</p>' +
         '<p><b>Modo Offline</b> — Banner informativo quando a conexão cai e confirmação quando reconecta. Complemento do PWA para melhor experiência offline.</p>' +
