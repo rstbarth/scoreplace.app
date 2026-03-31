@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.36-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.38-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,12 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.38-alpha (Marco 2026)**
+- Paginacao no Dashboard: torneios carregam em lotes de 12 (PAGE_SIZE). Botao "Carregar mais (N restantes)" aparece quando ha mais de 12 torneios visiveis. Funciona com todos os filtros (Todos, Organizados, Participando, etc.) e com modo compacto. Paginacao reseta ao trocar filtro via window._dashPage. Variavel global window._dashPage controlada pelos filtros e botao.
+
+**v0.2.37-alpha (Marco 2026)**
+- Acessibilidade Basica (WCAG 2.1): link "Pular para o conteudo" no topo da pagina para navegacao por teclado. ARIA roles (application, main, banner, navigation, region, dialog) e aria-labels em todos os elementos interativos da topbar. aria-expanded no botao hamburger. Focus trap em modais — Tab circula dentro do modal aberto. Live region (aria-live="polite") para anunciar notificacoes e estados de modais a leitores de tela. Funcoes globais: window._trapFocus(el), window._releaseFocusTrap(el), window._announce(msg). Intercepta openModal/closeModal e showNotification para adicionar comportamento acessivel automaticamente.
 
 **v0.2.36-alpha (Marco 2026)**
 - Modo Compacto do Dashboard: toggle "Cards/Lista" no canto superior direito do dashboard. Modo cards (padrao) exibe cards com visual completo. Modo lista compacta mostra uma linha por torneio com: logo/icone, nome, esporte, formato, data, contagem de participantes, progresso (%), status e badge de organizador. Preferencia salva em localStorage (scoreplace_dashView). Funcao window._setDashView(view) e _buildCompactList(items) em dashboard.js.
@@ -454,18 +460,39 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 ## Proximos Passos Conhecidos
 
 ### Fase 2 — Infraestrutura e Qualidade
-1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console.
-2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes.
-3. **Otimizacao:** tournaments.js (~430KB) e bracket.js (~110KB) sao muito grandes — modularizar em arquivos menores.
-4. ~~**Testes:**~~ **FEITO em v0.2.20** — 21 testes unitarios em tests.html cobrindo funcoes core (classificacao, progresso, formatos, sanitizacao HTML). Framework minimalista sem dependencias.
+1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console. *(Acao do usuario)*
+2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes. *(Adiado — alto risco)*
+3. **Otimizacao:** tournaments.js (~445KB) e bracket.js (~143KB) sao muito grandes — modularizar em arquivos menores. *(Deferred — funciona sem)*
+4. ~~**Testes:**~~ **FEITO em v0.2.20** — 21 testes unitarios em tests.html.
 
-### Fase 3 — Features Novas
-5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11** — Perfil com estatisticas (vitorias, derrotas, empates, aproveitamento, titulos) calculadas em tempo real.
-6. **Auto-draw Cloud Function:** Backend (Firebase Cloud Functions) para executar sorteios automaticos. Atualmente so frontend (countdown) sem trigger real.
-7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12** — Auto-closure quando ligaSeasonMonths expira, com aviso visual de dias restantes.
-8. **Notificacoes push:** Firebase Cloud Messaging para push notifications reais.
-9. ~~**PWA:**~~ **FEITO em v0.2.13** — Service worker com stale-while-revalidate, manifest.json, icones SVG, meta tags iOS.
-10. **Previsao do tempo:** OpenWeatherMap integrado mas sem API key ativa (campo OPENWEATHER_API_KEY vazio em create-tournament.js).
+### Fase 3 — Features Novas (Client-Side COMPLETAS)
+5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11 + v0.2.33** — Perfil com estatisticas + modal de stats global ao clicar no nome.
+6. **Auto-draw Cloud Function:** Requer Firebase Cloud Functions — backend. *(Acao do usuario)*
+7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12.**
+8. **Notificacoes push:** Requer Firebase Cloud Messaging — backend. *(Acao do usuario)*
+9. ~~**PWA:**~~ **FEITO em v0.2.13.**
+10. **Previsao do tempo:** Requer API key OpenWeatherMap. *(Acao do usuario — campo OPENWEATHER_API_KEY vazio)*
+11. ~~**Imprimir Chaveamento:**~~ **FEITO em v0.2.21.**
+12. ~~**Favoritar Torneios:**~~ **FEITO em v0.2.22.**
+13. ~~**Modo TV:**~~ **FEITO em v0.2.23.**
+14. ~~**Ordenacao Colunas:**~~ **FEITO em v0.2.24.**
+15. ~~**Confrontos Diretos (H2H):**~~ **FEITO em v0.2.25.**
+16. ~~**Tema Claro/Escuro:**~~ **FEITO em v0.2.28.**
+17. ~~**Compartilhar Resultado:**~~ **FEITO em v0.2.29.**
+18. ~~**Busca Rapida (Ctrl+K):**~~ **FEITO em v0.2.31.**
+19. ~~**QR Code do Torneio:**~~ **FEITO em v0.2.32.**
+20. ~~**Estatisticas do Jogador:**~~ **FEITO em v0.2.33.**
+21. ~~**Historico de Atividades:**~~ **FEITO em v0.2.34.**
+22. ~~**Atalhos de Teclado:**~~ **FEITO em v0.2.35.**
+23. ~~**Modo Compacto Dashboard:**~~ **FEITO em v0.2.36.**
+24. ~~**Acessibilidade (WCAG 2.1):**~~ **FEITO em v0.2.37.**
+25. ~~**Paginacao Dashboard:**~~ **FEITO em v0.2.38.**
+
+### Pendencias que requerem acao do usuario (backend/config)
+- Firestore rules (Firebase Console)
+- Auto-draw Cloud Function (Firebase Cloud Functions)
+- Push Notifications (Firebase Cloud Messaging)
+- Weather API (OpenWeatherMap API key)
 
 ## Deploy
 

@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.2.36-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.2.38-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.2.36-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.2.38-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -40,18 +40,20 @@
   </script>
 </head>
 <body>
-  
-  <div id="app" class="app-container">
-    <main class="main-content">
-      <header class="topbar" style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; min-height: 60px; gap: 0.75rem 1rem;">
+  <!-- Skip Navigation Link (Accessibility) -->
+  <a href="#view-container" class="skip-nav" style="position:absolute;top:-100%;left:0;padding:12px 24px;background:var(--primary-color);color:#fff;font-weight:700;z-index:10000;border-radius:0 0 8px 0;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-100%'">Pular para o conteúdo</a>
+
+  <div id="app" class="app-container" role="application">
+    <main class="main-content" role="main">
+      <header class="topbar" role="banner" style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; min-height: 60px; gap: 0.75rem 1rem;">
         <div class="page-title" style="cursor: pointer; display: flex; align-items: center; gap: 10px;" onclick="window.location.hash='#dashboard'">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
           <h1 id="view-title" style="color: var(--text-color); margin: 0; font-size: 1.8rem; white-space: nowrap;">scoreplace.app</h1>
         </div>
-        <button class="hamburger-btn" onclick="document.querySelector('.topbar-menu').classList.toggle('open')" style="display:none; border:none; background:transparent; color:var(--text-color); cursor:pointer; padding:8px;">
+        <button class="hamburger-btn" aria-label="Abrir menu de navegação" aria-expanded="false" onclick="var m=document.querySelector('.topbar-menu');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'))" style="display:none; border:none; background:transparent; color:var(--text-color); cursor:pointer; padding:8px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
-        <div class="topbar-actions topbar-menu d-flex gap-2 align-center">
+        <nav class="topbar-actions topbar-menu d-flex gap-2 align-center" role="navigation" aria-label="Navegação principal">
            <!-- Ícones de Navegação -->
            <a href="#dashboard" class="hover-lift" title="Página Inicial" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -80,11 +82,11 @@
                 👁️ Visão: Organizador
              </button>
            </div>
-           <button class="btn btn-outline" id="btn-login" style="padding: 0.5rem 1rem;">Login</button>
-        </div>
+           <button class="btn btn-outline" id="btn-login" style="padding: 0.5rem 1rem;" aria-label="Fazer login com Google">Login</button>
+        </nav>
       </header>
 
-      <div class="view-container" id="view-container">
+      <div class="view-container" id="view-container" role="region" aria-label="Conteúdo principal" tabindex="-1">
         <!-- Views will be injected here by JS -->
       </div>
     </main>
@@ -95,24 +97,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
-  <script src="js/store.js?v=0.2.36-alpha"></script>
-  <script src="js/firebase-db.js?v=0.2.36-alpha"></script>
+  <script src="js/store.js?v=0.2.38-alpha"></script>
+  <script src="js/firebase-db.js?v=0.2.38-alpha"></script>
   <script src="js/notifications.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/views/dashboard.js?v=0.2.36-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.2.36-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.2.36-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.2.38-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.2.38-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.2.38-alpha"></script>
   <script src="js/views/pre-draw.js"></script>
-  <script src="js/views/bracket.js?v=0.2.36-alpha"></script>
-  <script src="js/views/participants.js?v=0.2.36-alpha"></script>
+  <script src="js/views/bracket.js?v=0.2.38-alpha"></script>
+  <script src="js/views/participants.js?v=0.2.38-alpha"></script>
   <script src="js/views/rules.js"></script>
-  <script src="js/views/explore.js?v=0.2.36-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.2.36-alpha"></script>
-  <script src="js/views/auth.js?v=0.2.36-alpha"></script>
+  <script src="js/views/explore.js?v=0.2.38-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.2.38-alpha"></script>
+  <script src="js/views/auth.js?v=0.2.38-alpha"></script>
   <script src="js/views/result-modal.js"></script>
   <script src="js/views/enroll-modal.js"></script>
-  <script src="js/router.js?v=0.2.36-alpha"></script>
-  <script src="js/main.js?v=0.2.36-alpha"></script>
+  <script src="js/router.js?v=0.2.38-alpha"></script>
+  <script src="js/main.js?v=0.2.38-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
