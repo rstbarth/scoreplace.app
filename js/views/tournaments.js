@@ -6313,12 +6313,13 @@ function renderTournaments(container, tournamentId = null) {
                ${isOrg && t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 600; padding: 2px 8px; font-size: 0.7rem; text-transform: none; letter-spacing: 0;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
             </div>` : ''}
 
-            <!-- Middle Left: Nome + Logo -->
+            <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
               ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
-              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
+              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1;">
                 ${t.name}
               </h4>
+              ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>

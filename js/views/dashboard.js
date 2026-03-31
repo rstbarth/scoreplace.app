@@ -168,6 +168,7 @@ function renderDashboard(container) {
       participandoBadge = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; margin-top: 4px;">Inscrito ✓</div>`;
     }
 
+    const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
     return `
         <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: white; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s;" onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
           ${(isParticipating && isOrg) ? `
@@ -193,12 +194,13 @@ function renderDashboard(container) {
                </div>
             </div>
 
-            <!-- Middle Left: Nome + Logo -->
+            <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 1.5rem 0;">
               ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 56px; height: 56px; border-radius: 10px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
-              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left;">
+              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1;">
                 ${t.name}
               </h4>
+              <span data-fav-id="${t.id}" onclick="window._toggleFavorite('${t.id}', event)" title="${_isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.5rem;cursor:pointer;flex-shrink:0;color:${_isFav ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${_isFav ? '★' : '☆'}</span>
             </div>
 
             <!-- Below Name: Calendário + Data -->
@@ -438,12 +440,22 @@ function renderDashboard(container) {
   const curLocation = window._dashLocation || '';
   const curFormat = window._dashFormat || '';
 
+  // Favorites count
+  const favIds = typeof window._getFavorites === 'function' ? window._getFavorites() : [];
+  const favoritosCount = allUnique.filter(t => favIds.indexOf(String(t.id)) !== -1).length;
+
   // Apply main filter
   let filtered = [];
   if (curFilter === 'organizados') filtered = [...organizadosSorted];
   else if (curFilter === 'participando') filtered = [...participacoesSorted];
   else if (curFilter === 'abertos') filtered = [...abertosParaVoce];
-  else {
+  else if (curFilter === 'favoritos') {
+    const seen = new Set();
+    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
+      if (!seen.has(t.id) && favIds.indexOf(String(t.id)) !== -1) { seen.add(t.id); filtered.push(t); }
+    });
+    filtered.sort(sortByDate);
+  } else {
     const seen = new Set();
     [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
       if (!seen.has(t.id)) { seen.add(t.id); filtered.push(t); }
@@ -524,6 +536,7 @@ function renderDashboard(container) {
         ${_fStyle('organizados', '🏆', organizadosCount, 'Meus Torneios')}
         ${_fStyle('participando', '👤', participacoesCount, 'Participando')}
         ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Disponíveis')}
+        ${favoritosCount > 0 ? _fStyle('favoritos', '⭐', favoritosCount, 'Favoritos') : ''}
       </div>
     </div>
 
