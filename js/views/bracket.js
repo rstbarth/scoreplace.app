@@ -2215,7 +2215,91 @@ function renderStandings(t, isOrg, canEnterResult) {
     }
   }
 
-  return standingsTablesHtml + currentRoundHtml + statsHtml + previousRoundsHtml;
+  // ── Head-to-head matrix ───────────────────────────────────────────────────
+  let h2hHtml = '';
+  if (currentRound >= 1) {
+    standingsSections.forEach(function(sec) {
+      var catLabel = sec.label;
+      var computed = typeof window._computeStandings === 'function'
+        ? window._computeStandings(t, catLabel || undefined)
+        : [];
+      if (computed.length < 2 || computed.length > 20) return; // skip if too few or too many players
+
+      var names = computed.map(function(s) { return s.name; });
+      // Build result map: h2h[playerA][playerB] = { wins, draws, losses, results[] }
+      var h2h = {};
+      names.forEach(function(n) { h2h[n] = {}; names.forEach(function(m) { h2h[n][m] = { w: 0, d: 0, l: 0 }; }); });
+
+      (t.rounds || []).forEach(function(rd) {
+        (rd.matches || []).forEach(function(m) {
+          if (!m.winner || !m.p1 || !m.p2) return;
+          if (m.p1 === 'BYE' || m.p2 === 'BYE' || m.p1 === 'TBD' || m.p2 === 'TBD') return;
+          // Only count players in this category's standings
+          if (!h2h[m.p1] || !h2h[m.p1][m.p2]) return;
+          var isDraw = m.winner === 'draw' || m.draw;
+          if (isDraw) {
+            h2h[m.p1][m.p2].d++;
+            h2h[m.p2][m.p1].d++;
+          } else if (m.winner === m.p1) {
+            h2h[m.p1][m.p2].w++;
+            h2h[m.p2][m.p1].l++;
+          } else if (m.winner === m.p2) {
+            h2h[m.p2][m.p1].w++;
+            h2h[m.p1][m.p2].l++;
+          }
+        });
+      });
+
+      // Build table
+      var displayLabel = catLabel && window._displayCategoryName ? window._displayCategoryName(catLabel) : catLabel;
+      var title = displayLabel ? 'Confrontos Diretos — ' + displayLabel : 'Confrontos Diretos';
+
+      var thCells = '<th style="padding:6px 4px;font-size:0.6rem;color:var(--text-muted);text-align:center;min-width:28px;"></th>';
+      names.forEach(function(n, i) {
+        var shortName = n.length > 8 ? n.substring(0, 7) + '…' : n;
+        thCells += '<th style="padding:6px 4px;font-size:0.6rem;color:var(--text-muted);text-align:center;min-width:28px;writing-mode:vertical-lr;transform:rotate(180deg);height:60px;" title="' + (window._safeHtml ? window._safeHtml(n) : n) + '">' + (window._safeHtml ? window._safeHtml(shortName) : shortName) + '</th>';
+      });
+
+      var rows = '';
+      names.forEach(function(rowName, ri) {
+        var shortRow = rowName.length > 12 ? rowName.substring(0, 11) + '…' : rowName;
+        rows += '<tr>';
+        rows += '<td style="padding:6px 8px;font-size:0.75rem;font-weight:600;color:var(--text-bright);white-space:nowrap;border-right:1px solid var(--border-color);" title="' + (window._safeHtml ? window._safeHtml(rowName) : rowName) + '">' + (window._safeHtml ? window._safeHtml(shortRow) : shortRow) + '</td>';
+        names.forEach(function(colName, ci) {
+          if (ri === ci) {
+            rows += '<td style="padding:4px;text-align:center;background:rgba(255,255,255,0.03);font-size:0.7rem;color:var(--text-muted);">—</td>';
+          } else {
+            var rec = h2h[rowName][colName];
+            var total = rec.w + rec.d + rec.l;
+            if (total === 0) {
+              rows += '<td style="padding:4px;text-align:center;font-size:0.7rem;color:var(--text-muted);opacity:0.3;">·</td>';
+            } else {
+              var bg = rec.w > rec.l ? 'rgba(16,185,129,0.15)' : (rec.l > rec.w ? 'rgba(239,68,68,0.12)' : 'rgba(148,163,184,0.12)');
+              var color = rec.w > rec.l ? '#4ade80' : (rec.l > rec.w ? '#f87171' : '#94a3b8');
+              var label = rec.w + 'V';
+              if (rec.d > 0) label += ' ' + rec.d + 'E';
+              label += ' ' + rec.l + 'D';
+              rows += '<td style="padding:4px;text-align:center;font-size:0.65rem;font-weight:600;background:' + bg + ';color:' + color + ';" title="' + (window._safeHtml ? window._safeHtml(rowName) : rowName) + ' vs ' + (window._safeHtml ? window._safeHtml(colName) : colName) + ': ' + label + '">' + rec.w + '-' + rec.d + '-' + rec.l + '</td>';
+            }
+          }
+        });
+        rows += '</tr>';
+      });
+
+      h2hHtml += '<div class="card" style="margin-top: 1rem;">' +
+        '<details>' +
+        '<summary style="cursor:pointer;font-weight:700;font-size:1rem;color:var(--text-bright);padding:4px 0;user-select:none;">⚔️ ' + title + '</summary>' +
+        '<div style="margin-top:12px;overflow-x:auto;">' +
+        '<table style="border-collapse:collapse;width:auto;min-width:100%;">' +
+        '<thead><tr style="border-bottom:1px solid var(--border-color);">' + thCells + '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+        '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);">Formato: V-E-D (Vitórias-Empates-Derrotas). <span style="color:#4ade80;">Verde</span> = vantagem, <span style="color:#f87171;">vermelho</span> = desvantagem.</div>' +
+        '</div></details></div>';
+    });
+  }
+
+  return standingsTablesHtml + currentRoundHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────

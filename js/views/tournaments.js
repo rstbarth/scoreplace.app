@@ -6439,6 +6439,25 @@ function renderTournaments(container, tournamentId = null) {
                   }
                 }
               }
+              // Start date countdown
+              if (!isFinished && !sorteioRealizado && t.startDate) {
+                var _startDate2 = new Date(t.startDate);
+                if (!isNaN(_startDate2.getTime())) {
+                  var _startDays2 = Math.ceil((_startDate2 - new Date()) / 86400000);
+                  if (_startDays2 === 0) {
+                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(16,185,129,0.12); border-radius: 10px; border-left: 3px solid #10b981; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<span style="font-size: 1rem;">🏁</span>';
+                    _html += '<span style="font-size: 0.8rem; font-weight: 700; color: #10b981;">Começa hoje!</span>';
+                    _html += '</div>';
+                  } else if (_startDays2 > 0 && _startDays2 <= 30) {
+                    var _startColor2 = _startDays2 <= 1 ? '#10b981' : (_startDays2 <= 3 ? '#3b82f6' : '#818cf8');
+                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; border-left: 3px solid ' + _startColor2 + '; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<span style="font-size: 1rem;">' + (_startDays2 <= 1 ? '🏁' : '📅') + '</span>';
+                    _html += '<span style="font-size: 0.8rem; font-weight: 600; color: ' + _startColor2 + ';">' + (_startDays2 <= 1 ? 'Começa amanhã!' : 'Começa em ' + _startDays2 + ' dia' + (_startDays2 > 1 ? 's' : '')) + '</span>';
+                    _html += '</div>';
+                  }
+                }
+              }
               return _html;
             })()}
 

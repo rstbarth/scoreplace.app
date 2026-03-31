@@ -275,6 +275,23 @@ function renderDashboard(container) {
                   }
                 }
               }
+              // Start date countdown
+              if (!isFinished && !sorteioRealizado && t.startDate) {
+                var _startDate = new Date(t.startDate);
+                if (!isNaN(_startDate.getTime())) {
+                  var _startDays = Math.ceil((_startDate - new Date()) / 86400000);
+                  if (_startDays > 0 && _startDays <= 30) {
+                    var _startColor = _startDays <= 1 ? '#10b981' : (_startDays <= 3 ? '#3b82f6' : 'rgba(255,255,255,0.5)');
+                    _html += '<div style="margin-top: 4px; font-size: 0.7rem; font-weight: 600; color: ' + _startColor + '; display: flex; align-items: center; gap: 4px;">';
+                    _html += _startDays <= 1 ? '<span>🏁</span> Começa amanhã!' : '<span>📅</span> Começa em ' + _startDays + ' dia' + (_startDays > 1 ? 's' : '');
+                    _html += '</div>';
+                  } else if (_startDays === 0) {
+                    _html += '<div style="margin-top: 4px; font-size: 0.7rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 4px;">';
+                    _html += '<span>🏁</span> Começa hoje!';
+                    _html += '</div>';
+                  }
+                }
+              }
               return _html;
             })()}
 
