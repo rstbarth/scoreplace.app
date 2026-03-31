@@ -69,16 +69,35 @@ function renderBracket(container, tournamentId) {
         </button>
     </div>` : '';
 
+  // ── Barra de Progresso do Torneio ───────────────────────────────────────────
+  let progressBarHtml = '';
+  if (hasContent && typeof window._getTournamentProgress === 'function') {
+    const _prog = window._getTournamentProgress(t);
+    if (_prog.total > 0) {
+      const _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
+      progressBarHtml = '<div style="margin: 0 0 1.5rem; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">' +
+        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">' +
+        '<span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Progresso do Torneio</span>' +
+        '<span style="font-size: 0.8rem; font-weight: 700; color: var(--text-bright);">' + _prog.completed + '/' + _prog.total + ' partidas (' + _prog.pct + '%)</span>' +
+        '</div>' +
+        '<div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">' +
+        '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 4px; transition: width 0.5s ease;"></div>' +
+        '</div>' +
+        (_prog.pct === 100 && t.status !== 'finished' ? '<div style="margin-top: 6px; font-size: 0.75rem; color: #10b981; font-weight: 600;">✅ Todas as partidas concluídas!</div>' : '') +
+        '</div>';
+    }
+  }
+
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + renderStandings(t, isOrg, canEnterResult);
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult);
     return;
   }
 
   // ── Fase de Grupos ─────────────────────────────────────────────────────────
   if (isGrupos && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + renderGroupStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult);
       return;
     }
     // If stage is elimination, fall through to bracket rendering below
@@ -104,9 +123,9 @@ function renderBracket(container, tournamentId) {
   // ── Bracket ────────────────────────────────────────────────────────────────
   const standbyHtml = _renderStandbyPanel(t, isOrg);
   if (isDupla) {
-    container.innerHTML = headerHtml + startTournamentBanner + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
   } else {
-    container.innerHTML = headerHtml + startTournamentBanner + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
   }
 
   // ── Scrollbar fixa no bottom da viewport ─────────────────────────────────
