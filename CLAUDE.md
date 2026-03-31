@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.40-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.41-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.41-alpha (Marco 2026)**
+- Monetizacao Fase 1: Modelo freemium implementado. Plano Free (ate 3 torneios ativos, 32 participantes, logo so gerada) e plano Pro (R$19,90/mes — ilimitado, upload logo, Modo TV sem marca). Sistema de planos no Firestore (campo plan/planExpiresAt no perfil). Feature gates em create-tournament.js e tournaments.js. Modal de upgrade Pro com beneficios e botao de checkout Stripe. Botao "Apoie" com PIX voluntario (QR code + copia-e-cola, chave CNPJ 51590996000173). Cloud Functions: createCheckoutSession, stripeWebhook (auto-ativa/desativa Pro), createDonationCheckout. Botoes Pro e Apoie na topbar.
 
 **v0.2.40-alpha (Marco 2026)**
 - Push Notifications (FCM) client-side: Firebase Messaging SDK adicionado (firebase-messaging-compat.js). Funcao window._initFCM() em notifications.js solicita permissao de notificacao no browser, obtem token FCM e salva no Firestore (campo fcmToken no perfil do usuario). Chamada automaticamente 3s apos login via simulateLoginSuccess. Service worker atualizado com importScripts do Firebase, onBackgroundMessage para exibir push em background, e notificationclick para abrir o app no torneio relevante. Token refresh automatico via onTokenRefresh. Mensagens foreground exibidas como toast via showNotification. Cloud Functions autoDraw e sendPushNotification ja deployados no Firebase completam o fluxo end-to-end.

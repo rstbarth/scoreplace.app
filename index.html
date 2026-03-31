@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.2.40-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.2.41-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.2.40-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.2.41-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -75,6 +75,13 @@
               ?
            </button>
 
+           <button id="btn-support-pix" class="hover-lift" title="Apoie o projeto" style="border: none; color: #10b981; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; height: 40px; padding: 0 12px; border-radius: 20px; background: rgba(16,185,129,0.1); transition: background 0.2s; font-size: 0.8rem; font-weight: 600;" onmouseover="this.style.background='rgba(16,185,129,0.2)'" onmouseout="this.style.background='rgba(16,185,129,0.1)'" onclick="window._showSupportModal()">
+              💚 Apoie
+           </button>
+           <button id="btn-upgrade-pro" class="hover-lift" title="Assinar Pro" style="border: none; color: #fff; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 4px; height: 34px; padding: 0 14px; border-radius: 20px; background: linear-gradient(135deg,#3b82f6,#6366f1); transition: transform 0.2s; font-size: 0.8rem; font-weight: 700;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='none'" onclick="window._showUpgradeModal()">
+              🚀 Pro
+           </button>
+
            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 5px;"></div>
 
            <div id="view-mode-container" style="display: none; align-items: center; gap: 8px;">
@@ -98,24 +105,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-  <script src="js/store.js?v=0.2.40-alpha"></script>
-  <script src="js/firebase-db.js?v=0.2.40-alpha"></script>
+  <script src="js/store.js?v=0.2.41-alpha"></script>
+  <script src="js/firebase-db.js?v=0.2.41-alpha"></script>
   <script src="js/notifications.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/views/dashboard.js?v=0.2.40-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.2.40-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.2.40-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.2.41-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.2.41-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.2.41-alpha"></script>
   <script src="js/views/pre-draw.js"></script>
-  <script src="js/views/bracket.js?v=0.2.40-alpha"></script>
-  <script src="js/views/participants.js?v=0.2.40-alpha"></script>
+  <script src="js/views/bracket.js?v=0.2.41-alpha"></script>
+  <script src="js/views/participants.js?v=0.2.41-alpha"></script>
   <script src="js/views/rules.js"></script>
-  <script src="js/views/explore.js?v=0.2.40-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.2.40-alpha"></script>
-  <script src="js/views/auth.js?v=0.2.40-alpha"></script>
+  <script src="js/views/explore.js?v=0.2.41-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.2.41-alpha"></script>
+  <script src="js/views/auth.js?v=0.2.41-alpha"></script>
   <script src="js/views/result-modal.js"></script>
   <script src="js/views/enroll-modal.js"></script>
-  <script src="js/router.js?v=0.2.40-alpha"></script>
-  <script src="js/main.js?v=0.2.40-alpha"></script>
+  <script src="js/router.js?v=0.2.41-alpha"></script>
+  <script src="js/main.js?v=0.2.41-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
