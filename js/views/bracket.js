@@ -1732,6 +1732,7 @@ function renderStandings(t, isOrg, canEnterResult) {
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
+window._computeStandings = _computeStandings; // expose globally for finishTournament
 function _computeStandings(t, category) {
   const scoreMap = {};
 
