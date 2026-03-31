@@ -2111,6 +2111,8 @@ function setupCreateTournamentModal() {
     if (t.rankingNewPlayerScore) document.getElementById('ranking-new-player-score').value = t.rankingNewPlayerScore;
     if (t.rankingInactivity) document.getElementById('ranking-inactivity').value = t.rankingInactivity;
     if (t.rankingInactivityX) document.getElementById('ranking-inactivity-x').value = t.rankingInactivityX;
+    // rankingOpenEnrollment é sempre true para Ranking (inscrições permanecem abertas)
+    // Não há toggle no form — valor é forçado no save.
 
     // Elim settings
     document.getElementById('elim-third-place').checked = t.elimThirdPlace !== false;
@@ -2150,33 +2152,9 @@ function setupCreateTournamentModal() {
     setTimeout(() => window._initPlacesAutocomplete(), 100);
   };
 
-  const btnCreate = document.getElementById('btn-create-tournament');
-  if (btnCreate) {
-    btnCreate.addEventListener('click', () => {
-      document.getElementById('edit-tournament-id').value = '';
-      document.getElementById('create-modal-title').innerText = 'Criar Novo Torneio';
-      document.getElementById('form-create-tournament').reset();
-      document.getElementById('tourn-public').checked = true;
-      document.getElementById('liga-open-enrollment').checked = true;
-      document.getElementById('elim-third-place').checked = true;
-      document.getElementById('tourn-venue-access').value = '';
-      document.getElementById('tourn-venue-lat').value = '';
-      document.getElementById('tourn-venue-lon').value = '';
-      document.getElementById('tourn-venue-address').value = '';
-      document.getElementById('tourn-venue-place-id').value = '';
-      document.getElementById('tourn-venue-photo-url').value = '';
-      document.getElementById('tourn-logo-data').value = '';
-      window._clearTournamentLogo();
-      window._applyVenuePhoto('');
-      const _infoEl = document.getElementById('venue-osm-info');
-      if (_infoEl) { _infoEl.style.display = 'none'; _infoEl.innerHTML = ''; }
-      window._applyVenueAccessUI([]);
-      window._onFormatoChange();
-      window._updateRegDateVisibility();
-      openModal('modal-create-tournament');
-      setTimeout(() => window._initPlacesAutocomplete(), 100);
-    });
-  }
+  // NOTE: btn-create-tournament não existe no HTML.
+  // A criação é feita via btn-create-tournament-in-box (dashboard.js) → modal-quick-create → main.js.
+  // Bloco de dead code removido em v0.2.4-alpha.
 
   const btnSave = document.getElementById('btn-save-tournament');
   if (btnSave) {

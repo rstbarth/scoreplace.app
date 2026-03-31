@@ -4641,6 +4641,51 @@ function renderTournaments(container, tournamentId = null) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
             if (!t) return;
 
+            // ── Proteção contra re-sorteio acidental ────────────────────────
+            var _hasExistingDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                (Array.isArray(t.groups) && t.groups.length > 0);
+            if (_hasExistingDraw) {
+                // Check if any match has a result recorded
+                var _hasResults = false;
+                if (Array.isArray(t.matches)) {
+                    _hasResults = t.matches.some(function(m) { return m.winner || m.score1 || m.score2; });
+                }
+                if (!_hasResults && Array.isArray(t.rounds)) {
+                    _hasResults = t.rounds.some(function(r) {
+                        return (r.matches || []).some(function(m) { return m.winner || m.score1 || m.score2; });
+                    });
+                }
+                if (_hasResults) {
+                    showAlertDialog('Sorteio já realizado',
+                        'Este torneio já possui partidas com resultados registrados. Refazer o sorteio apagará todos os resultados. Esta ação não pode ser desfeita.',
+                        function() {
+                            // User confirmed — allow redraw by clearing existing data
+                            t.matches = [];
+                            t.rounds = [];
+                            t.groups = [];
+                            t.standings = null;
+                            window.generateDrawFunction(tId);
+                        },
+                        { type: 'danger', confirmText: 'Refazer Sorteio', cancelText: 'Cancelar' }
+                    );
+                    return;
+                }
+                // Draw exists but no results yet — warn but lighter
+                showAlertDialog('Refazer Sorteio?',
+                    'O sorteio já foi realizado. Deseja refazer? As partidas atuais serão substituídas.',
+                    function() {
+                        t.matches = [];
+                        t.rounds = [];
+                        t.groups = [];
+                        t.standings = null;
+                        window.generateDrawFunction(tId);
+                    },
+                    { type: 'warning', confirmText: 'Refazer', cancelText: 'Manter Atual' }
+                );
+                return;
+            }
+
             // Store active tournament ID for views that need it
             window._lastActiveTournamentId = tId;
 
@@ -4674,6 +4719,35 @@ function renderTournaments(container, tournamentId = null) {
                 if (!info.isPowerOf2) {
                     window.showPowerOf2Panel(tId);
                     return;
+                }
+            }
+
+            // ── Validação: participantes sem categoria (quando torneio tem categorias) ─
+            var _tournHasCats = Array.isArray(t.combinedCategories) && t.combinedCategories.length > 0;
+            if (_tournHasCats) {
+                var _allParts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+                var _noCat = _allParts.filter(function(p) {
+                    if (typeof p !== 'object') return true;
+                    var cats = window._getParticipantCategories(p);
+                    return cats.length === 0;
+                });
+                if (_noCat.length > 0) {
+                    var _names = _noCat.map(function(p) {
+                        return typeof p === 'string' ? p : (p.displayName || p.name || '?');
+                    }).slice(0, 5).join(', ');
+                    var _extra = _noCat.length > 5 ? ' e mais ' + (_noCat.length - 5) + '...' : '';
+                    showAlertDialog('Participantes sem Categoria',
+                        _noCat.length + ' participante(s) ainda não têm categoria atribuída: ' + _names + _extra +
+                        '\n\nUse o Gerenciador de Categorias para atribuir antes do sorteio, ou prossiga (serão incluídos na primeira categoria).',
+                        function() {
+                            // User chose to proceed anyway — continue draw
+                            t._skipCatValidation = true;
+                            window.generateDrawFunction(tId);
+                        },
+                        { type: 'warning', confirmText: 'Prosseguir', cancelText: 'Voltar' }
+                    );
+                    if (!t._skipCatValidation) return;
+                    delete t._skipCatValidation;
                 }
             }
 
@@ -4865,13 +4939,7 @@ function renderTournaments(container, tournamentId = null) {
                 }
             }
 
-            // 1. Shuffling (if not specifically ordered)
-            if (!t.p2OrderedList) {
-                for (let i = participants.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [participants[i], participants[j]] = [participants[j], participants[i]];
-                }
-            }
+            // 1. Shuffling agora é feito por categoria dentro do loop de geração de matches
 
             // 2. Handle Swiss/Classificatória
             if (t.p2Resolution === 'swiss') {
@@ -4888,69 +4956,110 @@ function renderTournaments(container, tournamentId = null) {
             let matches = [];
             const timestamp = Date.now();
             const isDupla = t.format === 'Dupla Eliminatória';
+            const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name);
 
-            if (t.p2Resolution === 'bye') {
-                const info = window.checkPowerOf2(t);
-                const target = info.hi;
-                const numByes = target - participants.length;
-                while (participants.length < target) {
-                    participants.push('BYE (Avança Direto)');
+            // ── Agrupar por categoria (se houver) ───────────────────────────
+            var _hasCats = Array.isArray(t.combinedCategories) && t.combinedCategories.length > 0;
+            var _catGroups = {};
+            if (_hasCats) {
+                // Build map: category → [participants]
+                t.combinedCategories.forEach(function(cat) { _catGroups[cat] = []; });
+                participants.forEach(function(p) {
+                    var pCats = (typeof p === 'object') ? window._getParticipantCategories(p) : [];
+                    if (pCats.length > 0) {
+                        pCats.forEach(function(c) {
+                            if (_catGroups[c]) _catGroups[c].push(p);
+                        });
+                    } else {
+                        // Participante sem categoria: incluir no primeiro grupo (fallback)
+                        var firstCat = t.combinedCategories[0];
+                        _catGroups[firstCat].push(p);
+                    }
+                });
+                // Remove categorias vazias
+                t.combinedCategories.forEach(function(cat) {
+                    if (_catGroups[cat].length === 0) delete _catGroups[cat];
+                });
+            } else {
+                _catGroups[''] = participants;
+            }
+
+            // ── Gerar chaveamento para cada categoria ───────────────────────
+            var _matchCounter = 0;
+            Object.keys(_catGroups).forEach(function(catName) {
+                var catParticipants = _catGroups[catName];
+
+                // Shuffle dentro da categoria
+                if (!t.p2OrderedList) {
+                    for (var si = catParticipants.length - 1; si > 0; si--) {
+                        var sj = Math.floor(Math.random() * (si + 1));
+                        var tmp = catParticipants[si];
+                        catParticipants[si] = catParticipants[sj];
+                        catParticipants[sj] = tmp;
+                    }
                 }
-                // VIPs têm preferência de BYE: colocar VIPs em posição par (p1) antes de BYEs (p2)
-                if (numByes > 0) {
-                    const _vips = t.vips || {};
-                    const _getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || '');
-                    // Posições dos BYEs
-                    const byeIndices = [];
-                    participants.forEach((p, i) => { if (_getName(p) === 'BYE (Avança Direto)') byeIndices.push(i); });
-                    // Encontrar VIPs que NÃO estão já antes de um BYE
-                    const vipIndices = [];
-                    participants.forEach((p, i) => {
-                        const nm = _getName(p);
-                        if (nm !== 'BYE (Avança Direto)' && _vips[nm]) vipIndices.push(i);
-                    });
-                    // Trocar: para cada BYE em posição ímpar, colocar um VIP na posição par anterior
-                    let vipIdx = 0;
-                    for (let bi = 0; bi < byeIndices.length && vipIdx < vipIndices.length; bi++) {
-                        const byePos = byeIndices[bi];
-                        if (byePos % 2 === 1) { // BYE é p2
-                            const pairPos = byePos - 1; // p1 do mesmo jogo
-                            const currentP1 = _getName(participants[pairPos]);
-                            if (!_vips[currentP1]) { // p1 não é VIP, trocar com um VIP
-                                const vi = vipIndices[vipIdx];
-                                if (vi !== pairPos) {
-                                    [participants[pairPos], participants[vi]] = [participants[vi], participants[pairPos]];
-                                    // Atualizar índices
-                                    const swappedIdx = vipIndices.indexOf(pairPos);
-                                    if (swappedIdx >= 0) vipIndices[swappedIdx] = vi;
+
+                // BYE handling por categoria
+                if (t.p2Resolution === 'bye') {
+                    var catLen = catParticipants.length;
+                    var catTarget = 1;
+                    while (catTarget < catLen) catTarget *= 2;
+                    var catByes = catTarget - catLen;
+                    for (var bi = 0; bi < catByes; bi++) {
+                        catParticipants.push('BYE (Avança Direto)');
+                    }
+                    // VIP priority for BYEs
+                    if (catByes > 0) {
+                        var _vips = t.vips || {};
+                        var _gn = function(p) { return typeof p === 'string' ? p : (p.displayName || p.name || ''); };
+                        var byeIdx = [];
+                        catParticipants.forEach(function(p, i) { if (_gn(p) === 'BYE (Avança Direto)') byeIdx.push(i); });
+                        var vipIdx = [];
+                        catParticipants.forEach(function(p, i) {
+                            var nm = _gn(p);
+                            if (nm !== 'BYE (Avança Direto)' && _vips[nm]) vipIdx.push(i);
+                        });
+                        var vi = 0;
+                        for (var bii = 0; bii < byeIdx.length && vi < vipIdx.length; bii++) {
+                            var byePos = byeIdx[bii];
+                            if (byePos % 2 === 1) {
+                                var pairPos = byePos - 1;
+                                var curP1 = _gn(catParticipants[pairPos]);
+                                if (!_vips[curP1]) {
+                                    var viPos = vipIdx[vi];
+                                    if (viPos !== pairPos) {
+                                        var swp = catParticipants[pairPos];
+                                        catParticipants[pairPos] = catParticipants[viPos];
+                                        catParticipants[viPos] = swp;
+                                    }
+                                    vi++;
                                 }
-                                vipIdx++;
                             }
                         }
                     }
                 }
-            }
 
-            const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name);
-
-            // Gerar partidas de 1ª Rodada (Upper Bracket R1)
-            for (let i = 0; i < participants.length; i += 2) {
-                const p1 = participants[i];
-                const p2 = i + 1 < participants.length ? participants[i + 1] : 'BYE (Avança Direto)';
-                const p1Name = getName(p1);
-                const p2Name = getName(p2);
-                const isBye = p2Name === 'BYE (Avança Direto)';
-
-                matches.push({
-                    id: `match-${timestamp}-${i}`,
-                    round: 1,
-                    bracket: isDupla ? 'upper' : undefined,
-                    p1: p1Name,
-                    p2: p2Name,
-                    winner: isBye ? p1Name : null,
-                    isBye: isBye
-                });
-            }
+                // Gerar partidas de 1ª Rodada
+                for (var mi = 0; mi < catParticipants.length; mi += 2) {
+                    var p1 = catParticipants[mi];
+                    var p2 = mi + 1 < catParticipants.length ? catParticipants[mi + 1] : 'BYE (Avança Direto)';
+                    var p1Name = getName(p1);
+                    var p2Name = getName(p2);
+                    var isBye = p2Name === 'BYE (Avança Direto)';
+                    var matchObj = {
+                        id: 'match-' + timestamp + '-' + _matchCounter,
+                        round: 1,
+                        bracket: isDupla ? 'upper' : undefined,
+                        p1: p1Name,
+                        p2: p2Name,
+                        winner: isBye ? p1Name : null,
+                        isBye: isBye
+                    };
+                    if (catName) matchObj.category = catName;
+                    matches.push(matchObj);
+                    _matchCounter++;
+                }
+            });
 
             t.matches = matches;
             t.status = 'active';
@@ -4982,54 +5091,70 @@ function renderTournaments(container, tournamentId = null) {
 
         // Build nextMatchId links for single elim bracket
         // Gera TODAS as rodadas futuras (R2, R3, ..., Final) com participantes TBD
+        // Suporta categorias: cada categoria tem seu próprio chaveamento independente
         window._buildNextMatchLinks = function (t) {
             if (!t.matches || !t.matches.length) return;
-            const roundsMap = {};
-            t.matches.forEach(m => {
-                if (!roundsMap[m.round]) roundsMap[m.round] = [];
-                roundsMap[m.round].push(m);
+
+            // Agrupar matches R1 por categoria
+            var _catSet = {};
+            t.matches.filter(function(m) { return m.round === 1; }).forEach(function(m) {
+                var cat = m.category || '';
+                if (!_catSet[cat]) _catSet[cat] = true;
             });
+            var _categories = Object.keys(_catSet);
 
-            // Calcula quantas rodadas terão baseado na R1
-            const r1Matches = (roundsMap[1] || []).length;
-            const totalRounds = Math.ceil(Math.log2(r1Matches * 2));
-            const timestamp = Date.now();
+            _categories.forEach(function(catName) {
+                // Filtrar matches desta categoria
+                var catMatches = t.matches.filter(function(m) {
+                    return (m.category || '') === catName;
+                });
 
-            // Gerar rodadas futuras (R2 até Final)
-            for (let r = 2; r <= totalRounds; r++) {
-                const prevRound = roundsMap[r - 1] || [];
-                const expectedNext = Math.ceil(prevRound.length / 2);
-                if (!roundsMap[r]) roundsMap[r] = [];
+                var roundsMap = {};
+                catMatches.forEach(function(m) {
+                    if (!roundsMap[m.round]) roundsMap[m.round] = [];
+                    roundsMap[m.round].push(m);
+                });
 
-                while (roundsMap[r].length < expectedNext) {
-                    const idx = roundsMap[r].length;
-                    const nm = {
-                        id: `match-r${r}-${idx}-${timestamp + r}`,
-                        round: r,
-                        p1: 'TBD', p2: 'TBD', winner: null
-                    };
-                    roundsMap[r].push(nm);
-                    t.matches.push(nm);
+                var r1Matches = (roundsMap[1] || []).length;
+                if (r1Matches === 0) return;
+                var totalRounds = Math.ceil(Math.log2(r1Matches * 2));
+                var timestamp = Date.now();
+
+                for (var r = 2; r <= totalRounds; r++) {
+                    var prevRound = roundsMap[r - 1] || [];
+                    var expectedNext = Math.ceil(prevRound.length / 2);
+                    if (!roundsMap[r]) roundsMap[r] = [];
+
+                    while (roundsMap[r].length < expectedNext) {
+                        var idx = roundsMap[r].length;
+                        var nm = {
+                            id: 'match-r' + r + '-' + idx + '-' + (timestamp + r) + (catName ? '-' + catName.replace(/\s+/g, '_') : ''),
+                            round: r,
+                            p1: 'TBD', p2: 'TBD', winner: null
+                        };
+                        if (catName) nm.category = catName;
+                        roundsMap[r].push(nm);
+                        t.matches.push(nm);
+                    }
+
+                    prevRound.forEach(function(m, idx) {
+                        var nextMatchIdx = Math.floor(idx / 2);
+                        if (roundsMap[r][nextMatchIdx]) {
+                            m.nextMatchId = roundsMap[r][nextMatchIdx].id;
+                        }
+                    });
                 }
 
-                // Linkar matches da rodada anterior → próxima rodada
-                prevRound.forEach((m, idx) => {
-                    const nextMatchIdx = Math.floor(idx / 2);
-                    if (roundsMap[r][nextMatchIdx]) {
-                        m.nextMatchId = roundsMap[r][nextMatchIdx].id;
+                // Processar BYE matches — avançar automaticamente
+                (roundsMap[1] || []).forEach(function(m) {
+                    if (m.isBye && m.winner && m.nextMatchId) {
+                        var next = t.matches.find(function(nm) { return nm.id === m.nextMatchId; });
+                        if (next) {
+                            if (!next.p1 || next.p1 === 'TBD') next.p1 = m.winner;
+                            else if (!next.p2 || next.p2 === 'TBD') next.p2 = m.winner;
+                        }
                     }
                 });
-            }
-
-            // Processar BYE matches da R1 — avançar automaticamente
-            (roundsMap[1] || []).forEach(m => {
-                if (m.isBye && m.winner && m.nextMatchId) {
-                    const next = t.matches.find(nm => nm.id === m.nextMatchId);
-                    if (next) {
-                        if (!next.p1 || next.p1 === 'TBD') next.p1 = m.winner;
-                        else if (!next.p2 || next.p2 === 'TBD') next.p2 = m.winner;
-                    }
-                }
             });
         };
 
