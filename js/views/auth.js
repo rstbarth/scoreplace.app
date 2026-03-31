@@ -822,9 +822,12 @@ async function simulateLoginSuccess(user) {
           if (typeof initRouter === 'function') initRouter();
         }
       } else {
-        // Tournament not found but still navigate
+        // Tournament not found after retries — navigate and warn user
         window.location.hash = '#tournaments/' + pendingEnrollId;
         if (typeof initRouter === 'function') initRouter();
+        if (_enrollAttempts >= 20 && typeof showNotification === 'function') {
+          showNotification('Inscrição Pendente', 'Não foi possível completar a inscrição automática. Tente se inscrever manualmente na página do torneio.', 'warning');
+        }
       }
     };
     setTimeout(_tryAutoEnroll, 300);

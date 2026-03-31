@@ -2152,6 +2152,24 @@ function setupCreateTournamentModal() {
         const warmupTimeVal = parseInt(document.getElementById('tourn-warmup-time').value) || 0;
         const gameDurationVal = parseInt(document.getElementById('tourn-game-duration').value) || 30;
 
+        // Validação de datas
+        if (startDateRaw && endDateRaw) {
+          const _startD = new Date(startDateVal);
+          const _endD = new Date(endDateVal);
+          if (_endD <= _startD) {
+            showAlertDialog('Datas Inválidas', 'A data/hora de fim deve ser posterior à data/hora de início.', null, { type: 'warning' });
+            return;
+          }
+        }
+        if (regDateRaw && startDateRaw) {
+          const _regD = new Date(regDateVal);
+          const _startD2 = new Date(startDateVal);
+          if (_regD >= _startD2) {
+            showAlertDialog('Prazo de Inscrição Inválido', 'O prazo de inscrição deve ser anterior ao início do torneio.', null, { type: 'warning' });
+            return;
+          }
+        }
+
         const tourData = {
           name,
           isPublic: isPublicVal,
@@ -2211,6 +2229,12 @@ function setupCreateTournamentModal() {
           tourData.drawFirstTime = document.getElementById('liga-first-draw-time').value || '19:00';
           tourData.drawIntervalDays = parseInt(document.getElementById('liga-draw-interval').value) || 7;
           tourData.drawManual = document.getElementById('liga-manual-draw').checked;
+          // Limpeza de campos legados do formato Ranking (migrados para liga-*)
+          tourData.rankingNewPlayerScore = null;
+          tourData.rankingInactivity = null;
+          tourData.rankingInactivityX = null;
+          tourData.rankingSeasonMonths = null;
+          tourData.rankingOpenEnrollment = null;
         }
 
         // Eliminatórias
