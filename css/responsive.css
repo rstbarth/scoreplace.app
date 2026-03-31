@@ -10,57 +10,7 @@
    MOBILE FIRST BASE (320px - 767px)
    ==================================================== */
 
-/* Topbar/Header */
-@media (max-width: 767px) {
-  .topbar {
-    height: 60px;
-    padding: 0 1rem;
-    margin-bottom: 1rem !important;
-    padding-bottom: 1rem !important;
-  }
-
-  .page-title h1 {
-    font-size: 1.25rem;
-  }
-
-  .topbar-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  /* Hide text labels on mobile, keep icons only */
-  .topbar-actions a span,
-  .topbar-actions button span {
-    display: none;
-  }
-
-  /* Reduce button padding for mobile */
-  .topbar-actions a,
-  .topbar-actions button {
-    padding: 0 0.75rem !important;
-    height: 36px !important;
-  }
-
-  /* Hide the divider on mobile */
-  .topbar-actions > div[style*="width: 1px"] {
-    display: none;
-  }
-
-  /* Login button styling */
-  #btn-login {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.75rem !important;
-  }
-
-  /* View mode selector full width on small screens */
-  #view-mode-selector {
-    font-size: 0.75rem;
-    padding: 0.35rem 0.75rem !important;
-    white-space: nowrap;
-  }
-}
+/* Topbar/Header — handled by MOBILE TOPBAR section below */
 
 /* Dashboard cards - Mobile Stack */
 @media (max-width: 767px) {
@@ -307,18 +257,15 @@
   }
 }
 
-/* Flex layouts - Stack on mobile */
+/* Flex layouts - Stack on mobile (only form/card contexts, NOT topbar or inline content) */
 @media (max-width: 767px) {
-  .d-flex {
+  .modal-body .d-flex,
+  .form-group .d-flex {
     flex-direction: column;
   }
 
-  .d-flex.justify-between {
+  .modal-body .d-flex.justify-between {
     align-items: flex-start;
-  }
-
-  .justify-between {
-    justify-content: flex-start !important;
   }
 
   .flex-row {
@@ -331,27 +278,74 @@
    ==================================================== */
 
 @media (min-width: 768px) and (max-width: 1199px) {
+  /* Tablet: hamburger menu like mobile */
   .topbar {
-    padding: 0 1rem;
+    height: auto;
+    min-height: 56px;
+    padding: 0.5rem 1rem;
     flex-wrap: wrap;
     overflow: visible;
+    position: relative;
     gap: 4px;
+  }
+
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  .page-title {
+    flex: 1;
+    min-width: 0;
   }
 
   .page-title h1 {
     font-size: 1.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .topbar-actions,
+  /* Menu hidden by default, vertical dropdown when open */
   .topbar-menu {
-    gap: 4px !important;
-    flex-shrink: 1;
-    min-width: 0;
+    display: none !important;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    background: var(--bg-darker);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    gap: 4px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
 
-  /* Hide text labels on tablet, keep icons only */
-  .topbar-menu a > span,
-  .topbar-menu button > span:not(.user-name-label) {
+  .topbar-menu.open {
+    display: flex !important;
+  }
+
+  .topbar-menu > a,
+  .topbar-menu > button,
+  .topbar-menu > div {
+    width: 100%;
+    justify-content: flex-start !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .topbar-menu > a:hover,
+  .topbar-menu > button:hover {
+    background: rgba(255,255,255,0.06) !important;
+  }
+
+  /* Hide the separator line */
+  .topbar-menu > div[style*="width: 1px"] {
+    display: none !important;
+  }
+
+  /* Hide user name on tablet to save space */
+  .user-name-label {
     display: none !important;
   }
 
@@ -360,11 +354,6 @@
     font-size: 0.7rem !important;
     padding: 0.3rem 0.6rem !important;
     white-space: nowrap;
-  }
-
-  /* Hide user name on tablet to save space */
-  .user-name-label {
-    display: none !important;
   }
 
   /* Dashboard cards - 2+1 or 3 columns */
@@ -437,6 +426,20 @@
     padding: 0 2rem;
     flex-wrap: nowrap;
     overflow: hidden;
+  }
+
+  .hamburger-btn {
+    display: none !important;
+  }
+
+  .topbar-menu {
+    display: flex !important;
+    position: static !important;
+    flex-direction: row !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-bottom: none !important;
   }
 
   .page-title h1 {
@@ -932,7 +935,7 @@ img {
 }
 
 /* ====================================================
-   MOBILE TOPBAR — hamburger + expanded single-line
+   MOBILE TOPBAR — hamburger + vertical dropdown
    ==================================================== */
 @media (max-width: 767px) {
   /* Show hamburger on mobile */
@@ -945,6 +948,8 @@ img {
     flex-wrap: wrap !important;
     padding: 0.5rem 0.75rem !important;
     gap: 4px;
+    overflow: visible !important;
+    position: relative !important;
   }
   /* App name + icon always visible */
   .page-title {
@@ -964,35 +969,35 @@ img {
     height: 22px !important;
     flex-shrink: 0;
   }
-  /* Menu hidden by default, shown as single row when .open */
+  /* Menu hidden by default, vertical dropdown when .open */
   .topbar-menu {
     display: none !important;
-    width: 100%;
-    order: 10;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    background: var(--bg-darker);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    gap: 4px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
   .topbar-menu.open {
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    padding-top: 6px;
-    border-top: 1px solid var(--border-color);
-    margin-top: 4px;
   }
-  .topbar-menu a,
-  .topbar-menu button {
-    justify-content: center !important;
-    width: auto !important;
-    padding: 0 6px !important;
-    height: 36px !important;
-    min-height: 36px !important;
+  .topbar-menu > a,
+  .topbar-menu > button,
+  .topbar-menu > div {
+    width: 100%;
+    justify-content: flex-start !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
   }
-  /* Hide text labels inside nav items on mobile */
-  .topbar-menu a > span,
-  .topbar-menu button > span:not(.user-name-label) {
-    display: none !important;
+  .topbar-menu > a:hover,
+  .topbar-menu > button:hover {
+    background: rgba(255,255,255,0.06) !important;
   }
   /* View mode selector compact */
   #view-mode-container {
