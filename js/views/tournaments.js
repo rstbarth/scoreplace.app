@@ -5610,33 +5610,18 @@ function renderTournaments(container, tournamentId = null) {
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${podiumHtml}
-                   <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                         <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
-                      </div>
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
-                         <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
-                      </div>
-                   </div>
                  `;
                 } else if (hasDraw) {
                     // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento + Ver Chaves
-                    const finishTournBtn = `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>`;
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${isLigaFormat ? '' : startTournamentBanner}
                    ${isLigaFormat ? '' : startedBadge}
                    ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
-                   <div class="mt-4" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem;">
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                         <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
-                         ${sortearBtn}
-                         ${categoriasBtn}
-                      </div>
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto;">
-                         ${finishTournBtn}
-                         <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
-                      </div>
+                   <div class="mt-4" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>
+                      ${sortearBtn}
+                      ${categoriasBtn}
                    </div>
                  `;
                 } else {
@@ -5659,9 +5644,6 @@ function renderTournaments(container, tournamentId = null) {
                          ${sortearBtn}
                          ${sortearAberto}
                       </div>
-                   </div>
-                   <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                      <button class="btn btn-sm hover-lift" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 700; font-size: 0.75rem;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar Torneio</button>
                    </div>
                  `;
                 }
@@ -5877,14 +5859,17 @@ function renderTournaments(container, tournamentId = null) {
             ${actionsHtml}
 
             ${(tournamentId && isOrg) ? `
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
-              <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.3); margin-bottom: 8px;">Ferramentas do Organizador</div>
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.12);">
+              <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">Ferramentas do Organizador</div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px dashed rgba(239,68,68,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
-                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.1); color: #4ade80; border: 1px solid rgba(16,185,129,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
-                ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.1); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar Torneio</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar Inscritos</button>` : ''}
+                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(255,255,255,0.15); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
+                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
+                ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.18); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.12); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(99,102,241,0.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar</button>` : ''}
+                ${(!isFinished && hasDraw) ? `<button class="hover-lift" style="background: rgba(245,158,11,0.2); color: #fcd34d; border: 1px solid rgba(245,158,11,0.4); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
+                <button class="hover-lift" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>
               </div>
             </div>` : ''}
 

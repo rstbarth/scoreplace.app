@@ -166,6 +166,9 @@ window._setBracketZoom = function (tId, delta) {
   // Update zoom label
   const label = document.getElementById('bracket-zoom-label');
   if (label) label.textContent = Math.round(window._bracketZoom * 100) + '%';
+  // Sync slider
+  const slider = document.getElementById('bracket-zoom-slider');
+  if (slider) slider.value = cur;
   // Recalculate fixed scrollbar width
   _recalcFixedScrollbar();
 };
@@ -179,6 +182,8 @@ window._resetBracketZoom = function (tId) {
   }
   const label = document.getElementById('bracket-zoom-label');
   if (label) label.textContent = '100%';
+  const slider = document.getElementById('bracket-zoom-slider');
+  if (slider) slider.value = 7; // index of 1.0 in steps array
   _recalcFixedScrollbar();
 };
 

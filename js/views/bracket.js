@@ -764,20 +764,25 @@ function renderSingleElimBracket(t, canEnterResult) {
         ${modeIcon} ${modeLabel}
       </button>` : '';
 
-  // Zoom controls
+  // Zoom controls with slider
   const zoomPct = Math.round(window._bracketZoom * 100);
+  const zoomSteps = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+  const zoomIdx = zoomSteps.indexOf(window._bracketZoom) >= 0 ? zoomSteps.indexOf(window._bracketZoom) : zoomSteps.length - 1;
   const toolbarHtml = `
-    <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:0.75rem;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:0.75rem;gap:10px;flex-wrap:wrap;">
       ${toggleBtnHtml}
-      <div style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:2px 4px;">
+      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 10px;">
         <button onclick="window._setBracketZoom('${t.id}', -1)"
-          style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 8px;line-height:1;border-radius:50%;"
+          style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 6px;line-height:1;border-radius:50%;"
           onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
           title="Zoom out">−</button>
+        <input type="range" id="bracket-zoom-slider" min="0" max="${zoomSteps.length - 1}" value="${zoomIdx}" step="1"
+          style="width:80px;height:4px;accent-color:#818cf8;cursor:pointer;vertical-align:middle;"
+          oninput="var steps=[0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0];window._bracketZoom=steps[this.value];var lbl=document.getElementById('bracket-zoom-label');if(lbl)lbl.textContent=Math.round(steps[this.value]*100)+'%';var el=document.querySelector('.bracket-scroll-content');if(el){el.style.transform=steps[this.value]===1?'':'scale('+steps[this.value]+')';el.style.transformOrigin='top left';}" />
         <span id="bracket-zoom-label" style="font-size:0.7rem;font-weight:600;color:var(--text-muted);min-width:36px;text-align:center;cursor:pointer;user-select:none;"
           onclick="window._resetBracketZoom('${t.id}')" title="Resetar zoom">${zoomPct}%</span>
         <button onclick="window._setBracketZoom('${t.id}', 1)"
-          style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 8px;line-height:1;border-radius:50%;"
+          style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 6px;line-height:1;border-radius:50%;"
           onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
           title="Zoom in">+</button>
       </div>

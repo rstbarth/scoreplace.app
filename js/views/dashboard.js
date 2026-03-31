@@ -268,8 +268,9 @@ function renderDashboard(container) {
                 if (!isNaN(_regDate.getTime())) {
                   var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
                   if (_daysLeft > 0 && _daysLeft <= 14) {
-                    var _urgColor = _daysLeft <= 2 ? '#ef4444' : (_daysLeft <= 5 ? '#f59e0b' : '#a5b4fc');
-                    _html += '<div style="margin-top: 6px; font-size: 0.7rem; font-weight: 600; color: ' + _urgColor + '; display: flex; align-items: center; gap: 4px;">';
+                    var _urgColor = _daysLeft <= 2 ? '#fca5a5' : (_daysLeft <= 5 ? '#fcd34d' : '#c4b5fd');
+                    var _urgBg = _daysLeft <= 2 ? 'rgba(239,68,68,0.15)' : (_daysLeft <= 5 ? 'rgba(251,191,36,0.12)' : 'rgba(139,92,246,0.12)');
+                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: ' + _urgColor + '; background: ' + _urgBg + '; padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
                     _html += '<span>⏰</span> Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '');
                     _html += '</div>';
                   }
@@ -281,12 +282,13 @@ function renderDashboard(container) {
                 if (!isNaN(_startDate.getTime())) {
                   var _startDays = Math.ceil((_startDate - new Date()) / 86400000);
                   if (_startDays > 0 && _startDays <= 30) {
-                    var _startColor = _startDays <= 1 ? '#10b981' : (_startDays <= 3 ? '#3b82f6' : 'rgba(255,255,255,0.5)');
-                    _html += '<div style="margin-top: 4px; font-size: 0.7rem; font-weight: 600; color: ' + _startColor + '; display: flex; align-items: center; gap: 4px;">';
+                    var _startColor = _startDays <= 1 ? '#6ee7b7' : (_startDays <= 3 ? '#93c5fd' : '#c4b5fd');
+                    var _startBg = _startDays <= 1 ? 'rgba(16,185,129,0.15)' : (_startDays <= 3 ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)');
+                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: ' + _startColor + '; background: ' + _startBg + '; padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
                     _html += _startDays <= 1 ? '<span>🏁</span> Começa amanhã!' : '<span>📅</span> Começa em ' + _startDays + ' dia' + (_startDays > 1 ? 's' : '');
                     _html += '</div>';
                   } else if (_startDays === 0) {
-                    _html += '<div style="margin-top: 4px; font-size: 0.7rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 4px;">';
+                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: #6ee7b7; background: rgba(16,185,129,0.18); padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
                     _html += '<span>🏁</span> Começa hoje!';
                     _html += '</div>';
                   }
