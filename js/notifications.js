@@ -23,13 +23,13 @@ window._registerFCMToken = async function() {
     });
 
     if (token) {
-      console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
+      // Token obtained successfully
       if (window.FirestoreDB && window.FirestoreDB.db) {
         await window.FirestoreDB.db.collection('users').doc(user.uid).set({
           fcmToken: token,
           fcmTokenUpdatedAt: new Date().toISOString()
         }, { merge: true });
-        console.log('[FCM] Token saved to Firestore');
+        // Token saved to Firestore
       }
     } else {
       console.warn('[FCM] No token received');
@@ -40,7 +40,7 @@ window._registerFCMToken = async function() {
 
     // Handle foreground messages (show as toast notification)
     messaging.onMessage(function(payload) {
-      console.log('[FCM] Foreground message:', payload);
+      // Foreground message received
       var title = (payload.notification && payload.notification.title) || 'scoreplace.app';
       var body = (payload.notification && payload.notification.body) || '';
       if (typeof showNotification === 'function') {
@@ -57,7 +57,7 @@ window._registerFCMToken = async function() {
 window._enablePushNotifications = async function() {
   try {
     var permission = await Notification.requestPermission();
-    console.log('[FCM] Permission result:', permission);
+    // Permission result received
     // Remove the banner regardless of result
     var banner = document.getElementById('fcm-permission-banner');
     if (banner) banner.remove();
@@ -94,7 +94,7 @@ window._dismissFCMBanner = function() {
 // Main init: decides whether to show banner or silently register token
 window._initFCM = async function() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-    console.log('[FCM] Browser does not support push notifications');
+    // Browser does not support push notifications
     return;
   }
   if (!firebase || !firebase.messaging) {
@@ -103,7 +103,7 @@ window._initFCM = async function() {
   }
   var user = window.AppStore && window.AppStore.currentUser;
   if (!user || !user.uid) {
-    console.log('[FCM] No user logged in, skipping FCM init');
+    // No user logged in, skipping FCM init
     return;
   }
 
@@ -111,14 +111,14 @@ window._initFCM = async function() {
 
   // Already granted — just register token silently
   if (permission === 'granted') {
-    console.log('[FCM] Permission already granted, registering token...');
+    // Permission already granted, registering token
     await window._registerFCMToken();
     return;
   }
 
   // Already denied — nothing we can do
   if (permission === 'denied') {
-    console.log('[FCM] Permission previously denied by user');
+    // Permission previously denied by user
     return;
   }
 
@@ -126,12 +126,12 @@ window._initFCM = async function() {
   var dismissed = null;
   try { dismissed = localStorage.getItem('scoreplace_fcm_dismissed'); } catch(e) {}
   if (dismissed === 'granted' || dismissed === 'denied') {
-    console.log('[FCM] Banner previously dismissed:', dismissed);
+    // Banner previously dismissed
     return;
   }
 
   // Show the permission banner
-  console.log('[FCM] Showing notification permission banner');
+  // Showing notification permission banner
   var existing = document.getElementById('fcm-permission-banner');
   if (existing) existing.remove();
 

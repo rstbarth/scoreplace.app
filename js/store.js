@@ -1,5 +1,25 @@
 window.SCOREPLACE_VERSION = '0.2.42-alpha';
 
+// ─── Constantes globais ─────────────────────────────────────────────────────
+window.SCOREPLACE_URL = 'https://scoreplace.app';
+window._avatarUrl = function(name, size) {
+    var seed = encodeURIComponent(name || '?');
+    var s = size || 40;
+    return 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=' + s;
+};
+window._qrCodeUrl = function(data, size, darkMode) {
+    var s = size || 280;
+    var bg = darkMode !== false ? '1a1e2e' : 'ffffff';
+    var fg = darkMode !== false ? 'ffffff' : '1a1e2e';
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=' + s + 'x' + s + '&data=' + encodeURIComponent(data) + '&bgcolor=' + bg + '&color=' + fg + '&margin=10';
+};
+window._tournamentUrl = function(tournamentId) {
+    return window.SCOREPLACE_URL + '/#tournaments/' + tournamentId;
+};
+window._whatsappShareUrl = function(text) {
+    return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+};
+
 // ─── Plano Pro ──────────────────────────────────────────────────────────────
 // Verifica se o usuário logado tem plano Pro ativo
 window._isPro = function() {
@@ -265,7 +285,7 @@ window.AppStore = {
         } else {
           this.tournaments = data.tournaments;
         }
-        console.log('AppStore: ' + this.tournaments.length + ' torneios do cache local');
+        // Loaded from local cache
         return true;
       }
     } catch(e) { console.warn('[AppStore] Erro ao carregar cache local:', e.message); }
@@ -305,7 +325,7 @@ window.AppStore = {
       t.updatedAt = new Date().toISOString();
       await window.FirestoreDB.saveTournament(t);
       this._saveToCache();
-      console.log('syncImmediate: Tournament ' + tournamentId + ' saved to Firestore');
+      // Tournament saved to Firestore
       return true;
     } catch (err) {
       console.error('syncImmediate: FAILED to save tournament ' + tournamentId, err);
@@ -336,7 +356,7 @@ window.AppStore = {
         store.tournaments = tournaments;
         store._saveToCache();
         store._loading = false;
-        console.log('AppStore real-time: ' + tournaments.length + ' torneios atualizados (filtrados ' + deletedIds.length + ' deletados)');
+        // Real-time update applied
         // Re-render current view
         if (typeof initRouter === 'function') initRouter();
       }, function(err) {
@@ -367,7 +387,7 @@ window.AppStore = {
       }
       this.tournaments = tournaments;
       this._saveToCache();
-      console.log('AppStore: ' + tournaments.length + ' torneios carregados');
+      // Tournaments loaded from Firestore
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);
       this.tournaments = [];

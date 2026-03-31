@@ -11,7 +11,7 @@ window.FirestoreDB = {
   init() {
     try {
       this.db = firebase.firestore();
-      console.log('Firestore inicializado com sucesso');
+      // Firestore inicializado com sucesso
     } catch (e) {
       console.error('Erro ao inicializar Firestore:', e);
     }
@@ -103,7 +103,7 @@ window.FirestoreDB = {
       snap.forEach(function(doc) {
         tournaments.push(doc.data());
       });
-      console.log('Torneios carregados do Firestore:', tournaments.length);
+      // Torneios carregados do Firestore
       return tournaments;
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);
@@ -189,7 +189,7 @@ window.FirestoreDB = {
           createdAt: new Date().toISOString(),
           read: false
         });
-        console.log('Mutual friend request: auto-accepted between', fromUid, 'and', toUid);
+        // Mutual friend request: auto-accepted
         return 'auto-accepted';
       }
       // Normal flow: send request

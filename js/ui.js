@@ -16,7 +16,7 @@ function setupUI() {
     }
   });
 
-  console.log("UI Handlers Setup Completo");
+  // UI Handlers setup complete
 }
 
 function openModal(modalId) {
