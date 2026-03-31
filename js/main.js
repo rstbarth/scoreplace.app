@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.42-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Excluir Conta</b> — Opção para o usuário excluir permanentemente sua conta e todos os dados associados (perfil, notificações, inscrições, torneios organizados). Disponível no modal de perfil com dupla confirmação (digitação de "EXCLUIR"). Conformidade LGPD.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Plano Pro + Apoio Voluntário</b> — Modelo freemium: plano gratuito (3 torneios, 32 participantes) e plano Pro (R$19,90/mês — ilimitado, upload de logo, Modo TV sem marca). Pagamento automatizado via Stripe (cartão de crédito). Botão "Apoie" para contribuição voluntária via PIX (qualquer valor). Botões Pro e Apoie na barra de navegação.</p>' +
         '</div>' +
