@@ -1,3 +1,99 @@
+// ========================================
+// scoreplace.app — FCM Push Notifications
+// ========================================
+// Registers FCM token after user login, saves to Firestore user profile.
+// The Cloud Function sendPushNotification reads this token to deliver pushes.
+
+window._initFCM = async function() {
+  // Only works in browsers that support notifications + service workers
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    console.log('[FCM] Browser does not support push notifications');
+    return;
+  }
+  // Need Firebase Messaging SDK loaded
+  if (!firebase || !firebase.messaging) {
+    console.warn('[FCM] Firebase Messaging SDK not loaded');
+    return;
+  }
+  // Need a logged-in user
+  var user = window.AppStore && window.AppStore.currentUser;
+  if (!user || !user.uid) {
+    console.log('[FCM] No user logged in, skipping FCM init');
+    return;
+  }
+
+  try {
+    // Request notification permission
+    var permission = Notification.permission;
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+    }
+    if (permission !== 'granted') {
+      console.log('[FCM] Notification permission denied');
+      return;
+    }
+
+    // Get the messaging instance
+    var messaging = firebase.messaging();
+
+    // Use the existing service worker registration (our sw.js)
+    var swReg = await navigator.serviceWorker.ready;
+    messaging.useServiceWorker(swReg);
+
+    // Get FCM token — VAPID key from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
+    // If VAPID key is not yet configured, getToken will use default Firebase setup
+    var vapidKey = window._FCM_VAPID_KEY || null;
+    var tokenOptions = { serviceWorkerRegistration: swReg };
+    if (vapidKey) tokenOptions.vapidKey = vapidKey;
+    var token = await messaging.getToken(tokenOptions);
+
+    if (token) {
+      console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
+      // Save to Firestore user profile
+      if (window.FirestoreDB && window.FirestoreDB.db) {
+        await window.FirestoreDB.db.collection('users').doc(user.uid).set({
+          fcmToken: token,
+          fcmTokenUpdatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log('[FCM] Token saved to Firestore');
+      }
+    } else {
+      console.warn('[FCM] No token received');
+    }
+
+    // Listen for token refresh
+    messaging.onTokenRefresh(async function() {
+      try {
+        var refreshOptions = { serviceWorkerRegistration: swReg };
+        if (vapidKey) refreshOptions.vapidKey = vapidKey;
+        var newToken = await messaging.getToken(refreshOptions);
+        if (newToken && window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+          await window.FirestoreDB.db.collection('users').doc(user.uid).set({
+            fcmToken: newToken,
+            fcmTokenUpdatedAt: new Date().toISOString()
+          }, { merge: true });
+          console.log('[FCM] Refreshed token saved');
+        }
+      } catch (err) {
+        console.warn('[FCM] Token refresh error:', err);
+      }
+    });
+
+    // Handle foreground messages (show as toast notification)
+    messaging.onMessage(function(payload) {
+      console.log('[FCM] Foreground message:', payload);
+      var title = (payload.notification && payload.notification.title) || 'scoreplace.app';
+      var body = (payload.notification && payload.notification.body) || '';
+      if (typeof showNotification === 'function') {
+        showNotification(title, body, 'info');
+      }
+    });
+
+  } catch (err) {
+    console.warn('[FCM] Init error:', err);
+  }
+};
+
 // Sistema Global de Notificações (Toastings)
 function showNotification(title, message, type = 'info') {
   // Cria o container de toasts se não existir

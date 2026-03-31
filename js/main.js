@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Push Notifications</b> — Notificações push via Firebase Cloud Messaging. Ao fazer login, o app solicita permissão e registra o token FCM no seu perfil. Notificações de novos rounds, inscrições e resultados chegam mesmo com o app fechado. Auto-draw para Liga/Ranking via Cloud Functions (rodadas geradas automaticamente a cada hora).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Previsão do Tempo</b> — Ao criar/editar torneio, se o local e data de início estiverem definidos (até 5 dias no futuro), a previsão do tempo é exibida automaticamente. Integração com OpenWeatherMap (temperatura, descrição, ícone).</p>' +
         '</div>' +
