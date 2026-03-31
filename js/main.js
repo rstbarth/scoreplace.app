@@ -226,6 +226,11 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Temporada Liga — Auto-encerramento</b> — Torneios Liga com duração de temporada definida agora são encerrados automaticamente quando o prazo expira. Standings finais são calculados e salvos. Aviso visual "⚠️ X dias restantes" quando faltam 7 dias ou menos.</p>' +
+        '<p><b>Segurança</b> — Nomes de participantes são agora sanitizados contra XSS na lista de participantes. Utilitário global <code>_safeHtml()</code> disponível para uso em todo o app.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Meu Desempenho</b> — O perfil do jogador agora exibe estatísticas pessoais: torneios participados, partidas jogadas, vitórias, derrotas, empates, aproveitamento (%) e títulos conquistados. Os dados são calculados em tempo real a partir de todos os torneios no sistema.</p>' +
         '</div>' +

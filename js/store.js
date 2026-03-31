@@ -1,4 +1,10 @@
-window.SCOREPLACE_VERSION = '0.2.11-alpha';
+window.SCOREPLACE_VERSION = '0.2.12-alpha';
+
+// Global HTML escape utility (XSS protection)
+window._safeHtml = function(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
 
 // ========================================
 // scoreplace.app — AppStore (Firestore Backend)
