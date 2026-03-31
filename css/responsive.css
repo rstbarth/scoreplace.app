@@ -289,13 +289,6 @@
     gap: 4px;
   }
 
-  /* Quick nav icons visible on tablet */
-  .topbar-quick {
-    display: flex !important;
-    align-items: center;
-    gap: 6px;
-  }
-
   .hamburger-btn {
     display: flex !important;
   }
@@ -433,11 +426,6 @@
     padding: 0 2rem;
     flex-wrap: nowrap;
     overflow: hidden;
-  }
-
-  /* Desktop: hide quick-nav (full menu visible), hide hamburger */
-  .topbar-quick {
-    display: none !important;
   }
 
   .hamburger-btn {
@@ -947,10 +935,9 @@ img {
 }
 
 /* ====================================================
-   MOBILE TOPBAR — hamburger + vertical dropdown
+   MOBILE TOPBAR — hamburger + horizontal icon row
    ==================================================== */
 @media (max-width: 767px) {
-  /* Show hamburger on mobile */
   .hamburger-btn {
     display: flex !important;
   }
@@ -963,18 +950,10 @@ img {
     overflow: visible !important;
     position: relative !important;
   }
-  /* Quick nav icons always visible on mobile */
-  .topbar-quick {
-    display: flex !important;
-    align-items: center;
-    gap: 4px;
-  }
-  /* App name + icon always visible */
   .page-title {
-    flex-shrink: 1;
+    flex: 1;
     min-width: 0;
     gap: 6px !important;
-    flex: 0 1 auto;
   }
   .page-title h1 {
     white-space: nowrap !important;
@@ -987,37 +966,50 @@ img {
     height: 22px !important;
     flex-shrink: 0;
   }
-  /* Menu hidden by default, vertical dropdown when .open */
+  /* Menu hidden, opens as horizontal icon row on second line */
   .topbar-menu {
     display: none !important;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: 0;
-    background: var(--bg-darker);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
-    gap: 4px;
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    width: 100%;
+    order: 10;
   }
   .topbar-menu.open {
     display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 4px;
   }
+  /* Icon-only compact buttons */
   .topbar-menu > a,
-  .topbar-menu > button,
-  .topbar-menu > div {
-    width: 100%;
-    justify-content: flex-start !important;
+  .topbar-menu > button {
+    justify-content: center !important;
+    width: auto !important;
+    padding: 0 8px !important;
+    height: 38px !important;
+    min-height: 38px !important;
     border-radius: 8px !important;
-    padding: 10px 12px !important;
   }
   .topbar-menu > a:hover,
   .topbar-menu > button:hover {
     background: rgba(255,255,255,0.06) !important;
   }
-  /* View mode selector compact */
+  /* Hide text labels, keep icons only */
+  .topbar-menu a > span,
+  .topbar-menu button > span:not(.user-name-label) {
+    display: none !important;
+  }
+  .user-name-label {
+    display: none !important;
+  }
+  /* Separator hidden */
+  .topbar-menu > div[style*="width: 1px"] {
+    display: none !important;
+  }
+  /* View mode compact */
   #view-mode-container {
     margin: 0 !important;
   }
@@ -1031,7 +1023,6 @@ img {
     padding: 0.3rem 0.6rem !important;
     min-height: 36px !important;
   }
-  /* Logged-in user area: avatar + logoff always side by side */
   #btn-login.d-flex {
     display: flex !important;
     flex-direction: row !important;
@@ -1039,16 +1030,9 @@ img {
     align-items: center !important;
     gap: 2px !important;
   }
-  .user-name-label {
-    display: none !important;
-  }
   .logoff-btn {
     margin-left: 4px !important;
     flex-shrink: 0 !important;
-  }
-  /* Separator line hidden on mobile */
-  .topbar-menu > div[style*="width: 1px"] {
-    display: none !important;
   }
 }
 
