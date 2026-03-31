@@ -226,6 +226,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Imprimir Chaveamento</b> — Botão "Imprimir" na página do chaveamento/classificação. Layout otimizado para impressão com fundo branco, tabelas com bordas, avatares ocultados e orientação paisagem automática. Ideal para exibir brackets em locais de torneio.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Testes Automatizados</b> — 21 testes unitários cobrindo funções core: classificação, progresso de partidas, formatos de torneio, sanitização HTML e mais. Página de testes acessível em /tests.html.</p>' +
         '<p><b>_isLigaFormat global</b> — Helper de formato Liga/Ranking agora disponível globalmente desde o carregamento do script (antes dependia da renderização da view).</p>' +
