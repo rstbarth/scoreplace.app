@@ -226,6 +226,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.19-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Confrontos do Jogador</b> — Clique no nome de qualquer jogador na classificação para ver seu histórico completo de partidas: adversários, placares, resultados e resumo de V/E/D.</p>' +
+        '<p><b>Notificação de Resultado</b> — Participantes agora recebem notificação automática quando o resultado de sua partida é registrado.</p>' +
+        '<p><b>Última Atualização</b> — A página de detalhes do torneio mostra quando foi a última modificação (resultado, inscrição, etc).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Rodadas Anteriores</b> — Na classificação de Liga e Suíço, agora é possível expandir e ver todas as rodadas anteriores com os resultados de cada partida. Seção colapsada por padrão para não poluir a tela.</p>' +
         '<p><b>Estatísticas do Torneio</b> — Resumo com destaques: jogador com mais vitórias, maior sequência de vitórias consecutivas e total de partidas disputadas. Aparece automaticamente a partir da 2ª rodada.</p>' +

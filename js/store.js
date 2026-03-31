@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.2.18-alpha';
+window.SCOREPLACE_VERSION = '0.2.19-alpha';
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
@@ -84,6 +84,7 @@ window.AppStore = {
       return false;
     }
     try {
+      t.updatedAt = new Date().toISOString();
       await window.FirestoreDB.saveTournament(t);
       this._saveToCache();
       console.log('syncImmediate: Tournament ' + tournamentId + ' saved to Firestore');
