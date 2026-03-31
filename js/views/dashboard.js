@@ -625,10 +625,14 @@ function renderDashboard(container) {
         <p style="margin: 0.5rem 0 0 0; opacity: 0.85; font-size: 1.1rem;">Gerencie seus torneios e partidas esportivas</p>
       </div>
 
-      <div style="text-align: center; margin-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
         <button class="btn hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); padding: 0.85rem 2.2rem; cursor: pointer; font-weight: 600; font-size: 1.15rem; transition: all 0.2s ease; letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
           + Novo Torneio
         </button>
+        <button class="btn hover-lift" onclick="if(typeof window._showSupportModal==='function')window._showSupportModal()" style="background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(110,231,183,0.3); border-radius: 24px; padding: 0.7rem 1.4rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(16,185,129,0.35)'" onmouseout="this.style.background='rgba(16,185,129,0.2)'">
+          💚 Apoie
+        </button>
+        ${!(window._isPro && window._isPro()) ? '<button class="btn hover-lift" onclick="if(typeof window._showUpgradeModal===\'function\')window._showUpgradeModal()" style="background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3)); color: #c4b5fd; border: 1px solid rgba(196,181,253,0.3); border-radius: 24px; padding: 0.7rem 1.4rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background=\'linear-gradient(135deg, rgba(99,102,241,0.45), rgba(168,85,247,0.45))\'" onmouseout="this.style.background=\'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3))\'">🚀 Pro</button>' : ''}
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">

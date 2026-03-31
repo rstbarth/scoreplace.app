@@ -997,6 +997,187 @@ function handleLogout() {
   if (typeof initRouter === 'function') initRouter();
 }
 
+// === Excluir conta ===
+window._confirmDeleteAccount = function() {
+  var user = window.AppStore.currentUser;
+  if (!user) return;
+
+  // First confirmation
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-delete-account';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100001;';
+  overlay.innerHTML =
+    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:16px;max-width:400px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+      '<div style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:1.2rem;text-align:center;">' +
+        '<div style="font-size:2rem;margin-bottom:0.2rem;">⚠️</div>' +
+        '<div style="font-size:1.1rem;font-weight:800;color:#fff;">Excluir conta</div>' +
+      '</div>' +
+      '<div style="padding:1.5rem;text-align:center;">' +
+        '<p style="color:var(--text-color);font-size:0.9rem;margin-bottom:0.8rem;line-height:1.6;font-weight:600;">Tem certeza que deseja excluir sua conta?</p>' +
+        '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:1.2rem;line-height:1.5;">Esta ação é <strong style="color:#ef4444;">irreversível</strong>. Todos os seus dados serão apagados permanentemente:</p>' +
+        '<ul style="text-align:left;color:var(--text-muted);font-size:0.8rem;margin-bottom:1.2rem;padding-left:1.2rem;line-height:1.8;">' +
+          '<li>Seu perfil e preferências</li>' +
+          '<li>Suas notificações</li>' +
+          '<li>Suas inscrições em torneios</li>' +
+          '<li>Torneios que você organizou</li>' +
+        '</ul>' +
+        '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:1rem;">Digite <strong style="color:#ef4444;">EXCLUIR</strong> para confirmar:</p>' +
+        '<input type="text" id="delete-account-confirm-input" placeholder="Digite EXCLUIR" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-dark);color:var(--text-color);font-size:0.9rem;text-align:center;margin-bottom:1rem;box-sizing:border-box;" />' +
+        '<div style="display:flex;gap:10px;">' +
+          '<button onclick="document.getElementById(\'modal-delete-account\').remove()" style="flex:1;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:10px;font-size:0.85rem;cursor:pointer;">Cancelar</button>' +
+          '<button id="btn-confirm-delete-account" onclick="window._executeDeleteAccount()" style="flex:1;padding:10px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;opacity:0.4;pointer-events:none;">Excluir Conta</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+  // Enable button only when user types EXCLUIR
+  var input = document.getElementById('delete-account-confirm-input');
+  var btn = document.getElementById('btn-confirm-delete-account');
+  if (input && btn) {
+    input.addEventListener('input', function() {
+      var match = input.value.trim().toUpperCase() === 'EXCLUIR';
+      btn.style.opacity = match ? '1' : '0.4';
+      btn.style.pointerEvents = match ? 'auto' : 'none';
+    });
+    input.focus();
+  }
+};
+
+window._executeDeleteAccount = async function() {
+  var user = window.AppStore.currentUser;
+  var firebaseUser = firebase.auth().currentUser;
+  if (!user || !firebaseUser) return;
+
+  var uid = user.uid || firebaseUser.uid;
+  var email = user.email || firebaseUser.email;
+  var db = window.FirestoreDB.db;
+
+  // Show loading state
+  var btn = document.getElementById('btn-confirm-delete-account');
+  if (btn) { btn.textContent = 'Excluindo...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
+
+  try {
+    // 1. Delete user notifications subcollection
+    try {
+      var notifsSnap = await db.collection('users').doc(uid).collection('notifications').get();
+      var batch = db.batch();
+      var count = 0;
+      notifsSnap.forEach(function(doc) {
+        batch.delete(doc.ref);
+        count++;
+        // Firestore batch limit is 500
+        if (count >= 450) {
+          batch.commit();
+          batch = db.batch();
+          count = 0;
+        }
+      });
+      if (count > 0) await batch.commit();
+    } catch (e) { console.warn('Erro ao excluir notificações:', e); }
+
+    // 2. Remove user from tournament participants
+    try {
+      var tournsSnap = await db.collection('tournaments').get();
+      var tBatch = db.batch();
+      var tCount = 0;
+      tournsSnap.forEach(function(doc) {
+        var data = doc.data();
+        var participants = data.participants || [];
+        var filtered = participants.filter(function(p) {
+          return p.email !== email && p.uid !== uid;
+        });
+        if (filtered.length !== participants.length) {
+          tBatch.update(doc.ref, { participants: filtered });
+          tCount++;
+        }
+        if (tCount >= 450) {
+          tBatch.commit();
+          tBatch = db.batch();
+          tCount = 0;
+        }
+      });
+      if (tCount > 0) await tBatch.commit();
+    } catch (e) { console.warn('Erro ao remover inscrições:', e); }
+
+    // 3. Delete tournaments organized by this user
+    try {
+      var myTournsSnap = await db.collection('tournaments').where('organizerEmail', '==', email).get();
+      var dBatch = db.batch();
+      var dCount = 0;
+      myTournsSnap.forEach(function(doc) {
+        dBatch.delete(doc.ref);
+        dCount++;
+      });
+      if (dCount > 0) await dBatch.commit();
+    } catch (e) { console.warn('Erro ao excluir torneios:', e); }
+
+    // 4. Delete user profile document
+    try {
+      await db.collection('users').doc(uid).delete();
+    } catch (e) { console.warn('Erro ao excluir perfil:', e); }
+
+    // 5. Delete Firebase Auth account
+    try {
+      await firebaseUser.delete();
+    } catch (e) {
+      // If requires re-authentication, sign in again
+      if (e.code === 'auth/requires-recent-login') {
+        var provider = new firebase.auth.GoogleAuthProvider();
+        try {
+          await firebaseUser.reauthenticateWithPopup(provider);
+          await firebaseUser.delete();
+        } catch (reAuthErr) {
+          console.error('Erro na reautenticação:', reAuthErr);
+          showNotification('Erro', 'Não foi possível excluir a conta de autenticação. Tente fazer login novamente e repetir o processo.', 'error');
+          var modal = document.getElementById('modal-delete-account');
+          if (modal) modal.remove();
+          return;
+        }
+      } else {
+        throw e;
+      }
+    }
+
+    // 6. Clean up local state
+    if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
+    window.AppStore.currentUser = null;
+    window.AppStore.tournaments = [];
+    window.AppStore.viewMode = 'participant';
+    try { localStorage.removeItem('boratime_state'); } catch (e) {}
+    try { localStorage.removeItem('scoreplace_fcm_dismissed'); } catch (e) {}
+
+    // 7. Close modals and update UI
+    var modal = document.getElementById('modal-delete-account');
+    if (modal) modal.remove();
+    var profileModal = document.getElementById('modal-profile');
+    if (profileModal) profileModal.classList.remove('active');
+
+    var btnLogin = document.getElementById('btn-login');
+    if (btnLogin) {
+      btnLogin.innerHTML = 'Login';
+      btnLogin.className = 'btn btn-outline';
+      btnLogin.style = 'padding: 0.5rem 1rem;';
+      var newBtn = btnLogin.cloneNode(true);
+      btnLogin.parentNode.replaceChild(newBtn, btnLogin);
+      newBtn.addEventListener('click', function() { openModal('modal-login'); });
+    }
+
+    // Hide Pro button
+    var proBtn = document.getElementById('btn-upgrade-pro');
+    if (proBtn) proBtn.style.display = 'none';
+
+    showNotification('Conta excluída', 'Sua conta e todos os seus dados foram removidos permanentemente.', 'info');
+    if (typeof initRouter === 'function') initRouter();
+
+  } catch (err) {
+    console.error('Erro ao excluir conta:', err);
+    showNotification('Erro', 'Ocorreu um erro ao excluir sua conta. Tente novamente.', 'error');
+    if (btn) { btn.textContent = 'Excluir Conta'; btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
+  }
+};
+
 // === Helpers para máscara de telefone ===
 var _phoneCountries = [
   { code: '55', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: 'Brasil', mask: '(##) #####-####' },
@@ -1470,9 +1651,12 @@ function setupProfileModal() {
               '<div id="profile-stats-content" style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">Calculando...</div>' +
             '</div>' +
             // Buttons
-            '<div style="display: flex; gap: 10px; margin-top: 1rem; padding-bottom: 0.5rem;">' +
+            '<div style="display: flex; gap: 10px; margin-top: 1rem;">' +
               '<button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>' +
               '<button type="button" class="btn btn-outline" onclick="handleLogout()" style="border-color: var(--danger-color); color: var(--danger-color); background: transparent; flex: 1;">Sair</button>' +
+            '</div>' +
+            '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
+              '<button type="button" onclick="window._confirmDeleteAccount()" style="background:none;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;text-decoration:underline;opacity:0.7;">Excluir minha conta permanentemente</button>' +
             '</div>' +
           '</form>' +
         '</div>' +
