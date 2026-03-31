@@ -5372,6 +5372,7 @@ function renderTournaments(container, tournamentId = null) {
 
         // Ações Específicas da tela Explore
         let actionsHtml = '';
+        const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         if (tournamentId) {
             const _inviterUid = (window.AppStore.currentUser && (window.AppStore.currentUser.uid || window.AppStore.currentUser.email)) || '';
             const inviteUrl = window._tournamentUrl(t.id) + (_inviterUid ? '?ref=' + encodeURIComponent(_inviterUid) : '');
@@ -5456,7 +5457,6 @@ function renderTournaments(container, tournamentId = null) {
 
             const editModalHtml = '';
 
-            const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
             const tournamentStarted = !!t.tournamentStarted;
 
             if (isOrg) {
