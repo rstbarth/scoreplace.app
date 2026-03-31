@@ -226,6 +226,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.22-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Favoritar Torneios</b> — Clique na estrela (☆/★) ao lado do nome do torneio nos cards do dashboard ou na página de detalhes para marcar como favorito. Favoritos são salvos localmente por usuário e aparecem como filtro dedicado no dashboard quando há ao menos 1 favorito.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Imprimir Chaveamento</b> — Botão "Imprimir" na página do chaveamento/classificação. Layout otimizado para impressão com fundo branco, tabelas com bordas, avatares ocultados e orientação paisagem automática. Ideal para exibir brackets em locais de torneio.</p>' +
         '</div>' +

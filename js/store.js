@@ -1,9 +1,44 @@
-window.SCOREPLACE_VERSION = '0.2.21-alpha';
+window.SCOREPLACE_VERSION = '0.2.22-alpha';
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
+
+// ─── Favoritos (localStorage) ────────────────────────────────────────────────
+window._getFavorites = function() {
+  try {
+    var key = 'scoreplace_favorites';
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (cu && cu.email) key += '_' + cu.email;
+    var raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+};
+
+window._isFavorite = function(tId) {
+  var favs = window._getFavorites();
+  return favs.indexOf(String(tId)) !== -1;
+};
+
+window._toggleFavorite = function(tId, event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var key = 'scoreplace_favorites';
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (cu && cu.email) key += '_' + cu.email;
+  var favs = window._getFavorites();
+  var id = String(tId);
+  var idx = favs.indexOf(id);
+  if (idx === -1) { favs.push(id); } else { favs.splice(idx, 1); }
+  try { localStorage.setItem(key, JSON.stringify(favs)); } catch (e) {}
+  // Update star icons on the page
+  var stars = document.querySelectorAll('[data-fav-id="' + id + '"]');
+  stars.forEach(function(el) {
+    el.textContent = (idx === -1) ? '★' : '☆';
+    el.title = (idx === -1) ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+    el.style.color = (idx === -1) ? '#fbbf24' : 'rgba(255,255,255,0.4)';
+  });
 };
 
 // ========================================
