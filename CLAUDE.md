@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.23-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.24-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.24-alpha (Marco 2026)**
+- Ordenacao de Colunas: cabecalhos da tabela de classificacao (Liga/Suico) sao clicaveis para ordenar por qualquer coluna. Setas indicadoras (▲/▼/⇅) mostram direcao ativa. Suporta ordenacao numerica (pontos, vitorias, saldo, etc.) e textual (nome do participante). Funcao window._sortStandingsTable(thElement) manipula o DOM diretamente sem re-render. Funciona em todas as categorias.
 
 **v0.2.23-alpha (Marco 2026)**
 - Modo TV (Placar ao Vivo): botao "📺 Modo TV" na pagina do chaveamento/classificacao. Abre overlay fullscreen (Fullscreen API) otimizado para projetores/TVs no local do torneio. Fundo escuro (#0a0e1a), relogio em tempo real, barra de progresso, auto-refresh a cada 30s que re-renderiza o bracket e atualiza o conteudo. CSS inline para tabelas e bracket com tema escuro. Sair com ESC, botao Sair, ou saindo do fullscreen. Funcoes: window._tvMode(tId), window._exitTvMode().
