@@ -38,7 +38,7 @@
         "+'Dispositivo: '+ua+'\\n'" +
         "+'Data: '+new Date().toLocaleString('pt-BR')+'\\n'" +
         ");" +
-        "window.open('mailto:rstbarth@gmail.com?subject='+subject+'&body='+body,'_blank');" +
+        "window.open('mailto:scoreplace.app@gmail.com?subject='+subject+'&body='+body,'_blank');" +
         '})()" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%); color:#fff; border:none; border-radius:10px; font-size:0.85rem; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.3); transition:all 0.2s;" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 12px rgba(99,102,241,0.4)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 2px 8px rgba(99,102,241,0.3)\'">' +
         '<span style="font-size:1.1rem;">📩</span> Reportar Problema ou Sugestão</button>' +
         '</div>' +
