@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.2.24-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.2.28-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.2.24-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.2.28-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -66,6 +66,9 @@
               <span style="font-size: 0.95rem; font-weight: 500;">Notificações</span>
               <span id="notif-badge" style="display: none; position: absolute; top: 2px; left: 28px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
            </a>
+           <button id="theme-toggle-btn" class="hover-lift" title="Alternar tema claro/escuro" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="window._toggleTheme()">
+              🌙
+           </button>
            <button class="hover-lift" title="Ajuda" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem; font-weight: 700;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-help');">
               ?
            </button>
@@ -92,24 +95,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
-  <script src="js/store.js?v=0.2.24-alpha"></script>
-  <script src="js/firebase-db.js?v=0.2.24-alpha"></script>
+  <script src="js/store.js?v=0.2.28-alpha"></script>
+  <script src="js/firebase-db.js?v=0.2.28-alpha"></script>
   <script src="js/notifications.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/views/dashboard.js?v=0.2.24-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.2.24-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.2.24-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.2.28-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.2.28-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.2.28-alpha"></script>
   <script src="js/views/pre-draw.js"></script>
-  <script src="js/views/bracket.js?v=0.2.24-alpha"></script>
-  <script src="js/views/participants.js?v=0.2.24-alpha"></script>
+  <script src="js/views/bracket.js?v=0.2.28-alpha"></script>
+  <script src="js/views/participants.js?v=0.2.28-alpha"></script>
   <script src="js/views/rules.js"></script>
-  <script src="js/views/explore.js?v=0.2.24-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.2.24-alpha"></script>
-  <script src="js/views/auth.js?v=0.2.24-alpha"></script>
+  <script src="js/views/explore.js?v=0.2.28-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.2.28-alpha"></script>
+  <script src="js/views/auth.js?v=0.2.28-alpha"></script>
   <script src="js/views/result-modal.js"></script>
   <script src="js/views/enroll-modal.js"></script>
-  <script src="js/router.js?v=0.2.24-alpha"></script>
-  <script src="js/main.js?v=0.2.24-alpha"></script>
+  <script src="js/router.js?v=0.2.28-alpha"></script>
+  <script src="js/main.js?v=0.2.28-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.24-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.28-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,18 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.28-alpha (Marco 2026)**
+- Tema Claro/Escuro: botao 🌙/☀️ no header da topbar para alternar entre tema escuro e claro. Usa data-theme="light" no <html>. Preferencia salva em localStorage (scoreplace_theme). CSS ja tinha variaveis para light theme em style.css — agora ativado via toggle. Overrides CSS em style.css para cards, hero-box, badges e topbar no tema claro. Transicao suave de 300ms. Funcao window._toggleTheme() em store.js. Auto-apply do tema salvo no carregamento.
+
+**v0.2.27-alpha (Marco 2026)**
+- Countdown de Inicio: torneios com startDate futura mostram contagem regressiva nos cards do dashboard e na pagina de detalhes. "Comeca hoje!" (verde, 0 dias), "Comeca amanha!" (verde, 1 dia), "Comeca em X dias" (azul/roxo, ate 30 dias). Complementa o countdown de inscricoes existente.
+
+**v0.2.26-alpha (Marco 2026)**
+- Navegacao Suave: scroll automatico para o topo ao navegar entre views (window.scrollTo smooth) e animacao fade-in (opacity 0→1 em 250ms) no container da view. Implementado no router.js via requestAnimationFrame duplo para garantir transicao CSS.
+
+**v0.2.25-alpha (Marco 2026)**
+- Confrontos Diretos (Head-to-Head): secao expansivel "Confrontos Diretos" abaixo da classificacao em Liga/Suico. Matriz NxN mostrando retrospecto entre cada par de jogadores no formato V-E-D (Vitorias-Empates-Derrotas). Celulas coloridas: verde para vantagem, vermelho para desvantagem, cinza para empate. Nomes verticais nos cabecalhos de coluna. Suporta categorias (uma tabela por categoria). Tooltip com detalhes. Limitada a 2-20 jogadores por categoria.
 
 **v0.2.24-alpha (Marco 2026)**
 - Ordenacao de Colunas: cabecalhos da tabela de classificacao (Liga/Suico) sao clicaveis para ordenar por qualquer coluna. Setas indicadoras (▲/▼/⇅) mostram direcao ativa. Suporta ordenacao numerica (pontos, vitorias, saldo, etc.) e textual (nome do participante). Funcao window._sortStandingsTable(thElement) manipula o DOM diretamente sem re-render. Funciona em todas as categorias.
