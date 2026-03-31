@@ -226,6 +226,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Encerramento automático</b> — Torneios Eliminatórias e Dupla Eliminatória agora são marcados como "Encerrado" automaticamente quando todas as partidas (incluindo disputa de 3º lugar) são concluídas. Status "🏆 Encerrado" exibido no dashboard e nos detalhes do torneio.</p>' +
+        '<p><b>Status padronizado</b> — Corrigida inconsistência onde torneios Suíço encerrados não eram reconhecidos como finalizados pelo dashboard e outras telas. Inscrições bloqueadas em torneios encerrados.</p>' +
+        '<p><b>Dashboard corrigido</b> — Detecção de sorteio no dashboard agora usa verificação correta para arrays vazios, evitando falsos positivos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Liga unificada</b> — Os formatos Liga e Ranking foram unificados em um único formato "Liga" com todas as opções combinadas: duração de temporada (indefinida, 3, 6, 12 meses ou personalizada), inscrições abertas configuráveis, agendamento de sorteios automáticos, regras de inatividade e pontuação de novos jogadores. Torneios existentes no formato Ranking continuam funcionando normalmente.</p>' +
         '<p><b>Empate em Liga/Suíço</b> — Empates agora são permitidos em partidas de Liga e Suíço (1 ponto para cada). Classificação atualizada com coluna "E" (empates). Cálculo de Buchholz e Sonneborn-Berger corrigido para considerar empates.</p>' +
