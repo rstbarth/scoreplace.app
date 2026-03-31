@@ -472,59 +472,141 @@ window._sortStandingsTable = function(thElement) {
 
 
 window._tvModeInterval = null;
+
+// Build "Próximos Jogos" section for TV mode
+window._tvBuildNextMatches = function(t) {
+  var allMatches = [];
+  if (Array.isArray(t.matches)) {
+    t.matches.forEach(function(m) { if (m.p1 && m.p2 && !m.winner && !m.isBye) allMatches.push(m); });
+  }
+  if (Array.isArray(t.rounds)) {
+    t.rounds.forEach(function(r, ri) {
+      (r.matches || []).forEach(function(m) {
+        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = 'Rodada ' + (ri + 1); allMatches.push(m); }
+      });
+    });
+  }
+  if (Array.isArray(t.groups)) {
+    t.groups.forEach(function(g, gi) {
+      (g.matches || []).forEach(function(m) {
+        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = 'Grupo ' + (g.name || (gi + 1)); allMatches.push(m); }
+      });
+    });
+  }
+  var upcoming = allMatches.slice(0, 6);
+  if (upcoming.length === 0) return '';
+  var html = '<div style="margin-bottom:1.5rem;">';
+  html += '<div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:12px;">Próximos Jogos</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
+  upcoming.forEach(function(m) {
+    var courtInfo = m.court ? '<div style="font-size:0.7rem;color:#818cf8;margin-top:4px;">📍 ' + m.court + '</div>' : '';
+    var roundInfo = m._roundLabel ? '<div style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:2px;">' + m._roundLabel + '</div>' : '';
+    var presenceP1 = m.presenceP1 ? '✅' : '⏳';
+    var presenceP2 = m.presenceP2 ? '✅' : '⏳';
+    html += '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div style="flex:1;text-align:center;">';
+    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + presenceP1 + ' ' + (m.p1 || 'TBD') + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:0.9rem;font-weight:800;color:rgba(255,255,255,0.25);margin:0 12px;">VS</div>';
+    html += '<div style="flex:1;text-align:center;">';
+    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + (m.p2 || 'TBD') + ' ' + presenceP2 + '</div>';
+    html += '</div>';
+    html += '</div>';
+    html += courtInfo + roundInfo;
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+};
+
+// Build attendance/presence summary for TV mode
+window._tvBuildAttendance = function(t) {
+  var allMatches = [];
+  if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
+  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { allMatches = allMatches.concat(r.matches || []); });
+  if (Array.isArray(t.groups)) t.groups.forEach(function(g) { allMatches = allMatches.concat(g.matches || []); });
+  var pending = allMatches.filter(function(m) { return m.p1 && m.p2 && !m.winner && !m.isBye; });
+  if (pending.length === 0) return '';
+  var waitingPresence = pending.filter(function(m) { return !m.presenceP1 || !m.presenceP2; });
+  if (waitingPresence.length === 0) return '';
+  var html = '<div style="margin-bottom:1.5rem;padding:14px 18px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:12px;">';
+  html += '<div style="display:flex;align-items:center;gap:10px;">';
+  html += '<span style="font-size:1.5rem;">⏳</span>';
+  html += '<div>';
+  html += '<div style="font-size:0.95rem;font-weight:700;color:#fbbf24;">Aguardando Presença</div>';
+  html += '<div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:2px;">' + waitingPresence.length + ' partida' + (waitingPresence.length > 1 ? 's' : '') + ' aguardando confirmação de presença</div>';
+  html += '</div></div></div>';
+  return html;
+};
+
 window._tvMode = function(tId) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
   if (!t) return;
+  var safeName = window._safeHtml ? window._safeHtml(t.name) : t.name;
 
   // Create overlay
   var overlay = document.createElement('div');
   overlay.id = 'tv-mode-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:99999;overflow:auto;display:flex;flex-direction:column;';
 
-  // Header
-  var header = '<div style="padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">';
-  header += '<div style="display:flex;align-items:center;gap:16px;">';
-  if (t.logoData) header += '<img src="' + t.logoData + '" style="width:48px;height:48px;border-radius:10px;object-fit:cover;">';
-  header += '<div>';
-  header += '<h2 style="margin:0;color:white;font-size:1.6rem;font-weight:800;">' + (window._safeHtml ? window._safeHtml(t.name) : t.name) + '</h2>';
-  header += '<div style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:2px;">' + (t.format || '') + ' — ' + (t.sport || '') + '</div>';
-  header += '</div></div>';
-  header += '<div style="display:flex;align-items:center;gap:16px;">';
-  header += '<div id="tv-mode-clock" style="color:rgba(255,255,255,0.6);font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums;"></div>';
-  header += '<div id="tv-mode-refresh-indicator" style="color:rgba(255,255,255,0.3);font-size:0.7rem;">Auto-refresh: 30s</div>';
-  header += '<button onclick="window._exitTvMode()" style="background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">✕ Sair</button>';
-  header += '</div></div>';
+  // Hero section with venue photo background
+  var heroBg = t.venuePhotoUrl
+    ? 'background-image:linear-gradient(to bottom,rgba(10,14,26,0.3),rgba(10,14,26,0.95)),url(' + t.venuePhotoUrl + ');background-size:cover;background-position:center;'
+    : 'background:linear-gradient(135deg,#1e293b 0%,#0f172a 50%,#1e1b4b 100%);';
+  var hero = '<div style="' + heroBg + 'padding:30px 40px;flex-shrink:0;position:relative;">';
+  // Exit button (top right)
+  hero += '<button onclick="window._exitTvMode()" style="position:absolute;top:16px;right:20px;background:rgba(239,68,68,0.25);color:#f87171;border:1px solid rgba(239,68,68,0.4);padding:10px 20px;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:700;z-index:1;">✕ Sair do Modo TV</button>';
+  // Clock (top right, below exit)
+  hero += '<div style="position:absolute;top:60px;right:20px;text-align:right;">';
+  hero += '<div id="tv-mode-clock" style="color:rgba(255,255,255,0.7);font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums;"></div>';
+  hero += '<div id="tv-mode-refresh-indicator" style="color:rgba(255,255,255,0.3);font-size:0.7rem;margin-top:2px;">Auto-refresh: 30s</div>';
+  hero += '</div>';
+  // Tournament info
+  hero += '<div style="display:flex;align-items:center;gap:20px;">';
+  if (t.logoData) hero += '<img src="' + t.logoData + '" style="width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 4px 20px rgba(0,0,0,0.4);">';
+  hero += '<div>';
+  hero += '<h1 style="margin:0;color:white;font-size:2.2rem;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,0.5);">' + safeName + '</h1>';
+  hero += '<div style="color:rgba(255,255,255,0.6);font-size:1rem;margin-top:4px;display:flex;gap:16px;flex-wrap:wrap;">';
+  hero += '<span>' + (t.format || '') + '</span>';
+  hero += '<span>•</span><span>' + (t.sport || '') + '</span>';
+  if (t.venue) hero += '<span>•</span><span>📍 ' + t.venue + '</span>';
+  var partCount = Array.isArray(t.participants) ? t.participants.length : 0;
+  hero += '<span>•</span><span>👤 ' + partCount + ' inscritos</span>';
+  hero += '</div></div></div>';
 
-  // Progress bar
+  // Progress bar inside hero
   var progHtml = '';
   if (typeof window._getTournamentProgress === 'function') {
     var prog = window._getTournamentProgress(t);
     if (prog.total > 0) {
       var barCol = prog.pct === 100 ? '#10b981' : (prog.pct > 50 ? '#3b82f6' : '#f59e0b');
-      progHtml = '<div style="padding:8px 30px;flex-shrink:0;">';
-      progHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
-      progHtml += '<span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);">Progresso</span>';
-      progHtml += '<span style="font-size:0.85rem;font-weight:700;color:white;">' + prog.completed + '/' + prog.total + ' partidas (' + prog.pct + '%)</span>';
+      progHtml = '<div style="margin-top:20px;">';
+      progHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+      progHtml += '<span style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);">Progresso do Torneio</span>';
+      progHtml += '<span style="font-size:1rem;font-weight:800;color:white;">' + prog.completed + '/' + prog.total + ' partidas (' + prog.pct + '%)</span>';
       progHtml += '</div>';
-      progHtml += '<div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">';
-      progHtml += '<div style="width:' + prog.pct + '%;height:100%;background:' + barCol + ';border-radius:3px;transition:width 0.5s;"></div>';
+      progHtml += '<div style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">';
+      progHtml += '<div style="width:' + prog.pct + '%;height:100%;background:' + barCol + ';border-radius:4px;transition:width 0.5s;"></div>';
       progHtml += '</div></div>';
     }
   }
+  hero += progHtml + '</div>';
+
+  // Next matches + Attendance
+  var nextMatchesHtml = window._tvBuildNextMatches(t);
+  var attendanceHtml = window._tvBuildAttendance(t);
 
   // Content: grab existing bracket/standings content
   var viewContainer = document.getElementById('view-container');
   var contentHtml = '';
   if (viewContainer) {
-    // Clone the bracket/standings content, excluding header buttons
     var cards = viewContainer.querySelectorAll('.bracket-container, table, .card');
     var tempDiv = document.createElement('div');
     cards.forEach(function(el) {
       var clone = el.cloneNode(true);
-      // Remove buttons from clone
       var btns = clone.querySelectorAll('button, .btn, a.btn');
       btns.forEach(function(b) { b.remove(); });
-      // Remove inline result forms
       var forms = clone.querySelectorAll('select, input');
       forms.forEach(function(f) { f.remove(); });
       tempDiv.appendChild(clone);
@@ -532,9 +614,7 @@ window._tvMode = function(tId) {
     contentHtml = tempDiv.innerHTML;
   }
 
-  overlay.innerHTML = header + progHtml +
-    '<div id="tv-mode-content" style="flex:1;overflow:auto;padding:20px 30px;color:white;">' +
-    '<style>' +
+  var tvStyles = '<style>' +
     '#tv-mode-overlay table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }' +
     '#tv-mode-overlay table th { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 10px 14px; font-size: 0.85rem; font-weight: 700; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.15); }' +
     '#tv-mode-overlay table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); font-size: 0.95rem; }' +
@@ -548,8 +628,11 @@ window._tvMode = function(tId) {
     '#tv-mode-overlay details { color: rgba(255,255,255,0.7); }' +
     '#tv-mode-overlay h3, #tv-mode-overlay h4 { color: white; }' +
     '#tv-mode-overlay .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: white; }' +
-    '</style>' +
-    contentHtml +
+    '</style>';
+
+  overlay.innerHTML = hero +
+    '<div id="tv-mode-content" style="flex:1;overflow:auto;padding:24px 40px;color:white;">' +
+    tvStyles + attendanceHtml + nextMatchesHtml + contentHtml +
     '</div>';
 
   document.body.appendChild(overlay);
@@ -573,7 +656,9 @@ window._tvMode = function(tId) {
   window._tvModeInterval = setInterval(function() {
     var ov = document.getElementById('tv-mode-overlay');
     if (!ov) { clearInterval(window._tvModeInterval); clearInterval(clockInterval); return; }
-    // Re-render bracket in background, then update TV content
+    // Reload tournament data
+    var tNow = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!tNow) return;
     var vc = document.getElementById('view-container');
     if (vc && typeof renderBracket === 'function') {
       renderBracket(vc, tId);
@@ -588,11 +673,11 @@ window._tvMode = function(tId) {
           bs.forEach(function(b) { b.remove(); });
           tmp.appendChild(cl);
         });
-        // Keep style tag
         var styleTag = contentDiv.querySelector('style');
-        contentDiv.innerHTML = (styleTag ? styleTag.outerHTML : '') + tmp.innerHTML;
+        var newAttendance = window._tvBuildAttendance(tNow);
+        var newNextMatches = window._tvBuildNextMatches(tNow);
+        contentDiv.innerHTML = (styleTag ? styleTag.outerHTML : '') + newAttendance + newNextMatches + tmp.innerHTML;
 
-        // Flash refresh indicator
         var ind = document.getElementById('tv-mode-refresh-indicator');
         if (ind) {
           ind.textContent = '🔄 Atualizado';
@@ -609,7 +694,7 @@ window._tvMode = function(tId) {
   };
   document.addEventListener('keydown', window._tvModeEscHandler);
 
-  // Exit on fullscreen change (user presses ESC in fullscreen)
+  // Exit on fullscreen change
   window._tvModeFullscreenHandler = function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       var ov = document.getElementById('tv-mode-overlay');

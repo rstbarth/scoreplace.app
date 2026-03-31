@@ -5724,7 +5724,6 @@ function renderTournaments(container, tournamentId = null) {
             </div>
             ${tournamentId ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                <div style="opacity: 0.8;">Inscrição: ${enrollmentText}</div>
-               ${isOrg && t.status !== 'closed' ? `<button class="btn btn-sm hover-lift" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px dashed #ef4444; font-weight: 600; padding: 2px 8px; font-size: 0.7rem; text-transform: none; letter-spacing: 0;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
             </div>` : ''}
             ${enrollBtnHtml ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px;">${enrollBtnHtml}</div>` : ''}
 
@@ -5737,11 +5736,9 @@ function renderTournaments(container, tournamentId = null) {
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
+              ${isAberto ? `<button class="hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
               <button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
               <button class="hover-lift" style="background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._showQRCode('${t.id}');">📱 QR Code</button>
-              ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.12); color: #4ade80; border: 1px solid rgba(16,185,129,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}');">📊 Exportar CSV</button>` : ''}
-              ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.12); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}');">📑 Clonar</button>` : ''}
-              ${isOrg && t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button><button class="hover-lift" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}');">📢 Comunicar Inscritos</button>` : ''}
             </div>` : ''}
 
             <!-- Below Name: Calendário + Data -->
@@ -5878,6 +5875,18 @@ function renderTournaments(container, tournamentId = null) {
             })()}
 
             ${actionsHtml}
+
+            ${(tournamentId && isOrg) ? `
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
+              <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.3); margin-bottom: 8px;">Ferramentas do Organizador</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px dashed rgba(239,68,68,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
+                ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.1); color: #4ade80; border: 1px solid rgba(16,185,129,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
+                ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.1); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar Torneio</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar Inscritos</button>` : ''}
+              </div>
+            </div>` : ''}
 
           </div>
         </div>

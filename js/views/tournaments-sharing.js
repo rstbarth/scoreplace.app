@@ -178,12 +178,10 @@ window._exportTournamentCSV = function(tournamentId) {
         return;
     }
 
-    // Add header with tournament info
+    // Add header with tournament info — horizontal layout for landscape viewing
     var header = [
-        ['Torneio:', t.name],
-        ['Formato:', t.format],
-        ['Data:', t.startDate || ''],
-        ['Exportado em:', new Date().toLocaleString('pt-BR')],
+        ['Torneio', 'Formato', 'Esporte', 'Data', 'Local', 'Inscritos', 'Exportado em'],
+        [t.name, t.format || '', t.sport || '', t.startDate || '', t.venue || '', (Array.isArray(t.participants) ? t.participants.length : 0), new Date().toLocaleString('pt-BR')],
         []
     ];
     rows = header.concat(rows);
