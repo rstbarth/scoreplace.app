@@ -1442,6 +1442,75 @@ window._printBracket = function() {
   window.print();
 };
 
+// ─── Sort standings table by clicking column headers ─────────────────────────
+window._sortStandingsTable = function(thElement) {
+  var table = thElement.closest('table');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  var colIdx = parseInt(thElement.getAttribute('data-sort-col'));
+  var sortType = thElement.getAttribute('data-sort-type') || 'num';
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  if (rows.length === 0) return;
+
+  // Determine sort direction
+  var currentDir = thElement.getAttribute('data-sort-dir') || 'none';
+  var newDir = (currentDir === 'desc') ? 'asc' : 'desc';
+  // Default: first click on # is asc, first click on text cols is asc, first click on numeric cols is desc
+  if (currentDir === 'none') {
+    newDir = (colIdx === 0 || sortType === 'text') ? 'asc' : 'desc';
+  }
+
+  // Reset all arrows in this table header
+  var allThs = table.querySelectorAll('th[data-sort-col]');
+  allThs.forEach(function(th) {
+    th.setAttribute('data-sort-dir', 'none');
+    var arrow = th.querySelector('.sort-arrow');
+    if (arrow) { arrow.textContent = '⇅'; arrow.style.opacity = '0.4'; }
+  });
+
+  // Set active arrow
+  thElement.setAttribute('data-sort-dir', newDir);
+  var activeArrow = thElement.querySelector('.sort-arrow');
+  if (activeArrow) {
+    activeArrow.textContent = newDir === 'desc' ? '▼' : '▲';
+    activeArrow.style.opacity = '1';
+  }
+
+  // Sort rows
+  rows.sort(function(a, b) {
+    var cellA = a.querySelectorAll('td')[colIdx];
+    var cellB = b.querySelectorAll('td')[colIdx];
+    if (!cellA || !cellB) return 0;
+    var valA = cellA.textContent.trim();
+    var valB = cellB.textContent.trim();
+
+    if (sortType === 'text') {
+      var cmp = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' });
+      return newDir === 'asc' ? cmp : -cmp;
+    } else {
+      // Parse numeric: handle medals (🥇=1, 🥈=2, 🥉=3), +/- signs
+      var numA = parseFloat(valA.replace(/[^\d\-\.]/g, '')) || 0;
+      var numB = parseFloat(valB.replace(/[^\d\-\.]/g, '')) || 0;
+      // Special handling for medal emojis in position column
+      if (colIdx === 0) {
+        if (valA.includes('🥇')) numA = 1;
+        else if (valA.includes('🥈')) numA = 2;
+        else if (valA.includes('🥉')) numA = 3;
+        else numA = parseInt(valA.replace(/[^\d]/g, '')) || 999;
+        if (valB.includes('🥇')) numB = 1;
+        else if (valB.includes('🥈')) numB = 2;
+        else if (valB.includes('🥉')) numB = 3;
+        else numB = parseInt(valB.replace(/[^\d]/g, '')) || 999;
+      }
+      return newDir === 'asc' ? (numA - numB) : (numB - numA);
+    }
+  });
+
+  // Re-insert sorted rows
+  rows.forEach(function(row) { tbody.appendChild(row); });
+};
+
 // ─── Modo TV (fullscreen live scoreboard) ────────────────────────────────────
 window._tvModeInterval = null;
 window._tvMode = function(tId) {
@@ -2011,16 +2080,17 @@ function renderStandings(t, isOrg, canEnterResult) {
       </div>
     </div>`;
 
+  const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
   const _tableHeader = `<thead>
             <tr style="border-bottom:2px solid var(--border-color);">
-              <th style="padding:9px 14px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">#</th>
-              <th style="padding:9px 14px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Participante</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--primary-color);text-transform:uppercase;letter-spacing:1px;">Pts</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#4ade80;text-transform:uppercase;letter-spacing:1px;">V</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">E</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;">D</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Saldo</th>
-              <th style="padding:9px 14px;text-align:center;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">J</th>
+              <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="0" data-sort-type="num" onclick="window._sortStandingsTable(this)"># <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">▼</span></th>
+              <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="1" data-sort-type="text" onclick="window._sortStandingsTable(this)">Participante <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--primary-color);" data-sort-col="2" data-sort-type="num" onclick="window._sortStandingsTable(this)">Pts <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#4ade80;" data-sort-col="3" data-sort-type="num" onclick="window._sortStandingsTable(this)">V <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#94a3b8;" data-sort-col="4" data-sort-type="num" onclick="window._sortStandingsTable(this)">E <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#f87171;" data-sort-col="5" data-sort-type="num" onclick="window._sortStandingsTable(this)">D <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="6" data-sort-type="num" onclick="window._sortStandingsTable(this)">Saldo <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="7" data-sort-type="num" onclick="window._sortStandingsTable(this)">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
             </tr>
           </thead>`;
 
