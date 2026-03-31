@@ -226,6 +226,16 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.28-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Tema Claro/Escuro</b> — Botão 🌙/☀️ no header para alternar entre tema escuro e claro. Preferência salva em localStorage. Transição suave de 300ms. CSS com overrides específicos para o tema claro.</p>' +
+        '<p><b>Countdown de Início</b> — Torneios com data futura mostram "Começa hoje/amanhã/em X dias" nos cards e detalhes.</p>' +
+        '<p><b>Navegação Suave</b> — Scroll-to-top + fade-in ao navegar entre views.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Confrontos Diretos</b> — Matriz head-to-head abaixo da classificação (Liga/Suíço) mostrando o retrospecto entre cada par de jogadores. Formato V-E-D com cores indicativas: verde para vantagem, vermelho para desvantagem. Seção expansível, suporta categorias. Ideal para análise de desempate.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.24-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Ordenação de Colunas</b> — Clique nos cabeçalhos da tabela de classificação (Liga/Suíço) para ordenar por qualquer coluna: posição, nome, pontos, vitórias, empates, derrotas, saldo ou jogos. Setas indicam a direção da ordenação. Funciona em todas as categorias.</p>' +
         '</div>' +

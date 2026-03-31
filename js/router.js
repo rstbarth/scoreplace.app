@@ -56,6 +56,18 @@ function initRouter() {
     const fixedBar = document.getElementById('bracket-fixed-scrollbar');
     if (fixedBar) fixedBar.remove();
 
+    // Scroll to top on navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Fade-in animation
+    viewContainer.style.opacity = '0';
+    viewContainer.style.transition = 'opacity 0.25s ease-in';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        viewContainer.style.opacity = '1';
+      });
+    });
+
     switch (view) {
       case '':
       case 'dashboard':

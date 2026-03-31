@@ -1,10 +1,42 @@
-window.SCOREPLACE_VERSION = '0.2.24-alpha';
+window.SCOREPLACE_VERSION = '0.2.28-alpha';
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 };
+
+// ─── Tema claro/escuro ───────────────────────────────────────────────────────
+window._toggleTheme = function() {
+  var html = document.documentElement;
+  var current = html.getAttribute('data-theme') || 'dark';
+  var next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  try { localStorage.setItem('scoreplace_theme', next); } catch (e) {}
+  // Update toggle button icon
+  var btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+};
+
+// Apply saved theme on load
+(function() {
+  try {
+    var saved = localStorage.getItem('scoreplace_theme');
+    if (saved && (saved === 'light' || saved === 'dark')) {
+      document.documentElement.setAttribute('data-theme', saved);
+      // Update icon after DOM ready
+      var _applyIcon = function() {
+        var btn = document.getElementById('theme-toggle-btn');
+        if (btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _applyIcon);
+      } else {
+        _applyIcon();
+      }
+    }
+  } catch (e) {}
+})();
 
 // ─── Favoritos (localStorage) ────────────────────────────────────────────────
 window._getFavorites = function() {
