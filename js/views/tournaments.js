@@ -66,6 +66,172 @@ window._shareTournament = function(tournamentId) {
     }
 };
 
+// Export tournament results as CSV file
+window._exportTournamentCSV = function(tournamentId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+    if (!t) return;
+    var rows = [];
+    var hasStandings = false;
+    var isLiga = window._isLigaFormat ? window._isLigaFormat(t) : false;
+    var isSuico = t.format === 'Suíço Clássico';
+
+    // For Liga/Suíço: export standings
+    if (isLiga || isSuico) {
+        var categories = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories : ['default'];
+        categories.forEach(function(cat) {
+            var computed = typeof window._computeStandings === 'function' ? window._computeStandings(t, cat === 'default' ? undefined : cat) : [];
+            if (computed.length === 0) return;
+            hasStandings = true;
+            if (cat !== 'default') rows.push(['--- Categoria: ' + cat + ' ---']);
+            rows.push(['Posição', 'Participante', 'Pontos', 'Vitórias', 'Empates', 'Derrotas', 'Saldo', 'Jogos']);
+            computed.forEach(function(s, i) {
+                rows.push([i + 1, s.name, s.points, s.wins, s.draws || 0, s.losses, s.pointsDiff, s.played]);
+            });
+            rows.push([]); // blank line between categories
+        });
+    }
+
+    // For elimination formats: export match results
+    if (!hasStandings) {
+        rows.push(['Partida', 'Jogador 1', 'Jogador 2', 'Placar 1', 'Placar 2', 'Vencedor', 'Rodada/Fase']);
+        var allMatches = [];
+        if (Array.isArray(t.matches)) {
+            t.matches.forEach(function(m, idx) {
+                allMatches.push({ m: m, label: m.round || m.label || ('Partida ' + (idx + 1)) });
+            });
+        }
+        if (Array.isArray(t.groups)) {
+            t.groups.forEach(function(g, gi) {
+                (g.matches || []).forEach(function(m, mi) {
+                    allMatches.push({ m: m, label: 'Grupo ' + (gi + 1) + ' - Partida ' + (mi + 1) });
+                });
+            });
+        }
+        if (t.thirdPlaceMatch) {
+            allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+        }
+        var matchNum = 0;
+        allMatches.forEach(function(item) {
+            var m = item.m;
+            if (!m.p1 && !m.p2) return;
+            matchNum++;
+            rows.push([
+                matchNum,
+                m.p1 || 'TBD',
+                m.p2 || 'TBD',
+                m.scoreP1 !== undefined && m.scoreP1 !== null ? m.scoreP1 : '',
+                m.scoreP2 !== undefined && m.scoreP2 !== null ? m.scoreP2 : '',
+                m.winner || '',
+                item.label
+            ]);
+        });
+    }
+
+    if (rows.length === 0) {
+        if (typeof showNotification === 'function') showNotification('Exportar', 'Nenhum resultado para exportar.', 'warning');
+        return;
+    }
+
+    // Add header with tournament info
+    var header = [
+        ['Torneio:', t.name],
+        ['Formato:', t.format],
+        ['Data:', t.startDate || ''],
+        ['Exportado em:', new Date().toLocaleString('pt-BR')],
+        []
+    ];
+    rows = header.concat(rows);
+
+    // Generate CSV
+    var csvContent = rows.map(function(row) {
+        return row.map(function(cell) {
+            var str = String(cell === undefined || cell === null ? '' : cell);
+            // Escape quotes and wrap in quotes if contains comma/quote/newline
+            if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        }).join(',');
+    }).join('\n');
+
+    // Add BOM for UTF-8 support in Excel
+    var blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (t.name || 'torneio').replace(/[^a-zA-Z0-9À-ü\s-]/g, '').replace(/\s+/g, '_') + '_resultados.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (typeof showNotification === 'function') showNotification('Exportado!', 'Arquivo CSV baixado.', 'success');
+};
+
+// Clone tournament — creates a new tournament based on an existing one
+window._cloneTournament = function(tournamentId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+    if (!t || !window.AppStore.currentUser) return;
+
+    var newT = {
+        name: t.name + ' (cópia)',
+        sport: t.sport,
+        format: t.format,
+        isPublic: t.isPublic,
+        enrollmentMode: t.enrollmentMode || 'misto',
+        maxParticipants: t.maxParticipants || '',
+        venue: t.venue || '',
+        venueLat: t.venueLat || '',
+        venueLon: t.venueLon || '',
+        venueAddress: t.venueAddress || '',
+        venuePlaceId: t.venuePlaceId || '',
+        venueAccess: t.venueAccess || '',
+        courtCount: t.courtCount || '',
+        courtNames: t.courtNames || '',
+        logoData: t.logoData || '',
+        logoLocked: t.logoLocked || false,
+        teamSize: t.teamSize || 2,
+        tiebreakers: t.tiebreakers || [],
+        genderCategories: t.genderCategories || [],
+        skillCategories: t.skillCategories || [],
+        combinedCategories: t.combinedCategories || [],
+        resultEntry: t.resultEntry || 'organizer',
+        organizerEmail: window.AppStore.currentUser.email,
+        organizerName: window.AppStore.currentUser.displayName,
+        participants: [],
+        status: 'open',
+        createdAt: new Date().toISOString()
+    };
+
+    // Liga-specific fields
+    if (window._isLigaFormat && window._isLigaFormat(t)) {
+        newT.ligaSeasonMonths = t.ligaSeasonMonths || t.rankingSeasonMonths || '';
+        newT.ligaOpenEnrollment = t.ligaOpenEnrollment !== false;
+        newT.ligaInactivityWeeks = t.ligaInactivityWeeks || '';
+        newT.ligaNewPlayerPoints = t.ligaNewPlayerPoints || '';
+    }
+    // Suíço-specific
+    if (t.format === 'Suíço Clássico') {
+        newT.swissRounds = t.swissRounds || '';
+    }
+    // Draw scheduling
+    if (t.drawIntervalDays) {
+        newT.drawIntervalDays = t.drawIntervalDays;
+        newT.drawManual = t.drawManual || false;
+    }
+
+    window.AppStore.addTournament(newT);
+    if (typeof showNotification === 'function') showNotification('Torneio Clonado!', '"' + newT.name + '" criado com sucesso.', 'success');
+    // Navigate to the new tournament
+    setTimeout(function() {
+        var newest = window.AppStore.tournaments.find(function(tour) { return tour.name === newT.name && tour.organizerEmail === newT.organizerEmail; });
+        if (newest) {
+            window.location.hash = '#tournaments/' + newest.id;
+        } else {
+            window.location.hash = '#dashboard';
+        }
+    }, 500);
+};
+
 // Calculate next automatic draw date for Ranking/Suíço tournaments
 window._calcNextDrawDate = function(t) {
     if (!t || !t.drawFirstDate) return null;
@@ -6150,6 +6316,8 @@ function renderTournaments(container, tournamentId = null) {
             </div>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
+              ${((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0)) ? `<button class="hover-lift" style="background: rgba(16,185,129,0.12); color: #4ade80; border: 1px solid rgba(16,185,129,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}');">📊 Exportar CSV</button>` : ''}
+              ${window.AppStore.currentUser ? `<button class="hover-lift" style="background: rgba(139,92,246,0.12); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._cloneTournament('${t.id}');">📑 Clonar</button>` : ''}
               ${isOrg && t.status !== 'closed' ? `<button class="hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.openEditModal('${t.id}');">✏️ Editar Torneio</button><button class="hover-lift" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 4px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}');">📢 Comunicar Inscritos</button>` : ''}
             </div>` : ''}
 

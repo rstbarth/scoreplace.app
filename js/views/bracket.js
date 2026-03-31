@@ -54,6 +54,7 @@ function renderBracket(container, tournamentId) {
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${isOrg && !hasContent ? `<button class="btn btn-primary" onclick="window.generateDrawFunction('${t.id}')">🎲 Realizar Sorteio</button>` : ''}
+        ${hasContent ? `<button class="btn btn-secondary" onclick="window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
         <a href="#participants/${t.id}" class="btn btn-secondary">👥 Inscritos</a>
         <a href="#rules/${t.id}" class="btn btn-secondary">📋 Regras</a>
       </div>
