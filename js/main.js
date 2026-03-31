@@ -226,6 +226,11 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.8-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
+        '<p><b>Botão Encerrar Torneio</b> — O organizador agora pode encerrar qualquer torneio manualmente a qualquer momento. Confirmação com aviso de partidas pendentes.</p>' +
+        '<p><b>Pódio / Classificação Final</b> — Torneios encerrados exibem pódio visual com 🥇🥈🥉 na página de detalhes. Eliminatórias mostram campeão, vice e 3º lugar. Suíço/Liga mostram top 3 por pontos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Encerramento automático</b> — Torneios Eliminatórias e Dupla Eliminatória agora são marcados como "Encerrado" automaticamente quando todas as partidas (incluindo disputa de 3º lugar) são concluídas. Status "🏆 Encerrado" exibido no dashboard e nos detalhes do torneio.</p>' +
         '<p><b>Status padronizado</b> — Corrigida inconsistência onde torneios Suíço encerrados não eram reconhecidos como finalizados pelo dashboard e outras telas. Inscrições bloqueadas em torneios encerrados.</p>' +
