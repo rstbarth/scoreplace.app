@@ -1957,6 +1957,58 @@ function _advanceWinner(t, completedMatch) {
   }
 
   _maybeGenerate3rdPlace(t);
+
+  // Auto-detect tournament completion for elimination formats
+  _maybeFinishElimination(t);
+}
+
+// ─── Auto-finish elimination tournament ──────────────────────────────────────
+function _maybeFinishElimination(t) {
+  if (t.status === 'finished') return;
+  if (t.format !== 'Eliminatória Simples' && t.format !== 'Dupla Eliminatória' && t.format !== 'Fase de Grupos') return;
+
+  const allMatches = t.matches || [];
+  if (allMatches.length === 0) return;
+
+  // Check if all non-BYE matches have a winner
+  const pendingMatches = allMatches.filter(function(m) {
+    return !m.isBye && m.p1 && m.p1 !== 'TBD' && m.p2 && m.p2 !== 'TBD' && !m.winner;
+  });
+  if (pendingMatches.length > 0) return;
+
+  // Check if there are still TBD matches (bracket not fully populated)
+  const tbdMatches = allMatches.filter(function(m) {
+    return !m.isBye && (!m.p1 || m.p1 === 'TBD' || !m.p2 || m.p2 === 'TBD');
+  });
+  if (tbdMatches.length > 0) return;
+
+  // Check 3rd place match if enabled
+  if (t.elimThirdPlace && t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return;
+
+  // Check group stage completion (Fase de Grupos)
+  if (Array.isArray(t.groups) && t.groups.length > 0) {
+    var groupsPending = t.groups.some(function(g) {
+      return (g.rounds || []).some(function(r) {
+        return (r.matches || []).some(function(m) {
+          return !m.winner && !m.isBye;
+        });
+      });
+    });
+    if (groupsPending) return;
+  }
+
+  // All matches done — mark as finished
+  t.status = 'finished';
+  if (typeof showNotification === 'function') {
+    var champion = null;
+    var roundNums = allMatches.map(function(m) { return m.round || 0; });
+    var lastRound = Math.max.apply(null, roundNums);
+    var finalMatches = allMatches.filter(function(m) { return m.round === lastRound && !m.isBye; });
+    if (finalMatches.length > 0 && finalMatches[0].winner) {
+      champion = finalMatches[0].winner;
+    }
+    showNotification('🏆 Torneio Encerrado!', champion ? champion + ' é o campeão!' : 'Todas as partidas foram concluídas.', 'success');
+  }
 }
 
 // ─── 3rd place ────────────────────────────────────────────────────────────────

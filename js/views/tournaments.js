@@ -157,7 +157,7 @@ window._checkTournamentReminders = async function() {
 
     for (var i = 0; i < tournaments.length; i++) {
         var t = tournaments[i];
-        if (!t.startDate || t.status === 'completed') continue;
+        if (!t.startDate || t.status === 'finished') continue;
         // Check if user is enrolled
         var parts = Array.isArray(t.participants) ? t.participants : [];
         var enrolled = parts.some(function(p) {
@@ -222,7 +222,7 @@ window._checkNearbyTournaments = async function() {
 
     for (var i = 0; i < tournaments.length; i++) {
         var t = tournaments[i];
-        if (t.status === 'completed' || t.status === 'closed') continue;
+        if (t.status === 'finished' || t.status === 'closed') continue;
         if (!t.venueAddress && !t.venue) continue;
         // Check if already notified
         var nKey = '_notifNearby_' + t.id + '_' + uid;
@@ -2087,6 +2087,10 @@ function renderTournaments(container, tournamentId = null) {
             }
             if (t) {
                 // Verifica se as inscrições estão realmente abertas
+                if (t.status === 'finished') {
+                    showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
+                    return;
+                }
                 const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
                 const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
                 const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
@@ -2217,6 +2221,10 @@ function renderTournaments(container, tournamentId = null) {
             if (!t || !user) return;
 
             // Verifica se as inscrições estão realmente abertas
+            if (t.status === 'finished') {
+                showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
+                return;
+            }
             const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
             const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
             const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
@@ -5528,12 +5536,13 @@ function renderTournaments(container, tournamentId = null) {
         const cats = (t.combinedCategories && t.combinedCategories.length) ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
 
         // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
+        const isFinished = t.status === 'finished';
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
-        const isAberto = t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
-        const statusText = ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas'));
-        const statusBg = isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)');
-        const statusColor = isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5');
+        const isAberto = !isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
+        const statusText = isFinished ? '🏆 Encerrado' : (ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
+        const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
+        const statusColor = isFinished ? '#fbbf24' : (isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
         const statusFontWeight = isAberto ? '700' : '600';
 
         let enrollmentText = 'Misto (Individual e Times)';
