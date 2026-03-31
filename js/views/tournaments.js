@@ -51,7 +51,7 @@ function renderTournaments(container, tournamentId = null) {
             var statusDiv = document.getElementById('invite-friends-status-' + tournamentId);
             if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Enviando...'; }
 
-            var inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id + '?ref=' + encodeURIComponent(myUid);
+            var inviteUrl = window._tournamentUrl(t.id) + '?ref=' + encodeURIComponent(myUid);
             var sent = 0;
             var whatsappNumbers = [];
             var emailRecipients = [];
@@ -125,7 +125,7 @@ function renderTournaments(container, tournamentId = null) {
             // Open WhatsApp with invite message
             if (whatsappNumbers.length > 0) {
                 var inviteMsg = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
-                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(inviteMsg), '_blank');
+                window.open(window._whatsappShareUrl(inviteMsg), '_blank');
             }
         };
         window.switchInviteTab = function (btn, tabName, id) {
@@ -2114,7 +2114,7 @@ function renderTournaments(container, tournamentId = null) {
                         // Deleta do Firestore (banco de dados)
                         if (window.FirestoreDB && window.FirestoreDB.db) {
                             window.FirestoreDB.deleteTournament(tId).then(function() {
-                                console.log('Torneio ' + tId + ' deletado do Firestore');
+                                // Tournament deleted from Firestore
                                 // Após confirmação do Firestore, remove da lista de deletados (já foi removido de verdade)
                                 var delIdx = window.AppStore._deletedTournamentIds.indexOf(String(tId));
                                 if (delIdx !== -1) window.AppStore._deletedTournamentIds.splice(delIdx, 1);
@@ -5347,7 +5347,7 @@ function renderTournaments(container, tournamentId = null) {
         let actionsHtml = '';
         if (tournamentId) {
             const _inviterUid = (window.AppStore.currentUser && (window.AppStore.currentUser.uid || window.AppStore.currentUser.email)) || '';
-            const inviteUrl = 'https://scoreplace.app/#tournaments/' + t.id + (_inviterUid ? '?ref=' + encodeURIComponent(_inviterUid) : '');
+            const inviteUrl = window._tournamentUrl(t.id) + (_inviterUid ? '?ref=' + encodeURIComponent(_inviterUid) : '');
             const inviteText = '🏆 Torneio: ' + t.name + '\nAcesse o link abaixo para se inscrever:\n' + inviteUrl;
             // Safe version for embedding in onclick attributes (escape quotes and newlines)
             const inviteTextSafe = inviteText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');

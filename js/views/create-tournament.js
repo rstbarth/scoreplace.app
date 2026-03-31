@@ -1054,7 +1054,7 @@ function setupCreateTournamentModal() {
     if (typeof google !== 'undefined' && google.maps && google.maps.importLibrary) {
       google.maps.importLibrary('places').then(function () {
         _placesLibLoaded = true;
-        console.log('Google Places library loaded');
+        // Google Places library loaded
       }).catch(function (err) {
         console.warn('Google Places library load failed:', err.message);
       });

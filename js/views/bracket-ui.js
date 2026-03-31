@@ -380,10 +380,10 @@ window._shareMatchResult = function(tId, matchId) {
   text += '\n' + resultText;
   text += '\n📋 ' + (t.name || 'Torneio');
   if (t.sport) text += ' — ' + t.sport;
-  text += '\n\n🔗 scoreplace.app/#tournaments/' + tId;
+  text += '\n\n🔗 ' + window._tournamentUrl(tId);
 
   if (navigator.share) {
-    navigator.share({ title: 'Resultado — ' + t.name, text: text, url: 'https://scoreplace.app/#tournaments/' + tId }).catch(function() {});
+    navigator.share({ title: 'Resultado — ' + t.name, text: text, url: window._tournamentUrl(tId) }).catch(function() {});
   } else {
     // Clipboard fallback
     if (navigator.clipboard && navigator.clipboard.writeText) {

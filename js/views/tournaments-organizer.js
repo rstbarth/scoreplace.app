@@ -356,11 +356,11 @@ window._confirmSendComm = async function(tId) {
     // Open email/WhatsApp if collected
     if (result && result.emails.length > 0) {
         var emailSubject = encodeURIComponent('📢 ' + t.name + ' — Comunicado do Organizador');
-        var emailBody = encodeURIComponent(message + '\n\n---\nTorneio: ' + t.name + '\nhttps://scoreplace.app/#tournaments/' + t.id);
+        var emailBody = encodeURIComponent(message + '\n\n---\nTorneio: ' + t.name + '\n' + window._tournamentUrl(t.id));
         window.open('mailto:?bcc=' + result.emails.join(',') + '&subject=' + emailSubject + '&body=' + emailBody, '_self');
     }
     if (result && result.phones.length > 0) {
-        var waMsg = '📢 ' + t.name + '\n' + message + '\n\nhttps://scoreplace.app/#tournaments/' + t.id;
-        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(waMsg), '_blank');
+        var waMsg = '📢 ' + t.name + '\n' + message + '\n\n' + window._tournamentUrl(t.id);
+        window.open(window._whatsappShareUrl(waMsg), '_blank');
     }
 };

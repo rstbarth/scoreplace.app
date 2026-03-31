@@ -38,7 +38,7 @@ if (firebase && firebase.auth) {
     if (user) {
       // Skip if email registration is still updating displayName profile
       if (window._pendingProfileUpdate) {
-        console.log('onAuthStateChanged: skipping — pending profile update (email register)');
+        // Skipping — pending profile update (email register)
         return;
       }
       // User is signed in — load data from Firestore and update UI
@@ -62,7 +62,7 @@ if (firebase && firebase.auth) {
               snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
               window.AppStore.tournaments = publicTournaments;
               window.AppStore._saveToCache();
-              console.log('Public tournaments real-time:', publicTournaments.length);
+              // Public tournaments loaded
               if (typeof initRouter === 'function') initRouter();
             }, function(err) {
               console.warn('Public tournaments listener error:', err);
@@ -318,7 +318,7 @@ function _fetchGoogleDemographics(accessToken, uid) {
       if (genderPt && !window.AppStore.currentUser.gender) {
         window.AppStore.currentUser.gender = genderPt;
         profileUpdates.gender = genderPt;
-        console.log('Gênero do Google detectado:', genderPt);
+        // Google gender detected
       }
     }
 
@@ -338,7 +338,7 @@ function _fetchGoogleDemographics(accessToken, uid) {
           if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
           window.AppStore.currentUser.age = age;
           profileUpdates.age = age;
-          console.log('Idade do Google detectada:', age);
+          // Google age detected
         }
       }
     }
@@ -394,7 +394,7 @@ function _fetchGoogleDemographics(accessToken, uid) {
         window.AppStore.currentUser.phoneCountry = countryCode;
         profileUpdates.phone = digits;
         profileUpdates.phoneCountry = countryCode;
-        console.log('Telefone do Google detectado:', countryCode, digits);
+        // Google phone detected
       }
     }
 
@@ -406,7 +406,7 @@ function _fetchGoogleDemographics(accessToken, uid) {
     }
   })
   .catch(function(err) {
-    console.log('People API (demográficos) não disponível:', err.message || err);
+    // People API (demographics) not available
   });
 }
 
@@ -456,13 +456,13 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
     read: false
   });
 
-  console.log('Auto-amizade via convite entre', myUid, 'e', inviterUid);
+  // Auto-friendship via invite
 }
 
 async function simulateLoginSuccess(user) {
   // Guard against double execution (e.g. onAuthStateChanged + explicit call)
   if (window._simulateLoginInProgress) {
-    console.log('simulateLoginSuccess: skipping — already in progress');
+    // simulateLoginSuccess: skipping — already in progress
     return;
   }
   window._simulateLoginInProgress = true;
@@ -527,7 +527,7 @@ async function simulateLoginSuccess(user) {
         if (batchCount > 0) await batch.commit();
         // Delete the legacy doc
         await window.FirestoreDB.db.collection('users').doc(user.email).delete();
-        console.log('Migrated legacy user doc from', user.email, 'to', uid);
+        // Migrated legacy user doc
         // Reload profile after migration
         if (window.AppStore.loadUserProfile) {
           existingProfile = await window.AppStore.loadUserProfile(uid);

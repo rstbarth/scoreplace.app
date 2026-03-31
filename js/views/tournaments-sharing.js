@@ -4,7 +4,7 @@
 window._shareTournament = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
     if (!t) return;
-    var url = 'https://scoreplace.app/#tournaments/' + t.id;
+    var url = window._tournamentUrl(t.id);
     var title = t.name;
     var text = '\uD83C\uDFC6 ' + t.name + ' — scoreplace.app';
     // Try native share API first (mobile)
@@ -35,10 +35,9 @@ window._shareTournament = function(tournamentId) {
 window._showQRCode = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
     if (!t) return;
-    var url = 'https://scoreplace.app/#tournaments/' + t.id;
-    var encodedUrl = encodeURIComponent(url);
-    var qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodedUrl + '&bgcolor=1a1e2e&color=ffffff&margin=10';
-    var qrImageUrlLight = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodedUrl + '&bgcolor=ffffff&color=1a1e2e&margin=10';
+    var url = window._tournamentUrl(t.id);
+    var qrImageUrl = window._qrCodeUrl(url, 280, true);
+    var qrImageUrlLight = window._qrCodeUrl(url, 280, false);
     var isLight = document.documentElement.getAttribute('data-theme') === 'light';
     var safeN = window._safeHtml(t.name);
 
