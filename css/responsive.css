@@ -435,6 +435,8 @@
   .topbar {
     height: 70px;
     padding: 0 2rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
   .page-title h1 {
