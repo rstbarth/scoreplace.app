@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.11-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.12-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,11 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.12-alpha (Marco 2026)**
+- Encerramento automatico de temporada Liga: quando ligaSeasonMonths expira (startDate + N meses), o torneio e automaticamente marcado como finished com standings finais. Detectado tanto no dashboard quanto nos detalhes do torneio. Exibe aviso visual "X dias restantes" quando faltam 7 dias ou menos.
+- XSS fix participants.js: nomes de participantes agora sanitizados antes de injecao no HTML (previne ataques via nomes maliciosos).
+- Utilitario global window._safeHtml() em store.js para escape de HTML reutilizavel.
 
 **v0.2.11-alpha (Marco 2026)**
 - Meu Desempenho: perfil do jogador agora exibe estatisticas pessoais — torneios participados, partidas jogadas, vitorias, derrotas, empates, aproveitamento (%) e titulos conquistados. Dados calculados em tempo real a partir de todos os torneios. Funcao _populatePlayerStats() em auth.js.
@@ -373,9 +378,9 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 4. **Testes:** Nenhum teste automatizado existe ainda.
 
 ### Fase 3 — Features Novas
-5. **Historico de jogador:** Perfil com estatisticas (vitorias, derrotas, empates) e historico de torneios participados.
+5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11** — Perfil com estatisticas (vitorias, derrotas, empates, aproveitamento, titulos) calculadas em tempo real.
 6. **Auto-draw Cloud Function:** Backend (Firebase Cloud Functions) para executar sorteios automaticos. Atualmente so frontend (countdown) sem trigger real.
-7. **Encerramento de temporada Liga:** Logica de data para encerrar automaticamente torneios Liga quando ligaSeasonMonths expira.
+7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12** — Auto-closure quando ligaSeasonMonths expira, com aviso visual de dias restantes.
 8. **Notificacoes push:** Firebase Cloud Messaging para push notifications reais.
 9. **PWA:** Service worker para uso offline (cuidado com cache stale).
 10. **Previsao do tempo:** OpenWeatherMap integrado mas sem API key ativa (campo OPENWEATHER_API_KEY vazio em create-tournament.js).
