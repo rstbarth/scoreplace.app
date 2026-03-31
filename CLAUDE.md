@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.2.41-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.2.42-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -16,6 +16,13 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.2.42-alpha (Marco 2026)**
+- Excluir conta: Opcao para usuario excluir permanentemente sua conta e todos os dados (perfil, notificacoes, inscricoes em torneios, torneios organizados). Disponivel no modal de perfil com dupla confirmacao (digitar "EXCLUIR"). Reautenticacao automatica se necessario. Conformidade LGPD.
+- Botoes Apoie e Pro na dashboard: Adicionados ao hero box ao lado do "+Novo Torneio" para maior visibilidade. Botao Pro so aparece para usuarios Free.
+- Cache-busters: Adicionados a todos os arquivos JS que estavam sem (notifications.js, ui.js, pre-draw.js, rules.js, result-modal.js, enroll-modal.js).
+- Stripe secret key: Removida chave hardcoded do Cloud Functions. Agora usa defineSecret() do Firebase Functions v2 para STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET.
+- QR Code PIX centralizado no modal de apoio.
 
 **v0.2.41-alpha (Marco 2026)**
 - Monetizacao Fase 1: Modelo freemium implementado. Plano Free (ate 3 torneios ativos, 32 participantes, logo so gerada) e plano Pro (R$19,90/mes — ilimitado, upload logo, Modo TV sem marca). Sistema de planos no Firestore (campo plan/planExpiresAt no perfil). Feature gates em create-tournament.js e tournaments.js. Modal de upgrade Pro com beneficios e botao de checkout Stripe. Botao "Apoie" com PIX voluntario (QR code + copia-e-cola, chave CNPJ 51590996000173). Cloud Functions: createCheckoutSession, stripeWebhook (auto-ativa/desativa Pro), createDonationCheckout. Botoes Pro e Apoie na topbar.
