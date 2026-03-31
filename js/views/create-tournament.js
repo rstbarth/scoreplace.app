@@ -2080,8 +2080,7 @@ function setupCreateTournamentModal() {
     if (t.drawIntervalDays) document.getElementById('suico-draw-interval').value = t.drawIntervalDays;
     if (t.drawManual) document.getElementById('suico-manual-draw').checked = t.drawManual;
 
-    // Liga
-    if (t.ligaPeriodicity) document.getElementById('liga-periodicity').value = t.ligaPeriodicity;
+    // Liga (ligaPeriodicity field removed — now uses drawIntervalDays)
     if (t.ligaNewPlayerScore) document.getElementById('liga-new-player-score').value = t.ligaNewPlayerScore;
     if (t.ligaInactivity) document.getElementById('liga-inactivity').value = t.ligaInactivity;
     if (t.ligaInactivityX) document.getElementById('liga-inactivity-x').value = t.ligaInactivityX;
@@ -2284,7 +2283,6 @@ function setupCreateTournamentModal() {
 
         // Liga
         if (formatValue === 'liga') {
-          tourData.ligaPeriodicity = document.getElementById('liga-periodicity').value;
           tourData.ligaNewPlayerScore = document.getElementById('liga-new-player-score').value;
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
           tourData.ligaInactivityX = parseInt(document.getElementById('liga-inactivity-x').value) || 3;

@@ -733,13 +733,56 @@ async function simulateLoginSuccess(user) {
       if (t && window.AppStore.currentUser) {
         var _u = window.AppStore.currentUser;
         var participantObj = { name: _u.displayName, email: _u.email, displayName: _u.displayName };
+
+        // Include gender if available (needed for category auto-assignment)
+        if (_u.gender) participantObj.gender = _u.gender;
+
+        // Auto-assign categories if tournament has them and user has gender
+        var hasCats = (t.combinedCategories && t.combinedCategories.length > 0) ||
+                      (t.genderCategories && t.genderCategories.length > 0) ||
+                      (t.skillCategories && t.skillCategories.length > 0);
+        if (hasCats && _u.gender && typeof window._userGenderToCatCodes === 'function') {
+          var genderCodes = window._userGenderToCatCodes(_u.gender);
+          var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
+          var combined = t.combinedCategories || [];
+          var genderCats = t.genderCategories || [];
+          var skillCats = t.skillCategories || [];
+          var eligible = [];
+          if (combined.length > 0) {
+            combined.forEach(function(c) {
+              var matchesGender = genderCodes.some(function(gc) {
+                return c.toLowerCase().startsWith((genderLabels[gc] || gc).toLowerCase());
+              });
+              if (matchesGender) eligible.push(c);
+            });
+          } else if (genderCats.length > 0 && skillCats.length === 0) {
+            genderCats.forEach(function(gc) {
+              if (genderCodes.indexOf(gc) !== -1) eligible.push(genderLabels[gc] || gc);
+            });
+          } else if (skillCats.length > 0 && genderCats.length === 0) {
+            eligible = skillCats.slice();
+          }
+          if (eligible.length > 0 && typeof window._groupEligibleCategories === 'function') {
+            var groups = window._groupEligibleCategories(eligible);
+            var autoCategories = [];
+            if (groups.exclusive.length === 1) autoCategories.push(groups.exclusive[0]);
+            autoCategories = autoCategories.concat(groups.nonExclusive);
+            if (autoCategories.length > 0) {
+              participantObj.categories = autoCategories;
+              participantObj.category = autoCategories[0];
+              participantObj.categorySource = 'perfil';
+            }
+          }
+        }
+
         // Use atomic Firestore transaction to prevent race conditions
         if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
           window.FirestoreDB.enrollParticipant(pendingEnrollId, participantObj).then(function(result) {
             if (result.alreadyEnrolled) return;
             t.participants = result.participants;
+            var catMsg = participantObj.categories ? ' na categoria ' + (typeof window._displayCategoryName === 'function' ? window._displayCategoryName(participantObj.categories[0]) : participantObj.categories[0]) : '';
             if (typeof showNotification !== 'undefined') {
-              showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '".', 'success');
+              showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '"' + catMsg + '.', 'success');
             }
             // Auto-amizade: com quem convidou (ref) ou com o organizador como fallback
             if (_inviteRefUid) {
@@ -751,6 +794,20 @@ async function simulateLoginSuccess(user) {
                   _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
                 }
               }).catch(function(e) { console.warn('Auto-friend org lookup error:', e); });
+            }
+            // Notify organizer about new enrollment
+            if (t.organizerEmail && t.organizerEmail !== _u.email && window.FirestoreDB && window.FirestoreDB.db) {
+              window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
+                if (!snap.empty && typeof window._sendUserNotification === 'function') {
+                  window._sendUserNotification(snap.docs[0].id, {
+                    type: 'enrollment_new',
+                    message: (_u.displayName || 'Um participante') + ' se inscreveu no torneio "' + t.name + '".',
+                    tournamentId: String(t.id),
+                    tournamentName: t.name || '',
+                    level: 'all'
+                  });
+                }
+              }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
             // Navigate and scroll to participant after render
             if (typeof window._scrollToParticipant === 'function') {

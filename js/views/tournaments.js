@@ -2325,12 +2325,16 @@ function renderTournaments(container, tournamentId = null) {
             if (t && t.participants) {
                 showConfirmDialog(
                     'Cancelar Inscrição',
-                    'Deseja realmente cancelar sua inscrição neste torneos?',
+                    'Deseja realmente cancelar sua inscrição neste torneio?',
                     () => {
                         let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
                         arr = arr.filter(p => {
-                            const str = typeof p === 'string' ? p : (p.email || p.displayName);
-                            return !(str && (str.includes(user.email) || str.includes(user.displayName)));
+                            if (typeof p === 'string') {
+                                return p !== user.email && p !== user.displayName;
+                            }
+                            var pEmail = p.email || '';
+                            var pName = p.displayName || p.name || '';
+                            return !(pEmail === user.email || (pName && pName === user.displayName));
                         });
                         t.participants = arr;
                         // Save directly to Firestore
