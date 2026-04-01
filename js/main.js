@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Duração Estimada do Torneio</b> — Quando a data/hora de término não está preenchida, a página de detalhes exibe simulação de duração para 8, 16, 32 e 64 participantes. Se houver inscritos, mostra também a estimativa com o número real. Cálculo considera formato (Eliminatórias, Dupla Elim., Grupos + Elim., Suíço, Liga), duração da partida, número de quadras e tempos de chamada/aquecimento. Mostra número de partidas e horário estimado de término quando há hora de início definida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Consistência Visual Total</b> — Todos os botões sólidos e coloridos (sem cinza). Botões topbar (Apoie, Pro, Organizador) padronizados. Ferramentas do Organizador reordenadas: Editar, Comunicar, +Participantes, +Times, Add Bot, CSV, Clonar, Categorias, Encerrar Inscrições, Sortear, Encerrar Torneio, Apagar. Botão Visão simplificado para "Organizador"/"Participante". Info-pill, info-box e stat-box com opacidade otimizada.</p>' +
         '</div>' +

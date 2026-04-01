@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.3.17-alpha';
+window.SCOREPLACE_VERSION = '0.3.18-alpha';
 
 // ─── Topbar wrap detection ──────────────────────────────────────────────────
 // When menu items don't fit on 1 line, swap profile before action-group
