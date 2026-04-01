@@ -14,33 +14,26 @@ window._checkTopbarWrap = function() {
   var profile = menu.querySelector('.topbar-profile-group');
   if (!nav || !action || !profile) return;
 
-  // Helper: check if any group wraps to a second row
+  // Helper: force reflow then check if any group wraps to a second row
   function isWrapping() {
+    void menu.offsetHeight; // force synchronous reflow
     var navTop = nav.getBoundingClientRect().top;
-    var items = [action, profile];
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].getBoundingClientRect().top > navTop + 5) return true;
-    }
+    if (action.getBoundingClientRect().top > navTop + 5) return true;
+    if (profile.getBoundingClientRect().top > navTop + 5) return true;
     return false;
   }
 
   // Step 1: Try full labels (remove both classes)
   menu.classList.remove('topbar-compact', 'topbar-wrapped');
+  if (!isWrapping()) return; // Everything fits with labels — done
 
-  requestAnimationFrame(function() {
-    if (!isWrapping()) return; // Everything fits with labels — done
+  // Step 2: Try compact (hide labels, still aim for 1 line)
+  menu.classList.add('topbar-compact');
+  if (!isWrapping()) return; // Fits without labels on 1 line — done
 
-    // Step 2: Try compact (hide labels, still aim for 1 line)
-    menu.classList.add('topbar-compact');
-
-    requestAnimationFrame(function() {
-      if (!isWrapping()) return; // Fits without labels on 1 line — done
-
-      // Step 3: Need 2-line layout
-      menu.classList.remove('topbar-compact');
-      menu.classList.add('topbar-wrapped');
-    });
-  });
+  // Step 3: Need 2-line layout
+  menu.classList.remove('topbar-compact');
+  menu.classList.add('topbar-wrapped');
 };
 (function() {
   var _wrapTimer;
