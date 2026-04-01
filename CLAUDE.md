@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.2-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,14 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.3.3-alpha (Abril 2026)**
+- Padronizacao Visual de Botoes: Sistema unificado de classes CSS reutilizaveis em components.css. Mais de 200 botoes padronizados em 10+ arquivos JS (tournaments.js, bracket.js, dashboard.js, auth.js, main.js, participants.js, explore.js, pre-draw.js, notifications.js).
+- Classes novas: btn-primary, btn-success, btn-warning, btn-danger, btn-purple, btn-indigo, btn-cyan, btn-whatsapp, btn-amber para cores solidas. btn-outline, btn-ghost, btn-danger-ghost para variantes transparentes. btn-tool, btn-tool-green, btn-tool-purple, btn-tool-indigo, btn-tool-amber para toolbar do organizador. btn-sm, btn-lg, btn-cta, btn-micro, btn-pill, btn-block para tamanhos.
+- hover-lift implementado no CSS (translateY(-1px) + box-shadow no hover).
+- Padrao: border-radius 10px, font-size 0.82rem, padding 8px 16px, font-weight 600 para todos os botoes.
+- Excecoes: Add Bot e Apagar Torneio mantem transparencia (btn-danger-ghost).
+- Fix de escopo: isAutoDrawFormat movido para fora do bloco if(isOrg). sortearOnClick duplicado removido.
 
 **v0.3.1-alpha (Marco 2026)**
 - Layout do card de torneio: Botao Convidar logo abaixo do nome (esquerda). Botoes de organizador (Add Bot, CSV, Clonar, Editar, Comunicar) movidos para rodape do card separados por titulo "Ferramentas do Organizador".
