@@ -132,8 +132,10 @@ function renderBracket(container, tournamentId) {
     container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
   }
 
-  // ── Scrollbar fixa no bottom da viewport ─────────────────────────────────
-  _setupFixedScrollbar(container);
+  // ── Scrollbar fixa no bottom da viewport (só na view dedicada #bracket) ──
+  if ((window.location.hash || '').startsWith('#bracket')) {
+    _setupFixedScrollbar(container);
+  }
 }
 
 // ─── Banner de Jogos Prontos (ambos presentes) ──────────────────────────────
