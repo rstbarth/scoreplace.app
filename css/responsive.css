@@ -912,7 +912,7 @@ img {
 /* Wrapped (2 lines): reorder so nav+profile = line1, action = line2 */
 .topbar-wrapped .topbar-nav-group { order: 1; }
 .topbar-wrapped .topbar-profile-group { order: 2; }
-.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: center; margin-top: 4px; }
+.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: flex-end; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border-color); }
 
 /* Wrapped: hide nav text labels, show icon-only */
 .topbar-wrapped .topbar-nav-group a > span,
@@ -965,9 +965,10 @@ img {
     overflow: visible !important;
     position: relative !important;
     z-index: 50 !important;
+    align-items: flex-start !important;
   }
   .page-title {
-    flex: 1;
+    flex: 0 0 auto;
     min-width: 0;
     gap: 6px !important;
   }
@@ -982,13 +983,15 @@ img {
     height: 22px !important;
     flex-shrink: 0;
   }
-  /* Menu always visible, 2-line layout */
+  /* Menu: same line as logo, wraps action-group to line 2 */
   .topbar-menu {
-    width: 100% !important;
-    padding-top: 6px;
-    border-top: 1px solid var(--border-color);
-    margin-top: 4px;
+    flex: 1 1 0% !important;
+    width: auto !important;
+    padding-top: 0 !important;
+    border-top: none !important;
+    margin-top: 0 !important;
     gap: 4px !important;
+    justify-content: flex-end !important;
   }
   /* Force wrapped mode below 1200px */
   .topbar-nav-group { order: 1 !important; }
@@ -996,14 +999,16 @@ img {
   .topbar-action-group {
     order: 3 !important;
     width: 100% !important;
-    justify-content: center !important;
+    justify-content: flex-end !important;
     gap: 6px !important;
     margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
   }
   /* Icon-only nav items */
   .topbar-nav-group {
     gap: 2px !important;
-    justify-content: center !important;
+    justify-content: flex-end !important;
   }
   .topbar-nav-group a,
   .topbar-nav-group button {
