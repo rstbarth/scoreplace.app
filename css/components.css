@@ -1,47 +1,180 @@
-/* ==== BOTOES ==== */
+/* ==== BOTOES — Sistema Padronizado v0.3.3 ==== */
+
+/* --- Base --- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: 10px;
   border: 1px solid transparent;
+  color: #fff;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  gap: 0.5rem;
+  transition: all 0.2s ease;
   user-select: none;
-  min-height: 40px;
+  white-space: nowrap;
+  line-height: 1.3;
 }
 
-.btn:focus {
+.btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.3);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
 }
 
 .btn:active {
   transform: translateY(1px);
 }
 
-/* Mobile button sizing - touch friendly */
+/* --- Hover Lift (efeito universal) --- */
+.hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.hover-lift:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+.hover-lift:active { transform: translateY(0); }
+
+/* --- Tamanhos --- */
+.btn-sm { font-size: 0.75rem; padding: 6px 12px; }
+.btn-lg { font-size: 0.95rem; padding: 12px 24px; font-weight: 700; }
+.btn-cta { font-size: 1.05rem; padding: 14px 36px; font-weight: 700; border-radius: 12px; letter-spacing: 0.3px; }
+
+/* --- Variantes de Cor (sólidas) --- */
+.btn-primary   { background: #3b82f6; }
+.btn-primary:hover { background: #2563eb; box-shadow: 0 4px 14px rgba(59,130,246,0.35); }
+
+.btn-success   { background: #10b981; }
+.btn-success:hover { background: #059669; box-shadow: 0 4px 14px rgba(16,185,129,0.35); }
+
+.btn-warning   { background: #f59e0b; color: #78350f; }
+.btn-warning:hover { background: #d97706; box-shadow: 0 4px 14px rgba(245,158,11,0.35); }
+
+.btn-danger    { background: #ef4444; }
+.btn-danger:hover  { background: #dc2626; box-shadow: 0 4px 14px rgba(239,68,68,0.35); }
+
+.btn-purple    { background: #8b5cf6; }
+.btn-purple:hover  { background: #7c3aed; box-shadow: 0 4px 14px rgba(139,92,246,0.35); }
+
+.btn-indigo    { background: #6366f1; }
+.btn-indigo:hover  { background: #4f46e5; box-shadow: 0 4px 14px rgba(99,102,241,0.35); }
+
+.btn-cyan      { background: #0ea5e9; }
+.btn-cyan:hover    { background: #0284c7; box-shadow: 0 4px 14px rgba(14,165,233,0.35); }
+
+.btn-amber     { background: #f59e0b; color: #78350f; }
+.btn-amber:hover   { background: #d97706; box-shadow: 0 4px 14px rgba(245,158,11,0.35); }
+
+.btn-whatsapp  { background: #25D366; }
+.btn-whatsapp:hover { background: #1da851; box-shadow: 0 4px 14px rgba(37,211,102,0.35); }
+
+/* --- Variantes Outline / Ghost --- */
+.btn-secondary {
+  background: var(--bg-card-hover);
+  color: var(--text-bright);
+  border-color: var(--border-color);
+}
+.btn-secondary:hover {
+  background: var(--border-color);
+  border-color: var(--text-muted);
+}
+
+.btn-outline {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-bright);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-outline:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.35);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-bright);
+}
+
+/* --- Variantes Transparentes (Add Bot, Apagar) --- */
+.btn-danger-ghost {
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.35);
+}
+.btn-danger-ghost:hover {
+  background: rgba(239,68,68,0.25);
+  border-color: rgba(239,68,68,0.5);
+}
+
+/* --- Botões da Toolbar do Organizador --- */
+.btn-tool {
+  background: rgba(255,255,255,0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-tool:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.35);
+}
+
+.btn-tool-green {
+  background: rgba(16,185,129,0.18);
+  color: #6ee7b7;
+  border: 1px solid rgba(16,185,129,0.35);
+}
+.btn-tool-green:hover { background: rgba(16,185,129,0.28); }
+
+.btn-tool-purple {
+  background: rgba(139,92,246,0.18);
+  color: #c4b5fd;
+  border: 1px solid rgba(139,92,246,0.35);
+}
+.btn-tool-purple:hover { background: rgba(139,92,246,0.28); }
+
+.btn-tool-indigo {
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.35);
+}
+.btn-tool-indigo:hover { background: rgba(99,102,241,0.28); }
+
+.btn-tool-amber {
+  background: rgba(245,158,11,0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245,158,11,0.4);
+}
+.btn-tool-amber:hover { background: rgba(245,158,11,0.3); }
+
+/* --- Botões Compactos (ações em cards de participantes) --- */
+.btn-micro {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  min-height: auto;
+  line-height: 1.2;
+}
+
+/* --- Filtros Pill --- */
+.btn-pill {
+  border-radius: 20px;
+  font-size: 0.75rem;
+  padding: 6px 14px;
+}
+
+/* --- Full width --- */
+.btn-block { width: 100%; }
+
+/* --- Mobile --- */
 @media (max-width: 767px) {
-  .btn {
-    min-height: 44px;
-    padding: 0.6rem 1rem;
-    font-size: 0.95rem;
-  }
-
-  .btn-sm {
-    min-height: 36px;
-    font-size: 0.85rem;
-  }
-
-  .btn-lg {
-    min-height: 48px;
-    padding: 0.75rem 1.25rem;
-  }
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 36px; }
+  .btn-lg { min-height: 44px; }
+  .btn-cta { min-height: 48px; padding: 14px 28px; }
+  .btn-micro { min-height: auto; }
+  .btn-pill { min-height: auto; }
 }
 
 /* Full-width buttons in mobile containers */
@@ -52,39 +185,6 @@
   .view-container > .btn-secondary {
     width: 100%;
   }
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: #fff;
-  border-color: rgba(240, 246, 252, 0.1);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-  box-shadow: var(--shadow-glow);
-}
-
-.btn-secondary {
-  background-color: var(--bg-card-hover);
-  color: var(--text-bright);
-  border-color: var(--border-color);
-}
-
-.btn-secondary:hover {
-  background-color: var(--border-color);
-  border-color: var(--text-muted);
-}
-
-.btn-danger {
-  background-color: var(--bg-dark);
-  color: var(--danger-color);
-  border-color: rgba(248, 81, 73, 0.4);
-}
-
-.btn-danger:hover {
-  background-color: var(--danger-color);
-  color: #fff;
 }
 
 /* ==== CARDS ==== */
