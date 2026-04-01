@@ -79,7 +79,6 @@
 .topbar {
   min-height: 60px;
   background-color: var(--bg-darker);
-  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
