@@ -5709,24 +5709,24 @@ function renderTournaments(container, tournamentId = null) {
 
             <!-- Bottom Section -->
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-               
+
                <!-- Stats Column -->
                 <div style="display: inline-flex; flex-direction: column; gap: 8px; width: 100%;">
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
-                        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
+                        <div class="stat-box">
                            <span style="font-size: 1.1rem; margin-right: 4px;">👤</span>
                            <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Inscritos</span>
                         </div>
                         ${teamCount > 0 ? `
-                        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
+                        <div class="stat-box">
                            <span style="font-size: 1.1rem; margin-right: 4px;">👥</span>
                            <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Equipes</span>
                         </div>
                         ` : ''}
                         ${standbyCount > 0 ? `
-                        <div style="display: flex; align-items: center; justify-content: center; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px; width: fit-content;">
+                        <div class="stat-box" style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);">
                            <span style="font-size: 1.1rem; margin-right: 4px;">⏳</span>
                            <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; color: #fbbf24;">${standbyCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; color: #fbbf24; opacity: 0.9;">Lista de Espera</span>
@@ -5737,7 +5737,7 @@ function renderTournaments(container, tournamentId = null) {
                 </div>
 
                <!-- Formato, Regras e Categorias -->
-               <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
+               <div class="info-box">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
                   ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? (() => {
@@ -5769,7 +5769,7 @@ function renderTournaments(container, tournamentId = null) {
               // Progress bar — only show after draw
               if (_prog.total > 0) {
                 var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
-                _html += '<div style="margin-top: 1rem; padding: 12px 16px; background: rgba(0,0,0,0.15); border-radius: 12px;">';
+                _html += '<div class="info-box" style="margin-top: 1rem;">';
                 _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">';
                 _html += '<span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">Progresso do Torneio</span>';
                 _html += '<span style="font-size: 0.8rem; font-weight: 700;">' + _prog.completed + '/' + _prog.total + ' partidas (' + _prog.pct + '%)</span>';
@@ -5788,10 +5788,11 @@ function renderTournaments(container, tournamentId = null) {
                 if (!isNaN(_regDate.getTime())) {
                   var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
                   if (_daysLeft > 0 && _daysLeft <= 14) {
+                    var _urgPillClass = _daysLeft <= 2 ? 'info-pill-red' : (_daysLeft <= 5 ? 'info-pill-amber' : 'info-pill-purple');
                     var _urgColor = _daysLeft <= 2 ? '#ef4444' : (_daysLeft <= 5 ? '#f59e0b' : '#818cf8');
-                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; border-left: 3px solid ' + _urgColor + '; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<div class="info-pill ' + _urgPillClass + '" style="margin-top: 8px;">';
                     _html += '<span style="font-size: 1rem;">⏰</span>';
-                    _html += '<span style="font-size: 0.8rem; font-weight: 600; color: ' + _urgColor + ';">Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '') + '</span>';
+                    _html += '<span style="color: ' + _urgColor + ';">Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '') + '</span>';
                     _html += '</div>';
                   }
                 }
@@ -5802,15 +5803,16 @@ function renderTournaments(container, tournamentId = null) {
                 if (!isNaN(_startDate2.getTime())) {
                   var _startDays2 = Math.ceil((_startDate2 - new Date()) / 86400000);
                   if (_startDays2 === 0) {
-                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(16,185,129,0.12); border-radius: 10px; border-left: 3px solid #10b981; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<div class="info-pill info-pill-green" style="margin-top: 8px;">';
                     _html += '<span style="font-size: 1rem;">🏁</span>';
-                    _html += '<span style="font-size: 0.8rem; font-weight: 700; color: #10b981;">Começa hoje!</span>';
+                    _html += '<span style="color: #10b981; font-weight: 700;">Começa hoje!</span>';
                     _html += '</div>';
                   } else if (_startDays2 > 0 && _startDays2 <= 30) {
+                    var _startPillClass = _startDays2 <= 1 ? 'info-pill-green' : (_startDays2 <= 3 ? 'info-pill-blue' : 'info-pill-purple');
                     var _startColor2 = _startDays2 <= 1 ? '#10b981' : (_startDays2 <= 3 ? '#3b82f6' : '#818cf8');
-                    _html += '<div style="margin-top: 8px; padding: 8px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; border-left: 3px solid ' + _startColor2 + '; display: flex; align-items: center; gap: 8px;">';
+                    _html += '<div class="info-pill ' + _startPillClass + '" style="margin-top: 8px;">';
                     _html += '<span style="font-size: 1rem;">' + (_startDays2 <= 1 ? '🏁' : '📅') + '</span>';
-                    _html += '<span style="font-size: 0.8rem; font-weight: 600; color: ' + _startColor2 + ';">' + (_startDays2 <= 1 ? 'Começa amanhã!' : 'Começa em ' + _startDays2 + ' dia' + (_startDays2 > 1 ? 's' : '')) + '</span>';
+                    _html += '<span style="color: ' + _startColor2 + ';">' + (_startDays2 <= 1 ? 'Começa amanhã!' : 'Começa em ' + _startDays2 + ' dia' + (_startDays2 > 1 ? 's' : '')) + '</span>';
                     _html += '</div>';
                   }
                 }

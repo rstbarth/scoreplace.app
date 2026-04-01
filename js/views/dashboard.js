@@ -214,11 +214,11 @@ function renderDashboard(container) {
 
             <!-- Bottom Section -->
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; opacity: 0.75;">
-               
+
                <!-- Stats Column -->
                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
                    <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
-                       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
+                       <div class="stat-box" style="flex-direction: column;">
                           <div style="display: flex; align-items: center; gap: 4px;">
                              <span style="font-size: 1.1rem;">👤</span>
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
@@ -226,7 +226,7 @@ function renderDashboard(container) {
                           <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Inscritos</span>
                        </div>
                        ${(teamCount > 0 && t.enrollmentMode !== 'individual') ? `
-                       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); padding: 0.6rem 1rem; border-radius: 12px; min-width: 100px;">
+                       <div class="stat-box" style="flex-direction: column;">
                           <div style="display: flex; align-items: center; gap: 4px;">
                              <span style="font-size: 1.1rem;">👥</span>
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
@@ -239,7 +239,7 @@ function renderDashboard(container) {
                </div>
 
                <!-- Formato, Regras e Categorias -->
-               <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem;">
+               <div class="info-box">
                   <div><strong>Formato:</strong> ${t.format}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
                </div>
@@ -252,7 +252,7 @@ function renderDashboard(container) {
                 var _prog = window._getTournamentProgress(t);
                 if (_prog.total > 0) {
                   var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
-                  _html += '<div style="margin-top: 10px; padding: 8px 12px; background: rgba(0,0,0,0.12); border-radius: 10px;">';
+                  _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;">';
                   _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">';
                   _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
                   _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
@@ -269,7 +269,8 @@ function renderDashboard(container) {
                   var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
                   if (_daysLeft > 0 && _daysLeft <= 14) {
                     var _urgIcon = _daysLeft <= 2 ? '🔴' : (_daysLeft <= 5 ? '🟡' : '⏰');
-                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: #fff; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
+                    var _urgPillClass = _daysLeft <= 2 ? 'info-pill-red' : (_daysLeft <= 5 ? 'info-pill-amber' : 'info-pill-purple');
+                    _html += '<div class="info-pill ' + _urgPillClass + '" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
                     _html += '<span>' + _urgIcon + '</span> Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '');
                     _html += '</div>';
                   }
@@ -281,11 +282,12 @@ function renderDashboard(container) {
                 if (!isNaN(_startDate.getTime())) {
                   var _startDays = Math.ceil((_startDate - new Date()) / 86400000);
                   if (_startDays > 0 && _startDays <= 30) {
-                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: #fff; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
+                    var _startPillClass = _startDays <= 1 ? 'info-pill-green' : (_startDays <= 3 ? 'info-pill-blue' : 'info-pill-purple');
+                    _html += '<div class="info-pill ' + _startPillClass + '" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
                     _html += _startDays <= 1 ? '<span>🏁</span> Começa amanhã!' : '<span>📅</span> Começa em ' + _startDays + ' dia' + (_startDays > 1 ? 's' : '');
                     _html += '</div>';
                   } else if (_startDays === 0) {
-                    _html += '<div style="margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: #fff; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">';
+                    _html += '<div class="info-pill info-pill-green" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
                     _html += '<span>🏁</span> Começa hoje!';
                     _html += '</div>';
                   }
