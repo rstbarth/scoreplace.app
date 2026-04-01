@@ -2,36 +2,38 @@ window.SCOREPLACE_VERSION = '0.3.22-alpha';
 
 // ─── Topbar progressive compaction ─────────────────────────────────────────
 // 3 states managed by JS:
-//   1. Full labels visible (no class)
-//   2. .topbar-compact — hide nav text labels, still 1 line
-//   3. .topbar-wrapped — 2 lines (nav+profile / action)
-// Measures actual layout to decide which state fits.
+//   1. Full: logo + all items with labels on 1 line (no class)
+//   2. .topbar-compact: logo + all items (icons only) on 1 line
+//   3. .topbar-wrapped: logo line 1, all menu items on line 2 (single row)
+// Measures actual layout: checks if menu top differs from logo top.
 window._checkTopbarWrap = function() {
+  var topbar = document.querySelector('.topbar');
   var menu = document.querySelector('.topbar-menu');
-  if (!menu || getComputedStyle(menu).display === 'none') return;
-  var nav = menu.querySelector('.topbar-nav-group');
-  var action = menu.querySelector('.topbar-action-group');
-  var profile = menu.querySelector('.topbar-profile-group');
-  if (!nav || !action || !profile) return;
+  if (!topbar || !menu || getComputedStyle(menu).display === 'none') return;
+  var logo = topbar.querySelector('.page-title');
+  if (!logo) return;
 
-  // Helper: force reflow then check if any group wraps to a second row
-  function isWrapping() {
-    void menu.offsetHeight; // force synchronous reflow
-    var navTop = nav.getBoundingClientRect().top;
-    if (action.getBoundingClientRect().top > navTop + 5) return true;
-    if (profile.getBoundingClientRect().top > navTop + 5) return true;
-    return false;
+  // Helper: force reflow then check if menu dropped below logo line
+  function menuDropped() {
+    void topbar.offsetHeight;
+    return menu.getBoundingClientRect().top > logo.getBoundingClientRect().top + 5;
+  }
+
+  // Helper: check if menu content overflows its container
+  function menuOverflows() {
+    void topbar.offsetHeight;
+    return menu.scrollWidth > menu.clientWidth + 2;
   }
 
   // Step 1: Try full labels (remove both classes)
   menu.classList.remove('topbar-compact', 'topbar-wrapped');
-  if (!isWrapping()) return; // Everything fits with labels — done
+  if (!menuDropped() && !menuOverflows()) return;
 
-  // Step 2: Try compact (hide labels, still aim for 1 line)
+  // Step 2: Try compact (icons only, still on logo line)
   menu.classList.add('topbar-compact');
-  if (!isWrapping()) return; // Fits without labels on 1 line — done
+  if (!menuDropped() && !menuOverflows()) return;
 
-  // Step 3: Need 2-line layout
+  // Step 3: Wrapped — menu drops to line 2 as single row
   menu.classList.remove('topbar-compact');
   menu.classList.add('topbar-wrapped');
 };
