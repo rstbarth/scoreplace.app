@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.5-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.18-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,9 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.3.18-alpha (Abril 2026)**
+- Duração Estimada do Torneio: quando endDate não está preenchida, a página de detalhes exibe box "⏱️ Duração Estimada" com simulações para 8, 16, 32 e 64 participantes. Se houver inscritos (2+), mostra também linha destacada com o número real. Cálculo por formato: Eliminatórias (por rodadas paralelas), Dupla Eliminatória (~2x simples), Grupos + Eliminatórias (round-robin + mata-mata), Suíço (rounds * pairings), Liga (total combinações). Considera gameDuration, courtCount, callTime e warmupTime do torneio. Mostra número de partidas e horário estimado de término quando startDate inclui hora. Posicionado entre datas e local nos detalhes do torneio. Função global window._buildTimeEstimation(t) em tournaments.js.
 
 **v0.3.5-alpha (Abril 2026)**
 - Consistencia Visual Total: Todos os botoes agora 100% solidos e coloridos (sem cinza). btn-outline, btn-ghost, btn-tool, btn-secondary convertidos de cinza para azul escuro (#1e3a5f). btn-danger-ghost mantido transparente (Add Bot + Apagar).
