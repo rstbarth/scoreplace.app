@@ -173,7 +173,7 @@
       id: 'organizador',
       title: 'Dicas para Organizadores',
       icon: '🛠️',
-      content: '<p><b>Visão de Organizador</b> — Use o botão "Visão: Organizador / Participante" no cabeçalho para alternar entre as perspectivas. Na visão de organizador, você vê todos os controles de gerenciamento.</p>' +
+      content: '<p><b>Visão de Organizador</b> — Use o botão "Organizador / Participante" no cabeçalho para alternar entre as perspectivas. Na visão de organizador, você vê todos os controles de gerenciamento.</p>' +
         '<p><b>Comunicar inscritos</b> — Na página do torneio, use o botão "Comunicar Inscritos" para enviar mensagens para todos os participantes. Escolha o nível de importância para respeitar as preferências de cada usuário.</p>' +
         '<p><b>Adicionar participantes</b> — Você pode adicionar participantes manualmente (nomes) ou bots para testes.</p>' +
         '<p><b>Regras e histórico</b> — A aba "Regras" mostra todas as configurações do torneio de forma transparente, além do log de ações (quem fez o quê e quando).</p>' +
@@ -241,8 +241,8 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Consistência Visual</b> — Todos os botões agora são 100% sólidos (sem transparência), exceto Add Bot e Apagar. Botões da topbar (Apoie, Pro, Visão Organizador) convertidos para o padrão sólido. Novo sistema de classes CSS: info-pill (badges de status com borda lateral colorida), info-box (agrupamento de detalhes), stat-box (estatísticas de inscritos/equipes). Aplicado consistentemente em dashboard e detalhes do torneio.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Consistência Visual Total</b> — Todos os botões sólidos e coloridos (sem cinza). Botões topbar (Apoie, Pro, Organizador) padronizados. Ferramentas do Organizador reordenadas: Editar, Comunicar, +Participantes, +Times, Add Bot, CSV, Clonar, Categorias, Encerrar Inscrições, Sortear, Encerrar Torneio, Apagar. Botão Visão simplificado para "Organizador"/"Participante". Info-pill, info-box e stat-box com opacidade otimizada.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

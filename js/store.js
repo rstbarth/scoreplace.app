@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.3.4-alpha';
+window.SCOREPLACE_VERSION = '0.3.5-alpha';
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';
@@ -475,7 +475,7 @@ window.AppStore = {
     this.viewMode = this.viewMode === 'organizer' ? 'participant' : 'organizer';
     var btn = document.getElementById('view-mode-selector');
     if (btn) {
-      btn.innerHTML = this.viewMode === 'organizer' ? '👁️ Visão: Organizador' : '👤 Visão: Participante';
+      btn.innerHTML = this.viewMode === 'organizer' ? '<span style="font-size:1.1rem;line-height:1;">👁️</span> Organizador' : '<span style="font-size:1.1rem;line-height:1;">👤</span> Participante';
     }
     if (typeof initRouter === 'function') initRouter();
   },
