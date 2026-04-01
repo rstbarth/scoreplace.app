@@ -874,19 +874,19 @@ function setupLoginModal() {
           '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">' +
 
             // Google
-            '<button type="button" class="btn full-width" onclick="handleGoogleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#fff;color:#444;border:1px solid #ddd;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.15)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+            '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;">' +
               '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
               'Entrar com Google' +
             '</button>' +
 
             // Apple
-            '<button type="button" class="btn full-width" onclick="handleAppleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#000;color:#fff;border:1px solid #333;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.3)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+            '<button type="button" class="btn hover-lift btn-block" onclick="handleAppleLogin()" style="background:#000;">' +
               '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>' +
               'Entrar com Apple' +
             '</button>' +
 
             // Facebook
-            '<button type="button" class="btn full-width" onclick="handleFacebookLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:#1877F2;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(24,119,242,0.4)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+            '<button type="button" class="btn btn-block hover-lift" onclick="handleFacebookLogin()" style="background:#1877F2;">' +
               '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' +
               'Entrar com Facebook' +
             '</button>' +
@@ -910,7 +910,7 @@ function setupLoginModal() {
                 '<label class="form-label">Senha</label>' +
                 '<input type="password" id="login-password" class="form-control" placeholder="••••••••" required minlength="6">' +
               '</div>' +
-              '<button type="submit" class="btn btn-secondary full-width" style="font-weight:600;">Entrar com E-mail</button>' +
+              '<button type="submit" class="btn btn-secondary btn-block">Entrar com E-mail</button>' +
             '</form>' +
             '<div style="text-align:center;margin-top:12px;">' +
               '<span style="color:var(--text-muted);font-size:0.8rem;">Não tem conta? </span>' +
@@ -935,7 +935,7 @@ function setupLoginModal() {
                 '<label class="form-label">Senha (mínimo 6 caracteres)</label>' +
                 '<input type="password" id="register-password" class="form-control" placeholder="••••••••" required minlength="6">' +
               '</div>' +
-              '<button type="submit" class="btn btn-primary full-width" style="font-weight:600;">Criar Conta</button>' +
+              '<button type="submit" class="btn btn-primary btn-block">Criar Conta</button>' +
             '</form>' +
             '<div style="text-align:center;margin-top:12px;">' +
               '<span style="color:var(--text-muted);font-size:0.8rem;">Já tem conta? </span>' +
@@ -1023,8 +1023,8 @@ window._confirmDeleteAccount = function() {
         '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:1rem;">Digite <strong style="color:#ef4444;">EXCLUIR</strong> para confirmar:</p>' +
         '<input type="text" id="delete-account-confirm-input" placeholder="Digite EXCLUIR" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-dark);color:var(--text-color);font-size:0.9rem;text-align:center;margin-bottom:1rem;box-sizing:border-box;" />' +
         '<div style="display:flex;gap:10px;">' +
-          '<button onclick="document.getElementById(\'modal-delete-account\').remove()" style="flex:1;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:10px;font-size:0.85rem;cursor:pointer;">Cancelar</button>' +
-          '<button id="btn-confirm-delete-account" onclick="window._executeDeleteAccount()" style="flex:1;padding:10px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;opacity:0.4;pointer-events:none;">Excluir Conta</button>' +
+          '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'modal-delete-account\').remove()" style="flex:1;">Cancelar</button>' +
+          '<button class="btn btn-danger btn-sm" id="btn-confirm-delete-account" onclick="window._executeDeleteAccount()" style="flex:1;opacity:0.4;pointer-events:none;">Excluir Conta</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1600,8 +1600,8 @@ function setupProfileModal() {
               '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
               '<div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: center;">' +
                 _toggleBtnHtml('profile-accept-friends', 'Aceitar convites', true, null, null, true) +
-                '<button type="button" id="profile-filter-importantes" onclick="window._toggleNotifyFilter(\'importantes\')" style="padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(251,191,36,0.25); background: transparent; color: rgba(251,191,36,0.5); cursor: pointer; transition: all 0.2s; white-space: nowrap;" title="Ativo: recebe só importantes e fundamentais. Desativado: recebe todas.">🟡 Só Importantes</button>' +
-                '<button type="button" id="profile-filter-fundamentais" onclick="window._toggleNotifyFilter(\'fundamentais\')" style="padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(239,68,68,0.25); background: transparent; color: rgba(239,68,68,0.5); cursor: pointer; transition: all 0.2s; white-space: nowrap;" title="Ativo: recebe só fundamentais. Desativado: recebe todas.">🔴 Só Fundamentais</button>' +
+                '<button type="button" class="btn btn-micro" id="profile-filter-importantes" onclick="window._toggleNotifyFilter(\'importantes\')" style="background: transparent; color: rgba(251,191,36,0.5); border: 1px solid rgba(251,191,36,0.25);" title="Ativo: recebe só importantes e fundamentais. Desativado: recebe todas.">🟡 Só Importantes</button>' +
+                '<button type="button" class="btn btn-micro" id="profile-filter-fundamentais" onclick="window._toggleNotifyFilter(\'fundamentais\')" style="background: transparent; color: rgba(239,68,68,0.5); border: 1px solid rgba(239,68,68,0.25);" title="Ativo: recebe só fundamentais. Desativado: recebe todas.">🔴 Só Fundamentais</button>' +
               '</div>' +
               '<input type="hidden" id="profile-notify-level" value="todas">' +
             '</div>' +
@@ -1642,10 +1642,10 @@ function setupProfileModal() {
             // Buttons
             '<div style="display: flex; gap: 10px; margin-top: 1rem;">' +
               '<button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>' +
-              '<button type="button" class="btn btn-outline" onclick="handleLogout()" style="border-color: var(--danger-color); color: var(--danger-color); background: transparent; flex: 1;">Sair</button>' +
+              '<button type="button" class="btn btn-danger" onclick="handleLogout()" style="flex: 1;">Sair</button>' +
             '</div>' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
-              '<button type="button" onclick="window._confirmDeleteAccount()" style="background:none;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;text-decoration:underline;opacity:0.7;">Excluir minha conta permanentemente</button>' +
+              '<button type="button" class="btn btn-ghost btn-micro" onclick="window._confirmDeleteAccount()" style="text-decoration:underline;">Excluir minha conta permanentemente</button>' +
             '</div>' +
           '</form>' +
         '</div>' +

@@ -413,7 +413,7 @@ function renderParticipants(container, tournamentId) {
 
       // Presente: sempre clicável (toggle on/off)
       const presentBtn = canAct
-        ? `<button onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}')" style="padding:4px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;border:1px solid ${mc ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.2)'};background:${mc ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)'};color:#4ade80;${mc ? 'opacity:1;' : 'opacity:0.6;'}">Presente</button>`
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}')" style="border:1px solid ${mc ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.2)'};background:${mc ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)'};color:#4ade80;${mc ? 'opacity:1;' : 'opacity:0.6;'}">Presente</button>`
         : '';
 
       // Ausente: standby/sem jogo → marca ausência confirmada (toggle); regular com jogo → declara ausência com W.O./substituição
@@ -422,7 +422,7 @@ function renderParticipants(container, tournamentId) {
         ? `window._markAbsent('${tId}', '${safeName}')`
         : `window._declareAbsent('${tId}', '${safeName}')`;
       const absentBtn = canAct && isOrg
-        ? `<button onclick="event.stopPropagation(); ${absentAction}" style="padding:4px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">Ausente</button>`
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${absentAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">Ausente</button>`
         : '';
       const woBadge = isWO ? `<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>` : '';
 
@@ -520,11 +520,11 @@ function renderParticipants(container, tournamentId) {
       let actionsDiv = '';
       let dragProps = '';
       if (isOrg && !drawDone) {
-        const vipBtn = `<button title="${isVip ? 'Remover VIP' : 'Marcar como VIP'}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; border-radius: 6px; cursor: pointer; padding: 2px 8px; font-size: 0.75rem; font-weight: 800; transition: transform 0.2s; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
-        const delBtn = `<button title="Remover" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px dashed #ef4444; border-radius: 6px; cursor: pointer; padding: 2px 6px; font-size: 0.8rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', ${idx});">🗑️</button>`;
+        const vipBtn = `<button class="btn btn-micro" title="${isVip ? 'Remover VIP' : 'Marcar como VIP'}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
+        const delBtn = `<button class="btn btn-micro" title="Remover" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px dashed #ef4444;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', ${idx});">🗑️</button>`;
         let splitBtn = '';
         if (pName.includes('/')) {
-          splitBtn = `<button title="Desfazer Equipe" style="background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px dashed #0ea5e9; border-radius: 6px; cursor: pointer; padding: 2px 6px; font-size: 0.8rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', ${idx});">✂️</button>`;
+          splitBtn = `<button class="btn btn-micro" title="Desfazer Equipe" style="background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px dashed #0ea5e9;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', ${idx});">✂️</button>`;
         }
         actionsDiv = `<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:6px;">${vipBtn}${splitBtn}${delBtn}</div>`;
         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
@@ -553,15 +553,15 @@ function renderParticipants(container, tournamentId) {
 
   const checkInControls = canCheckIn ? `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-        <button onclick="window._setCheckInFilter('${tId}', 'all')" style="padding:6px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${currentFilter === 'all' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'all' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'all' ? '#a5b4fc' : 'var(--text-muted)'};">Todos (${totalIndividuals})</button>
-        <button onclick="window._setCheckInFilter('${tId}', 'present')" style="padding:6px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${currentFilter === 'present' ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'present' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'present' ? '#4ade80' : 'var(--text-muted)'};">Presentes (${checkedCount})</button>
-        <button onclick="window._setCheckInFilter('${tId}', 'absent')" style="padding:6px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${currentFilter === 'absent' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'absent' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'absent' ? '#f87171' : 'var(--text-muted)'};">Ausentes (${absentConfirmedCount})</button>
-        <button onclick="window._setCheckInFilter('${tId}', 'pending')" style="padding:6px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${currentFilter === 'pending' ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'pending' ? 'rgba(148,163,184,0.15)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'pending' ? '#cbd5e1' : 'var(--text-muted)'};">Aguardando (${pendingCount})</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'all')" style="border:1px solid ${currentFilter === 'all' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'all' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'all' ? '#a5b4fc' : 'var(--text-muted)'};">Todos (${totalIndividuals})</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'present')" style="border:1px solid ${currentFilter === 'present' ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'present' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'present' ? '#4ade80' : 'var(--text-muted)'};">Presentes (${checkedCount})</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'absent')" style="border:1px solid ${currentFilter === 'absent' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'absent' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'absent' ? '#f87171' : 'var(--text-muted)'};">Ausentes (${absentConfirmedCount})</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'pending')" style="border:1px solid ${currentFilter === 'pending' ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'pending' ? 'rgba(148,163,184,0.15)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'pending' ? '#cbd5e1' : 'var(--text-muted)'};">Aguardando (${pendingCount})</button>
         <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.06);border-radius:6px;height:8px;">
             <div style="width:${pctPresent}%;height:100%;background:linear-gradient(90deg,#10b981,#4ade80);border-radius:6px;transition:width 0.3s;"></div>
         </div>
         <span style="font-size:0.8rem;color:#94a3b8;font-weight:700;">${pctPresent}%</span>
-        ${(checkedCount > 0 || absentConfirmedCount > 0) ? `<button onclick="window._resetCheckIn('${tId}')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);padding:4px 12px;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;">Limpar</button>` : ''}
+        ${(checkedCount > 0 || absentConfirmedCount > 0) ? `<button class="btn btn-micro" onclick="window._resetCheckIn('${tId}')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Limpar</button>` : ''}
     </div>
   ` : '';
 
@@ -569,7 +569,7 @@ function renderParticipants(container, tournamentId) {
   const startBanner = (isOrg && drawDone && !t.tournamentStarted) ? `
     <div style="margin-bottom:1.5rem;padding:20px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:2px solid rgba(16,185,129,0.4);border-radius:16px;text-align:center;">
         <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.</p>
-        <button class="btn hover-lift" onclick="window._startTournament('${tId}')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.1rem;padding:14px 40px;border-radius:12px;box-shadow:0 6px 20px rgba(16,185,129,0.4);letter-spacing:0.5px;">
+        <button class="btn btn-success btn-cta hover-lift" onclick="window._startTournament('${tId}')">
             ▶ Iniciar Torneio
         </button>
     </div>` : '';
@@ -583,8 +583,7 @@ function renderParticipants(container, tournamentId) {
 
   container.innerHTML = `
     <div class="mb-4">
-      <button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-weight:500;"
-        onclick="window.history.length > 1 ? window.history.back() : window.location.hash='#bracket/${t.id}'">
+      <button class="btn btn-outline hover-lift btn-sm" onclick="window.history.length > 1 ? window.history.back() : window.location.hash='#bracket/${t.id}'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Voltar
       </button>

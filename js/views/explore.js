@@ -33,7 +33,7 @@ function renderExplore(container) {
       // Search bar
       '<div style="display: flex; gap: 10px; margin-bottom: 1.25rem;">' +
         '<input type="text" id="explore-search-input" class="form-control" placeholder="Buscar por nome, cidade ou esporte..." style="flex: 1; box-sizing: border-box;">' +
-        '<button class="btn btn-primary" id="explore-search-btn" style="white-space: nowrap; padding: 0 1.25rem;">Buscar</button>' +
+        '<button class="btn btn-primary" id="explore-search-btn">Buscar</button>' +
       '</div>' +
 
       // Non-friend, non-conhecido results
@@ -157,14 +157,14 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
 
       var actionBtn = '';
       if (isSent) {
-        actionBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 6px; width: 100%; cursor: pointer;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
+        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
-          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _rejectFriend(\'' + uid + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + uid + '\')">Recusar</button>' +
         '</div>';
       } else {
-        actionBtn = '<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%); color: #fff; border: none; font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + uid + '\')">Convidar</button>';
+        actionBtn = '<button class="btn btn-primary btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + uid + '\')">Convidar</button>';
       }
 
       html += _userCardHtml(u, uid, actionBtn, false);
@@ -210,8 +210,8 @@ function _renderPendingRequests(myUid, receivedIds) {
           '<div style="font-size: 0.75rem; color: var(--text-muted);">quer ser seu amigo(a)</div>' +
         '</div>' +
         '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
-          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 5px 14px; font-weight: 600; border-radius: 8px; font-size: 0.75rem;" onclick="_acceptFriend(\'' + uid + '\')">Aceitar</button>' +
-          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 5px 14px; border-radius: 8px; font-size: 0.75rem;" onclick="_rejectFriend(\'' + uid + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="_acceptFriend(\'' + uid + '\')">Aceitar</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="_rejectFriend(\'' + uid + '\')">Recusar</button>' +
         '</div>' +
       '</div>';
     });
@@ -286,7 +286,7 @@ function _renderMyFriends(myUid, friendIds) {
 
     profiles.forEach(function(u) {
       var uid = u._docId;
-      var unfriendBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; width: 100%; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + uid + '\')">Desfazer amizade</button>';
+      var unfriendBtn = '<button class="btn btn-danger btn-sm" style="width: 100%; opacity: 0.7;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + uid + '\')">Desfazer amizade</button>';
       html += _userCardHtml(u, uid, unfriendBtn, true);
     });
 
@@ -438,17 +438,17 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 
       var actionBtn = '';
       if (isSent) {
-        actionBtn = '<button class="btn btn-sm" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 6px; width: 100%; cursor: pointer;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
+        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + uid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
-          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;" onclick="event.stopPropagation(); _rejectFriend(\'' + uid + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + uid + '\')">Aceitar</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + uid + '\')">Recusar</button>' +
         '</div>';
       } else {
         // Check if user accepts friend requests
         var canInvite = u.acceptFriendRequests !== false;
         if (canInvite) {
-          actionBtn = '<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; border: none; font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + uid + '\')">Convidar</button>';
+          actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + uid + '\')">Convidar</button>';
         } else {
           actionBtn = '';
         }

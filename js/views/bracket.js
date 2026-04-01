@@ -37,8 +37,7 @@ function renderBracket(container, tournamentId) {
 
   const headerHtml = `
     <div class="mb-4">
-      <button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-weight:500;"
-        onclick="window.history.length > 1 ? window.history.back() : window.location.hash='#tournaments/${t.id}'">
+      <button class="btn btn-outline hover-lift btn-sm" onclick="window.history.length > 1 ? window.history.back() : window.location.hash='#tournaments/${t.id}'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Voltar
       </button>
@@ -69,7 +68,7 @@ function renderBracket(container, tournamentId) {
   const startTournamentBanner = (isOrg && hasDrawContent && !t.tournamentStarted) ? `
     <div style="margin:1rem 0 1.5rem;padding:20px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:2px solid rgba(16,185,129,0.4);border-radius:16px;text-align:center;">
         <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.</p>
-        <button class="btn hover-lift" onclick="window._startTournament('${t.id}')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.1rem;padding:14px 40px;border-radius:12px;box-shadow:0 6px 20px rgba(16,185,129,0.4);letter-spacing:0.5px;">
+        <button class="btn btn-success btn-cta hover-lift" onclick="window._startTournament('${t.id}')">
             ▶ Iniciar Torneio
         </button>
     </div>` : '';
@@ -116,7 +115,7 @@ function renderBracket(container, tournamentId) {
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:1rem;opacity:0.5;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
           <h3 style="color:var(--text-bright);margin-bottom:.5rem;">Nenhuma chave gerada ainda</h3>
           <p style="max-width:400px;margin:0 auto 1.5rem;">As chaves aparecerão aqui após o organizador realizar o sorteio.</p>
-          ${isOrg ? `<button class="btn hover-lift" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:600;padding:12px 24px;" onclick="window.generateDrawFunction('${t.id}')">🎲 Realizar Sorteio Agora</button>` : ''}
+          ${isOrg ? `<button class="btn btn-success hover-lift" onclick="window.generateDrawFunction('${t.id}')">🎲 Realizar Sorteio Agora</button>` : ''}
         </div>
       </div>`;
     return;
@@ -276,8 +275,7 @@ function _renderStandbyPanel(t, isOrg) {
                 <option value="">Selecionar ausente...</option>
                 ${options}
               </select>
-              <button onclick="window._substituteFromStandby('${t.id}')"
-                style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:800;font-size:0.85rem;cursor:pointer;white-space:nowrap;transition:all 0.2s;">
+              <button class="btn btn-warning" onclick="window._substituteFromStandby('${t.id}')">
                 Substituir
               </button>
             </div>
@@ -310,8 +308,7 @@ function _renderStandbyPanel(t, isOrg) {
                 <option value="">Selecionar time incompleto...</option>
                 ${options}
               </select>
-              <button onclick="window._substituteFromStandby('${t.id}')"
-                style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:800;font-size:0.85rem;cursor:pointer;white-space:nowrap;transition:all 0.2s;">
+              <button class="btn btn-warning" onclick="window._substituteFromStandby('${t.id}')">
                 Desclassificar e Substituir
               </button>
             </div>
@@ -638,7 +635,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       const idx = activeRounds.indexOf(roundNum);
       const label = getRoundLabel(roundNum, idx);
       const complete = isRoundComplete(roundNum);
-      const hideBtn = (showHide && complete) ? `<button onclick="window._toggleRoundVisibility('${t.id}', ${roundNum})" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);border-radius:6px;padding:2px 8px;font-size:0.65rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'">Ocultar</button>` : '';
+      const hideBtn = (showHide && complete) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${t.id}', ${roundNum})">Ocultar</button>` : '';
       const matchesHtml = matches.map(m => {
         globalMatchNum++;
         return renderMatchCard(m, canEnterResult, t.id, globalMatchNum);
@@ -710,7 +707,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       const complete = isRoundComplete(roundNum);
 
       // "Ocultar" button — only for completed rounds that are not the final
-      const hideBtn = (complete && !isFinalRound) ? `<button onclick="window._toggleRoundVisibility('${t.id}', ${roundNum})" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);border-radius:6px;padding:2px 8px;font-size:0.65rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'">Ocultar</button>` : '';
+      const hideBtn = (complete && !isFinalRound) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${t.id}', ${roundNum})">Ocultar</button>` : '';
 
       const matchesHtml = roundsMap[roundNum].map(m => {
         if (isFinalRound && hasThirdPlace) {
@@ -1092,8 +1089,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 
   const advanceBtn = (isOrg && allGroupsDone) ? `
     <div style="text-align:center;margin:2rem 0;">
-      <button class="btn hover-lift" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;font-weight:700;padding:14px 28px;font-size:1rem;border-radius:16px;box-shadow:0 10px 20px rgba(245,158,11,0.3);"
-        onclick="window._advanceToElimination('${t.id}')">
+      <button class="btn btn-warning btn-lg hover-lift" onclick="window._advanceToElimination('${t.id}')">
         🏆 Avançar para Fase Eliminatória
       </button>
     </div>` : '';

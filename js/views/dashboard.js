@@ -556,7 +556,7 @@ function renderDashboard(container) {
   const filterBarHtml = hasSecondaryFilters ? `
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.2rem;align-items:center;">
       ${sportsPills}${locationPills}${formatPills}
-      ${(curSport || curLocation || curFormat) ? `<button onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">✕ Limpar filtros</button>` : ''}
+      ${(curSport || curLocation || curFormat) ? `<button class="btn btn-micro btn-pill" onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);">✕ Limpar filtros</button>` : ''}
     </div>
   ` : '';
 
@@ -625,13 +625,13 @@ function renderDashboard(container) {
       </div>
 
       <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <button class="btn hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); padding: 0.85rem 2.2rem; cursor: pointer; font-weight: 600; font-size: 1.15rem; transition: all 0.2s ease; letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
+        <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
           + Novo Torneio
         </button>
-        <button class="btn hover-lift" onclick="if(typeof window._showSupportModal==='function')window._showSupportModal()" style="background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(110,231,183,0.3); border-radius: 24px; padding: 0.7rem 1.4rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(16,185,129,0.35)'" onmouseout="this.style.background='rgba(16,185,129,0.2)'">
+        <button class="btn btn-success hover-lift btn-pill" onclick="if(typeof window._showSupportModal==='function')window._showSupportModal()" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
           💚 Apoie
         </button>
-        ${!(window._isPro && window._isPro()) ? '<button class="btn hover-lift" onclick="if(typeof window._showUpgradeModal===\'function\')window._showUpgradeModal()" style="background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3)); color: #c4b5fd; border: 1px solid rgba(196,181,253,0.3); border-radius: 24px; padding: 0.7rem 1.4rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background=\'linear-gradient(135deg, rgba(99,102,241,0.45), rgba(168,85,247,0.45))\'" onmouseout="this.style.background=\'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3))\'">🚀 Pro</button>' : ''}
+        ${!(window._isPro && window._isPro()) ? '<button class="btn btn-purple hover-lift btn-pill" onclick="if(typeof window._showUpgradeModal===\'function\')window._showUpgradeModal()">🚀 Pro</button>' : ''}
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
@@ -653,8 +653,8 @@ function renderDashboard(container) {
     <!-- View Toggle + Tournament Cards -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
       <div style="display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
-        <button onclick="window._setDashView('cards')" style="padding:6px 12px;font-size:0.75rem;cursor:pointer;border:none;background:${(window._dashView||'cards')==='cards'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${(window._dashView||'cards')==='cards'?'#a5b4fc':'var(--text-muted)'};font-weight:600;transition:all 0.2s;" title="Visualização em cards">▦ Cards</button>
-        <button onclick="window._setDashView('compact')" style="padding:6px 12px;font-size:0.75rem;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,0.1);background:${window._dashView==='compact'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${window._dashView==='compact'?'#a5b4fc':'var(--text-muted)'};font-weight:600;transition:all 0.2s;" title="Visualização compacta">☰ Lista</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setDashView('cards')" style="background:${(window._dashView||'cards')==='cards'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${(window._dashView||'cards')==='cards'?'#a5b4fc':'var(--text-muted)'};border:none;" title="Visualização em cards">▦ Cards</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setDashView('compact')" style="border-left:1px solid rgba(255,255,255,0.1);background:${window._dashView==='compact'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${window._dashView==='compact'?'#a5b4fc':'var(--text-muted)'};border-radius:0;" title="Visualização compacta">☰ Lista</button>
       </div>
     </div>
     <div class="dashboard-list" style="margin-bottom: 2rem;">

@@ -47,8 +47,8 @@ function renderPreDraw(container, tournamentId) {
               <span style="font-weight:700; color:var(--text-bright);" id="cat-label-${catName}">${catName}</span>
             </div>
             <div style="display:flex; gap:4px;">
-              <button title="Renomear categoria" onclick="window._renameCat('${catName}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:4px 6px; border-radius:6px; font-size:0.85rem;" onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
-              ${activeCats.length > 1 ? `<button title="Fundir com outra categoria" onclick="window._mergeCat('${catName}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:4px 6px; border-radius:6px; font-size:0.85rem;" onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'">🔀</button>` : ''}
+              <button class="btn btn-ghost btn-micro" title="Renomear categoria" onclick="window._renameCat('${catName}')">✏️</button>
+              ${activeCats.length > 1 ? `<button class="btn btn-ghost btn-micro" title="Fundir com outra categoria" onclick="window._mergeCat('${catName}')">🔀</button>` : ''}
             </div>
           </div>
           <div class="predraw-list" data-cat="${catName}" style="padding: 0.75rem; min-height: 80px; display:flex; flex-direction:column; gap:6px;"
@@ -91,8 +91,7 @@ function renderPreDraw(container, tournamentId) {
 
   container.innerHTML = `
     <div class="mb-4">
-      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.05); color: var(--text-bright); border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-weight: 500;"
-        onclick="window.location.hash='#tournaments/${t.id}'">
+      <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Voltar
       </button>
