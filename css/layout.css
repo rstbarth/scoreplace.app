@@ -100,16 +100,14 @@
 }
 
 .page-title h1 {
-  font-size: clamp(1.1rem, calc(0.6rem + 1.2vw), 1.8rem);
+  font-size: 1.4rem;
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
-  transition: font-size 0.15s ease;
 }
 .page-title svg {
-  width: clamp(20px, calc(14px + 1.2vw), 28px) !important;
-  height: clamp(20px, calc(14px + 1.2vw), 28px) !important;
-  transition: width 0.15s ease, height 0.15s ease;
+  width: 24px !important;
+  height: 24px !important;
 }
 
 .view-container {
