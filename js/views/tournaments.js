@@ -5390,10 +5390,10 @@ function renderTournaments(container, tournamentId = null) {
         const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
         const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
 
+        const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
         let sortearBtn = '';
         let sortearAberto = '';
         if (isOrg) {
-            const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
             if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
                 if (t.drawManual && !hasDraw) {
                     sortearAberto = `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
