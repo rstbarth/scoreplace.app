@@ -1000,16 +1000,21 @@ img {
     margin-top: 4px;
   }
   /* Groups flow horizontally on mobile */
-  .topbar-nav-group,
-  .topbar-action-group {
+  .topbar-nav-group {
     flex-direction: row !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
     gap: 2px !important;
   }
-  /* Icon-only compact buttons */
-  .topbar-menu a,
-  .topbar-menu button {
+  .topbar-action-group {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+  /* Icon-only compact buttons (nav group only) */
+  .topbar-nav-group a,
+  .topbar-nav-group button {
     justify-content: center !important;
     width: auto !important;
     padding: 0 8px !important;
@@ -1017,13 +1022,19 @@ img {
     min-height: 38px !important;
     border-radius: 8px !important;
   }
-  .topbar-menu a:hover,
-  .topbar-menu button:hover {
+  /* Action group buttons — uniform height */
+  .topbar-action-group button {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 14px !important;
+  }
+  .topbar-nav-group a:hover,
+  .topbar-nav-group button:hover {
     background: rgba(255,255,255,0.06) !important;
   }
-  /* Hide text labels, keep icons only — except view-mode-selector which has its own layout */
-  .topbar-menu a > span,
-  .topbar-menu button:not(#view-mode-selector) > span:not(.user-name-label) {
+  /* Hide text labels in nav group only, keep action group labels visible */
+  .topbar-nav-group a > span,
+  .topbar-nav-group button > span {
     display: none !important;
   }
   .user-name-label {
@@ -1033,7 +1044,7 @@ img {
   .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
-  /* View mode — inline, never truncated */
+  /* View mode — inline, same height as other action buttons */
   #view-mode-container {
     margin: 0 !important;
   }
@@ -1041,19 +1052,20 @@ img {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    padding: 6px 12px !important;
-    height: auto !important;
-    min-height: auto !important;
+    padding: 0 14px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     white-space: nowrap !important;
   }
   #view-mode-selector span {
     display: inline !important;
     font-size: 0.75rem !important;
   }
-  /* Login button compact */
+  /* Login button — same height as action group */
   #btn-login {
     font-size: 0.8rem !important;
-    padding: 0.3rem 0.6rem !important;
+    padding: 0 14px !important;
+    height: 36px !important;
     min-height: 36px !important;
   }
   #btn-login.d-flex {
