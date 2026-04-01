@@ -325,17 +325,24 @@
     display: flex !important;
   }
 
-  .topbar-menu > a,
-  .topbar-menu > button,
-  .topbar-menu > div {
+  .topbar-nav-group,
+  .topbar-action-group {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .topbar-menu a,
+  .topbar-menu button,
+  .topbar-menu > div:not(.topbar-nav-group):not(.topbar-action-group) {
     width: 100%;
     justify-content: flex-start !important;
     border-radius: 8px !important;
     padding: 10px 12px !important;
   }
 
-  .topbar-menu > a:hover,
-  .topbar-menu > button:hover {
+  .topbar-menu a:hover,
+  .topbar-menu button:hover {
     background: rgba(255,255,255,0.06) !important;
   }
 
@@ -422,10 +429,11 @@
 
 @media (min-width: 1200px) {
   .topbar {
-    height: 70px;
-    padding: 0 2rem;
-    flex-wrap: nowrap;
-    overflow: hidden;
+    min-height: 60px;
+    padding: 0.5rem 2rem;
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: 4px;
   }
 
   .hamburger-btn {
@@ -983,9 +991,17 @@ img {
     border-top: 1px solid var(--border-color);
     margin-top: 4px;
   }
+  /* Groups flow horizontally on mobile */
+  .topbar-nav-group,
+  .topbar-action-group {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 2px !important;
+  }
   /* Icon-only compact buttons */
-  .topbar-menu > a,
-  .topbar-menu > button {
+  .topbar-menu a,
+  .topbar-menu button {
     justify-content: center !important;
     width: auto !important;
     padding: 0 8px !important;
@@ -993,8 +1009,8 @@ img {
     min-height: 38px !important;
     border-radius: 8px !important;
   }
-  .topbar-menu > a:hover,
-  .topbar-menu > button:hover {
+  .topbar-menu a:hover,
+  .topbar-menu button:hover {
     background: rgba(255,255,255,0.06) !important;
   }
   /* Hide text labels, keep icons only */
@@ -1005,8 +1021,8 @@ img {
   .user-name-label {
     display: none !important;
   }
-  /* Separator hidden */
-  .topbar-menu > div[style*="width: 1px"] {
+  /* Separator hidden on mobile */
+  .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
   /* View mode compact */

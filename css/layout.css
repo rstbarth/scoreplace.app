@@ -83,10 +83,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2rem;
+  padding: 0.5rem 2rem;
   backdrop-filter: blur(10px);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   overflow: visible;
+  gap: 4px;
 }
 
 .page-title {
