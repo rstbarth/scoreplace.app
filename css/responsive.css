@@ -912,7 +912,7 @@ img {
 /* Wrapped (2 lines): reorder so nav+profile = line1, action = line2 */
 .topbar-wrapped .topbar-nav-group { order: 1; }
 .topbar-wrapped .topbar-profile-group { order: 2; }
-.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: flex-end; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border-color); }
+.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: flex-end; margin-top: 4px; }
 
 /* Wrapped: hide nav text labels, show icon-only */
 .topbar-wrapped .topbar-nav-group a > span,
@@ -1002,8 +1002,6 @@ img {
     justify-content: flex-end !important;
     gap: 6px !important;
     margin-top: 2px;
-    padding-top: 6px;
-    border-top: 1px solid var(--border-color);
   }
   /* Icon-only nav items */
   .topbar-nav-group {
