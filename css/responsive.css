@@ -951,9 +951,13 @@ img {
   .user-name-label { display: inline !important; }
 }
 
-/* Menu: ALWAYS visible, wraps between groups */
+/* Menu: visible on tablet+, hamburger-controlled on mobile */
+@media (min-width: 768px) {
+  .topbar-menu {
+    display: flex !important;
+  }
+}
 .topbar-menu {
-  display: flex !important;
   flex: 1 1 0%;
   flex-wrap: wrap !important;
   align-items: center !important;
