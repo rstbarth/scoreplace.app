@@ -5373,6 +5373,45 @@ function renderTournaments(container, tournamentId = null) {
         // Ações Específicas da tela Explore
         let actionsHtml = '';
         const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
+
+        // --- Variáveis de botões do organizador (escopo global do card para evitar ReferenceError) ---
+        const allowsIndividual = !t.enrollmentMode || t.enrollmentMode === 'individual' || t.enrollmentMode === 'misto';
+        const allowsTeams = t.enrollmentMode === 'time' || t.enrollmentMode === 'misto';
+        const addParticipantBtns = (!hasDraw && isOrg) ? `
+             ${allowsIndividual ? `<button class="hover-lift" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; font-weight: 500; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addParticipantFunction('${t.id}')">👤 + Participante</button>` : ''}
+             ${allowsTeams ? `<button class="hover-lift" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 500; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.addTeamFunction('${t.id}')">👥 + Time</button>` : ''}
+        ` : '';
+
+        const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0);
+        const categoriasBtn = (_hasTournCats && isOrg) ? `<button class="hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; font-weight: 600; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
+
+        const isSuicoFormat = t.format === 'Suíço Clássico';
+        const isLigaFormat = window._isLigaFormat(t);
+        const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
+        const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+
+        let sortearBtn = '';
+        let sortearAberto = '';
+        if (isOrg) {
+            const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
+            if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
+                if (t.drawManual && !hasDraw) {
+                    sortearAberto = `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
+                } else if (t.drawManual && hasDraw) {
+                    sortearBtn = `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
+                }
+            } else if (isLigaFormat && t.drawManual) {
+                sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                if (hasDraw) {
+                    sortearBtn = `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
+                }
+            } else {
+                sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+            }
+        }
+
         if (tournamentId) {
             const _inviterUid = (window.AppStore.currentUser && (window.AppStore.currentUser.uid || window.AppStore.currentUser.email)) || '';
             const inviteUrl = window._tournamentUrl(t.id) + (_inviterUid ? '?ref=' + encodeURIComponent(_inviterUid) : '');
@@ -5458,45 +5497,6 @@ function renderTournaments(container, tournamentId = null) {
             const editModalHtml = '';
 
             const tournamentStarted = !!t.tournamentStarted;
-
-            // --- Variáveis de botões do organizador (declaradas fora do if para evitar escopo de bloco) ---
-            const allowsIndividual = !t.enrollmentMode || t.enrollmentMode === 'individual' || t.enrollmentMode === 'misto';
-            const allowsTeams = t.enrollmentMode === 'time' || t.enrollmentMode === 'misto';
-            const addParticipantBtns = (!hasDraw && isOrg) ? `
-                 ${allowsIndividual ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.addParticipantFunction('${t.id}')">👤 + Participante</button>` : ''}
-                 ${allowsTeams ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.addTeamFunction('${t.id}')">👥 + Time</button>` : ''}
-            ` : '';
-
-            const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0);
-            const categoriasBtn = (_hasTournCats && isOrg) ? `<button class="btn btn-sm hover-lift" style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; border: none; font-weight: 600;" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
-
-            const isSuicoFormat = t.format === 'Suíço Clássico';
-            const isLigaFormat = window._isLigaFormat(t);
-            const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
-            const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
-            const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="btn btn-sm hover-lift" style="background: ${t.status === 'closed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}; color: white; border: none; font-weight: 500;" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
-
-            // Sortear buttons
-            let sortearBtn = '';
-            let sortearAberto = '';
-            if (isOrg) {
-                if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
-                    if (t.drawManual && !hasDraw) {
-                        sortearAberto = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
-                    } else if (t.drawManual && hasDraw) {
-                        sortearBtn = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
-                    }
-                } else if (isLigaFormat && t.drawManual) {
-                    sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
-                    sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
-                    if (hasDraw) {
-                        sortearBtn = `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
-                    }
-                } else {
-                    sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: #fbbf24; color: #78350f; border: none; font-weight: 700;" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
-                    sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-sm hover-lift" style="background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); font-weight: 600;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
-                }
-            }
 
             if (isOrg) {
                 // Botão "Iniciar Torneio" — SÓ aparece após sorteio realizado, antes de iniciar
