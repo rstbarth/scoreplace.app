@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.3.22-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.3.22c">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.3.22-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.3.22c">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -53,7 +53,7 @@
         <button class="hamburger-btn" aria-label="Abrir menu de navegação" aria-expanded="false" onclick="var m=document.querySelector('.topbar-menu');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'))" style="display:none; border:none; background:transparent; color:var(--text-color); cursor:pointer; padding:8px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
-        <nav class="topbar-actions topbar-menu d-flex gap-2 align-center" role="navigation" aria-label="Navegação principal" style="flex-wrap: wrap;">
+        <nav class="topbar-actions topbar-menu d-flex gap-2 align-center" role="navigation" aria-label="Navegação principal" style="">
            <!-- Grupo 1: Navegação -->
            <div class="topbar-nav-group" style="display: flex; align-items: center; gap: 2px;">
              <a href="#dashboard" class="hover-lift" title="Página Inicial" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
@@ -105,7 +105,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-  <script src="js/store.js?v=0.3.22-alpha"></script>
+  <script src="js/store.js?v=0.3.22c"></script>
   <script src="js/firebase-db.js?v=0.3.22-alpha"></script>
   <script src="js/notifications.js?v=0.3.22-alpha"></script>
   <script src="js/ui.js?v=0.3.22-alpha"></script>
