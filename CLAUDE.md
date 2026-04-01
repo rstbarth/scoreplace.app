@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.4-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,12 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.3.4-alpha (Abril 2026)**
+- Consistencia Visual Total: Todos os botoes agora 100% solidos (sem transparencia), exceto Add Bot e Apagar Torneio (btn-danger-ghost). btn-outline, btn-ghost, btn-tool e variantes convertidos de backgrounds rgba transparentes para cores solidas (#334155, #374151, #475569 etc).
+- Topbar solida: Botoes Apoie, Pro e Visao Organizador convertidos de inline styles transparentes para classes .btn solidas.
+- Novo sistema de classes CSS para consistencia visual: .info-pill (badges de status com borda lateral colorida e fundo rgba, variantes: info-pill-green/red/amber/blue/purple), .info-box (agrupamento de detalhes como formato/acesso/categorias), .stat-box (caixas de estatisticas inscritos/equipes).
+- Aplicacao consistente em tournaments.js (detalhes do torneio) e dashboard.js (cards): stat-box para inscritos/equipes, info-box para formato/acesso/categorias e barra de progresso, info-pill para countdowns (Comeca hoje, Inscricoes encerram em X dias, etc).
 
 **v0.3.3-alpha (Abril 2026)**
 - Padronizacao Visual de Botoes: Sistema unificado de classes CSS reutilizaveis em components.css. Mais de 200 botoes padronizados em 10+ arquivos JS (tournaments.js, bracket.js, dashboard.js, auth.js, main.js, participants.js, explore.js, pre-draw.js, notifications.js).
