@@ -1015,7 +1015,7 @@ img {
 /* Menu drops to line 2 as a single row below the logo */
 .topbar-menu.topbar-wrapped {
   flex: 0 0 100% !important;
-  justify-content: center !important;
+  justify-content: flex-end !important;
   margin-top: 2px !important;
 }
 /* Wrapped always implies compact labels */
