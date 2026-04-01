@@ -693,6 +693,9 @@ async function simulateLoginSuccess(user) {
     }
   }
 
+  // Recheck topbar wrap after profile button changed size
+  if (typeof window._checkTopbarWrap === 'function') setTimeout(window._checkTopbarWrap, 100);
+
   // Set view mode to organizer
   window.AppStore.viewMode = 'organizer';
   var viewModeBtn = document.getElementById('view-mode-selector');
