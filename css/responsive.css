@@ -356,16 +356,11 @@
     display: none !important;
   }
 
-  /* View mode — preserve column layout with icon above text */
+  /* View mode — inline, same height as other buttons */
   #view-mode-selector {
-    display: inline-flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 2px !important;
-    padding: 6px 12px !important;
-    min-width: 70px !important;
+    white-space: nowrap !important;
+    padding: 8px 14px !important;
     height: auto !important;
-    line-height: 1 !important;
   }
   #view-mode-selector span {
     display: inline !important;
@@ -462,15 +457,8 @@
     font-size: 1.8rem;
   }
 
-  /* View mode — icon above text, never truncated */
+  /* View mode — inline, same height as other buttons */
   #view-mode-selector {
-    display: inline-flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 2px !important;
-    padding: 6px 14px !important;
-    min-width: 80px !important;
-    line-height: 1 !important;
     white-space: nowrap !important;
   }
 
@@ -1045,23 +1033,22 @@ img {
   .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
-  /* View mode — preserve column layout with icon above text */
+  /* View mode — inline, never truncated */
   #view-mode-container {
     margin: 0 !important;
   }
   #view-mode-selector {
     display: inline-flex !important;
-    flex-direction: column !important;
     align-items: center !important;
-    gap: 2px !important;
+    gap: 6px !important;
     padding: 6px 12px !important;
-    min-width: 70px !important;
     height: auto !important;
     min-height: auto !important;
-    line-height: 1 !important;
+    white-space: nowrap !important;
   }
   #view-mode-selector span {
     display: inline !important;
+    font-size: 0.75rem !important;
   }
   /* Login button compact */
   #btn-login {
