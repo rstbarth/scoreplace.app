@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.3.6-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.3.7-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.3.6-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.3.7-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -53,44 +53,46 @@
         <button class="hamburger-btn" aria-label="Abrir menu de navegação" aria-expanded="false" onclick="var m=document.querySelector('.topbar-menu');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'))" style="display:none; border:none; background:transparent; color:var(--text-color); cursor:pointer; padding:8px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
-        <nav class="topbar-actions topbar-menu d-flex gap-2 align-center" role="navigation" aria-label="Navegação principal">
-           <!-- Ícones de Navegação -->
-           <a href="#dashboard" class="hover-lift" title="Página Inicial" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-              <span style="font-size: 0.95rem; font-weight: 500;">Início</span>
-           </a>
-           <a href="#explore" class="hover-lift" title="Explorar Comunidade" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <span style="font-size: 0.95rem; font-weight: 500;">Explorar</span>
-           </a>
-           <a href="#notifications" class="hover-lift" title="Notificações" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none; position: relative;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span style="font-size: 0.95rem; font-weight: 500;">Notificações</span>
-              <span id="notif-badge" style="display: none; position: absolute; top: 2px; left: 28px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
-           </a>
-           <button id="theme-toggle-btn" class="hover-lift" title="Alternar tema claro/escuro" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="window._toggleTheme()">
-              🌙
-           </button>
-           <button class="hover-lift" title="Ajuda" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem; font-weight: 700;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-help');">
-              ?
-           </button>
-
-           <button id="btn-support-pix" class="btn btn-sm hover-lift" title="Apoie o projeto" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px;" onclick="window._showSupportModal()">
-              💚 Apoie
-           </button>
-           <button id="btn-upgrade-pro" class="btn btn-sm hover-lift" title="Assinar Pro" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px;" onclick="window._showUpgradeModal()">
-              🚀 Pro
-           </button>
-
-           <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 5px;"></div>
-
-           <div id="view-mode-container" style="display: none; align-items: center; gap: 8px;">
-             <button id="view-mode-selector" class="btn btn-sm hover-lift" style="background: #2563eb; color: #fff; padding: 6px 14px; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; border: 1px solid rgba(255,255,255,0.3);" onclick="window.AppStore.toggleViewMode()">
-                <span style="font-size:1.2rem;">👁️</span>
-                <span style="font-size:0.7rem; font-weight:600;">Organizador</span>
+        <nav class="topbar-actions topbar-menu d-flex gap-2 align-center" role="navigation" aria-label="Navegação principal" style="flex-wrap: wrap;">
+           <!-- Grupo 1: Navegação -->
+           <div class="topbar-nav-group" style="display: flex; align-items: center; gap: 2px;">
+             <a href="#dashboard" class="hover-lift" title="Página Inicial" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span style="font-size: 0.95rem; font-weight: 500;">Início</span>
+             </a>
+             <a href="#explore" class="hover-lift" title="Explorar Comunidade" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span style="font-size: 0.95rem; font-weight: 500;">Explorar</span>
+             </a>
+             <a href="#notifications" class="hover-lift" title="Notificações" style="color: var(--text-color); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 20px; background: transparent; transition: background 0.2s; text-decoration: none; position: relative;" onmouseover="this.style.background='rgba(150,150,150,0.1)'" onmouseout="this.style.background='transparent'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span style="font-size: 0.95rem; font-weight: 500;">Notificações</span>
+                <span id="notif-badge" style="display: none; position: absolute; top: 2px; left: 28px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
+             </a>
+             <button id="theme-toggle-btn" class="hover-lift" title="Alternar tema claro/escuro" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="window._toggleTheme()">
+                🌙
+             </button>
+             <button class="hover-lift" title="Ajuda" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem; font-weight: 700;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-help');">
+                ?
              </button>
            </div>
-           <button class="btn btn-outline" id="btn-login" style="padding: 0.5rem 1rem;" aria-label="Fazer login com Google">Login</button>
+
+           <!-- Grupo 2: Ações (quebra para 2a linha quando não cabe) -->
+           <div class="topbar-action-group" style="display: flex; align-items: center; gap: 8px;">
+             <button id="btn-support-pix" class="btn btn-sm hover-lift" title="Apoie o projeto" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px;" onclick="window._showSupportModal()">
+                💚 Apoie
+             </button>
+             <button id="btn-upgrade-pro" class="btn btn-sm hover-lift" title="Assinar Pro" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px;" onclick="window._showUpgradeModal()">
+                🚀 Pro
+             </button>
+             <div id="view-mode-container" style="display: none; align-items: center; gap: 8px;">
+               <button id="view-mode-selector" class="btn btn-sm hover-lift" style="background: #2563eb; color: #fff; padding: 6px 14px; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; border: 1px solid rgba(255,255,255,0.3);" onclick="window.AppStore.toggleViewMode()">
+                  <span style="font-size:1.2rem;">👁️</span>
+                  <span style="font-size:0.7rem; font-weight:600;">Organizador</span>
+               </button>
+             </div>
+             <button class="btn btn-outline" id="btn-login" style="padding: 0.5rem 1rem;" aria-label="Fazer login com Google">Login</button>
+           </div>
         </nav>
       </header>
 
@@ -106,30 +108,30 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-  <script src="js/store.js?v=0.3.6-alpha"></script>
-  <script src="js/firebase-db.js?v=0.3.6-alpha"></script>
-  <script src="js/notifications.js?v=0.3.6-alpha"></script>
-  <script src="js/ui.js?v=0.3.6-alpha"></script>
-  <script src="js/views/dashboard.js?v=0.3.6-alpha"></script>
-  <script src="js/views/tournaments-utils.js?v=0.3.6-alpha"></script>
-  <script src="js/views/tournaments-sharing.js?v=0.3.6-alpha"></script>
-  <script src="js/views/tournaments-analytics.js?v=0.3.6-alpha"></script>
-  <script src="js/views/tournaments-organizer.js?v=0.3.6-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.3.6-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.3.6-alpha"></script>
-  <script src="js/views/pre-draw.js?v=0.3.6-alpha"></script>
-  <script src="js/views/bracket-logic.js?v=0.3.6-alpha"></script>
-  <script src="js/views/bracket.js?v=0.3.6-alpha"></script>
-  <script src="js/views/bracket-ui.js?v=0.3.6-alpha"></script>
-  <script src="js/views/participants.js?v=0.3.6-alpha"></script>
-  <script src="js/views/rules.js?v=0.3.6-alpha"></script>
-  <script src="js/views/explore.js?v=0.3.6-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.3.6-alpha"></script>
-  <script src="js/views/auth.js?v=0.3.6-alpha"></script>
-  <script src="js/views/result-modal.js?v=0.3.6-alpha"></script>
-  <script src="js/views/enroll-modal.js?v=0.3.6-alpha"></script>
-  <script src="js/router.js?v=0.3.6-alpha"></script>
-  <script src="js/main.js?v=0.3.6-alpha"></script>
+  <script src="js/store.js?v=0.3.7-alpha"></script>
+  <script src="js/firebase-db.js?v=0.3.7-alpha"></script>
+  <script src="js/notifications.js?v=0.3.7-alpha"></script>
+  <script src="js/ui.js?v=0.3.7-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.3.7-alpha"></script>
+  <script src="js/views/tournaments-utils.js?v=0.3.7-alpha"></script>
+  <script src="js/views/tournaments-sharing.js?v=0.3.7-alpha"></script>
+  <script src="js/views/tournaments-analytics.js?v=0.3.7-alpha"></script>
+  <script src="js/views/tournaments-organizer.js?v=0.3.7-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.3.7-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.3.7-alpha"></script>
+  <script src="js/views/pre-draw.js?v=0.3.7-alpha"></script>
+  <script src="js/views/bracket-logic.js?v=0.3.7-alpha"></script>
+  <script src="js/views/bracket.js?v=0.3.7-alpha"></script>
+  <script src="js/views/bracket-ui.js?v=0.3.7-alpha"></script>
+  <script src="js/views/participants.js?v=0.3.7-alpha"></script>
+  <script src="js/views/rules.js?v=0.3.7-alpha"></script>
+  <script src="js/views/explore.js?v=0.3.7-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.3.7-alpha"></script>
+  <script src="js/views/auth.js?v=0.3.7-alpha"></script>
+  <script src="js/views/result-modal.js?v=0.3.7-alpha"></script>
+  <script src="js/views/enroll-modal.js?v=0.3.7-alpha"></script>
+  <script src="js/router.js?v=0.3.7-alpha"></script>
+  <script src="js/main.js?v=0.3.7-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
