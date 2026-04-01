@@ -20,14 +20,14 @@ window._checkTopbarWrap = function() {
     return;
   }
 
-  // Helper: force reflow then check if menu overflows or wraps
+  // Helper: force reflow then check if content exceeds topbar bounds
   function doesntFit() {
     void topbar.offsetHeight;
-    // Check if menu scrolls beyond its visible width
-    if (menu.scrollWidth > menu.clientWidth + 2) return true;
-    // Check if menu dropped below logo (shouldn't happen with nowrap, but safety)
-    if (menu.getBoundingClientRect().top > logo.getBoundingClientRect().top + 5) return true;
-    return false;
+    var lastChild = menu.lastElementChild;
+    if (!lastChild) return false;
+    var topbarRight = topbar.getBoundingClientRect().right;
+    var contentRight = lastChild.getBoundingClientRect().right;
+    return contentRight > topbarRight + 2;
   }
 
   // Reset all states
