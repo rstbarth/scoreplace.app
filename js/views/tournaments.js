@@ -451,6 +451,209 @@ function renderTournaments(container, tournamentId = null) {
         return html;
     };
 
+    // ── Estimativa de Duração do Torneio ──────────────────────────────────────
+    // Mostra quando endDate não está preenchido. Simula para potências de 2 e inscritos reais.
+    window._buildTimeEstimation = function(t) {
+      // Só mostra se NÃO tem data/hora de fim
+      if (t.endDate) return '';
+
+      var format = t.format || 'Eliminatórias';
+      var gameDur = parseInt(t.gameDuration) || 30; // minutos por partida
+      var callTime = parseInt(t.callTime) || 0;
+      var warmupTime = parseInt(t.warmupTime) || 0;
+      var courts = Math.max(parseInt(t.courtCount) || 1, 1);
+      var slotTime = gameDur + callTime + warmupTime; // tempo total por slot (partida + chamada + aquecimento)
+      var intervalBetween = 5; // intervalo entre slots no mesmo court (min)
+      var timePerSlot = slotTime + intervalBetween;
+
+      // Número de partidas por formato
+      function calcMatches(n, fmt) {
+        if (fmt === 'Eliminatórias' || fmt === 'Eliminatórias Simples') {
+          return n - 1; // single elim (sem 3o lugar)
+        } else if (fmt === 'Dupla Elim.' || fmt === 'Dupla Eliminatória') {
+          // Upper bracket: n-1, Lower bracket: ~n-1, Grand final: 1-2
+          return Math.ceil(n * 2 - 1);
+        } else if (fmt === 'Grupos + Elim.' || fmt === 'Fase de Grupos + Eliminatórias') {
+          // Grupos (round robin dentro dos grupos) + mata-mata dos classificados
+          var groupSize = 4;
+          var numGroups = Math.max(Math.ceil(n / groupSize), 1);
+          var perGroup = Math.ceil(n / numGroups);
+          var groupMatches = numGroups * (perGroup * (perGroup - 1) / 2);
+          var qualified = numGroups * 2; // top 2 de cada grupo
+          var elimMatches = Math.max(qualified - 1, 0);
+          return Math.round(groupMatches + elimMatches);
+        } else if (fmt === 'Suíço' || fmt === 'Suíço Clássico') {
+          var rounds = Math.ceil(Math.log2(Math.max(n, 2)));
+          return rounds * Math.floor(n / 2);
+        } else if (fmt === 'Liga' || fmt === 'Ranking' || window._isLigaFormat && window._isLigaFormat(t)) {
+          return n * (n - 1) / 2;
+        }
+        return n - 1; // fallback
+      }
+
+      // Estimar duração em minutos considerando quadras paralelas
+      function estimateDuration(n, fmt) {
+        if (n < 2) return 0;
+        var totalMatches = calcMatches(n, fmt);
+
+        // Para eliminatórias, calcular por rodadas (mais realista)
+        if (fmt === 'Eliminatórias' || fmt === 'Eliminatórias Simples') {
+          var rounds = Math.ceil(Math.log2(n));
+          var totalMin = 0;
+          for (var r = 0; r < rounds; r++) {
+            var matchesInRound = Math.ceil(n / Math.pow(2, r + 1));
+            var slotsNeeded = Math.ceil(matchesInRound / courts);
+            totalMin += slotsNeeded * timePerSlot;
+          }
+          return totalMin;
+        }
+
+        if (fmt === 'Dupla Elim.' || fmt === 'Dupla Eliminatória') {
+          // Aproximação: ~2x da simples
+          var roundsDE = Math.ceil(Math.log2(n)) * 2 + 1;
+          var avgPerRound = Math.ceil(totalMatches / roundsDE);
+          var totalMinDE = 0;
+          for (var rd = 0; rd < roundsDE; rd++) {
+            totalMinDE += Math.ceil(avgPerRound / courts) * timePerSlot;
+          }
+          return totalMinDE;
+        }
+
+        if (fmt === 'Grupos + Elim.' || fmt === 'Fase de Grupos + Eliminatórias') {
+          var gSize = 4;
+          var nGroups = Math.max(Math.ceil(n / gSize), 1);
+          var pGroup = Math.ceil(n / nGroups);
+          // Fase de grupos: rodadas round-robin dentro do grupo
+          var groupRounds = pGroup - 1;
+          var matchesPerGroupRound = Math.floor(pGroup / 2) * nGroups;
+          var groupMin = 0;
+          for (var gr = 0; gr < groupRounds; gr++) {
+            groupMin += Math.ceil(matchesPerGroupRound / courts) * timePerSlot;
+          }
+          // Fase eliminatória
+          var qual = nGroups * 2;
+          var elimRounds = Math.ceil(Math.log2(Math.max(qual, 2)));
+          var elimMin = 0;
+          for (var er = 0; er < elimRounds; er++) {
+            var mInR = Math.ceil(qual / Math.pow(2, er + 1));
+            elimMin += Math.ceil(mInR / courts) * timePerSlot;
+          }
+          return groupMin + elimMin + 15; // +15 intervalo entre fases
+        }
+
+        if (fmt === 'Suíço' || fmt === 'Suíço Clássico') {
+          var swissRounds = Math.ceil(Math.log2(Math.max(n, 2)));
+          var matchesPerRound = Math.floor(n / 2);
+          var totalMinS = 0;
+          for (var sr = 0; sr < swissRounds; sr++) {
+            totalMinS += Math.ceil(matchesPerRound / courts) * timePerSlot;
+          }
+          return totalMinS;
+        }
+
+        // Liga/fallback: todas as partidas sequenciais com quadras paralelas
+        var slots = Math.ceil(totalMatches / courts);
+        return slots * timePerSlot;
+      }
+
+      // Formatar duração em horas e minutos
+      function fmtDur(min) {
+        if (min <= 0) return '—';
+        var h = Math.floor(min / 60);
+        var m = Math.round(min % 60);
+        if (h === 0) return m + 'min';
+        if (m === 0) return h + 'h';
+        return h + 'h' + (m < 10 ? '0' : '') + m;
+      }
+
+      // Formatar hora de término estimada
+      function fmtEndTime(startDateStr, durationMin) {
+        if (!startDateStr) return '';
+        try {
+          var d = new Date(startDateStr);
+          if (isNaN(d.getTime())) return '';
+          // Só mostra se tem hora definida (contém 'T')
+          if (!startDateStr.includes('T')) return '';
+          d.setMinutes(d.getMinutes() + durationMin);
+          return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return ''; }
+      }
+
+      // Potências de 2 para simulação
+      var powersOf2 = [8, 16, 32, 64];
+
+      // Inscritos reais
+      var parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+      var realCount = parts.length;
+
+      // Verificar se formato é Liga com muitos jogadores (seria longo demais)
+      var isLiga = window._isLigaFormat && window._isLigaFormat(t);
+      if (isLiga && realCount > 20) {
+        // Liga com muitos jogadores: muitas rodadas, estimativa perde sentido prático
+        // Só mostra nota informativa
+      }
+
+      // Construir linhas de simulação
+      var rows = [];
+
+      // Linha com inscritos reais (se houver 2+)
+      if (realCount >= 2) {
+        var durReal = estimateDuration(realCount, format);
+        var endTimeReal = fmtEndTime(t.startDate, durReal);
+        rows.push({
+          label: realCount + ' inscritos',
+          duration: fmtDur(durReal),
+          endTime: endTimeReal,
+          matches: calcMatches(realCount, format),
+          highlight: true
+        });
+      }
+
+      // Linhas para potências de 2
+      powersOf2.forEach(function(n) {
+        if (n === realCount) return; // já mostrado acima
+        var dur = estimateDuration(n, format);
+        var endTime = fmtEndTime(t.startDate, dur);
+        rows.push({
+          label: n + ' participantes',
+          duration: fmtDur(dur),
+          endTime: endTime,
+          matches: calcMatches(n, format),
+          highlight: false
+        });
+      });
+
+      if (rows.length === 0) return '';
+
+      // Montar HTML
+      var courtsLabel = courts > 1 ? courts + ' quadras' : '1 quadra';
+      var html = '<div style="margin-top: 8px; padding: 10px 14px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px;">';
+      html += '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">';
+      html += '<span style="font-size:1.1rem;">⏱️</span>';
+      html += '<span style="font-size:0.8rem; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px;">Duração Estimada</span>';
+      html += '<span style="font-size:0.65rem; color:var(--text-muted); opacity:0.7;">(' + gameDur + 'min/partida · ' + courtsLabel + ')</span>';
+      html += '</div>';
+
+      html += '<div style="display:flex; flex-direction:column; gap:4px;">';
+      rows.forEach(function(r) {
+        var bg = r.highlight ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)';
+        var border = r.highlight ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.05)';
+        var labelColor = r.highlight ? '#60a5fa' : 'var(--text-muted)';
+        var durColor = r.highlight ? '#e2e8f0' : 'rgba(255,255,255,0.7)';
+        html += '<div style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:' + bg + '; border:' + border + '; border-radius:8px; flex-wrap:wrap;">';
+        html += '<span style="font-size:0.78rem; font-weight:600; color:' + labelColor + '; min-width:110px;">' + r.label + '</span>';
+        html += '<span style="font-size:0.78rem; color:var(--text-muted); opacity:0.6;">' + r.matches + ' partidas</span>';
+        html += '<span style="font-size:0.85rem; font-weight:700; color:' + durColor + '; margin-left:auto;">' + r.duration + '</span>';
+        if (r.endTime) {
+          html += '<span style="font-size:0.72rem; color:#a5b4fc; opacity:0.8;">término ~' + r.endTime + '</span>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '</div>';
+      return html;
+    };
+
     // Exclusivity rules: Fem and Masc are mutually exclusive.
     // Misto (Aleatório/Obrigatório) is non-exclusive with Fem and Masc.
     // A participant can be in Masc A AND Misto Aleat. A, but NOT in Fem A AND Masc A.
@@ -5694,6 +5897,7 @@ function renderTournaments(container, tournamentId = null) {
                <span>🔄</span>
                <span>Atualizado em ${(() => { try { var d = new Date(t.updatedAt); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); } catch(e) { return t.updatedAt; } })()}</span>
             </div>` : ''}
+            ${(typeof window._buildTimeEstimation === 'function') ? window._buildTimeEstimation(t) : ''}
             ${t.venue ? `
             <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; font-weight: 500; opacity: 0.65; margin-top: 6px;">
                <span style="font-size: 1rem; flex-shrink:0;">📍</span>
