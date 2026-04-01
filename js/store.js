@@ -4,38 +4,47 @@ window.SCOREPLACE_VERSION = '0.3.22-alpha';
 // 3 states managed by JS:
 //   1. Full: logo + all items with labels on 1 line (no class)
 //   2. .topbar-compact: logo + all items (icons only) on 1 line
-//   3. .topbar-wrapped: logo line 1, all menu items on line 2 (single row)
-// Measures actual layout: checks if menu top differs from logo top.
+//   3. .topbar-hamburger: hamburger menu (compact doesn't fit)
+// Always 1 line. When compact doesn't fit → hamburger.
 window._checkTopbarWrap = function() {
   var topbar = document.querySelector('.topbar');
   var menu = document.querySelector('.topbar-menu');
-  if (!topbar || !menu || getComputedStyle(menu).display === 'none') return;
+  if (!topbar || !menu) return;
   var logo = topbar.querySelector('.page-title');
   if (!logo) return;
 
-  // Helper: force reflow then check if menu dropped below logo line
-  function menuDropped() {
-    void topbar.offsetHeight;
-    return menu.getBoundingClientRect().top > logo.getBoundingClientRect().top + 5;
+  // Skip if ≤767px — CSS handles hamburger via media query
+  if (window.innerWidth <= 767) {
+    menu.classList.remove('topbar-compact');
+    topbar.classList.remove('topbar-hamburger');
+    return;
   }
 
-  // Helper: check if menu content overflows its container
-  function menuOverflows() {
+  // Helper: force reflow then check if menu overflows or wraps
+  function doesntFit() {
     void topbar.offsetHeight;
-    return menu.scrollWidth > menu.clientWidth + 2;
+    // Check if menu scrolls beyond its visible width
+    if (menu.scrollWidth > menu.clientWidth + 2) return true;
+    // Check if menu dropped below logo (shouldn't happen with nowrap, but safety)
+    if (menu.getBoundingClientRect().top > logo.getBoundingClientRect().top + 5) return true;
+    return false;
   }
 
-  // Step 1: Try full labels (remove both classes)
-  menu.classList.remove('topbar-compact', 'topbar-wrapped');
-  if (!menuDropped() && !menuOverflows()) return;
-
-  // Step 2: Try compact (icons only, still on logo line)
-  menu.classList.add('topbar-compact');
-  if (!menuDropped() && !menuOverflows()) return;
-
-  // Step 3: Wrapped — menu drops to line 2 as single row
+  // Reset all states
   menu.classList.remove('topbar-compact');
-  menu.classList.add('topbar-wrapped');
+  topbar.classList.remove('topbar-hamburger');
+  menu.classList.remove('open');
+
+  // Step 1: Try full labels
+  if (!doesntFit()) return;
+
+  // Step 2: Try compact (icons only)
+  menu.classList.add('topbar-compact');
+  if (!doesntFit()) return;
+
+  // Step 3: Hamburger — compact doesn't fit
+  menu.classList.remove('topbar-compact');
+  topbar.classList.add('topbar-hamburger');
 };
 (function() {
   var _wrapTimer;
