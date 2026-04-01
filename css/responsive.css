@@ -949,19 +949,19 @@ img {
   .topbar { align-items: center !important; flex-wrap: wrap !important; }
   .topbar-menu {
     display: none !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
     width: 100% !important;
     flex: none !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    padding: 12px 0 8px !important;
-    margin-top: 8px;
+    gap: 6px !important;
+    padding: 8px 0 6px !important;
+    margin-top: 4px;
     justify-content: center !important;
     align-items: center !important;
   }
   .topbar-menu.open { display: flex !important; }
   .topbar-nav-group {
-    width: 100% !important; justify-content: center !important; gap: 4px !important; flex-wrap: wrap !important;
+    justify-content: center !important; gap: 2px !important; flex-wrap: nowrap !important;
   }
   .topbar-nav-group a > span,
   .topbar-nav-group button > span {
@@ -969,13 +969,18 @@ img {
   }
   .topbar-nav-group a,
   .topbar-nav-group button {
-    padding: 8px 12px !important; gap: 0 !important; font-size: 1.2rem !important;
+    padding: 6px 10px !important; gap: 0 !important; font-size: 1.1rem !important;
   }
   .topbar-action-group {
-    width: 100% !important; justify-content: center !important;
+    justify-content: center !important;
+  }
+  #view-mode-selector {
+    font-size: 0.72rem !important;
+    padding: 0 8px !important;
+    height: 32px !important;
   }
   .topbar-profile-group {
-    width: 100% !important; justify-content: center !important;
+    justify-content: center !important;
   }
   .user-name-label { display: inline !important; }
 }
