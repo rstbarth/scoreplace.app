@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.3.4-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.3.5-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.3.4-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.3.5-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -85,8 +85,8 @@
            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 5px;"></div>
 
            <div id="view-mode-container" style="display: none; align-items: center; gap: 8px;">
-             <button id="view-mode-selector" class="btn btn-sm hover-lift" style="background: #2563eb; color: #fff; border-radius: 20px; padding: 0.4rem 1rem;" onclick="window.AppStore.toggleViewMode()">
-                👁️ Visão: Organizador
+             <button id="view-mode-selector" class="btn btn-sm hover-lift" style="background: #2563eb; color: #fff; padding: 0.4rem 1rem;" onclick="window.AppStore.toggleViewMode()">
+                <span style="font-size:1.1rem;line-height:1;">👁️</span> Organizador
              </button>
            </div>
            <button class="btn btn-outline" id="btn-login" style="padding: 0.5rem 1rem;" aria-label="Fazer login com Google">Login</button>
@@ -105,30 +105,30 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-  <script src="js/store.js?v=0.3.4-alpha"></script>
-  <script src="js/firebase-db.js?v=0.3.4-alpha"></script>
-  <script src="js/notifications.js?v=0.3.4-alpha"></script>
-  <script src="js/ui.js?v=0.3.4-alpha"></script>
-  <script src="js/views/dashboard.js?v=0.3.4-alpha"></script>
-  <script src="js/views/tournaments-utils.js?v=0.3.4-alpha"></script>
-  <script src="js/views/tournaments-sharing.js?v=0.3.4-alpha"></script>
-  <script src="js/views/tournaments-analytics.js?v=0.3.4-alpha"></script>
-  <script src="js/views/tournaments-organizer.js?v=0.3.4-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.3.4-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.3.4-alpha"></script>
-  <script src="js/views/pre-draw.js?v=0.3.4-alpha"></script>
-  <script src="js/views/bracket-logic.js?v=0.3.4-alpha"></script>
-  <script src="js/views/bracket.js?v=0.3.4-alpha"></script>
-  <script src="js/views/bracket-ui.js?v=0.3.4-alpha"></script>
-  <script src="js/views/participants.js?v=0.3.4-alpha"></script>
-  <script src="js/views/rules.js?v=0.3.4-alpha"></script>
-  <script src="js/views/explore.js?v=0.3.4-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.3.4-alpha"></script>
-  <script src="js/views/auth.js?v=0.3.4-alpha"></script>
-  <script src="js/views/result-modal.js?v=0.3.4-alpha"></script>
-  <script src="js/views/enroll-modal.js?v=0.3.4-alpha"></script>
-  <script src="js/router.js?v=0.3.4-alpha"></script>
-  <script src="js/main.js?v=0.3.4-alpha"></script>
+  <script src="js/store.js?v=0.3.5-alpha"></script>
+  <script src="js/firebase-db.js?v=0.3.5-alpha"></script>
+  <script src="js/notifications.js?v=0.3.5-alpha"></script>
+  <script src="js/ui.js?v=0.3.5-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.3.5-alpha"></script>
+  <script src="js/views/tournaments-utils.js?v=0.3.5-alpha"></script>
+  <script src="js/views/tournaments-sharing.js?v=0.3.5-alpha"></script>
+  <script src="js/views/tournaments-analytics.js?v=0.3.5-alpha"></script>
+  <script src="js/views/tournaments-organizer.js?v=0.3.5-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.3.5-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.3.5-alpha"></script>
+  <script src="js/views/pre-draw.js?v=0.3.5-alpha"></script>
+  <script src="js/views/bracket-logic.js?v=0.3.5-alpha"></script>
+  <script src="js/views/bracket.js?v=0.3.5-alpha"></script>
+  <script src="js/views/bracket-ui.js?v=0.3.5-alpha"></script>
+  <script src="js/views/participants.js?v=0.3.5-alpha"></script>
+  <script src="js/views/rules.js?v=0.3.5-alpha"></script>
+  <script src="js/views/explore.js?v=0.3.5-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.3.5-alpha"></script>
+  <script src="js/views/auth.js?v=0.3.5-alpha"></script>
+  <script src="js/views/result-modal.js?v=0.3.5-alpha"></script>
+  <script src="js/views/enroll-modal.js?v=0.3.5-alpha"></script>
+  <script src="js/router.js?v=0.3.5-alpha"></script>
+  <script src="js/main.js?v=0.3.5-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

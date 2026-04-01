@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.4-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.3.5-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -18,10 +18,14 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 
 ### Changelog
 
+**v0.3.5-alpha (Abril 2026)**
+- Consistencia Visual Total: Todos os botoes agora 100% solidos e coloridos (sem cinza). btn-outline, btn-ghost, btn-tool, btn-secondary convertidos de cinza para azul escuro (#1e3a5f). btn-danger-ghost mantido transparente (Add Bot + Apagar).
+- Topbar: Botoes Apoie, Pro e Organizador padronizados como .btn solidos. Botao Visao simplificado: "Organizador"/"Participante" (sem "Visao:").
+- Ferramentas do Organizador reordenadas: Ver Chaves, Editar, Comunicar, +Participantes, +Times, Add Bot, Exportar CSV, Clonar, Categorias, Encerrar Inscricoes, Sortear, Encerrar Torneio, Apagar.
+- Info-pill/info-box/stat-box com opacidade aumentada (rgba 0.28 vs 0.15) para melhor legibilidade.
+
 **v0.3.4-alpha (Abril 2026)**
-- Consistencia Visual Total: Todos os botoes agora 100% solidos (sem transparencia), exceto Add Bot e Apagar Torneio (btn-danger-ghost). btn-outline, btn-ghost, btn-tool e variantes convertidos de backgrounds rgba transparentes para cores solidas (#334155, #374151, #475569 etc).
-- Topbar solida: Botoes Apoie, Pro e Visao Organizador convertidos de inline styles transparentes para classes .btn solidas.
-- Novo sistema de classes CSS para consistencia visual: .info-pill (badges de status com borda lateral colorida e fundo rgba, variantes: info-pill-green/red/amber/blue/purple), .info-box (agrupamento de detalhes como formato/acesso/categorias), .stat-box (caixas de estatisticas inscritos/equipes).
+- Novo sistema de classes CSS: .info-pill (badges de status com borda lateral colorida e fundo rgba, variantes: info-pill-green/red/amber/blue/purple), .info-box (agrupamento de detalhes como formato/acesso/categorias), .stat-box (caixas de estatisticas inscritos/equipes).
 - Aplicacao consistente em tournaments.js (detalhes do torneio) e dashboard.js (cards): stat-box para inscritos/equipes, info-box para formato/acesso/categorias e barra de progresso, info-pill para countdowns (Comeca hoje, Inscricoes encerram em X dias, etc).
 
 **v0.3.3-alpha (Abril 2026)**
