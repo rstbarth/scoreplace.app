@@ -878,10 +878,10 @@ img {
 }
 
 /* ====================================================
-   TOPBAR — ALWAYS 1 or 2 lines, NEVER more
+   TOPBAR — Fluid responsive, 1 or 2 lines
    No hamburger. Menu always visible.
-   1 line: nav, action, profile (text labels visible)
-   2 lines: line1 = icons (nav+profile), line2 = buttons (action)
+   JS toggles: .topbar-compact (hide labels, still 1 line)
+               .topbar-wrapped (2 lines: nav+profile / action)
    ==================================================== */
 
 /* Groups: never wrap internally */
@@ -902,22 +902,58 @@ img {
 /* Menu: ALWAYS visible, wraps between groups */
 .topbar-menu {
   display: flex !important;
+  flex: 1 1 0%;
   flex-wrap: wrap !important;
   align-items: center !important;
-  justify-content: center !important;
+  justify-content: flex-end !important;
+  gap: 4px !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  margin-top: 0 !important;
+}
+
+/* Nav text labels: transition for smooth hide/show */
+.topbar-nav-group a > span,
+.topbar-nav-group button > span {
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+  display: inline-block;
+  max-width: 120px;
+  opacity: 1;
+}
+
+/* ── Compact state (JS toggles .topbar-compact) ── */
+/* Hide nav text labels but keep everything on 1 line */
+.topbar-compact .topbar-nav-group a > span,
+.topbar-compact .topbar-nav-group button > span {
+  max-width: 0 !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.topbar-compact .user-name-label {
+  display: none !important;
+}
+.topbar-compact .topbar-nav-group a,
+.topbar-compact .topbar-nav-group button {
+  padding: 0 6px !important;
+  gap: 0 !important;
 }
 
 /* ── Wrapped state (JS toggles .topbar-wrapped) ── */
-/* Default (1 line): source order nav, action, profile */
-/* Wrapped (2 lines): reorder so nav+profile = line1, action = line2 */
+/* 2 lines: reorder so nav+profile = line1, action = line2 */
 .topbar-wrapped .topbar-nav-group { order: 1; }
 .topbar-wrapped .topbar-profile-group { order: 2; }
 .topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: flex-end; margin-top: 4px; }
 
-/* Wrapped: hide nav text labels, show icon-only */
+/* Wrapped always implies compact labels */
 .topbar-wrapped .topbar-nav-group a > span,
 .topbar-wrapped .topbar-nav-group button > span {
-  display: none !important;
+  max-width: 0 !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 .topbar-wrapped .user-name-label {
   display: none !important;
@@ -926,6 +962,7 @@ img {
 .topbar-wrapped .topbar-nav-group a,
 .topbar-wrapped .topbar-nav-group button {
   padding: 0 6px !important;
+  gap: 0 !important;
 }
 /* Wrapped: compact profile */
 .topbar-wrapped .topbar-profile-group {
@@ -953,122 +990,44 @@ img {
 }
 
 /* ====================================================
-   MOBILE / TABLET overrides (<1200px)
+   Topbar fluid adjustments at smaller widths
    ==================================================== */
-@media (max-width: 1199px) {
-  .topbar {
-    height: auto !important;
-    min-height: 50px;
-    flex-wrap: wrap !important;
-    padding: 0.5rem 0.75rem !important;
-    gap: 4px;
-    overflow: visible !important;
-    position: relative !important;
-    z-index: 50 !important;
-    align-items: flex-start !important;
-  }
-  .page-title {
-    flex: 0 0 auto;
-    min-width: 0;
-    gap: 6px !important;
-  }
-  .page-title h1 {
-    white-space: nowrap !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 1.1rem !important;
-  }
-  .page-title svg {
-    width: 22px !important;
-    height: 22px !important;
-    flex-shrink: 0;
-  }
-  /* Menu: same line as logo, wraps action-group to line 2 */
-  .topbar-menu {
-    flex: 1 1 0% !important;
-    width: auto !important;
-    padding-top: 0 !important;
-    border-top: none !important;
-    margin-top: 0 !important;
-    gap: 4px !important;
-    justify-content: flex-end !important;
-  }
-  /* Force wrapped mode below 1200px */
-  .topbar-nav-group { order: 1 !important; }
-  .topbar-profile-group { order: 2 !important; gap: 4px !important; }
-  .topbar-action-group {
-    order: 3 !important;
-    width: 100% !important;
-    justify-content: flex-end !important;
-    gap: 6px !important;
-    margin-top: 2px;
-  }
-  /* Icon-only nav items */
-  .topbar-nav-group {
-    gap: 2px !important;
-    justify-content: flex-end !important;
-  }
-  .topbar-nav-group a,
-  .topbar-nav-group button {
-    justify-content: center !important;
-    width: auto !important;
-    padding: 0 6px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 8px !important;
-    flex-shrink: 0 !important;
-  }
-  .topbar-nav-group a > span,
-  .topbar-nav-group button > span {
-    display: none !important;
-  }
-  .user-name-label {
-    display: none !important;
-  }
-  /* Action buttons uniform */
-  .topbar-action-group button {
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 12px !important;
-  }
-  /* Separator hidden */
-  .topbar-menu div[style*="width: 1px"] {
-    display: none !important;
-  }
-  /* View mode */
-  #view-mode-container { margin: 0 !important; }
-  #view-mode-selector {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 0 12px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    white-space: nowrap !important;
-  }
-  #view-mode-selector span {
-    display: inline !important;
-    font-size: 0.75rem !important;
-  }
-  /* Login/Perfil */
-  #btn-login {
-    font-size: 0.8rem !important;
-    padding: 0 8px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    flex-shrink: 0 !important;
-  }
-  #btn-login.d-flex {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 4px !important;
-  }
-  .logoff-btn {
-    margin-left: 4px !important;
-    flex-shrink: 0 !important;
-  }
+.topbar {
+  align-items: flex-start !important;
+  padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 2rem) !important;
+}
+.page-title {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Separator hidden at all widths */
+.topbar-menu div[style*="width: 1px"] {
+  display: none !important;
+}
+/* View mode */
+#view-mode-container { margin: 0 !important; }
+#view-mode-selector {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+  white-space: nowrap !important;
+}
+/* Login/Perfil */
+#btn-login {
+  flex-shrink: 0 !important;
+}
+#btn-login.d-flex {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.logoff-btn {
+  margin-left: 4px !important;
+  flex-shrink: 0 !important;
 }
 
 /* ====================================================
