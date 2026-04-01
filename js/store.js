@@ -1,4 +1,28 @@
-window.SCOREPLACE_VERSION = '0.3.15-alpha';
+window.SCOREPLACE_VERSION = '0.3.16-alpha';
+
+// ─── Topbar wrap detection ──────────────────────────────────────────────────
+// When menu items don't fit on 1 line, swap profile before action-group
+// so profile stays with nav icons (line 1) and action buttons go to line 2
+window._checkTopbarWrap = function() {
+  var menu = document.querySelector('.topbar-menu');
+  if (!menu || getComputedStyle(menu).display === 'none') return;
+  var nav = menu.querySelector('.topbar-nav-group');
+  var action = menu.querySelector('.topbar-action-group');
+  var profile = menu.querySelector('.topbar-profile-group');
+  if (!nav || !action || !profile) return;
+  // Temporarily remove wrapped class to measure natural layout
+  menu.classList.remove('topbar-wrapped');
+  // Check if profile is on a different row than nav (means wrapping occurred)
+  requestAnimationFrame(function() {
+    var navTop = nav.getBoundingClientRect().top;
+    var profileTop = profile.getBoundingClientRect().top;
+    if (profileTop > navTop + 5) {
+      menu.classList.add('topbar-wrapped');
+    }
+  });
+};
+window.addEventListener('resize', function() { window._checkTopbarWrap(); });
+window.addEventListener('load', function() { setTimeout(window._checkTopbarWrap, 300); });
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';
