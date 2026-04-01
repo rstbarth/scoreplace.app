@@ -84,7 +84,7 @@
   align-items: center;
   padding: 0.5rem 2rem;
   backdrop-filter: blur(10px);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   overflow: visible;
   gap: 4px;
   position: sticky;

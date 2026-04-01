@@ -878,8 +878,7 @@ img {
    States (managed by JS _checkTopbarWrap):
      1. Full: logo + all items with labels on 1 line
      2. .topbar-compact: logo + all items (no labels) on 1 line
-     3. .topbar-wrapped: logo line 1, all items on line 2 (single row, no labels)
-     4. ≤767px: hamburger menu
+     3. .topbar-hamburger (JS) or ≤767px: hamburger menu
    ==================================================== */
 
 /* Groups: never wrap internally */
@@ -894,10 +893,50 @@ img {
 .topbar-action-group { flex-shrink: 0; }
 .topbar-profile-group { flex-shrink: 0; }
 
-/* Hamburger: hidden on tablet+ */
+/* Hamburger: hidden by default */
 .hamburger-btn { display: none !important; }
 
-/* ── Mobile ≤767px: hamburger menu ── */
+/* ── Hamburger mode: ≤767px (CSS) or JS-triggered (.topbar-hamburger) ── */
+/* Shared hamburger rules (used by both media query and JS class) */
+.topbar.topbar-hamburger .hamburger-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.topbar.topbar-hamburger { align-items: center !important; }
+.topbar.topbar-hamburger .topbar-menu {
+  display: none !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  flex: none !important;
+  gap: 8px !important;
+  padding: 12px 0 8px !important;
+  margin-top: 8px;
+}
+.topbar.topbar-hamburger .topbar-menu.open { display: flex !important; }
+.topbar.topbar-hamburger .topbar-nav-group {
+  width: 100%; justify-content: center !important; gap: 4px !important;
+}
+.topbar.topbar-hamburger .topbar-nav-group a > span,
+.topbar.topbar-hamburger .topbar-nav-group button > span {
+  max-width: 120px !important; opacity: 1 !important;
+}
+.topbar.topbar-hamburger .topbar-nav-group a,
+.topbar.topbar-hamburger .topbar-nav-group button {
+  padding: 6px 10px !important; gap: 6px !important;
+}
+.topbar.topbar-hamburger .topbar-action-group {
+  width: 100% !important; justify-content: center !important;
+}
+.topbar.topbar-hamburger .topbar-profile-group {
+  width: 100%; justify-content: center !important;
+}
+.topbar.topbar-hamburger .user-name-label { display: inline !important; }
+
+/* ≤767px always triggers hamburger via CSS */
 @media (max-width: 767px) {
   .hamburger-btn {
     display: flex !important;
@@ -907,9 +946,7 @@ img {
     height: 40px;
     flex-shrink: 0;
   }
-  .topbar {
-    align-items: center !important;
-  }
+  .topbar { align-items: center !important; }
   .topbar-menu {
     display: none !important;
     flex-direction: column !important;
@@ -917,49 +954,32 @@ img {
     flex: none !important;
     gap: 8px !important;
     padding: 12px 0 8px !important;
-    border-top: 1px solid var(--border-color);
     margin-top: 8px;
   }
-  .topbar-menu.open {
-    display: flex !important;
-  }
+  .topbar-menu.open { display: flex !important; }
   .topbar-nav-group {
-    width: 100%;
-    justify-content: center !important;
-    gap: 4px !important;
+    width: 100%; justify-content: center !important; gap: 4px !important;
   }
   .topbar-nav-group a > span,
   .topbar-nav-group button > span {
-    max-width: 120px !important;
-    opacity: 1 !important;
+    max-width: 120px !important; opacity: 1 !important;
   }
   .topbar-nav-group a,
   .topbar-nav-group button {
-    padding: 6px 10px !important;
-    gap: 6px !important;
+    padding: 6px 10px !important; gap: 6px !important;
   }
   .topbar-action-group {
-    width: 100% !important;
-    justify-content: center !important;
-    order: unset !important;
-    margin-top: 0 !important;
+    width: 100% !important; justify-content: center !important;
   }
   .topbar-profile-group {
-    width: 100%;
-    justify-content: center !important;
+    width: 100%; justify-content: center !important;
   }
   .user-name-label { display: inline !important; }
 }
 
-/* Menu: visible on tablet+, hamburger-controlled on mobile */
-@media (min-width: 768px) {
-  .topbar-menu {
-    display: flex !important;
-  }
-}
-
-/* Menu base: flex row, wraps between logo line and menu line */
+/* Menu: visible when not in hamburger mode */
 .topbar-menu {
+  display: flex;
   flex: 1 1 0%;
   flex-wrap: nowrap !important;
   align-items: center !important;
@@ -1011,39 +1031,12 @@ img {
   gap: 0 !important;
 }
 
-/* ── Wrapped state (JS toggles .topbar-wrapped on .topbar-menu) ── */
-/* Menu drops to line 2 as a single row below the logo */
-.topbar-menu.topbar-wrapped {
-  flex: 0 0 100% !important;
-  justify-content: flex-end !important;
-  margin-top: 2px !important;
-}
-/* Wrapped always implies compact labels */
-.topbar-menu.topbar-wrapped .topbar-nav-group a > span,
-.topbar-menu.topbar-wrapped .topbar-nav-group button > span {
-  max-width: 0 !important;
-  opacity: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-.topbar-menu.topbar-wrapped .user-name-label {
-  display: none !important;
-}
-.topbar-menu.topbar-wrapped .topbar-nav-group a,
-.topbar-menu.topbar-wrapped .topbar-nav-group button {
-  padding: 0 6px !important;
-  gap: 0 !important;
-}
-.topbar-menu.topbar-wrapped .topbar-profile-group {
-  gap: 4px !important;
-}
-
 /* ====================================================
    Topbar fluid adjustments
    ==================================================== */
 .topbar {
   align-items: center !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 2rem) !important;
 }
 .page-title {
