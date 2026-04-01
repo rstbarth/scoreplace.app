@@ -168,10 +168,4 @@
   }
 }
 
-/* Prevent horizontal scroll on small screens */
-@media (max-width: 767px) {
-  body,
-  html {
-    overflow-x: hidden;
-  }
-}
+/* overflow-x:hidden removed — breaks position:sticky on topbar */
