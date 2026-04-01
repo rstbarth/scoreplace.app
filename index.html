@@ -20,9 +20,9 @@
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/layout.css?v=0.3.12-alpha">
+  <link rel="stylesheet" href="css/layout.css?v=0.3.13-alpha">
   <link rel="stylesheet" href="css/bracket.css">
-  <link rel="stylesheet" href="css/responsive.css?v=0.3.12-alpha">
+  <link rel="stylesheet" href="css/responsive.css?v=0.3.13-alpha">
   
   <style>
      /* Sobrescrevendo layout antigo que dependia de Sidebar e forcando grid apertado e centralizado */
@@ -75,10 +75,12 @@
              <button class="hover-lift" title="Ajuda" style="border: none; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: transparent; transition: background 0.2s; font-size: 1.2rem; font-weight: 700;" onmouseover="this.style.background='rgba(150,150,150,0.12)'" onmouseout="this.style.background='transparent'" onclick="if(typeof openModal==='function')openModal('modal-help');">
                 ?
              </button>
+             <!-- Login/Perfil na linha de navegação -->
+             <button class="btn btn-outline" id="btn-login" style="font-size: 0.82rem; padding: 0 16px; height: 38px;" aria-label="Fazer login com Google">Login</button>
            </div>
 
-           <!-- Grupo 2: Ações (quebra para 2a linha quando não cabe) -->
-           <div class="topbar-action-group" style="display: flex; align-items: center; gap: 18px;">
+           <!-- Grupo 2: Ações — Apoie, Pro, Visão (quebra para 2a linha quando não cabe) -->
+           <div class="topbar-action-group" style="display: flex; align-items: center; gap: 9px;">
              <button id="btn-support-pix" class="btn hover-lift" title="Apoie o projeto" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px;" onclick="window._showSupportModal()">
                 💚 Apoie
              </button>
@@ -90,7 +92,6 @@
                   👁️ <span style="font-weight:600;">Organizador</span>
                </button>
              </div>
-             <button class="btn btn-outline" id="btn-login" style="font-size: 0.82rem; padding: 0 16px; height: 38px;" aria-label="Fazer login com Google">Login</button>
            </div>
         </nav>
       </header>
@@ -107,30 +108,30 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
 
-  <script src="js/store.js?v=0.3.12-alpha"></script>
-  <script src="js/firebase-db.js?v=0.3.12-alpha"></script>
-  <script src="js/notifications.js?v=0.3.12-alpha"></script>
-  <script src="js/ui.js?v=0.3.12-alpha"></script>
-  <script src="js/views/dashboard.js?v=0.3.12-alpha"></script>
-  <script src="js/views/tournaments-utils.js?v=0.3.12-alpha"></script>
-  <script src="js/views/tournaments-sharing.js?v=0.3.12-alpha"></script>
-  <script src="js/views/tournaments-analytics.js?v=0.3.12-alpha"></script>
-  <script src="js/views/tournaments-organizer.js?v=0.3.12-alpha"></script>
-  <script src="js/views/tournaments.js?v=0.3.12-alpha"></script>
-  <script src="js/views/create-tournament.js?v=0.3.12-alpha"></script>
-  <script src="js/views/pre-draw.js?v=0.3.12-alpha"></script>
-  <script src="js/views/bracket-logic.js?v=0.3.12-alpha"></script>
-  <script src="js/views/bracket.js?v=0.3.12-alpha"></script>
-  <script src="js/views/bracket-ui.js?v=0.3.12-alpha"></script>
-  <script src="js/views/participants.js?v=0.3.12-alpha"></script>
-  <script src="js/views/rules.js?v=0.3.12-alpha"></script>
-  <script src="js/views/explore.js?v=0.3.12-alpha"></script>
-  <script src="js/views/notifications-view.js?v=0.3.12-alpha"></script>
-  <script src="js/views/auth.js?v=0.3.12-alpha"></script>
-  <script src="js/views/result-modal.js?v=0.3.12-alpha"></script>
-  <script src="js/views/enroll-modal.js?v=0.3.12-alpha"></script>
-  <script src="js/router.js?v=0.3.12-alpha"></script>
-  <script src="js/main.js?v=0.3.12-alpha"></script>
+  <script src="js/store.js?v=0.3.13-alpha"></script>
+  <script src="js/firebase-db.js?v=0.3.13-alpha"></script>
+  <script src="js/notifications.js?v=0.3.13-alpha"></script>
+  <script src="js/ui.js?v=0.3.13-alpha"></script>
+  <script src="js/views/dashboard.js?v=0.3.13-alpha"></script>
+  <script src="js/views/tournaments-utils.js?v=0.3.13-alpha"></script>
+  <script src="js/views/tournaments-sharing.js?v=0.3.13-alpha"></script>
+  <script src="js/views/tournaments-analytics.js?v=0.3.13-alpha"></script>
+  <script src="js/views/tournaments-organizer.js?v=0.3.13-alpha"></script>
+  <script src="js/views/tournaments.js?v=0.3.13-alpha"></script>
+  <script src="js/views/create-tournament.js?v=0.3.13-alpha"></script>
+  <script src="js/views/pre-draw.js?v=0.3.13-alpha"></script>
+  <script src="js/views/bracket-logic.js?v=0.3.13-alpha"></script>
+  <script src="js/views/bracket.js?v=0.3.13-alpha"></script>
+  <script src="js/views/bracket-ui.js?v=0.3.13-alpha"></script>
+  <script src="js/views/participants.js?v=0.3.13-alpha"></script>
+  <script src="js/views/rules.js?v=0.3.13-alpha"></script>
+  <script src="js/views/explore.js?v=0.3.13-alpha"></script>
+  <script src="js/views/notifications-view.js?v=0.3.13-alpha"></script>
+  <script src="js/views/auth.js?v=0.3.13-alpha"></script>
+  <script src="js/views/result-modal.js?v=0.3.13-alpha"></script>
+  <script src="js/views/enroll-modal.js?v=0.3.13-alpha"></script>
+  <script src="js/router.js?v=0.3.13-alpha"></script>
+  <script src="js/main.js?v=0.3.13-alpha"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
