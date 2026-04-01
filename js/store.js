@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.3.3-alpha';
+window.SCOREPLACE_VERSION = '0.3.4-alpha';
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';

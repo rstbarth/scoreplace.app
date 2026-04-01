@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Consistência Visual</b> — Todos os botões agora são 100% sólidos (sem transparência), exceto Add Bot e Apagar. Botões da topbar (Apoie, Pro, Visão Organizador) convertidos para o padrão sólido. Novo sistema de classes CSS: info-pill (badges de status com borda lateral colorida), info-box (agrupamento de detalhes), stat-box (estatísticas de inscritos/equipes). Aplicado consistentemente em dashboard e detalhes do torneio.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Padronização Visual de Botões</b> — Sistema unificado de botões com classes CSS reutilizáveis (btn-primary, btn-success, btn-warning, btn-danger, btn-tool, etc). Todos os botões agora têm border-radius, font-size, padding e peso de fonte consistentes. Cores sólidas em todo o app (exceto Add Bot e Apagar que mantêm transparência). Efeito hover-lift implementado no CSS. Mais de 200 botões padronizados em 10+ arquivos.</p>' +
         '</div>' +
