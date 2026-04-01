@@ -88,6 +88,8 @@
   flex-wrap: wrap;
   overflow: visible;
   gap: 4px;
+  position: relative;
+  z-index: 50;
 }
 
 .page-title {
