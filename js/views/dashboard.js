@@ -630,12 +630,6 @@ function renderDashboard(container) {
         <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
           + Novo Torneio
         </button>
-        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <button class="btn hover-lift" style="background:#047857; color:#fff; border:1px solid rgba(255,255,255,0.3); padding:8px 16px;" onclick="if(typeof window._showSupportModal==='function')window._showSupportModal()">
-            💚 Apoie
-          </button>
-          ${!(window._isPro && window._isPro()) ? '<button class="btn hover-lift" style="background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:8px 16px;" onclick="if(typeof window._showUpgradeModal===\'function\')window._showUpgradeModal()">🚀 Pro</button>' : ''}
-        </div>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
