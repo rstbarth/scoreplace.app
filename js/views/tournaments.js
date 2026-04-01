@@ -5402,13 +5402,13 @@ function renderTournaments(container, tournamentId = null) {
                 }
             } else if (isLigaFormat && t.drawManual) {
                 sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
-                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-ghost hover-lift" style="color: #fbbf24;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
                 if (hasDraw) {
                     sortearBtn = `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
                 }
             } else {
                 sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
-                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-ghost hover-lift" style="color: #fbbf24;" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
+                sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
             }
         }
 
@@ -5826,17 +5826,17 @@ function renderTournaments(container, tournamentId = null) {
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.12);">
               <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">Ferramentas do Organizador</div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                ${hasDraw ? `<button class="btn btn-tool hover-lift" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
+                ${hasDraw ? `<button class="btn btn-primary hover-lift" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="btn btn-purple hover-lift" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar</button>` : ''}
                 ${addParticipantBtns}
                 ${t.status !== 'closed' ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
+                ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
+                ${window.AppStore.currentUser ? `<button class="btn btn-tool-purple hover-lift" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
+                ${categoriasBtn}
                 ${toggleRegBtn}
                 ${sortearBtn}
                 ${sortearAberto}
-                ${categoriasBtn}
-                ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
-                ${window.AppStore.currentUser ? `<button class="btn btn-tool-purple hover-lift" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="btn btn-tool hover-lift" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="btn btn-tool-indigo hover-lift" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar</button>` : ''}
                 ${(!isFinished && hasDraw) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
                 <button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>
               </div>
