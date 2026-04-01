@@ -1,8 +1,11 @@
-window.SCOREPLACE_VERSION = '0.3.21-alpha';
+window.SCOREPLACE_VERSION = '0.3.22-alpha';
 
-// ─── Topbar wrap detection ──────────────────────────────────────────────────
-// When menu items don't fit on 1 line, swap profile before action-group
-// so profile stays with nav icons (line 1) and action buttons go to line 2
+// ─── Topbar progressive compaction ─────────────────────────────────────────
+// 3 states managed by JS:
+//   1. Full labels visible (no class)
+//   2. .topbar-compact — hide nav text labels, still 1 line
+//   3. .topbar-wrapped — 2 lines (nav+profile / action)
+// Measures actual layout to decide which state fits.
 window._checkTopbarWrap = function() {
   var menu = document.querySelector('.topbar-menu');
   if (!menu || getComputedStyle(menu).display === 'none') return;
@@ -10,19 +13,43 @@ window._checkTopbarWrap = function() {
   var action = menu.querySelector('.topbar-action-group');
   var profile = menu.querySelector('.topbar-profile-group');
   if (!nav || !action || !profile) return;
-  // Temporarily remove wrapped class to measure natural layout
-  menu.classList.remove('topbar-wrapped');
-  // Check if profile is on a different row than nav (means wrapping occurred)
-  requestAnimationFrame(function() {
+
+  // Helper: check if any group wraps to a second row
+  function isWrapping() {
     var navTop = nav.getBoundingClientRect().top;
-    var profileTop = profile.getBoundingClientRect().top;
-    if (profileTop > navTop + 5) {
-      menu.classList.add('topbar-wrapped');
+    var items = [action, profile];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getBoundingClientRect().top > navTop + 5) return true;
     }
+    return false;
+  }
+
+  // Step 1: Try full labels (remove both classes)
+  menu.classList.remove('topbar-compact', 'topbar-wrapped');
+
+  requestAnimationFrame(function() {
+    if (!isWrapping()) return; // Everything fits with labels — done
+
+    // Step 2: Try compact (hide labels, still aim for 1 line)
+    menu.classList.add('topbar-compact');
+
+    requestAnimationFrame(function() {
+      if (!isWrapping()) return; // Fits without labels on 1 line — done
+
+      // Step 3: Need 2-line layout
+      menu.classList.remove('topbar-compact');
+      menu.classList.add('topbar-wrapped');
+    });
   });
 };
-window.addEventListener('resize', function() { window._checkTopbarWrap(); });
-window.addEventListener('load', function() { setTimeout(window._checkTopbarWrap, 300); });
+(function() {
+  var _wrapTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(_wrapTimer);
+    _wrapTimer = setTimeout(window._checkTopbarWrap, 60);
+  });
+  window.addEventListener('load', function() { setTimeout(window._checkTopbarWrap, 300); });
+})();
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';
