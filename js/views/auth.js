@@ -699,7 +699,7 @@ async function simulateLoginSuccess(user) {
   // Set view mode to organizer
   window.AppStore.viewMode = 'organizer';
   var viewModeBtn = document.getElementById('view-mode-selector');
-  if (viewModeBtn) viewModeBtn.innerHTML = '👁️ <span style="font-weight:600;">Organizador</span>';
+  if (viewModeBtn) viewModeBtn.innerHTML = '👁️ <span style="font-weight:600;">' + (window.innerWidth <= 767 ? 'Org.' : 'Organizador') + '</span>';
 
   // Update visibility of view mode selector
   if (typeof window.updateViewModeVisibility === 'function') {
