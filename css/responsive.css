@@ -1010,7 +1010,7 @@ img {
     flex-direction: row !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
-    gap: 12px !important;
+    gap: 6px !important;
   }
   /* Icon-only compact buttons (nav group only) */
   .topbar-nav-group a,
@@ -1061,12 +1061,12 @@ img {
     display: inline !important;
     font-size: 0.75rem !important;
   }
-  /* Login button — same height as action group */
+  /* Login/Perfil — now in nav-group, keep compact */
   #btn-login {
     font-size: 0.8rem !important;
-    padding: 0 14px !important;
-    height: 36px !important;
-    min-height: 36px !important;
+    padding: 0 10px !important;
+    height: 38px !important;
+    min-height: 38px !important;
   }
   #btn-login.d-flex {
     display: flex !important;
