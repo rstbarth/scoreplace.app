@@ -278,99 +278,7 @@
    ==================================================== */
 
 @media (min-width: 768px) and (max-width: 1199px) {
-  /* Tablet: hamburger menu like mobile */
-  .topbar {
-    height: auto;
-    min-height: 56px;
-    padding: 0.5rem 1rem;
-    flex-wrap: wrap;
-    overflow: visible;
-    position: relative;
-    gap: 4px;
-  }
-
-  .hamburger-btn {
-    display: flex !important;
-  }
-
-  .page-title {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  .page-title h1 {
-    font-size: 1.3rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Menu hidden by default, vertical dropdown when open */
-  .topbar-menu {
-    display: none !important;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: 0;
-    background: var(--bg-darker);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
-    gap: 4px;
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  }
-
-  .topbar-menu.open {
-    display: flex !important;
-  }
-
-  .topbar-nav-group,
-  .topbar-action-group,
-  .topbar-profile-group {
-    flex-direction: column !important;
-    flex-wrap: wrap !important;
-    width: 100% !important;
-    gap: 4px !important;
-  }
-  /* In tablet hamburger: nav first, then profile, then actions */
-  .topbar-nav-group { order: 1 !important; }
-  .topbar-profile-group { order: 2 !important; }
-  .topbar-action-group { order: 3 !important; }
-
-  .topbar-menu a,
-  .topbar-menu button,
-  .topbar-menu > div:not(.topbar-nav-group):not(.topbar-action-group) {
-    width: 100%;
-    justify-content: flex-start !important;
-    border-radius: 8px !important;
-    padding: 10px 12px !important;
-  }
-
-  .topbar-menu a:hover,
-  .topbar-menu button:hover {
-    background: rgba(255,255,255,0.06) !important;
-  }
-
-  /* Hide the separator line */
-  .topbar-menu > div[style*="width: 1px"] {
-    display: none !important;
-  }
-
-  /* Hide user name on tablet to save space */
-  .user-name-label {
-    display: none !important;
-  }
-
-  /* View mode — inline, same height as other buttons */
-  #view-mode-selector {
-    white-space: nowrap !important;
-    padding: 8px 14px !important;
-    height: auto !important;
-  }
-  #view-mode-selector span {
-    display: inline !important;
-  }
+  /* Tablet: same 2-line layout, handled by <1200px rule above */
 
   /* Dashboard cards - 2+1 or 3 columns */
   .dashboard-cards {
@@ -970,50 +878,84 @@ img {
 }
 
 /* ====================================================
-   TOPBAR — all breakpoints: max 2 lines, groups never wrap internally
+   TOPBAR — ALWAYS 1 or 2 lines, NEVER more
+   No hamburger. Menu always visible.
+   1 line: nav, action, profile (text labels visible)
+   2 lines: line1 = icons (nav+profile), line2 = buttons (action)
    ==================================================== */
-/* Nav group: icons always on same line */
-.topbar-nav-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap !important;
-  flex-shrink: 1;
-  min-width: 0;
-}
-/* topbar-menu wraps between groups */
-.topbar-menu {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-/* Action group: Apoie/Pro/Visão always on same line */
-.topbar-action-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap !important;
-  flex-shrink: 0;
-}
-/* Profile group: Perfil/Login + Logoff */
+
+/* Groups: never wrap internally */
+.topbar-nav-group,
+.topbar-action-group,
 .topbar-profile-group {
   display: flex;
   align-items: center;
   flex-wrap: nowrap !important;
-  flex-shrink: 0;
+}
+.topbar-nav-group { flex-shrink: 1; min-width: 0; }
+.topbar-action-group { flex-shrink: 0; }
+.topbar-profile-group { flex-shrink: 0; }
+
+/* Hamburger: ALWAYS hidden */
+.hamburger-btn { display: none !important; }
+
+/* Menu: ALWAYS visible, wraps between groups */
+.topbar-menu {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-/* ── Wrapped state: profile moves before action (JS toggles .topbar-wrapped) ── */
-/* Default (1 line): nav(0), action(0), profile(0) → source order: nav, action, profile */
-/* Wrapped (2 lines): profile goes to line 1 with nav, action goes to line 2 */
+/* ── Wrapped state (JS toggles .topbar-wrapped) ── */
+/* Default (1 line): source order nav, action, profile */
+/* Wrapped (2 lines): reorder so nav+profile = line1, action = line2 */
 .topbar-wrapped .topbar-nav-group { order: 1; }
 .topbar-wrapped .topbar-profile-group { order: 2; }
-.topbar-wrapped .topbar-action-group { order: 3; }
+.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: center; margin-top: 4px; }
+
+/* Wrapped: hide nav text labels, show icon-only */
+.topbar-wrapped .topbar-nav-group a > span,
+.topbar-wrapped .topbar-nav-group button > span {
+  display: none !important;
+}
+.topbar-wrapped .user-name-label {
+  display: none !important;
+}
+/* Wrapped: compact nav items */
+.topbar-wrapped .topbar-nav-group a,
+.topbar-wrapped .topbar-nav-group button {
+  padding: 0 6px !important;
+}
+/* Wrapped: compact profile */
+.topbar-wrapped .topbar-profile-group {
+  gap: 4px !important;
+}
+/* Wrapped: action buttons uniform */
+.topbar-wrapped .topbar-action-group button {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 12px !important;
+}
+/* Wrapped: view mode */
+.topbar-wrapped #view-mode-selector {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  white-space: nowrap !important;
+}
+.topbar-wrapped #view-mode-selector span {
+  display: inline !important;
+  font-size: 0.75rem !important;
+}
 
 /* ====================================================
-   MOBILE TOPBAR — hamburger + horizontal icon row
+   MOBILE / TABLET overrides (<1200px)
    ==================================================== */
-@media (max-width: 767px) {
-  .hamburger-btn {
-    display: flex !important;
-  }
+@media (max-width: 1199px) {
   .topbar {
     height: auto !important;
     min-height: 50px;
@@ -1040,49 +982,29 @@ img {
     height: 22px !important;
     flex-shrink: 0;
   }
-  /* Menu hidden, opens as horizontal icon row on second line */
+  /* Menu always visible, 2-line layout */
   .topbar-menu {
-    display: none !important;
-    width: 100%;
-    order: 10;
-  }
-  .topbar-menu.open {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 2px;
-    flex-wrap: wrap;
-    justify-content: center;
+    width: 100% !important;
     padding-top: 6px;
     border-top: 1px solid var(--border-color);
     margin-top: 4px;
-  }
-  /* Groups flow horizontally on mobile — never wrap internally */
-  .topbar-nav-group {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    justify-content: center !important;
-    gap: 2px !important;
-    width: 100% !important;
-    order: 1 !important;
-  }
-  .topbar-profile-group {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    justify-content: center !important;
     gap: 4px !important;
-    order: 2 !important;
   }
+  /* Force wrapped mode below 1200px */
+  .topbar-nav-group { order: 1 !important; }
+  .topbar-profile-group { order: 2 !important; gap: 4px !important; }
   .topbar-action-group {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
+    order: 3 !important;
+    width: 100% !important;
     justify-content: center !important;
     gap: 6px !important;
-    width: 100% !important;
-    margin-top: 4px;
-    order: 3 !important;
+    margin-top: 2px;
   }
-  /* Icon-only compact buttons (nav group) */
+  /* Icon-only nav items */
+  .topbar-nav-group {
+    gap: 2px !important;
+    justify-content: center !important;
+  }
   .topbar-nav-group a,
   .topbar-nav-group button {
     justify-content: center !important;
@@ -1093,17 +1015,6 @@ img {
     border-radius: 8px !important;
     flex-shrink: 0 !important;
   }
-  /* Action group buttons — uniform height */
-  .topbar-action-group button {
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 12px !important;
-  }
-  .topbar-nav-group a:hover,
-  .topbar-nav-group button:hover {
-    background: rgba(255,255,255,0.06) !important;
-  }
-  /* Hide text labels in nav group only */
   .topbar-nav-group a > span,
   .topbar-nav-group button > span {
     display: none !important;
@@ -1111,14 +1022,18 @@ img {
   .user-name-label {
     display: none !important;
   }
-  /* Separator hidden on mobile */
+  /* Action buttons uniform */
+  .topbar-action-group button {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+  }
+  /* Separator hidden */
   .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
-  /* View mode — same height as action buttons */
-  #view-mode-container {
-    margin: 0 !important;
-  }
+  /* View mode */
+  #view-mode-container { margin: 0 !important; }
   #view-mode-selector {
     display: inline-flex !important;
     align-items: center !important;
@@ -1132,7 +1047,7 @@ img {
     display: inline !important;
     font-size: 0.75rem !important;
   }
-  /* Login/Perfil — compact in profile group */
+  /* Login/Perfil */
   #btn-login {
     font-size: 0.8rem !important;
     padding: 0 8px !important;
