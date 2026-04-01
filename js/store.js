@@ -13,6 +13,14 @@ window._checkTopbarWrap = function() {
   var logo = topbar.querySelector('.page-title');
   if (!logo) return;
 
+  // Update view-mode button label (abbreviated on mobile)
+  var _vmBtn = document.getElementById('view-mode-selector');
+  if (_vmBtn && window.AppStore) {
+    var _mob = window.innerWidth <= 767;
+    var _isOrg = window.AppStore.viewMode === 'organizer';
+    _vmBtn.innerHTML = (_isOrg ? '👁️' : '👤') + ' <span style="font-weight:600;">' + (_isOrg ? (_mob ? 'Org.' : 'Organizador') : (_mob ? 'Part.' : 'Participante')) + '</span>';
+  }
+
   // Skip if ≤767px — CSS handles hamburger via media query
   if (window.innerWidth <= 767) {
     menu.classList.remove('topbar-compact');
@@ -530,7 +538,10 @@ window.AppStore = {
     this.viewMode = this.viewMode === 'organizer' ? 'participant' : 'organizer';
     var btn = document.getElementById('view-mode-selector');
     if (btn) {
-      btn.innerHTML = this.viewMode === 'organizer' ? '👁️ <span style="font-weight:600;">Organizador</span>' : '👤 <span style="font-weight:600;">Participante</span>';
+      var _mob = window.innerWidth <= 767;
+      btn.innerHTML = this.viewMode === 'organizer'
+        ? '👁️ <span style="font-weight:600;">' + (_mob ? 'Org.' : 'Organizador') + '</span>'
+        : '👤 <span style="font-weight:600;">' + (_mob ? 'Part.' : 'Participante') + '</span>';
     }
     if (typeof initRouter === 'function') initRouter();
   },
