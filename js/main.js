@@ -22,7 +22,7 @@
         '<p style="font-size:0.78rem; color:var(--text-main); line-height:1.6; margin:0;">Este aplicativo está em fase <b>Alpha</b> e pode apresentar bugs, erros e falhas inesperadas. Estamos trabalhando continuamente para melhorar a experiência. Sua paciência e feedback são fundamentais!</p>' +
         '</div>' +
         '<div style="text-align:center; margin-bottom:1rem;">' +
-        '<button onclick="(function(){' +
+        '<button class="btn btn-indigo hover-lift" onclick="(function(){' +
         "var v=window.SCOREPLACE_VERSION||'?';" +
         "var ua=navigator.userAgent;" +
         "var user=(window.AppStore&&window.AppStore.currentUser)?window.AppStore.currentUser.displayName:'(não logado)';" +
@@ -39,7 +39,7 @@
         "+'Data: '+new Date().toLocaleString('pt-BR')+'\\n'" +
         ");" +
         "window.open('mailto:scoreplace.app@gmail.com?subject='+subject+'&body='+body,'_blank');" +
-        '})()" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%); color:#fff; border:none; border-radius:10px; font-size:0.85rem; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.3); transition:all 0.2s;" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 12px rgba(99,102,241,0.4)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 2px 8px rgba(99,102,241,0.3)\'">' +
+        '})()">' +
         '<span style="font-size:1.1rem;">📩</span> Reportar Problema ou Sugestão</button>' +
         '</div>' +
         '<p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-bottom:0.5rem;">Ao clicar, será aberto seu app de e-mail com informações técnicas preenchidas automaticamente para nos ajudar a resolver mais rápido.</p>' +
@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Padronização Visual de Botões</b> — Sistema unificado de botões com classes CSS reutilizáveis (btn-primary, btn-success, btn-warning, btn-danger, btn-tool, etc). Todos os botões agora têm border-radius, font-size, padding e peso de fonte consistentes. Cores sólidas em todo o app (exceto Add Bot e Apagar que mantêm transparência). Efeito hover-lift implementado no CSS. Mais de 200 botões padronizados em 10+ arquivos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.2.42-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Março 2026)</span></div>' +
         '<p><b>Excluir Conta</b> — Opção para o usuário excluir permanentemente sua conta e todos os dados associados (perfil, notificações, inscrições, torneios organizados). Disponível no modal de perfil com dupla confirmação (digitação de "EXCLUIR"). Conformidade LGPD.</p>' +
         '</div>' +
@@ -476,7 +480,7 @@
       '<div style="padding:1.5rem 1.5rem 1rem; flex-shrink:0;">' +
         '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">' +
           '<h2 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-bright);">Central de Ajuda</h2>' +
-          '<button onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.3rem; padding:4px 8px; line-height:1;">✕</button>' +
+          '<button class="btn btn-ghost" onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" style="font-size:1.3rem; padding:4px 8px; line-height:1;">✕</button>' +
         '</div>' +
         '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%; box-sizing:border-box; padding:10px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-darker); color:var(--text-color); font-size:0.85rem; outline:none;" oninput="window._filterHelpSections(this.value)">' +
       '</div>' +
@@ -557,13 +561,13 @@
           </select>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px;">
-          <button class="btn btn-primary" id="btn-quick-create" style="width:100%; padding:0.7rem; font-weight:600; font-size:1rem;">
+          <button class="btn btn-primary btn-block" id="btn-quick-create">
             🏆 Criar Torneio
           </button>
-          <button class="btn btn-secondary" id="btn-quick-advanced" style="width:100%; padding:0.6rem;">
+          <button class="btn btn-secondary btn-block" id="btn-quick-advanced">
             ⚙️ Detalhes Avançados
           </button>
-          <button class="btn btn-secondary" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');" style="width:100%; padding:0.6rem;">
+          <button class="btn btn-secondary btn-block" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');">
             Cancelar
           </button>
         </div>

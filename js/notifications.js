@@ -141,8 +141,8 @@ window._initFCM = async function() {
   banner.innerHTML =
     '<span style="font-size:1.3rem;">🔔</span>' +
     '<span>Quer receber notificações de torneios, rodadas e resultados?</span>' +
-    '<button onclick="window._enablePushNotifications()" style="background:#fff;color:#3b82f6;border:none;padding:8px 18px;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;">Ativar Notificações</button>' +
-    '<button onclick="window._dismissFCMBanner()" style="background:transparent;color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;font-size:0.85rem;cursor:pointer;white-space:nowrap;">Agora não</button>';
+    '<button class="btn btn-sm" onclick="window._enablePushNotifications()" style="background:#fff;color:#3b82f6;">Ativar Notificações</button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="window._dismissFCMBanner()">Agora não</button>';
   document.body.appendChild(banner);
 
   // Animate in
