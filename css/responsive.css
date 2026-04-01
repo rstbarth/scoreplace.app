@@ -876,10 +876,12 @@ img {
 }
 
 /* ====================================================
-   TOPBAR — Fluid responsive, 1 or 2 lines
-   No hamburger. Menu always visible.
-   JS toggles: .topbar-compact (hide labels, still 1 line)
-               .topbar-wrapped (2 lines: nav+profile / action)
+   TOPBAR — Progressive responsive header
+   States (managed by JS _checkTopbarWrap):
+     1. Full: logo + all items with labels on 1 line
+     2. .topbar-compact: logo + all items (no labels) on 1 line
+     3. .topbar-wrapped: logo line 1, all items on line 2 (single row, no labels)
+     4. ≤767px: hamburger menu
    ==================================================== */
 
 /* Groups: never wrap internally */
@@ -957,9 +959,11 @@ img {
     display: flex !important;
   }
 }
+
+/* Menu base: flex row, wraps between logo line and menu line */
 .topbar-menu {
   flex: 1 1 0%;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: flex-end !important;
   gap: clamp(8px, 1.2vw, 16px) !important;
@@ -968,16 +972,16 @@ img {
   margin-top: 0 !important;
 }
 
-/* Nav items: tighter icon↔text, less horizontal padding */
+/* Nav items: icon↔text spacing */
 .topbar-nav-group { gap: 2px !important; }
 .topbar-nav-group a,
 .topbar-nav-group button {
   gap: 4px !important;
   padding: 6px 6px !important;
 }
-/* Action buttons: tighter group */
+/* Action buttons group */
 .topbar-action-group { gap: 6px !important; }
-/* Profile group: tight */
+/* Profile group */
 .topbar-profile-group { gap: 4px !important; }
 
 /* Nav text labels: transition for smooth hide/show */
@@ -991,77 +995,57 @@ img {
   opacity: 1;
 }
 
-/* ── Compact state (JS toggles .topbar-compact) ── */
-/* Hide nav text labels but keep everything on 1 line */
-.topbar-compact .topbar-nav-group a > span,
-.topbar-compact .topbar-nav-group button > span {
+/* ── Compact state (JS toggles .topbar-compact on .topbar-menu) ── */
+/* Hide nav text labels, keep everything on 1 line with logo */
+.topbar-menu.topbar-compact .topbar-nav-group a > span,
+.topbar-menu.topbar-compact .topbar-nav-group button > span {
   max-width: 0 !important;
   opacity: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
 }
-.topbar-compact .user-name-label {
+.topbar-menu.topbar-compact .user-name-label {
   display: none !important;
 }
-.topbar-compact .topbar-nav-group a,
-.topbar-compact .topbar-nav-group button {
+.topbar-menu.topbar-compact .topbar-nav-group a,
+.topbar-menu.topbar-compact .topbar-nav-group button {
   padding: 0 6px !important;
   gap: 0 !important;
 }
 
-/* ── Wrapped state (JS toggles .topbar-wrapped) ── */
-/* 2 lines: reorder so nav+profile = line1, action = line2 */
-.topbar-wrapped .topbar-nav-group { order: 1; }
-.topbar-wrapped .topbar-profile-group { order: 2; }
-.topbar-wrapped .topbar-action-group { order: 3; width: 100%; justify-content: flex-end; margin-top: 4px; }
-
+/* ── Wrapped state (JS toggles .topbar-wrapped on .topbar-menu) ── */
+/* Menu drops to line 2 as a single row below the logo */
+.topbar-menu.topbar-wrapped {
+  flex: 0 0 100% !important;
+  justify-content: center !important;
+  margin-top: 2px !important;
+}
 /* Wrapped always implies compact labels */
-.topbar-wrapped .topbar-nav-group a > span,
-.topbar-wrapped .topbar-nav-group button > span {
+.topbar-menu.topbar-wrapped .topbar-nav-group a > span,
+.topbar-menu.topbar-wrapped .topbar-nav-group button > span {
   max-width: 0 !important;
   opacity: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
 }
-.topbar-wrapped .user-name-label {
+.topbar-menu.topbar-wrapped .user-name-label {
   display: none !important;
 }
-/* Wrapped: compact nav items */
-.topbar-wrapped .topbar-nav-group a,
-.topbar-wrapped .topbar-nav-group button {
+.topbar-menu.topbar-wrapped .topbar-nav-group a,
+.topbar-menu.topbar-wrapped .topbar-nav-group button {
   padding: 0 6px !important;
   gap: 0 !important;
 }
-/* Wrapped: compact profile */
-.topbar-wrapped .topbar-profile-group {
+.topbar-menu.topbar-wrapped .topbar-profile-group {
   gap: 4px !important;
-}
-/* Wrapped: action buttons uniform */
-.topbar-wrapped .topbar-action-group button {
-  height: 36px !important;
-  min-height: 36px !important;
-  padding: 0 12px !important;
-}
-/* Wrapped: view mode */
-.topbar-wrapped #view-mode-selector {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  padding: 0 12px !important;
-  height: 36px !important;
-  min-height: 36px !important;
-  white-space: nowrap !important;
-}
-.topbar-wrapped #view-mode-selector span {
-  display: inline !important;
-  font-size: 0.75rem !important;
 }
 
 /* ====================================================
-   Topbar fluid adjustments at smaller widths
+   Topbar fluid adjustments
    ==================================================== */
 .topbar {
-  align-items: flex-start !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
   padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 2rem) !important;
 }
 .page-title {
