@@ -356,11 +356,19 @@
     display: none !important;
   }
 
-  /* Compact view mode selector */
+  /* View mode — preserve column layout with icon above text */
   #view-mode-selector {
-    font-size: 0.7rem !important;
-    padding: 0.3rem 0.6rem !important;
-    white-space: nowrap;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    padding: 6px 12px !important;
+    min-width: 70px !important;
+    height: auto !important;
+    line-height: 1 !important;
+  }
+  #view-mode-selector span {
+    display: inline !important;
   }
 
   /* Dashboard cards - 2+1 or 3 columns */
@@ -452,6 +460,18 @@
 
   .page-title h1 {
     font-size: 1.8rem;
+  }
+
+  /* View mode — icon above text, never truncated */
+  #view-mode-selector {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    padding: 6px 14px !important;
+    min-width: 80px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
   }
 
   /* Dashboard cards - 3 columns */
@@ -1013,9 +1033,9 @@ img {
   .topbar-menu button:hover {
     background: rgba(255,255,255,0.06) !important;
   }
-  /* Hide text labels, keep icons only */
+  /* Hide text labels, keep icons only — except view-mode-selector which has its own layout */
   .topbar-menu a > span,
-  .topbar-menu button > span:not(.user-name-label) {
+  .topbar-menu button:not(#view-mode-selector) > span:not(.user-name-label) {
     display: none !important;
   }
   .user-name-label {
@@ -1025,13 +1045,23 @@ img {
   .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
-  /* View mode compact */
+  /* View mode — preserve column layout with icon above text */
   #view-mode-container {
     margin: 0 !important;
   }
   #view-mode-selector {
-    font-size: 0.7rem !important;
-    padding: 0.25rem 0.5rem !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    padding: 6px 12px !important;
+    min-width: 70px !important;
+    height: auto !important;
+    min-height: auto !important;
+    line-height: 1 !important;
+  }
+  #view-mode-selector span {
+    display: inline !important;
   }
   /* Login button compact */
   #btn-login {
