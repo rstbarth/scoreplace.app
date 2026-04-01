@@ -450,10 +450,21 @@
     display: flex !important;
     position: static !important;
     flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
     background: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
     border-bottom: none !important;
+    gap: 4px !important;
+  }
+
+  .topbar-nav-group {
+    gap: 2px !important;
+  }
+
+  .topbar-action-group {
+    gap: 9px !important;
   }
 
   .page-title h1 {
@@ -954,21 +965,25 @@ img {
 }
 
 /* ====================================================
-   TOPBAR — all breakpoints: nav-group never wraps internally
+   TOPBAR — all breakpoints: max 2 lines, groups never wrap internally
    ==================================================== */
-/* Nav group: icons + login/profile always on same line, never wrap */
+/* Nav group: icons + login/profile always on same line */
 .topbar-nav-group {
+  display: flex;
+  align-items: center;
   flex-wrap: nowrap !important;
   flex-shrink: 1;
   min-width: 0;
 }
-/* topbar-menu wraps between nav-group and action-group */
+/* topbar-menu wraps between nav-group and action-group only */
 .topbar-menu {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
-/* Action group: Apoie/Pro/Visão also never wrap internally */
+/* Action group: Apoie/Pro/Visão always on same line */
 .topbar-action-group {
+  display: flex;
+  align-items: center;
   flex-wrap: nowrap !important;
   flex-shrink: 0;
 }
@@ -1039,21 +1054,22 @@ img {
     width: 100% !important;
     margin-top: 4px;
   }
-  /* Icon-only compact buttons (nav group only) */
+  /* Icon-only compact buttons (nav group) */
   .topbar-nav-group a,
   .topbar-nav-group button:not(#btn-login) {
     justify-content: center !important;
     width: auto !important;
-    padding: 0 8px !important;
-    height: 38px !important;
-    min-height: 38px !important;
+    padding: 0 6px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     border-radius: 8px !important;
+    flex-shrink: 0 !important;
   }
   /* Action group buttons — uniform height */
   .topbar-action-group button {
     height: 36px !important;
     min-height: 36px !important;
-    padding: 0 14px !important;
+    padding: 0 12px !important;
   }
   .topbar-nav-group a:hover,
   .topbar-nav-group button:hover {
@@ -1071,7 +1087,7 @@ img {
   .topbar-menu div[style*="width: 1px"] {
     display: none !important;
   }
-  /* View mode — same height as other action buttons */
+  /* View mode — same height as action buttons */
   #view-mode-container {
     margin: 0 !important;
   }
@@ -1079,7 +1095,7 @@ img {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    padding: 0 14px !important;
+    padding: 0 12px !important;
     height: 36px !important;
     min-height: 36px !important;
     white-space: nowrap !important;
@@ -1088,13 +1104,12 @@ img {
     display: inline !important;
     font-size: 0.75rem !important;
   }
-  /* Login/Perfil — in nav-group, compact, pushed to end */
+  /* Login/Perfil — sits right next to ? with same gap, no extra margin */
   #btn-login {
     font-size: 0.8rem !important;
-    padding: 0 10px !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    margin-left: auto !important;
+    padding: 0 8px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     flex-shrink: 0 !important;
   }
   #btn-login.d-flex {
@@ -1105,7 +1120,7 @@ img {
     gap: 2px !important;
   }
   .logoff-btn {
-    margin-left: 4px !important;
+    margin-left: 2px !important;
     flex-shrink: 0 !important;
   }
 }
