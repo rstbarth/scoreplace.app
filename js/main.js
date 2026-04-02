@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Painéis de Decisão com Nash</b> — Painéis de potência de 2 e times incompletos agora exibem indicador visual de equilíbrio de Nash em cada opção. Cores por temperatura: verde (melhor equilíbrio) → amarelo → laranja → azul (menor equilíbrio). Badge "Nash X%" em cada botão. Layout 3x2 com Enquete ao lado do Formato Suíço.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria Completa v2</b> — ~68 issues identificadas e corrigidas em 30 arquivos (~24.600 linhas auditadas). 14 CRITICAL, 22 HIGH, 18 MEDIUM, 14 LOW.</p>' +
         '<p><b>Segurança (XSS)</b> — showNotification/showConfirmDialog/showAlertDialog/showInputDialog agora sanitizam título automaticamente. ~30 onclick/oninput handlers com IDs não-escapados corrigidos em bracket.js, bracket-ui.js, tournaments-draw-prep.js, tournaments-draw.js, tournaments-organizer.js, tournaments-categories.js, main.js, auth.js, pre-draw.js, create-tournament.js. Dados da Google Places API e OpenWeather API sanitizados.</p>' +
