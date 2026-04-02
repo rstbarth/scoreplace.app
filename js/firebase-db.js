@@ -62,8 +62,16 @@ window.FirestoreDB = {
       var pEmail = participantObj.email || '';
       var pName = participantObj.displayName || participantObj.name || '';
       var already = participants.some(function(p) {
-        var str = typeof p === 'string' ? p : (p.email || p.displayName || '');
-        return str && (str.includes(pEmail) || str.includes(pName));
+        if (typeof p === 'string') {
+          return (pEmail && p === pEmail) || (pName && p === pName);
+        }
+        var pE = p.email || '';
+        var pD = p.displayName || '';
+        var pN = p.name || '';
+        var pU = p.uid || '';
+        return (pEmail && (pE === pEmail)) ||
+               (pName && (pD === pName || pN === pName)) ||
+               (participantObj.uid && pU && pU === participantObj.uid);
       });
       if (already) return { alreadyEnrolled: true, participants: participants };
 

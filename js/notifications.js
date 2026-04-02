@@ -154,8 +154,17 @@ window._initFCM = async function() {
   });
 };
 
+// Helper: sanitize text for safe innerHTML injection
+function _safeText(str) {
+  if (typeof window._safeHtml === 'function') return window._safeHtml(str);
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Sistema Global de Notificações (Toastings)
 function showNotification(title, message, type = 'info') {
+  title = _safeText(title);
+  message = _safeText(message);
   // Cria o container de toasts se não existir
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -216,6 +225,7 @@ function showNotification(title, message, type = 'info') {
 
 // Modal de Confirmação Customizado
 function showConfirmDialog(title, message, onConfirm, onCancel, options = {}) {
+  title = _safeText(title);
   const { confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'warning' } = options;
   
   let dialog = document.getElementById('custom-confirm-dialog');
@@ -309,6 +319,7 @@ function showConfirmDialog(title, message, onConfirm, onCancel, options = {}) {
 
 // Alert Customizado
 function showAlertDialog(title, message, onOk, options = {}) {
+  title = _safeText(title);
   const { okText = 'OK', type = 'info' } = options;
   
   let dialog = document.getElementById('custom-alert-dialog');
@@ -389,6 +400,7 @@ function showAlertDialog(title, message, onOk, options = {}) {
 
 // Modal de Input Customizado (substitui prompt)
 function showInputDialog(title, message, onSubmit, options = {}) {
+  title = _safeText(title);
   const { placeholder = 'Digite aqui...', okText = 'Confirmar', cancelText = 'Cancelar', defaultValue = '' } = options;
   
   let dialog = document.getElementById('custom-input-dialog');

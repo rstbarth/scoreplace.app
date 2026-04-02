@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.4.2-alpha';
+window.SCOREPLACE_VERSION = '0.4.3-alpha';
 
 // ─── Topbar progressive compaction ─────────────────────────────────────────
 // Progressive hiding order (shrinking):
@@ -297,7 +297,7 @@ window._applyThemeIcon = function(theme) {
 (function() {
   try {
     var saved = localStorage.getItem('scoreplace_theme');
-    var valid = window._themeOrder || ['dark', 'light', 'sunset', 'ocean'];
+    var valid = window._themeOrder;
     if (saved && valid.indexOf(saved) !== -1) {
       document.documentElement.setAttribute('data-theme', saved);
       var _applyIcon = function() { window._applyThemeIcon(saved); };

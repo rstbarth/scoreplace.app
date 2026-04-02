@@ -241,6 +241,14 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auditoria Completa v2</b> — ~68 issues identificadas e corrigidas em 30 arquivos (~24.600 linhas auditadas). 14 CRITICAL, 22 HIGH, 18 MEDIUM, 14 LOW.</p>' +
+        '<p><b>Segurança (XSS)</b> — showNotification/showConfirmDialog/showAlertDialog/showInputDialog agora sanitizam título automaticamente. ~30 onclick/oninput handlers com IDs não-escapados corrigidos em bracket.js, bracket-ui.js, tournaments-draw-prep.js, tournaments-draw.js, tournaments-organizer.js, tournaments-categories.js, main.js, auth.js, pre-draw.js, create-tournament.js. Dados da Google Places API e OpenWeather API sanitizados.</p>' +
+        '<p><b>Bugs Corrigidos</b> — firebase-db.js: substring matching (.includes) na verificação de duplicata de inscrição → comparação exata. dashboard.js: operador lógico sem parênteses fazia torneios Liga encerrados mostrarem "Inscrições Abertas". auth.js: race condition — flag de login limpa antes do auto-enroll executar. tournaments-categories.js: função _groupEligibleCategories estava ausente (perdida na refatoração v0.4.2). participants.js: variável isVip usada antes da declaração. tournaments.js: substring matching na detecção de participante → comparação exata. dashboard.js: displayName null causava crash.</p>' +
+        '<p><b>Memory Leaks</b> — hints.js: event listeners nos botões de balloon agora usam {once:true}. Auto-dismiss timeout limpo ao descartar manualmente. Resize/scroll listeners removidos ao desativar hints.</p>' +
+        '<p><b>Melhorias</b> — notifications-view.js: seletor DOM frágil substituído por classe CSS. rules.js: datas inválidas tratadas graciosamente. create-tournament.js: booleanos GSM salvos consistentemente como string. dashboard.js: detecção de times suporta formato objeto. store.js: fallback redundante removido.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria de Segurança</b> — ~25 vulnerabilidades XSS corrigidas em 8 arquivos (bracket.js, bracket-ui.js, explore.js, pre-draw.js, notifications-view.js, auth.js, rules.js). Todos os dados de usuário sanitizados com _safeHtml().</p>' +
         '<p><b>Bug Fixes</b> — firebase-db.js usava fromUid ao invés de toUid ao verificar pedidos de amizade mútuos (corrigido). dashboard.js truthy check em sorteioRealizado — arrays vazios não são mais tratados como sorteio realizado. dashboard.js substring matching na detecção de participante — agora usa comparação exata (email/uid/displayName). bracket-ui.js tiebreak com pontos iguais — agora valida margem e pontuação mínima.</p>' +
@@ -806,11 +814,13 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
       html += '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Torneios</div>';
       matchedTournaments.forEach(function(t) {
         var status = t.status === 'finished' ? '🏆 Encerrado' : (t.status === 'active' ? '▶ Ativo' : '📋 Aberto');
-        html += '<div onclick="window.location.hash=\'#tournaments/' + t.id + '\';window._closeQuickSearch();" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+        var _sh = window._safeHtml || function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
+        var _safeId = String(t.id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+        html += '<div onclick="window.location.hash=\'#tournaments/' + _safeId + '\';window._closeQuickSearch();" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
           '<span style="font-size:1.1rem;">🏅</span>' +
           '<div style="flex:1;overflow:hidden;">' +
-          '<div style="font-size:0.88rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (window._safeHtml ? window._safeHtml(t.name) : t.name) + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted);">' + (t.format || '') + ' — ' + (t.sport || '') + '</div>' +
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(t.name) + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);">' + _sh(t.format || '') + ' — ' + _sh(t.sport || '') + '</div>' +
           '</div>' +
           '<span style="font-size:0.65rem;color:var(--text-muted);">' + status + '</span>' +
           '</div>';

@@ -15,6 +15,7 @@
   // ── State ──────────────────────────────────────────────────────────────────
   var _idleTimer = null;
   var _cooldownTimer = null;
+  var _autoDismissTimer = null;
   var _activeHint = null;
   var _activeEl = null;
   var _onCooldown = false;
@@ -260,17 +261,17 @@
     balloon.querySelector('.hint-balloon-got-it').addEventListener('click', function(e) {
       e.stopPropagation();
       _dismissHint(true);
-    });
+    }, { once: true });
     balloon.querySelector('.hint-balloon-disable').addEventListener('click', function(e) {
       e.stopPropagation();
       _disableHints();
-    });
+    }, { once: true });
 
     // Click target = dismiss
     el.addEventListener('click', _onTargetClick, { once: true });
 
     // Auto-dismiss and queue next
-    setTimeout(function() {
+    _autoDismissTimer = setTimeout(function() {
       if (_activeHint && _activeHint.id === hint.id) _dismissHint(true);
     }, HINT_DISPLAY_TIME);
 
@@ -402,6 +403,10 @@
     if (!_activeHint) return;
     var hintId = _activeHint.id;
 
+    // Clear auto-dismiss timer
+    clearTimeout(_autoDismissTimer);
+    _autoDismissTimer = null;
+
     // Remove glow
     if (_activeEl) {
       _activeEl.classList.remove('hint-glow');
@@ -437,6 +442,8 @@
     _dismissHint(false);
     try { localStorage.setItem(LS_DISABLED_KEY, '1'); } catch (e) {}
     _stopIdleWatch();
+    window.removeEventListener('resize', _repositionActiveBalloon);
+    window.removeEventListener('scroll', _repositionActiveBalloon);
     if (typeof showNotification === 'function') {
       showNotification('Dicas Desativadas', 'Você pode reativar nas configurações do perfil.', 'info');
     }
@@ -444,6 +451,8 @@
 
   function _enableHints() {
     try { localStorage.removeItem(LS_DISABLED_KEY); } catch (e) {}
+    window.addEventListener('resize', _repositionActiveBalloon, { passive: true });
+    window.addEventListener('scroll', _repositionActiveBalloon, { passive: true });
     _startIdleWatch();
     if (typeof showNotification === 'function') {
       showNotification('Dicas Ativadas', 'Dicas visuais aparecerão após alguns segundos de inatividade.', 'info');
