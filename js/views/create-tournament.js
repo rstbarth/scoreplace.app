@@ -373,12 +373,12 @@ function setupCreateTournamentModal() {
 
               <!-- Game Set Match Config -->
               <div id="gsm-section" style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div style="flex:1;">
                     <p style="margin: 0; font-size: 0.8rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">🎾 Sistema de Pontuação</p>
-                    <div id="gsm-summary" style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">Placar simples (padrão)</div>
+                    <div id="gsm-summary" style="font-size:0.82rem;color:var(--text-main);margin-top:6px;line-height:1.5;"></div>
                   </div>
-                  <button type="button" id="btn-gsm-config" onclick="window._openGSMConfig()" class="btn btn-purple btn-sm">Configurar</button>
+                  <button type="button" id="btn-gsm-config" onclick="window._openGSMConfig()" class="btn btn-purple btn-sm" style="margin-left:12px;white-space:nowrap;">Alterar</button>
                 </div>
                 <!-- Hidden fields to store config -->
                 <input type="hidden" id="gsm-type" value="simple">
@@ -393,7 +393,7 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="gsm-advantageRule" value="false">
               </div>
 
-              <!-- Inscrição e Limite -->
+              <!-- Inscrição, Limite e Time -->
               <div class="d-flex gap-2 mb-3">
                 <div class="form-group full-width">
                   <label class="form-label">Máx. Participantes</label>
@@ -407,17 +407,9 @@ function setupCreateTournamentModal() {
                     <option value="misto">Misto (Individual e Times)</option>
                   </select>
                 </div>
-              </div>
-
-              <!-- Tamanho do Time (aparece quando modo != individual) -->
-              <div id="team-size-container" style="display:none;" class="mb-3">
-                <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:1rem;">
-                  <p style="margin:0 0 0.5rem;font-size:0.8rem;color:#a78bfa;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Configuração de Times</p>
-                  <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label">Jogadores por Time</label>
-                    <input type="number" class="form-control" id="tourn-team-size" min="2" max="11" value="2" placeholder="Ex: 2 para duplas, 5 para quintetos">
-                    <small class="text-muted" style="display:block;margin-top:4px;">2 = duplas, 3 = trios, 5 = quintetos, etc.</small>
-                  </div>
+                <div class="form-group" id="team-size-container" style="display:none;min-width:70px;max-width:90px;">
+                  <label class="form-label">Por Time</label>
+                  <input type="number" class="form-control" id="tourn-team-size" min="2" max="11" value="2" style="text-align:center;">
                 </div>
               </div>
 
@@ -495,13 +487,6 @@ function setupCreateTournamentModal() {
                   <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Qualidade das Vitórias <small style="opacity:0.5; font-size:0.75rem;">(Sonneborn-Berger)</small></li>
                   <li draggable="true" data-tb="sorteio" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Sorteio</li>
                 </ul>
-              </div>
-
-              <!-- Categorias -->
-              <div class="form-group mb-3">
-                <label class="form-label">Categorias (Opcional — separe por vírgula)</label>
-                <input type="text" class="form-control" id="tourn-categories" placeholder="Ex: A, B, C, D, FUN">
-                <small class="text-muted mt-1" style="display:block;">Deixe em branco para torneio Categoria Única. FUN = iniciantes.</small>
               </div>
 
             </form>
@@ -1997,7 +1982,6 @@ function setupCreateTournamentModal() {
     window._onInscricaoChange();
     document.getElementById('tourn-max-participants').value = t.maxParticipants || '';
     document.getElementById('tourn-auto-close').checked = !!t.autoCloseOnFull;
-    document.getElementById('tourn-categories').value = t.categories ? t.categories.join(', ') : '';
     document.getElementById('tourn-public').checked = t.isPublic !== false;
     document.getElementById('select-result-entry').value = t.resultEntry || 'organizer';
 
@@ -2068,17 +2052,8 @@ function setupCreateTournamentModal() {
       document.getElementById('gsm-superTiebreakPoints').value = t.scoring.superTiebreakPoints || 10;
       document.getElementById('gsm-countingType').value = t.scoring.countingType || 'numeric';
       document.getElementById('gsm-advantageRule').value = t.scoring.advantageRule || false;
-      // Update summary display
-      var _gs = document.getElementById('gsm-summary');
-      if (_gs) {
-        if (t.scoring.type === 'sets') {
-          var _s = t.scoring.setsToWin || 1;
-          var _g = t.scoring.gamesPerSet || 6;
-          _gs.textContent = 'Melhor de ' + (_s*2-1) + ' sets (' + _g + ' games/set' + (t.scoring.tiebreakEnabled ? ' + tie-break' : '') + ')';
-        } else {
-          _gs.textContent = 'Placar simples (padrão)';
-        }
-      }
+      // Update detailed summary display
+      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
     }
 
     // Suíço
@@ -2201,7 +2176,6 @@ function setupCreateTournamentModal() {
         const regDateVal = regTimeRaw ? regDateRaw + 'T' + regTimeRaw : regDateRaw;
         const enrollmentVal = document.getElementById('select-inscricao').value || 'individual';
         const teamSizeVal = parseInt(document.getElementById('tourn-team-size').value) || 1;
-        const categoriesVal = document.getElementById('tourn-categories').value.split(',').map(c => c.trim()).filter(c => c);
         const maxPartsVal = parseInt(document.getElementById('tourn-max-participants').value) || null;
         const autoCloseVal = document.getElementById('tourn-auto-close').checked;
         const resultEntryVal = document.getElementById('select-result-entry').value || 'organizer';
@@ -2252,7 +2226,6 @@ function setupCreateTournamentModal() {
           registrationLimit: regDateVal,
           enrollmentMode: enrollmentVal,
           teamSize: teamSizeVal,
-          categories: categoriesVal,
           maxParticipants: maxPartsVal,
           autoCloseOnFull: autoCloseVal,
           resultEntry: resultEntryVal,
@@ -2451,8 +2424,8 @@ window._openGSMConfig = function() {
       '<div>' +
         '<label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Tipo de Placar</label>' +
         '<div style="display:flex;gap:8px;">' +
-          '<button type="button" onclick="window._gsmSetType(\'simple\')" id="gsm-btn-simple" class="btn btn-sm" style="flex:1;' + (type === 'simple' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Simples</button>' +
-          '<button type="button" onclick="window._gsmSetType(\'sets\')" id="gsm-btn-sets" class="btn btn-sm" style="flex:1;' + (type === 'sets' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Avançado</button>' +
+          '<button type="button" onclick="window._gsmSetType(\'simple\')" id="gsm-btn-simple" class="btn btn-sm" style="flex:1;' + (type === 'simple' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Simples</button>' +
+          '<button type="button" onclick="window._gsmSetType(\'sets\')" id="gsm-btn-sets" class="btn btn-sm" style="flex:1;' + (type === 'sets' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Avançado</button>' +
         '</div>' +
       '</div>' +
 
@@ -2478,8 +2451,8 @@ window._openGSMConfig = function() {
         '<div>' +
           '<label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;display:block;margin-bottom:4px;">Contagem de pontos</label>' +
           '<div style="display:flex;gap:8px;">' +
-            '<button type="button" onclick="window._gsmSetCounting(\'numeric\')" id="gsm-btn-numeric" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'numeric' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Numérica (1, 2, 3...)</button>' +
-            '<button type="button" onclick="window._gsmSetCounting(\'tennis\')" id="gsm-btn-tennis" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'tennis' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Tênis (15, 30, 40)</button>' +
+            '<button type="button" onclick="window._gsmSetCounting(\'numeric\')" id="gsm-btn-numeric" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'numeric' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Numérica (1, 2, 3...)</button>' +
+            '<button type="button" onclick="window._gsmSetCounting(\'tennis\')" id="gsm-btn-tennis" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'tennis' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Tênis (15, 30, 40)</button>' +
           '</div>' +
         '</div>' +
 
@@ -2543,20 +2516,24 @@ window._openGSMConfig = function() {
 };
 
 window._gsmSetType = function(type) {
-  document.getElementById('gsm-btn-simple').style.background = type === 'simple' ? '#a855f7' : '';
-  document.getElementById('gsm-btn-simple').style.color = type === 'simple' ? '#fff' : '';
-  document.getElementById('gsm-btn-sets').style.background = type === 'sets' ? '#a855f7' : '';
-  document.getElementById('gsm-btn-sets').style.color = type === 'sets' ? '#fff' : '';
+  var unselBg = 'rgba(255,255,255,0.08)';
+  var unselColor = 'var(--text-main, #e2e8f0)';
+  document.getElementById('gsm-btn-simple').style.background = type === 'simple' ? '#a855f7' : unselBg;
+  document.getElementById('gsm-btn-simple').style.color = type === 'simple' ? '#fff' : unselColor;
+  document.getElementById('gsm-btn-sets').style.background = type === 'sets' ? '#a855f7' : unselBg;
+  document.getElementById('gsm-btn-sets').style.color = type === 'sets' ? '#fff' : unselColor;
   document.getElementById('gsm-sets-config').style.display = type === 'sets' ? 'flex' : 'none';
   document.getElementById('gsm-type').value = type;
   window._gsmUpdateSummary();
 };
 
 window._gsmSetCounting = function(ct) {
-  document.getElementById('gsm-btn-numeric').style.background = ct === 'numeric' ? '#a855f7' : '';
-  document.getElementById('gsm-btn-numeric').style.color = ct === 'numeric' ? '#fff' : '';
-  document.getElementById('gsm-btn-tennis').style.background = ct === 'tennis' ? '#a855f7' : '';
-  document.getElementById('gsm-btn-tennis').style.color = ct === 'tennis' ? '#fff' : '';
+  var unselBg = 'rgba(255,255,255,0.08)';
+  var unselColor = 'var(--text-main, #e2e8f0)';
+  document.getElementById('gsm-btn-numeric').style.background = ct === 'numeric' ? '#a855f7' : unselBg;
+  document.getElementById('gsm-btn-numeric').style.color = ct === 'numeric' ? '#fff' : unselColor;
+  document.getElementById('gsm-btn-tennis').style.background = ct === 'tennis' ? '#a855f7' : unselBg;
+  document.getElementById('gsm-btn-tennis').style.color = ct === 'tennis' ? '#fff' : unselColor;
   var advRow = document.getElementById('gsm-advantage-row');
   if (advRow) advRow.style.display = ct === 'tennis' ? 'flex' : 'none';
   document.getElementById('gsm-countingType').value = ct;
@@ -2638,18 +2615,8 @@ window._gsmSaveConfig = function() {
     document.getElementById('gsm-advantageRule').value = advantage ? 'true' : 'false';
   }
 
-  // Update summary in main form
-  var summaryEl = document.getElementById('gsm-summary');
-  if (summaryEl) {
-    if (type === 'simple') {
-      summaryEl.textContent = 'Placar simples (padrão)';
-    } else {
-      var s = parseInt(document.getElementById('gsm-setsToWin').value) || 1;
-      var g = parseInt(document.getElementById('gsm-gamesPerSet').value) || 6;
-      var totalS = s * 2 - 1;
-      summaryEl.textContent = 'Melhor de ' + totalS + ' sets (' + g + ' games/set' + (document.getElementById('gsm-tiebreakEnabled').value === 'true' ? ' + tie-break' : '') + ')';
-    }
-  }
+  // Update detailed summary in main form
+  if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
 
   // Save to user preferences for this sport
   var sportEl = document.getElementById('select-sport');
@@ -2679,6 +2646,33 @@ window._gsmSaveConfig = function() {
   if (typeof showNotification !== 'undefined') {
     showNotification('Pontuação Configurada', type === 'sets' ? 'Pontuação avançada (sets/games) ativada.' : 'Placar simples configurado.', 'success');
   }
+};
+
+// Update GSM summary from hidden fields (no overlay needed)
+window._updateGSMSummaryFromHidden = function() {
+  var summaryEl = document.getElementById('gsm-summary');
+  if (!summaryEl) return;
+  var type = document.getElementById('gsm-type').value;
+  if (type === 'simple' || type !== 'sets') {
+    summaryEl.innerHTML = '<strong>Placar simples</strong> — placar direto (gols, pontos, etc.)';
+    return;
+  }
+  var s = parseInt(document.getElementById('gsm-setsToWin').value) || 1;
+  var g = parseInt(document.getElementById('gsm-gamesPerSet').value) || 6;
+  var totalS = s * 2 - 1;
+  var tbOn = document.getElementById('gsm-tiebreakEnabled').value === 'true';
+  var tbPts = document.getElementById('gsm-tiebreakPoints').value || '7';
+  var stbOn = document.getElementById('gsm-superTiebreak').value === 'true';
+  var stbPts = document.getElementById('gsm-superTiebreakPoints').value || '10';
+  var counting = document.getElementById('gsm-countingType').value;
+  var advOn = document.getElementById('gsm-advantageRule').value === 'true';
+
+  var lines = [];
+  lines.push('<strong>Melhor de ' + totalS + '</strong> — ' + s + ' set' + (s > 1 ? 's' : '') + ' de ' + g + ' games');
+  lines.push('Contagem: ' + (counting === 'tennis' ? '15-30-40' : 'numérica') + (counting === 'tennis' && advOn ? ' + vantagem' : ''));
+  if (tbOn) lines.push('Tie-break ' + (g-1) + '-' + (g-1) + ': ' + tbPts + ' pts');
+  if (stbOn && s > 1) lines.push('Super tie-break no decisivo: ' + stbPts + ' pts');
+  summaryEl.innerHTML = lines.join('<br>');
 };
 
 // Auto-apply sport defaults when sport changes
@@ -2713,15 +2707,6 @@ window._onSportChange = function() {
   document.getElementById('gsm-countingType').value = config.countingType || 'numeric';
   document.getElementById('gsm-advantageRule').value = config.advantageRule || false;
 
-  // Update summary
-  var summaryEl = document.getElementById('gsm-summary');
-  if (summaryEl) {
-    if (config.type === 'sets') {
-      var s = parseInt(config.setsToWin) || 1;
-      var g = parseInt(config.gamesPerSet) || 6;
-      summaryEl.textContent = 'Melhor de ' + (s*2-1) + ' sets (' + g + ' games/set' + (config.tiebreakEnabled ? ' + tie-break' : '') + ')';
-    } else {
-      summaryEl.textContent = 'Placar simples (padrão)';
-    }
-  }
+  // Update detailed summary
+  if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
 };
