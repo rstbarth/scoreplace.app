@@ -119,9 +119,16 @@ function _computeStandings(t, category) {
   const h2h = {};
   allRoundMatches.forEach(m => {
     if (!m.winner || m.isBye) return;
-    if (m.winner === 'draw' || m.draw) return; // Empates não contam no confronto direto
-    const key = `${m.winner}|||${m.winner === m.p1 ? m.p2 : m.p1}`;
-    h2h[key] = (h2h[key] || 0) + 1;
+    const isDraw = m.winner === 'draw' || m.draw;
+    if (isDraw) {
+      const key = `${m.p1}|||${m.p2}|||d`;
+      h2h[key] = (h2h[key] || 0) + 1;
+      const keyReverse = `${m.p2}|||${m.p1}|||d`;
+      h2h[keyReverse] = (h2h[keyReverse] || 0) + 1;
+    } else {
+      const key = `${m.winner}|||${m.winner === m.p1 ? m.p2 : m.p1}`;
+      h2h[key] = (h2h[key] || 0) + 1;
+    }
   });
 
   standings.sort((a, b) => {
@@ -135,8 +142,11 @@ function _computeStandings(t, category) {
         case 'confronto_direto':
           const aBeatsB = h2h[`${a.name}|||${b.name}`] || 0;
           const bBeatsA = h2h[`${b.name}|||${a.name}`] || 0;
+          const aDrawsB = h2h[`${a.name}|||${b.name}|||d`] || 0;
           diff = bBeatsA - aBeatsB; // negative means a wins
           if (diff !== 0) return diff < 0 ? -1 : 1;
+          // If direct wins are equal, consider draws in the comparison
+          if (aDrawsB > 0) break; // draws are neutral for sorting
           break;
         case 'saldo_pontos':
           diff = b.pointsDiff - a.pointsDiff;
@@ -247,6 +257,7 @@ function _advanceWinner(t, completedMatch) {
 // ─── Auto-finish elimination tournament ──────────────────────────────────────
 function _maybeFinishElimination(t) {
   if (t.status === 'finished') return;
+  if (t.currentStage === 'groups') return;
   if (t.format !== 'Eliminatória Simples' && t.format !== 'Dupla Eliminatória' && t.format !== 'Fase de Grupos') return;
 
   const allMatches = t.matches || [];

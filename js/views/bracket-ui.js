@@ -547,7 +547,10 @@ window._tvBuildAttendance = function(t) {
 
 window._tvMode = function(tId) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
-  if (!t) return;
+  if (!t) {
+    if (typeof showAlertDialog === 'function') showAlertDialog('Torneio Não Encontrado', 'O torneio foi removido ou não está acessível.', null, { type: 'warning' });
+    return;
+  }
   var safeName = window._safeHtml ? window._safeHtml(t.name) : t.name;
 
   // Create overlay

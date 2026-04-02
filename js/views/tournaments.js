@@ -1964,7 +1964,7 @@ function renderTournaments(container, tournamentId = null) {
                     showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
                     return;
                 }
-                const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+                const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
                 const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
                 const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
                 if (!inscricoesAbertas) {
@@ -2103,7 +2103,7 @@ function renderTournaments(container, tournamentId = null) {
                 showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
                 return;
             }
-            const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+            const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
             const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
             const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
             if (!inscricoesAbertas) {
@@ -5511,7 +5511,7 @@ function renderTournaments(container, tournamentId = null) {
 
         // Inscrições fecham após sorteio (status 'active'), exceto Liga/Ranking com inscrições abertas na temporada
         const isFinished = t.status === 'finished';
-        const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+        const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
         const statusText = isFinished ? '🏆 Encerrado' : (ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
@@ -6083,7 +6083,7 @@ function renderTournaments(container, tournamentId = null) {
                 ${toggleRegBtn}
                 ${sortearBtn}
                 ${sortearAberto}
-                ${(!isFinished && hasDraw) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
+                ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
                 <button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>
               </div>
             </div>` : ''}

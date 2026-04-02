@@ -57,17 +57,17 @@ function renderNotifications(container) {
       var actionHtml = '';
       if (n.type === 'friend_request' && isUnread) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
-          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); _acceptFriend(\'' + n.fromUid + '\'); _markNotifRead(\'' + n._id + '\')">Aceitar</button>' +
-          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); _rejectFriend(\'' + n.fromUid + '\'); _markNotifRead(\'' + n._id + '\')">Recusar</button>' +
+          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); _acceptFriend(\'' + (n.fromUid || '').replace(/'/g, "\\'") + '\'); _markNotifRead(\'' + (n._id || '').replace(/'/g, "\\'") + '\')">Aceitar</button>' +
+          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); _rejectFriend(\'' + (n.fromUid || '').replace(/'/g, "\\'") + '\'); _markNotifRead(\'' + (n._id || '').replace(/'/g, "\\'") + '\')">Recusar</button>' +
         '</div>';
       } else if (n.type === 'tournament_invite' && n.tournamentId) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
-          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#tournament/' + n.tournamentId + '\'; _markNotifRead(\'' + n._id + '\')">Ver Torneio</button>' +
+          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#tournament/' + (n.tournamentId || '').replace(/'/g, "\\'") + '\'; _markNotifRead(\'' + (n._id || '').replace(/'/g, "\\'") + '\')">Ver Torneio</button>' +
         '</div>';
       }
 
       // Escape HTML in message to prevent XSS
-      var safeMessage = (n.message || 'Notificação').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      var safeMessage = (n.message || 'Notificação').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
       html += '<div class="card" style="padding: 1rem; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; ' +
         (isUnread ? 'border-left: 3px solid ' + accentColor + '; background: rgba(37, 99, 235, 0.05);' : 'opacity: 0.7;') + '" ' +
