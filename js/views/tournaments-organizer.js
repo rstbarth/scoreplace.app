@@ -280,7 +280,7 @@ window._sendOrgCommunication = function(tId) {
       '<div class="modal-dialog" style="max-width: 480px; width: 95%;">' +
         '<div class="modal-content" style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">' +
           '<h5 style="margin: 0 0 1rem; color: var(--text-color); font-size: 1rem;">📢 Comunicar Inscritos</h5>' +
-          '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">Enviar comunicado para todos os inscritos do torneio "' + (t.name || '') + '".</p>' +
+          '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">Enviar comunicado para todos os inscritos do torneio "' + window._safeHtml(t.name || '') + '".</p>' +
           '<div class="form-group" style="margin-bottom: 1rem;">' +
             '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mensagem</label>' +
             '<textarea id="org-comm-text-' + tId + '" class="form-control" rows="4" placeholder="Digite sua mensagem para os inscritos..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>' +

@@ -67,7 +67,7 @@ window.showFinalReviewPanel = function (tId) {
                 </div>
 
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <button onclick="window.generateDrawFunction('${tId}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:15px;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:10px;">
+                    <button onclick="window.generateDrawFunction('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:15px;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:10px;">
                         <span>🎲</span> Rodar Sorteio Agora
                     </button>
                     <button onclick="document.getElementById('final-review-panel').remove();" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;">

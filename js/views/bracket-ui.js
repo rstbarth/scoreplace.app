@@ -238,6 +238,7 @@ window._openSetScoring = function(tId, matchId) {
   const totalSets = sc.setsToWin * 2 - 1;
   const p1Name = m.p1 || 'Jogador 1';
   const p2Name = m.p2 || 'Jogador 2';
+  const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Remove existing overlay
   const existing = document.getElementById('set-scoring-overlay');
@@ -249,9 +250,9 @@ window._openSetScoring = function(tId, matchId) {
     const label = isDecidingSet ? 'Super Tie-break' : 'Set ' + (i + 1);
     setsHtml += '<div class="set-row" data-set="' + i + '" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
       '<div style="width:100px;font-size:0.82rem;font-weight:600;color:var(--text-muted);">' + label + '</div>' +
-      '<input type="number" id="set-p1-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + tId + '\',\'' + matchId + '\',' + i + ')">' +
+      '<input type="number" id="set-p1-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
       '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
-      '<input type="number" id="set-p2-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + tId + '\',\'' + matchId + '\',' + i + ')">' +
+      '<input type="number" id="set-p2-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
       '<div id="tb-indicator-' + i + '" style="font-size:0.72rem;color:#c084fc;font-weight:600;min-width:60px;"></div>' +
     '</div>';
   }
@@ -288,7 +289,7 @@ window._openSetScoring = function(tId, matchId) {
     '</div>' +
     '<div style="padding:1rem 1.5rem;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color);">' +
       '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-secondary">Cancelar</button>' +
-      '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + tId + '\',\'' + matchId + '\')" class="btn btn-purple" disabled>Salvar Resultado</button>' +
+      '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-purple" disabled>Salvar Resultado</button>' +
     '</div>' +
   '</div>';
 

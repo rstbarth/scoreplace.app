@@ -1185,8 +1185,8 @@ function setupCreateTournamentModal() {
         var item = document.createElement('div');
         item.style.cssText = 'padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); transition:background 0.15s;';
         item.innerHTML = '<div style="color:#e2e8f0; font-size:0.85rem; font-weight:500;">📍 ' +
-          mainText + '</div>' +
-          (secondaryText ? '<div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">' + secondaryText + '</div>' : '');
+          window._safeHtml(mainText) + '</div>' +
+          (secondaryText ? '<div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">' + window._safeHtml(secondaryText) + '</div>' : '');
 
         item.addEventListener('mouseenter', function () { item.style.background = 'rgba(129,140,248,0.15)'; });
         item.addEventListener('mouseleave', function () { item.style.background = 'transparent'; });
@@ -1201,7 +1201,7 @@ function setupCreateTournamentModal() {
       suggestionsDiv.style.display = 'block';
     } catch (err) {
       console.error('Venue search error:', err);
-      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#f87171; font-size:0.8rem;">Erro na busca: ' + (err.message || 'API indisponível') + '</div>';
+      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#f87171; font-size:0.8rem;">Erro na busca: ' + window._safeHtml(err.message || 'API indisponível') + '</div>';
       suggestionsDiv.style.display = 'block';
     }
   };
@@ -1270,8 +1270,8 @@ function setupCreateTournamentModal() {
           ? 'https://www.google.com/maps/search/?api=1&query=' + encodedName + '&query_place_id=' + place.id
           : 'https://www.google.com/maps/search/?api=1&query=' + place.location.lat() + ',' + place.location.lng();
         infoEl.innerHTML = '<span style="display:flex; flex-direction:column; gap:2px;">' +
-          '<span style="font-weight:500; color:#e2e8f0;">📍 ' + name + '</span>' +
-          '<span style="color:#94a3b8; font-size:0.7rem;">' + fullAddress + '</span>' +
+          '<span style="font-weight:500; color:#e2e8f0;">📍 ' + window._safeHtml(name) + '</span>' +
+          '<span style="color:#94a3b8; font-size:0.7rem;">' + window._safeHtml(fullAddress) + '</span>' +
           '</span>' +
           ' &nbsp;<a href="' + mapsUrl + '" target="_blank" title="Ver no mapa" style="color:#818cf8; text-decoration:none; font-size:1.1rem; line-height:1; flex-shrink:0;">🗺️</a>';
       }
@@ -2617,13 +2617,13 @@ window._gsmSaveConfig = function() {
 
     document.getElementById('gsm-setsToWin').value = sets;
     document.getElementById('gsm-gamesPerSet').value = games;
-    document.getElementById('gsm-tiebreakEnabled').value = tbOn;
+    document.getElementById('gsm-tiebreakEnabled').value = tbOn ? 'true' : 'false';
     document.getElementById('gsm-tiebreakPoints').value = tbPts;
     document.getElementById('gsm-tiebreakMargin').value = tbMargin;
-    document.getElementById('gsm-superTiebreak').value = stbOn;
+    document.getElementById('gsm-superTiebreak').value = stbOn ? 'true' : 'false';
     document.getElementById('gsm-superTiebreakPoints').value = stbPts;
     document.getElementById('gsm-countingType').value = counting;
-    document.getElementById('gsm-advantageRule').value = advantage;
+    document.getElementById('gsm-advantageRule').value = advantage ? 'true' : 'false';
   }
 
   // Update summary in main form

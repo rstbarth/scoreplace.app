@@ -52,7 +52,7 @@ function renderNotifications(container) {
       }
 
       var timeAgo = _timeAgo(n.createdAt);
-      var unreadDot = isUnread ? '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); flex-shrink: 0;"></div>' : '';
+      var unreadDot = isUnread ? '<div class="notif-unread-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); flex-shrink: 0;"></div>' : '';
 
       var actionHtml = '';
       var safeFromUid = (n.fromUid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
@@ -126,7 +126,7 @@ window._markNotifRead = function(notifId, el) {
     el.style.borderLeft = 'none';
     el.style.background = 'transparent';
     el.style.opacity = '0.7';
-    var dot = el.querySelector('div[style*="border-radius: 50%"][style*="background: var(--primary-color)"]');
+    var dot = el.querySelector('.notif-unread-dot');
     if (dot) dot.style.display = 'none';
   }
 };

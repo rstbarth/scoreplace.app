@@ -447,7 +447,7 @@ function renderParticipants(container, tournamentId) {
       const _pCached = (window._playerPhotoCache && window._playerPhotoCache[ind.name.toLowerCase()] && window._playerPhotoCache[ind.name.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[ind.name.toLowerCase()] : '';
       const _pInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
       const _pAvatar = _pCached || _pInitials;
-      const _pAvatarErr = _pCached ? `onerror="this.onerror=null;this.src='${_pInitials}'"` : '';
+      const _pAvatarErr = `onerror="this.onerror=null;this.src='${_pInitials}'"` ;
 
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;">
@@ -472,8 +472,10 @@ function renderParticipants(container, tournamentId) {
       const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || 'Participante ' + (idx + 1));
       const isTeam = pName.includes('/');
 
+      const vipsMap = t.vips || {};
+      const isVipEarly = !!vipsMap[pName];
       let cardStyle = '';
-      if (isVip) {
+      if (isVipEarly) {
         cardStyle = 'background: linear-gradient(135deg, rgba(161,98,7,0.5) 0%, rgba(234,179,8,0.35) 100%); border: 2px solid rgba(251,191,36,0.7); box-shadow: 0 0 12px rgba(251,191,36,0.15);';
       } else if (isTeam) {
         cardStyle = 'background: linear-gradient(135deg, rgba(15, 118, 110, 0.6) 0%, rgba(20, 184, 166, 0.6) 100%); border: 1px solid rgba(20, 184, 166, 0.5);';
@@ -488,7 +490,7 @@ function renderParticipants(container, tournamentId) {
           const _mCached = (window._playerPhotoCache && window._playerPhotoCache[n.trim().toLowerCase()] && window._playerPhotoCache[n.trim().toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[n.trim().toLowerCase()] : '';
           const _mInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _mSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
           const _mPhoto = _mCached || _mInitials;
-          const _mErr = _mCached ? `onerror="this.onerror=null;this.src='${_mInitials}'"` : '';
+          const _mErr = `onerror="this.onerror=null;this.src='${_mInitials}'"`;
           return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${n.trim()}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" title="${n.trim()}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${n.trim().replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${n.trim()}</span></div>`;
         }).join('');
       } else {
@@ -496,7 +498,7 @@ function renderParticipants(container, tournamentId) {
         const _pCachedN = (window._playerPhotoCache && window._playerPhotoCache[pName.toLowerCase()] && window._playerPhotoCache[pName.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[pName.toLowerCase()] : '';
         const _pInitialsN = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeedN + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         const _pPhotoN = _pCachedN || _pInitialsN;
-        const _pErrN = _pCachedN ? `onerror="this.onerror=null;this.src='${_pInitialsN}'"` : '';
+        const _pErrN = `onerror="this.onerror=null;this.src='${_pInitialsN}'"`;
         pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhotoN}" ${_pErrN} data-player-name="${pName}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer;" title="${pName}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${pName.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${pName}</span></div>`;
       }
 

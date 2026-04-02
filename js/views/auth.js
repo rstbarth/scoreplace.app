@@ -600,11 +600,12 @@ async function simulateLoginSuccess(user) {
 
     var displayFirstName = user.displayName ? user.displayName.split(' ')[0] : 'Usuário';
     var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+    var _sh = typeof window._safeHtml === 'function' ? window._safeHtml : function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
     btnLogin.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
-        '<img src="' + photoUrl + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;">' +
-        '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + displayFirstName + '</span>' +
+        '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;">' +
+        '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + _sh(displayFirstName) + '</span>' +
       '</div>' +
       '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>' +
@@ -848,8 +849,8 @@ async function simulateLoginSuccess(user) {
         }
       }
     };
-    setTimeout(_tryAutoEnroll, 300);
     window._simulateLoginInProgress = false;
+    setTimeout(_tryAutoEnroll, 300);
     return;
   }
 
@@ -1504,7 +1505,8 @@ function _populatePlayerStats() {
       var statusIcon = h.status === 'finished' ? '✅' : (h.status === 'active' ? '▶️' : '⏳');
       var safeName = window._safeHtml ? window._safeHtml(h.name) : h.name;
 
-      html += '<div onclick="window.location.hash=\'#tournament/' + h.id + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
+      var escapedId = String(h.id).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      html += '<div onclick="window.location.hash=\'#tournament/' + escapedId + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
         'style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:background 0.15s;" ' +
         'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
         '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +

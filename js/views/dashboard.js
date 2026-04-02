@@ -110,7 +110,7 @@ function renderDashboard(container) {
     const isFinished = t.status === 'finished';
     const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
     const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
-    const isAberto = !isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
+    const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
     const statusText = isFinished ? 'Encerrado' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas'));
     const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
     const statusColor = isFinished ? '#fbbf24' : (isAberto ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
@@ -175,12 +175,17 @@ function renderDashboard(container) {
     if (t.participants) {
       const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
       arr.forEach(p => {
-        const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
-        if (pStr.includes('/')) {
+        if (typeof p === 'object' && p !== null && Array.isArray(p.participants)) {
           teamCount++;
-          individualCount += pStr.split('/').filter(n => n.trim().length > 0).length;
+          individualCount += p.participants.length;
         } else {
-          individualCount++;
+          const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          if (pStr.includes('/')) {
+            teamCount++;
+            individualCount += pStr.split('/').filter(n => n.trim().length > 0).length;
+          } else {
+            individualCount++;
+          }
         }
       });
     }
@@ -356,7 +361,7 @@ function renderDashboard(container) {
   const locationsArr = Array.from(locationsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const formatsArr = Array.from(formatsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  const userName = window.AppStore.currentUser ? window.AppStore.currentUser.displayName.split(' ')[0] : 'Visitante';
+  const userName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName) ? window.AppStore.currentUser.displayName.split(' ')[0] : 'Visitante';
 
   // Initialize filter state
   if (!window._dashFilter) window._dashFilter = 'todos';
@@ -409,7 +414,7 @@ function renderDashboard(container) {
     function _isMe(label) {
       if (!label) return false;
       var l = label.toLowerCase();
-      return l.includes(email) || (dName && l === dName);
+      return l === email || (dName && l === dName) || (cu.uid && l === cu.uid);
     }
 
     participacoes.forEach(function(t) {

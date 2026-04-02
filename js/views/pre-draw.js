@@ -53,7 +53,7 @@ function renderPreDraw(container, tournamentId) {
           </div>
           <div class="predraw-list" data-cat="${catName}" style="padding: 0.75rem; min-height: 80px; display:flex; flex-direction:column; gap:6px;"
             ondragover="event.preventDefault(); event.dataTransfer.dropEffect='move';"
-            ondrop="window._dropToCategory(event, '${catName}')">
+            ondrop="window._dropToCategory(event, '${catName.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')" >
             ${players.length === 0
               ? `<div class="text-muted" style="text-align:center; padding:1rem; font-size:0.85rem; border: 1px dashed rgba(255,255,255,0.1); border-radius:8px;">Arraste inscritos aqui</div>`
               : players.map((p, i) => `

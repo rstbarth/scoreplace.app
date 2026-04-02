@@ -110,6 +110,39 @@ window._sortCategoriesBySkillOrder = function(categories, skillCats) {
     return sorted;
 };
 
+// Non-exclusive gender prefixes (participant can be in these + one exclusive)
+window._nonExclusivePrefixes = ['misto aleat.', 'misto obrig.', 'misto'];
+
+// Get the gender prefix of a category (e.g., "Fem A" → "Fem", "Misto Aleat. B" → "Misto Aleat.")
+window._getCategoryGenderPrefix = function(cat) {
+    if (!cat) return '';
+    var prefixes = ['Misto Aleat.', 'Misto Obrig.', 'Fem', 'Masc', 'Misto'];
+    for (var i = 0; i < prefixes.length; i++) {
+        if (cat.indexOf(prefixes[i]) === 0) return prefixes[i];
+    }
+    return cat;
+};
+
+// Given eligible categories, group into exclusive (pick one) and non-exclusive (can add all)
+// Exclusive = Fem/Masc categories (pick one). Non-exclusive = Misto (can combine with exclusive)
+window._groupEligibleCategories = function(eligibleCats) {
+    var exclusive = [];
+    var nonExclusive = [];
+    var nonExclPrefixes = window._nonExclusivePrefixes;
+    eligibleCats.forEach(function(cat) {
+        var prefix = window._getCategoryGenderPrefix(cat);
+        var isNonExcl = nonExclPrefixes.some(function(np) {
+            return prefix.toLowerCase() === np.toLowerCase();
+        });
+        if (isNonExcl) {
+            nonExclusive.push(cat);
+        } else {
+            exclusive.push(cat);
+        }
+    });
+    return { exclusive: exclusive, nonExclusive: nonExclusive };
+};
+
 // Resolve enrollment category for a participant.
 // Shows a modal if multiple eligible categories. Auto-picks if only one.
 window._resolveEnrollmentCategory = function(tId, callback) {
@@ -156,7 +189,8 @@ window._resolveEnrollmentCategory = function(tId, callback) {
         '<p>Escolha a categoria em que deseja se inscrever:</p>';
     for (var k = 0; k < eligible.length; k++) {
         var cat = eligible[k];
-        html += '<button class="btn btn-primary" style="display:block;width:100%;margin:10px 0;cursor:pointer;" onclick="(function(){var cb=' + (callback ? 'window._enrollCategoryCallback' : 'null') + ';var mod=document.getElementById(\'' + modalId + '\');if(mod)mod.remove();if(cb)cb(\'' + window._safeHtml(cat).replace(/'/g, "\\'") + '\');})();">' + window._displayCategoryName(cat) + '</button>';
+        var escapedCat = window._safeHtml(cat).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        html += '<button class="btn btn-primary" style="display:block;width:100%;margin:10px 0;cursor:pointer;" onclick="(function(){var cb=' + (callback ? 'window._enrollCategoryCallback' : 'null') + ';var mod=document.getElementById(\'' + modalId + '\');if(mod)mod.remove();if(cb)cb(\'' + escapedCat + '\');})();">' + window._displayCategoryName(cat) + '</button>';
     }
     html += '<button class="btn btn-outline" style="display:block;width:100%;margin-top:15px;cursor:pointer;" onclick="var mod=document.getElementById(\'' + modalId + '\');if(mod)mod.remove();">Cancelar</button>' +
         '</div></div>';
@@ -612,16 +646,16 @@ window._openCategoryManager = function(tId) {
         var catRowsHtml = catRows.map(function(row) {
             var cardsHtml = row.cats.map(function(cat) {
                 var count = catCounts[cat] || 0;
-                var catEsc = cat.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                var catEsc = cat.replace(/\\/g, '\\\\').replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 var catDisplay = window._displayCategoryName(cat);
                 var isMerged = !!mergedCatSet[cat];
                 // Unmerge icon — small split icon in top-right corner, only for merged categories
                 var unmergeIcon = isMerged
-                    ? '<div class="cat-unmerge-btn" data-unmerge-cat="' + cat.replace(/"/g, '&quot;') + '" title="Desmesclar" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;z-index:2;" onmouseenter="this.style.background=\'rgba(239,68,68,0.35)\'" onmouseleave="this.style.background=\'rgba(239,68,68,0.15)\'">' +
+                    ? '<div class="cat-unmerge-btn" data-unmerge-cat="' + catEsc + '" title="Desmesclar" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;z-index:2;" onmouseenter="this.style.background=\'rgba(239,68,68,0.35)\'" onmouseleave="this.style.background=\'rgba(239,68,68,0.15)\'">' +
                       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"><path d="M16 3h5v5M8 3H3v5M16 21h5v-5M8 21H3v-5"/></svg>' +
                       '</div>'
                     : '';
-                return '<div class="cat-mgr-card" draggable="true" data-cat="' + cat.replace(/"/g, '&quot;') + '" ' +
+                return '<div class="cat-mgr-card" draggable="true" data-cat="' + catEsc + '" ' +
                     'style="position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;background:rgba(99,102,241,0.08);border:2px solid rgba(99,102,241,0.2);cursor:pointer;transition:all 0.2s;min-width:80px;">' +
                     unmergeIcon +
                     '<div style="font-weight:700;font-size:0.8rem;color:#818cf8;white-space:nowrap;">' + catDisplay + '</div>' +
@@ -725,7 +759,8 @@ window._openCategoryManager = function(tId) {
                     srcBadge = '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);margin-left:4px;">(sem cat.)</span>';
                 }
                 // Remove button
-                var removeBtn = '<button class="cat-remove-participant-btn" data-pidx="' + pIdx + '" data-cat="' + catName.replace(/"/g, '&quot;') + '" title="Remover da categoria" ' +
+                var catNameEsc = catName.replace(/\\/g, '\\\\').replace(/"/g, '&quot;');
+                var removeBtn = '<button class="cat-remove-participant-btn" data-pidx="' + pIdx + '" data-cat="' + catNameEsc + '" title="Remover da categoria" ' +
                     'style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;" ' +
                     'onmouseenter="this.style.background=\'rgba(239,68,68,0.3)\'" onmouseleave="this.style.background=\'rgba(239,68,68,0.1)\'">' +
                     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
@@ -741,11 +776,13 @@ window._openCategoryManager = function(tId) {
             }).join('')
             : '<div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.9rem;font-style:italic;">Nenhum inscrito nesta categoria.</div>';
 
-        var detailHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;" onclick="event.stopPropagation();">' +
+        var catNameEscId = catName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var detailModalId = 'cat-detail-modal-' + catNameEscId;
+        var detailHtml = '<div id="' + detailModalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;" onclick="event.stopPropagation();">' +
             '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);margin:auto;animation:fadeIn 0.2s ease;">' +
             '<div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
             '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ ' + window._displayCategoryName(catName) + '</h3>' +
-            '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
+            '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + detailModalId + '\').remove();">&times;</button>' +
             '</div>' +
             '<div style="padding:10px 1.5rem 0;">' +
             '<button class="btn btn-outline btn-sm hover-lift" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-size:0.8rem;" onclick="window._catManagerRender();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
@@ -756,7 +793,7 @@ window._openCategoryManager = function(tId) {
             '</div>' +
             '</div></div>';
 
-        var el = document.getElementById(modalId);
+        var el = document.getElementById(detailModalId);
         if (el) el.remove();
         document.body.insertAdjacentHTML('beforeend', detailHtml);
 

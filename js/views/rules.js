@@ -55,7 +55,13 @@ function renderRules(container, tournamentId) {
 
   const historyHtml = (t.history && t.history.length)
     ? [...t.history].reverse().slice(0, 20).map((log, i) => {
-        const date = log.date ? new Date(log.date).toLocaleString('pt-BR') : '—';
+        let date = '—';
+        if (log.date) {
+          const dateObj = new Date(log.date);
+          if (!isNaN(dateObj.getTime())) {
+            date = dateObj.toLocaleString('pt-BR');
+          }
+        }
         const isFirst = i === (Math.min(t.history.length, 20) - 1);
         return `
           <div style="display:flex;gap:12px;margin-bottom:1.25rem;position:relative;">
