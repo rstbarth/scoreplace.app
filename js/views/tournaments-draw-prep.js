@@ -131,8 +131,8 @@ window.showIncompleteTeamsPanel = function (tId) {
                         if (n >= 0.35) return { bg: 'rgba(251,146,60,0.08)', bd: 'rgba(251,146,60,0.30)', gw: '0 0 10px rgba(251,146,60,0.08)', pc: '#fb923c', pb: 'rgba(251,146,60,0.12)' };
                         return { bg: 'rgba(96,165,250,0.06)', bd: 'rgba(96,165,250,0.20)', gw: 'none', pc: '#60a5fa', pb: 'rgba(96,165,250,0.10)' };
                     }
-                    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;'; }
-                    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="display:inline-block;padding:2px 7px;border-radius:6px;font-size:0.58rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';margin-left:5px;vertical-align:middle;">Nash ' + pct + '%</span>'; }
+                    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:14px 14px 2rem;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;'; }
+                    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="position:absolute;bottom:8px;right:10px;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';pointer-events:none;">Nash ' + pct + '%</span>'; }
                     var bestK = '', bestV = -1;
                     Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestV) { bestV = scores[k]; bestK = k; } });
                     var bdg = '<span style="position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>';
@@ -144,44 +144,49 @@ window.showIncompleteTeamsPanel = function (tId) {
                         (bestK === 'reopen' ? bdg : '') +
                         '<span style="font-size:1.5rem;">↩️</span>' +
                         '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições ' + pill('reopen') + '</div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>' +
                         '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Apenas para fechar os times faltantes.</div>' +
                         '</div>' +
+                        pill('reopen') +
                     '</button>' +
 
                     '<button style="position:relative;' + sty('lottery') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'lottery\')">' +
                         (bestK === 'lottery' ? bdg : '') +
                         '<span style="font-size:1.5rem;">🎲</span>' +
                         '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de \'Bots\' ' + pill('lottery') + '</div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de \'Bots\'</div>' +
                         '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Preencher vagas com nomes fictícios ou convites.</div>' +
                         '</div>' +
+                        pill('lottery') +
                     '</button>' +
 
                     '<button style="position:relative;' + sty('standby') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'standby\')">' +
                         (bestK === 'standby' ? bdg : '') +
                         '<span style="font-size:1.5rem;">⏱️</span>' +
                         '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Lista de Espera ' + pill('standby') + '</div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Lista de Espera</div>' +
                         '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os que sobrarem ficam fora do torneio principal.</div>' +
                         '</div>' +
+                        pill('standby') +
                     '</button>' +
 
                     '<button style="position:relative;' + sty('dissolve') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'dissolve\')">' +
                         (bestK === 'dissolve' ? bdg : '') +
                         '<span style="font-size:1.5rem;">🧩</span>' +
                         '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual ' + pill('dissolve') + '</div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual</div>' +
                         '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remanejar jogadores entre times (Arrastar e Soltar).</div>' +
                         '</div>' +
+                        pill('dissolve') +
                     '</button>' +
 
                     '<button style="position:relative;' + sty('poll') + 'grid-column:span 2;" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'poll\')">' +
                         '<span style="font-size:1.5rem;">🗳️</span>' +
                         '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes ' + pill('poll') + '</div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes</div>' +
                         '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</div>' +
                         '</div>' +
+                        pill('poll') +
                     '</button>' +
 
                     '</div>';
@@ -671,14 +676,14 @@ window.showPowerOf2Panel = function (tId) {
 
             <style>
                 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .p2-option { border-radius:18px; padding:2.2rem 1.5rem 1.5rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }
+                .p2-option { border-radius:18px; padding:2.2rem 1.5rem 2.2rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }
                 .p2-option:hover { transform:translateY(-2px); filter:brightness(1.15); }
                 .p2-option::after { content:''; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(255,255,255,0.06), transparent); transform:translateX(-100%); transition:0.5s; }
                 .p2-option:hover::after { transform:translateX(100%); }
                 .p2-option h4 { margin:0 0 4px; font-weight:800; font-size:1.05rem; color:#fff; }
                 .p2-option p { margin:0; font-size:0.8rem; color:#94a3b8; line-height:1.5; }
                 .p2-badge { position:absolute; top:10px; right:10px; background:rgba(34,197,94,0.15); color:#4ade80; padding:3px 10px; border-radius:8px; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none; }
-                .nash-score-pill { display:inline-block; padding:2px 8px; border-radius:6px; font-size:0.6rem; font-weight:800; margin-left:6px; vertical-align:middle; letter-spacing:0.3px; }
+                .nash-corner { position:absolute; bottom:10px; right:12px; padding:3px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; letter-spacing:0.3px; pointer-events:none; }
             </style>
 
             <div style="padding:2.5rem;">
@@ -733,7 +738,7 @@ window.showPowerOf2Panel = function (tId) {
                         function nashPill(key) {
                             var c = nashColor(norm[key]);
                             var pct = Math.round(norm[key] * 100);
-                            return '<span class="nash-score-pill" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
+                            return '<span class="nash-corner" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
                         }
                         // Find best for badge
                         var bestKey = '';
@@ -746,51 +751,57 @@ window.showPowerOf2Panel = function (tId) {
                             (bestKey === 'reopen' ? badge : '') +
                             '<span style="font-size:2rem;">↩️</span>' +
                             '<div>' +
-                            '<h4>Reabrir Inscrições ' + nashPill('reopen') + '</h4>' +
+                            '<h4>Reabrir Inscrições</h4>' +
                             '<p>Aguardar mais ' + info.missing + ' inscritos para chegar em ' + info.hi + '.</p>' +
                             '</div>' +
+                            nashPill('reopen') +
                         '</button>' +
 
                         '<button class="p2-option shadow-xl" style="' + nashStyle('bye') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'bye\')">' +
                             (bestKey === 'bye' ? badge : '') +
                             '<span style="font-size:2rem;">🥇</span>' +
                             '<div>' +
-                            '<h4>Aplicar BYE ' + nashPill('bye') + '</h4>' +
+                            '<h4>Aplicar BYE</h4>' +
                             '<p>' + info.missing + ' times avançam direto. Chaveamento de ' + info.hi + '.</p>' +
                             '</div>' +
+                            nashPill('bye') +
                         '</button>' +
 
                         '<button class="p2-option shadow-xl" style="' + nashStyle('playin') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'playin\')">' +
                             (bestKey === 'playin' ? badge : '') +
                             '<span style="font-size:2rem;">🔁</span>' +
                             '<div>' +
-                            '<h4>Play-in (Repescagem) ' + nashPill('playin') + '</h4>' +
+                            '<h4>Play-in (Repescagem)</h4>' +
                             '<p>' + (info.excess * 2) + ' times disputam ' + info.excess + ' vaga(s). Chaveamento de ' + info.lo + '.</p>' +
                             '</div>' +
+                            nashPill('playin') +
                         '</button>' +
 
                         '<button class="p2-option shadow-xl" style="' + nashStyle('standby') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'standby\')">' +
                             '<span style="font-size:2rem;">⏱️</span>' +
                             '<div>' +
-                            '<h4>Lista de Espera ' + nashPill('standby') + '</h4>' +
+                            '<h4>Lista de Espera</h4>' +
                             '<p>' + info.count + ' inscritos. ' + Math.floor(info.lo / (parseInt(t.teamSize) || 1)) + ' ' + ((parseInt(t.teamSize) || 1) > 1 ? 'times jogam' : 'jogam') + ' em ' + (Math.floor(info.lo / (parseInt(t.teamSize) || 1)) / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.</p>' +
                             '</div>' +
+                            nashPill('standby') +
                         '</button>' +
 
                         '<button class="p2-option shadow-xl" style="' + nashStyle('swiss') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'swiss\')">' +
                             '<span style="font-size:2rem;">🏅</span>' +
                             '<div>' +
-                            '<h4>Formato Suíço / Classificatória ' + nashPill('swiss') + '</h4>' +
+                            '<h4>Formato Suíço / Classificatória</h4>' +
                             '<p>Garantia de mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.</p>' +
                             '</div>' +
+                            nashPill('swiss') +
                         '</button>' +
 
                         '<button class="p2-option shadow-xl" style="' + nashStyle('poll') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'poll\')">' +
                             '<span style="font-size:2rem;">🗳️</span>' +
                             '<div>' +
-                            '<h4>Enquete entre Participantes ' + nashPill('poll') + '</h4>' +
+                            '<h4>Enquete entre Participantes</h4>' +
                             '<p>Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</p>' +
                             '</div>' +
+                            nashPill('poll') +
                         '</button>';
                     })()}
                 </div>

@@ -445,11 +445,26 @@ function renderTournaments(container, tournamentId = null) {
             });
         }
 
-        let bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'; // Dark slate para explorador/não-participante
-        if (isOrg) {
-            bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)'; // Purple para Organizador
-        } else if (isParticipating) {
-            bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)'; // Teal para Participante
+        // Card gradients adaptam ao tema — consistentes com dashboard.js
+        var _theme = (document.documentElement.getAttribute('data-theme') || 'dark');
+        var _isLight = (_theme === 'light');
+        let bgGradient;
+        if (_isLight) {
+            bgGradient = 'linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)';
+        } else if (_theme === 'sunset') {
+            bgGradient = 'linear-gradient(135deg, #2d1f1b 0%, #1a1210 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #713f12 0%, #a16207 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #92400e 0%, #d97706 100%)';
+        } else if (_theme === 'ocean') {
+            bgGradient = 'linear-gradient(135deg, #1c3d5e 0%, #173352 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #245478 0%, #0e7490 100%)';
+        } else {
+            bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)';
         }
 
         // Venue photo background — overlay gradient on top of photo
@@ -808,8 +823,10 @@ function renderTournaments(container, tournamentId = null) {
           `;
         }
 
+        var _cardTextColor = (_isLight && !venuePhotoBg) ? '#1f2937' : 'white';
+
         return `
-        <div class="card mb-3" style="${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: white; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
+        <div class="card mb-3" style="${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
           <div class="card-body p-4">
             
             <!-- Top Row: Icon/Modality | Status (same line on mobile) -->
