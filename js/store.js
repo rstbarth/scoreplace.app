@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.4.0-alpha';
+window.SCOREPLACE_VERSION = '0.4.1-alpha';
 
 // ─── Topbar progressive compaction ─────────────────────────────────────────
 // 3 states managed by JS:
