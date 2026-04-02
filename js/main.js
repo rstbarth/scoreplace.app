@@ -681,8 +681,7 @@ setupProfileModal();
 setupResultModal();
 setupEnrollModal();
 
-// Inicia Lógica de Temas (Select Element)
-initThemeSystem();
+// Tema aplicado automaticamente via IIFE em store.js (initThemeSystem removido — função não existia)
 
 // Load cached tournaments for instant first-paint (before Firebase auth resolves)
 if (window.AppStore && window.AppStore._loadFromCache) {
