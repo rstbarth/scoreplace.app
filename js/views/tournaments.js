@@ -671,10 +671,11 @@ function renderTournaments(container, tournamentId = null) {
 
             if (isOrg) {
                 // Botão "Iniciar Torneio" — SÓ aparece após sorteio realizado, antes de iniciar
+                // Ao clicar: inicia o torneio E navega para o chaveamento
                 const startTournamentBanner = (hasDraw && !tournamentStarted) ? `
                   <div style="margin-top:1.5rem;padding:20px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:2px solid rgba(16,185,129,0.4);border-radius:16px;text-align:center;">
                       <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.</p>
-                      <button class="btn btn-success btn-cta hover-lift" onclick="event.stopPropagation(); window._startTournament('${t.id}')">
+                      <button class="btn btn-success btn-cta hover-lift" onclick="event.stopPropagation(); window._startTournament('${t.id}'); window.location.hash='#bracket/${t.id}';">
                           ▶ Iniciar Torneio
                       </button>
                   </div>` : '';
@@ -772,6 +773,14 @@ function renderTournaments(container, tournamentId = null) {
                     actionsHtml = `
                    ${inviteModalHtml}
                    ${podiumHtml}
+                   <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
+                     <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
+                   </div>
                  `;
                 } else if (hasDraw) {
                     // Sorteio já feito — mostrar Iniciar Torneio ou badge Em Andamento
@@ -780,6 +789,14 @@ function renderTournaments(container, tournamentId = null) {
                    ${isLigaFormat ? '' : startTournamentBanner}
                    ${isLigaFormat ? '' : startedBadge}
                    ${autoDrawCountdownHtml ? `<div style="margin-top:1rem;text-align:center;">${autoDrawCountdownHtml}</div>` : ''}
+                   <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
+                     <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
+                     <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
+                   </div>
                  `;
                 } else {
                     // Antes do sorteio
@@ -809,12 +826,20 @@ function renderTournaments(container, tournamentId = null) {
             } else {
                 actionsHtml = `
                ${teamEnrollModalHtml}
+               ${hasDraw ? `
+               <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
+                 <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
+                 <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
+                 <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
+                 <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
+                 <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
+                 <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
+               </div>` : `
                <div class="d-flex justify-between align-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.15);">
                   <div class="d-flex gap-2">
-                     <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal('${t.id}')">Convites</button>
                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window.location.hash='#rules/${t.id}'">Regras</button>
                   </div>
-               </div>
+               </div>`}
              `;
             }
         } else {
@@ -853,7 +878,7 @@ function renderTournaments(container, tournamentId = null) {
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
-              ${isAberto ? `<button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>` : ''}
+              <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
               <button class="btn btn-outline btn-sm hover-lift" style="color: #fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}');">📱 QR Code</button>
             </div>` : ''}
