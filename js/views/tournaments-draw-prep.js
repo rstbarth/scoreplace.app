@@ -3,7 +3,9 @@
 (function() {
 
 window.checkIncompleteTeams = function (t) {
-    const teamSize = t.teamSize || 1;
+    const enrMode = t.enrollmentMode || t.enrollment || 'individual';
+    let teamSize = parseInt(t.teamSize) || 1;
+    if ((enrMode === 'time' || enrMode === 'misto') && teamSize < 2) teamSize = 2;
     const participants = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
 
     const incomplete = [];
@@ -42,7 +44,9 @@ window.showIncompleteTeamsPanel = function (tId) {
         return;
     }
 
-    const teamSize = t.teamSize || 1;
+    const enrMode2 = t.enrollmentMode || t.enrollment || 'individual';
+    let teamSize = parseInt(t.teamSize) || 1;
+    if ((enrMode2 === 'time' || enrMode2 === 'misto') && teamSize < 2) teamSize = 2;
     const p2Info = window.checkPowerOf2(t);
     const canShowBye = p2Info.isPowerOf2;
 
@@ -588,7 +592,9 @@ window._resolveIncompleteTeams = function (tId, option) {
 // ─── VERIFICAÇÃO 2: POTÊNCIA DE 2 ───
 window.checkPowerOf2 = function (t) {
     const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-    const teamSize = parseInt(t.teamSize) || 1;
+    let teamSize = parseInt(t.teamSize) || 1;
+    const enrMode = t.enrollmentMode || t.enrollment || 'individual';
+    if ((enrMode === 'time' || enrMode === 'misto') && teamSize < 2) teamSize = 2;
 
     // Count effective bracket entries (teams or individuals)
     let preFormedTeams = 0;

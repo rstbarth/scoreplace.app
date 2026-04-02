@@ -884,12 +884,24 @@ function setupCreateTournamentModal() {
     const sportSelect = document.getElementById('select-sport');
     if (!sportSelect) return;
 
+    const sportName = sportSelect.options[sportSelect.selectedIndex] ? sportSelect.options[sportSelect.selectedIndex].text.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
+    const defaultSize = _sportTeamDefaults[sportName] || 2;
+
     // Set default team size for sport
     const teamSizeEl = document.getElementById('tourn-team-size');
     if (teamSizeEl) {
-      const sportName = sportSelect.options[sportSelect.selectedIndex] ? sportSelect.options[sportSelect.selectedIndex].text.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
-      const defaultSize = _sportTeamDefaults[sportName] || 2;
       teamSizeEl.value = defaultSize;
+    }
+
+    // Auto-set enrollment mode based on team size
+    const inscricaoEl = document.getElementById('select-inscricao');
+    if (inscricaoEl) {
+      if (defaultSize > 1) {
+        inscricaoEl.value = 'time';
+      } else {
+        inscricaoEl.value = 'individual';
+      }
+      window._onInscricaoChange();
     }
   };
 

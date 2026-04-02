@@ -339,7 +339,12 @@ window.generateDrawFunction = function (tId) {
     let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
 
     // --- ETAPA 1: Formação de Times (quando teamSize > 1) ---
-    const teamSize = parseInt(t.teamSize) || 1;
+    let teamSize = parseInt(t.teamSize) || 1;
+    // Fallback: se modo de inscrição é time/misto mas teamSize ficou 1, forçar mínimo 2
+    const enrMode = t.enrollmentMode || t.enrollment || 'individual';
+    if ((enrMode === 'time' || enrMode === 'misto') && teamSize < 2) {
+        teamSize = 2;
+    }
     if (teamSize > 1) {
         let individuals = [];
         let preFormedTeams = [];
