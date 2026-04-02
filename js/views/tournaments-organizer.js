@@ -276,10 +276,13 @@ window._sendOrgCommunication = function(tId) {
     var existing = document.getElementById(modalId);
     if (existing) existing.remove();
 
-    var html = '<div id="' + modalId + '" class="modal active" style="z-index: 10000;">' +
-      '<div class="modal-dialog" style="max-width: 480px; width: 95%;">' +
-        '<div class="modal-content" style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">' +
-          '<h5 style="margin: 0 0 1rem; color: var(--text-color); font-size: 1rem;">📢 Comunicar Inscritos</h5>' +
+    var html = '<div id="' + modalId + '" class="modal-overlay active" style="z-index: 10000;">' +
+      '<div class="modal" style="max-width: 480px; width: 95%;">' +
+        '<div class="modal-header" style="padding: 1.5rem 1.5rem 0;">' +
+          '<h2 class="card-title" style="margin: 0; font-size: 1rem;">📢 Comunicar Inscritos</h2>' +
+          '<button class="modal-close" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
+        '</div>' +
+        '<div class="modal-body" style="padding: 1.5rem;">' +
           '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">Enviar comunicado para todos os inscritos do torneio "' + window._safeHtml(t.name || '') + '".</p>' +
           '<div class="form-group" style="margin-bottom: 1rem;">' +
             '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mensagem</label>' +

@@ -53,6 +53,24 @@ function renderNotifications(container) {
       } else if (n.type === 'tournament_invite') {
         icon = '🏆';
         accentColor = 'var(--primary-color)';
+      } else if (n.type === 'enrollment_new') {
+        icon = '✅';
+        accentColor = 'var(--success-color)';
+      } else if (n.type === 'enrollment_cancelled' || n.type === 'enrollment_cancelled_confirm') {
+        icon = '🛑';
+        accentColor = 'var(--danger-color, #ef4444)';
+      } else if (n.type === 'enrollment_confirm') {
+        icon = '🎉';
+        accentColor = 'var(--success-color)';
+      } else if (n.type === 'result') {
+        icon = '🏅';
+        accentColor = '#a78bfa';
+      } else if (n.type === 'tournament_update') {
+        icon = '📢';
+        accentColor = '#f59e0b';
+      } else if (n.type === 'org_communication') {
+        icon = '📣';
+        accentColor = '#f59e0b';
       }
 
       var timeAgo = _timeAgo(n.createdAt);
@@ -67,9 +85,9 @@ function renderNotifications(container) {
           '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); _acceptFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">Aceitar</button>' +
           '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); _rejectFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">Recusar</button>' +
         '</div>';
-      } else if (n.type === 'tournament_invite' && n.tournamentId) {
+      } else if (n.tournamentId) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
-          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#tournament/' + safeTournamentId + '\'; _markNotifRead(\'' + safeNotifId + '\')">Ver Torneio</button>' +
+          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#tournaments/' + safeTournamentId + '\'; _markNotifRead(\'' + safeNotifId + '\')">Ver Torneio</button>' +
         '</div>';
       }
 

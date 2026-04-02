@@ -1519,7 +1519,7 @@ window.finishTournament = function(tId) {
 };
 
 // ─── Painel Integrado de Encerramento ───
-window.toggleRegistrationStatus = function (tId) {
+window.toggleRegistrationStatus = async function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
 
@@ -1532,9 +1532,9 @@ window.toggleRegistrationStatus = function (tId) {
         }
         t.status = 'open';
         window.AppStore.logAction(tId, 'Inscrições Reabertas');
-        window.AppStore.sync();
+        await window.AppStore.syncImmediate(tId);
         const container = document.getElementById('view-container');
-        if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+        if (container) renderTournaments(container, tId.toString());
         showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
         return;
     }
@@ -1557,13 +1557,13 @@ window.toggleRegistrationStatus = function (tId) {
 
     t.status = 'closed';
     window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
-    window.AppStore.sync();
+    await window.AppStore.syncImmediate(tId);
     const container = document.getElementById('view-container');
-    if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+    if (container) renderTournaments(container, tId.toString());
     showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
 };
 
-window._handleClosureOption = function (tId, option) {
+window._handleClosureOption = async function (tId, option) {
     // This is largely handled by specialized panels now
     // But if called directly or for simple closure:
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -1572,9 +1572,9 @@ window._handleClosureOption = function (tId, option) {
     if (option === 'just_close') {
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
-        window.AppStore.sync();
+        await window.AppStore.syncImmediate(tId);
         const container = document.getElementById('view-container');
-        if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+        if (container) renderTournaments(container, tId.toString());
         if (document.getElementById('closure-panel')) document.getElementById('closure-panel').remove();
     }
 };
