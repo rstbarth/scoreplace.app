@@ -2430,7 +2430,7 @@ window._openGSMConfig = function() {
 
   overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;">' +
     '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1.5rem 2rem;">' +
-      '<h3 style="margin:0;color:#f5f3ff;font-size:1.3rem;font-weight:800;">🎾 Game Set Match</h3>' +
+      '<h3 style="margin:0;color:#f5f3ff;font-size:1.3rem;font-weight:800;">🎾 Sistema de Pontuação</h3>' +
       '<p style="margin:6px 0 0;color:#e9d5ff;font-size:0.85rem;opacity:0.9;">Configure o sistema de pontuação do torneio</p>' +
     '</div>' +
     '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1.2rem;">' +
@@ -2440,7 +2440,7 @@ window._openGSMConfig = function() {
         '<label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Tipo de Placar</label>' +
         '<div style="display:flex;gap:8px;">' +
           '<button type="button" onclick="window._gsmSetType(\'simple\')" id="gsm-btn-simple" class="btn btn-sm" style="flex:1;' + (type === 'simple' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Simples</button>' +
-          '<button type="button" onclick="window._gsmSetType(\'sets\')" id="gsm-btn-sets" class="btn btn-sm" style="flex:1;' + (type === 'sets' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Game Set Match</button>' +
+          '<button type="button" onclick="window._gsmSetType(\'sets\')" id="gsm-btn-sets" class="btn btn-sm" style="flex:1;' + (type === 'sets' ? 'background:#a855f7;color:#fff;' : 'background:var(--btn-secondary-bg);color:var(--btn-secondary-text);') + '">Avançado</button>' +
         '</div>' +
       '</div>' +
 
@@ -2665,7 +2665,7 @@ window._gsmSaveConfig = function() {
   var ov = document.getElementById('gsm-config-overlay');
   if (ov) ov.remove();
   if (typeof showNotification !== 'undefined') {
-    showNotification('Pontuação Configurada', type === 'sets' ? 'Sistema Game Set Match ativado.' : 'Placar simples configurado.', 'success');
+    showNotification('Pontuação Configurada', type === 'sets' ? 'Pontuação avançada (sets/games) ativada.' : 'Placar simples configurado.', 'success');
   }
 };
 
