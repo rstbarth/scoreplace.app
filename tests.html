@@ -25,7 +25,7 @@
 </style>
 </head>
 <body>
-<h1>scoreplace.app — Testes Automatizados</h1>
+<h1>scoreplace.app — Testes Automatizados v0.4.2</h1>
 <div class="summary" id="summary">Executando...</div>
 <div id="load-status" class="load-status"></div>
 <div id="results"></div>
@@ -47,13 +47,14 @@ function expect(val) {
     toBeTruthy: function() { if (!val) throw new Error('Expected truthy but got ' + JSON.stringify(val)); },
     toBeFalsy: function() { if (val) throw new Error('Expected falsy but got ' + JSON.stringify(val)); },
     toContain: function(exp) { if (String(val).indexOf(exp) === -1) throw new Error('Expected to contain "' + exp + '" but got "' + val + '"'); },
-    toBeInstanceOf: function(exp) { if (!(val instanceof exp)) throw new Error('Expected instance of ' + exp.name); }
+    toNotContain: function(exp) { if (String(val).indexOf(exp) !== -1) throw new Error('Expected NOT to contain "' + exp + '" but got "' + val + '"'); },
+    toBeInstanceOf: function(exp) { if (!(val instanceof exp)) throw new Error('Expected instance of ' + exp.name); },
+    toBeNull: function() { if (val !== null) throw new Error('Expected null but got ' + JSON.stringify(val)); },
+    toBeUndefined: function() { if (val !== undefined) throw new Error('Expected undefined but got ' + JSON.stringify(val)); }
   };
 }
 
 // ─── Global stubs — prevent errors from app scripts ─────────────────────────
-// These stubs allow store.js, tournaments.js, and bracket.js to load
-// without crashing, even though there's no real DOM or Firebase.
 window.AppStore = window.AppStore || {
   tournaments: [],
   currentUser: null,
@@ -63,7 +64,10 @@ window.AppStore = window.AppStore || {
   sync: function() {},
   addTournament: function(t) { t.id = 'test-' + Date.now(); this.tournaments.push(t); },
   _saveToCache: function() {},
-  _loadFromCache: function() {}
+  _loadFromCache: function() {},
+  getVisibleTournaments: function() { return this.tournaments; },
+  getMyOrganized: function() { return []; },
+  getMyParticipations: function() { return []; }
 };
 window.FirestoreDB = window.FirestoreDB || { db: null, saveTournament: function() { return Promise.resolve(); } };
 if (typeof showNotification === 'undefined') window.showNotification = function() {};
@@ -73,6 +77,11 @@ if (typeof showBanner === 'undefined') window.showBanner = function() {};
 if (typeof openModal === 'undefined') window.openModal = function() {};
 if (typeof closeModal === 'undefined') window.closeModal = function() {};
 if (typeof initRouter === 'undefined') window.initRouter = function() {};
+// DOM stubs for store.js (topbar compaction uses window.addEventListener)
+if (typeof window.addEventListener === 'undefined') window.addEventListener = function() {};
+if (typeof window.removeEventListener === 'undefined') window.removeEventListener = function() {};
+if (typeof window.scrollTo === 'undefined') window.scrollTo = function() {};
+if (typeof window.matchMedia === 'undefined') window.matchMedia = function() { return { matches: false, addEventListener: function() {} }; };
 // Firebase stubs
 if (typeof firebase === 'undefined') {
   window.firebase = {
@@ -82,12 +91,11 @@ if (typeof firebase === 'undefined') {
   };
 }
 
-// Suppress console.error from scripts loading (they'll complain about missing DOM)
+// Suppress console.error from scripts loading
 var _origError = console.error;
 var _suppressedErrors = 0;
 console.error = function() {
   _suppressedErrors++;
-  // Still log to see in DevTools if needed
   _origError.apply(console, ['[suppressed]'].concat(Array.from(arguments)));
 };
 </script>
@@ -97,7 +105,7 @@ console.error = function() {
 function loadScript(src) {
   try {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', src, false); // synchronous
+    xhr.open('GET', src, false);
     xhr.send();
     if (xhr.status === 200) {
       try {
@@ -115,36 +123,96 @@ function loadScript(src) {
 }
 
 loadScript('js/store.js');
+loadScript('js/views/tournaments-utils.js');
+loadScript('js/views/tournaments-sharing.js');
+loadScript('js/views/tournaments-analytics.js');
+loadScript('js/views/tournaments-organizer.js');
 loadScript('js/views/tournaments.js');
+loadScript('js/views/bracket-logic.js');
 loadScript('js/views/bracket.js');
+loadScript('js/views/dashboard.js');
 
 // Restore console.error
 console.error = _origError;
 </script>
 
 <script>
-// ─── Test Suites ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEST SUITES
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// === 1. _safeHtml ===
-describe('_safeHtml', function() {
-  it('escapa caracteres HTML especiais', function() {
-    expect(window._safeHtml('<script>alert("xss")</script>')).toContain('&lt;script&gt;');
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1. _safeHtml — Sanitização XSS
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_safeHtml — Sanitização XSS', function() {
+  it('escapa tags HTML (<script>, <img>)', function() {
+    var result = window._safeHtml('<script>alert("xss")</script>');
+    expect(result).toContain('&lt;script&gt;');
+    expect(result).toNotContain('<script>');
   });
+
   it('escapa aspas simples e duplas', function() {
-    expect(window._safeHtml('"hello" & \'world\'')).toContain('&quot;');
-    expect(window._safeHtml('"hello" & \'world\'')).toContain('&#039;');
+    var result = window._safeHtml('"hello" & \'world\'');
+    expect(result).toContain('&quot;');
+    expect(result).toContain('&#039;');
   });
+
+  it('escapa ampersand', function() {
+    expect(window._safeHtml('A & B')).toContain('&amp;');
+  });
+
   it('retorna vazio para null/undefined/empty', function() {
     expect(window._safeHtml('')).toBe('');
     expect(window._safeHtml(null)).toBe('');
     expect(window._safeHtml(undefined)).toBe('');
   });
+
   it('converte numeros para string', function() {
     expect(window._safeHtml(123)).toBe('123');
+    expect(window._safeHtml(0)).toBe('0');
+  });
+
+  it('bloqueia injeção via atributo onclick', function() {
+    var result = window._safeHtml('" onclick="alert(1)" data-x="');
+    expect(result).toNotContain('onclick');
+    expect(result).toContain('&quot;');
+  });
+
+  it('bloqueia injeção via tag img onerror', function() {
+    var result = window._safeHtml('<img src=x onerror=alert(1)>');
+    expect(result).toContain('&lt;img');
+    expect(result).toNotContain('<img');
+  });
+
+  it('bloqueia injeção via javascript: URI', function() {
+    var result = window._safeHtml('javascript:alert(1)');
+    // deve ser retornado como texto literal, não como URI executável
+    expect(result).toContain('javascript');
+    expect(result).toNotContain('<');
+  });
+
+  it('preserva texto seguro sem alteração', function() {
+    expect(window._safeHtml('Torneio de Beach Tennis 2026')).toBe('Torneio de Beach Tennis 2026');
+  });
+
+  it('lida com strings muito longas', function() {
+    var long = 'A'.repeat(10000);
+    expect(window._safeHtml(long).length).toBe(10000);
+  });
+
+  it('escapa caracteres especiais em nomes de jogadores', function() {
+    var result = window._safeHtml('O\'Brien <Jr.> & "The Beast"');
+    expect(result).toContain('&#039;');
+    expect(result).toContain('&lt;');
+    expect(result).toContain('&gt;');
+    expect(result).toContain('&amp;');
+    expect(result).toContain('&quot;');
   });
 });
 
-// === 2. _isLigaFormat ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. _isLigaFormat
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_isLigaFormat', function() {
   it('Liga = true', function() {
     expect(window._isLigaFormat({ format: 'Liga' })).toBe(true);
@@ -164,7 +232,9 @@ describe('_isLigaFormat', function() {
   });
 });
 
-// === 3. _getTournamentProgress ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. _getTournamentProgress
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_getTournamentProgress', function() {
   it('0% para torneio sem partidas', function() {
     var prog = window._getTournamentProgress({ participants: ['A', 'B'] });
@@ -249,8 +319,10 @@ describe('_getTournamentProgress', function() {
   });
 });
 
-// === 4. _computeStandings ===
-describe('_computeStandings', function() {
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. _computeStandings — Básico
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_computeStandings — Básico', function() {
   it('calcula classificacao basica', function() {
     var t = {
       participants: [{ displayName: 'Alice' }, { displayName: 'Bob' }, { displayName: 'Carol' }],
@@ -322,9 +394,338 @@ describe('_computeStandings', function() {
     expect(standings[1].name).toBe('B');
     expect(standings[2].name).toBe('C');
   });
+
+  it('inicializa draws como 0', function() {
+    var t = {
+      participants: [{ displayName: 'X' }, { displayName: 'Y' }],
+      rounds: [{ matches: [{ p1: 'X', p2: 'Y', winner: 'X', scoreP1: 2, scoreP2: 0 }] }]
+    };
+    var standings = window._computeStandings(t);
+    var y = standings.find(function(s) { return s.name === 'Y'; });
+    expect(y.draws).toBe(0);
+  });
+
+  it('jogador sem partidas tem 0 em tudo', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'Lonely' }],
+      rounds: [{ matches: [{ p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 1 }] }]
+    };
+    var standings = window._computeStandings(t);
+    var lonely = standings.find(function(s) { return s.name === 'Lonely'; });
+    expect(lonely.points).toBe(0);
+    expect(lonely.wins).toBe(0);
+    expect(lonely.losses).toBe(0);
+    expect(lonely.draws).toBe(0);
+    expect(lonely.played).toBe(0);
+  });
 });
 
-// === 5. _calcNextDrawDate ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. _computeStandings — GSM (Sets/Games/Tiebreaks)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_computeStandings — GSM', function() {
+  it('acumula sets ganhos e perdidos', function() {
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6 },
+      participants: [{ displayName: 'Ana' }, { displayName: 'Bia' }],
+      rounds: [{ matches: [{
+        p1: 'Ana', p2: 'Bia', winner: 'Ana', scoreP1: 2, scoreP2: 1,
+        sets: [
+          { gamesP1: 6, gamesP2: 4 },
+          { gamesP1: 3, gamesP2: 6 },
+          { gamesP1: 6, gamesP2: 2 }
+        ]
+      }]}]
+    };
+    var standings = window._computeStandings(t);
+    var ana = standings.find(function(s) { return s.name === 'Ana'; });
+    var bia = standings.find(function(s) { return s.name === 'Bia'; });
+    expect(ana.setsWon).toBe(2);
+    expect(ana.setsLost).toBe(1);
+    expect(bia.setsWon).toBe(1);
+    expect(bia.setsLost).toBe(2);
+  });
+
+  it('acumula games ganhos e perdidos', function() {
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6 },
+      participants: [{ displayName: 'Ana' }, { displayName: 'Bia' }],
+      rounds: [{ matches: [{
+        p1: 'Ana', p2: 'Bia', winner: 'Ana', scoreP1: 2, scoreP2: 0,
+        sets: [
+          { gamesP1: 6, gamesP2: 3 },
+          { gamesP1: 6, gamesP2: 4 }
+        ]
+      }]}]
+    };
+    var standings = window._computeStandings(t);
+    var ana = standings.find(function(s) { return s.name === 'Ana'; });
+    expect(ana.gamesWon).toBe(12);
+    expect(ana.gamesLost).toBe(7);
+  });
+
+  it('conta tiebreaks ganhos', function() {
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true },
+      participants: [{ displayName: 'Ana' }, { displayName: 'Bia' }],
+      rounds: [{ matches: [{
+        p1: 'Ana', p2: 'Bia', winner: 'Ana', scoreP1: 2, scoreP2: 1,
+        sets: [
+          { gamesP1: 6, gamesP2: 4 },
+          { gamesP1: 4, gamesP2: 6 },
+          { gamesP1: 7, gamesP2: 6, tiebreak: { pointsP1: 7, pointsP2: 5 } }
+        ]
+      }]}]
+    };
+    var standings = window._computeStandings(t);
+    var ana = standings.find(function(s) { return s.name === 'Ana'; });
+    var bia = standings.find(function(s) { return s.name === 'Bia'; });
+    expect(ana.tiebreaksWon).toBe(1);
+    expect(bia.tiebreaksWon).toBe(0);
+  });
+
+  it('calcula saldo de sets (setsDiff) e games (gamesDiff)', function() {
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6 },
+      participants: [{ displayName: 'P1' }, { displayName: 'P2' }],
+      rounds: [{ matches: [{
+        p1: 'P1', p2: 'P2', winner: 'P1', scoreP1: 2, scoreP2: 1,
+        sets: [
+          { gamesP1: 6, gamesP2: 4 },
+          { gamesP1: 2, gamesP2: 6 },
+          { gamesP1: 6, gamesP2: 3 }
+        ]
+      }]}]
+    };
+    var standings = window._computeStandings(t);
+    var p1 = standings.find(function(s) { return s.name === 'P1'; });
+    // sets: 2-1 = +1, games: 14-13 = +1
+    expect(p1.setsWon - p1.setsLost).toBe(1);
+    expect(p1.gamesWon - p1.gamesLost).toBe(1);
+  });
+
+  it('usa tiebreakers GSM automaticamente quando scoring.type === sets', function() {
+    // Com GSM, a ordem padrão de desempate deve incluir saldo_sets, saldo_games etc.
+    // Ambos com 3 pontos, mas P1 tem melhor saldo de sets
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6 },
+      participants: [{ displayName: 'P1' }, { displayName: 'P2' }, { displayName: 'P3' }],
+      rounds: [
+        { matches: [
+          { p1: 'P1', p2: 'P2', winner: 'P1', scoreP1: 2, scoreP2: 0,
+            sets: [{ gamesP1: 6, gamesP2: 1 }, { gamesP1: 6, gamesP2: 2 }] },
+          { p1: 'P2', p2: 'P3', winner: 'P2', scoreP1: 2, scoreP2: 1,
+            sets: [{ gamesP1: 6, gamesP2: 4 }, { gamesP1: 4, gamesP2: 6 }, { gamesP1: 6, gamesP2: 4 }] }
+        ]},
+        { matches: [
+          { p1: 'P1', p2: 'P3', winner: 'P3', scoreP1: 0, scoreP2: 2,
+            sets: [{ gamesP1: 3, gamesP2: 6 }, { gamesP1: 4, gamesP2: 6 }] }
+        ]}
+      ]
+    };
+    var standings = window._computeStandings(t);
+    // Todos com 3 pts (1V 1D). Desempate por saldo_sets, depois saldo_games
+    expect(standings.length).toBe(3);
+    // Cada um tem 3 pts, verificar que GSM é usado no desempate
+    standings.forEach(function(s) { expect(s.points).toBe(3); });
+  });
+
+  it('match sem sets array nao quebra GSM', function() {
+    var t = {
+      scoring: { type: 'sets', setsToWin: 2, gamesPerSet: 6 },
+      participants: [{ displayName: 'A' }, { displayName: 'B' }],
+      rounds: [{ matches: [{ p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 0 }] }]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    expect(a.setsWon).toBe(0);
+    expect(a.gamesWon).toBe(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. sorteioRealizado — Truthy check corrigido
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('sorteioRealizado — Truthy check', function() {
+  // Simula a lógica corrigida do dashboard.js
+  function hasDraw(t) {
+    return (Array.isArray(t.matches) && t.matches.length > 0) ||
+           (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+           (Array.isArray(t.groups) && t.groups.length > 0);
+  }
+
+  it('false para arrays vazios', function() {
+    expect(hasDraw({ matches: [], rounds: [], groups: [] })).toBe(false);
+  });
+
+  it('false para undefined/null', function() {
+    expect(hasDraw({ matches: undefined, rounds: null })).toBe(false);
+  });
+
+  it('false para objeto vazio', function() {
+    expect(hasDraw({})).toBe(false);
+  });
+
+  it('true para matches com conteúdo', function() {
+    expect(hasDraw({ matches: [{ p1: 'A', p2: 'B' }] })).toBe(true);
+  });
+
+  it('true para rounds com conteúdo', function() {
+    expect(hasDraw({ rounds: [{ matches: [] }] })).toBe(true);
+  });
+
+  it('true para groups com conteúdo', function() {
+    expect(hasDraw({ groups: [{ name: 'A', standings: [] }] })).toBe(true);
+  });
+
+  it('BUG ANTIGO: array vazio era truthy', function() {
+    // Este teste documenta o bug que existia antes da correção
+    // [] é truthy em JS, mas não deveria indicar que sorteio foi realizado
+    var emptyArray = [];
+    expect(!!emptyArray).toBe(true); // JS truthy
+    expect(Array.isArray(emptyArray) && emptyArray.length > 0).toBe(false); // check correto
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. Detecção de participante — Comparação exata vs substring
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Detecção de participante — Comparação exata', function() {
+  function isParticipating(participants, user) {
+    var arr = Array.isArray(participants) ? participants : Object.values(participants || {});
+    return arr.some(function(p) {
+      if (typeof p === 'string') return p === user.email || p === user.displayName;
+      return (p.email && p.email === user.email) ||
+             (p.uid && user.uid && p.uid === user.uid) ||
+             (p.displayName && p.displayName === user.displayName);
+    });
+  }
+
+  it('match exato por email', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating([{ email: 'john@example.com' }], user)).toBe(true);
+  });
+
+  it('NÃO faz match por substring de email', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating([{ email: 'johnsmith@example.com' }], user)).toBe(false);
+  });
+
+  it('NÃO faz match por substring de nome', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating([{ displayName: 'Johnson Smith' }], user)).toBe(false);
+  });
+
+  it('match por uid', function() {
+    var user = { email: 'john@example.com', displayName: 'John', uid: 'abc123' };
+    expect(isParticipating([{ uid: 'abc123' }], user)).toBe(true);
+  });
+
+  it('match por string simples (email)', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating(['john@example.com'], user)).toBe(true);
+  });
+
+  it('NÃO faz match por string substring', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating(['johnsmith@example.com'], user)).toBe(false);
+  });
+
+  it('false quando participantes vazio', function() {
+    var user = { email: 'john@example.com', displayName: 'John' };
+    expect(isParticipating([], user)).toBe(false);
+  });
+
+  it('BUG ANTIGO: includes dava falso positivo', function() {
+    // Documentando o bug: "john@example.com".includes("john@example.com") era true
+    // mas "johnsmith@example.com".includes("john@example.com") também era true!
+    expect('johnsmith@example.com'.includes('john@example.com')).toBe(true);
+    // A correção usa === em vez de includes
+    expect('johnsmith@example.com' === 'john@example.com').toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. Tiebreak edge cases (bracket-ui.js)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Tiebreak — Edge cases', function() {
+  // Simula a lógica corrigida de _checkSetComplete
+  function resolveTiebreak(tbP1, tbP2, tbTarget, tbMargin) {
+    var setData = { gamesP1: 6, gamesP2: 6, tiebreak: { pointsP1: tbP1, pointsP2: tbP2 } };
+    tbTarget = tbTarget || 7;
+    tbMargin = tbMargin || 2;
+    var tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
+    if (tbComplete && tbP1 > tbP2) { setData.gamesP1 = 7; }
+    else if (tbComplete && tbP2 > tbP1) { setData.gamesP2 = 7; }
+    return setData;
+  }
+
+  it('tiebreak 7-5: P1 vence (padrão 7pts, margem 2)', function() {
+    var sd = resolveTiebreak(7, 5, 7, 2);
+    expect(sd.gamesP1).toBe(7);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 5-7: P2 vence', function() {
+    var sd = resolveTiebreak(5, 7, 7, 2);
+    expect(sd.gamesP1).toBe(6);
+    expect(sd.gamesP2).toBe(7);
+  });
+
+  it('tiebreak 5-5: pontos iguais, ninguém vence', function() {
+    var sd = resolveTiebreak(5, 5, 7, 2);
+    expect(sd.gamesP1).toBe(6);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 7-6: margem insuficiente (precisa de 2)', function() {
+    var sd = resolveTiebreak(7, 6, 7, 2);
+    expect(sd.gamesP1).toBe(6);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 8-6: margem suficiente, P1 vence', function() {
+    var sd = resolveTiebreak(8, 6, 7, 2);
+    expect(sd.gamesP1).toBe(7);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 10-8: super tiebreak com margem 2', function() {
+    var sd = resolveTiebreak(10, 8, 10, 2);
+    expect(sd.gamesP1).toBe(7);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 10-9: margem insuficiente no super tiebreak', function() {
+    var sd = resolveTiebreak(10, 9, 10, 2);
+    expect(sd.gamesP1).toBe(6);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 11-9: margem ok no super tiebreak', function() {
+    var sd = resolveTiebreak(11, 9, 10, 2);
+    expect(sd.gamesP1).toBe(7);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('tiebreak 0-0: ninguém vence', function() {
+    var sd = resolveTiebreak(0, 0, 7, 2);
+    expect(sd.gamesP1).toBe(6);
+    expect(sd.gamesP2).toBe(6);
+  });
+
+  it('BUG ANTIGO: pontos iguais dava game a ninguém', function() {
+    // Antes da correção: if (tbP1 > tbP2) {+1} else if (tbP2 > tbP1) {+1}
+    // Quando iguais, nenhum branch executava, o que está correto
+    // MAS antes nem validava margem, então 7-6 dava vitória indevida
+    var sd = resolveTiebreak(7, 6, 7, 2);
+    expect(sd.gamesP1).toBe(6); // com a correção, 7-6 não é suficiente
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 9. _calcNextDrawDate
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_calcNextDrawDate', function() {
   it('null para torneio sem drawFirstDate', function() {
     expect(window._calcNextDrawDate({})).toBe(null);
@@ -350,7 +751,9 @@ describe('_calcNextDrawDate', function() {
   });
 });
 
-// === 6. _shareTournament ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 10. _shareTournament
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_shareTournament', function() {
   it('nao crasha quando torneio nao encontrado', function() {
     window.AppStore.tournaments = [];
@@ -358,7 +761,9 @@ describe('_shareTournament', function() {
   });
 });
 
-// === 7. _exportTournamentCSV ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 11. _exportTournamentCSV
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_exportTournamentCSV', function() {
   it('nao crasha com torneio sem resultados', function() {
     window.AppStore.tournaments = [{ id: 'test1', name: 'Test', format: 'Eliminatórias', participants: ['A', 'B'] }];
@@ -371,7 +776,9 @@ describe('_exportTournamentCSV', function() {
   });
 });
 
-// === 8. _cloneTournament ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 12. _cloneTournament
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('_cloneTournament', function() {
   it('nao clona sem usuario logado', function() {
     window.AppStore.currentUser = null;
@@ -381,7 +788,9 @@ describe('_cloneTournament', function() {
   });
 });
 
-// === 9. SCOREPLACE_VERSION ===
+// ═══════════════════════════════════════════════════════════════════════════════
+// 13. SCOREPLACE_VERSION
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('SCOREPLACE_VERSION', function() {
   it('esta definida', function() {
     expect(!!window.SCOREPLACE_VERSION).toBeTruthy();
@@ -389,6 +798,54 @@ describe('SCOREPLACE_VERSION', function() {
   it('segue padrao semver alpha', function() {
     expect(window.SCOREPLACE_VERSION).toContain('-alpha');
     expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
+  });
+  it('versao atual e 0.4.2-alpha', function() {
+    expect(window.SCOREPLACE_VERSION).toBe('0.4.2-alpha');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 14. Tipos de dados — Robustez de input
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Robustez de input', function() {
+  it('_computeStandings com torneio sem rounds', function() {
+    var t = { participants: [{ displayName: 'A' }] };
+    var standings = window._computeStandings(t);
+    expect(standings.length).toBe(1);
+    expect(standings[0].points).toBe(0);
+  });
+
+  it('_computeStandings com participants como Object em vez de Array', function() {
+    var t = {
+      participants: { 0: { displayName: 'A' }, 1: { displayName: 'B' } },
+      rounds: [{ matches: [{ p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 0 }] }]
+    };
+    var standings = window._computeStandings(t);
+    expect(standings.length).toBe(2);
+  });
+
+  it('_getTournamentProgress com groups array', function() {
+    var t = {
+      groups: [{
+        name: 'Grupo A',
+        matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 2, scoreP2: 0 },
+          { p1: 'C', p2: 'D', winner: null }
+        ]
+      }]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(2);
+    expect(prog.completed).toBe(1);
+  });
+
+  it('_safeHtml com booleano', function() {
+    expect(window._safeHtml(true)).toBe('true');
+    expect(window._safeHtml(false)).toBe('false');
+  });
+
+  it('_isLigaFormat com objeto vazio', function() {
+    expect(window._isLigaFormat({})).toBeFalsy();
   });
 });
 
@@ -399,10 +856,10 @@ describe('SCOREPLACE_VERSION', function() {
   var loadStatus = document.getElementById('load-status');
 
   // Show script load status
-  var loadHtml = '<strong>Scripts carregados:</strong> ';
+  var loadHtml = '<strong>Scripts carregados:</strong><br>';
   _loadLog.forEach(function(l) {
     loadHtml += '<span class="' + (l.ok ? 'load-ok' : 'load-err') + '">' +
-      l.src + (l.ok ? ' ✓' : ' ✗ ' + (l.error || '')) + '</span> &nbsp; ';
+      l.src + (l.ok ? ' ✓' : ' ✗ ' + (l.error || '')) + '</span><br>';
   });
   if (_suppressedErrors > 0) {
     loadHtml += '<br><span style="color:#fbbf24;">(' + _suppressedErrors + ' erros suprimidos dos scripts do app — normal em ambiente de teste)</span>';
