@@ -588,8 +588,20 @@ window._resolveIncompleteTeams = function (tId, option) {
 // ─── VERIFICAÇÃO 2: POTÊNCIA DE 2 ───
 window.checkPowerOf2 = function (t) {
     const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-    const n = arr.length;
-    if (n === 0) return { count: 0, isPowerOf2: false, lo: 0, hi: 2, missing: 2, excess: 0 };
+    const teamSize = parseInt(t.teamSize) || 1;
+
+    // Count effective bracket entries (teams or individuals)
+    let preFormedTeams = 0;
+    let individuals = 0;
+    arr.forEach(function(p) {
+        const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        if (name.includes(' / ')) preFormedTeams++;
+        else individuals++;
+    });
+    const teamsFromIndividuals = teamSize > 1 ? Math.floor(individuals / teamSize) : individuals;
+    const n = preFormedTeams + teamsFromIndividuals;
+
+    if (n === 0) return { count: n, rawCount: arr.length, isPowerOf2: false, lo: 0, hi: 2, missing: 2, excess: 0, teamSize: teamSize };
 
     const isPowerOf2 = n > 0 && (n & (n - 1)) === 0;
     let prev = 1;
@@ -599,11 +611,13 @@ window.checkPowerOf2 = function (t) {
 
     return {
         count: n,
+        rawCount: arr.length,
         isPowerOf2,
         lo: lo,
         hi: hi,
         missing: hi - n,
-        excess: n - lo
+        excess: n - lo,
+        teamSize: teamSize
     };
 };
 
@@ -659,7 +673,7 @@ window.showPowerOf2Panel = function (tId) {
                         <div style="position:absolute;width:100%;height:100%;border:2px dashed rgba(251,191,36,0.3);border-radius:50%;animation: rotate 20s linear infinite;"></div>
                         <div style="text-align:center;position:relative;z-index:2;">
                             <div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3);">${info.count}</div>
-                            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;line-height:1.3;">Total de<br>Inscritos</div>
+                            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;line-height:1.3;">Total de<br>${info.teamSize > 1 ? 'Times' : 'Inscritos'}</div>
                         </div>
                     </div>
 
@@ -781,7 +795,7 @@ window.showPowerOf2Panel = function (tId) {
                             '<span style="font-size:2rem;">⏱️</span>' +
                             '<div>' +
                             '<h4>Lista de Espera</h4>' +
-                            '<p>' + info.count + ' inscritos. ' + Math.floor(info.lo / (parseInt(t.teamSize) || 1)) + ' ' + ((parseInt(t.teamSize) || 1) > 1 ? 'times jogam' : 'jogam') + ' em ' + (Math.floor(info.lo / (parseInt(t.teamSize) || 1)) / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.</p>' +
+                            '<p>' + info.count + (info.teamSize > 1 ? ' times' : ' inscritos') + '. ' + info.lo + ' ' + (info.teamSize > 1 ? 'times jogam' : 'jogam') + ' em ' + Math.floor(info.lo / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.</p>' +
                             '</div>' +
                             nashPill('standby') +
                         '</button>' +
@@ -1672,7 +1686,7 @@ window._showReopenPanel = function (tId, info) {
 
                 <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:14px;padding:1.25rem;margin-bottom:1.25rem;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-                        <span style="color:#94a3b8;font-size:0.85rem;">Inscritos atuais</span>
+                        <span style="color:#94a3b8;font-size:0.85rem;">${info.teamSize > 1 ? 'Times atuais' : 'Inscritos atuais'}</span>
                         <span style="color:#f1f5f9;font-weight:700;font-size:1.1rem;">${info.count}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
@@ -1942,7 +1956,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         `;
     } else if (option === 'playin') {
         const teamSize = parseInt(t.teamSize) || 1;
-        const totalTeams = Math.floor(info.count / teamSize);
+        const totalTeams = info.count;
         const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;
 
         // New repechage model:
@@ -2093,10 +2107,11 @@ window.showResolutionSimulationPanel = function (tId, option) {
         `;
     } else if (option === 'standby') {
         const teamSize = parseInt(t.teamSize) || 1;
-        const keptPlayers = info.lo;
-        const movedPlayers = info.excess;
-        const teamsKept = Math.floor(keptPlayers / teamSize);
-        const teamsMoved = Math.floor(movedPlayers / teamSize);
+        // info.lo and info.excess are already team counts (not individual players)
+        const teamsKept = info.lo;
+        const teamsMoved = info.excess;
+        const keptPlayers = teamSize > 1 ? teamsKept * teamSize : teamsKept;
+        const movedPlayers = teamSize > 1 ? teamsMoved * teamSize : teamsMoved;
         const matchesR1 = teamsKept / 2;
 
         // Standby mode options — always show (2 options)
@@ -2259,8 +2274,8 @@ window.showResolutionSimulationPanel = function (tId, option) {
         `;
     } else if (option === 'swiss') {
         const teamSize = parseInt(t.teamSize) || 1;
-        const totalTeams = Math.floor(info.count / teamSize);
-        const targetTeams = Math.floor(info.lo / teamSize);
+        const totalTeams = info.count;
+        const targetTeams = info.lo;
         const swissRounds = Math.ceil(Math.log2(totalTeams));
         const matchesPerRound = Math.floor(totalTeams / 2);
         const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;

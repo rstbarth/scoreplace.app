@@ -1,7 +1,7 @@
 
 // ─── Bracket / Standings View ───────────────────────────────────────────────
 
-function renderBracket(container, tournamentId) {
+function renderBracket(container, tournamentId, isInline) {
   const tId = tournamentId || window._lastActiveTournamentId;
   const t = tId && window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
 
@@ -35,9 +35,30 @@ function renderBracket(container, tournamentId) {
   const isGrupos = t.format === 'Fase de Grupos + Eliminatórias';
   const hasContent = (t.matches && t.matches.length) || (t.rounds && t.rounds.length) || (t.groups && t.groups.length);
 
-  const headerHtml = `
+  const _tIdSafe = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  // Action buttons — ordered: Regras, Inscritos, QR Code, Imprimir, Exportar CSV, Modo TV
+  // On mobile: 2-column grid; on desktop: flex wrap
+  const actionBtnsHtml = `
+    <div class="bracket-action-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <a href="#rules/${t.id}" class="btn btn-secondary btn-sm hover-lift" style="text-align:center;text-decoration:none;">📋 Regras</a>
+      <a href="#participants/${t.id}" class="btn btn-secondary btn-sm hover-lift" style="text-align:center;text-decoration:none;">👥 Inscritos</a>
+      <button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._showQRCode('${_tIdSafe}')">📱 QR Code</button>
+      ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : '<span></span>'}
+      ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift" onclick="window._exportTournamentCSV('${_tIdSafe}')">📊 CSV</button>` : '<span></span>'}
+      ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._tvMode('${_tIdSafe}')">📺 Modo TV</button>` : '<span></span>'}
+      ${isOrg && !hasContent ? `<button class="btn btn-primary btn-sm hover-lift" style="grid-column:span 2;" onclick="window.generateDrawFunction('${_tIdSafe}')">🎲 Realizar Sorteio</button>` : ''}
+    </div>
+    <style>
+      @media (min-width: 768px) {
+        .bracket-action-btns { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; }
+      }
+    </style>`;
+
+  const headerHtml = isInline ? `
+    <div class="mb-3">${actionBtnsHtml}</div>` : `
     <div class="mb-4">
-      <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
+      <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Voltar
       </button>
@@ -52,30 +73,21 @@ function renderBracket(container, tournamentId) {
           ${isGrupos && t.currentStage === 'elimination' ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Fase Eliminatória</span>` : ''}
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${isOrg && !hasContent ? `<button class="btn btn-primary" onclick="window.generateDrawFunction('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">🎲 Realizar Sorteio</button>` : ''}
-        ${hasContent ? `<button class="btn btn-secondary" onclick="window._exportTournamentCSV('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">📊 Exportar CSV</button>` : ''}
-        ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : ''}
-        ${hasContent ? `<button class="btn btn-secondary no-print" onclick="window._tvMode('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">📺 Modo TV</button>` : ''}
-        <button class="btn btn-secondary no-print" onclick="window._showQRCode('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">📱 QR Code</button>
-        <a href="#participants/${t.id}" class="btn btn-secondary">👥 Inscritos</a>
-        <a href="#rules/${t.id}" class="btn btn-secondary">📋 Regras</a>
-      </div>
+      <div>${actionBtnsHtml}</div>
     </div>`;
 
-  // ── Banner "Iniciar Torneio" (após sorteio, antes de iniciar) ──────────────
+  // ── Banner "Iniciar Torneio" e Progress Bar (skip quando inline — já existem no card acima) ──
   const hasDrawContent = (t.matches && t.matches.length > 0) || (t.rounds && t.rounds.length > 0) || (t.groups && t.groups.length > 0);
-  const startTournamentBanner = (isOrg && hasDrawContent && !t.tournamentStarted) ? `
+  const startTournamentBanner = (!isInline && isOrg && hasDrawContent && !t.tournamentStarted) ? `
     <div style="margin:1rem 0 1.5rem;padding:20px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:2px solid rgba(16,185,129,0.4);border-radius:16px;text-align:center;">
         <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.</p>
-        <button class="btn btn-success btn-cta hover-lift" onclick="window._startTournament('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
+        <button class="btn btn-success btn-cta hover-lift" onclick="window._startTournament('${_tIdSafe}')">
             ▶ Iniciar Torneio
         </button>
     </div>` : '';
 
-  // ── Barra de Progresso do Torneio ───────────────────────────────────────────
   let progressBarHtml = '';
-  if (hasContent && typeof window._getTournamentProgress === 'function') {
+  if (!isInline && hasContent && typeof window._getTournamentProgress === 'function') {
     const _prog = window._getTournamentProgress(t);
     if (_prog.total > 0) {
       const _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');

@@ -154,12 +154,12 @@ window.generateDrawFunction = function (tId) {
     // ── Verificação de potência de 2 para eliminatórias ──────────────
     const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
     if (isElim && !t.p2Resolution) {
-        const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-        if (arr.length < 2) {
-            showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para realizar o sorteio.', null, { type: 'warning' });
+        const info = window.checkPowerOf2(t);
+        if (info.count < 2) {
+            const _label = (info.teamSize > 1) ? 'times' : 'participantes';
+            showAlertDialog('Inscritos Insuficientes', `São necessários pelo menos 2 ${_label} para realizar o sorteio.`, null, { type: 'warning' });
             return;
         }
-        const info = window.checkPowerOf2(t);
         if (!info.isPowerOf2) {
             window.showPowerOf2Panel(tId);
             return;
