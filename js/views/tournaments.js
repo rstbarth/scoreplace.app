@@ -825,6 +825,7 @@ function renderTournaments(container, tournamentId = null) {
                 }
             } else {
                 actionsHtml = `
+               ${inviteModalHtml}
                ${teamEnrollModalHtml}
                ${hasDraw ? `
                <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">

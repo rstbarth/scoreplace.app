@@ -72,7 +72,14 @@ window._startTournament = function (tId) {
   t.status = 'in_progress';
   window.AppStore.sync();
   if (typeof showNotification === 'function') showNotification('Torneio Iniciado!', 'A presença dos participantes já pode ser registrada.', 'success');
-  _reRenderParticipants();
+  // Re-render current view
+  const hash = window.location.hash;
+  const container = document.getElementById('view-container');
+  if (container && hash.startsWith('#bracket/')) {
+    if (typeof renderBracket === 'function') renderBracket(container, tId);
+  } else {
+    _reRenderParticipants();
+  }
 };
 
 window._setCheckInFilter = function (tId, filter) {
