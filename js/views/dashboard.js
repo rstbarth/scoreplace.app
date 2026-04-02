@@ -148,9 +148,9 @@ function renderDashboard(container) {
       if (isParticipating) bgGradient = 'linear-gradient(135deg, #713f12 0%, #a16207 100%)';
       else if (isOrg) bgGradient = 'linear-gradient(135deg, #92400e 0%, #d97706 100%)';
     } else if (_theme === 'ocean') {
-      bgGradient = 'linear-gradient(135deg, #162032 0%, #0f1729 100%)';
-      if (isParticipating) bgGradient = 'linear-gradient(135deg, #164e63 0%, #0891b2 100%)';
-      else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e3a5f 0%, #0e7490 100%)';
+      bgGradient = 'linear-gradient(135deg, #1c3d5e 0%, #173352 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #245478 0%, #0e7490 100%)';
     } else {
       bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
       if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
@@ -201,6 +201,8 @@ function renderDashboard(container) {
       enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>`;
     } else if (!isParticipating && canEnroll) {
       enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>`;
+    } else if (isParticipating && !canEnroll) {
+      enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">Inscrito ✓</div>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);

@@ -1519,63 +1519,80 @@ window.finishTournament = function(tId) {
 };
 
 // ─── Painel Integrado de Encerramento ───
-window.toggleRegistrationStatus = async function (tId) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-    if (!t) return;
+window.toggleRegistrationStatus = function (tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) { console.warn('toggleRegistrationStatus: tournament not found', tId); return; }
 
     if (t.status === 'closed') {
         // Impedir reabertura se já houve sorteio
-        const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
+        var hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         if (hasDraw) {
-            showAlertDialog('Não Permitido', 'Não é possível reabrir inscrições após o sorteio ter sido realizado.', null, { type: 'warning' });
+            if (typeof showAlertDialog === 'function') showAlertDialog('Não Permitido', 'Não é possível reabrir inscrições após o sorteio ter sido realizado.', null, { type: 'warning' });
             return;
         }
-        t.status = 'open';
-        window.AppStore.logAction(tId, 'Inscrições Reabertas');
-        await window.AppStore.syncImmediate(tId);
-        const container = document.getElementById('view-container');
-        if (container) renderTournaments(container, tId.toString());
-        showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
+        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + (t.name || '') + '"?', function() {
+            t.status = 'open';
+            window.AppStore.logAction(tId, 'Inscrições Reabertas');
+            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                window.FirestoreDB.saveTournament(t).then(function() {
+                    var container = document.getElementById('view-container');
+                    if (container) renderTournaments(container, String(tId));
+                    if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
+                }).catch(function(err) {
+                    console.error('toggleRegistrationStatus reopen error:', err);
+                    if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível salvar. Tente novamente.', 'error');
+                });
+            }
+        });
         return;
     }
 
     // Verificar potência de 2 para formatos eliminatórios
-    const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
+    var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
     if (isElim) {
-        const info = window.checkPowerOf2(t);
-        const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+        var info = window.checkPowerOf2(t);
+        var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
         if (arr.length < 2) {
-            showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
+            if (typeof showAlertDialog === 'function') showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
             return;
         }
         if (!info.isPowerOf2) {
-            // Mostrar painel de ajuste ANTES de fechar — o painel fecha as inscrições ao resolver
             window.showPowerOf2Panel(tId);
             return;
         }
     }
 
-    t.status = 'closed';
-    window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
-    await window.AppStore.syncImmediate(tId);
-    const container = document.getElementById('view-container');
-    if (container) renderTournaments(container, tId.toString());
-    showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
+    // Confirmar antes de encerrar
+    showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + (t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
+        t.status = 'closed';
+        window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t).then(function() {
+                var container = document.getElementById('view-container');
+                if (container) renderTournaments(container, String(tId));
+                if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
+            }).catch(function(err) {
+                console.error('toggleRegistrationStatus close error:', err);
+                if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível salvar. Tente novamente.', 'error');
+            });
+        }
+    });
 };
 
-window._handleClosureOption = async function (tId, option) {
-    // This is largely handled by specialized panels now
-    // But if called directly or for simple closure:
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+window._handleClosureOption = function (tId, option) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
     if (!t) return;
 
     if (option === 'just_close') {
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
-        await window.AppStore.syncImmediate(tId);
-        const container = document.getElementById('view-container');
-        if (container) renderTournaments(container, tId.toString());
-        if (document.getElementById('closure-panel')) document.getElementById('closure-panel').remove();
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t).then(function() {
+                var container = document.getElementById('view-container');
+                if (container) renderTournaments(container, String(tId));
+                if (document.getElementById('closure-panel')) document.getElementById('closure-panel').remove();
+            }).catch(function(err) { console.error('_handleClosureOption error:', err); });
+        }
     }
 };
 // ─── Anonymous Simulation Previews ───

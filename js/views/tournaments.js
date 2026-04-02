@@ -522,7 +522,9 @@ function renderTournaments(container, tournamentId = null) {
              <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>
           ` : (isAberto ? `
              <button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
-          ` : '');
+          ` : (isParticipating ? `
+             <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">Inscrito ✓</div>
+          ` : ''));
 
         // Ações Específicas da tela Explore
         let actionsHtml = '';
