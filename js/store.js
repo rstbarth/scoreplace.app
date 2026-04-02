@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.4.4-alpha';
+window.SCOREPLACE_VERSION = '0.4.4c-alpha';
 
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.

@@ -41,8 +41,15 @@
     { id: 'apoie-detail', selector: '#btn-support-pix', text: 'Cada contribuição faz diferença! Apoie via PIX e ajude a manter o scoreplace gratuito.', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom' },
     { id: 'pro-detail', selector: '#btn-upgrade-pro', text: 'Com o plano Pro você pode criar torneios ilimitados e personalizar com sua marca!', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom', requiresPlan: 'free' },
 
-    // ── Dashboard ──
-    { id: 'new-tournament', selector: '.btn-create-hero', text: 'Crie seu primeiro torneio! É rápido: escolha o esporte, defina o formato e convide os participantes.', context: 'dashboard', priority: 10, position: 'bottom' },
+    // ── Dashboard: Hero Box ──
+    { id: 'new-tournament', selector: '#btn-create-tournament-in-box', text: 'Crie seu próprio torneio! Escolha o esporte, defina o formato e convide os participantes — leva menos de 1 minuto.', context: 'dashboard', priority: 10, position: 'bottom' },
+    { id: 'hero-filter-todos', selector: '[onclick*="_applyDashFilter(\'todos\')"]', text: 'Veja todos os torneios de uma vez — organizados por você e os que participa.', context: 'dashboard', priority: 4, position: 'top', requiresLogin: true },
+    { id: 'hero-filter-organizados', selector: '[onclick*="_applyDashFilter(\'organizados\')"]', text: 'Filtre só os torneios que você organiza. Ideal para gerenciar vários eventos.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
+    { id: 'hero-filter-participando', selector: '[onclick*="_applyDashFilter(\'participando\')"]', text: 'Veja apenas os torneios em que você está inscrito como participante.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
+    { id: 'hero-filter-abertos', selector: '[onclick*="_applyDashFilter(\'abertos\')"]', text: 'Torneios com inscrições abertas para você! Inscreva-se e comece a competir.', context: 'dashboard', priority: 6, position: 'top', requiresLogin: true },
+    { id: 'hero-filter-favoritos', selector: '[onclick*="_applyDashFilter(\'favoritos\')"]', text: 'Seus torneios favoritados ficam aqui. Clique na estrela em qualquer card para favoritar!', context: 'dashboard', priority: 4, position: 'top', requiresLogin: true },
+    { id: 'hero-filter-encerrados', selector: '[onclick*="_applyDashFilter(\'encerrados\')"]', text: 'Reveja torneios encerrados: classificação final, podium e histórico de partidas.', context: 'dashboard', priority: 3, position: 'top', requiresLogin: true },
+    // ── Dashboard: Geral ──
     { id: 'dashboard-filters', selector: '[data-filter]', text: 'Use os filtros para ver só os torneios que organiza, participa ou favoritou.', context: 'dashboard', priority: 4, position: 'bottom', requiresLogin: true },
     { id: 'dashboard-compact', selector: '[onclick*="_setDashView"]', text: 'Prefere uma visualização mais compacta? Alterne entre cards e lista!', context: 'dashboard', priority: 3, position: 'top' },
     { id: 'dashboard-card-fav', selector: '[data-fav-id]', text: 'Clique na estrela para favoritar um torneio e encontrá-lo mais rápido!', context: 'dashboard', priority: 4, position: 'top' },
