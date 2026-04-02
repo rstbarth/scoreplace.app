@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.3.18-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.4.1-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,43 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.4.1-alpha (Abril 2026)**
+- Sistema Game-Set-Match (GSM): sistema completo de pontuacao por sets/games/tiebreaks para torneios de raquete e similares.
+  - Configuracao na criacao/edicao do torneio: secao "Sistema de Pontuacao" com botao "Configurar" abre modal GSM completo.
+  - Tipos: "Simples" (placar numerico padrao) e "Game Set Match" (sets com games).
+  - Opcoes configuraveis: sets para vencer (1-5), games por set, tipo de contagem (numerica 1-2-3 ou tenis 15-30-40), regra de vantagem (deuce/advantage), tiebreak (pontos e margem), super tiebreak (set decisivo com 10 pontos).
+  - Padroes por esporte: Beach Tennis (1 set, 6 games), Tenis (2 sets), Padel (2 sets), Pickleball (1 set, 11 games), Tenis de Mesa (3 sets, 11 games), Volei (2 sets, 25 games). Objeto `window._sportScoringDefaults`.
+  - Preferencias do usuario salvas por esporte em localStorage (`scoreplace_gsm_prefs`). Auto-aplicadas ao selecionar esporte.
+  - Dados salvos no torneio: `t.scoring` com type, setsToWin, gamesPerSet, tiebreakEnabled, tiebreakPoints, tiebreakMargin, superTiebreak, superTiebreakPoints, countingType, advantageRule.
+  - Bracket: botao "Lancar Sets" substitui inputs de placar simples quando torneio usa GSM. Overlay dedicado para entrada set a set com validacao em tempo real.
+  - Dados da partida: `m.sets[]` com gamesP1, gamesP2, tiebreak {pointsP1, pointsP2}. Campos m.setsWonP1, m.setsWonP2.
+  - Display: sets formatados como "6-4 3-6 7-6(5)" nos cards de partida e badge do vencedor.
+  - Funcoes: `_openSetScoring(tId, matchId)`, `_checkSetComplete(tId, matchId, setIndex)`, `_saveSetResult(tId, matchId)`, `_openGSMConfig()`, `_gsmSetType()`, `_gsmSetCounting()`, `_gsmToggleTiebreak()`, `_gsmToggleSuperTb()`, `_gsmUpdateSummary()`, `_gsmSaveConfig()`.
+  - Desempate GSM na classificacao (Liga/Suico): novos criterios automaticos quando torneio usa sets — saldo_sets, saldo_games, sets_vencidos, games_vencidos, tiebreaks_vencidos. Campos acumulados em _computeStandings: setsWon, setsLost, gamesWon, gamesLost, tiebreaksWon.
+  - Tabela de classificacao: colunas extras "±S" (saldo de sets) e "±G" (saldo de games) quando torneio usa GSM. Colunas clicaveis para ordenacao.
+
+**v0.4.0-alpha (Abril 2026)**
+- Auditoria Completa e Correcao de Bugs: revisao linha a linha de todo o codebase (~34 bugs identificados e corrigidos em 3 ondas).
+  - Bug fix: "Reabrir Inscricao" nao funcionava — usava `delete t.status` (undefined). Corrigido para `t.status = 'open'` com guard contra reabrir apos sorteio.
+  - Bug fix: Race condition de inscricoes durante tela de decisao — inscricoes agora suspensas (`t._suspendedByPanel = true`) ao abrir painel de potencia de 2, restauradas no cancelamento.
+  - Bug fix: Operador logico sem parenteses — `|| ligaAberta` sobrescrevia status closed/active. Corrigido com parenteses em todas as 3 ocorrencias.
+  - Bug fix: `_handleSortearClick` faz await no Firestore save antes de navegar para pre-draw.
+  - Bug fix: `_computeStandings` nao inicializava campo `draws: 0` no scoreMap.
+  - Bug fix: `_maybeFinishElimination` retorna early durante fase de grupos (`t.currentStage === 'groups'`).
+  - Bug fix: Modo TV valida existencia do torneio antes de renderizar.
+  - Bug fix: XSS em notifications-view.js e explore.js — uid escapado em onclick handlers.
+  - Bug fix: enroll-modal.js reescrito — removido botao "Quero Participar" nao-funcional, share link dinamico com ID do torneio, WhatsApp share funcional.
+  - Bug fix: result-modal.js marcado como deprecated (dead code — resultados salvos via bracket-ui.js).
+  - Bug fix: "Encerrar Torneio" oculto para formato Liga.
+  - Bug fix: `sorteioRealizado` nao exigia mais `t.status === 'active'`.
+- Novos Temas: 4 temas disponiveis — Noturno (dark), Claro (light), Por do Sol (sunset), Oceano (ocean).
+  - Ciclo de temas via botao no header: dark → light → sunset → ocean.
+  - CSS variables por tema em style.css para componentes: --btn-secondary-bg/text/hover, --btn-danger-ghost-text/bg, --info-pill-bg, --info-box-bg, --stat-box-bg, --card-org-border, --card-part-border.
+  - Dashboard cards com gradientes adaptativos por tema. Tema claro com texto escuro e bordas sutis.
+  - components.css refatorado para usar variaveis CSS em vez de cores hardcoded.
+  - theme.js atualizado para reconhecer os 4 temas.
+  - store.js: `_themeOrder`, `_themeIcons`, `_themeNames` para ciclo de temas.
 
 **v0.3.18-alpha (Abril 2026)**
 - Duração Estimada do Torneio: quando endDate não está preenchida, a página de detalhes exibe box "⏱️ Duração Estimada" com simulações para 8, 16, 32 e 64 participantes. Se houver inscritos (2+), mostra também linha destacada com o número real. Cálculo por formato: Eliminatórias (por rodadas paralelas), Dupla Eliminatória (~2x simples), Grupos + Eliminatórias (round-robin + mata-mata), Suíço (rounds * pairings), Liga (total combinações). Considera gameDuration, courtCount, callTime e warmupTime do torneio. Mostra número de partidas e horário estimado de término quando startDate inclui hora. Posicionado entre datas e local nos detalhes do torneio. Função global window._buildTimeEstimation(t) em tournaments.js.
@@ -381,11 +418,17 @@ scoreplace-app/
 │   └── views/
 │       ├── auth.js             # Firebase Auth REAL + perfil com CEPs de preferencia + filtros de notificacao
 │       ├── dashboard.js        # Tela inicial com hero box + cards com logo de torneio
+│       ├── tournaments-utils.js # Funcoes utilitarias de torneios
+│       ├── tournaments-sharing.js # Compartilhamento e convites
+│       ├── tournaments-analytics.js # Estatisticas e analytics
+│       ├── tournaments-organizer.js # Ferramentas do organizador
 │       ├── tournaments.js      # Lista/detalhe + sistema de notificacoes + comunicacao do organizador
-│       ├── create-tournament.js# Modal de criacao/edicao + logo canvas generator + deteccao de alteracoes
+│       ├── create-tournament.js# Modal de criacao/edicao + logo canvas generator + GSM config + deteccao de alteracoes
 │       ├── participants.js     # Gestao de participantes
 │       ├── pre-draw.js         # Tela de pre-sorteio
-│       ├── bracket.js          # Chaveamento/bracket (~94KB)
+│       ├── bracket-logic.js     # Computacao de standings, Swiss pairing, advance winner, auto-finish, 3rd place
+│       ├── bracket.js          # Renderizacao do chaveamento/bracket + classificacao + GSM display
+│       ├── bracket-ui.js       # UI interativa: save result inline, set scoring overlay, TV mode, sort standings
 │       ├── rules.js            # Regras do torneio
 │       ├── explore.js          # Explorar torneios publicos da comunidade
 │       ├── notifications-view.js # View de notificacoes
@@ -394,19 +437,7 @@ scoreplace-app/
 ```
 
 ### Cache-busters atuais (index.html)
-- store.js?v=8
-- firebase-db.js?v=8
-- dashboard.js?v=7
-- tournaments.js?v=15
-- create-tournament.js?v=6
-- auth.js?v=10
-- explore.js?v=8
-- responsive.css?v=3
-- layout.css?v=2
-- router.js?v=8
-- main.js?v=5
-- bracket.js?v=6
-- participants.js?v=3
+Todos os arquivos JS e CSS usam `?v=0.4.1` a partir da v0.4.1-alpha.
 
 ## Padrao de Codigo
 
@@ -514,6 +545,7 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 - **0.1.x-alpha** — Fase inicial. Firestore ativo, auth real, fluxo de convite
 - **0.2.x-alpha** — Fase atual. Unificacao Liga/Ranking, encerramento automatico, podio, validacoes, seguranca
 - **0.3.x-alpha** — Rankings, historico, PWA, push notifications
+- **0.4.x-alpha** — Auditoria completa, novos temas, sistema GSM
 - **1.0.0** — Release estavel
 
 ## Proximos Passos Conhecidos
