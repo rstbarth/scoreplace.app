@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.4.1-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.4.2-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,17 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.4.2-alpha (Abril 2026)**
+- Auditoria de Seguranca Completa: ~25 vulnerabilidades XSS corrigidas em 8 arquivos JS. Todos os dados controlados por usuario (nomes de torneio, jogadores, times, categorias, formatos, locais) agora sanitizados com window._safeHtml() antes de injecao no DOM.
+  - Arquivos corrigidos: bracket.js, bracket-ui.js, explore.js, pre-draw.js, notifications-view.js, auth.js, rules.js.
+  - Padroes corrigidos: innerHTML com template literals, concatenacao de strings em onclick handlers, atributos title/value sem escape.
+  - IDs em onclick handlers (uid, tournamentId, notifId) agora com escape de aspas e barras.
+- Bug fix: firebase-db.js:175 usava `fromUid` ao inves de `toUid` ao verificar pedidos de amizade mutuos em `sendFriendRequest()` — buscava documento do remetente em vez do destinatario.
+- Bug fix: dashboard.js:8 truthy check em `sorteioRealizado` — arrays vazios `[]` eram avaliados como truthy. Corrigido para usar `Array.isArray(x) && x.length > 0` (consistente com linha 111).
+- Bug fix: dashboard.js:131 substring matching na deteccao de participante — `str.includes(user.email)` podia dar falso positivo (ex: "john@example.com" matchava "johnsmith@example.com"). Corrigido para comparacao exata por email, uid e displayName.
+- Bug fix: bracket-ui.js:396 tiebreak com pontos iguais nao era tratado — quando tbP1 === tbP2 nenhum jogador recebia o game extra. Agora valida margem minima (tiebreakMargin) e pontuacao minima (tiebreakPoints) antes de atribuir vencedor do tiebreak.
+- CSS: removidos blocos de temas mortos (high-contrast, alternative) de components.css. Adicionados overrides de hint-balloon-text e hint-balloon-got-it para temas sunset e ocean.
 
 **v0.4.1-alpha (Abril 2026)**
 - Sistema Game-Set-Match (GSM): sistema completo de pontuacao por sets/games/tiebreaks para torneios de raquete e similares.
@@ -437,7 +448,7 @@ scoreplace-app/
 ```
 
 ### Cache-busters atuais (index.html)
-Todos os arquivos JS e CSS usam `?v=0.4.1` a partir da v0.4.1-alpha.
+Todos os arquivos JS e CSS usam `?v=0.4.2` a partir da v0.4.2-alpha.
 
 ## Padrao de Codigo
 
