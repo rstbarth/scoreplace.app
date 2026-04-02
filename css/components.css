@@ -831,21 +831,21 @@ input[type="number"] {
 
 [data-theme="ocean"] .hint-glow { animation-name: hint-pulse-ocean !important; }
 @keyframes hint-pulse-ocean {
-  0% { box-shadow: 0 0 4px 2px rgba(6,182,212,0.3); }
-  50% { box-shadow: 0 0 16px 6px rgba(6,182,212,0.5); }
-  100% { box-shadow: 0 0 4px 2px rgba(6,182,212,0.3); }
+  0% { box-shadow: 0 0 4px 2px rgba(34,211,238,0.3); }
+  50% { box-shadow: 0 0 16px 6px rgba(34,211,238,0.5); }
+  100% { box-shadow: 0 0 4px 2px rgba(34,211,238,0.3); }
 }
 [data-theme="ocean"] .hint-balloon-body {
-  background: linear-gradient(135deg, #0c1a2e 0%, #0c1222 100%);
-  border-color: rgba(6,182,212,0.4);
+  background: linear-gradient(135deg, #1c3d5e 0%, #173352 100%);
+  border-color: rgba(34,211,238,0.4);
 }
-[data-theme="ocean"] .hint-balloon-text { color: #a5f3fc; }
+[data-theme="ocean"] .hint-balloon-text { color: #d0e8f7; }
 [data-theme="ocean"] .hint-balloon-got-it {
-  background: rgba(6,182,212,0.15);
-  border-color: rgba(6,182,212,0.35);
-  color: #06b6d4;
+  background: rgba(34,211,238,0.18);
+  border-color: rgba(34,211,238,0.40);
+  color: #22d3ee;
 }
-[data-theme="ocean"] .hint-balloon-got-it:hover { background: rgba(6,182,212,0.25); }
+[data-theme="ocean"] .hint-balloon-got-it:hover { background: rgba(34,211,238,0.30); }
 
 /* Mobile adjustments */
 @media (max-width: 767px) {

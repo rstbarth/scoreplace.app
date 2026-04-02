@@ -114,40 +114,40 @@
 }
 
 [data-theme="ocean"] {
-  /* Tema Oceano — frio e profundo */
-  --bg-darker: #0c1222;
-  --bg-dark: #0f1729;
-  --bg-card: #162032;
-  --bg-card-hover: #1e2d45;
+  /* Tema Oceano — azul marinho vivo, distinto do Noturno */
+  --bg-darker: #122a42;
+  --bg-dark: #173352;
+  --bg-card: #1c3d5e;
+  --bg-card-hover: #24506f;
 
-  --primary-color: #06b6d4;
-  --primary-hover: #22d3ee;
-  --secondary-color: #8b5cf6;
-  --secondary-hover: #a78bfa;
+  --primary-color: #22d3ee;
+  --primary-hover: #67e8f9;
+  --secondary-color: #38bdf8;
+  --secondary-hover: #7dd3fc;
 
-  --text-main: #c4d5e8;
-  --text-muted: #8aa2bf;
-  --text-bright: #e8f4fd;
+  --text-main: #d0e8f7;
+  --text-muted: #8ab4d4;
+  --text-bright: #f0f9ff;
 
-  --border-color: #1e3a5f;
-  --border-focus: #06b6d4;
+  --border-color: #2a5a80;
+  --border-focus: #22d3ee;
 
-  --danger-color: #f43f5e;
+  --danger-color: #fb7185;
   --success-color: #34d399;
-  --info-color: #06b6d4;
+  --info-color: #22d3ee;
 
   /* Componentes */
-  --btn-secondary-bg: #1e3a5f;
-  --btn-secondary-text: #7dd3fc;
-  --btn-secondary-hover: #254a75;
+  --btn-secondary-bg: #245478;
+  --btn-secondary-text: #a5f3fc;
+  --btn-secondary-hover: #2e6590;
   --btn-danger-ghost-text: #fda4af;
-  --btn-danger-ghost-bg: rgba(244,63,94,0.15);
-  --btn-danger-ghost-border: rgba(244,63,94,0.35);
-  --info-pill-bg: rgba(0,0,0,0.30);
-  --info-box-bg: rgba(0,0,0,0.25);
-  --stat-box-bg: rgba(0,0,0,0.25);
-  --card-org-border: rgba(6,182,212,0.3);
-  --card-part-border: rgba(139,92,246,0.3);
+  --btn-danger-ghost-bg: rgba(251,113,133,0.18);
+  --btn-danger-ghost-border: rgba(251,113,133,0.40);
+  --info-pill-bg: rgba(10,40,70,0.50);
+  --info-box-bg: rgba(10,40,70,0.40);
+  --stat-box-bg: rgba(10,40,70,0.40);
+  --card-org-border: rgba(34,211,238,0.35);
+  --card-part-border: rgba(56,189,248,0.35);
 }
 
 :root {
