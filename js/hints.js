@@ -1,16 +1,14 @@
-// ── Visual Hints System (Dicas Visuais) ─────────────────────────────────────
-// Provides contextual, progressive visual hints to guide users.
-// Hints appear after inactivity (idle), glow the target element,
-// and show a tooltip balloon with helpful text.
-// User can disable via profile toggle. State persisted in localStorage.
+// ── Visual Hints System (Dicas Visuais) v2 ──────────────────────────────────
+// Contextual, progressive visual hints. Only shows for elements truly visible
+// on screen. Balloon arrow points precisely at the target element.
 
 (function() {
   'use strict';
 
   var IDLE_TIMEOUT = 8000;          // ms of inactivity before showing a hint
-  var HINT_DISPLAY_TIME = 12000;    // ms a hint stays visible
-  var HINT_COOLDOWN = 25000;        // ms between hints in same session
-  var STRATEGIC_BOOST = 0.35;       // probability boost for strategic hints (Apoie/Pro)
+  var HINT_DISPLAY_TIME = 10000;    // ms a hint stays visible
+  var HINT_COOLDOWN = 15000;        // ms between consecutive hints
+  var STRATEGIC_BOOST = 0.30;       // probability boost for strategic hints
   var LS_KEY = 'scoreplace_hints';
   var LS_DISABLED_KEY = 'scoreplace_hints_disabled';
 
@@ -18,17 +16,16 @@
   var _idleTimer = null;
   var _cooldownTimer = null;
   var _activeHint = null;
+  var _activeEl = null;
   var _onCooldown = false;
   var _initialized = false;
   var _seenHints = {};
-  var _sessionShown = {};   // hints shown this session (id → count)
+  var _sessionShown = {};
+  var _lastHintId = null;    // avoid repeating same hint back-to-back
 
   // ── Hint Catalog ───────────────────────────────────────────────────────────
-  // Each hint: { id, selector, text, context, priority (1-10), strategic, position }
-  // context: 'global' | 'dashboard' | 'tournament-detail' | 'create-tournament' | 'bracket' | 'explore'
-  // position: 'bottom' | 'top' | 'left' | 'right' (balloon position relative to element)
   var _hints = [
-    // ── Global / Topbar ──
+    // ── Global / Topbar (only when element is visible in topbar) ──
     { id: 'hamburger', selector: '.hamburger-btn', text: 'Toque aqui para abrir o menu e navegar pelo app!', context: 'global', priority: 9, position: 'bottom' },
     { id: 'profile', selector: '#btn-login', text: 'Acesse seu perfil, veja estatísticas e configure notificações.', context: 'global', priority: 7, position: 'bottom' },
     { id: 'theme', selector: '#theme-toggle-btn', text: 'Experimente trocar o tema! Temos Noturno, Claro, Pôr do Sol e Oceano.', context: 'global', priority: 4, position: 'bottom' },
@@ -37,45 +34,45 @@
     { id: 'notifications', selector: 'a[href="#notifications"]', text: 'Fique por dentro! Aqui você recebe avisos de torneios e convites.', context: 'global', priority: 5, position: 'bottom', requiresLogin: true },
     { id: 'explore-nav', selector: 'a[href="#explore"]', text: 'Descubra torneios públicos da comunidade e participe!', context: 'global', priority: 6, position: 'bottom' },
 
-    // ── Strategic (Apoie / Pro) — appear more often, with compelling copy ──
-    { id: 'apoie-topbar', selector: '#btn-support-pix', text: 'Gostou do scoreplace? Seu apoio via PIX mantém a plataforma gratuita e nos ajuda a crescer!', context: 'dashboard', priority: 8, strategic: true, position: 'bottom' },
-    { id: 'pro-topbar', selector: '#btn-upgrade-pro', text: 'Desbloqueie torneios ilimitados, upload de logo e Modo TV sem marca! Apenas R$19,90/mês.', context: 'dashboard', priority: 8, strategic: true, position: 'bottom', requiresPlan: 'free' },
+    // ── Strategic (Apoie / Pro) — only when button is on screen ──
+    { id: 'apoie-dash', selector: '#btn-support-pix', text: 'Gostou do scoreplace? Seu apoio via PIX mantém a plataforma gratuita e nos ajuda a crescer!', context: 'dashboard', priority: 8, strategic: true, position: 'bottom' },
+    { id: 'pro-dash', selector: '#btn-upgrade-pro', text: 'Desbloqueie torneios ilimitados, upload de logo e Modo TV sem marca! Apenas R$19,90/mês.', context: 'dashboard', priority: 8, strategic: true, position: 'bottom', requiresPlan: 'free' },
     { id: 'apoie-detail', selector: '#btn-support-pix', text: 'Cada contribuição faz diferença! Apoie via PIX e ajude a manter o scoreplace gratuito.', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom' },
     { id: 'pro-detail', selector: '#btn-upgrade-pro', text: 'Com o plano Pro você pode criar torneios ilimitados e personalizar com sua marca!', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom', requiresPlan: 'free' },
 
     // ── Dashboard ──
-    { id: 'new-tournament', selector: '.btn-create-hero, #btn-create-tournament-in-box', text: 'Crie seu primeiro torneio! É rápido: escolha o esporte, defina o formato e convide os participantes.', context: 'dashboard', priority: 10, position: 'bottom' },
-    { id: 'dashboard-filters', selector: '.hero-filters, [data-filter]', text: 'Use os filtros para ver só os torneios que organiza, participa ou favoritou.', context: 'dashboard', priority: 4, position: 'bottom', requiresLogin: true },
+    { id: 'new-tournament', selector: '.btn-create-hero', text: 'Crie seu primeiro torneio! É rápido: escolha o esporte, defina o formato e convide os participantes.', context: 'dashboard', priority: 10, position: 'bottom' },
+    { id: 'dashboard-filters', selector: '[data-filter]', text: 'Use os filtros para ver só os torneios que organiza, participa ou favoritou.', context: 'dashboard', priority: 4, position: 'bottom', requiresLogin: true },
     { id: 'dashboard-compact', selector: '[onclick*="_setDashView"]', text: 'Prefere uma visualização mais compacta? Alterne entre cards e lista!', context: 'dashboard', priority: 3, position: 'top' },
     { id: 'dashboard-card-fav', selector: '[data-fav-id]', text: 'Clique na estrela para favoritar um torneio e encontrá-lo mais rápido!', context: 'dashboard', priority: 4, position: 'top' },
 
     // ── Tournament Detail ──
-    { id: 'invite-friends', selector: '[onclick*="_shareTournament"], [onclick*="openEnrollModal"]', text: 'Convide amigos! Compartilhe o link por WhatsApp, QR Code ou copie o link.', context: 'tournament-detail', priority: 7, position: 'top' },
+    { id: 'invite-friends', selector: '[onclick*="_shareTournament"]', text: 'Convide amigos! Compartilhe o link por WhatsApp, QR Code ou copie o link.', context: 'tournament-detail', priority: 7, position: 'top' },
     { id: 'enroll-btn', selector: '[onclick*="enrollInTournament"]', text: 'Inscreva-se para participar! O organizador será notificado automaticamente.', context: 'tournament-detail', priority: 8, position: 'top' },
     { id: 'qr-code', selector: '[onclick*="_showQRCode"]', text: 'Gere um QR Code para projetar no local do evento. Participantes escaneiam e se inscrevem!', context: 'tournament-detail', priority: 4, position: 'top' },
     { id: 'tv-mode', selector: '[onclick*="_tvMode"]', text: 'Modo TV: projete o placar ao vivo em um telão no local do torneio!', context: 'bracket', priority: 5, position: 'top' },
     { id: 'org-communicate', selector: '[onclick*="_sendOrgCommunication"]', text: 'Envie mensagens para todos os inscritos — ideal para avisos de horário ou local.', context: 'tournament-detail', priority: 5, position: 'top' },
-    { id: 'org-sortear', selector: '[onclick*="_handleSortearClick"], [onclick*="generateDrawFunction"]', text: 'Sorteie o chaveamento! Os participantes serão distribuídos automaticamente.', context: 'tournament-detail', priority: 9, position: 'top' },
+    { id: 'org-sortear', selector: '[onclick*="_handleSortearClick"]', text: 'Sorteie o chaveamento! Os participantes serão distribuídos automaticamente.', context: 'tournament-detail', priority: 9, position: 'top' },
 
     // ── Create Tournament ──
     { id: 'ct-sport', selector: '#select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação e regras próprias.', context: 'create-tournament', priority: 8, position: 'bottom' },
     { id: 'ct-format', selector: '#select-formato', text: 'Eliminatória (mata-mata), Liga (todos contra todos), Suíço (pareamento por pontos), Grupos + Eliminatórias...', context: 'create-tournament', priority: 8, position: 'bottom' },
     { id: 'ct-venue', selector: '#tourn-venue', text: 'Informe o local! A busca mostra endereços reais e até previsão do tempo para o dia do evento.', context: 'create-tournament', priority: 6, position: 'bottom' },
-    { id: 'ct-categories', selector: '#btn-cat-fem, [onclick*="toggleGenderCat"]', text: 'Ative categorias para separar chaveamentos por gênero e/ou nível de habilidade.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-categories', selector: '#btn-cat-fem', text: 'Ative categorias para separar chaveamentos por gênero e/ou nível de habilidade.', context: 'create-tournament', priority: 5, position: 'bottom' },
     { id: 'ct-gsm', selector: '#btn-gsm-config', text: 'Configure sets, games e tiebreaks! Ideal para tênis, beach tennis, padel e vôlei.', context: 'create-tournament', priority: 7, position: 'bottom' },
-    { id: 'ct-logo', selector: '#logo-preview, [onclick*="generateLogo"]', text: 'Gere uma logo automática para o torneio! Você também pode fazer upload da sua.', context: 'create-tournament', priority: 4, position: 'top' },
+    { id: 'ct-logo', selector: '#logo-preview', text: 'Gere uma logo automática para o torneio! Você também pode fazer upload da sua.', context: 'create-tournament', priority: 4, position: 'top' },
     { id: 'ct-public', selector: '#tourn-public', text: 'Torneio público aparece na aba Explorar — ótimo para atrair novos participantes!', context: 'create-tournament', priority: 5, position: 'top' },
     { id: 'ct-dates', selector: '#tourn-start-date', text: 'Defina datas de início e inscrição. Os participantes verão contagem regressiva nos cards!', context: 'create-tournament', priority: 5, position: 'bottom' },
 
     // ── Bracket / Standings ──
-    { id: 'bracket-zoom', selector: '.zoom-slider, [onclick*="zoomIn"]', text: 'Use o zoom para ver o chaveamento completo. Dica: arraste para navegar!', context: 'bracket', priority: 4, position: 'top' },
+    { id: 'bracket-zoom', selector: '.zoom-slider', text: 'Use o zoom para ver o chaveamento completo. Dica: arraste para navegar!', context: 'bracket', priority: 4, position: 'top' },
     { id: 'bracket-print', selector: '[onclick*="_printBracket"]', text: 'Imprima o chaveamento para colar na parede do evento!', context: 'bracket', priority: 3, position: 'top' },
     { id: 'bracket-export', selector: '[onclick*="_exportTournamentCSV"]', text: 'Exporte resultados em CSV para abrir no Excel ou Google Sheets.', context: 'bracket', priority: 3, position: 'top' },
     { id: 'standings-sort', selector: 'th[onclick*="_sortStandingsTable"]', text: 'Clique nos cabeçalhos da tabela para ordenar por qualquer coluna!', context: 'bracket', priority: 5, position: 'bottom' },
     { id: 'bracket-share', selector: '[onclick*="_shareMatchResult"]', text: 'Compartilhe o resultado de cada partida direto no WhatsApp!', context: 'bracket', priority: 4, position: 'top' },
 
     // ── Explore ──
-    { id: 'explore-search', selector: '#explore-search, input[placeholder*="Buscar"]', text: 'Busque por nome, esporte, formato ou cidade para encontrar torneios perto de você!', context: 'explore', priority: 6, position: 'bottom' }
+    { id: 'explore-search', selector: '#explore-search', text: 'Busque por nome, esporte, formato ou cidade para encontrar torneios perto de você!', context: 'explore', priority: 6, position: 'bottom' }
   ];
 
   // ── Utility ────────────────────────────────────────────────────────────────
@@ -100,7 +97,6 @@
     if (hash.indexOf('#tournaments/') === 0 || hash.indexOf('#tournament/') === 0) return 'tournament-detail';
     if (hash.indexOf('#bracket/') === 0) return 'bracket';
     if (hash.indexOf('#explore') === 0) return 'explore';
-    // Detect create-tournament modal open
     var ctModal = document.getElementById('modal-create-tournament');
     if (ctModal && ctModal.classList.contains('active')) return 'create-tournament';
     var qcModal = document.getElementById('modal-quick-create');
@@ -117,53 +113,99 @@
     return window.AppStore.currentUser.plan || 'free';
   }
 
+  // ── Strict visibility check ────────────────────────────────────────────────
+  // Element must: exist, have real dimensions, not be display:none,
+  // not be inside a hidden parent, and be within the visible viewport.
+  function _isElementVisible(el) {
+    if (!el) return false;
+    // offsetParent is null for display:none or fixed elements
+    // For fixed elements (topbar), check getComputedStyle
+    var style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+
+    var rect = el.getBoundingClientRect();
+    // Must have real dimensions
+    if (rect.width === 0 && rect.height === 0) return false;
+
+    // Must be within viewport (with small margin)
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    if (rect.bottom < -10 || rect.top > vh + 10) return false;
+    if (rect.right < -10 || rect.left > vw + 10) return false;
+
+    // Check that no ancestor is hidden (walk up max 10 levels)
+    var parent = el.parentElement;
+    var depth = 0;
+    while (parent && depth < 10) {
+      var ps = window.getComputedStyle(parent);
+      if (ps.display === 'none' || ps.visibility === 'hidden') return false;
+      // Check overflow:hidden + scroll position hiding the child
+      if (ps.overflow === 'hidden' || ps.overflowY === 'hidden' || ps.overflowX === 'hidden') {
+        var pRect = parent.getBoundingClientRect();
+        // If element is completely outside parent's visible area
+        if (rect.bottom < pRect.top || rect.top > pRect.bottom ||
+            rect.right < pRect.left || rect.left > pRect.right) return false;
+      }
+      parent = parent.parentElement;
+      depth++;
+    }
+
+    return true;
+  }
+
+  // ── Find first visible element matching selector ───────────────────────────
+  function _findVisibleEl(selector) {
+    // selector can have commas — try each part separately too
+    var els = document.querySelectorAll(selector);
+    for (var i = 0; i < els.length; i++) {
+      if (_isElementVisible(els[i])) return els[i];
+    }
+    return null;
+  }
+
   // ── Pick next hint ─────────────────────────────────────────────────────────
   function _pickHint() {
     var ctx = _getCurrentContext();
     var loggedIn = _isLoggedIn();
     var plan = _getUserPlan();
 
-    // Filter eligible hints
     var eligible = _hints.filter(function(h) {
       // Must match context or be global
       if (h.context !== ctx && h.context !== 'global') return false;
+      // Don't repeat the hint we just showed
+      if (h.id === _lastHintId) return false;
       // Check login requirement
       if (h.requiresLogin && !loggedIn) return false;
-      // Check plan requirement (e.g. Pro hint only for free users)
+      // Check plan requirement
       if (h.requiresPlan && h.requiresPlan !== plan) return false;
-      // Must have visible target element
-      var el = document.querySelector(h.selector);
-      if (!el || el.offsetParent === null) return false;
-      // Check if element is in viewport (roughly)
-      var rect = el.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight + 100) return false;
-      // Don't show too many times in one session
+      // STRICT: Must have a truly visible target element on screen
+      var el = _findVisibleEl(h.selector);
+      if (!el) return false;
+      // Session limit: max 2 times per session
       if ((_sessionShown[h.id] || 0) >= 2) return false;
       return true;
     });
 
     if (eligible.length === 0) return null;
 
-    // Score each hint: priority + freshness bonus + strategic boost + randomness
+    // Score: priority + freshness + strategic boost - session penalty + random jitter
     var scored = eligible.map(function(h) {
       var seenCount = _seenHints[h.id] || 0;
       var sessionCount = _sessionShown[h.id] || 0;
       var freshness = seenCount === 0 ? 5 : Math.max(0, 3 - seenCount);
       var stratBoost = h.strategic ? 3 : 0;
-      var sessionPenalty = sessionCount * 4;
-      var score = h.priority + freshness + stratBoost - sessionPenalty + (Math.random() * 2);
+      var sessionPenalty = sessionCount * 5;
+      var score = h.priority + freshness + stratBoost - sessionPenalty + (Math.random() * 3);
       return { hint: h, score: score };
     });
 
-    // Sort by score descending
     scored.sort(function(a, b) { return b.score - a.score; });
 
-    // Strategic hints get boosted chance: if top pick is not strategic,
-    // roll dice to maybe swap with best strategic hint
+    // Strategic boost roll
     if (!scored[0].hint.strategic) {
-      var bestStrategic = scored.find(function(s) { return s.hint.strategic; });
-      if (bestStrategic && Math.random() < STRATEGIC_BOOST) {
-        return bestStrategic.hint;
+      var bestStrat = scored.find(function(s) { return s.hint.strategic; });
+      if (bestStrat && Math.random() < STRATEGIC_BOOST) {
+        return bestStrat.hint;
       }
     }
 
@@ -172,33 +214,36 @@
 
   // ── Show hint ──────────────────────────────────────────────────────────────
   function _showHint(hint) {
-    var el = document.querySelector(hint.selector);
+    var el = _findVisibleEl(hint.selector);
     if (!el) return;
 
     _activeHint = hint;
+    _activeEl = el;
+    _lastHintId = hint.id;
 
-    // Add glow class to target
+    // Add glow to target
     el.classList.add('hint-glow');
-    el.setAttribute('data-hint-active', '1');
 
-    // Create tooltip balloon
+    // Create balloon
     var balloon = document.createElement('div');
-    balloon.className = 'hint-balloon hint-balloon-' + (hint.position || 'bottom');
+    balloon.className = 'hint-balloon';
     balloon.setAttribute('data-hint-id', hint.id);
     balloon.innerHTML =
-      '<div class="hint-balloon-content">' +
-        '<span class="hint-balloon-icon">' + (hint.strategic ? '💡' : '👋') + '</span>' +
-        '<span class="hint-balloon-text">' + hint.text + '</span>' +
-      '</div>' +
-      '<button class="hint-balloon-close" aria-label="Fechar dica">&times;</button>' +
-      '<div class="hint-balloon-actions">' +
-        '<button class="hint-balloon-got-it">Entendi</button>' +
-        '<button class="hint-balloon-disable">Desativar dicas</button>' +
+      '<div class="hint-balloon-arrow"></div>' +
+      '<div class="hint-balloon-body">' +
+        '<div class="hint-balloon-content">' +
+          '<span class="hint-balloon-icon">' + (hint.strategic ? '💡' : '👋') + '</span>' +
+          '<span class="hint-balloon-text">' + hint.text + '</span>' +
+        '</div>' +
+        '<div class="hint-balloon-actions">' +
+          '<button class="hint-balloon-got-it">Entendi</button>' +
+          '<button class="hint-balloon-disable">Desativar dicas</button>' +
+        '</div>' +
       '</div>';
 
     document.body.appendChild(balloon);
 
-    // Position balloon relative to element
+    // Position balloon + arrow to point at element center
     _positionBalloon(balloon, el, hint.position || 'bottom');
 
     // Animate in
@@ -208,26 +253,22 @@
       });
     });
 
-    // Event listeners
-    balloon.querySelector('.hint-balloon-close').addEventListener('click', function(e) {
-      e.stopPropagation();
-      _dismissHint();
-    });
+    // Listeners
     balloon.querySelector('.hint-balloon-got-it').addEventListener('click', function(e) {
       e.stopPropagation();
-      _dismissHint();
+      _dismissHint(true);
     });
     balloon.querySelector('.hint-balloon-disable').addEventListener('click', function(e) {
       e.stopPropagation();
       _disableHints();
     });
 
-    // Clicking the target element also dismisses
-    el.addEventListener('click', _onTargetClick);
+    // Click target = dismiss
+    el.addEventListener('click', _onTargetClick, { once: true });
 
-    // Auto-dismiss after HINT_DISPLAY_TIME
+    // Auto-dismiss and queue next
     setTimeout(function() {
-      if (_activeHint && _activeHint.id === hint.id) _dismissHint();
+      if (_activeHint && _activeHint.id === hint.id) _dismissHint(true);
     }, HINT_DISPLAY_TIME);
 
     // Track
@@ -236,94 +277,131 @@
     _saveSeen();
   }
 
-  function _positionBalloon(balloon, el, position) {
+  // ── Position balloon relative to element ───────────────────────────────────
+  function _positionBalloon(balloon, el, preferredPos) {
     var rect = el.getBoundingClientRect();
     var scrollX = window.pageXOffset || document.documentElement.scrollLeft;
     var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    var vh = window.innerHeight;
+    var vw = window.innerWidth;
 
-    var styles = {};
-    var margin = 12;
+    // Decide actual position based on available space
+    var pos = preferredPos;
+    var spaceBelow = vh - rect.bottom;
+    var spaceAbove = rect.top;
+    var balloonHeight = 140; // estimated
 
-    switch (position) {
-      case 'top':
-        styles.left = rect.left + scrollX + rect.width / 2;
-        styles.top = rect.top + scrollY - margin;
-        balloon.style.transform = 'translate(-50%, -100%)';
-        break;
-      case 'left':
-        styles.left = rect.left + scrollX - margin;
-        styles.top = rect.top + scrollY + rect.height / 2;
-        balloon.style.transform = 'translate(-100%, -50%)';
-        break;
-      case 'right':
-        styles.left = rect.right + scrollX + margin;
-        styles.top = rect.top + scrollY + rect.height / 2;
-        balloon.style.transform = 'translate(0, -50%)';
-        break;
-      default: // bottom
-        styles.left = rect.left + scrollX + rect.width / 2;
-        styles.top = rect.bottom + scrollY + margin;
-        balloon.style.transform = 'translate(-50%, 0)';
-        break;
-    }
+    if (pos === 'bottom' && spaceBelow < balloonHeight && spaceAbove > balloonHeight) pos = 'top';
+    if (pos === 'top' && spaceAbove < balloonHeight && spaceBelow > balloonHeight) pos = 'bottom';
+
+    // Element center in page coordinates
+    var elCenterX = rect.left + scrollX + rect.width / 2;
+    var elCenterY = rect.top + scrollY + rect.height / 2;
+    var arrowEl = balloon.querySelector('.hint-balloon-arrow');
+    var margin = 10;
 
     balloon.style.position = 'absolute';
-    balloon.style.left = styles.left + 'px';
-    balloon.style.top = styles.top + 'px';
     balloon.style.zIndex = '100000';
+    balloon.setAttribute('data-pos', pos);
 
-    // Keep within viewport
+    if (pos === 'bottom') {
+      balloon.style.top = (rect.bottom + scrollY + margin) + 'px';
+      balloon.style.left = elCenterX + 'px';
+      balloon.style.transform = 'translateX(-50%)';
+      // Arrow at top of balloon, pointing up
+      arrowEl.style.cssText = 'position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;';
+    } else if (pos === 'top') {
+      balloon.style.bottom = (vh - rect.top + margin) + 'px';
+      balloon.style.left = elCenterX + 'px';
+      balloon.style.transform = 'translateX(-50%)';
+      balloon.style.top = 'auto';
+      // Arrow at bottom of balloon, pointing down
+      arrowEl.style.cssText = 'position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(225deg);width:12px;height:12px;';
+    } else if (pos === 'left') {
+      balloon.style.top = elCenterY + 'px';
+      balloon.style.left = (rect.left + scrollX - margin) + 'px';
+      balloon.style.transform = 'translate(-100%, -50%)';
+      arrowEl.style.cssText = 'position:absolute;right:-6px;top:50%;transform:translateY(-50%) rotate(135deg);width:12px;height:12px;';
+    } else { // right
+      balloon.style.top = elCenterY + 'px';
+      balloon.style.left = (rect.right + scrollX + margin) + 'px';
+      balloon.style.transform = 'translateY(-50%)';
+      arrowEl.style.cssText = 'position:absolute;left:-6px;top:50%;transform:translateY(-50%) rotate(-45deg);width:12px;height:12px;';
+    }
+
+    // Apply arrow theme colors
+    var theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    var arrowBg = theme === 'light' ? '#ffffff' : theme === 'sunset' ? '#292018' : theme === 'ocean' ? '#0c1a2e' : '#1e293b';
+    var arrowBorder = theme === 'light' ? 'rgba(37,99,235,0.35)' : theme === 'sunset' ? 'rgba(245,158,11,0.4)' : theme === 'ocean' ? 'rgba(6,182,212,0.4)' : 'rgba(251,191,36,0.4)';
+    arrowEl.style.background = arrowBg;
+    arrowEl.style.borderLeft = '1.5px solid ' + arrowBorder;
+    arrowEl.style.borderTop = '1.5px solid ' + arrowBorder;
+
+    // Clamp horizontally within viewport
     requestAnimationFrame(function() {
       var bRect = balloon.getBoundingClientRect();
-      if (bRect.right > window.innerWidth - 12) {
-        balloon.style.left = (window.innerWidth - bRect.width - 12 + scrollX) + 'px';
-        balloon.style.transform = balloon.style.transform.replace('translate(-50%', 'translate(0');
+      if (bRect.right > vw - 8) {
+        var overflow = bRect.right - vw + 16;
+        balloon.style.transform = 'translateX(calc(-50% - ' + overflow + 'px))';
+        // Shift arrow to still point at element
+        if (pos === 'bottom' || pos === 'top') {
+          var arrowLeft = (rect.left + rect.width / 2) - bRect.left + overflow;
+          arrowEl.style.left = Math.max(16, Math.min(bRect.width - 16, arrowLeft)) + 'px';
+        }
       }
-      if (bRect.left < 12) {
-        balloon.style.left = (12 + scrollX) + 'px';
-        balloon.style.transform = balloon.style.transform.replace('translate(-50%', 'translate(0');
+      if (bRect.left < 8) {
+        var shift = 8 - bRect.left;
+        balloon.style.transform = 'translateX(calc(-50% + ' + shift + 'px))';
+        if (pos === 'bottom' || pos === 'top') {
+          var arrowLeft2 = (rect.left + rect.width / 2) - (bRect.left + shift);
+          arrowEl.style.left = Math.max(16, Math.min(bRect.width - 16, arrowLeft2)) + 'px';
+        }
       }
     });
   }
 
   function _onTargetClick() {
-    _dismissHint();
+    _dismissHint(true);
   }
 
   // ── Dismiss ────────────────────────────────────────────────────────────────
-  function _dismissHint() {
+  function _dismissHint(scheduleNext) {
     if (!_activeHint) return;
     var hintId = _activeHint.id;
 
     // Remove glow
-    var glowed = document.querySelectorAll('.hint-glow');
-    glowed.forEach(function(el) {
-      el.classList.remove('hint-glow');
-      el.removeAttribute('data-hint-active');
-      el.removeEventListener('click', _onTargetClick);
-    });
+    if (_activeEl) {
+      _activeEl.classList.remove('hint-glow');
+      _activeEl.removeEventListener('click', _onTargetClick);
+    }
 
-    // Remove balloon
+    // Animate out balloon
     var balloon = document.querySelector('.hint-balloon[data-hint-id="' + hintId + '"]');
     if (balloon) {
       balloon.classList.remove('hint-balloon-visible');
-      balloon.classList.add('hint-balloon-hiding');
+      balloon.style.opacity = '0';
+      balloon.style.transition = 'opacity 0.25s ease';
       setTimeout(function() { if (balloon.parentNode) balloon.parentNode.removeChild(balloon); }, 300);
     }
 
     _activeHint = null;
+    _activeEl = null;
 
-    // Start cooldown
+    // Cooldown then restart idle timer for next hint
     _onCooldown = true;
     clearTimeout(_cooldownTimer);
     _cooldownTimer = setTimeout(function() {
       _onCooldown = false;
+      // If scheduleNext, restart idle detection so more hints can appear
+      if (scheduleNext && !_isDisabled()) {
+        _resetIdleTimer();
+      }
     }, HINT_COOLDOWN);
   }
 
-  // ── Disable ────────────────────────────────────────────────────────────────
+  // ── Disable / Enable ──────────────────────────────────────────────────────
   function _disableHints() {
-    _dismissHint();
+    _dismissHint(false);
     try { localStorage.setItem(LS_DISABLED_KEY, '1'); } catch (e) {}
     _stopIdleWatch();
     if (typeof showNotification === 'function') {
@@ -331,7 +409,6 @@
     }
   }
 
-  // ── Enable ─────────────────────────────────────────────────────────────────
   function _enableHints() {
     try { localStorage.removeItem(LS_DISABLED_KEY); } catch (e) {}
     _startIdleWatch();
@@ -347,7 +424,7 @@
     clearTimeout(_idleTimer);
     // If a hint is showing and user interacts, dismiss it
     if (_activeHint) {
-      _dismissHint();
+      _dismissHint(true);
       return;
     }
     if (_isDisabled() || _onCooldown) return;
@@ -356,7 +433,7 @@
 
   function _onIdle() {
     if (_isDisabled() || _activeHint || _onCooldown) return;
-    // Don't show hints if a modal is open (except create-tournament which has its own hints)
+    // Don't show hints if a modal is open (except create-tournament)
     var anyModal = document.querySelector('.modal-overlay.active');
     if (anyModal) {
       var isCreateModal = anyModal.id === 'modal-create-tournament';
@@ -379,23 +456,21 @@
     _activityEvents.forEach(function(evt) {
       document.removeEventListener(evt, _resetIdleTimer);
     });
-    _dismissHint();
+    _dismissHint(false);
   }
 
-  // ── Initialization ─────────────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────────────────────────
   function _init() {
     if (_initialized) return;
     _initialized = true;
     _loadSeen();
-    if (!_isDisabled()) {
-      _startIdleWatch();
-    }
+    if (!_isDisabled()) _startIdleWatch();
   }
 
-  // ── Reset seen hints (for testing or new user) ─────────────────────────────
   function _resetHints() {
     _seenHints = {};
     _sessionShown = {};
+    _lastHintId = null;
     _saveSeen();
     if (typeof showNotification === 'function') {
       showNotification('Dicas Resetadas', 'Todas as dicas serão exibidas novamente.', 'info');
@@ -409,20 +484,21 @@
     disable: _disableHints,
     reset: _resetHints,
     isDisabled: _isDisabled,
-    dismiss: _dismissHint
+    dismiss: function() { _dismissHint(false); }
   };
 
-  // Auto-init after DOM is ready + small delay
+  // Auto-init
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 2000); });
   } else {
     setTimeout(_init, 2000);
   }
 
-  // Re-evaluate on hash change (new view = new context = new hints)
+  // Re-evaluate on hash change
   window.addEventListener('hashchange', function() {
-    if (_activeHint) _dismissHint();
+    if (_activeHint) _dismissHint(false);
     _onCooldown = false;
+    _lastHintId = null;
     clearTimeout(_cooldownTimer);
     _resetIdleTimer();
   });
