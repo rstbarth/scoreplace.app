@@ -145,10 +145,10 @@ console.error = _origError;
 // 1. _safeHtml — Sanitização XSS
 // ═══════════════════════════════════════════════════════════════════════════════
 describe('_safeHtml — Sanitização XSS', function() {
-  it('escapa tags HTML (<script>, <img>)', function() {
-    var result = window._safeHtml('<script>alert("xss")</script>');
+  it('escapa tags HTML (script, img)', function() {
+    var result = window._safeHtml('\x3cscript\x3ealert("xss")\x3c/script\x3e');
     expect(result).toContain('&lt;script&gt;');
-    expect(result).toNotContain('<script>');
+    expect(result).toNotContain('\x3cscript\x3e');
   });
 
   it('escapa aspas simples e duplas', function() {
@@ -179,9 +179,9 @@ describe('_safeHtml — Sanitização XSS', function() {
   });
 
   it('bloqueia injeção via tag img onerror', function() {
-    var result = window._safeHtml('<img src=x onerror=alert(1)>');
+    var result = window._safeHtml('\x3cimg src=x onerror=alert(1)\x3e');
     expect(result).toContain('&lt;img');
-    expect(result).toNotContain('<img');
+    expect(result).toNotContain('\x3cimg');
   });
 
   it('bloqueia injeção via javascript: URI', function() {
