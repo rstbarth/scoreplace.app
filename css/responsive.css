@@ -1155,3 +1155,34 @@ img {
     width: 100% !important;
   }
 }
+
+/* ── Dashboard Compact List — Mobile ── */
+@media (max-width: 767px) {
+  .compact-row {
+    flex-wrap: wrap !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+  .compact-row .compact-logo {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .compact-row .compact-info {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    flex: 1 1 calc(100% - 44px) !important;
+    min-width: 0 !important;
+  }
+  .compact-row .compact-name-block {
+    width: 100% !important;
+  }
+  .compact-row .compact-details {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .compact-row .compact-badges {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+}
