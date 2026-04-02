@@ -175,7 +175,7 @@ window.FirestoreDB = {
       var toDoc = await this.db.collection('users').doc(toUid).get();
       var toData = toDoc.exists ? toDoc.data() : {};
       var receivedList = toData.friendRequestsReceived || [];
-      if (receivedList.indexOf(toUid) !== -1) {
+      if (receivedList.indexOf(fromUid) !== -1) {
         // Mutual request! Auto-accept both directions
         await this.acceptFriendRequest(fromUid, toUid);
         // Notify both

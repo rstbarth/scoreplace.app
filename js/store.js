@@ -571,7 +571,7 @@ window.AppStore = {
       var pList = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
       var isPart = pList.some(function(p) {
         var str = typeof p === 'string' ? p : (p.email || p.displayName || p.name);
-        return str && str.includes(window.AppStore.currentUser.email);
+        return str && str === window.AppStore.currentUser.email;
       });
       return t.organizerEmail === window.AppStore.currentUser.email || isPart;
     });
@@ -590,7 +590,7 @@ window.AppStore = {
       var pList = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
       return pList.some(function(p) {
         var str = typeof p === 'string' ? p : (p.email || p.displayName || p.name);
-        return str && str.includes(email);
+        return str && str === email;
       });
     });
   },
