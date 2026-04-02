@@ -5,9 +5,9 @@
 (function() {
   'use strict';
 
-  var IDLE_TIMEOUT = 8000;          // ms of inactivity before showing a hint
+  var IDLE_TIMEOUT = 6000;          // ms of inactivity before showing a hint
   var HINT_DISPLAY_TIME = 10000;    // ms a hint stays visible
-  var HINT_COOLDOWN = 15000;        // ms between consecutive hints
+  var HINT_COOLDOWN = 5000;         // ms between consecutive hints
   var STRATEGIC_BOOST = 0.30;       // probability boost for strategic hints
   var LS_KEY = 'scoreplace_hints';
   var LS_DISABLED_KEY = 'scoreplace_hints_disabled';
@@ -72,7 +72,10 @@
     { id: 'bracket-share', selector: '[onclick*="_shareMatchResult"]', text: 'Compartilhe o resultado de cada partida direto no WhatsApp!', context: 'bracket', priority: 4, position: 'top' },
 
     // ── Explore ──
-    { id: 'explore-search', selector: '#explore-search', text: 'Busque por nome, esporte, formato ou cidade para encontrar torneios perto de você!', context: 'explore', priority: 6, position: 'bottom' }
+    { id: 'explore-search', selector: '#explore-search', text: 'Busque por nome, esporte, formato ou cidade para encontrar torneios perto de você!', context: 'explore', priority: 6, position: 'bottom' },
+
+    // ── Meta: teach user about hints ──
+    { id: 'hints-meta', selector: '#btn-login', text: 'Essas dicas aparecem quando você fica parado. Para desativá-las, clique "Desativar dicas" aqui embaixo — ou reative no seu Perfil quando quiser.', context: 'global', priority: 2, position: 'bottom' }
   ];
 
   // ── Utility ────────────────────────────────────────────────────────────────
