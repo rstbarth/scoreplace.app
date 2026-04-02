@@ -642,11 +642,13 @@ async function simulateLoginSuccess(user) {
         }
 
         // Toggle buttons: set state
+        var _hintsEnabled = !(window._hintSystem && window._hintSystem.isDisabled());
         var toggles = [
           { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
           { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
           { id: 'profile-notify-email', val: cu.notifyEmail !== false },
-          { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp !== false }
+          { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp !== false },
+          { id: 'profile-hints-enabled', val: _hintsEnabled }
         ];
         toggles.forEach(function(t) {
           var btn = document.getElementById(t.id);
@@ -672,6 +674,13 @@ async function simulateLoginSuccess(user) {
         var nlHidden = document.getElementById('profile-notify-level');
         if (nlHidden) nlHidden.value = notifyLevelVal;
         if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
+
+        // Sync theme selector with current theme
+        var themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+          var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          themeSelector.value = curTheme;
+        }
 
         if (typeof openModal === 'function') openModal('modal-profile');
 
@@ -1629,12 +1638,19 @@ function setupProfileModal() {
             '<div class="form-group" style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Aparência</label>' +
               '<select id="theme-selector" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.6rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);">' +
-                '<option value="auto">Tema Auto (Sistema)</option>' +
-                '<option value="dark">Tema Escuro (Padrão)</option>' +
-                '<option value="light">Modo Claro (Light)</option>' +
-                '<option value="high-contrast">Alto Contraste</option>' +
-                '<option value="alternative">Alternativo (Catppuccin)</option>' +
+                '<option value="dark">\uD83C\uDF19 Noturno (Padrão)</option>' +
+                '<option value="light">\u2600\uFE0F Claro</option>' +
+                '<option value="sunset">\uD83C\uDF05 Pôr do Sol</option>' +
+                '<option value="ocean">\uD83C\uDF0A Oceano</option>' +
               '</select>' +
+            '</div>' +
+            // Visual Hints toggle
+            '<div style="margin-bottom: 1rem;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Dicas Visuais</label>' +
+                _toggleBtnHtml('profile-hints-enabled', 'Ativadas', true, '#fbbf24', '\uD83D\uDCA1') +
+              '</div>' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.</span>' +
             '</div>' +
             // Player Stats Section
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
@@ -1725,6 +1741,12 @@ function setupProfileModal() {
       var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').getAttribute('data-on') === '1';
       var notifyLevel = document.getElementById('profile-notify-level').value || 'todas';
       var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
+      // Visual hints toggle
+      var hintsEnabled = document.getElementById('profile-hints-enabled').getAttribute('data-on') === '1';
+      if (window._hintSystem) {
+        if (hintsEnabled) window._hintSystem.enable();
+        else window._hintSystem.disable();
+      }
 
       if (name) {
         window.AppStore.currentUser.displayName = name;
