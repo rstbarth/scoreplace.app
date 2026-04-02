@@ -55,6 +55,7 @@ if (firebase && firebase.auth) {
         if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
         // Start real-time listener for public tournaments only
         if (window.FirestoreDB && window.FirestoreDB.db) {
+          var _pubFirstSnap = true;
           window.AppStore._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
             .where('isPublic', '==', true)
             .onSnapshot(function(snap) {
@@ -62,8 +63,13 @@ if (firebase && firebase.auth) {
               snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
               window.AppStore.tournaments = publicTournaments;
               window.AppStore._saveToCache();
-              // Public tournaments loaded
-              if (typeof initRouter === 'function') initRouter();
+              // First snapshot = initial load, subsequent = remote changes
+              if (_pubFirstSnap) {
+                _pubFirstSnap = false;
+                if (typeof initRouter === 'function') initRouter();
+              } else if (typeof window._softRefreshView === 'function') {
+                window._softRefreshView();
+              }
             }, function(err) {
               console.warn('Public tournaments listener error:', err);
               window.AppStore.tournaments = [];
