@@ -1242,6 +1242,18 @@ window._castPollVote = function(tId, pollId, optionKey) {
         return;
     }
 
+    // Only participants (or organizer) can vote
+    var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+    var isParticipant = parts.some(function(p) {
+        if (typeof p === 'string') return p === userEmail || p === (user.displayName || '');
+        return (p.email && p.email === userEmail) || (p.uid && user.uid && p.uid === user.uid) || (p.displayName && p.displayName === (user.displayName || ''));
+    });
+    var isOrganizer = (userEmail === t.organizerEmail);
+    if (!isParticipant && !isOrganizer) {
+        if (typeof showNotification === 'function') showNotification('Não Permitido', 'Apenas participantes inscritos podem votar na enquete.', 'warning');
+        return;
+    }
+
     var previousVote = poll.votes[userEmail] || null;
     poll.votes[userEmail] = optionKey;
 
@@ -1427,17 +1439,22 @@ window._renderClosedPollBanner = function(t, poll) {
     var applyBtn = isOrganizer
         ? '<button onclick="window._applyPollResult(\'' + t.id + '\',\'' + poll.id + '\')" style="background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Aplicar Resultado</button>'
         : '';
+    var reopenBtn = isOrganizer
+        ? '<button onclick="window._reopenPoll(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Reabrir Enquete</button>'
+        : '';
     var viewBtn = '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Ver Detalhes</button>';
 
-    return '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(16,185,129,0.05));border:1px solid rgba(16,185,129,0.25);border-radius:16px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<span style="font-size:1.5rem;">✅</span>' +
+    return '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.05));border:2px solid rgba(16,185,129,0.35);border-radius:20px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(16,185,129,0.08);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+        '<div style="display:flex;align-items:center;gap:14px;">' +
+        '<div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">✅</div>' +
         '<div>' +
-        '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">Enquete encerrada</div>' +
-        '<div style="font-size:0.75rem;color:var(--text-muted);">Resultado: <strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' votos)</div>' +
+        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE ENCERRADA</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Resultado: <strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' votos)</div>' +
         '</div>' +
         '</div>' +
-        '<div style="display:flex;gap:8px;">' + viewBtn + applyBtn + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' + viewBtn + applyBtn + reopenBtn + '</div>' +
         '</div>';
 };
 
@@ -1486,6 +1503,62 @@ window._restorePollSuspendedEnrollments = function(t) {
     if (t && t._pollSuspended) {
         t.status = 'open';
         delete t._pollSuspended;
+    }
+};
+
+// ── Reopen a closed poll (organizer can reconfigure deadline) ──
+window._reopenPoll = function(tId, pollId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t || !t.polls) return;
+    var poll = null;
+    for (var i = 0; i < t.polls.length; i++) {
+        if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
+    }
+    if (!poll) return;
+
+    if (typeof showInputDialog === 'function') {
+        showInputDialog('Reabrir Enquete', 'Novo prazo em horas:', '48', function(val) {
+            var hours = parseInt(val) || 48;
+            if (hours < 1) hours = 1;
+            if (hours > 168) hours = 168;
+
+            poll.status = 'active';
+            poll.deadline = Date.now() + (hours * 3600000);
+            poll.resolved = false;
+            poll.resolvedOption = null;
+            poll.resolvedAt = null;
+            t.activePollId = poll.id;
+
+            // Suspend enrollments again
+            if (t.status === 'open' || !t.status) {
+                t._pollSuspended = true;
+                t.status = 'closed';
+            }
+
+            window.AppStore.logAction(tId, 'Enquete reaberta pelo organizador: prazo de ' + hours + 'h');
+            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                window.FirestoreDB.saveTournament(t);
+            } else {
+                window.AppStore.sync();
+            }
+
+            // Notify participants about reopened poll
+            if (typeof window._notifyTournamentParticipants === 'function') {
+                window._notifyTournamentParticipants(t, {
+                    type: 'poll',
+                    level: 'important',
+                    title: '🗳️ Enquete reaberta: ' + window._safeHtml(t.name),
+                    message: 'A enquete foi reaberta pelo organizador. Vote novamente! Novo prazo: ' + hours + ' horas.',
+                    tournamentId: tId,
+                    pollId: poll.id
+                }, t.organizerEmail);
+            }
+
+            if (typeof showNotification === 'function') {
+                showNotification('Enquete Reaberta', 'Participantes notificados. Novo prazo: ' + hours + ' horas.', 'success');
+            }
+            window.location.hash = '#tournaments/' + tId;
+        });
     }
 };
 
@@ -1735,8 +1808,21 @@ window.toggleRegistrationStatus = function (tId) {
             return;
         }
         if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
-        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + window._safeHtml(t.name || '') + '"?', function() {
+        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + window._safeHtml(t.name || '') + '"?' + (t.activePollId ? ' A enquete ativa será encerrada.' : ''), function() {
             t.status = 'open';
+            delete t._pollSuspended;
+            // Auto-close active poll when reopening inscriptions
+            if (t.activePollId && t.polls) {
+                for (var _pi = 0; _pi < t.polls.length; _pi++) {
+                    if (t.polls[_pi].id === t.activePollId && t.polls[_pi].status === 'active') {
+                        t.polls[_pi].status = 'closed';
+                        t.polls[_pi].deadline = Date.now();
+                        window.AppStore.logAction(tId, 'Enquete encerrada automaticamente ao reabrir inscrições');
+                        break;
+                    }
+                }
+                t.activePollId = null;
+            }
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
             _saveTournament(function() {
                 _refreshView();

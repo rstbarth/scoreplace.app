@@ -346,14 +346,24 @@ function renderDashboard(container) {
                   var _pTimeStr = _pHrs > 0 ? _pHrs + 'h ' + _pMins + 'm' : _pMins + 'm';
                   var _pVotes = Object.keys(_activePoll.votes || {}).length;
                   var _pTotal = (t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)).length : 0);
-                  _html += '<div onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + _activePoll.id + '\')" style="margin-top:10px;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.12));border:2px solid rgba(99,102,241,0.4);border-radius:14px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">';
-                  _html += '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.3rem;">🗳️</span>';
-                  _html += '<div><div style="font-weight:900;font-size:1.05rem;color:#c4b5fd;letter-spacing:0.02em;">ENQUETE</div>';
-                  _html += '<div style="font-size:0.68rem;color:var(--text-muted);">' + _pVotes + '/' + _pTotal + ' votos</div></div></div>';
-                  _html += '<div style="text-align:center;background:rgba(0,0,0,0.25);padding:6px 12px;border-radius:10px;">';
-                  _html += '<div style="font-size:1.3rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + _pTimeStr + '</div>';
-                  _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">restante</div>';
+                  var _pUser = window.AppStore.currentUser;
+                  var _pUserEmail = (_pUser && _pUser.email) ? _pUser.email : '';
+                  var _pHasVoted = !!(_activePoll.votes && _activePoll.votes[_pUserEmail]);
+                  var _pStatusText = _pHasVoted ? '✅ Você já votou' : '⏳ Aguardando seu voto';
+                  _html += '<div onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + _activePoll.id + '\')" style="margin-top:10px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.08));border:2px solid rgba(99,102,241,0.4);border-radius:20px;padding:1rem 1.25rem;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.1);">';
+                  _html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">';
+                  _html += '<div style="display:flex;align-items:center;gap:12px;">';
+                  _html += '<div style="width:42px;height:42px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🗳️</div>';
+                  _html += '<div>';
+                  _html += '<div style="font-weight:900;font-size:1.15rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE</div>';
+                  _html += '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _pStatusText + ' · ' + _pVotes + '/' + _pTotal + ' votos</div>';
                   _html += '</div></div>';
+                  _html += '<div style="text-align:center;background:rgba(0,0,0,0.2);padding:6px 14px;border-radius:10px;">';
+                  _html += '<div style="font-size:1.4rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + _pTimeStr + '</div>';
+                  _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">restante</div>';
+                  _html += '</div></div>';
+                  _html += '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);opacity:0.7;">Inscrições suspensas durante a enquete.</div>';
+                  _html += '</div>';
                 }
               }
               return _html;
