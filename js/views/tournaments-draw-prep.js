@@ -101,49 +101,91 @@ window.showIncompleteTeamsPanel = function (tId) {
             <div style="padding:1.5rem 2rem;">
                 ${issuesHtml}
 
-                <h4 style="margin:1.5rem 0 1rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Como deseja resolver?</h4>
+                <h4 style="margin:1.5rem 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Como deseja resolver?</h4>
+                <p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam afinidade com o equilíbrio de Nash: <span style="color:#4ade80;">■</span> melhor → <span style="color:#60a5fa;">■</span> menor</p>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'reopen')">
-                        <span style="font-size:1.5rem;">↩️</span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Apenas para fechar os times faltantes.</div>
-                        </div>
-                    </button>
+                ${(function(){
+                    // Nash scoring for incomplete teams options
+                    var wF = 0.45, wI = 0.35, wE = 0.20;
+                    var payoffs = {
+                        reopen:   { f: 10, i: 10, e: 3 },
+                        lottery:  { f: 4,  i: 8,  e: 8 },
+                        standby:  { f: 6,  i: 4,  e: 9 },
+                        dissolve: { f: 7,  i: 7,  e: 4 },
+                        poll:     { f: 10, i: 10, e: 2 }
+                    };
+                    var scores = {};
+                    var maxS = 0, minS = 10;
+                    Object.keys(payoffs).forEach(function(k) {
+                        var p = payoffs[k];
+                        scores[k] = p.f * wF + p.i * wI + p.e * wE;
+                        if (scores[k] > maxS) maxS = scores[k];
+                        if (scores[k] < minS) minS = scores[k];
+                    });
+                    var rng = maxS - minS || 1;
+                    var norm = {};
+                    Object.keys(scores).forEach(function(k) { norm[k] = (scores[k] - minS) / rng; });
+                    function nC(n) {
+                        if (n >= 0.8) return { bg: 'rgba(34,197,94,0.12)', bd: 'rgba(34,197,94,0.45)', gw: '0 0 20px rgba(34,197,94,0.15)', pc: '#4ade80', pb: 'rgba(34,197,94,0.15)' };
+                        if (n >= 0.6) return { bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.40)', gw: '0 0 15px rgba(250,204,21,0.10)', pc: '#facc15', pb: 'rgba(250,204,21,0.15)' };
+                        if (n >= 0.35) return { bg: 'rgba(251,146,60,0.08)', bd: 'rgba(251,146,60,0.30)', gw: '0 0 10px rgba(251,146,60,0.08)', pc: '#fb923c', pb: 'rgba(251,146,60,0.12)' };
+                        return { bg: 'rgba(96,165,250,0.06)', bd: 'rgba(96,165,250,0.20)', gw: 'none', pc: '#60a5fa', pb: 'rgba(96,165,250,0.10)' };
+                    }
+                    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;'; }
+                    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="display:inline-block;padding:2px 7px;border-radius:6px;font-size:0.58rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';margin-left:5px;vertical-align:middle;">Nash ' + pct + '%</span>'; }
+                    var bestK = '', bestV = -1;
+                    Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestV) { bestV = scores[k]; bestK = k; } });
+                    var bdg = '<span style="position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>';
+                    var sid = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'lottery')">
-                        <span style="font-size:1.5rem;">🎲</span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de 'Bots'</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Preencher vagas com nomes fictícios ou convites.</div>
-                        </div>
-                    </button>
+                    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'standby')">
-                        <span style="font-size:1.5rem;">⏱️</span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Mover para Lista de Espera</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os que sobrarem ficam fora do torneio principal.</div>
-                        </div>
-                    </button>
+                    '<button style="position:relative;' + sty('reopen') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'reopen\')">' +
+                        (bestK === 'reopen' ? bdg : '') +
+                        '<span style="font-size:1.5rem;">↩️</span>' +
+                        '<div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições ' + pill('reopen') + '</div>' +
+                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Apenas para fechar os times faltantes.</div>' +
+                        '</div>' +
+                    '</button>' +
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'dissolve')">
-                        <span style="font-size:1.5rem;">🧩</span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remanejar jogadores entre times (Arrastar e Soltar).</div>
-                        </div>
-                    </button>
+                    '<button style="position:relative;' + sty('lottery') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'lottery\')">' +
+                        (bestK === 'lottery' ? bdg : '') +
+                        '<span style="font-size:1.5rem;">🎲</span>' +
+                        '<div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de \'Bots\' ' + pill('lottery') + '</div>' +
+                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Preencher vagas com nomes fictícios ou convites.</div>' +
+                        '</div>' +
+                    '</button>' +
 
-                    <button class="res-option" style="grid-column:span 2;" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'poll')">
-                        <span style="font-size:1.5rem;">🗳️</span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</div>
-                        </div>
-                    </button>
-                </div>
+                    '<button style="position:relative;' + sty('standby') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'standby\')">' +
+                        (bestK === 'standby' ? bdg : '') +
+                        '<span style="font-size:1.5rem;">⏱️</span>' +
+                        '<div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Lista de Espera ' + pill('standby') + '</div>' +
+                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os que sobrarem ficam fora do torneio principal.</div>' +
+                        '</div>' +
+                    '</button>' +
+
+                    '<button style="position:relative;' + sty('dissolve') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'dissolve\')">' +
+                        (bestK === 'dissolve' ? bdg : '') +
+                        '<span style="font-size:1.5rem;">🧩</span>' +
+                        '<div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual ' + pill('dissolve') + '</div>' +
+                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remanejar jogadores entre times (Arrastar e Soltar).</div>' +
+                        '</div>' +
+                    '</button>' +
+
+                    '<button style="position:relative;' + sty('poll') + 'grid-column:span 2;" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'poll\')">' +
+                        '<span style="font-size:1.5rem;">🗳️</span>' +
+                        '<div>' +
+                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes ' + pill('poll') + '</div>' +
+                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</div>' +
+                        '</div>' +
+                    '</button>' +
+
+                    '</div>';
+                })()}
             </div>
 
             <div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">
@@ -629,99 +671,127 @@ window.showPowerOf2Panel = function (tId) {
 
             <style>
                 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .p2-option { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:2.2rem 1.5rem 1.5rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }
-                .p2-option:hover { background:rgba(255,255,255,0.07); border-color:rgba(251,191,36,0.4); transform:translateY(-2px); }
-                .p2-option::after { content:''; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(251,191,36,0.05), transparent); transform:translateX(-100%); transition:0.5s; }
+                .p2-option { border-radius:18px; padding:2.2rem 1.5rem 1.5rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }
+                .p2-option:hover { transform:translateY(-2px); filter:brightness(1.15); }
+                .p2-option::after { content:''; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(255,255,255,0.06), transparent); transform:translateX(-100%); transition:0.5s; }
                 .p2-option:hover::after { transform:translateX(100%); }
                 .p2-option h4 { margin:0 0 4px; font-weight:800; font-size:1.05rem; color:#fff; }
                 .p2-option p { margin:0; font-size:0.8rem; color:#94a3b8; line-height:1.5; }
                 .p2-badge { position:absolute; top:10px; right:10px; background:rgba(34,197,94,0.15); color:#4ade80; padding:3px 10px; border-radius:8px; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none; }
+                .nash-score-pill { display:inline-block; padding:2px 8px; border-radius:6px; font-size:0.6rem; font-weight:800; margin-left:6px; vertical-align:middle; letter-spacing:0.3px; }
             </style>
 
             <div style="padding:2.5rem;">
-                <h4 style="margin:0 0 1.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>
+                <h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>
+                <p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam afinidade com o equilíbrio de Nash: <span style="color:#4ade80;">■</span> melhor equilíbrio → <span style="color:#60a5fa;">■</span> menor equilíbrio</p>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                     ${(function(){
-                        // Recomendação: máxima igualdade para o maior nº de inscritos
-                        // BYE: todos ficam, 'missing' com vantagem (avançam sem jogar)
-                        // Play-in: todos ficam, 'excess*2' jogam partida extra
-                        // Reabrir: todos ficam + mais entram, igualdade total ao atingir alvo
-                        // Standby: remove 'excess' participantes
-                        // Suíço: todos jogam igual, mas muda formato
-                        const byeAffected = info.missing;
-                        const playinAffected = info.excess * 2;
-                        let rec = '';
-                        if (info.missing <= 2) {
-                            // Faltam poucos — reabrir é simples e garante igualdade total
-                            rec = 'reopen';
-                        } else if (byeAffected <= playinAffected) {
-                            // BYE afeta menos participantes com desigualdade
-                            rec = 'bye';
-                        } else {
-                            // Play-in afeta menos participantes
-                            rec = 'playin';
-                        }
-                        const badge = '<div class="p2-badge">⭐ Recomendado</div>';
-                        const recTip = {
-                            reopen: 'Igualdade total — todos competem nas mesmas condições.',
-                            bye: 'Mantém todos os inscritos. Menor nº de participantes com condição diferente (' + byeAffected + ' avançam direto).',
-                            playin: 'Mantém todos os inscritos. Menor nº de participantes com condição diferente (' + playinAffected + ' jogam partida extra).'
+                        // Nash scoring per option — fairness 45%, inclusion 35%, effort 20%
+                        var wF = 0.45, wI = 0.35, wE = 0.20;
+                        var payoffs = {
+                            reopen:  { f: 10, i: 10, e: 3 },
+                            bye:     { f: 6,  i: 10, e: 9 },
+                            playin:  { f: 8,  i: 10, e: 6 },
+                            standby: { f: 6,  i: 4,  e: 9 },
+                            swiss:   { f: 9,  i: 10, e: 5 },
+                            poll:    { f: 10, i: 10, e: 2 }
                         };
-                        return `
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'reopen')">
-                        ${rec === 'reopen' ? badge : ''}
-                        <span style="font-size:2rem;">↩️</span>
-                        <div>
-                            <h4>Reabrir Inscrições</h4>
-                            <p>Aguardar mais ${info.missing} inscritos para chegar em ${info.hi}.</p>
-                            ${rec === 'reopen' ? '<p style="color:#4ade80;font-size:0.75rem;margin-top:6px;font-weight:600;">' + recTip.reopen + '</p>' : ''}
-                        </div>
-                    </button>
+                        // Context adjustments
+                        if (info.missing <= 2) {
+                            payoffs.reopen = { f: 10, i: 10, e: 8 };
+                        }
+                        if (info.missing <= info.excess * 2) {
+                            payoffs.bye.e = 10;
+                        }
+                        // Compute scores
+                        var scores = {};
+                        var maxScore = 0, minScore = 10;
+                        Object.keys(payoffs).forEach(function(k) {
+                            var p = payoffs[k];
+                            scores[k] = p.f * wF + p.i * wI + p.e * wE;
+                            if (scores[k] > maxScore) maxScore = scores[k];
+                            if (scores[k] < minScore) minScore = scores[k];
+                        });
+                        // Normalize 0-1 (1 = best Nash)
+                        var range = maxScore - minScore || 1;
+                        var norm = {};
+                        Object.keys(scores).forEach(function(k) {
+                            norm[k] = (scores[k] - minScore) / range;
+                        });
+                        // Color function: 1.0 = warm green, 0.0 = cool blue-gray
+                        function nashColor(n) {
+                            if (n >= 0.8) return { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.45)', glow: '0 0 20px rgba(34,197,94,0.15)', pill: '#4ade80', pillBg: 'rgba(34,197,94,0.15)' };
+                            if (n >= 0.6) return { bg: 'rgba(250,204,21,0.10)', border: 'rgba(250,204,21,0.40)', glow: '0 0 15px rgba(250,204,21,0.10)', pill: '#facc15', pillBg: 'rgba(250,204,21,0.15)' };
+                            if (n >= 0.35) return { bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.30)', glow: '0 0 10px rgba(251,146,60,0.08)', pill: '#fb923c', pillBg: 'rgba(251,146,60,0.12)' };
+                            return { bg: 'rgba(96,165,250,0.06)', border: 'rgba(96,165,250,0.20)', glow: 'none', pill: '#60a5fa', pillBg: 'rgba(96,165,250,0.10)' };
+                        }
+                        function nashStyle(key) {
+                            var c = nashColor(norm[key]);
+                            return 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
+                        }
+                        function nashPill(key) {
+                            var c = nashColor(norm[key]);
+                            var pct = Math.round(norm[key] * 100);
+                            return '<span class="nash-score-pill" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
+                        }
+                        // Find best for badge
+                        var bestKey = '';
+                        var bestVal = -1;
+                        Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestVal) { bestVal = scores[k]; bestKey = k; } });
+                        var badge = '<div class="p2-badge">⭐ Recomendado</div>';
+                        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'bye')">
-                        ${rec === 'bye' ? badge : ''}
-                        <span style="font-size:2rem;">🥇</span>
-                        <div>
-                            <h4>Aplicar BYE</h4>
-                            <p>${info.missing} times avançam direto. Chaveamento de ${info.hi}.</p>
-                            ${rec === 'bye' ? '<p style="color:#4ade80;font-size:0.75rem;margin-top:6px;font-weight:600;">' + recTip.bye + '</p>' : ''}
-                        </div>
-                    </button>
+                        return '<button class="p2-option shadow-xl" style="' + nashStyle('reopen') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'reopen\')">' +
+                            (bestKey === 'reopen' ? badge : '') +
+                            '<span style="font-size:2rem;">↩️</span>' +
+                            '<div>' +
+                            '<h4>Reabrir Inscrições ' + nashPill('reopen') + '</h4>' +
+                            '<p>Aguardar mais ' + info.missing + ' inscritos para chegar em ' + info.hi + '.</p>' +
+                            '</div>' +
+                        '</button>' +
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'playin')">
-                        ${rec === 'playin' ? badge : ''}
-                        <span style="font-size:2rem;">🔁</span>
-                        <div>
-                            <h4>Play-in (Repescagem)</h4>
-                            <p>${info.excess * 2} times disputam ${info.excess} vaga(s). Chaveamento de ${info.lo}.</p>
-                            ${rec === 'playin' ? '<p style="color:#4ade80;font-size:0.75rem;margin-top:6px;font-weight:600;">' + recTip.playin + '</p>' : ''}
-                        </div>
-                    </button>
+                        '<button class="p2-option shadow-xl" style="' + nashStyle('bye') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'bye\')">' +
+                            (bestKey === 'bye' ? badge : '') +
+                            '<span style="font-size:2rem;">🥇</span>' +
+                            '<div>' +
+                            '<h4>Aplicar BYE ' + nashPill('bye') + '</h4>' +
+                            '<p>' + info.missing + ' times avançam direto. Chaveamento de ' + info.hi + '.</p>' +
+                            '</div>' +
+                        '</button>' +
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'standby')">
-                        <span style="font-size:2rem;">⏱️</span>
-                        <div>
-                            <h4>Lista de Espera</h4>
-                            <p>${info.count} inscritos. ${Math.floor(info.lo / (parseInt(t.teamSize) || 1))} ${(parseInt(t.teamSize) || 1) > 1 ? 'times jogam' : 'jogam'} em ${Math.floor(info.lo / (parseInt(t.teamSize) || 1)) / 2} partidas. ${info.count - info.lo} na lista de espera. Chaveamento de ${Math.floor(info.lo / (parseInt(t.teamSize) || 1))}.</p>
-                        </div>
-                    </button>
+                        '<button class="p2-option shadow-xl" style="' + nashStyle('playin') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'playin\')">' +
+                            (bestKey === 'playin' ? badge : '') +
+                            '<span style="font-size:2rem;">🔁</span>' +
+                            '<div>' +
+                            '<h4>Play-in (Repescagem) ' + nashPill('playin') + '</h4>' +
+                            '<p>' + (info.excess * 2) + ' times disputam ' + info.excess + ' vaga(s). Chaveamento de ' + info.lo + '.</p>' +
+                            '</div>' +
+                        '</button>' +
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'swiss')">
-                        <span style="font-size:2rem;">🏅</span>
-                        <div>
-                            <h4>Formato Suíço / Classificatória</h4>
-                            <p>Garantia de mais jogos para todos antes de afunilar para os melhores ${info.lo}.</p>
-                        </div>
-                    </button>
+                        '<button class="p2-option shadow-xl" style="' + nashStyle('standby') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'standby\')">' +
+                            '<span style="font-size:2rem;">⏱️</span>' +
+                            '<div>' +
+                            '<h4>Lista de Espera ' + nashPill('standby') + '</h4>' +
+                            '<p>' + info.count + ' inscritos. ' + Math.floor(info.lo / (parseInt(t.teamSize) || 1)) + ' ' + ((parseInt(t.teamSize) || 1) > 1 ? 'times jogam' : 'jogam') + ' em ' + (Math.floor(info.lo / (parseInt(t.teamSize) || 1)) / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.</p>' +
+                            '</div>' +
+                        '</button>' +
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'poll')" style="grid-column: span 2;">
-                        <span style="font-size:2rem;">🗳️</span>
-                        <div>
-                            <h4>Enquete entre Participantes</h4>
-                            <p>Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</p>
-                        </div>
-                    </button>`;
+                        '<button class="p2-option shadow-xl" style="' + nashStyle('swiss') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'swiss\')">' +
+                            '<span style="font-size:2rem;">🏅</span>' +
+                            '<div>' +
+                            '<h4>Formato Suíço / Classificatória ' + nashPill('swiss') + '</h4>' +
+                            '<p>Garantia de mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.</p>' +
+                            '</div>' +
+                        '</button>' +
+
+                        '<button class="p2-option shadow-xl" style="' + nashStyle('poll') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'poll\')">' +
+                            '<span style="font-size:2rem;">🗳️</span>' +
+                            '<div>' +
+                            '<h4>Enquete entre Participantes ' + nashPill('poll') + '</h4>' +
+                            '<p>Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</p>' +
+                            '</div>' +
+                        '</button>';
                     })()}
                 </div>
             </div>
