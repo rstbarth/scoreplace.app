@@ -240,29 +240,39 @@ window._safeHtml = function(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 };
 
-// ─── Tema claro/escuro ───────────────────────────────────────────────────────
+// ─── Temas: dark → light → sunset → ocean ──────────────────────────────────
+window._themeOrder = ['dark', 'light', 'sunset', 'ocean'];
+window._themeIcons = { dark: '🌙', light: '☀️', sunset: '🌅', ocean: '🌊' };
+window._themeNames = { dark: 'Noturno', light: 'Claro', sunset: 'Pôr do Sol', ocean: 'Oceano' };
+
 window._toggleTheme = function() {
   var html = document.documentElement;
   var current = html.getAttribute('data-theme') || 'dark';
-  var next = current === 'dark' ? 'light' : 'dark';
+  var order = window._themeOrder;
+  var idx = order.indexOf(current);
+  var next = order[(idx + 1) % order.length];
   html.setAttribute('data-theme', next);
   try { localStorage.setItem('scoreplace_theme', next); } catch (e) {}
-  // Update toggle button icon
+  window._applyThemeIcon(next);
+};
+
+window._applyThemeIcon = function(theme) {
   var btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  if (!btn) return;
+  var icon = window._themeIcons[theme] || '🌙';
+  var name = window._themeNames[theme] || theme;
+  btn.textContent = icon;
+  btn.title = 'Tema: ' + name + ' (clique para trocar)';
 };
 
 // Apply saved theme on load
 (function() {
   try {
     var saved = localStorage.getItem('scoreplace_theme');
-    if (saved && (saved === 'light' || saved === 'dark')) {
+    var valid = window._themeOrder || ['dark', 'light', 'sunset', 'ocean'];
+    if (saved && valid.indexOf(saved) !== -1) {
       document.documentElement.setAttribute('data-theme', saved);
-      // Update icon after DOM ready
-      var _applyIcon = function() {
-        var btn = document.getElementById('theme-toggle-btn');
-        if (btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
-      };
+      var _applyIcon = function() { window._applyThemeIcon(saved); };
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', _applyIcon);
       } else {
