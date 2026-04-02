@@ -604,7 +604,7 @@ function renderDashboard(container) {
   // Build compact list view
   const _buildCompactList = function(items) {
     if (!items || items.length === 0) return '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado.</div>';
-    return '<div style="display:flex;flex-direction:column;gap:2px;">' + items.map(function(t) {
+    return '<div class="compact-list-container" style="display:flex;flex-direction:column;gap:2px;">' + items.map(function(t) {
       var isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
       var statusText = '', statusColor = '';
       var isFinished = t.status === 'finished' || t.status === 'closed';
@@ -622,21 +622,24 @@ function renderDashboard(container) {
       var _rowBg = _lt ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)';
       var _rowBgH = _lt ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
       var _rowBd = _lt ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
-      return '<a href="#tournaments/' + t.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:' + _rowBg + ';border:1px solid ' + _rowBd + ';text-decoration:none;color:inherit;transition:background 0.2s;" onmouseover="this.style.background=\'' + _rowBgH + '\'" onmouseout="this.style.background=\'' + _rowBg + '\'">' +
-        (t.logoData ? '<img src="' + t.logoData + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">' : '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">' + (getSportIcon(t.sport)) + '</div>') +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (isFav ? '★ ' : '') + window._safeHtml(t.name) + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted);display:flex;gap:8px;margin-top:2px;">' +
-            '<span>' + (t.sport || '—') + '</span>' +
-            '<span>' + (t.format || '—') + '</span>' +
-            (dateStr ? '<span>' + dateStr + '</span>' : '') +
+      var statusBadgeBgRgb = statusColor === '#4ade80' ? '16,185,129' : statusColor === '#60a5fa' ? '96,165,250' : '148,163,184';
+      return '<a href="#tournaments/' + t.id + '" class="compact-row" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:' + _rowBg + ';border:1px solid ' + _rowBd + ';text-decoration:none;color:inherit;transition:background 0.2s;" onmouseover="this.style.background=\'' + _rowBgH + '\'" onmouseout="this.style.background=\'' + _rowBg + '\'">' +
+        (t.logoData ? '<img src="' + t.logoData + '" class="compact-logo" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">' : '<div class="compact-logo" style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">' + (getSportIcon(t.sport)) + '</div>') +
+        '<div class="compact-info" style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;">' +
+          '<div class="compact-name-block" style="flex:1;min-width:0;">' +
+            '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (isFav ? '★ ' : '') + window._safeHtml(t.name) + '</div>' +
+            '<div class="compact-details" style="font-size:0.7rem;color:var(--text-muted);display:flex;gap:8px;margin-top:2px;flex-wrap:wrap;">' +
+              '<span>' + (t.sport || '—') + '</span>' +
+              '<span>' + (t.format || '—') + '</span>' +
+              (dateStr ? '<span>' + dateStr + '</span>' : '') +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">' +
-          '<span style="font-size:0.7rem;color:var(--text-muted);">👥 ' + pCount + '</span>' +
-          (hasDraw && !isFinished ? '<span style="font-size:0.7rem;color:' + (prog.pct === 100 ? '#10b981' : '#f59e0b') + ';">' + prog.pct + '%</span>' : '') +
-          '<span style="font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(' + (statusColor === '#4ade80' ? '16,185,129' : statusColor === '#60a5fa' ? '96,165,250' : '148,163,184') + ',0.15);color:' + statusColor + ';">' + statusText + '</span>' +
-          (isOrg ? '<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,0.15);color:#fbbf24;">Org</span>' : '') +
+          '<div class="compact-badges" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+            '<span style="font-size:0.7rem;color:var(--text-muted);">👥 ' + pCount + '</span>' +
+            (hasDraw && !isFinished ? '<span style="font-size:0.7rem;color:' + (prog.pct === 100 ? '#10b981' : '#f59e0b') + ';">' + prog.pct + '%</span>' : '') +
+            '<span style="font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(' + statusBadgeBgRgb + ',0.15);color:' + statusColor + ';white-space:nowrap;">' + statusText + '</span>' +
+            (isOrg ? '<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,0.15);color:#fbbf24;">Org</span>' : '') +
+          '</div>' +
         '</div>' +
       '</a>';
     }).join('') + '</div>';
