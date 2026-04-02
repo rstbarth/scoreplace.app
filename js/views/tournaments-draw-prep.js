@@ -1520,8 +1520,38 @@ window.finishTournament = function(tId) {
 
 // ─── Painel Integrado de Encerramento ───
 window.toggleRegistrationStatus = function (tId) {
+    console.log('[toggleRegistrationStatus] called with tId:', tId);
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
     if (!t) { console.warn('toggleRegistrationStatus: tournament not found', tId); return; }
+    console.log('[toggleRegistrationStatus] tournament found, status:', t.status);
+
+    // Helper: save tournament with fallback
+    var _saveTournament = function(callback) {
+        if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+            console.log('[toggleRegistrationStatus] saving via FirestoreDB...');
+            window.FirestoreDB.saveTournament(t).then(function() {
+                console.log('[toggleRegistrationStatus] save OK');
+                if (callback) callback();
+            }).catch(function(err) {
+                console.error('[toggleRegistrationStatus] save error:', err);
+                // Fallback: try AppStore.sync
+                try { window.AppStore.sync(); } catch(e) { console.error('sync fallback error:', e); }
+                if (callback) callback();
+                if (typeof showNotification === 'function') showNotification('Aviso', 'Salvo localmente. Pode demorar a sincronizar.', 'warning');
+            });
+        } else {
+            console.log('[toggleRegistrationStatus] no FirestoreDB, using AppStore.sync');
+            try { window.AppStore.sync(); } catch(e) { console.error('sync error:', e); }
+            if (callback) callback();
+        }
+    };
+
+    var _refreshView = function() {
+        var container = document.getElementById('view-container');
+        if (container && typeof renderTournaments === 'function') {
+            renderTournaments(container, String(tId));
+        }
+    };
 
     if (t.status === 'closed') {
         // Impedir reabertura se já houve sorteio
@@ -1530,19 +1560,14 @@ window.toggleRegistrationStatus = function (tId) {
             if (typeof showAlertDialog === 'function') showAlertDialog('Não Permitido', 'Não é possível reabrir inscrições após o sorteio ter sido realizado.', null, { type: 'warning' });
             return;
         }
-        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + (t.name || '') + '"?', function() {
+        if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
+        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + window._safeHtml(t.name || '') + '"?', function() {
             t.status = 'open';
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
-            if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-                window.FirestoreDB.saveTournament(t).then(function() {
-                    var container = document.getElementById('view-container');
-                    if (container) renderTournaments(container, String(tId));
-                    if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
-                }).catch(function(err) {
-                    console.error('toggleRegistrationStatus reopen error:', err);
-                    if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível salvar. Tente novamente.', 'error');
-                });
-            }
+            _saveTournament(function() {
+                _refreshView();
+                if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
+            });
         });
         return;
     }
@@ -1550,32 +1575,30 @@ window.toggleRegistrationStatus = function (tId) {
     // Verificar potência de 2 para formatos eliminatórios
     var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
     if (isElim) {
-        var info = window.checkPowerOf2(t);
         var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
         if (arr.length < 2) {
             if (typeof showAlertDialog === 'function') showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
             return;
         }
-        if (!info.isPowerOf2) {
-            window.showPowerOf2Panel(tId);
-            return;
+        if (typeof window.checkPowerOf2 === 'function') {
+            var info = window.checkPowerOf2(t);
+            if (!info.isPowerOf2) {
+                window.showPowerOf2Panel(tId);
+                return;
+            }
         }
     }
 
     // Confirmar antes de encerrar
-    showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + (t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
+    if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
+    showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + window._safeHtml(t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
+        console.log('[toggleRegistrationStatus] user confirmed close');
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
-        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
-            window.FirestoreDB.saveTournament(t).then(function() {
-                var container = document.getElementById('view-container');
-                if (container) renderTournaments(container, String(tId));
-                if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
-            }).catch(function(err) {
-                console.error('toggleRegistrationStatus close error:', err);
-                if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível salvar. Tente novamente.', 'error');
-            });
-        }
+        _saveTournament(function() {
+            _refreshView();
+            if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
+        });
     });
 };
 
