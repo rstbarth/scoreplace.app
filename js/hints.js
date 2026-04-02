@@ -72,6 +72,36 @@
     { id: 'ct-public', selector: '#tourn-public', text: 'Torneio público aparece na aba Explorar — ótimo para atrair novos participantes!', context: 'create-tournament', priority: 5, position: 'top' },
     { id: 'ct-dates', selector: '#tourn-start-date', text: 'Defina datas de início e inscrição. Os participantes verão contagem regressiva nos cards!', context: 'create-tournament', priority: 5, position: 'bottom' },
 
+    // ── Overlay: Power of 2 Panel ──
+    { id: 'p2-nash', selector: '.p2-option', text: 'As cores indicam o equilíbrio de Nash: verde é a opção mais equilibrada, azul a menos. O percentual mostra o score.', context: 'p2-panel', priority: 9, position: 'top' },
+    { id: 'p2-reopen', selector: '[onclick*="handleP2Option"][onclick*="reopen"]', text: 'Reabre as inscrições para completar a potência de 2 com novos participantes.', context: 'p2-panel', priority: 7, position: 'top' },
+    { id: 'p2-bye', selector: '[onclick*="handleP2Option"][onclick*="bye"]', text: 'BYE: alguns participantes avançam direto para a 2ª rodada sem jogar.', context: 'p2-panel', priority: 7, position: 'top' },
+    { id: 'p2-playin', selector: '[onclick*="handleP2Option"][onclick*="playin"]', text: 'Play-in: os excedentes disputam vagas numa rodada extra antes do chaveamento principal.', context: 'p2-panel', priority: 6, position: 'top' },
+    { id: 'p2-swiss', selector: '[onclick*="handleP2Option"][onclick*="swiss"]', text: 'Formato Suíço: todos jogam várias rodadas antes de afunilar para os melhores classificados.', context: 'p2-panel', priority: 6, position: 'top' },
+    { id: 'p2-poll', selector: '[onclick*="handleP2Option"][onclick*="poll"]', text: 'Enquete: deixe os participantes votarem na solução que preferem!', context: 'p2-panel', priority: 5, position: 'top' },
+
+    // ── Overlay: Incomplete Teams Panel ──
+    { id: 'it-nash', selector: '[onclick*="handleIncompleteOption"]', text: 'Cada opção tem um score de Nash indicando a solução mais equilibrada entre justiça, inclusão e praticidade.', context: 'incomplete-panel', priority: 9, position: 'top' },
+    { id: 'it-reopen', selector: '[onclick*="handleIncompleteOption"][onclick*="reopen"]', text: 'Reabre inscrições para que novos jogadores completem os times.', context: 'incomplete-panel', priority: 7, position: 'top' },
+    { id: 'it-lottery', selector: '[onclick*="handleIncompleteOption"][onclick*="lottery"]', text: 'Bots: preenche as vagas faltantes com nomes fictícios para completar times.', context: 'incomplete-panel', priority: 6, position: 'top' },
+    { id: 'it-dissolve', selector: '[onclick*="handleIncompleteOption"][onclick*="dissolve"]', text: 'Ajuste Manual: reorganize jogadores entre times arrastando e soltando.', context: 'incomplete-panel', priority: 6, position: 'top' },
+
+    // ── Overlay: Poll Creation ──
+    { id: 'poll-create-deadline', selector: '#poll-deadline', text: 'Defina até quando os participantes podem votar. Após o prazo a enquete encerra automaticamente.', context: 'poll-creation', priority: 8, position: 'bottom' },
+    { id: 'poll-create-options', selector: '[data-poll-option]', text: 'Marque as opções que deseja incluir na enquete. O badge Nash indica a mais equilibrada.', context: 'poll-creation', priority: 7, position: 'top' },
+
+    // ── Overlay: Poll Voting ──
+    { id: 'poll-vote', selector: '[onclick*="castPollVote"]', text: 'Escolha a opção que prefere. Você pode mudar seu voto até o encerramento da enquete.', context: 'poll-voting', priority: 9, position: 'top' },
+
+    // ── Overlay: GSM Config ──
+    { id: 'gsm-sets', selector: '#gsm-sets-to-win', text: 'Quantos sets para vencer a partida. Ex: tênis profissional usa 3, amador usa 1 ou 2.', context: 'gsm-config', priority: 8, position: 'bottom' },
+    { id: 'gsm-games', selector: '#gsm-games-per-set', text: 'Games por set. Padrão 6 para tênis, 11 para tênis de mesa, 25 para vôlei.', context: 'gsm-config', priority: 7, position: 'bottom' },
+    { id: 'gsm-tiebreak', selector: '#gsm-tiebreak-toggle', text: 'Ative o tiebreak para sets empatados. Comum em todos os esportes de raquete.', context: 'gsm-config', priority: 6, position: 'bottom' },
+    { id: 'gsm-super-tb', selector: '#gsm-super-tb-toggle', text: 'Super tiebreak: o set decisivo é jogado em formato curto (10 pontos). Popular no beach tennis e duplas.', context: 'gsm-config', priority: 5, position: 'bottom' },
+
+    // ── Overlay: Set Scoring ──
+    { id: 'set-scoring-input', selector: '.set-score-row', text: 'Insira o placar de cada set. O sistema calcula automaticamente quem venceu a partida.', context: 'set-scoring', priority: 9, position: 'top' },
+
     // ── Bracket / Standings ──
     { id: 'bracket-zoom', selector: '.zoom-slider', text: 'Use o zoom para ver o chaveamento completo. Dica: arraste para navegar!', context: 'bracket', priority: 4, position: 'top' },
     { id: 'bracket-print', selector: '[onclick*="_printBracket"]', text: 'Imprima o chaveamento para colar na parede do evento!', context: 'bracket', priority: 3, position: 'top' },
@@ -103,15 +133,25 @@
   }
 
   function _getCurrentContext() {
+    // Overlay contexts take priority — if a blocking overlay is open, use its context
+    if (document.getElementById('p2-resolution-panel')) return 'p2-panel';
+    if (document.getElementById('incomplete-teams-panel')) return 'incomplete-panel';
+    if (document.getElementById('poll-creation-dialog')) return 'poll-creation';
+    if (document.getElementById('poll-voting-dialog')) return 'poll-voting';
+    if (document.getElementById('gsm-config-overlay')) return 'gsm-config';
+    if (document.getElementById('set-scoring-overlay')) return 'set-scoring';
+    if (document.getElementById('dissolve-panel')) return 'dissolve-panel';
+    if (document.getElementById('draw-visibility-dialog')) return 'draw-visibility';
+    var ctModal = document.getElementById('modal-create-tournament');
+    if (ctModal && ctModal.classList.contains('active')) return 'create-tournament';
+    var qcModal = document.getElementById('modal-quick-create');
+    if (qcModal && qcModal.classList.contains('active')) return 'create-tournament';
+
     var hash = window.location.hash || '#dashboard';
     if (hash.indexOf('#dashboard') === 0) return 'dashboard';
     if (hash.indexOf('#tournaments/') === 0 || hash.indexOf('#tournament/') === 0) return 'tournament-detail';
     if (hash.indexOf('#bracket/') === 0) return 'bracket';
     if (hash.indexOf('#explore') === 0) return 'explore';
-    var ctModal = document.getElementById('modal-create-tournament');
-    if (ctModal && ctModal.classList.contains('active')) return 'create-tournament';
-    var qcModal = document.getElementById('modal-quick-create');
-    if (qcModal && qcModal.classList.contains('active')) return 'create-tournament';
     return 'dashboard';
   }
 
@@ -124,9 +164,39 @@
     return window.AppStore.currentUser.plan || 'free';
   }
 
+  // ── Known blocking overlay IDs ──────────────────────────────────────────────
+  // These are full-screen fixed overlays (z-index 99999+) that cover the entire
+  // viewport. When any of them is present, hints should only target elements
+  // INSIDE the overlay, never elements on the background page.
+  var _blockingOverlayIds = [
+    'p2-resolution-panel',
+    'incomplete-teams-panel',
+    'dissolve-panel',
+    'draw-visibility-dialog',
+    'incomplete-team-dialog',
+    'poll-creation-dialog',
+    'poll-voting-dialog',
+    'gsm-config-overlay',
+    'set-scoring-overlay',
+    'category-manager-overlay'
+  ];
+
+  // Returns the topmost blocking overlay element, or null if none is open.
+  function _getBlockingOverlay() {
+    for (var i = 0; i < _blockingOverlayIds.length; i++) {
+      var el = document.getElementById(_blockingOverlayIds[i]);
+      if (el) return el;
+    }
+    // Also check for any active modal-overlay (modals like create-tournament, help, profile)
+    var modal = document.querySelector('.modal-overlay.active');
+    if (modal) return modal;
+    return null;
+  }
+
   // ── Strict visibility check ────────────────────────────────────────────────
   // Element must: exist, have real dimensions, not be display:none,
   // not be inside a hidden parent, and be within the visible viewport.
+  // If a blocking overlay is open, the element must be INSIDE it.
   function _isElementVisible(el) {
     if (!el) return false;
     // offsetParent is null for display:none or fixed elements
@@ -143,6 +213,12 @@
     var vh = window.innerHeight;
     if (rect.bottom < -10 || rect.top > vh + 10) return false;
     if (rect.right < -10 || rect.left > vw + 10) return false;
+
+    // BLOCKING OVERLAY CHECK: if an overlay is open, element must be inside it
+    var blockingOverlay = _getBlockingOverlay();
+    if (blockingOverlay) {
+      if (!blockingOverlay.contains(el)) return false;
+    }
 
     // Check that no ancestor is hidden (walk up max 10 levels)
     var parent = el.parentElement;
@@ -484,12 +560,9 @@
 
   function _onIdle() {
     if (_isDisabled() || _activeHint || _onCooldown) return;
-    // Don't show hints if a modal is open (except create-tournament)
-    var anyModal = document.querySelector('.modal-overlay.active');
-    if (anyModal) {
-      var isCreateModal = anyModal.id === 'modal-create-tournament';
-      if (!isCreateModal) return;
-    }
+    // Blocking overlay / modal detection is now handled inside _isElementVisible().
+    // If an overlay is open, only hints targeting elements INSIDE that overlay
+    // will pass the visibility check — background hints are automatically suppressed.
 
     var hint = _pickHint();
     if (hint) _showHint(hint);
