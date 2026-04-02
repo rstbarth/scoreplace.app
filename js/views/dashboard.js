@@ -190,11 +190,15 @@ function renderDashboard(container) {
       });
     }
 
-    let participandoBadge = '';
-    if (isParticipating && isAberto) {
-      participandoBadge = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')" style="margin-top: 4px;">🛑 Desinscrever-se</button>`;
-    } else if (!isParticipating && isAberto) {
-      participandoBadge = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="margin-top: 4px;">✅ Inscrever-se</button>`;
+    // Enroll/unenroll button: only when inscriptions are truly open
+    // hasDraw = tournament already has matches/rounds/groups drawn
+    const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
+    const canEnroll = isAberto && !isFinished && (!hasDraw || ligaAberta);
+    let enrollBtnHtml = '';
+    if (isParticipating && canEnroll) {
+      enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>`;
+    } else if (!isParticipating && canEnroll) {
+      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
@@ -219,9 +223,11 @@ function renderDashboard(container) {
                   <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
                     ${statusText}
                   </div>
-                  ${participandoBadge}
                </div>
             </div>
+            ${enrollBtnHtml ? `<div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
+               ${enrollBtnHtml}
+            </div>` : ''}
 
             <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 1.5rem 0;">
