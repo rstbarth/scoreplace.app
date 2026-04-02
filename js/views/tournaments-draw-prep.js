@@ -1012,7 +1012,13 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
         t.polls.push(pollData);
         t.activePollId = pollData.id;
 
-        // Add notification for all participants
+        // Suspend enrollments while poll is active
+        if (t.status === 'open' || !t.status) {
+            t._pollSuspended = true;
+            t.status = 'closed';
+        }
+
+        // Add in-app notification markers for all participants
         var parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
         if (!t.pollNotifications) t.pollNotifications = [];
         parts.forEach(function(p) {
@@ -1035,9 +1041,21 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
             window.AppStore.sync();
         }
 
+        // Send Firestore push notification to all participants
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            window._notifyTournamentParticipants(t, {
+                type: 'poll',
+                level: 'important',
+                title: '🗳️ Enquete aberta: ' + window._safeHtml(t.name),
+                message: 'O organizador criou uma enquete para decidir o formato do torneio. Vote agora! Prazo: ' + hours + ' horas.',
+                tournamentId: tId,
+                pollId: pollData.id
+            }, t.organizerEmail);
+        }
+
         overlay.remove();
         if (typeof showNotification === 'function') {
-            showNotification('Enquete Criada', 'Os participantes serão notificados para votar. Prazo: ' + hours + ' horas.', 'success');
+            showNotification('Enquete Criada', 'Os participantes foram notificados para votar. Inscrições suspensas até o encerramento. Prazo: ' + hours + ' horas.', 'success');
         }
 
         // Re-render tournament detail
@@ -1310,6 +1328,10 @@ window._renderPollBanner = function(t) {
         if (p.status === 'active') {
             if (Date.now() >= p.deadline) {
                 p.status = 'closed';
+                t.activePollId = null;
+                if (typeof window._restorePollSuspendedEnrollments === 'function') {
+                    window._restorePollSuspendedEnrollments(t);
+                }
             } else {
                 activePoll = p; break;
             }
@@ -1347,15 +1369,31 @@ window._renderPollBanner = function(t) {
     var btnText = hasVoted ? 'Ver / Alterar Voto' : 'Votar Agora';
     var statusText = hasVoted ? '✅ Você já votou' : '⏳ Aguardando seu voto';
 
-    return '<div style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(99,102,241,0.05));border:1px solid rgba(99,102,241,0.25);border-radius:16px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<span style="font-size:1.5rem;">🗳️</span>' +
+    var closeBtn = isOrganizer
+        ? '<button onclick="event.stopPropagation();window._closePollEarly(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Encerrar Agora</button>'
+        : '';
+
+    return '<div style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.08));border:2px solid rgba(99,102,241,0.4);border-radius:20px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(99,102,241,0.1);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+        '<div style="display:flex;align-items:center;gap:14px;">' +
+        '<div style="width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🗳️</div>' +
         '<div>' +
-        '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">Enquete em andamento</div>' +
-        '<div style="font-size:0.75rem;color:var(--text-muted);">' + totalVotes + '/' + totalParticipants + ' votos · Encerra em ' + timeStr + ' · ' + statusText + '</div>' +
+        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">' + statusText + ' · ' + totalVotes + '/' + totalParticipants + ' votos</div>' +
         '</div>' +
         '</div>' +
-        '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">' + btnText + '</button>' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="text-align:center;background:rgba(0,0,0,0.2);padding:8px 16px;border-radius:12px;">' +
+        '<div style="font-size:1.6rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + timeStr + '</div>' +
+        '<div style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">restante</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+        '<button onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 22px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;flex:1;min-width:140px;">' + btnText + '</button>' +
+        closeBtn +
+        '</div>' +
+        '<div style="margin-top:8px;font-size:0.68rem;color:var(--text-muted);opacity:0.7;">Inscrições suspensas durante a enquete.</div>' +
         '</div>';
 };
 
@@ -1403,6 +1441,54 @@ window._renderClosedPollBanner = function(t, poll) {
         '</div>';
 };
 
+// ── Close poll early (organizer) ──
+window._closePollEarly = function(tId, pollId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t || !t.polls) return;
+    var poll = null;
+    for (var i = 0; i < t.polls.length; i++) {
+        if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
+    }
+    if (!poll || poll.status !== 'active') return;
+
+    if (typeof showConfirmDialog === 'function') {
+        showConfirmDialog(
+            'Encerrar enquete agora?',
+            'A votação será encerrada imediatamente. Você poderá aplicar o resultado e prosseguir com o sorteio.',
+            function() {
+                poll.status = 'closed';
+                poll.deadline = Date.now();
+                t.activePollId = null;
+
+                // Restore enrollments if suspended by poll
+                if (t._pollSuspended) {
+                    t.status = 'open';
+                    delete t._pollSuspended;
+                }
+
+                window.AppStore.logAction(tId, 'Enquete encerrada antecipadamente pelo organizador');
+                if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+                    window.FirestoreDB.saveTournament(t);
+                } else {
+                    window.AppStore.sync();
+                }
+                if (typeof showNotification === 'function') {
+                    showNotification('Enquete Encerrada', 'Votação encerrada. Aplique o resultado para prosseguir.', 'info');
+                }
+                window.location.hash = '#tournaments/' + tId;
+            }
+        );
+    }
+};
+
+// ── Restore enrollments helper (called when poll auto-closes) ──
+window._restorePollSuspendedEnrollments = function(t) {
+    if (t && t._pollSuspended) {
+        t.status = 'open';
+        delete t._pollSuspended;
+    }
+};
+
 // ── Apply poll result — trigger the winning option's action ──
 window._applyPollResult = function(tId, pollId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
@@ -1413,6 +1499,12 @@ window._applyPollResult = function(tId, pollId) {
         if (t.polls[i].id === pollId) { poll = t.polls[i]; break; }
     }
     if (!poll) return;
+
+    // Restore enrollments if suspended by poll
+    if (t._pollSuspended) {
+        t.status = 'open';
+        delete t._pollSuspended;
+    }
 
     // Find winner
     var voteCounts = {};
@@ -1436,6 +1528,7 @@ window._applyPollResult = function(tId, pollId) {
     poll.resolved = true;
     poll.resolvedOption = winnerKey;
     poll.resolvedAt = Date.now();
+    t.activePollId = null;
 
     window.AppStore.logAction(tId, 'Resultado da enquete aplicado: ' + winnerKey);
 

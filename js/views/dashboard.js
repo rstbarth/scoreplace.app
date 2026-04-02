@@ -332,6 +332,30 @@ function renderDashboard(container) {
                   }
                 }
               }
+              // Active poll banner on card
+              if (t.polls && t.polls.length > 0) {
+                var _activePoll = null;
+                for (var _pi = 0; _pi < t.polls.length; _pi++) {
+                  var _pp = t.polls[_pi];
+                  if (_pp.status === 'active' && Date.now() < _pp.deadline) { _activePoll = _pp; break; }
+                }
+                if (_activePoll) {
+                  var _pRemaining = Math.max(0, _activePoll.deadline - Date.now());
+                  var _pHrs = Math.floor(_pRemaining / 3600000);
+                  var _pMins = Math.floor((_pRemaining % 3600000) / 60000);
+                  var _pTimeStr = _pHrs > 0 ? _pHrs + 'h ' + _pMins + 'm' : _pMins + 'm';
+                  var _pVotes = Object.keys(_activePoll.votes || {}).length;
+                  var _pTotal = (t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)).length : 0);
+                  _html += '<div onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + _activePoll.id + '\')" style="margin-top:10px;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.12));border:2px solid rgba(99,102,241,0.4);border-radius:14px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+                  _html += '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.3rem;">🗳️</span>';
+                  _html += '<div><div style="font-weight:900;font-size:1.05rem;color:#c4b5fd;letter-spacing:0.02em;">ENQUETE</div>';
+                  _html += '<div style="font-size:0.68rem;color:var(--text-muted);">' + _pVotes + '/' + _pTotal + ' votos</div></div></div>';
+                  _html += '<div style="text-align:center;background:rgba(0,0,0,0.25);padding:6px 12px;border-radius:10px;">';
+                  _html += '<div style="font-size:1.3rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + _pTimeStr + '</div>';
+                  _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">restante</div>';
+                  _html += '</div></div>';
+                }
+              }
               return _html;
             })()}
 
