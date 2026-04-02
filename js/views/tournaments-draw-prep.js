@@ -104,7 +104,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                 <h4 style="margin:1.5rem 0 1rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Como deseja resolver?</h4>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'reopen\'})">
+                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'reopen')">
                         <span style="font-size:1.5rem;">↩️</span>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>
@@ -112,7 +112,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'lottery\'})">
+                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'lottery')">
                         <span style="font-size:1.5rem;">🎲</span>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de 'Bots'</div>
@@ -120,7 +120,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'standby\'})">
+                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'standby')">
                         <span style="font-size:1.5rem;">⏱️</span>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Mover para Lista de Espera</div>
@@ -128,7 +128,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'dissolve\'})">
+                    <button class="res-option" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'dissolve')">
                         <span style="font-size:1.5rem;">🧩</span>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual</div>
@@ -136,7 +136,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="res-option" style="grid-column:span 2;" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'poll\'})">
+                    <button class="res-option" style="grid-column:span 2;" onclick="window._handleIncompleteOption('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'poll')">
                         <span style="font-size:1.5rem;">🗳️</span>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes</div>
@@ -669,7 +669,7 @@ window.showPowerOf2Panel = function (tId) {
                             playin: 'Mantém todos os inscritos. Menor nº de participantes com condição diferente (' + playinAffected + ' jogam partida extra).'
                         };
                         return `
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'reopen\'})">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'reopen')">
                         ${rec === 'reopen' ? badge : ''}
                         <span style="font-size:2rem;">↩️</span>
                         <div>
@@ -679,7 +679,7 @@ window.showPowerOf2Panel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'bye\'})">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'bye')">
                         ${rec === 'bye' ? badge : ''}
                         <span style="font-size:2rem;">🥇</span>
                         <div>
@@ -689,7 +689,7 @@ window.showPowerOf2Panel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'playin\'})">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'playin')">
                         ${rec === 'playin' ? badge : ''}
                         <span style="font-size:2rem;">🔁</span>
                         <div>
@@ -699,7 +699,7 @@ window.showPowerOf2Panel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'standby\'})">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'standby')">
                         <span style="font-size:2rem;">⏱️</span>
                         <div>
                             <h4>Lista de Espera</h4>
@@ -707,7 +707,7 @@ window.showPowerOf2Panel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'swiss\'})">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'swiss')">
                         <span style="font-size:2rem;">🏅</span>
                         <div>
                             <h4>Formato Suíço / Classificatória</h4>
@@ -715,7 +715,7 @@ window.showPowerOf2Panel = function (tId) {
                         </div>
                     </button>
 
-                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', \'poll\'})" style="grid-column: span 2;">
+                    <button class="p2-option shadow-xl" onclick="window._handleP2Option('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 'poll')" style="grid-column: span 2;">
                         <span style="font-size:2rem;">🗳️</span>
                         <div>
                             <h4>Enquete entre Participantes</h4>
@@ -1449,7 +1449,7 @@ window._showReopenPanel = function (tId, info) {
 
             <div style="padding:1.25rem 2.5rem 1.75rem;display:flex;gap:12px;justify-content:flex-end;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);border-radius:0 0 20px 20px;">
                 <button onclick="document.getElementById('reopen-panel').remove(); var p2=document.getElementById('p2-resolution-panel'); if(p2) p2.style.display='flex';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
-                <button onclick="window._confirmReopen('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', ' + info.hi})" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;padding:10px 28px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;box-shadow:0 4px 15px rgba(59,130,246,0.3);transition:all 0.2s;">Confirmar Reabertura</button>
+                <button onclick="window._confirmReopen('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${info.hi})" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;padding:10px 28px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;box-shadow:0 4px 15px rgba(59,130,246,0.3);transition:all 0.2s;">Confirmar Reabertura</button>
             </div>
         </div>
     `;
@@ -2116,7 +2116,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
 
                 <div style="margin-top:1.5rem;display:grid;grid-template-columns:1fr 1.5fr;gap:12px;">
                     <button onclick="document.getElementById('simulation-panel').remove();" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:14px;border-radius:16px;font-weight:700;cursor:pointer;transition:all 0.2s;">Voltar</button>
-                    <button onclick="window._confirmP2Resolution('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${", '" + option + "'"})" style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:white;border:none;padding:14px;border-radius:16px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(79,70,229,0.3);transition:all 0.2s;">Confirmar</button>
+                    <button onclick="window._confirmP2Resolution('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(option || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:white;border:none;padding:14px;border-radius:16px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(79,70,229,0.3);transition:all 0.2s;">Confirmar</button>
                 </div>
                 <p style="margin-top:1rem;text-align:center;color:#64748b;font-size:0.7rem;font-style:italic;">Nota: Esta é uma simulação ilustrativa. Os times são embaralhados no sorteio.</p>
             </div>

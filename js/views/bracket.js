@@ -611,7 +611,7 @@ function renderSingleElimBracket(t, canEnterResult) {
   // "Mostrar" button for hidden rounds
   const showBtnHtml = hiddenCount > 0 ? `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">
-      <button onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', ' + maxHiddenRound})"
+      <button onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${maxHiddenRound})"
         style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;"
         onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--text-bright)'"
         onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--text-muted)'"
@@ -637,7 +637,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       const idx = activeRounds.indexOf(roundNum);
       const label = getRoundLabel(roundNum, idx);
       const complete = isRoundComplete(roundNum);
-      const hideBtn = (showHide && complete) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', ' + roundNum})">Ocultar</button>` : '';
+      const hideBtn = (showHide && complete) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${roundNum})">Ocultar</button>` : '';
       const matchesHtml = matches.map(m => {
         globalMatchNum++;
         return renderMatchCard(m, canEnterResult, t.id, globalMatchNum);
@@ -709,7 +709,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       const complete = isRoundComplete(roundNum);
 
       // "Ocultar" button — only for completed rounds that are not the final
-      const hideBtn = (complete && !isFinalRound) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', ' + roundNum})">Ocultar</button>` : '';
+      const hideBtn = (complete && !isFinalRound) ? `<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${roundNum})">Ocultar</button>` : '';
 
       const matchesHtml = roundsMap[roundNum].map(m => {
         if (isFinalRound && hasThirdPlace) {
@@ -771,7 +771,7 @@ function renderSingleElimBracket(t, canEnterResult) {
     <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:0.75rem;gap:10px;flex-wrap:wrap;">
       ${toggleBtnHtml}
       <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 10px;">
-        <button onclick="window._setBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', -1})"
+        <button onclick="window._setBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', -1)"
           style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 6px;line-height:1;border-radius:50%;"
           onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
           title="Zoom out">−</button>
@@ -780,7 +780,7 @@ function renderSingleElimBracket(t, canEnterResult) {
           oninput="var steps=[0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0];window._bracketZoom=steps[this.value];var lbl=document.getElementById('bracket-zoom-label');if(lbl)lbl.textContent=Math.round(steps[this.value]*100)+'%';var el=document.querySelector('.bracket-scroll-content');if(el){el.style.transform=steps[this.value]===1?'':'scale('+steps[this.value]+')';el.style.transformOrigin='top left';}" />
         <span id="bracket-zoom-label" style="font-size:0.7rem;font-weight:600;color:var(--text-muted);min-width:36px;text-align:center;cursor:pointer;user-select:none;"
           onclick="window._resetBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Resetar zoom">${zoomPct}%</span>
-        <button onclick="window._setBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', 1})"
+        <button onclick="window._setBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', 1)"
           style="background:transparent;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:3px 6px;line-height:1;border-radius:50%;"
           onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
           title="Zoom in">+</button>
@@ -1255,7 +1255,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${",'"+s.name.replace(/'/g,"\\'")+"'"})" title="Ver confrontos">${window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
@@ -1318,7 +1318,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
         <h3 class="card-title" style="margin:0;">Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— Encerrada ✓' : '— Em andamento'}</h3>
         ${isOrg && !isFinished && allComplete ? `
-          <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'${', ' + (currentRound - 1)})"
+          <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
             ✓ Encerrar Rodada e Gerar Próxima
           </button>` : ''}
