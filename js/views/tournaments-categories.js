@@ -189,7 +189,7 @@ window._resolveEnrollmentCategory = function(tId, callback) {
         '<p>Escolha a categoria em que deseja se inscrever:</p>';
     for (var k = 0; k < eligible.length; k++) {
         var cat = eligible[k];
-        var escapedCat = window._safeHtml(cat).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        var escapedCat = cat.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
         html += '<button class="btn btn-primary" style="display:block;width:100%;margin:10px 0;cursor:pointer;" onclick="(function(){var cb=' + (callback ? 'window._enrollCategoryCallback' : 'null') + ';var mod=document.getElementById(\'' + modalId + '\');if(mod)mod.remove();if(cb)cb(\'' + escapedCat + '\');})();">' + window._displayCategoryName(cat) + '</button>';
     }
     html += '<button class="btn btn-outline" style="display:block;width:100%;margin-top:15px;cursor:pointer;" onclick="var mod=document.getElementById(\'' + modalId + '\');if(mod)mod.remove();">Cancelar</button>' +

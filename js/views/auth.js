@@ -848,8 +848,9 @@ async function simulateLoginSuccess(user) {
           showNotification('Inscrição Pendente', 'Não foi possível completar a inscrição automática. Tente se inscrever manualmente na página do torneio.', 'warning');
         }
       }
+      // Clear flag after auto-enroll attempt completes (success or fallback)
+      window._simulateLoginInProgress = false;
     };
-    window._simulateLoginInProgress = false;
     setTimeout(_tryAutoEnroll, 300);
     return;
   }
