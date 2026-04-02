@@ -341,8 +341,8 @@
 
     // Apply arrow theme colors
     var theme = document.documentElement.getAttribute('data-theme') || 'dark';
-    var arrowBg = theme === 'light' ? '#ffffff' : theme === 'sunset' ? '#292018' : theme === 'ocean' ? '#0c1a2e' : '#1e293b';
-    var arrowBorder = theme === 'light' ? 'rgba(37,99,235,0.35)' : theme === 'sunset' ? 'rgba(245,158,11,0.4)' : theme === 'ocean' ? 'rgba(6,182,212,0.4)' : 'rgba(251,191,36,0.4)';
+    var arrowBg = theme === 'light' ? '#ffffff' : theme === 'sunset' ? '#292018' : theme === 'ocean' ? '#1c3d5e' : '#1e293b';
+    var arrowBorder = theme === 'light' ? 'rgba(37,99,235,0.35)' : theme === 'sunset' ? 'rgba(245,158,11,0.4)' : theme === 'ocean' ? 'rgba(34,211,238,0.4)' : 'rgba(251,191,36,0.4)';
     arrowEl.style.background = arrowBg;
     arrowEl.style.borderLeft = '1.5px solid ' + arrowBorder;
     arrowEl.style.borderTop = '1.5px solid ' + arrowBorder;
