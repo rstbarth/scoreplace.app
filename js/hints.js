@@ -475,7 +475,20 @@
   }
 
   window.addEventListener('resize', _repositionActiveBalloon, { passive: true });
-  window.addEventListener('scroll', _repositionActiveBalloon, { passive: true });
+  window.addEventListener('scroll', function() {
+    if (!_activeHint || !_activeEl) return;
+    // If target scrolled out of viewport, dismiss immediately
+    if (!_isElementVisible(_activeEl)) {
+      _dismissHint(true);
+    } else {
+      _repositionActiveBalloon();
+    }
+  }, { passive: true });
+
+  // Dismiss hint on page navigation (hash change)
+  window.addEventListener('hashchange', function() {
+    if (_activeHint) _dismissHint(true);
+  });
 
   function _onTargetClick() {
     _dismissHint(true);
