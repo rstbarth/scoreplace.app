@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.4.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.4.4-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,16 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.4.4-alpha (Abril 2026)**
+- Paineis de Decisao com Equilibrio de Nash: paineis de potencia de 2 e times incompletos agora exibem indicador visual de equilibrio de Nash em cada opcao de resolucao.
+  - Cores por temperatura de Nash: verde (melhor equilibrio, >=80%) → amarelo (>=60%) → laranja (>=35%) → azul (menor equilibrio). Background, borda e glow variam proporcionalmente.
+  - Badge "Nash X%" em cada botao mostra o score normalizado.
+  - Painel de potencia de 2: layout 3x2 (Reabrir, BYE, Play-in, Lista de Espera, Suico, Enquete). Enquete ao lado do Formato Suico em vez de span 2 no rodape.
+  - Painel de times incompletos: mesmo sistema de cores aplicado aos 5 botoes (Reabrir, Bots, Lista de Espera, Ajuste Manual, Enquete).
+  - Legenda de cores no topo do grid de opcoes.
+  - Score calculado com pesos: fairness 45%, inclusion 35%, effort 20%. Ajustes contextuais (ex: faltam <=2 inscritos aumenta score de Reabrir).
+  - Badge "Recomendado" permanece na opcao com maior score (excluindo Enquete).
 
 **v0.4.3-alpha (Abril 2026)**
 - Auditoria Completa v2: revisao linha a linha de todos os 30 arquivos JS (~24.600 linhas). 68 issues identificadas e corrigidas (14 CRITICAL, 22 HIGH, 18 MEDIUM, 14 LOW).
@@ -485,7 +495,38 @@ scoreplace-app/
 ```
 
 ### Cache-busters atuais (index.html)
-Todos os arquivos JS e CSS usam `?v=0.4.3` a partir da v0.4.3-alpha.
+Todos os arquivos JS e CSS usam `?v=0.4.4` a partir da v0.4.4-alpha.
+
+## Regras de Seguranca de Codigo
+
+### OBRIGATORIO: Validacao Sintatica Apos Qualquer Edicao
+**CRITICO:** Apos QUALQUER edicao de codigo (especialmente auditorias de seguranca, escaping de XSS, ou operacoes de busca-e-troca em massa), DEVE-SE validar que todo arquivo JS modificado faz parse sem erros de sintaxe. Executar antes de fazer deploy:
+
+```bash
+for f in $(find js/ -name '*.js' ! -name '*.backup'); do
+  node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f";
+done
+```
+
+Se `node` nao estiver disponivel, no minimo inspecionar visualmente todo handler onclick/oninput modificado para garantir que template literals estao fechados corretamente.
+
+### Padrao Perigoso Conhecido: Escaping em onclick com Multiplos Argumentos
+Ao escapar IDs em onclick handlers dentro de template literals, **nunca** quebrar o template literal entre argumentos.
+
+**ERRADO (quebra o arquivo inteiro):**
+```js
+onclick="func('${String(id).replace(/'/g, "\\'")}'${', \'arg2\''})"
+```
+O `'${'` fecha a string JS prematuramente → SyntaxError → arquivo inteiro nao carrega e TODAS as funcoes definidas nele deixam de existir silenciosamente.
+
+**CORRETO:**
+```js
+onclick="func('${String(id).replace(/'/g, "\\'")}', 'arg2')"
+```
+Apenas valores dinamicos (variaveis) precisam de `${}`. Argumentos fixos (strings literais) vao diretamente no template.
+
+### Incidente Historico (v0.4.3-alpha)
+A auditoria XSS da v0.4.3 aplicou escaping em ~30 onclick handlers. Nos casos com dois parametros, o padrao de escaping quebrou a sintaxe do template literal em `tournaments-draw-prep.js` (linha 106) e `bracket.js` (linha 773). Ambos os arquivos falharam ao carregar por completo, desabilitando silenciosamente: toggleRegistrationStatus, checkPowerOf2, showPowerOf2Panel, zoom do bracket, toggle de visibilidade de rodada, e encerramento de rodada. Isso passou despercebido por multiplos deploys porque nao havia etapa de validacao sintatica. Corrigido na v0.4.3e.
 
 ## Padrao de Codigo
 
