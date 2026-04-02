@@ -191,8 +191,10 @@ function renderDashboard(container) {
     }
 
     let participandoBadge = '';
-    if (isParticipating) {
-      participandoBadge = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; margin-top: 4px;">Inscrito ✓</div>`;
+    if (isParticipating && isAberto) {
+      participandoBadge = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')" style="font-size: 0.6rem; padding: 3px 8px; margin-top: 4px;">🛑 Desinscrever-se</button>`;
+    } else if (!isParticipating && isAberto && !isOrg) {
+      participandoBadge = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="font-size: 0.6rem; padding: 3px 8px; margin-top: 4px;">✅ Inscrever-se</button>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);

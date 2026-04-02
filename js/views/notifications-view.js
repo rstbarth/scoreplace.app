@@ -16,6 +16,10 @@ function renderNotifications(container) {
 
   container.innerHTML =
     '<div style="max-width: 700px; margin: 0 auto;">' +
+      '<button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash=\'#dashboard\'" style="margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 6px;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
+        'Voltar' +
+      '</button>' +
       '<h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-bright);">Notificações</h2>' +
       '<div id="notif-list" style="display: flex; flex-direction: column; gap: 10px;">' +
         '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Carregando...</div>' +
