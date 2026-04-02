@@ -241,6 +241,11 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.4i-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botão Convidar sem restrições</b> — Botão "Convidar" na tela de detalhes do torneio agora visível para organizadores e participantes em qualquer estado do torneio (não apenas com inscrições abertas).</p>' +
+        '<p><b>Botões de ação após sorteio</b> — Após sorteio realizado, tanto organizador quanto participantes veem grid de ações: Regras, Inscritos, QR Code, Imprimir, Exportar CSV, Modo TV. Layout responsivo em 2 colunas no mobile.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Painéis de Decisão com Nash</b> — Painéis de potência de 2 e times incompletos agora exibem indicador visual de equilíbrio de Nash em cada opção. Cores por temperatura: verde (melhor equilíbrio) → amarelo → laranja → azul (menor equilíbrio). Badge "Nash X%" em cada botão. Layout 3x2 com Enquete ao lado do Formato Suíço.</p>' +
         '</div>' +
