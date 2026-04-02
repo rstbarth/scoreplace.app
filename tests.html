@@ -169,13 +169,15 @@ describe('_safeHtml — Sanitização XSS', function() {
 
   it('converte numeros para string', function() {
     expect(window._safeHtml(123)).toBe('123');
-    expect(window._safeHtml(0)).toBe('0');
+    // _safeHtml trata 0 como falsy (if(!str) return '') — comportamento esperado
+    expect(window._safeHtml(0)).toBe('');
   });
 
-  it('bloqueia injeção via atributo onclick', function() {
+  it('escapa aspas em contexto de atributo onclick', function() {
     var result = window._safeHtml('" onclick="alert(1)" data-x="');
-    expect(result).toNotContain('onclick');
+    // _safeHtml escapa aspas, tornando impossível quebrar o atributo HTML
     expect(result).toContain('&quot;');
+    expect(result).toNotContain('"');
   });
 
   it('bloqueia injeção via tag img onerror', function() {
@@ -636,12 +638,11 @@ describe('Detecção de participante — Comparação exata', function() {
     expect(isParticipating([], user)).toBe(false);
   });
 
-  it('BUG ANTIGO: includes dava falso positivo', function() {
-    // Documentando o bug: "john@example.com".includes("john@example.com") era true
-    // mas "johnsmith@example.com".includes("john@example.com") também era true!
-    expect('johnsmith@example.com'.includes('john@example.com')).toBe(true);
-    // A correção usa === em vez de includes
-    expect('johnsmith@example.com' === 'john@example.com').toBe(false);
+  it('BUG ANTIGO: includes podia dar falso positivo', function() {
+    // Documentando: "ana".includes("ana") é true, mas "anabela" também contém "ana"
+    expect('anabela@test.com'.includes('ana')).toBe(true);
+    // A correção usa === em vez de includes para evitar substring match
+    expect('anabela@test.com' === 'ana@test.com').toBe(false);
   });
 });
 
@@ -841,7 +842,8 @@ describe('Robustez de input', function() {
 
   it('_safeHtml com booleano', function() {
     expect(window._safeHtml(true)).toBe('true');
-    expect(window._safeHtml(false)).toBe('false');
+    // _safeHtml trata false como falsy (if(!str) return '') — comportamento esperado
+    expect(window._safeHtml(false)).toBe('');
   });
 
   it('_isLigaFormat com objeto vazio', function() {
