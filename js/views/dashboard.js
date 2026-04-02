@@ -5,9 +5,9 @@ function renderDashboard(container) {
   const torneiosCount = visible.length;
   const torneiosPublicos = visible.filter(t => t.isPublic).length;
   const inscricoesAbertas = visible.filter(t => {
-    const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+    const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
     const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
-    return (t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
+    return (t.status !== 'finished' && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
   }).length;
 
 
@@ -30,7 +30,9 @@ function renderDashboard(container) {
     const isOrg = organizados.some(org => org.id === t.id);
     const isPart = participacoes.some(pt => pt.id === t.id);
     if (isOrg || isPart) return false;
-    const isAberto = t.status !== 'closed' && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date());
+    const _hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
+    const _ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && _hasDraw;
+    const isAberto = (t.status !== 'closed' && t.status !== 'finished' && !_hasDraw && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || _ligaAberta;
     return isAberto;
   }).sort(sortByDate);
 
@@ -108,7 +110,7 @@ function renderDashboard(container) {
 
     // Inscrições fecham após sorteio (status 'active'), exceto Liga com inscrições abertas na temporada
     const isFinished = t.status === 'finished';
-    const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+    const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
     const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
     const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
     const statusText = isFinished ? 'Encerrado' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas'));
