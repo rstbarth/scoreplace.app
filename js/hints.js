@@ -451,7 +451,9 @@
   }
 
   // ── Idle Detection ─────────────────────────────────────────────────────────
-  var _activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+  // Scroll removed from activity events — scroll/resize reposition the hint
+  // instead of dismissing it (handled by _repositionActiveBalloon listeners).
+  var _activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'click'];
 
   function _resetIdleTimer() {
     clearTimeout(_idleTimer);
