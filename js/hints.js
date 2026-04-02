@@ -307,6 +307,12 @@
     balloon.style.zIndex = '100000';
     balloon.setAttribute('data-pos', pos);
 
+    // Reset styles that may conflict between positions
+    balloon.style.top = '';
+    balloon.style.bottom = '';
+    balloon.style.left = '';
+    balloon.style.transform = '';
+
     if (pos === 'bottom') {
       balloon.style.top = (rect.bottom + scrollY + margin) + 'px';
       balloon.style.left = elCenterX + 'px';
@@ -314,10 +320,10 @@
       // Arrow at top of balloon, pointing up
       arrowEl.style.cssText = 'position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;';
     } else if (pos === 'top') {
-      balloon.style.bottom = (vh - rect.top + margin) + 'px';
+      // Use top + translateY(-100%) so position works in page coords (survives scroll/resize)
+      balloon.style.top = (rect.top + scrollY - margin) + 'px';
       balloon.style.left = elCenterX + 'px';
-      balloon.style.transform = 'translateX(-50%)';
-      balloon.style.top = 'auto';
+      balloon.style.transform = 'translate(-50%, -100%)';
       // Arrow at bottom of balloon, pointing down
       arrowEl.style.cssText = 'position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(225deg);width:12px;height:12px;';
     } else if (pos === 'left') {
@@ -341,11 +347,13 @@
     arrowEl.style.borderTop = '1.5px solid ' + arrowBorder;
 
     // Clamp horizontally within viewport
+    // Use translateY component based on position (top uses -100%, others don't)
+    var translateY = pos === 'top' ? ', -100%' : '';
     requestAnimationFrame(function() {
       var bRect = balloon.getBoundingClientRect();
       if (bRect.right > vw - 8) {
         var overflow = bRect.right - vw + 16;
-        balloon.style.transform = 'translateX(calc(-50% - ' + overflow + 'px))';
+        balloon.style.transform = 'translate(calc(-50% - ' + overflow + 'px)' + translateY + ')';
         // Shift arrow to still point at element
         if (pos === 'bottom' || pos === 'top') {
           var arrowLeft = (rect.left + rect.width / 2) - bRect.left + overflow;
@@ -354,7 +362,7 @@
       }
       if (bRect.left < 8) {
         var shift = 8 - bRect.left;
-        balloon.style.transform = 'translateX(calc(-50% + ' + shift + 'px))';
+        balloon.style.transform = 'translate(calc(-50% + ' + shift + 'px)' + translateY + ')';
         if (pos === 'bottom' || pos === 'top') {
           var arrowLeft2 = (rect.left + rect.width / 2) - (bRect.left + shift);
           arrowEl.style.left = Math.max(16, Math.min(bRect.width - 16, arrowLeft2)) + 'px';
@@ -362,6 +370,28 @@
       }
     });
   }
+
+  // ── Reposition balloon on resize/scroll ─────────────────────────────────────
+  var _repositionRAF = null;
+  function _repositionActiveBalloon() {
+    if (_repositionRAF) return; // throttle via rAF
+    _repositionRAF = requestAnimationFrame(function() {
+      _repositionRAF = null;
+      if (!_activeHint || !_activeEl) return;
+      var balloon = document.querySelector('.hint-balloon[data-hint-id="' + _activeHint.id + '"]');
+      if (!balloon) return;
+      // If the target element is no longer visible, dismiss
+      if (!_isElementVisible(_activeEl)) {
+        _dismissHint(true);
+        return;
+      }
+      var pos = balloon.getAttribute('data-pos') || _activeHint.position || 'bottom';
+      _positionBalloon(balloon, _activeEl, pos);
+    });
+  }
+
+  window.addEventListener('resize', _repositionActiveBalloon, { passive: true });
+  window.addEventListener('scroll', _repositionActiveBalloon, { passive: true });
 
   function _onTargetClick() {
     _dismissHint(true);
