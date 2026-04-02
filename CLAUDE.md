@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.4.2-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.4.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,30 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.4.3-alpha (Abril 2026)**
+- Auditoria Completa v2: revisao linha a linha de todos os 30 arquivos JS (~24.600 linhas). 68 issues identificadas e corrigidas (14 CRITICAL, 22 HIGH, 18 MEDIUM, 14 LOW).
+- Seguranca (XSS): showNotification/showConfirmDialog/showAlertDialog/showInputDialog agora sanitizam titulo automaticamente via helper _safeText() interno em notifications.js. showNotification tambem sanitiza mensagem.
+  - ~30 onclick/oninput handlers com IDs nao-escapados corrigidos em: bracket.js, bracket-ui.js, tournaments-draw-prep.js, tournaments-draw.js, tournaments-organizer.js, tournaments-categories.js, main.js, auth.js, pre-draw.js, create-tournament.js.
+  - Dados da Google Places API (mainText, secondaryText, venue name/address) e OpenWeather API (description) sanitizados com _safeHtml() em create-tournament.js.
+  - auth.js: displayName e photoUrl sanitizados na topbar.
+  - Error messages de APIs sanitizadas antes de innerHTML.
+- Bug fix: firebase-db.js:66 — substring matching (.includes) na verificacao de duplicata de inscricao substituido por comparacao exata (===) por email, displayName e uid.
+- Bug fix: dashboard.js:113 — operador logico sem parenteses fazia torneios Liga encerrados mostrarem "Inscricoes Abertas". Corrigido com parenteses.
+- Bug fix: auth.js:851-852 — race condition: flag _simulateLoginInProgress era limpa ANTES do setTimeout de auto-enroll. Reordenado.
+- Bug fix: tournaments-categories.js — funcao window._groupEligibleCategories() estava ausente (perdida na refatoracao v0.4.2). Restaurada junto com _getCategoryGenderPrefix() e _nonExclusivePrefixes.
+- Bug fix: participants.js:476 — variavel isVip usada antes da declaracao. Corrigido movendo logica de VIP para antes do uso.
+- Bug fix: dashboard.js:412 — _isMe() usava .includes() para email (substring match). Corrigido para comparacao exata ===.
+- Bug fix: tournaments.js:441 — isParticipating usava .includes() para email. Corrigido para comparacao exata por email/displayName/uid.
+- Bug fix: dashboard.js:359 — displayName null causava crash em .split(). Adicionado null check.
+- Bug fix: dashboard.js:179-182 — deteccao de times agora suporta formato objeto (p.participants array) alem do formato slash "name1/name2".
+- Bug fix: create-tournament.js — booleanos GSM (tiebreakEnabled, superTiebreak, advantageRule) agora salvos explicitamente como string 'true'/'false' para consistencia.
+- Bug fix: rules.js:58 — datas invalidas em historico de atividades agora tratadas graciosamente (isNaN check) em vez de exibir "Invalid Date".
+- Memory leak fix: hints.js — event listeners nos botoes "Entendi"/"Desativar" agora usam {once:true}. Auto-dismiss timeout (clearTimeout) limpo ao descartar manualmente. Resize/scroll listeners removidos ao desativar hints, re-adicionados ao reativar.
+- Memory leak fix: participants.js — onerror handler para avatar sempre presente (fallback para initials), nao apenas quando cache existe.
+- Melhoria: notifications-view.js — seletor DOM fragil para dot de notificacao nao-lida substituido por classe CSS .notif-unread-dot.
+- Melhoria: tournaments-categories.js — escaping completo (backslash + aspas) em nomes de categoria em onclick/data-cat handlers.
+- Cleanup: store.js — fallback redundante em _themeOrder removido.
 
 **v0.4.2-alpha (Abril 2026)**
 - Refatoracao de tournaments.js: arquivo monolitico de 6.503 linhas dividido em 5 modulos focados.
@@ -461,7 +485,7 @@ scoreplace-app/
 ```
 
 ### Cache-busters atuais (index.html)
-Todos os arquivos JS e CSS usam `?v=0.4.2` a partir da v0.4.2-alpha.
+Todos os arquivos JS e CSS usam `?v=0.4.3` a partir da v0.4.3-alpha.
 
 ## Padrao de Codigo
 
