@@ -1,5 +1,49 @@
 window.SCOREPLACE_VERSION = '0.4.3-alpha';
 
+// ─── Soft refresh: re-render current view without disrupting UX ────────────
+// Called by real-time Firestore listener when remote data changes.
+// Preserves: scroll position, open modals, focus state, form inputs.
+window._softRefreshView = function() {
+  // 1. If any modal is open, skip re-render entirely — data is already updated
+  //    in AppStore.tournaments, views will pick it up when modal closes or user navigates.
+  var openModal = document.querySelector('.modal-overlay.active') ||
+                  document.getElementById('qr-modal-overlay') ||
+                  document.getElementById('player-stats-overlay') ||
+                  document.querySelector('.tv-overlay');
+  if (openModal) return;
+
+  // 2. If user is typing in a form input, skip re-render to avoid losing focus/data
+  var active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) {
+    return;
+  }
+
+  // 3. Debounce: don't re-render more than once per 2 seconds
+  var now = Date.now();
+  if (window._lastSoftRefresh && (now - window._lastSoftRefresh) < 2000) {
+    // Schedule a delayed refresh instead
+    clearTimeout(window._pendingSoftRefresh);
+    window._pendingSoftRefresh = setTimeout(function() { window._softRefreshView(); }, 2000);
+    return;
+  }
+  window._lastSoftRefresh = now;
+
+  // 4. Save scroll position
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+
+  // 5. Set soft-refresh flag so router skips scroll-to-top and fade animation
+  window._isSoftRefresh = true;
+
+  // 6. Re-render current view via router
+  if (typeof initRouter === 'function') initRouter();
+
+  // 7. Restore scroll position after render
+  requestAnimationFrame(function() {
+    window.scrollTo({ top: scrollY, behavior: 'instant' });
+    window._isSoftRefresh = false;
+  });
+};
+
 // ─── Topbar progressive compaction ─────────────────────────────────────────
 // Progressive hiding order (shrinking):
 //   1. Abbreviate "Organizador" → "Org."
@@ -443,6 +487,7 @@ window.AppStore = {
     if (!window.FirestoreDB || !window.FirestoreDB.db) return;
 
     var store = this;
+    var isFirstSnapshot = true;
     this._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
       .onSnapshot(function(snap) {
         var tournaments = [];
@@ -457,9 +502,16 @@ window.AppStore = {
         store.tournaments = tournaments;
         store._saveToCache();
         store._loading = false;
-        // Real-time update applied
-        // Re-render current view
-        if (typeof initRouter === 'function') initRouter();
+
+        // First snapshot = initial load → full render needed
+        if (isFirstSnapshot) {
+          isFirstSnapshot = false;
+          if (typeof initRouter === 'function') initRouter();
+          return;
+        }
+
+        // Subsequent snapshots = remote changes → soft refresh (preserve UX)
+        window._softRefreshView();
       }, function(err) {
         console.warn('Real-time listener error:', err);
         // Fallback to one-time load

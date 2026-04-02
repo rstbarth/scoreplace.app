@@ -62,17 +62,21 @@ function initRouter() {
     const fixedBar = document.getElementById('bracket-fixed-scrollbar');
     if (fixedBar) fixedBar.remove();
 
-    // Scroll to top on navigation
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // On soft refresh (remote data update), skip scroll reset and fade animation
+    // to preserve user's current position and avoid visual disruption
+    if (!window._isSoftRefresh) {
+      // Scroll to top on navigation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Fade-in animation
-    viewContainer.style.opacity = '0';
-    viewContainer.style.transition = 'opacity 0.25s ease-in';
-    requestAnimationFrame(function() {
+      // Fade-in animation
+      viewContainer.style.opacity = '0';
+      viewContainer.style.transition = 'opacity 0.25s ease-in';
       requestAnimationFrame(function() {
-        viewContainer.style.opacity = '1';
+        requestAnimationFrame(function() {
+          viewContainer.style.opacity = '1';
+        });
       });
-    });
+    }
 
     switch (view) {
       case '':
