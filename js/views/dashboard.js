@@ -192,9 +192,9 @@ function renderDashboard(container) {
 
     let participandoBadge = '';
     if (isParticipating && isAberto) {
-      participandoBadge = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')" style="font-size: 0.6rem; padding: 3px 8px; margin-top: 4px;">🛑 Desinscrever-se</button>`;
-    } else if (!isParticipating && isAberto && !isOrg) {
-      participandoBadge = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="font-size: 0.6rem; padding: 3px 8px; margin-top: 4px;">✅ Inscrever-se</button>`;
+      participandoBadge = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')" style="margin-top: 4px;">🛑 Desinscrever-se</button>`;
+    } else if (!isParticipating && isAberto) {
+      participandoBadge = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')" style="margin-top: 4px;">✅ Inscrever-se</button>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
