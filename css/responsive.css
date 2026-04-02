@@ -1089,6 +1089,35 @@ img {
 }
 
 /* ====================================================
+   TOPBAR PROGRESSIVE COMPACTION (JS-driven classes)
+   Order: hide-viewlabel → hide-username → hide-notif → hide-explorar → hide-inicio
+   ==================================================== */
+
+/* Step 2: Hide user name */
+.topbar-menu.hide-username .user-name-label {
+  display: none !important;
+}
+
+/* Steps 3-5: Hide nav labels progressively */
+.topbar-menu.hide-notif .nav-label-notificacoes,
+.topbar-menu.hide-explorar .nav-label-explorar,
+.topbar-menu.hide-inicio .nav-label-inicio {
+  max-width: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Collapse gap on nav links when their label is hidden */
+.topbar-menu.hide-notif .topbar-nav-group a[href="#notifications"],
+.topbar-menu.hide-explorar .topbar-nav-group a[href="#explore"],
+.topbar-menu.hide-inicio .topbar-nav-group a[href="#dashboard"] {
+  gap: 0 !important;
+  padding: 0 6px !important;
+}
+
+/* ====================================================
    HERO CREATE BUTTON
    ==================================================== */
 /* Botão +Novo Torneio — agora centralizado abaixo da saudação */
