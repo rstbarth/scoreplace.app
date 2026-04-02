@@ -958,6 +958,9 @@ function _teamAvatarHtml(teamName) {
 function renderMatchCard(m, canEnterResult, tId, matchNum) {
   if (!m) return '';
 
+  const t = window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
+  const useSets = t && t.scoring && t.scoring.type === 'sets';
+
   const isDecided = !!m.winner;
   const isByeMatch = m.isBye || m.p2 === 'BYE';
   const hasTBD = !m.p1 || m.p1 === 'TBD' || !m.p2 || m.p2 === 'TBD';
@@ -987,6 +990,23 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
       ? `<span style="font-weight:800;font-size:1rem;min-width:24px;text-align:center;color:${isWinner ? '#4ade80' : 'var(--text-muted)'};">${score}</span>`
       : '';
 
+  // Format set scores for display
+  const formatSetScores = (match, playerNum) => {
+    if (!match.sets || !Array.isArray(match.sets) || match.sets.length === 0) {
+      const score = playerNum === 1 ? match.scoreP1 : match.scoreP2;
+      return score != null ? String(score) : '';
+    }
+    return match.sets.map(s => {
+      const g = playerNum === 1 ? s.gamesP1 : s.gamesP2;
+      const tb = s.tiebreak;
+      if (tb) {
+        const won = playerNum === 1 ? (s.gamesP1 > s.gamesP2) : (s.gamesP2 > s.gamesP1);
+        return g + (!won && tb ? '(' + (playerNum === 1 ? tb.pointsP1 : tb.pointsP2) + ')' : '');
+      }
+      return String(g);
+    }).join(' ');
+  };
+
   // Inline score inputs (only when match is active, both players known, and result can be entered)
   const showInputs = !isDecided && !isByeMatch && !hasTBD && canEnterResult;
 
@@ -1001,39 +1021,52 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      ${showInputs
+      ${showInputs && !useSets
         ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${m.id}')">`
-        : scoreDisplay(m.scoreP1, p1IsWinner)
+        : scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner)
       }
     </div>`;
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      ${showInputs
+      ${showInputs && !useSets
         ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${m.id}')">`
-        : scoreDisplay(m.scoreP2, p2IsWinner)
+        : scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner)
       }
     </div>`;
 
   const vsRow = `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:3px 0;">VS</div>`;
 
+  // Format set scores for winner badge
+  const setsDisplay = isDecided && useSets && m.sets && m.sets.length > 0
+    ? `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
+        ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
+      </div>`
+    : '';
+
   const winnerBadge = isDecided && !isByeMatch
-    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;">🏆 ${m.winner}</div>`
+    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;">🏆 ${m.winner}</div>${setsDisplay}`
     : isByeMatch
     ? `<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;">BYE — Avança Direto</div>`
     : '';
 
-  const confirmBtn = showInputs ? `
-    <button id="confirm-${m.id}" onclick="window._saveResultInline('${tId}','${m.id}')"
-      style="width:100%;margin-top:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
-      onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">
-      ✓ Confirmar Resultado
-    </button>` : '';
+  const confirmBtn = showInputs ? (useSets
+    ? `<button onclick="window._openSetScoring('${tId}','${m.id}')"
+        style="width:100%;margin-top:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#c084fc;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(168,85,247,0.3)'" onmouseout="this.style.background='rgba(168,85,247,0.15)'">
+        🎾 Lançar Sets
+      </button>`
+    : `<button id="confirm-${m.id}" onclick="window._saveResultInline('${tId}','${m.id}')"
+        style="width:100%;margin-top:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">
+        ✓ Confirmar Resultado
+      </button>`)
+    : '';
 
   const editBtn = isDecided && !isByeMatch && canEnterResult
     ? `<button onclick="window._editResult('${tId}','${m.id}')"
@@ -1213,8 +1246,12 @@ function renderStandings(t, isOrg, canEnterResult) {
   const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
   const posColor = i => i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-muted)';
 
+  const _useSetsStandings = t.scoring && t.scoring.type === 'sets';
   const _buildStandingsRows = function(computed) {
-    return computed.map((s, i) => `
+    return computed.map((s, i) => {
+      var _setsDiff = (s.setsWon || 0) - (s.setsLost || 0);
+      var _gamesDiff = (s.gamesWon || 0) - (s.gamesLost || 0);
+      return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
       <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${s.name}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
@@ -1222,9 +1259,13 @@ function renderStandings(t, isOrg, canEnterResult) {
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
       <td style="padding:11px 14px;text-align:center;color:#f87171;">${s.losses}</td>
-      <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>
+      <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>` +
+      (_useSetsStandings ? `
+      <td style="padding:11px 14px;text-align:center;color:${_setsDiff >= 0 ? '#06b6d4' : '#f87171'};">${_setsDiff >= 0 ? '+' : ''}${_setsDiff}</td>
+      <td style="padding:11px 14px;text-align:center;color:${_gamesDiff >= 0 ? '#8b5cf6' : '#f87171'};">${_gamesDiff >= 0 ? '+' : ''}${_gamesDiff}</td>` : '') + `
       <td style="padding:11px 14px;text-align:center;color:var(--text-muted);">${s.played}</td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   };
 
   // If tournament has categories, compute per-category; otherwise single table
@@ -1288,6 +1329,11 @@ function renderStandings(t, isOrg, canEnterResult) {
     </div>`;
 
   const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
+  var _gsmColIdx = 8; // next col after J when GSM is active
+  const _gsmHeaders = _useSetsStandings ? `
+              <th style="${_thStyle}text-align:center;color:#06b6d4;" data-sort-col="7" data-sort-type="num" onclick="window._sortStandingsTable(this)">±S <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#8b5cf6;" data-sort-col="8" data-sort-type="num" onclick="window._sortStandingsTable(this)">±G <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
+  var _jColIdx = _useSetsStandings ? 9 : 7;
   const _tableHeader = `<thead>
             <tr style="border-bottom:2px solid var(--border-color);">
               <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="0" data-sort-type="num" onclick="window._sortStandingsTable(this)"># <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">▼</span></th>
@@ -1297,7 +1343,8 @@ function renderStandings(t, isOrg, canEnterResult) {
               <th style="${_thStyle}text-align:center;color:#94a3b8;" data-sort-col="4" data-sort-type="num" onclick="window._sortStandingsTable(this)">E <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
               <th style="${_thStyle}text-align:center;color:#f87171;" data-sort-col="5" data-sort-type="num" onclick="window._sortStandingsTable(this)">D <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
               <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="6" data-sort-type="num" onclick="window._sortStandingsTable(this)">Saldo <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="7" data-sort-type="num" onclick="window._sortStandingsTable(this)">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              ${_gsmHeaders}
+              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="${_jColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
             </tr>
           </thead>`;
 

@@ -227,6 +227,266 @@ window._highlightWinner = function (matchId) {
 };
 
 // ─── Save result inline ───────────────────────────────────────────────────────
+// ─── Set Scoring Overlay ─────────────────────────────────────────────────────
+window._openSetScoring = function(tId, matchId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t || !t.scoring) return;
+  const m = _findMatch(t, matchId);
+  if (!m) return;
+
+  const sc = t.scoring;
+  const totalSets = sc.setsToWin * 2 - 1;
+  const p1Name = m.p1 || 'Jogador 1';
+  const p2Name = m.p2 || 'Jogador 2';
+
+  // Remove existing overlay
+  const existing = document.getElementById('set-scoring-overlay');
+  if (existing) existing.remove();
+
+  let setsHtml = '';
+  for (let i = 0; i < totalSets; i++) {
+    const isDecidingSet = (i === totalSets - 1) && sc.superTiebreak;
+    const label = isDecidingSet ? 'Super Tie-break' : 'Set ' + (i + 1);
+    setsHtml += '<div class="set-row" data-set="' + i + '" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+      '<div style="width:100px;font-size:0.82rem;font-weight:600;color:var(--text-muted);">' + label + '</div>' +
+      '<input type="number" id="set-p1-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + tId + '\',\'' + matchId + '\',' + i + ')">' +
+      '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
+      '<input type="number" id="set-p2-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + tId + '\',\'' + matchId + '\',' + i + ')">' +
+      '<div id="tb-indicator-' + i + '" style="font-size:0.72rem;color:#c084fc;font-weight:600;min-width:60px;"></div>' +
+    '</div>';
+  }
+
+  // Tiebreak input row (shown dynamically when needed)
+  setsHtml += '<div id="tb-input-row" style="display:none;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+    '<div style="display:flex;align-items:center;gap:12px;">' +
+      '<div style="width:100px;font-size:0.82rem;font-weight:600;color:#c084fc;">Tie-break</div>' +
+      '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+      '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
+      '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+    '</div>' +
+    '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;"></div>' +
+  '</div>';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'set-scoring-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(8px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
+
+  overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;">' +
+    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1.2rem 1.5rem;">' +
+      '<h3 style="margin:0;color:#f5f3ff;font-size:1.1rem;font-weight:800;">🎾 Lançar Resultado por Sets</h3>' +
+      '<p style="margin:4px 0 0;color:#e9d5ff;font-size:0.8rem;">Melhor de ' + totalSets + ' — ' + sc.gamesPerSet + ' games/set</p>' +
+    '</div>' +
+    '<div style="padding:1rem 1.5rem;">' +
+      '<div style="display:flex;gap:12px;margin-bottom:1rem;padding:8px 0;font-weight:700;font-size:0.85rem;">' +
+        '<div style="width:100px;"></div>' +
+        '<div style="width:56px;text-align:center;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + window._safeHtml(p1Name) + '">' + window._safeHtml(p1Name.split(' ')[0]) + '</div>' +
+        '<div style="width:14px;"></div>' +
+        '<div style="width:56px;text-align:center;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + window._safeHtml(p2Name) + '">' + window._safeHtml(p2Name.split(' ')[0]) + '</div>' +
+      '</div>' +
+      setsHtml +
+      '<div id="set-scoring-status" style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:0.82rem;font-weight:600;text-align:center;"></div>' +
+    '</div>' +
+    '<div style="padding:1rem 1.5rem;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color);">' +
+      '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-secondary">Cancelar</button>' +
+      '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + tId + '\',\'' + matchId + '\')" class="btn btn-purple" disabled>Salvar Resultado</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+};
+
+window._checkSetComplete = function(tId, matchId, setIndex) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t || !t.scoring) return;
+  const sc = t.scoring;
+  const totalSets = sc.setsToWin * 2 - 1;
+  const gps = sc.gamesPerSet;
+  let p1Sets = 0, p2Sets = 0;
+  let allValid = true;
+  let needsTiebreak = -1;
+
+  for (let i = 0; i < totalSets; i++) {
+    const el1 = document.getElementById('set-p1-' + i);
+    const el2 = document.getElementById('set-p2-' + i);
+    if (!el1 || !el2) continue;
+    const g1 = parseInt(el1.value);
+    const g2 = parseInt(el2.value);
+    const indicator = document.getElementById('tb-indicator-' + i);
+
+    if (isNaN(g1) || isNaN(g2)) {
+      if (p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin) {
+        el1.style.opacity = '0.3';
+        el2.style.opacity = '0.3';
+        if (indicator) indicator.textContent = '';
+      } else {
+        allValid = false;
+        el1.style.opacity = '1';
+        el2.style.opacity = '1';
+      }
+      continue;
+    }
+
+    el1.style.opacity = '1';
+    el2.style.opacity = '1';
+
+    if (!isNaN(g1) && !isNaN(g2)) {
+      if (g1 === gps && g2 === gps) {
+        needsTiebreak = i;
+        if (indicator) indicator.textContent = 'Tie-break!';
+      } else {
+        if (indicator) indicator.textContent = '';
+      }
+
+      if (g1 > g2) p1Sets++;
+      else if (g2 > g1) p2Sets++;
+    }
+  }
+
+  const tbRow = document.getElementById('tb-input-row');
+  if (tbRow) {
+    tbRow.style.display = needsTiebreak >= 0 ? 'block' : 'none';
+    const tbLabel = document.getElementById('tb-for-set');
+    if (tbLabel) tbLabel.textContent = 'Para o Set ' + (needsTiebreak + 1);
+  }
+
+  const statusEl = document.getElementById('set-scoring-status');
+  const saveBtn = document.getElementById('btn-save-sets');
+  const matchDecided = p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin;
+
+  if (statusEl) {
+    if (matchDecided) {
+      statusEl.style.background = 'rgba(16,185,129,0.1)';
+      statusEl.style.color = '#4ade80';
+      statusEl.textContent = (p1Sets >= sc.setsToWin ? 'Jogador 1' : 'Jogador 2') + ' vence ' + p1Sets + '-' + p2Sets;
+    } else {
+      statusEl.style.background = 'rgba(245,158,11,0.1)';
+      statusEl.style.color = '#f59e0b';
+      statusEl.textContent = 'Em andamento: ' + p1Sets + '-' + p2Sets;
+    }
+  }
+
+  if (saveBtn) saveBtn.disabled = !matchDecided;
+};
+
+window._saveSetResult = function(tId, matchId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t || !t.scoring) return;
+  const m = _findMatch(t, matchId);
+  if (!m) return;
+
+  const sc = t.scoring;
+  const totalSets = sc.setsToWin * 2 - 1;
+  let sets = [];
+  let p1Sets = 0, p2Sets = 0;
+
+  for (let i = 0; i < totalSets; i++) {
+    const el1 = document.getElementById('set-p1-' + i);
+    const el2 = document.getElementById('set-p2-' + i);
+    if (!el1 || !el2) continue;
+    const g1 = parseInt(el1.value);
+    const g2 = parseInt(el2.value);
+    if (isNaN(g1) || isNaN(g2)) break;
+
+    const setData = { gamesP1: g1, gamesP2: g2 };
+
+    if (g1 === sc.gamesPerSet && g2 === sc.gamesPerSet) {
+      const tbP1 = parseInt(document.getElementById('tb-p1')?.value) || 0;
+      const tbP2 = parseInt(document.getElementById('tb-p2')?.value) || 0;
+      setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
+      if (tbP1 > tbP2) { setData.gamesP1 = g1 + 1; }
+      else if (tbP2 > tbP1) { setData.gamesP2 = g2 + 1; }
+    }
+
+    sets.push(setData);
+    if (g1 > g2) p1Sets++;
+    else if (g2 > g1) p2Sets++;
+
+    if (p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin) break;
+  }
+
+  m.sets = sets;
+  m.scoreP1 = p1Sets;
+  m.scoreP2 = p2Sets;
+  m.setsWonP1 = p1Sets;
+  m.setsWonP2 = p2Sets;
+
+  let totalGamesP1 = 0, totalGamesP2 = 0;
+  sets.forEach(s => {
+    totalGamesP1 += s.gamesP1;
+    totalGamesP2 += s.gamesP2;
+  });
+  m.totalGamesP1 = totalGamesP1;
+  m.totalGamesP2 = totalGamesP2;
+
+  if (p1Sets > p2Sets) {
+    m.winner = m.p1;
+    m.draw = false;
+  } else if (p2Sets > p1Sets) {
+    m.winner = m.p2;
+    m.draw = false;
+  }
+
+  const ov = document.getElementById('set-scoring-overlay');
+  if (ov) ov.remove();
+
+  const isGroupMatch = m.group !== undefined;
+  const isRoundMatch = m.roundIndex !== undefined || (t.rounds && t.rounds.some(r => (r.matches || []).some(rm => rm.id === matchId)));
+
+  if (!isGroupMatch && !isRoundMatch) {
+    _advanceWinner(t, m);
+    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+  } else if (isRoundMatch) {
+    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+  } else {
+    _checkGroupRoundComplete(t, m.group);
+    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+  }
+
+  if (!t.checkedIn) t.checkedIn = {};
+  if (!t.absent) t.absent = {};
+  [m.p1, m.p2].forEach(side => {
+    if (!side || side === 'TBD' || side === 'BYE') return;
+    if (side.includes(' / ')) {
+      side.split(' / ').forEach(n => { const nm = n.trim(); if (nm) { t.checkedIn[nm] = t.checkedIn[nm] || Date.now(); delete t.absent[nm]; } });
+    } else {
+      t.checkedIn[side] = t.checkedIn[side] || Date.now();
+      delete t.absent[side];
+    }
+  });
+  if (!t.tournamentStarted) t.tournamentStarted = Date.now();
+
+  const scoreText = sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join(' ');
+
+  window.AppStore.logAction(tId, 'Resultado: ' + m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner);
+  window.AppStore.syncImmediate(tId);
+
+  if (typeof window._sendUserNotification === 'function') {
+    const _resultText = m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner;
+    const _notifData = {
+      type: 'result',
+      title: 'Resultado registrado',
+      message: _resultText,
+      tournamentId: tId,
+      tournamentName: t.name,
+      level: 'all',
+      timestamp: Date.now()
+    };
+    const _parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    [m.p1, m.p2].forEach(playerName => {
+      if (!playerName || playerName === 'TBD' || playerName === 'BYE') return;
+      const _found = _parts.find(p => {
+        const pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return pName === playerName;
+      });
+      if (_found && typeof _found === 'object' && _found.uid) {
+        window._sendUserNotification(_found.uid, _notifData);
+      }
+    });
+  }
+
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
 window._saveResultInline = function (tId, matchId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;

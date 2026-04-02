@@ -29,7 +29,7 @@ function _computeStandings(t, category) {
         if (pCat !== category) return;
       }
     }
-    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '', setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, tiebreaksWon: 0 };
   });
 
   (t.rounds || []).forEach(round => {
@@ -38,10 +38,33 @@ function _computeStandings(t, category) {
       if (category && m.category !== category) return;
       if (!m.winner || m.isBye) return;
 
+      // Helper to ensure dynamic entry has GSM fields
+      function _ensureEntry(name) {
+        if (!scoreMap[name]) scoreMap[name] = { name: name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '', setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, tiebreaksWon: 0 };
+      }
+
+      // Accumulate GSM (sets/games/tiebreaks) stats from match
+      function _accumulateGSM(m) {
+        if (!Array.isArray(m.sets) || m.sets.length === 0) return;
+        var sw1 = 0, sw2 = 0, gw1 = 0, gw2 = 0, tb1 = 0, tb2 = 0;
+        m.sets.forEach(function(s) {
+          var g1 = parseInt(s.gamesP1) || 0;
+          var g2 = parseInt(s.gamesP2) || 0;
+          gw1 += g1; gw2 += g2;
+          if (g1 > g2) sw1++; else if (g2 > g1) sw2++;
+          if (s.tiebreak) {
+            var tp1 = parseInt(s.tiebreak.pointsP1) || 0;
+            var tp2 = parseInt(s.tiebreak.pointsP2) || 0;
+            if (tp1 > tp2) tb1++; else if (tp2 > tp1) tb2++;
+          }
+        });
+        if (scoreMap[m.p1]) { scoreMap[m.p1].setsWon += sw1; scoreMap[m.p1].setsLost += sw2; scoreMap[m.p1].gamesWon += gw1; scoreMap[m.p1].gamesLost += gw2; scoreMap[m.p1].tiebreaksWon += tb1; }
+        if (scoreMap[m.p2]) { scoreMap[m.p2].setsWon += sw2; scoreMap[m.p2].setsLost += sw1; scoreMap[m.p2].gamesWon += gw2; scoreMap[m.p2].gamesLost += gw1; scoreMap[m.p2].tiebreaksWon += tb2; }
+      }
+
       // Handle draws — both players get 1 point each
       if (m.winner === 'draw' || m.draw) {
-        if (!scoreMap[m.p1]) scoreMap[m.p1] = { name: m.p1, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
-        if (!scoreMap[m.p2]) scoreMap[m.p2] = { name: m.p2, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+        _ensureEntry(m.p1); _ensureEntry(m.p2);
         scoreMap[m.p1].draws = (scoreMap[m.p1].draws || 0) + 1;
         scoreMap[m.p2].draws = (scoreMap[m.p2].draws || 0) + 1;
         scoreMap[m.p1].points += 1;
@@ -52,12 +75,12 @@ function _computeStandings(t, category) {
         var ds2 = parseInt(m.scoreP2) || 0;
         scoreMap[m.p1].pointsDiff += (ds1 - ds2);
         scoreMap[m.p2].pointsDiff += (ds2 - ds1);
+        _accumulateGSM(m);
         return;
       }
 
       const loser = m.winner === m.p1 ? m.p2 : m.p1;
-      if (!scoreMap[m.winner]) scoreMap[m.winner] = { name: m.winner, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
-      if (!scoreMap[loser]) scoreMap[loser] = { name: loser, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
+      _ensureEntry(m.winner); _ensureEntry(loser);
 
       scoreMap[m.winner].wins++;
       scoreMap[m.winner].points += 3;
@@ -74,6 +97,7 @@ function _computeStandings(t, category) {
         scoreMap[m.p2].pointsDiff += (s2 - s1);
         scoreMap[m.p1].pointsDiff += (s1 - s2);
       }
+      _accumulateGSM(m);
     });
   });
 
@@ -112,8 +136,15 @@ function _computeStandings(t, category) {
     });
   });
 
-  // Apply configured tiebreaker order
-  const tiebreakers = t.tiebreakers || ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz'];
+  // Compute gamesDiff for each player
+  standings.forEach(function(s) { s.gamesDiff = (s.gamesWon || 0) - (s.gamesLost || 0); s.setsDiff = (s.setsWon || 0) - (s.setsLost || 0); });
+
+  // Apply configured tiebreaker order — auto-add GSM criteria when tournament uses sets
+  var defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz'];
+  if (t.scoring && t.scoring.type === 'sets') {
+    defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'tiebreaks_vencidos', 'vitorias', 'buchholz'];
+  }
+  const tiebreakers = t.tiebreakers || defaultTb;
 
   // Build head-to-head map for confronto_direto
   const h2h = {};
@@ -162,6 +193,26 @@ function _computeStandings(t, category) {
           break;
         case 'sonneborn_berger':
           diff = (b.sonnebornBerger || 0) - (a.sonnebornBerger || 0);
+          if (diff !== 0) return diff;
+          break;
+        case 'sets_vencidos':
+          diff = (b.setsWon || 0) - (a.setsWon || 0);
+          if (diff !== 0) return diff;
+          break;
+        case 'saldo_sets':
+          diff = ((b.setsWon || 0) - (b.setsLost || 0)) - ((a.setsWon || 0) - (a.setsLost || 0));
+          if (diff !== 0) return diff;
+          break;
+        case 'saldo_games':
+          diff = ((b.gamesWon || 0) - (b.gamesLost || 0)) - ((a.gamesWon || 0) - (a.gamesLost || 0));
+          if (diff !== 0) return diff;
+          break;
+        case 'games_vencidos':
+          diff = (b.gamesWon || 0) - (a.gamesWon || 0);
+          if (diff !== 0) return diff;
+          break;
+        case 'tiebreaks_vencidos':
+          diff = (b.tiebreaksWon || 0) - (a.tiebreaksWon || 0);
           if (diff !== 0) return diff;
           break;
         case 'sorteio':
