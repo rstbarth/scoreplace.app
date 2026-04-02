@@ -29,7 +29,7 @@ function _computeStandings(t, category) {
         if (pCat !== category) return;
       }
     }
-    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0, category: category || '' };
+    if (name && !scoreMap[name]) scoreMap[name] = { name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0, category: category || '' };
   });
 
   (t.rounds || []).forEach(round => {

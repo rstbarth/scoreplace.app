@@ -10,8 +10,21 @@ function renderTournaments(container, tournamentId = null) {
                 'As inscrições ainda estão abertas. Deseja encerrar as inscrições prematuramente para realizar o sorteio?',
                 () => {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-                    if (t) { t.status = 'closed'; window.AppStore.sync(); }
-                    window.location.hash = `#pre-draw/${tId}`;
+                    if (t) {
+                        t.status = 'closed';
+                        // Salvar no Firestore e só navegar após confirmação
+                        if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+                            window.FirestoreDB.saveTournament(t).then(function() {
+                                window.location.hash = '#pre-draw/' + tId;
+                            }).catch(function() {
+                                window.AppStore.sync();
+                                window.location.hash = '#pre-draw/' + tId;
+                            });
+                        } else {
+                            window.AppStore.sync();
+                            window.location.hash = '#pre-draw/' + tId;
+                        }
+                    }
                 },
                 null,
                 { type: 'warning', confirmText: 'Encerrar e Sortear', cancelText: 'Manter Aberto' }
@@ -1953,7 +1966,7 @@ function renderTournaments(container, tournamentId = null) {
                 }
                 const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
                 const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
-                const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
+                const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
                 if (!inscricoesAbertas) {
                     showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                     return;
@@ -2092,7 +2105,7 @@ function renderTournaments(container, tournamentId = null) {
             }
             const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
             const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
-            const inscricoesAbertas = t.status !== 'closed' && !sorteioRealizado || ligaAberta;
+            const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
             if (!inscricoesAbertas) {
                 showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
                 return;
@@ -2920,6 +2933,14 @@ function renderTournaments(container, tournamentId = null) {
         window.showPowerOf2Panel = function (tId) {
             const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
             if (!t) return;
+
+            // Suspender inscrições enquanto a decisão está sendo tomada
+            if (t.status !== 'closed') {
+                t.status = 'closed';
+                t._suspendedByPanel = true;
+                window.AppStore.sync();
+            }
+
             const info = window.checkPowerOf2(t);
             if (info.isPowerOf2) {
                 window.showFinalReviewPanel(tId);
@@ -3077,11 +3098,26 @@ function renderTournaments(container, tournamentId = null) {
 
                     <div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">
                         <div style="font-size:0.8rem;color:#64748b;">Ajuste manual disponível no rascunho de chaveamento.</div>
-                        <button onclick="document.getElementById('p2-resolution-panel').remove();" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
+                        <button onclick="window._cancelPowerOf2Panel('${tId}');" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(overlay);
+        };
+
+        // Cancelar painel de decisão e restaurar inscrições se suspensas
+        window._cancelPowerOf2Panel = function (tId) {
+            const panel = document.getElementById('p2-resolution-panel');
+            if (panel) panel.remove();
+            const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+            if (t && t._suspendedByPanel) {
+                t.status = 'open';
+                delete t._suspendedByPanel;
+                window.AppStore.sync();
+                const container = document.getElementById('view-container');
+                if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+                showNotification('Inscrições Restauradas', 'As inscrições foram reabertas.', 'info');
+            }
         };
 
         // (Check-in functions moved to participants.js)
@@ -3857,7 +3893,13 @@ function renderTournaments(container, tournamentId = null) {
             if (!t) return;
 
             if (t.status === 'closed') {
-                delete t.status;
+                // Impedir reabertura se já houve sorteio
+                const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
+                if (hasDraw) {
+                    showAlertDialog('Não Permitido', 'Não é possível reabrir inscrições após o sorteio ter sido realizado.', null, { type: 'warning' });
+                    return;
+                }
+                t.status = 'open';
                 window.AppStore.logAction(tId, 'Inscrições Reabertas');
                 window.AppStore.sync();
                 const container = document.getElementById('view-container');
@@ -5471,7 +5513,7 @@ function renderTournaments(container, tournamentId = null) {
         const isFinished = t.status === 'finished';
         const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
-        const isAberto = !isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date()) || ligaAberta;
+        const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
         const statusText = isFinished ? '🏆 Encerrado' : (ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
         const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
         const statusColor = isFinished ? '#fbbf24' : (isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
@@ -5843,7 +5885,7 @@ function renderTournaments(container, tournamentId = null) {
                ${teamEnrollModalHtml}
                <div class="d-flex justify-between align-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.15);">
                   <div class="d-flex gap-2">
-                     <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal()">Convites</button>
+                     <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="typeof openEnrollModal === 'function' && openEnrollModal('${t.id}')">Convites</button>
                      <button class="btn btn-sm hover-lift" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: 600;" onclick="window.location.hash='#rules/${t.id}'">Regras</button>
                   </div>
                </div>

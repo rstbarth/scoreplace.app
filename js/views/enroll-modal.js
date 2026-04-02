@@ -4,38 +4,38 @@ function setupEnrollModal() {
       <div class="modal-overlay" id="modal-enroll">
         <div class="modal" style="max-width: 500px;">
           <div class="modal-header">
-            <h2 class="card-title">Gestão de Inscrições</h2>
+            <h2 class="card-title">Convidar Participantes</h2>
             <button class="modal-close" onclick="closeModal('modal-enroll')">&times;</button>
           </div>
           <div class="modal-body">
-            
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-               <button class="btn btn-primary" style="flex:1;" onclick="
-                  showNotification('Inscrição Solicitada', 'Seu pedido foi enviado ao organizador e está pendente.', 'success');
-                  closeModal('modal-enroll');
-               ">
-                  Quero Participar
-               </button>
-            </div>
 
-            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+            <p class="text-muted mb-3"><strong>Compartilhe o link</strong> para convidar jogadores ao torneio.</p>
 
-            <p class="text-muted mb-3"><strong>Organização:</strong> Convide jogadores enviando o link público do torneio.</p>
-            
             <div class="form-group d-flex" style="gap: 5px;">
-               <input type="text" readonly class="form-control" value="https://scoreplace.app/#tournaments/" style="flex:1;" id="share-link-input">
+               <input type="text" readonly class="form-control" value="" style="flex:1;" id="share-link-input">
                <button class="btn btn-secondary" onclick="
-                  const i = document.getElementById('share-link-input');
-                  i.select();
-                  document.execCommand('copy');
-                  showNotification('Copiado', 'Link de inscrição copiado para a área de transferência.', 'info');
+                  var inp = document.getElementById('share-link-input');
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(inp.value).then(function() {
+                      showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                    }).catch(function() {
+                      inp.select(); document.execCommand('copy');
+                      showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                    });
+                  } else {
+                    inp.select(); document.execCommand('copy');
+                    showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                  }
                ">Copiar</button>
             </div>
 
             <button class="btn full-width mt-3" style="background:#25D366; color:#fff;" onclick="
-               showNotification('Redirecionando...', 'Abrindo WhatsApp Business API para envio de mensagens.', 'success');
+               var link = document.getElementById('share-link-input').value;
+               var text = 'Participe do torneio! Inscreva-se aqui: ' + link;
+               var url = window._whatsappShareUrl ? window._whatsappShareUrl(text) : 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+               window.open(url, '_blank');
             ">
-               Compartilhar via WhatsApp
+               📱 Compartilhar via WhatsApp
             </button>
 
           </div>
@@ -46,6 +46,10 @@ function setupEnrollModal() {
   }
 }
 
-function openEnrollModal() {
+function openEnrollModal(tournamentId) {
+  var inp = document.getElementById('share-link-input');
+  if (inp && tournamentId) {
+    inp.value = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#tournaments/' + tournamentId;
+  }
   openModal('modal-enroll');
 }
