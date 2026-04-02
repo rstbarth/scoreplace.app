@@ -62,7 +62,7 @@ function renderRules(container, tournamentId) {
             <div style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:${isFirst ? 'var(--text-muted)' : 'var(--primary-color)'};margin-top:5px;"></div>
             <div>
               <div style="font-size:0.8rem;font-weight:700;color:var(--text-bright);">${date}</div>
-              <div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">${log.message || log.action || '—'}</div>
+              <div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">${window._safeHtml(log.message || log.action || '—')}</div>
             </div>
           </div>`;
       }).join('')

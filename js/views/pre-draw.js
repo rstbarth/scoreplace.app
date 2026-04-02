@@ -44,11 +44,11 @@ function renderPreDraw(container, tournamentId) {
           <div style="padding: 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div style="display:flex; align-items:center; gap:8px; flex:1;">
               <span class="badge badge-info" style="font-size:0.75rem; min-width:24px; text-align:center;">${countBadge}</span>
-              <span style="font-weight:700; color:var(--text-bright);" id="cat-label-${catName}">${catName}</span>
+              <span style="font-weight:700; color:var(--text-bright);" id="cat-label-${window._safeHtml(catName)}">${window._safeHtml(catName)}</span>
             </div>
             <div style="display:flex; gap:4px;">
-              <button class="btn btn-ghost btn-micro" title="Renomear categoria" onclick="window._renameCat('${catName}')">✏️</button>
-              ${activeCats.length > 1 ? `<button class="btn btn-ghost btn-micro" title="Fundir com outra categoria" onclick="window._mergeCat('${catName}')">🔀</button>` : ''}
+              <button class="btn btn-ghost btn-micro" title="Renomear categoria" onclick="window._renameCat('${catName.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')">✏️</button>
+              ${activeCats.length > 1 ? `<button class="btn btn-ghost btn-micro" title="Fundir com outra categoria" onclick="window._mergeCat('${catName.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')">🔀</button>` : ''}
             </div>
           </div>
           <div class="predraw-list" data-cat="${catName}" style="padding: 0.75rem; min-height: 80px; display:flex; flex-direction:column; gap:6px;"
@@ -63,7 +63,7 @@ function renderPreDraw(container, tournamentId) {
                   ondragend="window._dragEndPlayer(event)"
                   onmouseover="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='var(--primary-color)'"
                   onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
-                  <span style="font-size:0.9rem; font-weight:500; color:var(--text-bright); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.name}</span>
+                  <span style="font-size:0.9rem; font-weight:500; color:var(--text-bright); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${window._safeHtml(p.name)}</span>
                   <span style="font-size:0.7rem; color:var(--text-muted); flex-shrink:0;">#${p.idx + 1}</span>
                 </div>
               `).join('')
@@ -83,7 +83,7 @@ function renderPreDraw(container, tournamentId) {
         ondragover="event.preventDefault();" ondrop="window._dropToCategory(event, 'Standby')">
         ${catMap['Standby'].map((p, i) => {
           const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-          return `<span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; font-size:0.85rem; color:var(--text-muted);">${name}</span>`;
+          return `<span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; font-size:0.85rem; color:var(--text-muted);">${window._safeHtml(name)}</span>`;
         }).join('')}
       </div>
     </div>
@@ -100,11 +100,11 @@ function renderPreDraw(container, tournamentId) {
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap; gap:1rem;">
       <div>
         <h2 style="margin:0;">Janela Pré-Sorteio</h2>
-        <p class="text-muted" style="margin:4px 0 0;">${t.name} — ${formatLabel} — ${totalParticipants} inscrito(s)</p>
+        <p class="text-muted" style="margin:4px 0 0;">${window._safeHtml(t.name)} — ${formatLabel} — ${totalParticipants} inscrito(s)</p>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-secondary" onclick="window._addCategoryCol('${t.id}')">+ Categoria</button>
-        <button class="btn btn-primary" onclick="window._runPreDrawConfirm('${t.id}')">
+        <button class="btn btn-secondary" onclick="window._addCategoryCol('${window._safeHtml(t.id)}')">+ Categoria</button>
+        <button class="btn btn-primary" onclick="window._runPreDrawConfirm('${window._safeHtml(t.id)}')">
           <svg style="margin-right:0.5rem;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
           Rodar Sorteio Oficial
         </button>

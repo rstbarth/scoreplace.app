@@ -40,13 +40,13 @@ window._substituteFromStandby = function (tId) {
       const members = teamName.split(' / ');
       members[memberIdx] = replacementName;
       newTeamName = members.join(' / ');
-      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${absentPlayer} (do time "${teamName}")</div>
-        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>
-        <div style="margin-top:6px;"><strong>Novo time:</strong> ${newTeamName}</div>`;
+      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${window._safeHtml(absentPlayer)} (do time "${window._safeHtml(teamName)}")</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${window._safeHtml(replacementName)}</div>
+        <div style="margin-top:6px;"><strong>Novo time:</strong> ${window._safeHtml(newTeamName)}</div>`;
     } else {
       newTeamName = replacementName;
-      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${absentPlayer}</div>
-        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>`;
+      confirmMsg = `<div><strong style="color:#ef4444;">Ausente:</strong> ${window._safeHtml(absentPlayer)}</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${window._safeHtml(replacementName)}</div>`;
     }
 
     showConfirmDialog('Confirmar Substituição Individual',
@@ -111,8 +111,8 @@ window._substituteFromStandby = function (tId) {
     showConfirmDialog(
       'Desclassificar e Substituir Time',
       `<div style="text-align:left;line-height:1.8;">
-        <div><strong style="color:#ef4444;">Desclassificado:</strong> ${absentTeam}</div>
-        <div><strong style="color:#4ade80;">Substituto:</strong> ${replacementName}</div>
+        <div><strong style="color:#ef4444;">Desclassificado:</strong> ${window._safeHtml(absentTeam)}</div>
+        <div><strong style="color:#4ade80;">Substituto:</strong> ${window._safeHtml(replacementName)}</div>
         <div style="margin-top:8px;font-size:0.85rem;color:#94a3b8;">O time incompleto será desclassificado e o substituto ocupará a vaga na mesma partida.</div>
       </div>`,
       function () {
@@ -393,8 +393,11 @@ window._saveSetResult = function(tId, matchId) {
       const tbP1 = parseInt(document.getElementById('tb-p1')?.value) || 0;
       const tbP2 = parseInt(document.getElementById('tb-p2')?.value) || 0;
       setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
-      if (tbP1 > tbP2) { setData.gamesP1 = g1 + 1; }
-      else if (tbP2 > tbP1) { setData.gamesP2 = g2 + 1; }
+      var tbMargin = (sc.tiebreakMargin || 2);
+      var tbTarget = (sc.tiebreakPoints || 7);
+      var tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
+      if (tbComplete && tbP1 > tbP2) { setData.gamesP1 = g1 + 1; }
+      else if (tbComplete && tbP2 > tbP1) { setData.gamesP2 = g2 + 1; }
     }
 
     sets.push(setData);
@@ -764,18 +767,18 @@ window._tvBuildNextMatches = function(t) {
   html += '<div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:12px;">Próximos Jogos</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
   upcoming.forEach(function(m) {
-    var courtInfo = m.court ? '<div style="font-size:0.7rem;color:#818cf8;margin-top:4px;">📍 ' + m.court + '</div>' : '';
-    var roundInfo = m._roundLabel ? '<div style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:2px;">' + m._roundLabel + '</div>' : '';
+    var courtInfo = m.court ? '<div style="font-size:0.7rem;color:#818cf8;margin-top:4px;">📍 ' + window._safeHtml(m.court) + '</div>' : '';
+    var roundInfo = m._roundLabel ? '<div style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:2px;">' + window._safeHtml(m._roundLabel) + '</div>' : '';
     var presenceP1 = m.presenceP1 ? '✅' : '⏳';
     var presenceP2 = m.presenceP2 ? '✅' : '⏳';
     html += '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
     html += '<div style="flex:1;text-align:center;">';
-    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + presenceP1 + ' ' + (m.p1 || 'TBD') + '</div>';
+    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + presenceP1 + ' ' + window._safeHtml(m.p1 || 'TBD') + '</div>';
     html += '</div>';
     html += '<div style="font-size:0.9rem;font-weight:800;color:rgba(255,255,255,0.25);margin:0 12px;">VS</div>';
     html += '<div style="flex:1;text-align:center;">';
-    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + (m.p2 || 'TBD') + ' ' + presenceP2 + '</div>';
+    html += '<div style="font-size:1rem;font-weight:700;color:white;">' + window._safeHtml(m.p2 || 'TBD') + ' ' + presenceP2 + '</div>';
     html += '</div>';
     html += '</div>';
     html += courtInfo + roundInfo;
@@ -836,9 +839,9 @@ window._tvMode = function(tId) {
   hero += '<div>';
   hero += '<h1 style="margin:0;color:white;font-size:2.2rem;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,0.5);">' + safeName + '</h1>';
   hero += '<div style="color:rgba(255,255,255,0.6);font-size:1rem;margin-top:4px;display:flex;gap:16px;flex-wrap:wrap;">';
-  hero += '<span>' + (t.format || '') + '</span>';
-  hero += '<span>•</span><span>' + (t.sport || '') + '</span>';
-  if (t.venue) hero += '<span>•</span><span>📍 ' + t.venue + '</span>';
+  hero += '<span>' + window._safeHtml(t.format || '') + '</span>';
+  hero += '<span>•</span><span>' + window._safeHtml(t.sport || '') + '</span>';
+  if (t.venue) hero += '<span>•</span><span>📍 ' + window._safeHtml(t.venue) + '</span>';
   var partCount = Array.isArray(t.participants) ? t.participants.length : 0;
   hero += '<span>•</span><span>👤 ' + partCount + ' inscritos</span>';
   hero += '</div></div></div>';

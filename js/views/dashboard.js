@@ -5,8 +5,8 @@ function renderDashboard(container) {
   const torneiosCount = visible.length;
   const torneiosPublicos = visible.filter(t => t.isPublic).length;
   const inscricoesAbertas = visible.filter(t => {
-    const sorteioRealizado = t.status === 'active' && (t.matches || t.rounds || t.groups);
-    const ligaAberta = t.format === 'Liga' && t.ligaOpenEnrollment !== false && sorteioRealizado;
+    const sorteioRealizado = t.status === 'active' && ((Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0));
+    const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
     return (t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
   }).length;
 
@@ -128,8 +128,8 @@ function renderDashboard(container) {
       const user = window.AppStore.currentUser;
       const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
       isParticipating = arr.some(p => {
-        const str = typeof p === 'string' ? p : (p.email || p.displayName);
-        return str && (str.includes(user.email) || str.includes(user.displayName));
+        if (typeof p === 'string') return p === user.email || p === user.displayName;
+        return (p.email && p.email === user.email) || (p.uid && user.uid && p.uid === user.uid) || (p.displayName && p.displayName === user.displayName);
       });
     }
 

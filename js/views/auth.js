@@ -1509,7 +1509,7 @@ function _populatePlayerStats() {
         'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
         '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +
         '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">' + safeName + '</span>' +
-        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + h.format + '</span>' +
+        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + window._safeHtml(h.format || '') + '</span>' +
         (posIcon ? '<span style="flex-shrink:0;min-width:24px;text-align:right;">' + posIcon + '</span>' : '') +
       '</div>';
     }

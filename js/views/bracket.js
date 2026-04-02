@@ -44,7 +44,7 @@ function renderBracket(container, tournamentId) {
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
-        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${t.name}</h2>
+        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${window._safeHtml(t.name)}</h2>
         <div class="d-flex gap-2 mt-1">
           ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
@@ -265,7 +265,7 @@ function _renderStandbyPanel(t, isOrg) {
 
       if (r1Players.length > 0) {
         const options = r1Players.map(p =>
-          `<option value="${p.matchId}|${p.slot}|${p.memberIdx}|${p.display}">${p.display}</option>`
+          `<option value="${window._safeHtml(p.matchId+'|'+p.slot+'|'+p.memberIdx+'|'+p.display)}">${window._safeHtml(p.display)}</option>`
         ).join('');
 
         subsSection = `
@@ -294,7 +294,7 @@ function _renderStandbyPanel(t, isOrg) {
 
       if (r1Teams.length > 0) {
         const options = r1Teams.map(p =>
-          `<option value="${p.matchId}|${p.slot}">${p.name}</option>`
+          `<option value="${p.matchId}|${p.slot}">${window._safeHtml(p.name)}</option>`
         ).join('');
 
         const nextTeam = teamSize > 1
@@ -948,7 +948,7 @@ function _teamAvatarHtml(teamName) {
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
       `<img src="${photoSrc}" ${onerror} data-player-name="${name}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
-      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${name}">${name}</span>` +
+      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${window._safeHtml(name)}</span>` +
     `</div>`;
   });
   if (members.length > 1) html += '</div>';
@@ -1050,7 +1050,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
   const winnerBadge = isDecided && !isByeMatch
-    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;">🏆 ${m.winner}</div>${setsDisplay}`
+    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;">🏆 ${window._safeHtml(m.winner)}</div>${setsDisplay}`
     : isByeMatch
     ? `<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;">BYE — Avança Direto</div>`
     : '';
@@ -1098,7 +1098,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   return `
     <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
-        <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${matchLabel}</span>
+        <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
         <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${shareBtn}${editBtn}</div>
       </div>
       ${p1Row}
@@ -1163,7 +1163,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     const rows = sorted.map((s, i) => `
       <tr style="border-bottom:1px solid var(--border-color);${i < classified ? 'background:rgba(34,197,94,0.08);' : ''}">
         <td style="padding:8px 12px;font-weight:700;color:${i < classified ? '#4ade80' : 'var(--text-muted)'};">${medal(i)}</td>
-        <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${s.name} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
+        <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${window._safeHtml(s.name)} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
         <td style="padding:8px 12px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
         <td style="padding:8px 12px;text-align:center;color:#4ade80;">${s.wins}</td>
         <td style="padding:8px 12px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
@@ -1191,7 +1191,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 
     return `
       <div class="card" style="border-left:4px solid ${groupColor};">
-        <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${g.name}</h3>
+        <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(g.name)}</h3>
         <div style="overflow-x:auto;margin-bottom:1rem;">
           <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
             <thead>
@@ -1254,7 +1254,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${s.name}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${t.id}','${s.name.replace(/'/g, "\\'")}')" title="Ver confrontos">${window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
