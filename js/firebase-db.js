@@ -172,7 +172,7 @@ window.FirestoreDB = {
     if (!this.db || !fromUid || !toUid) return;
     try {
       // Check if the other person already sent us a request — if so, auto-accept (mutual)
-      var toDoc = await this.db.collection('users').doc(fromUid).get();
+      var toDoc = await this.db.collection('users').doc(toUid).get();
       var toData = toDoc.exists ? toDoc.data() : {};
       var receivedList = toData.friendRequestsReceived || [];
       if (receivedList.indexOf(toUid) !== -1) {

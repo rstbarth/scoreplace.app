@@ -241,6 +241,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auditoria de Segurança</b> — ~25 vulnerabilidades XSS corrigidas em 8 arquivos (bracket.js, bracket-ui.js, explore.js, pre-draw.js, notifications-view.js, auth.js, rules.js). Todos os dados de usuário sanitizados com _safeHtml().</p>' +
+        '<p><b>Bug Fixes</b> — firebase-db.js usava fromUid ao invés de toUid ao verificar pedidos de amizade mútuos (corrigido). dashboard.js truthy check em sorteioRealizado — arrays vazios não são mais tratados como sorteio realizado. dashboard.js substring matching na detecção de participante — agora usa comparação exata (email/uid/displayName). bracket-ui.js tiebreak com pontos iguais — agora valida margem e pontuação mínima.</p>' +
+        '<p><b>CSS</b> — Removidos temas mortos (high-contrast, alternative). Overrides de hint corrigidos para sunset/ocean.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Sistema Game-Set-Match (GSM)</b> — Sistema completo de pontuação por sets, games e tiebreaks para torneios de raquete e similares. Configuração na criação/edição do torneio com padrões por esporte (Beach Tennis, Tênis, Padel, Pickleball, Tênis de Mesa, Vôlei). Contagem numérica ou estilo tênis (15-30-40). Regra de vantagem, tiebreak e super tiebreak configuráveis. Preferências do usuário salvas por esporte. No bracket, botão "Lançar Sets" abre overlay dedicado com validação em tempo real. Resultados exibidos como "6-4 3-6 7-6(5)". Novos critérios de desempate automáticos: saldo de sets (±S), saldo de games (±G), tiebreaks vencidos. Colunas extras na tabela de classificação.</p>' +
         '</div>' +
