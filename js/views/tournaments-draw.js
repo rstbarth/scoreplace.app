@@ -48,7 +48,7 @@ window.showFinalReviewPanel = function (tId) {
                         <span style="color:#22c55e;font-size:1.2rem;">✅</span>
                         <div style="flex:1;">
                             <div style="font-weight:700;color:white;font-size:0.9rem;">Estrutura do Chaveamento</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">A potência de 2 foi atingida via: <b>${t.p2Resolution || 'Natural'}</b></div>
+                            <div style="font-size:0.75rem;color:#94a3b8;">A potência de 2 foi atingida via: <b>${window._safeHtml(t.p2Resolution || 'Natural')}</b></div>
                         </div>
                     </div>
                 </div>
@@ -60,7 +60,7 @@ window.showFinalReviewPanel = function (tId) {
                         ${(t.history || []).slice().reverse().map(log => `
                             <div style="margin-bottom:6px;display:flex;gap:10px;">
                                 <span style="color:#64748b;">[${new Date(log.date).toLocaleTimeString()}]</span>
-                                <span>${log.message}</span>
+                                <span>${window._safeHtml(log.message)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -278,7 +278,7 @@ window.generateDrawFunction = function (tId) {
                         p2: players[j],
                         winner: null,
                         group: gi,
-                        label: `${g.name} • ${players[i]} vs ${players[j]}`
+                        label: `${window._safeHtml(g.name)} • ${window._safeHtml(players[i])} vs ${window._safeHtml(players[j])}`
                     });
                 }
             }

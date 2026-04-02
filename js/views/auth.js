@@ -1298,14 +1298,14 @@ function _populatePlayerStats() {
     if (!p) return false;
     var str = typeof p === 'string' ? p : (p.email || p.displayName || p.name || '');
     str = str.toLowerCase();
-    return str.includes(email) || (displayName && str === displayName);
+    return str === email || (displayName && str === displayName);
   }
 
   // Helper: check if a player label in a match belongs to current user
   function _isMyLabel(label) {
     if (!label) return false;
     var l = label.toLowerCase();
-    return l.includes(email) || (displayName && l === displayName);
+    return l === email || (displayName && l === displayName);
   }
 
   // Iterate all tournaments

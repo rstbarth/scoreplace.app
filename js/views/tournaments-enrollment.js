@@ -96,9 +96,9 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             t.participants = result.participants;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + t.name + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + window._safeHtml(t.name) + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
             }
-            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Você foi inscrito com sucesso no torneio "' + t.name + '".', 'success');
+            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Você foi inscrito com sucesso no torneio "' + window._safeHtml(t.name) + '".', 'success');
 
             // Notify organizer about new enrollment
             if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
@@ -106,7 +106,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                     if (!snap.empty) {
                         window._sendUserNotification(snap.docs[0].id, {
                             type: 'enrollment_new',
-                            message: (user.displayName || 'Um participante') + ' se inscreveu no torneio "' + t.name + '".',
+                            message: (user.displayName || 'Um participante') + ' se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
                             tournamentId: String(t.id),
                             tournamentName: t.name || '',
                             level: 'all'
@@ -119,7 +119,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             if (user.uid || user.email) {
                 window._sendUserNotification(user.uid || user.email, {
                     type: 'enrollment_confirmed',
-                    message: 'Inscrição confirmada no torneio "' + t.name + '"!',
+                    message: 'Inscrição confirmada no torneio "' + window._safeHtml(t.name) + '"!',
                     tournamentId: String(t.id),
                     tournamentName: t.name || '',
                     level: 'fundamental'
@@ -211,9 +211,9 @@ window.submitTeamEnroll = function (tId) {
             t.teamOrigins = _teamOrigins;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + t.name + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + window._safeHtml(t.name) + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
             }
-            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Equipe inscrita com sucesso no torneio "' + t.name + '".', 'success');
+            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Equipe inscrita com sucesso no torneio "' + window._safeHtml(t.name) + '".', 'success');
 
             // Notify organizer about new team enrollment
             if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
@@ -221,7 +221,7 @@ window.submitTeamEnroll = function (tId) {
                     if (!snap.empty) {
                         window._sendUserNotification(snap.docs[0].id, {
                             type: 'enrollment_new',
-                            message: 'Equipe "' + teamString + '" se inscreveu no torneio "' + t.name + '".',
+                            message: 'Equipe "' + window._safeHtml(teamString) + '" se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
                             tournamentId: String(t.id),
                             tournamentName: t.name || '',
                             level: 'all'
@@ -234,7 +234,7 @@ window.submitTeamEnroll = function (tId) {
             if (user.uid || user.email) {
                 window._sendUserNotification(user.uid || user.email, {
                     type: 'enrollment_confirmed',
-                    message: 'Sua equipe foi inscrita no torneio "' + t.name + '"!',
+                    message: 'Sua equipe foi inscrita no torneio "' + window._safeHtml(t.name) + '"!',
                     tournamentId: String(t.id),
                     tournamentName: t.name || '',
                     level: 'fundamental'
@@ -301,7 +301,7 @@ window.deenrollCurrentUser = function (tId) {
                         if (!snap.empty) {
                             window._sendUserNotification(snap.docs[0].id, {
                                 type: 'enrollment_cancelled',
-                                message: (user.displayName || 'Um participante') + ' cancelou a inscrição no torneio "' + t.name + '".',
+                                message: (user.displayName || 'Um participante') + ' cancelou a inscrição no torneio "' + window._safeHtml(t.name) + '".',
                                 tournamentId: String(t.id),
                                 tournamentName: t.name || '',
                                 level: 'important'
@@ -314,14 +314,14 @@ window.deenrollCurrentUser = function (tId) {
                 if (user.uid || user.email) {
                     window._sendUserNotification(user.uid || user.email, {
                         type: 'enrollment_cancelled_confirm',
-                        message: 'Sua inscrição no torneio "' + t.name + '" foi cancelada.',
+                        message: 'Sua inscrição no torneio "' + window._safeHtml(t.name) + '" foi cancelada.',
                         tournamentId: String(t.id),
                         tournamentName: t.name || '',
                         level: 'fundamental'
                     });
                 }
 
-                if (typeof showNotification !== 'undefined') showNotification('Inscrição Cancelada', 'Sua inscrição foi removida do torneio "' + t.name + '".', 'info');
+                if (typeof showNotification !== 'undefined') showNotification('Inscrição Cancelada', 'Sua inscrição foi removida do torneio "' + window._safeHtml(t.name) + '".', 'info');
 
                 const container = document.getElementById('view-container');
                 if (container) {
@@ -349,10 +349,10 @@ window.addParticipantFunction = function (tId) {
             if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
             if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
                 t.status = 'closed'; window.AppStore.sync();
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${t.name}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
+                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${window._safeHtml(t.name)}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
             }
             const container = document.getElementById('view-container');
-            if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+            if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
         },
         { placeholder: 'Nome do participante', okText: 'Adicionar' }
     );
@@ -384,10 +384,10 @@ window.addTeamFunction = function (tId) {
             if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
             if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
                 t.status = 'closed'; window.AppStore.sync();
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${t.name}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
+                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${window._safeHtml(t.name)}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
             }
             const container = document.getElementById('view-container');
-            if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+            if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
         },
         { itemLabel: 'Integrante' }
     );

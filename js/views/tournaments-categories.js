@@ -251,122 +251,9 @@ window._getTournamentCategories = function(t) {
     return combined;
 };
 
-// Merge two categories with intelligent naming
-window._confirmMergeCategories = function(tId, cat1, cat2) {
-    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-    if (!t) return;
-    // Generate merged name with common prefix
-    var prefix1 = cat1.split(' ')[0];
-    var suffix1 = cat1.substring(prefix1.length).trim();
-    var prefix2 = cat2.split(' ')[0];
-    var suffix2 = cat2.substring(prefix2.length).trim();
-    var mergedName = '';
-    if (prefix1 === prefix2) {
-        mergedName = prefix1 + ' ' + suffix1 + '/' + suffix2;
-    } else {
-        mergedName = cat1 + ' / ' + cat2;
-    }
-    showAlertDialog(
-        'Mesclar Categorias',
-        'Mesclar "' + window._displayCategoryName(cat1) + '" e "' + window._displayCategoryName(cat2) + '" em "' + mergedName + '"?',
-        function() {
-            window._executeMerge(tId, cat1, cat2, mergedName);
-        },
-        { confirmText: 'Mesclar', cancelText: 'Cancelar' }
-    );
-};
-
-// Execute merge: update all participants and the tournament
-window._executeMerge = function(tId, cat1, cat2, mergedName) {
-    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-    if (!t) return;
-    if (!t.combinedCategories) t.combinedCategories = [];
-    // Replace both categories with merged
-    t.combinedCategories = t.combinedCategories.filter(function(c) { return c !== cat1 && c !== cat2; });
-    t.combinedCategories.push(mergedName);
-    // Record merge history
-    if (!t.mergeHistory) t.mergeHistory = [];
-    t.mergeHistory.push({ mergedName: mergedName, originalCats: [cat1, cat2], timestamp: new Date().toISOString() });
-    // Update participants
-    if (t.participants) {
-        for (var p = 0; p < t.participants.length; p++) {
-            var part = t.participants[p];
-            var cats = window._getParticipantCategories(part);
-            var updated = false;
-            for (var i = 0; i < cats.length; i++) {
-                if (cats[i] === cat1 || cats[i] === cat2) {
-                    cats[i] = mergedName;
-                    updated = true;
-                }
-            }
-            if (updated) window._setParticipantCategories(part, cats);
-        }
-    }
-    // Save and re-render
-    window.FirestoreDB.saveTournament(t);
-    window.AppStore.sync();
-    window.renderTournaments(document.getElementById('app-container'));
-};
-
-// Unmerge categories by restoring original categories
-window._executeUnmerge = function(tId, mergedName) {
-    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-    if (!t) return;
-    var mergeEntry = null;
-    if (t.mergeHistory) {
-        for (var i = t.mergeHistory.length - 1; i >= 0; i--) {
-            if (t.mergeHistory[i].mergedName === mergedName) {
-                mergeEntry = t.mergeHistory[i];
-                t.mergeHistory.splice(i, 1);
-                break;
-            }
-        }
-    }
-    if (!mergeEntry) {
-        // Inferred unmerge: assume "A/B" splits into "A" and "B"
-        var parts = mergedName.split('/').map(function(s) { return s.trim(); });
-        if (parts.length === 2) {
-            mergeEntry = { originalCats: parts };
-        } else {
-            return; // Can't unmerge
-        }
-    }
-    // Replace merged with originals
-    if (t.combinedCategories) {
-        var idx = t.combinedCategories.indexOf(mergedName);
-        if (idx !== -1) {
-            t.combinedCategories.splice(idx, 1);
-            for (var o = 0; o < mergeEntry.originalCats.length; o++) {
-                if (t.combinedCategories.indexOf(mergeEntry.originalCats[o]) === -1) {
-                    t.combinedCategories.push(mergeEntry.originalCats[o]);
-                }
-            }
-        }
-    }
-    // Update participants
-    if (t.participants) {
-        for (var p = 0; p < t.participants.length; p++) {
-            var part = t.participants[p];
-            var cats = window._getParticipantCategories(part);
-            for (var i = 0; i < cats.length; i++) {
-                if (cats[i] === mergedName) {
-                    // Restore first original (or both if exclusive)
-                    if (mergeEntry.originalCats.length === 1) {
-                        cats[i] = mergeEntry.originalCats[0];
-                    } else {
-                        cats.splice(i, 1);
-                        cats.push(mergeEntry.originalCats[0]);
-                    }
-                }
-            }
-            window._setParticipantCategories(part, cats);
-        }
-    }
-    // Save and re-render
-    window.FirestoreDB.saveTournament(t);
-    window.AppStore.sync();
-    window.renderTournaments(document.getElementById('app-container'));
-};
+// NOTE: _confirmMergeCategories, _executeMerge, _executeUnmerge are defined
+// as local functions inside the IIFE below (lines ~1043, ~1110, ~1352).
+// They are only called internally by the category manager drag-and-drop system.
 
 // Build HTML showing category participant counts
 window._buildCategoryCountHtml = function(t) {
@@ -829,7 +716,7 @@ window._openCategoryManager = function(tId) {
                 var name = p.displayName || p.name || 'Sem nome';
                 var email = p.email || '';
                 var initial = name.charAt(0).toUpperCase();
-                var origCat = p.originalCategory ? ' <span style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;">(' + p.originalCategory + ')</span>' : '';
+                var origCat = p.originalCategory ? ' <span style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;">(' + window._safeHtml(p.originalCategory) + ')</span>' : '';
                 // Source badge
                 var srcBadge = '';
                 if (p.categorySource === 'perfil') {
@@ -846,8 +733,8 @@ window._openCategoryManager = function(tId) {
                 return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);">' +
                     '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem;flex-shrink:0;">' + initial + '</div>' +
                     '<div style="flex:1;min-width:0;">' +
-                    '<div style="font-weight:600;font-size:0.9rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + srcBadge + origCat + '</div>' +
-                    (email ? '<div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + email + '</div>' : '') +
+                    '<div style="font-weight:600;font-size:0.9rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + srcBadge + origCat + '</div>' +
+                    (email ? '<div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(email) + '</div>' : '') +
                     '</div>' +
                     removeBtn +
                     '</div>';

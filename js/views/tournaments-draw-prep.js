@@ -61,7 +61,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                 <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:0.5rem; max-height:120px; overflow-y:auto;">
                     ${res.incompleteTeams.map(it => `
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <span style="font-size:0.85rem; font-weight:600; color:#fca5a5;">${it.name}</span>
+                            <span style="font-size:0.85rem; font-weight:600; color:#fca5a5;">${window._safeHtml(it.name)}</span>
                             <span style="font-size:0.75rem; color:#94a3b8;">Faltam ${it.missing}</span>
                         </div>
                     `).join('')}
@@ -77,7 +77,7 @@ window.showIncompleteTeamsPanel = function (tId) {
                 <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:0.5rem; max-height:120px; overflow-y:auto;">
                      ${res.leftoverIndividuals.map(li => `
                         <div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); color:#fde68a; font-size:0.85rem; font-weight:600;">
-                            ${li.name}
+                            ${window._safeHtml(li.name)}
                         </div>
                      `).join('')}
                 </div>
@@ -165,7 +165,8 @@ window._handleIncompleteOption = function (tId, option) {
         t.enrollmentStatus = 'open';
         window.AppStore.logAction(tId, 'Inscrições reabertas para completar times');
         window.AppStore.sync();
-        document.getElementById('incomplete-teams-panel').remove();
+        var el = document.getElementById('incomplete-teams-panel');
+        if (el) el.remove();
         if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Aguardando novos inscritos para completar os times.', 'success');
         window.location.hash = '#tournaments/' + tId;
     } else if (option === 'lottery') {
@@ -174,7 +175,8 @@ window._handleIncompleteOption = function (tId, option) {
         t.incompleteResolution = 'standby';
         window.AppStore.logAction(tId, 'Jogadores sem time movidos para lista de espera');
         window.AppStore.sync();
-        document.getElementById('incomplete-teams-panel').remove();
+        var el2 = document.getElementById('incomplete-teams-panel');
+        if (el2) el2.remove();
         window.showPowerOf2Panel(tId);
     } else if (option === 'dissolve') {
         window.showDissolveTeamsPanel(tId);
@@ -280,9 +282,9 @@ window.showDissolveTeamsPanel = function (tId) {
 
         incList.innerHTML = incomplete.map(it => `
             <div style="background:rgba(239,68,68,0.05);border:1px dashed rgba(239,68,68,0.3);border-radius:12px;padding:1rem;">
-                <div style="font-weight:700;color:white;margin-bottom:8px;font-size:0.9rem;">${it.name}</div>
+                <div style="font-weight:700;color:white;margin-bottom:8px;font-size:0.9rem;">${window._safeHtml(it.name)}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;">
-                    ${it.members.map(m => `<span style="background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#e2e8f0;">${m}</span>`).join('')}
+                    ${it.members.map(m => `<span style="background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#e2e8f0;">${window._safeHtml(m)}</span>`).join('')}
                     <span style="border:1px dashed #94a3b8;padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#94a3b8;">+ Vaga</span>
                 </div>
             </div>
@@ -292,7 +294,7 @@ window.showDissolveTeamsPanel = function (tId) {
             const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
             return `
                 <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);padding:10px 15px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;cursor:move;">
-                    <span style="font-size:0.9rem;color:#e2e8f0;">${name}</span>
+                    <span style="font-size:0.9rem;color:#e2e8f0;">${window._safeHtml(name)}</span>
                     <span style="color:#94a3b8;font-size:0.75rem;">ID: ${idx}</span>
                 </div>
             `;
