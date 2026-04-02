@@ -133,9 +133,30 @@ function renderDashboard(container) {
       });
     }
 
-    let bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
-    if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
-    else if (isOrg) bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)';
+    // Card gradients adaptam ao tema via CSS variables
+    var _theme = (document.documentElement.getAttribute('data-theme') || 'dark');
+    var _isLight = (_theme === 'light');
+    let bgGradient;
+    if (_isLight) {
+      bgGradient = 'linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)';
+    } else if (_theme === 'sunset') {
+      bgGradient = 'linear-gradient(135deg, #2d1f1b 0%, #1a1210 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #713f12 0%, #a16207 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #92400e 0%, #d97706 100%)';
+    } else if (_theme === 'ocean') {
+      bgGradient = 'linear-gradient(135deg, #162032 0%, #0f1729 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #164e63 0%, #0891b2 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e3a5f 0%, #0e7490 100%)';
+    } else {
+      bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)';
+    }
+
+    // Card text color adapts to theme
+    var _cardTextColor = _isLight ? '#1f2937' : 'white';
 
     // Venue photo background
     let venuePhotoBg = '';
@@ -146,6 +167,7 @@ function renderDashboard(container) {
           ? 'linear-gradient(135deg, rgba(15,118,110,0.85) 0%, rgba(20,184,166,0.8) 100%)'
           : 'linear-gradient(135deg, rgba(30,41,59,0.85) 0%, rgba(15,23,42,0.8) 100%)';
       venuePhotoBg = 'background-image: ' + overlayGrad + ', url(' + t.venuePhotoUrl + '); background-size: cover; background-position: center;';
+      _cardTextColor = 'white'; // Overlay sempre escuro, texto branco
     }
 
     let individualCount = 0;
@@ -170,7 +192,7 @@ function renderDashboard(container) {
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
     return `
-        <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: white; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s;" onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
+        <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: 1px solid ${_isLight ? 'rgba(0,0,0,0.08)' : 'transparent'}; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,${_isLight ? '0.06' : '0.1'}); cursor: pointer; transition: transform 0.2s;" onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
           ${(isParticipating && isOrg) ? `
              <div style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; overflow: hidden; display: flex; align-items: flex-end; justify-content: flex-end;" title="Você é o Organizador e também está Inscrito">
                <svg viewBox="0 0 36 36" width="36" height="36" style="display: block;">
@@ -579,7 +601,11 @@ function renderDashboard(container) {
       if (t.startDate) { try { dateStr = new Date(t.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); } catch(e) {} }
       var isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
 
-      return '<a href="#tournaments/' + t.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.07)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">' +
+      var _lt = (document.documentElement.getAttribute('data-theme') === 'light');
+      var _rowBg = _lt ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)';
+      var _rowBgH = _lt ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
+      var _rowBd = _lt ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+      return '<a href="#tournaments/' + t.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:' + _rowBg + ';border:1px solid ' + _rowBd + ';text-decoration:none;color:inherit;transition:background 0.2s;" onmouseover="this.style.background=\'' + _rowBgH + '\'" onmouseout="this.style.background=\'' + _rowBg + '\'">' +
         (t.logoData ? '<img src="' + t.logoData + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">' : '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">' + (getSportIcon(t.sport)) + '</div>') +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (isFav ? '★ ' : '') + window._safeHtml(t.name) + '</div>' +
@@ -602,7 +628,7 @@ function renderDashboard(container) {
   // Main filter card styles
   const _fStyle = (key, emoji, count, label) => {
     const active = curFilter === key;
-    return `<div style="background:${active ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.05)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px rgba(255,255,255,0.1);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px rgba(255,255,255,0.1)' : 'none'}'">
+    return `<div style="background:${active ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.08)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px rgba(255,255,255,0.1);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px rgba(255,255,255,0.1)' : 'none'}'">
       <div style="font-size:2rem;margin-bottom:0.25rem;">${emoji}</div>
       <span style="font-size:2.5rem;font-weight:700;line-height:1;">${count}</span>
       <h3 style="margin:0.5rem 0 0 0;font-size:1rem;font-weight:600;opacity:0.9;">${label}</h3>
