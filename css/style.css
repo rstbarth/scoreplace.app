@@ -1,95 +1,153 @@
+/* ═══════════════════════════════════════════════════════════════
+   TEMAS — Variáveis CSS para todos os componentes
+   Ordem de ciclagem: dark → light → sunset → ocean
+   ═══════════════════════════════════════════════════════════════ */
+
 :root, [data-theme="dark"] {
-  /* Cores Principais - Tema Antigravity (Dark Minimal Neon) */
+  /* Cores Principais - Tema Noturno */
   --bg-darker: #0e1015;
   --bg-dark: #13141a;
   --bg-card: #1f2128;
   --bg-card-hover: #292d36;
-  
+
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
   --secondary-color: #8b5cf6;
   --secondary-hover: #a78bfa;
-  
+
   --text-main: #d1d5db;
   --text-muted: #9ca3af;
   --text-bright: #ffffff;
-  
+
   --border-color: #374151;
   --border-focus: #3b82f6;
-  
+
   --danger-color: #ef4444;
   --success-color: #10b981;
   --info-color: #3b82f6;
+
+  /* Componentes */
+  --btn-secondary-bg: #1e3a5f;
+  --btn-secondary-text: #93c5fd;
+  --btn-secondary-hover: #1e4a7a;
+  --btn-danger-ghost-text: #fca5a5;
+  --btn-danger-ghost-bg: rgba(239,68,68,0.15);
+  --btn-danger-ghost-border: rgba(239,68,68,0.35);
+  --info-pill-bg: rgba(0,0,0,0.28);
+  --info-box-bg: rgba(0,0,0,0.28);
+  --stat-box-bg: rgba(0,0,0,0.28);
+  --card-org-border: rgba(59,130,246,0.3);
+  --card-part-border: rgba(139,92,246,0.3);
 }
 
 [data-theme="light"] {
   --bg-darker: #f0f2f5;
   --bg-dark: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-hover: #f9fafb;
-  
-  --primary-color: #2ea043;
-  --primary-hover: #238636;
-  --secondary-color: #d29922;
-  --secondary-hover: #9e6a03;
-  
-  --text-main: #24292f;
-  --text-muted: #57606a;
-  --text-bright: #1f2328;
-  
-  --border-color: #d0d7de;
-  --border-focus: #0969da;
-  
-  --danger-color: #cf222e;
-  --success-color: #1a7f37;
-  --info-color: #0969da;
+  --bg-card-hover: #f3f4f6;
+
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary-color: #7c3aed;
+  --secondary-hover: #6d28d9;
+
+  --text-main: #1f2937;
+  --text-muted: #4b5563;
+  --text-bright: #111827;
+
+  --border-color: #d1d5db;
+  --border-focus: #2563eb;
+
+  --danger-color: #dc2626;
+  --success-color: #059669;
+  --info-color: #2563eb;
+
+  /* Componentes */
+  --btn-secondary-bg: #e5e7eb;
+  --btn-secondary-text: #1f2937;
+  --btn-secondary-hover: #d1d5db;
+  --btn-danger-ghost-text: #dc2626;
+  --btn-danger-ghost-bg: rgba(220,38,38,0.08);
+  --btn-danger-ghost-border: rgba(220,38,38,0.25);
+  --info-pill-bg: rgba(0,0,0,0.06);
+  --info-box-bg: rgba(0,0,0,0.04);
+  --stat-box-bg: rgba(0,0,0,0.05);
+  --card-org-border: rgba(37,99,235,0.25);
+  --card-part-border: rgba(124,58,237,0.25);
 }
 
-[data-theme="high-contrast"] {
-  --bg-darker: #000000;
-  --bg-dark: #000000;
-  --bg-card: #000000;
-  --bg-card-hover: #1a1a1a;
-  
-  --primary-color: #00ff00;
-  --primary-hover: #00cc00;
-  --secondary-color: #ffff00;
-  --secondary-hover: #cccc00;
-  
-  --text-main: #ffffff;
-  --text-muted: #cccccc;
-  --text-bright: #ffffff;
-  
-  --border-color: #ffffff;
-  --border-focus: #00ff00;
-  
-  --danger-color: #ff0000;
-  --success-color: #00ff00;
-  --info-color: #00ffff;
+[data-theme="sunset"] {
+  /* Tema Pôr do Sol — quente e acolhedor */
+  --bg-darker: #1a1210;
+  --bg-dark: #231816;
+  --bg-card: #2d1f1b;
+  --bg-card-hover: #3d2b25;
+
+  --primary-color: #f59e0b;
+  --primary-hover: #fbbf24;
+  --secondary-color: #f97316;
+  --secondary-hover: #fb923c;
+
+  --text-main: #e7d5c0;
+  --text-muted: #b09880;
+  --text-bright: #fff5eb;
+
+  --border-color: #4a3328;
+  --border-focus: #f59e0b;
+
+  --danger-color: #ef4444;
+  --success-color: #22c55e;
+  --info-color: #f59e0b;
+
+  /* Componentes */
+  --btn-secondary-bg: #4a3328;
+  --btn-secondary-text: #fde68a;
+  --btn-secondary-hover: #5c4030;
+  --btn-danger-ghost-text: #fca5a5;
+  --btn-danger-ghost-bg: rgba(239,68,68,0.15);
+  --btn-danger-ghost-border: rgba(239,68,68,0.35);
+  --info-pill-bg: rgba(0,0,0,0.25);
+  --info-box-bg: rgba(0,0,0,0.22);
+  --stat-box-bg: rgba(0,0,0,0.22);
+  --card-org-border: rgba(245,158,11,0.35);
+  --card-part-border: rgba(249,115,22,0.35);
 }
 
-[data-theme="alternative"] {
-  /* Minimal Night Theme (Catppuccin-like) */
-  --bg-darker: #1e1e2e;
-  --bg-dark: #11111b;
-  --bg-card: #313244;
-  --bg-card-hover: #45475a;
-  
-  --primary-color: #a6e3a1; 
-  --primary-hover: #94e2d5;
-  --secondary-color: #f9e2af;
-  --secondary-hover: #fab387;
-  
-  --text-main: #cdd6f4;
-  --text-muted: #a6adc8;
-  --text-bright: #ffffff;
-  
-  --border-color: #585b70;
-  --border-focus: #89b4fa;
-  
-  --danger-color: #f38ba8;
-  --success-color: #a6e3a1;
-  --info-color: #89b4fa;
+[data-theme="ocean"] {
+  /* Tema Oceano — frio e profundo */
+  --bg-darker: #0c1222;
+  --bg-dark: #0f1729;
+  --bg-card: #162032;
+  --bg-card-hover: #1e2d45;
+
+  --primary-color: #06b6d4;
+  --primary-hover: #22d3ee;
+  --secondary-color: #8b5cf6;
+  --secondary-hover: #a78bfa;
+
+  --text-main: #c4d5e8;
+  --text-muted: #8aa2bf;
+  --text-bright: #e8f4fd;
+
+  --border-color: #1e3a5f;
+  --border-focus: #06b6d4;
+
+  --danger-color: #f43f5e;
+  --success-color: #34d399;
+  --info-color: #06b6d4;
+
+  /* Componentes */
+  --btn-secondary-bg: #1e3a5f;
+  --btn-secondary-text: #7dd3fc;
+  --btn-secondary-hover: #254a75;
+  --btn-danger-ghost-text: #fda4af;
+  --btn-danger-ghost-bg: rgba(244,63,94,0.15);
+  --btn-danger-ghost-border: rgba(244,63,94,0.35);
+  --info-pill-bg: rgba(0,0,0,0.30);
+  --info-box-bg: rgba(0,0,0,0.25);
+  --stat-box-bg: rgba(0,0,0,0.25);
+  --card-org-border: rgba(6,182,212,0.3);
+  --card-part-border: rgba(139,92,246,0.3);
 }
 
 :root {
