@@ -1,11 +1,14 @@
 window.SCOREPLACE_VERSION = '0.4.2-alpha';
 
 // ─── Topbar progressive compaction ─────────────────────────────────────────
-// 3 states managed by JS:
-//   1. Full: logo + all items with labels on 1 line (no class)
-//   2. .topbar-compact: logo + all items (icons only) on 1 line
-//   3. .topbar-hamburger: hamburger menu (compact doesn't fit)
-// Always 1 line. When compact doesn't fit → hamburger.
+// Progressive hiding order (shrinking):
+//   1. Abbreviate "Organizador" → "Org."
+//   2. Hide user name
+//   3. Hide "Notificações" label
+//   4. Hide "Explorar" label
+//   5. Hide "Início" label
+//   6. Hamburger (if still doesn't fit)
+// Reverse order when growing.
 window._checkTopbarWrap = function() {
   var topbar = document.querySelector('.topbar');
   var menu = document.querySelector('.topbar-menu');
@@ -13,18 +16,25 @@ window._checkTopbarWrap = function() {
   var logo = topbar.querySelector('.page-title');
   if (!logo) return;
 
-  // Update view-mode button label (abbreviated on mobile)
-  var _vmBtn = document.getElementById('view-mode-selector');
-  if (_vmBtn && window.AppStore) {
-    var _mob = window.innerWidth <= 767;
-    var _isOrg = window.AppStore.viewMode === 'organizer';
-    _vmBtn.innerHTML = (_isOrg ? '👁️' : '👤') + ' <span style="font-weight:600;">' + (_isOrg ? (_mob ? 'Org.' : 'Organizador') : (_mob ? 'Part.' : 'Participante')) + '</span>';
+  // Progressive hiding steps (classes on menu)
+  var steps = ['hide-viewlabel', 'hide-username', 'hide-notif', 'hide-explorar', 'hide-inicio'];
+
+  function _setViewModeLabel(abbreviated) {
+    var vmBtn = document.getElementById('view-mode-selector');
+    if (vmBtn && window.AppStore) {
+      var isOrg = window.AppStore.viewMode === 'organizer';
+      var icon = isOrg ? '👁️' : '👤';
+      var label = isOrg ? (abbreviated ? 'Org.' : 'Organizador') : (abbreviated ? 'Part.' : 'Participante');
+      vmBtn.innerHTML = icon + ' <span style="font-weight:600;">' + label + '</span>';
+    }
   }
 
   // Skip if ≤767px — CSS handles hamburger via media query
   if (window.innerWidth <= 767) {
+    for (var i = 0; i < steps.length; i++) menu.classList.remove(steps[i]);
     menu.classList.remove('topbar-compact');
     topbar.classList.remove('topbar-hamburger');
+    _setViewModeLabel(true);
     return;
   }
 
@@ -39,19 +49,37 @@ window._checkTopbarWrap = function() {
   }
 
   // Reset all states
+  for (var j = 0; j < steps.length; j++) menu.classList.remove(steps[j]);
   menu.classList.remove('topbar-compact');
   topbar.classList.remove('topbar-hamburger');
   menu.classList.remove('open');
+  _setViewModeLabel(false);
 
-  // Step 1: Try full labels
+  // Progressive: try each step until it fits
   if (!doesntFit()) return;
 
-  // Step 2: Try compact (icons only)
-  menu.classList.add('topbar-compact');
+  // Step 1: Abbreviate view mode label
+  _setViewModeLabel(true);
+  menu.classList.add('hide-viewlabel');
   if (!doesntFit()) return;
 
-  // Step 3: Hamburger — compact doesn't fit
-  menu.classList.remove('topbar-compact');
+  // Step 2: Hide user name
+  menu.classList.add('hide-username');
+  if (!doesntFit()) return;
+
+  // Step 3: Hide "Notificações" label
+  menu.classList.add('hide-notif');
+  if (!doesntFit()) return;
+
+  // Step 4: Hide "Explorar" label
+  menu.classList.add('hide-explorar');
+  if (!doesntFit()) return;
+
+  // Step 5: Hide "Início" label
+  menu.classList.add('hide-inicio');
+  if (!doesntFit()) return;
+
+  // Step 6: Hamburger — nothing else to hide
   topbar.classList.add('topbar-hamburger');
 };
 (function() {
