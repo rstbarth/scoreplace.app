@@ -546,19 +546,24 @@ function renderSingleElimBracket(t, canEnterResult) {
     return `<p class="text-muted">Nenhuma rodada ativa.</p>`;
   }
 
-  // Compute expected total rounds from round-1 match count
-  const round1Matches = roundsMap[activeRounds[0]] ? roundsMap[activeRounds[0]].length : 1;
+  // Compute expected total rounds from round-1 match count (skip play-in round 0)
+  const firstMainRound = activeRounds.find(r => r >= 1) || activeRounds[0];
+  const round1Matches = roundsMap[firstMainRound] ? roundsMap[firstMainRound].length : 1;
   const expectedTotalRounds = round1Matches > 1
     ? Math.ceil(Math.log2(round1Matches * 2))
     : 1;
 
   // Label by position from the end
   const getRoundLabel = (roundNum, roundIndex) => {
+    if (roundNum === 0) return 'Play-in (Repescagem)';
     const fromEnd = expectedTotalRounds - roundIndex;
-    if (fromEnd === 1) return 'Final';
-    if (fromEnd === 2) return 'Semifinal';
-    if (fromEnd === 3) return 'Quartas de Final';
-    if (fromEnd === 4) return 'Oitavas de Final';
+    // Adjust for play-in: if round 0 exists, roundIndex is shifted by 1
+    const hasPlayin = activeRounds.indexOf(0) >= 0;
+    const adjustedFromEnd = hasPlayin ? expectedTotalRounds - (roundIndex - 1) : fromEnd;
+    if (adjustedFromEnd === 1) return 'Final';
+    if (adjustedFromEnd === 2) return 'Semifinal';
+    if (adjustedFromEnd === 3) return 'Quartas de Final';
+    if (adjustedFromEnd === 4) return 'Oitavas de Final';
     return `Rodada ${roundNum}`;
   };
 

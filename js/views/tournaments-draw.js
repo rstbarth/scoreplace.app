@@ -483,7 +483,112 @@ window.generateDrawFunction = function (tId) {
             }
         }
 
-        // Gerar partidas de 1ª Rodada
+        // ── Play-in (Repescagem) handling with cross-seeding ──────────
+        if (t.p2Resolution === 'playin') {
+            var catLen = catParticipants.length;
+            var catTarget = 1;
+            while (catTarget < catLen) catTarget *= 2;
+            // catTarget is the UPPER power of 2; we want the LOWER one
+            var catLo = catTarget / 2;
+            if (catLo < 1) catLo = 1;
+            // If already a power of 2, skip play-in
+            if (catLen > catLo && catLo >= 2) {
+                var excess = catLen - catLo;
+                // Play-in: last (excess * 2) participants play round 0
+                var playinParticipants = catParticipants.splice(catLen - (excess * 2));
+                // catParticipants now has (catLen - excess*2) = direct-seeded participants
+
+                // Generate play-in matches (round 0)
+                var playinMatchIds = [];
+                for (var pi = 0; pi < playinParticipants.length; pi += 2) {
+                    var pp1 = playinParticipants[pi];
+                    var pp2 = pi + 1 < playinParticipants.length ? playinParticipants[pi + 1] : null;
+                    if (!pp2) break;
+                    var playinMatch = {
+                        id: 'match-playin-' + timestamp + '-' + _matchCounter,
+                        round: 0,
+                        bracket: isDupla ? 'upper' : undefined,
+                        p1: getName(pp1),
+                        p2: getName(pp2),
+                        winner: null,
+                        isPlayin: true
+                    };
+                    if (catName) playinMatch.category = catName;
+                    matches.push(playinMatch);
+                    playinMatchIds.push(playinMatch.id);
+                    _matchCounter++;
+                }
+
+                // Round 1 cross-seeding: pair play-in winners (TBD) vs direct-seeded
+                // Build slot arrays
+                var directSlots = catParticipants.map(function(p) { return getName(p); });
+                var playinSlots = playinMatchIds.map(function(mId) { return { tbd: true, fromPlayinMatch: mId }; });
+
+                // Cross-seed: alternate direct vs play-in winner
+                var r1Pairs = [];
+                var dIdx = 0, pIdx = 0;
+                while (dIdx < directSlots.length && pIdx < playinSlots.length) {
+                    r1Pairs.push({ p1: directSlots[dIdx], p2: playinSlots[pIdx] });
+                    dIdx++;
+                    pIdx++;
+                }
+                // Remaining direct vs direct
+                while (dIdx + 1 < directSlots.length) {
+                    r1Pairs.push({ p1: directSlots[dIdx], p2: directSlots[dIdx + 1] });
+                    dIdx += 2;
+                }
+                // Remaining play-in vs play-in (unlikely but safe)
+                while (pIdx + 1 < playinSlots.length) {
+                    r1Pairs.push({ p1: playinSlots[pIdx], p2: playinSlots[pIdx + 1] });
+                    pIdx += 2;
+                }
+                // If one direct left over, BYE
+                if (dIdx < directSlots.length) {
+                    r1Pairs.push({ p1: directSlots[dIdx], p2: null });
+                    dIdx++;
+                }
+
+                // Generate R1 matches from pairs and link play-in matches
+                for (var ri = 0; ri < r1Pairs.length; ri++) {
+                    var pair = r1Pairs[ri];
+                    var r1p1 = typeof pair.p1 === 'string' ? pair.p1 : 'TBD';
+                    var r1p2 = pair.p2 === null ? 'BYE (Avança Direto)' : (typeof pair.p2 === 'string' ? pair.p2 : 'TBD');
+                    var isBye1 = r1p2 === 'BYE (Avança Direto)';
+                    var r1Match = {
+                        id: 'match-' + timestamp + '-' + _matchCounter,
+                        round: 1,
+                        bracket: isDupla ? 'upper' : undefined,
+                        p1: r1p1,
+                        p2: r1p2,
+                        winner: isBye1 ? r1p1 : null,
+                        isBye: isBye1
+                    };
+                    if (catName) r1Match.category = catName;
+                    matches.push(r1Match);
+                    _matchCounter++;
+
+                    // Link play-in matches → this R1 match via nextMatchId
+                    if (typeof pair.p1 === 'object' && pair.p1.tbd) {
+                        var piMatchP1 = matches.find(function(m) { return m.id === pair.p1.fromPlayinMatch; });
+                        if (piMatchP1) {
+                            piMatchP1.nextMatchId = r1Match.id;
+                            piMatchP1.nextSlot = 'p1'; // winner fills p1 of R1 match
+                        }
+                    }
+                    if (pair.p2 && typeof pair.p2 === 'object' && pair.p2.tbd) {
+                        var piMatchP2 = matches.find(function(m) { return m.id === pair.p2.fromPlayinMatch; });
+                        if (piMatchP2) {
+                            piMatchP2.nextMatchId = r1Match.id;
+                            piMatchP2.nextSlot = 'p2'; // winner fills p2 of R1 match
+                        }
+                    }
+                }
+                // Skip standard R1 generation — already handled above
+                return; // continue to next category via forEach callback
+            }
+        }
+
+        // Gerar partidas de 1ª Rodada (standard — no play-in)
         for (var mi = 0; mi < catParticipants.length; mi += 2) {
             var p1 = catParticipants[mi];
             var p2 = mi + 1 < catParticipants.length ? catParticipants[mi + 1] : 'BYE (Avança Direto)';

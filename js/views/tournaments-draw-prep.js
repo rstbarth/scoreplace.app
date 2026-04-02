@@ -762,7 +762,7 @@ window.showPowerOf2Panel = function (tId) {
                             '<span style="font-size:2rem;">🥇</span>' +
                             '<div>' +
                             '<h4>Aplicar BYE</h4>' +
-                            '<p>' + info.missing + ' times avançam direto. Chaveamento de ' + info.hi + '.</p>' +
+                            '<p>' + info.missing + ' participantes avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.</p>' +
                             '</div>' +
                             nashPill('bye') +
                         '</button>' +
@@ -772,7 +772,7 @@ window.showPowerOf2Panel = function (tId) {
                             '<span style="font-size:2rem;">🔁</span>' +
                             '<div>' +
                             '<h4>Play-in (Repescagem)</h4>' +
-                            '<p>' + (info.excess * 2) + ' times disputam ' + info.excess + ' vaga(s). Chaveamento de ' + info.lo + '.</p>' +
+                            '<p>' + (info.excess * 2) + ' participantes disputam ' + info.excess + ' vaga(s) na repescagem. Na rodada seguinte, vencedores da repescagem enfrentam quem avançou direto.</p>' +
                             '</div>' +
                             nashPill('playin') +
                         '</button>' +
@@ -1644,8 +1644,8 @@ window._handleP2Option = function (tId, option) {
         // Collect poll options from P2 context
         var pollOptions = [
             { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' inscritos para chegar a ' + info.hi + '. Igualdade total.' },
-            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' times avançam direto na primeira rodada. Chaveamento de ' + info.hi + '.' },
-            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' times disputam ' + info.excess + ' vaga(s). Chaveamento de ' + info.lo + '.' },
+            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' participantes avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
+            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' participantes disputam ' + info.excess + ' vaga(s). Vencedores enfrentam quem avançou direto.' },
             { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' participantes vão para lista de espera. Chaveamento de ' + info.lo + '.' },
             { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' }
         ];
@@ -1990,37 +1990,42 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 'rgba(139,92,246,0.4)', 'rgba(139,92,246,0.4)');
         }
 
-        // R2 cards — winners R1 + classified from repechage
+        // R2 cards — CROSS-SEEDING: pair R1 winners vs repechage classified
+        // For fairness, each R2 match should pit a direct qualifier (R1 winner)
+        // against a repechage qualifier whenever possible.
         let r2Html = '';
-        let wIdx = 1;
-        let repIdx = 1;
-        for (let i = 0; i < matchesR2; i++) {
-            const renderSlot = (isRep) => {
-                if (!isRep) {
-                    return { name: `Vencedor Jogo ${wIdx}`, color: 'rgba(16,185,129,0.4)' };
-                } else {
-                    const n = `Classificado Rep. ${repIdx}`;
-                    return { name: n, color: 'rgba(139,92,246,0.4)' };
-                }
-            };
-            // Distribute: first fill with R1 winners, then repechage classified
-            let s1isRep = wIdx > winnersR1;
-            let s1 = renderSlot(s1isRep);
-            if (s1isRep) repIdx++; else wIdx++;
-
-            let s2isRep = wIdx > winnersR1;
-            let s2 = renderSlot(s2isRep);
-            if (s2isRep) repIdx++; else wIdx++;
-
+        let r2Slots = []; // build slot pairs first
+        let r1Pool = [];  // R1 winners
+        let repPool = []; // repechage classified
+        for (let i = 1; i <= winnersR1; i++) {
+            r1Pool.push({ name: `Vencedor Jogo ${i}`, color: 'rgba(16,185,129,0.4)', isRep: false });
+        }
+        for (let i = 1; i <= spotsFromRepechage; i++) {
+            repPool.push({ name: `Classificado Rep. ${i}`, color: 'rgba(139,92,246,0.4)', isRep: true });
+        }
+        // Cross-seed: pair one from each pool as much as possible
+        while (r1Pool.length > 0 && repPool.length > 0) {
+            r2Slots.push([r1Pool.shift(), repPool.shift()]);
+        }
+        // Remaining same-pool pairs (if pools are uneven)
+        let remaining = r1Pool.concat(repPool);
+        while (remaining.length >= 2) {
+            r2Slots.push([remaining.shift(), remaining.shift()]);
+        }
+        for (let i = 0; i < r2Slots.length; i++) {
+            let s1 = r2Slots[i][0];
+            let s2 = r2Slots[i][1];
+            let crossBadge = (s1.isRep !== s2.isRep) ? '<span style="position:absolute;top:6px;right:8px;font-size:0.55rem;font-weight:800;color:#fbbf24;background:rgba(245,158,11,0.12);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">Cross-seed</span>' : '';
             r2Html += `
-            <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">
+            <div style="position:relative;background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">
+                ${crossBadge}
                 <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">R2 — Jogo ${i + 1}</div>
                 <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ${s1.color};margin-bottom:4px;">
-                    <span style="font-weight:600;font-size:0.85rem;color:${s1isRep ? '#a78bfa' : '#e2e8f0'};${s1isRep ? 'font-style:italic;' : ''}">${s1.name}</span>
+                    <span style="font-weight:600;font-size:0.85rem;color:${s1.isRep ? '#a78bfa' : '#e2e8f0'};${s1.isRep ? 'font-style:italic;' : ''}">${s1.name}</span>
                 </div>
                 <div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>
                 <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ${s2.color};">
-                    <span style="font-weight:600;font-size:0.85rem;color:${s2isRep ? '#a78bfa' : '#e2e8f0'};${s2isRep ? 'font-style:italic;' : ''}">${s2.name}</span>
+                    <span style="font-weight:600;font-size:0.85rem;color:${s2.isRep ? '#a78bfa' : '#e2e8f0'};${s2.isRep ? 'font-style:italic;' : ''}">${s2.name}</span>
                 </div>
             </div>`;
         }
@@ -2399,7 +2404,8 @@ window._confirmP2Resolution = function (tId, option) {
     } else if (option === 'playin') {
         t.p2Resolution = 'playin';
         t.p2TargetCount = info.lo;
-        actionMsg = `Configurado com Play-ins para chave de ${info.lo}`;
+        t.p2CrossSeed = true; // R2: pair R1 winners vs repechage winners for fairness
+        actionMsg = `Configurado com Play-ins (cross-seed) para chave de ${info.lo}`;
     } else if (option === 'standby') {
         t.p2Resolution = 'standby';
         t.p2TargetCount = info.lo;

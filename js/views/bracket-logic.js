@@ -277,8 +277,16 @@ function _advanceWinner(t, completedMatch) {
   if (completedMatch.nextMatchId) {
     const next = _findMatch(t, completedMatch.nextMatchId);
     if (next) {
-      if (!next.p1 || next.p1 === 'TBD') next.p1 = winner;
-      else if (!next.p2 || next.p2 === 'TBD') next.p2 = winner;
+      // Play-in matches specify which slot to fill via nextSlot
+      if (completedMatch.nextSlot === 'p1') {
+        next.p1 = winner;
+      } else if (completedMatch.nextSlot === 'p2') {
+        next.p2 = winner;
+      } else {
+        // Standard advancement: fill first available TBD slot
+        if (!next.p1 || next.p1 === 'TBD') next.p1 = winner;
+        else if (!next.p2 || next.p2 === 'TBD') next.p2 = winner;
+      }
     }
   }
 
