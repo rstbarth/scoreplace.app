@@ -631,13 +631,22 @@
       autoName = 'Torneio Eliminatórias de ' + sportClean + ' de ' + userName + ' (' + suffix + ')';
     }
 
+    // Determine team size from sport defaults
+    const _qcSportTeamDefaults = {
+      'Beach Tennis': 2, 'Futebol': 5, 'Tênis': 1, 'Vôlei': 6,
+      'Xadrez': 1, 'Dominó': 2, 'Padel': 2, 'Pickleball': 2,
+      'Tênis de Mesa': 1, 'Truco': 2, 'Magic / TCG': 1, 'Outro': 2
+    };
+    const qcTeamSize = _qcSportTeamDefaults[sportClean] || 2;
+
     const tourData = {
       id: 'tour_' + Date.now(),
       name: autoName,
       sport: sportRaw,
       format: 'Eliminatórias Simples',
       isPublic: true,
-      enrollment: 'individual',
+      enrollmentMode: qcTeamSize > 1 ? 'time' : 'individual',
+      teamSize: qcTeamSize,
       status: 'open',
       createdAt: new Date().toISOString(),
       organizerId: window.AppStore.currentUser ? window.AppStore.currentUser.uid : 'local',
