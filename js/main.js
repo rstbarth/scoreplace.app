@@ -241,6 +241,14 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Sistema Game-Set-Match (GSM)</b> — Sistema completo de pontuação por sets, games e tiebreaks para torneios de raquete e similares. Configuração na criação/edição do torneio com padrões por esporte (Beach Tennis, Tênis, Padel, Pickleball, Tênis de Mesa, Vôlei). Contagem numérica ou estilo tênis (15-30-40). Regra de vantagem, tiebreak e super tiebreak configuráveis. Preferências do usuário salvas por esporte. No bracket, botão "Lançar Sets" abre overlay dedicado com validação em tempo real. Resultados exibidos como "6-4 3-6 7-6(5)". Novos critérios de desempate automáticos: saldo de sets (±S), saldo de games (±G), tiebreaks vencidos. Colunas extras na tabela de classificação.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auditoria Completa + Novos Temas</b> — Revisão linha a linha de todo o codebase com ~34 bugs corrigidos. Correções críticas: "Reabrir Inscrição" restaurado, race condition de inscrições durante decisão de potência de 2, operador lógico sem parênteses, XSS em notificações e explorar, enroll-modal reescrito. 4 temas disponíveis: Noturno, Claro, Pôr do Sol e Oceano. CSS refatorado para variáveis por tema. Dashboard cards com gradientes adaptativos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.3.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Duração Estimada do Torneio</b> — Quando a data/hora de término não está preenchida, a página de detalhes exibe simulação de duração para 8, 16, 32 e 64 participantes. Se houver inscritos, mostra também a estimativa com o número real. Cálculo considera formato (Eliminatórias, Dupla Elim., Grupos + Elim., Suíço, Liga), duração da partida, número de quadras e tempos de chamada/aquecimento. Mostra número de partidas e horário estimado de término quando há hora de início definida.</p>' +
         '</div>' +
