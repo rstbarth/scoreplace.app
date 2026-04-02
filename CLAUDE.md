@@ -19,6 +19,15 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 ### Changelog
 
 **v0.4.2-alpha (Abril 2026)**
+- Refatoracao de tournaments.js: arquivo monolitico de 6.503 linhas dividido em 5 modulos focados.
+  - tournaments.js (1.847 linhas): orquestrador principal, render de cards e detalhes do torneio.
+  - tournaments-categories.js (1.710 linhas): sistema de categorias completo — gerenciador modal, merge/unmerge com drag-and-drop (desktop + touch), auto-assign por genero, notificacoes de categoria, _buildCategoryCountHtml, _buildTimeEstimation.
+  - tournaments-enrollment.js (440 linhas): inscricao/desinscricao, adicionar participante/time, excluir torneio.
+  - tournaments-draw-prep.js (2.144 linhas): preparacao de sorteio, enquetes (polls) com Nash, resolucao de times incompletos e potencia de 2.
+  - tournaments-draw.js (878 linhas): geracao de chaves (single/double elim, grupos, suico), drag-and-drop de times, painel de revisao final.
+  - Funcoes que usavam closure variable `container` atualizadas para usar `document.getElementById('view-container')`.
+  - Novos modulos em IIFEs; funcoes publicas como `window.*`, helpers privados locais.
+  - Ordem de carregamento no index.html: categories antes de tournaments.js, enrollment/draw-prep/draw depois.
 - Auditoria de Seguranca Completa: ~25 vulnerabilidades XSS corrigidas em 8 arquivos JS. Todos os dados controlados por usuario (nomes de torneio, jogadores, times, categorias, formatos, locais) agora sanitizados com window._safeHtml() antes de injecao no DOM.
   - Arquivos corrigidos: bracket.js, bracket-ui.js, explore.js, pre-draw.js, notifications-view.js, auth.js, rules.js.
   - Padroes corrigidos: innerHTML com template literals, concatenacao de strings em onclick handlers, atributos title/value sem escape.
@@ -433,7 +442,11 @@ scoreplace-app/
 │       ├── tournaments-sharing.js # Compartilhamento e convites
 │       ├── tournaments-analytics.js # Estatisticas e analytics
 │       ├── tournaments-organizer.js # Ferramentas do organizador
-│       ├── tournaments.js      # Lista/detalhe + sistema de notificacoes + comunicacao do organizador
+│       ├── tournaments-categories.js # Sistema de categorias: gerenciador, merge/unmerge, auto-assign, estimativa de duracao
+│       ├── tournaments-enrollment.js # Inscricao/desinscricao, adicionar participante/time, excluir torneio
+│       ├── tournaments-draw-prep.js # Preparacao de sorteio, enquetes (polls), resolucao times/potencia de 2
+│       ├── tournaments-draw.js  # Geracao de chaves, drag-and-drop, painel de revisao final
+│       ├── tournaments.js      # Orquestrador principal: render de cards, detalhes, notificacoes, comunicacao
 │       ├── create-tournament.js# Modal de criacao/edicao + logo canvas generator + GSM config + deteccao de alteracoes
 │       ├── participants.js     # Gestao de participantes
 │       ├── pre-draw.js         # Tela de pre-sorteio
@@ -564,7 +577,7 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 ### Fase 2 — Infraestrutura e Qualidade
 1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console. *(Acao do usuario)*
 2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes. *(Adiado — alto risco)*
-3. **Otimizacao:** tournaments.js (~445KB) e bracket.js (~143KB) sao muito grandes — modularizar em arquivos menores. *(Deferred — funciona sem)*
+3. ~~**Otimizacao:**~~ **FEITO em v0.4.2** — tournaments.js refatorado de 6.503 linhas em 5 modulos (tournaments.js, tournaments-categories.js, tournaments-enrollment.js, tournaments-draw-prep.js, tournaments-draw.js). bracket.js ainda grande (~143KB) mas funcional.
 4. ~~**Testes:**~~ **FEITO em v0.2.20** — 21 testes unitarios em tests.html.
 
 ### Fase 3 — Features Novas (Client-Side COMPLETAS)
