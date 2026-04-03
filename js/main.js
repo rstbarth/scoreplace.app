@@ -694,9 +694,11 @@
 
     if (typeof window._onFormatoChange === 'function') window._onFormatoChange();
     if (typeof openModal === 'function') openModal('modal-create-tournament');
-    if (typeof window._initPlacesAutocomplete === 'function') {
-      setTimeout(() => window._initPlacesAutocomplete(), 100);
-    }
+    // Ensure GSM summary renders after modal is visible
+    setTimeout(function() {
+      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
+      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+    }, 100);
   });
 })();
 
