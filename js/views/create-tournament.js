@@ -407,9 +407,9 @@ function setupCreateTournamentModal() {
                     <option value="misto">Misto (Individual e Times)</option>
                   </select>
                 </div>
-                <div class="form-group" id="team-size-container" style="display:none;min-width:70px;max-width:90px;">
+                <div class="form-group" id="team-size-container" style="min-width:70px;max-width:90px;">
                   <label class="form-label">Por Time</label>
-                  <input type="number" class="form-control" id="tourn-team-size" min="2" max="11" value="2" style="text-align:center;">
+                  <input type="number" class="form-control" id="tourn-team-size" min="1" max="11" value="2" style="text-align:center;">
                 </div>
               </div>
 
@@ -878,16 +878,7 @@ function setupCreateTournamentModal() {
       teamSizeEl.value = defaultSize;
     }
 
-    // Auto-set enrollment mode based on team size
-    const inscricaoEl = document.getElementById('select-inscricao');
-    if (inscricaoEl) {
-      if (defaultSize > 1) {
-        inscricaoEl.value = 'time';
-      } else {
-        inscricaoEl.value = 'individual';
-      }
-      window._onInscricaoChange();
-    }
+    // No longer auto-setting enrollment mode — it's independent from team size
   };
 
   window._onFormatoChange = function () {
@@ -1019,11 +1010,7 @@ function setupCreateTournamentModal() {
   };
 
   window._onInscricaoChange = function () {
-    const mode = document.getElementById('select-inscricao').value;
-    const container = document.getElementById('team-size-container');
-    if (container) {
-      container.style.display = (mode === 'individual') ? 'none' : 'block';
-    }
+    // Team size is always visible — enrollment mode does not affect it
   };
 
   window._updateRegDateVisibility = function () {
@@ -2130,7 +2117,10 @@ function setupCreateTournamentModal() {
     window._updateRegDateVisibility();
     window._recalcDuration();
     openModal('modal-create-tournament');
-    setTimeout(() => window._initPlacesAutocomplete(), 100);
+    setTimeout(function() {
+      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
+      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+    }, 100);
   };
 
   // NOTE: btn-create-tournament não existe no HTML.
