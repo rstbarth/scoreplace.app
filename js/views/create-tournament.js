@@ -1,6 +1,6 @@
 // ── Game Set Match Scoring Defaults by Sport ──
 window._sportScoringDefaults = {
-  'Beach Tennis': { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:true },
+  'Beach Tennis': { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
   'Tênis':        { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true },
   'Padel':        { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
   'Pickleball':   { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
@@ -2611,7 +2611,7 @@ window._gsmSaveConfig = function() {
   // Save to user preferences for this sport
   var sportEl = document.getElementById('select-sport');
   if (sportEl && window.AppStore && window.AppStore.currentUser) {
-    var sport = sportEl.value.replace(/^[^\s]+\s/, '').trim();
+    var sport = sportEl.options[sportEl.selectedIndex] ? sportEl.options[sportEl.selectedIndex].text.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
     try {
       var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
       prefs[sport] = {
@@ -2672,7 +2672,7 @@ window._onSportChange = function() {
   if (typeof _origOnSportChange === 'function') _origOnSportChange();
   var sportEl = document.getElementById('select-sport');
   if (!sportEl) return;
-  var sport = sportEl.value.replace(/^[^\s]+\s/, '').trim();
+  var sport = sportEl.options[sportEl.selectedIndex] ? sportEl.options[sportEl.selectedIndex].text.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
 
   // Check user preferences first, then sport defaults
   var config = null;
