@@ -27,6 +27,7 @@
   // ── Hint Catalog ───────────────────────────────────────────────────────────
   var _hints = [
     // ── Global / Topbar (only when element is visible in topbar) ──
+    { id: 'login-cta', selector: '#btn-login', text: 'Faça login para criar e gerenciar torneios! Use suas redes sociais se preferir.', context: 'global', priority: 10, position: 'bottom', requiresLogout: true },
     { id: 'hamburger', selector: '.hamburger-btn', text: 'Toque aqui para abrir o menu e navegar pelo app!', context: 'global', priority: 9, position: 'bottom' },
     { id: 'profile', selector: '#btn-login', text: 'Acesse seu perfil, veja estatísticas e configure notificações.', context: 'global', priority: 7, position: 'bottom' },
     { id: 'theme', selector: '#theme-toggle-btn', text: 'Experimente trocar o tema! Temos Noturno, Claro, Pôr do Sol e Oceano.', context: 'global', priority: 4, position: 'bottom' },
@@ -61,6 +62,7 @@
     { id: 'tv-mode', selector: '[onclick*="_tvMode"]', text: 'Modo TV: projete o placar ao vivo em um telão no local do torneio!', context: 'bracket', priority: 5, position: 'top' },
     { id: 'org-communicate', selector: '[onclick*="_sendOrgCommunication"]', text: 'Envie mensagens para todos os inscritos — ideal para avisos de horário ou local.', context: 'tournament-detail', priority: 5, position: 'top' },
     { id: 'org-sortear', selector: '[onclick*="_handleSortearClick"]', text: 'Sorteie o chaveamento! Os participantes serão distribuídos automaticamente.', context: 'tournament-detail', priority: 9, position: 'top' },
+    { id: 'org-edit-new', selector: '[onclick*="openEditModal"]', text: 'Edite os detalhes do seu torneio clicando aqui — local, datas, formato e mais!', context: 'tournament-detail', priority: 10, position: 'top' },
 
     // ── Create Tournament ──
     { id: 'ct-sport', selector: '#select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação e regras próprias.', context: 'create-tournament', priority: 8, position: 'bottom' },
@@ -263,6 +265,8 @@
       if (h.id === _lastHintId) return false;
       // Check login requirement
       if (h.requiresLogin && !loggedIn) return false;
+      // Check logout requirement (hints only for non-logged users)
+      if (h.requiresLogout && loggedIn) return false;
       // Check plan requirement
       if (h.requiresPlan && h.requiresPlan !== plan) return false;
       // STRICT: Must have a truly visible target element on screen
@@ -614,14 +618,27 @@
     }
   }
 
+  // ── Force show a specific hint by id (used for post-creation scroll) ────────
+  function _forceShowHint(hintId) {
+    if (_isDisabled()) return;
+    if (_activeHint) _dismissHint(false);
+    var hint = _hints.find(function(h) { return h.id === hintId; });
+    if (!hint) return;
+    var el = _findVisibleEl(hint.selector);
+    if (!el) return;
+    _showHint(hint);
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
+  window._forceShowHint = _forceShowHint;
   window._hintSystem = {
     init: _init,
     enable: _enableHints,
     disable: _disableHints,
     reset: _resetHints,
     isDisabled: _isDisabled,
-    dismiss: function() { _dismissHint(false); }
+    dismiss: function() { _dismissHint(false); },
+    forceShow: _forceShowHint
   };
 
   // Auto-init

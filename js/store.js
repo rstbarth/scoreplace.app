@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.4.9-alpha';
+window.SCOREPLACE_VERSION = '0.4.10-alpha';
 
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.
@@ -209,28 +209,28 @@ window._showUpgradeModal = function(reason) {
   modal.id = 'modal-upgrade';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
   modal.innerHTML =
-    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:460px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-      '<div style="background:linear-gradient(135deg,#3b82f6,#6366f1);padding:2rem;text-align:center;">' +
-        '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🚀</div>' +
-        '<div style="font-size:1.4rem;font-weight:800;color:#fff;">scoreplace Pro</div>' +
-        '<div style="font-size:0.9rem;color:rgba(255,255,255,0.8);margin-top:6px;">R$19,90/mês</div>' +
+    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:380px;width:92%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+      '<div style="background:linear-gradient(135deg,#3b82f6,#6366f1);padding:1.2rem;text-align:center;flex-shrink:0;">' +
+        '<div style="font-size:2rem;margin-bottom:0.3rem;">🚀</div>' +
+        '<div style="font-size:1.2rem;font-weight:800;color:#fff;">scoreplace Pro</div>' +
+        '<div style="font-size:0.82rem;color:rgba(255,255,255,0.8);margin-top:4px;">R$19,90/mês</div>' +
       '</div>' +
-      '<div style="padding:1.5rem;">' +
-        '<p style="color:var(--text-muted);font-size:0.9rem;text-align:center;margin-bottom:1.2rem;">' + reasonText + '</p>' +
-        '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem;">' +
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
-            '<span style="font-size:1.2rem;">♾️</span><span style="color:var(--text-color);font-size:0.9rem;">Torneios ilimitados</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
-            '<span style="font-size:1.2rem;">👥</span><span style="color:var(--text-color);font-size:0.9rem;">Participantes ilimitados</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
-            '<span style="font-size:1.2rem;">🎨</span><span style="color:var(--text-color);font-size:0.9rem;">Upload de logo personalizada</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
-            '<span style="font-size:1.2rem;">📺</span><span style="color:var(--text-color);font-size:0.9rem;">Modo TV sem marca scoreplace</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
-            '<span style="font-size:1.2rem;">⚡</span><span style="color:var(--text-color);font-size:0.9rem;">Suporte prioritário</span></div>' +
+      '<div style="padding:1.2rem;overflow-y:auto;flex:1;">' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;margin-bottom:1rem;">' + reasonText + '</p>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1.2rem;">' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.1rem;">♾️</span><span style="color:var(--text-color);font-size:0.85rem;">Torneios ilimitados</span></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.1rem;">👥</span><span style="color:var(--text-color);font-size:0.85rem;">Participantes ilimitados</span></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.1rem;">🎨</span><span style="color:var(--text-color);font-size:0.85rem;">Upload de logo personalizada</span></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.1rem;">📺</span><span style="color:var(--text-color);font-size:0.85rem;">Modo TV sem marca scoreplace</span></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:10px;">' +
+            '<span style="font-size:1.1rem;">⚡</span><span style="color:var(--text-color);font-size:0.85rem;">Suporte prioritário</span></div>' +
         '</div>' +
-        '<button onclick="window._startProCheckout()" style="width:100%;padding:14px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'none\'">Assinar Pro — R$19,90/mês</button>' +
-        '<button onclick="document.getElementById(\'modal-upgrade\').remove()" style="width:100%;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;cursor:pointer;">Agora não</button>' +
+        '<button onclick="window._startProCheckout()" style="width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'none\'">Assinar Pro — R$19,90/mês</button>' +
+        '<button onclick="document.getElementById(\'modal-upgrade\').remove()" style="width:100%;padding:8px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.82rem;cursor:pointer;">Agora não</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(modal);
@@ -280,26 +280,24 @@ window._showSupportModal = function() {
   modal.id = 'modal-support-pix';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
   modal.innerHTML =
-    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:400px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-      '<div style="background:linear-gradient(135deg,#10b981,#059669);padding:1.5rem;text-align:center;">' +
-        '<div style="font-size:2.2rem;margin-bottom:0.3rem;">💚</div>' +
-        '<div style="font-size:1.2rem;font-weight:800;color:#fff;">Apoie o scoreplace.app</div>' +
-        '<div style="font-size:0.8rem;color:rgba(255,255,255,0.8);margin-top:4px;">Contribuição voluntária — qualquer valor</div>' +
+    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:360px;width:92%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+      '<div style="background:linear-gradient(135deg,#10b981,#059669);padding:1rem;text-align:center;flex-shrink:0;">' +
+        '<div style="font-size:1.8rem;margin-bottom:0.2rem;">💚</div>' +
+        '<div style="font-size:1.1rem;font-weight:800;color:#fff;">Apoie o scoreplace.app</div>' +
+        '<div style="font-size:0.75rem;color:rgba(255,255,255,0.8);margin-top:2px;">Contribuição voluntária — qualquer valor</div>' +
       '</div>' +
-      '<div style="padding:1.5rem;text-align:center;">' +
-        '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;line-height:1.6;">Sua contribuição ajuda a manter o scoreplace.app no ar e financiar novas funcionalidades. Qualquer valor faz diferença!</p>' +
-        '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
-          '<div style="margin-bottom:0.8rem;">' +
-            '<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;" />' +
-          '</div>' +
-          '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">Chave PIX (CNPJ):</div>' +
-          '<div style="display:flex;align-items:center;gap:8px;justify-content:center;">' +
-            '<code id="pix-key-text" style="background:rgba(255,255,255,0.08);padding:8px 14px;border-radius:8px;font-size:0.95rem;color:var(--text-color);letter-spacing:0.5px;">' + pixKey + '</code>' +
-            '<button onclick="navigator.clipboard.writeText(\'' + pixKey + '\').then(function(){var b=event.target;b.textContent=\'Copiado!\';setTimeout(function(){b.textContent=\'Copiar\'},2000)})" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copiar</button>' +
+      '<div style="padding:1rem;text-align:center;overflow-y:auto;flex:1;">' +
+        '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
+        '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;flex-direction:column;align-items:center;">' +
+          '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;margin-bottom:0.6rem;" />' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Chave PIX (CNPJ):</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap;">' +
+            '<code id="pix-key-text" style="background:rgba(255,255,255,0.08);padding:6px 10px;border-radius:8px;font-size:0.85rem;color:var(--text-color);letter-spacing:0.3px;">' + pixKey + '</code>' +
+            '<button onclick="navigator.clipboard.writeText(\'' + pixKey + '\').then(function(){var b=event.target;b.textContent=\'Copiado!\';setTimeout(function(){b.textContent=\'Copiar\'},2000)})" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copiar</button>' +
           '</div>' +
         '</div>' +
-        '<p style="color:var(--text-muted);font-size:0.75rem;margin-bottom:1rem;">Escaneie o QR code ou copie a chave PIX e cole no app do seu banco. Escolha o valor que quiser.</p>' +
-        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="width:100%;padding:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
+        '<p style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.8rem;">Escaneie o QR code ou copie a chave PIX no app do seu banco.</p>' +
+        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="width:100%;padding:8px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.82rem;cursor:pointer;">Fechar</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(modal);

@@ -659,6 +659,8 @@
 
     window.AppStore.addTournament(tourData);
     if (typeof closeModal === 'function') closeModal('modal-quick-create');
+    // Flag to auto-scroll to Edit button and show hint on tournament detail page
+    try { sessionStorage.setItem('scoreplace_scroll_to_edit', '1'); } catch (e) {}
     window.location.hash = '#tournaments/' + tourData.id;
     if (typeof showNotification === 'function') {
       showNotification('Torneio Criado!', autoName, 'success');
