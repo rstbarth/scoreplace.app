@@ -1456,4 +1456,26 @@ function renderTournaments(container, tournamentId = null) {
     if (tournamentId && typeof window._buildActivityLog === 'function') {
         window._buildActivityLog(tournamentId);
     }
+
+    // Auto-scroll to Edit button after Quick Create (item 5)
+    if (tournamentId) {
+      try {
+        var _scrollFlag = sessionStorage.getItem('scoreplace_scroll_to_edit');
+        if (_scrollFlag === '1') {
+          sessionStorage.removeItem('scoreplace_scroll_to_edit');
+          setTimeout(function() {
+            var editBtn = container.querySelector('[onclick*="openEditModal"]');
+            if (editBtn) {
+              editBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Force show the org-edit-new hint after scroll completes
+              setTimeout(function() {
+                if (typeof window._forceShowHint === 'function') {
+                  window._forceShowHint('org-edit-new');
+                }
+              }, 600);
+            }
+          }, 300);
+        }
+      } catch (e) {}
+    }
 }
