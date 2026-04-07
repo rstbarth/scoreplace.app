@@ -272,12 +272,18 @@ window._openSetScoring = function(tId, matchId) {
   overlay.id = 'set-scoring-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(8px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
 
-  overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;">' +
-    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1.2rem 1.5rem;">' +
-      '<h3 style="margin:0;color:#f5f3ff;font-size:1.1rem;font-weight:800;">🎾 Lançar Resultado por Sets</h3>' +
-      '<p style="margin:4px 0 0;color:#e9d5ff;font-size:0.8rem;">Melhor de ' + totalSets + ' — ' + sc.gamesPerSet + ' games/set</p>' +
+  overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;max-height:90vh;display:flex;flex-direction:column;">' +
+    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+      '<div>' +
+        '<h3 style="margin:0;color:#f5f3ff;font-size:1.05rem;font-weight:800;">🎾 Resultado por Sets</h3>' +
+        '<p style="margin:2px 0 0;color:#e9d5ff;font-size:0.75rem;">' + sc.setsToWin + ' set' + (sc.setsToWin > 1 ? 's' : '') + ' · ' + sc.gamesPerSet + ' games/set</p>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#f5f3ff;border:1px solid rgba(255,255,255,0.25);">Cancelar</button>' +
+        '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-sm" style="background:#fff;color:#6d28d9;font-weight:700;border:none;" disabled>Salvar</button>' +
+      '</div>' +
     '</div>' +
-    '<div style="padding:1rem 1.5rem;">' +
+    '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
       '<div style="display:flex;gap:12px;margin-bottom:1rem;padding:8px 0;font-weight:700;font-size:0.85rem;">' +
         '<div style="width:100px;"></div>' +
         '<div style="width:56px;text-align:center;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + window._safeHtml(p1Name) + '">' + window._safeHtml(p1Name.split(' ')[0]) + '</div>' +
@@ -286,10 +292,6 @@ window._openSetScoring = function(tId, matchId) {
       '</div>' +
       setsHtml +
       '<div id="set-scoring-status" style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:0.82rem;font-weight:600;text-align:center;"></div>' +
-    '</div>' +
-    '<div style="padding:1rem 1.5rem;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color);">' +
-      '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-secondary">Cancelar</button>' +
-      '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-purple" disabled>Salvar Resultado</button>' +
     '</div>' +
   '</div>';
 
