@@ -105,6 +105,29 @@ window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
   '</div>';
 };
 
+// ─── Dashboard Enroll: direct enrollment + navigate to detail ───────────────
+window._dashEnroll = function(tId) {
+  var t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
+  var user = window.AppStore.currentUser;
+  if (!t || !user) { window.enrollCurrentUser(tId); return; }
+
+  // For team tournaments, skip the team modal — enroll as individual participant
+  // (organizer enrolling from dashboard is always self-enrollment)
+  var hasCats = (t.combinedCategories && t.combinedCategories.length > 0) ||
+                (t.genderCategories && t.genderCategories.length > 0);
+  if (hasCats) {
+    window._resolveEnrollmentCategory(tId, function(cats) {
+      if (!cats) return;
+      window._doEnrollCurrentUser(tId, cats);
+      window.location.hash = '#tournaments/' + tId;
+    });
+    return;
+  }
+
+  window._doEnrollCurrentUser(tId, null);
+  window.location.hash = '#tournaments/' + tId;
+};
+
 function renderDashboard(container) {
   const visible = window.AppStore.getVisibleTournaments();
 
@@ -297,7 +320,7 @@ function renderDashboard(container) {
     if (isParticipating && canEnroll) {
       enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>`;
     } else if (!isParticipating && canEnroll) {
-      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>`;
+      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._dashEnroll('${t.id}')">✅ Inscrever-se</button>`;
     } else if (isParticipating && !canEnroll) {
       enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">Inscrito ✓</div>`;
     }
