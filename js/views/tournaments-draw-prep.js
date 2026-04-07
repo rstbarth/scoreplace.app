@@ -356,7 +356,7 @@ window.showUnifiedResolutionPanel = function(tId) {
     // Build the panel HTML
     let gaugeHtml = '';
     if (info.isTeam) {
-        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
+        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:1.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);" class="unified-gauge">' +
             '<div style="text-align:right;">' +
             '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
             '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
@@ -374,7 +374,7 @@ window.showUnifiedResolutionPanel = function(tId) {
             '</div>' +
             '</div>';
     } else {
-        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
+        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:1.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);" class="unified-gauge">' +
             '<div style="text-align:right;">' +
             '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
             '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
@@ -407,6 +407,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         '<style>' +
             '@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
             '@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }' +
+            '@media (max-width:640px) { #unified-options-grid { grid-template-columns: 1fr !important; } .unified-gauge { grid-template-columns: 1fr !important; gap: 1rem !important; text-align: center !important; } .unified-gauge > div { text-align: center !important; } .unified-gauge > div > div { align-items: center !important; } }' +
         '</style>' +
         '<div style="padding:2.5rem;">' +
             '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
@@ -2064,10 +2065,23 @@ window.toggleRegistrationStatus = function (tId) {
         return;
     }
 
-    // Run unified diagnostics (power of 2, odd count, incomplete teams, remainder)
+    // Run unified diagnostics for formats that need it
+    var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
+    var isGrupos = t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
     if (typeof window._diagnoseAll === 'function') {
         var diag = window._diagnoseAll(t);
-        if (diag.hasIssues) {
+        // Elimination: full check (power of 2, odd, incomplete teams, remainder)
+        // Groups: check odd count and incomplete teams
+        // Swiss/Liga: only check incomplete teams and remainder
+        var hasRelevantIssues = false;
+        if (isElim) {
+            hasRelevantIssues = diag.hasIssues;
+        } else if (isGrupos) {
+            hasRelevantIssues = diag.incompleteTeams.length > 0 || diag.remainder > 0 || diag.isOdd;
+        } else {
+            hasRelevantIssues = diag.incompleteTeams.length > 0 || diag.remainder > 0;
+        }
+        if (hasRelevantIssues) {
             window.showUnifiedResolutionPanel(tId);
             return;
         }
