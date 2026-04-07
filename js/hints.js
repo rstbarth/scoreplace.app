@@ -74,6 +74,13 @@
     { id: 'ct-public', selector: '#tourn-public', text: 'Torneio público aparece na aba Explorar — ótimo para atrair novos participantes!', context: 'create-tournament', priority: 5, position: 'top' },
     { id: 'ct-dates', selector: '#tourn-start-date', text: 'Defina datas de início e inscrição. Os participantes verão contagem regressiva nos cards!', context: 'create-tournament', priority: 5, position: 'bottom' },
 
+    // ── Overlay: Invite Modal ──
+    { id: 'inv-friends', selector: '[id^="invite-friends-btn"]', text: 'Envie convites para todos os seus amigos da plataforma com um clique!', context: 'invite-modal', priority: 8, position: 'bottom' },
+    { id: 'inv-whatsapp', selector: '.btn-whatsapp', text: 'Compartilhe o convite direto no WhatsApp — ideal para grupos!', context: 'invite-modal', priority: 7, position: 'bottom' },
+    { id: 'inv-link', selector: '.btn-primary', text: 'Copie o link e cole onde quiser: Instagram, Telegram, SMS...', context: 'invite-modal', priority: 7, position: 'bottom' },
+    { id: 'inv-qr', selector: 'img[alt="QR Code"]', text: 'Projete ou mostre este QR Code no evento. Os jogadores escaneiam e se inscrevem na hora!', context: 'invite-modal', priority: 6, position: 'top' },
+    { id: 'inv-email', selector: '[id^="invite-email"]', text: 'Digite o e-mail de quem quer convidar e envie diretamente.', context: 'invite-modal', priority: 5, position: 'top' },
+
     // ── Overlay: Power of 2 Panel ──
     { id: 'p2-nash', selector: '.p2-option', text: 'As cores indicam o equilíbrio de Nash: verde é a opção mais equilibrada, azul a menos. O percentual mostra o score.', context: 'p2-panel', priority: 9, position: 'top' },
     { id: 'p2-reopen', selector: '[onclick*="handleP2Option"][onclick*="reopen"]', text: 'Reabre as inscrições para completar a potência de 2 com novos participantes.', context: 'p2-panel', priority: 7, position: 'top' },
@@ -136,6 +143,8 @@
 
   function _getCurrentContext() {
     // Overlay contexts take priority — if a blocking overlay is open, use its context
+    var _inviteOpen = document.querySelector('.invite-modal-container[style*="display: flex"], .invite-modal-container[style*="display:flex"]');
+    if (_inviteOpen) return 'invite-modal';
     if (document.getElementById('unified-resolution-panel')) return 'p2-panel';
     if (document.getElementById('p2-resolution-panel')) return 'p2-panel';
     if (document.getElementById('incomplete-teams-panel')) return 'incomplete-panel';
@@ -260,7 +269,7 @@
     var plan = _getUserPlan();
 
     // Overlay contexts block global hints — only show hints for the overlay itself
-    var _overlayContexts = ['p2-panel', 'incomplete-panel', 'poll-creation', 'poll-voting', 'gsm-config', 'set-scoring', 'dissolve-panel', 'draw-visibility', 'create-tournament'];
+    var _overlayContexts = ['p2-panel', 'incomplete-panel', 'poll-creation', 'poll-voting', 'gsm-config', 'set-scoring', 'dissolve-panel', 'draw-visibility', 'create-tournament', 'invite-modal'];
     var _isOverlay = _overlayContexts.indexOf(ctx) !== -1;
 
     var eligible = _hints.filter(function(h) {
