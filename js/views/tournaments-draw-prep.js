@@ -106,10 +106,10 @@ window.showIncompleteTeamsPanel = function (tId) {
                 ${issuesHtml}
 
                 <h4 style="margin:1.5rem 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Como deseja resolver?</h4>
-                <p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam afinidade com o equilíbrio de Nash: <span style="color:#4ade80;">■</span> melhor → <span style="color:#60a5fa;">■</span> menor</p>
+                <p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho)</p>
 
                 ${(function(){
-                    // Nash scoring for incomplete teams options
+                    // Nash scoring for incomplete teams options — continuous green→red gradient
                     var wF = 0.45, wI = 0.35, wE = 0.20;
                     var payoffs = {
                         reopen:   { f: 10, i: 10, e: 3 },
@@ -129,11 +129,20 @@ window.showIncompleteTeamsPanel = function (tId) {
                     var rng = maxS - minS || 1;
                     var norm = {};
                     Object.keys(scores).forEach(function(k) { norm[k] = (scores[k] - minS) / rng; });
+                    // Continuous green→red: hue 142 (green) to 0 (red)
                     function nC(n) {
-                        if (n >= 0.8) return { bg: 'rgba(34,197,94,0.12)', bd: 'rgba(34,197,94,0.45)', gw: '0 0 20px rgba(34,197,94,0.15)', pc: '#4ade80', pb: 'rgba(34,197,94,0.15)' };
-                        if (n >= 0.6) return { bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.40)', gw: '0 0 15px rgba(250,204,21,0.10)', pc: '#facc15', pb: 'rgba(250,204,21,0.15)' };
-                        if (n >= 0.35) return { bg: 'rgba(251,146,60,0.08)', bd: 'rgba(251,146,60,0.30)', gw: '0 0 10px rgba(251,146,60,0.08)', pc: '#fb923c', pb: 'rgba(251,146,60,0.12)' };
-                        return { bg: 'rgba(96,165,250,0.06)', bd: 'rgba(96,165,250,0.20)', gw: 'none', pc: '#60a5fa', pb: 'rgba(96,165,250,0.10)' };
+                        var hue = Math.round(n * 142);
+                        var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
+                        var bgA = (0.06 + n * 0.08).toFixed(2);
+                        var bdA = (0.20 + n * 0.25).toFixed(2);
+                        var gwA = (n * 0.15).toFixed(2);
+                        return {
+                            bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgA + ')',
+                            bd: 'hsla(' + hue + ',' + sat + '%,55%,' + bdA + ')',
+                            gw: parseFloat(gwA) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + gwA + ')' : 'none',
+                            pc: 'hsl(' + hue + ',' + sat + '%,65%)',
+                            pb: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
+                        };
                     }
                     function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:14px 14px 2rem;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;'; }
                     function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="position:absolute;bottom:8px;right:10px;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';pointer-events:none;">Nash ' + pct + '%</span>'; }
@@ -589,7 +598,209 @@ window._resolveIncompleteTeams = function (tId, option) {
     window.generateDrawFunction(tId);
 };
 
-// ─── VERIFICAÇÃO 2: POTÊNCIA DE 2 ───
+// ─── VERIFICAÇÃO 2: NÚMERO ÍMPAR DE TIMES/INSCRITOS ───
+window.checkOddEntries = function (t) {
+    var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+    var teamSize = parseInt(t.teamSize) || 1;
+    var enrMode = t.enrollmentMode || t.enrollment || 'individual';
+    if ((enrMode === 'time' || enrMode === 'misto') && teamSize < 2) teamSize = 2;
+
+    var preFormedTeams = 0, individuals = 0;
+    arr.forEach(function(p) {
+        var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        if (name.includes(' / ')) preFormedTeams++;
+        else individuals++;
+    });
+    var teamsFromIndividuals = teamSize > 1 ? Math.floor(individuals / teamSize) : individuals;
+    var n = preFormedTeams + teamsFromIndividuals;
+
+    return {
+        count: n,
+        rawCount: arr.length,
+        isOdd: n > 0 && n % 2 !== 0,
+        teamSize: teamSize
+    };
+};
+
+window.showOddEntriesPanel = function (tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) return;
+
+    var oddInfo = window.checkOddEntries(t);
+    if (!oddInfo.isOdd) {
+        // Not odd — continue to next check
+        window.generateDrawFunction(tId);
+        return;
+    }
+
+    var existing = document.getElementById('odd-entries-panel');
+    if (existing) existing.remove();
+
+    var isTeam = oddInfo.teamSize > 1;
+    var label = isTeam ? 'times' : 'inscritos';
+    var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    // Nash scoring for odd entries options
+    var wF = 0.45, wI = 0.35, wE = 0.20;
+    var payoffs = {
+        reopen:    { f: 10, i: 10, e: 3 },
+        bye_odd:   { f: 7,  i: 10, e: 9 },
+        exclusion: { f: 3,  i: 2,  e: 10 },
+        poll:      { f: 10, i: 10, e: 2 }
+    };
+    var scores = {}, maxS = 0, minS = 10;
+    Object.keys(payoffs).forEach(function(k) {
+        var p = payoffs[k];
+        scores[k] = p.f * wF + p.i * wI + p.e * wE;
+        if (scores[k] > maxS) maxS = scores[k];
+        if (scores[k] < minS) minS = scores[k];
+    });
+    var rng = maxS - minS || 1;
+    var norm = {};
+    Object.keys(scores).forEach(function(k) { norm[k] = (scores[k] - minS) / rng; });
+
+    function nC(n) {
+        var hue = Math.round(n * 142);
+        var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
+        var bgA = (0.06 + n * 0.08).toFixed(2);
+        var bdA = (0.20 + n * 0.25).toFixed(2);
+        var gwA = (n * 0.15).toFixed(2);
+        return {
+            bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgA + ')',
+            bd: 'hsla(' + hue + ',' + sat + '%,55%,' + bdA + ')',
+            gw: parseFloat(gwA) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + gwA + ')' : 'none',
+            pc: 'hsl(' + hue + ',' + sat + '%,65%)',
+            pb: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
+        };
+    }
+    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:1.25rem 1rem 2.2rem;cursor:pointer;display:flex;gap:14px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;position:relative;'; }
+    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="position:absolute;bottom:8px;right:10px;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';pointer-events:none;">Nash ' + pct + '%</span>'; }
+    var bestK = '', bestV = -1;
+    Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestV) { bestV = scores[k]; bestK = k; } });
+    var bdg = '<span style="position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'odd-entries-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:650px;border-radius:24px;margin:auto 0;border:1px solid rgba(245,158,11,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;animation:modalFadeIn 0.3s ease-out;">' +
+        '<div style="background:linear-gradient(135deg,#78350f 0%,#d97706 100%);padding:1.5rem 2rem;">' +
+            '<div style="display:flex;align-items:center;gap:15px;">' +
+                '<span style="font-size:2.5rem;">⚠️</span>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#fef3c7;font-size:1.25rem;font-weight:800;">Número Ímpar de ' + (isTeam ? 'Times' : 'Inscritos') + '</h3>' +
+                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.9rem;">Há <b>' + oddInfo.count + '</b> ' + label + '. Um ficará sem adversário a cada rodada.</p>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div style="padding:1.5rem 2rem;">' +
+            '<p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor → <span style="color:#ef4444;">■</span> menor</p>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+
+            '<button style="' + sty('reopen') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'reopen\')">' +
+                (bestK === 'reopen' ? bdg : '') +
+                '<span style="font-size:1.5rem;">↩️</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Aguardar mais 1 inscrito para ficar par.</div>' +
+                '</div>' +
+                pill('reopen') +
+            '</button>' +
+
+            '<button style="' + sty('bye_odd') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'bye_odd\')">' +
+                (bestK === 'bye_odd' ? bdg : '') +
+                '<span style="font-size:1.5rem;">🥇</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">BYE Rotativo</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">A cada rodada, um ' + (isTeam ? 'time' : 'jogador') + ' diferente descansa (BYE). Todos participam igualmente.</div>' +
+                '</div>' +
+                pill('bye_odd') +
+            '</button>' +
+
+            '<button style="' + sty('exclusion') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'exclusion\')">' +
+                (bestK === 'exclusion' ? bdg : '') +
+                '<span style="font-size:1.5rem;">🚫</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Exclusão</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + ' ' + label + '.</div>' +
+                '</div>' +
+                pill('exclusion') +
+            '</button>' +
+
+            '<button style="' + sty('poll') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'poll\')">' +
+                '<span style="font-size:1.5rem;">🗳️</span>' +
+                '<div>' +
+                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem.</div>' +
+                '</div>' +
+                pill('poll') +
+            '</button>' +
+
+            '</div>' +
+        '</div>' +
+        '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
+            '<button onclick="document.getElementById(\'odd-entries-panel\').remove();" style="background:transparent;color:#94a3b8;border:none;padding:10px 20px;font-weight:600;font-size:0.9rem;cursor:pointer;">Cancelar</button>' +
+        '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+};
+
+window._handleOddOption = function (tId, option) {
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) return;
+    var oddInfo = window.checkOddEntries(t);
+    var isTeam = oddInfo.teamSize > 1;
+
+    if (option === 'reopen') {
+        t.status = 'open';
+        window.AppStore.logAction(tId, 'Inscrições reabertas para resolver número ímpar');
+        window.AppStore.sync();
+        var el = document.getElementById('odd-entries-panel');
+        if (el) el.remove();
+        showNotification('Inscrições Reabertas', 'Aguardando mais 1 inscrito para paridade.', 'info');
+        var container = document.getElementById('view-container');
+        if (container) renderTournaments(container, tId);
+    } else if (option === 'bye_odd') {
+        t.oddResolution = 'bye_rotative';
+        window.AppStore.logAction(tId, 'BYE rotativo selecionado para número ímpar');
+        window.AppStore.sync();
+        var el2 = document.getElementById('odd-entries-panel');
+        if (el2) el2.remove();
+        showNotification('BYE Rotativo', 'A cada rodada, um ' + (isTeam ? 'time' : 'jogador') + ' terá BYE.', 'success');
+        window.generateDrawFunction(tId);
+    } else if (option === 'exclusion') {
+        showConfirmDialog(
+            '🚫 Confirmar Exclusão',
+            'Deseja remover o último inscrito do torneio? Ficará com ' + (oddInfo.count - 1) + ' ' + (isTeam ? 'times' : 'inscritos') + '.',
+            function() {
+                var arr = Array.isArray(t.participants) ? t.participants : [];
+                var removed = arr.splice(arr.length - 1, 1);
+                var removedName = removed.length > 0 ? (typeof removed[0] === 'string' ? removed[0] : (removed[0].displayName || removed[0].name || '?')) : '?';
+                t.oddResolution = 'exclusion';
+                window.AppStore.logAction(tId, 'Exclusão: removido último inscrito (' + removedName + ') para paridade');
+                window.AppStore.sync();
+                var el3 = document.getElementById('odd-entries-panel');
+                if (el3) el3.remove();
+                showNotification('Participante Removido', removedName + ' foi removido. Total agora: ' + (oddInfo.count - 1) + '.', 'warning');
+                window.generateDrawFunction(tId);
+            },
+            null,
+            { type: 'danger', confirmText: 'Remover', cancelText: 'Cancelar' }
+        );
+    } else if (option === 'poll') {
+        var el4 = document.getElementById('odd-entries-panel');
+        if (el4) el4.remove();
+        var pollOptions = [
+            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais 1 inscrito para ficar par.' },
+            { key: 'bye_odd', icon: '🥇', title: 'BYE Rotativo', desc: 'A cada rodada, alguém descansa. Todos participam.' },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + '.' }
+        ];
+        window._showPollCreationDialog(tId, 'odd', pollOptions);
+    }
+};
+
+// ─── VERIFICAÇÃO 3: POTÊNCIA DE 2 ───
 window.checkPowerOf2 = function (t) {
     const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
     let teamSize = parseInt(t.teamSize) || 1;
@@ -647,192 +858,198 @@ window.showPowerOf2Panel = function (tId) {
     const existing = document.getElementById('p2-resolution-panel');
     if (existing) existing.remove();
 
-    const overlay = document.createElement('div');
+    // Individual participant counts for gauge
+    var excessParticipants = info.excess * info.teamSize;
+    var missingParticipants = info.missing * info.teamSize;
+    var isTeam = info.teamSize > 1;
+    var excessLabel = isTeam ? 'Sobram <b>' + info.excess + '</b> times (' + excessParticipants + ' participantes)' : 'Sobram <b>' + info.excess + '</b>';
+    var missingLabel = isTeam ? 'Faltam <b>' + info.missing + '</b> times (' + missingParticipants + ' participantes)' : 'Faltam <b>' + info.missing + '</b>';
+
+    var overlay = document.createElement('div');
     overlay.id = 'p2-resolution-panel';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
 
-    overlay.innerHTML = `
-        <div style="background:var(--bg-card,#1e293b);width:94%;max-width:750px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
-            <!-- Header -->
-            <div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">
-                <div style="display:flex;align-items:center;gap:20px;margin-bottom:2rem;">
-                    <div style="width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(5px);">⚙️</div>
-                    <div>
-                        <h3 style="margin:0;color:#fef3c7;font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>
-                        <p style="margin:4px 0 0;color:#fde68a;font-size:0.95rem;opacity:0.9;">O chaveamento exige uma potência de 2 para ser exato.</p>
-                    </div>
-                </div>
-                
-                <!-- NEW GRAPHICAL GAUGE -->
-                <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">
-                    <!-- Left: Lower P2 -->
-                    <div style="text-align:right;">
-                        <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;">
-                            <span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">${info.lo}</span>
-                            <span style="font-size:0.8rem;color:#86efac;margin-top:4px;">Sobram <b>${info.excess}</b></span>
-                        </div>
-                    </div>
+    // Build panel HTML via function to allow re-render on exclude
+    window._renderP2Options = function(excludedKeys) {
+        excludedKeys = excludedKeys || [];
+        var allOptions = [
+            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + (isTeam ? ' times' : ' inscritos') + ' para chegar em ' + info.hi + '.' },
+            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + (isTeam ? ' times avançam' : ' participantes avançam') + ' direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
+            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + (isTeam ? ' times disputam ' : ' participantes disputam ') + info.excess + ' vaga(s) na repescagem.' },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + (isTeam ? ' times inscritos' : ' inscritos') + ' para chegar em ' + info.lo + '. Chaveamento perfeito.' },
+            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.lo + (isTeam ? ' times jogam' : ' jogam') + ' em ' + Math.floor(info.lo / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.' },
+            { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' },
+            { key: 'poll', icon: '🗳️', title: 'Enquete', desc: 'Os inscritos votam na solução que preferem.' }
+        ];
 
-                    <!-- Center: Current Total -->
-                    <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);">
-                        <div style="position:absolute;width:100%;height:100%;border:2px dashed rgba(251,191,36,0.3);border-radius:50%;animation: rotate 20s linear infinite;"></div>
-                        <div style="text-align:center;position:relative;z-index:2;">
-                            <div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3);">${info.count}</div>
-                            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;line-height:1.3;">Total de<br>${info.teamSize > 1 ? 'Times' : 'Inscritos'}</div>
-                        </div>
-                    </div>
+        var activeOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) === -1; });
 
-                    <!-- Right: Upper P2 -->
-                    <div style="text-align:left;">
-                        <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-start;">
-                            <span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">${info.hi}</span>
-                            <span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">Faltam <b>${info.missing}</b></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        // Nash scoring — fairness 45%, inclusion 35%, effort 20%
+        var wF = 0.45, wI = 0.35, wE = 0.20;
+        var payoffs = {
+            reopen:    { f: 10, i: 10, e: 3 },
+            bye:       { f: 6,  i: 10, e: 9 },
+            playin:    { f: 8,  i: 10, e: 6 },
+            exclusion: { f: 3,  i: 2,  e: 10 },
+            standby:   { f: 6,  i: 4,  e: 9 },
+            swiss:     { f: 9,  i: 10, e: 5 },
+            poll:      { f: 10, i: 10, e: 2 }
+        };
+        if (info.missing <= 2) payoffs.reopen = { f: 10, i: 10, e: 8 };
+        if (info.missing <= info.excess * 2) payoffs.bye.e = 10;
 
-            <style>
-                @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .p2-option { border-radius:18px; padding:2.2rem 1.5rem 2.2rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }
-                .p2-option:hover { transform:translateY(-2px); filter:brightness(1.15); }
-                .p2-option::after { content:''; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(255,255,255,0.06), transparent); transform:translateX(-100%); transition:0.5s; }
-                .p2-option:hover::after { transform:translateX(100%); }
-                .p2-option h4 { margin:0 0 4px; font-weight:800; font-size:1.05rem; color:#fff; }
-                .p2-option p { margin:0; font-size:0.8rem; color:#94a3b8; line-height:1.5; }
-                .p2-badge { position:absolute; top:10px; right:10px; background:rgba(34,197,94,0.15); color:#4ade80; padding:3px 10px; border-radius:8px; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none; }
-                .nash-corner { position:absolute; bottom:10px; right:12px; padding:3px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; letter-spacing:0.3px; pointer-events:none; }
-            </style>
+        var scores = {};
+        var maxScore = 0, minScore = 10;
+        activeOptions.forEach(function(o) {
+            var p = payoffs[o.key];
+            if (!p) return;
+            scores[o.key] = p.f * wF + p.i * wI + p.e * wE;
+            if (scores[o.key] > maxScore) maxScore = scores[o.key];
+            if (scores[o.key] < minScore) minScore = scores[o.key];
+        });
+        var range = maxScore - minScore || 1;
+        var norm = {};
+        activeOptions.forEach(function(o) {
+            if (scores[o.key] !== undefined) norm[o.key] = (scores[o.key] - minScore) / range;
+        });
 
-            <div style="padding:2.5rem;">
-                <h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>
-                <p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam afinidade com o equilíbrio de Nash: <span style="color:#4ade80;">■</span> melhor equilíbrio → <span style="color:#60a5fa;">■</span> menor equilíbrio</p>
+        // Continuous green→red gradient: 1.0 = #22c55e (green-500), 0.0 = #ef4444 (red-500)
+        function nashColorContinuous(n) {
+            // HSL interpolation: green=142, yellow=48, red=0
+            var hue = Math.round(n * 142);
+            var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20); // boost saturation in middle
+            var bgAlpha = 0.06 + n * 0.08;
+            var borderAlpha = 0.20 + n * 0.25;
+            var glowAlpha = n * 0.15;
+            return {
+                bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgAlpha.toFixed(2) + ')',
+                border: 'hsla(' + hue + ',' + sat + '%,55%,' + borderAlpha.toFixed(2) + ')',
+                glow: glowAlpha > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + glowAlpha.toFixed(2) + ')' : 'none',
+                pill: 'hsl(' + hue + ',' + sat + '%,65%)',
+                pillBg: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
+            };
+        }
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    ${(function(){
-                        // Nash scoring per option — fairness 45%, inclusion 35%, effort 20%
-                        var wF = 0.45, wI = 0.35, wE = 0.20;
-                        var payoffs = {
-                            reopen:  { f: 10, i: 10, e: 3 },
-                            bye:     { f: 6,  i: 10, e: 9 },
-                            playin:  { f: 8,  i: 10, e: 6 },
-                            standby: { f: 6,  i: 4,  e: 9 },
-                            swiss:   { f: 9,  i: 10, e: 5 },
-                            poll:    { f: 10, i: 10, e: 2 }
-                        };
-                        // Context adjustments
-                        if (info.missing <= 2) {
-                            payoffs.reopen = { f: 10, i: 10, e: 8 };
-                        }
-                        if (info.missing <= info.excess * 2) {
-                            payoffs.bye.e = 10;
-                        }
-                        // Compute scores
-                        var scores = {};
-                        var maxScore = 0, minScore = 10;
-                        Object.keys(payoffs).forEach(function(k) {
-                            var p = payoffs[k];
-                            scores[k] = p.f * wF + p.i * wI + p.e * wE;
-                            if (scores[k] > maxScore) maxScore = scores[k];
-                            if (scores[k] < minScore) minScore = scores[k];
-                        });
-                        // Normalize 0-1 (1 = best Nash)
-                        var range = maxScore - minScore || 1;
-                        var norm = {};
-                        Object.keys(scores).forEach(function(k) {
-                            norm[k] = (scores[k] - minScore) / range;
-                        });
-                        // Color function: 1.0 = warm green, 0.0 = cool blue-gray
-                        function nashColor(n) {
-                            if (n >= 0.8) return { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.45)', glow: '0 0 20px rgba(34,197,94,0.15)', pill: '#4ade80', pillBg: 'rgba(34,197,94,0.15)' };
-                            if (n >= 0.6) return { bg: 'rgba(250,204,21,0.10)', border: 'rgba(250,204,21,0.40)', glow: '0 0 15px rgba(250,204,21,0.10)', pill: '#facc15', pillBg: 'rgba(250,204,21,0.15)' };
-                            if (n >= 0.35) return { bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.30)', glow: '0 0 10px rgba(251,146,60,0.08)', pill: '#fb923c', pillBg: 'rgba(251,146,60,0.12)' };
-                            return { bg: 'rgba(96,165,250,0.06)', border: 'rgba(96,165,250,0.20)', glow: 'none', pill: '#60a5fa', pillBg: 'rgba(96,165,250,0.10)' };
-                        }
-                        function nashStyle(key) {
-                            var c = nashColor(norm[key]);
-                            return 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
-                        }
-                        function nashPill(key) {
-                            var c = nashColor(norm[key]);
-                            var pct = Math.round(norm[key] * 100);
-                            return '<span class="nash-corner" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
-                        }
-                        // Find best for badge
-                        var bestKey = '';
-                        var bestVal = -1;
-                        Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestVal) { bestVal = scores[k]; bestKey = k; } });
-                        var badge = '<div class="p2-badge">⭐ Recomendado</div>';
-                        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        // Find best (excluding poll) for badge
+        var bestKey = '', bestVal = -1;
+        activeOptions.forEach(function(o) {
+            if (o.key !== 'poll' && scores[o.key] > bestVal) { bestVal = scores[o.key]; bestKey = o.key; }
+        });
 
-                        return '<button class="p2-option shadow-xl" style="' + nashStyle('reopen') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'reopen\')">' +
-                            (bestKey === 'reopen' ? badge : '') +
-                            '<span style="font-size:2rem;">↩️</span>' +
-                            '<div>' +
-                            '<h4>Reabrir Inscrições</h4>' +
-                            '<p>Aguardar mais ' + info.missing + ' inscritos para chegar em ' + info.hi + '.</p>' +
-                            '</div>' +
-                            nashPill('reopen') +
-                        '</button>' +
+        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var html = '';
 
-                        '<button class="p2-option shadow-xl" style="' + nashStyle('bye') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'bye\')">' +
-                            (bestKey === 'bye' ? badge : '') +
-                            '<span style="font-size:2rem;">🥇</span>' +
-                            '<div>' +
-                            '<h4>Aplicar BYE</h4>' +
-                            '<p>' + info.missing + ' participantes avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.</p>' +
-                            '</div>' +
-                            nashPill('bye') +
-                        '</button>' +
+        activeOptions.forEach(function(o) {
+            var n = norm[o.key] !== undefined ? norm[o.key] : 0;
+            var c = nashColorContinuous(n);
+            var pct = Math.round(n * 100);
+            var isBest = o.key === bestKey;
+            var badgeHtml = isBest ? '<div class="p2-badge">⭐ Recomendado</div>' : '';
+            var pillHtml = '<span class="nash-corner" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
+            var style = 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
 
-                        '<button class="p2-option shadow-xl" style="' + nashStyle('playin') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'playin\')">' +
-                            (bestKey === 'playin' ? badge : '') +
-                            '<span style="font-size:2rem;">🔁</span>' +
-                            '<div>' +
-                            '<h4>Play-in (Repescagem)</h4>' +
-                            '<p>' + (info.excess * 2) + ' participantes disputam ' + info.excess + ' vaga(s) na repescagem. Na rodada seguinte, vencedores da repescagem enfrentam quem avançou direto.</p>' +
-                            '</div>' +
-                            nashPill('playin') +
-                        '</button>' +
+            // X button to exclude (not for poll if it's the only non-excluded)
+            var canExclude = activeOptions.length > 2; // keep at least 2 options
+            var excludeBtn = canExclude ? '<button class="p2-exclude-btn" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeP2Option(\'' + o.key + '\')" style="position:absolute;top:8px;right:' + (isBest ? '110px' : '8px') + ';width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#94a3b8;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2;" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\';this.style.borderColor=\'rgba(239,68,68,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\';this.style.color=\'#94a3b8\';this.style.borderColor=\'rgba(255,255,255,0.15)\'">✕</button>' : '';
 
-                        '<button class="p2-option shadow-xl" style="' + nashStyle('standby') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'standby\')">' +
-                            '<span style="font-size:2rem;">⏱️</span>' +
-                            '<div>' +
-                            '<h4>Lista de Espera</h4>' +
-                            '<p>' + info.count + (info.teamSize > 1 ? ' times' : ' inscritos') + '. ' + info.lo + ' ' + (info.teamSize > 1 ? 'times jogam' : 'jogam') + ' em ' + Math.floor(info.lo / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.</p>' +
-                            '</div>' +
-                            nashPill('standby') +
-                        '</button>' +
+            html += '<button class="p2-option shadow-xl" style="' + style + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
+                badgeHtml + excludeBtn +
+                '<span style="font-size:2rem;">' + o.icon + '</span>' +
+                '<div style="flex:1;padding-right:' + (canExclude ? '32px' : '0') + ';">' +
+                '<h4>' + o.title + '</h4>' +
+                '<p>' + o.desc + '</p>' +
+                '</div>' +
+                pillHtml +
+            '</button>';
+        });
 
-                        '<button class="p2-option shadow-xl" style="' + nashStyle('swiss') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'swiss\')">' +
-                            '<span style="font-size:2rem;">🏅</span>' +
-                            '<div>' +
-                            '<h4>Formato Suíço / Classificatória</h4>' +
-                            '<p>Garantia de mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.</p>' +
-                            '</div>' +
-                            nashPill('swiss') +
-                        '</button>' +
+        // Show excluded options as small restore buttons
+        var excludedOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) !== -1; });
+        if (excludedOptions.length > 0) {
+            html += '<div style="grid-column:span 2;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
+            html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">Excluídas:</span>';
+            excludedOptions.forEach(function(o) {
+                html += '<button onclick="event.stopPropagation();window._restoreP2Option(\'' + o.key + '\')" style="background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:4px 12px;color:#64748b;font-size:0.72rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.color=\'#94a3b8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.color=\'#64748b\'">' + o.icon + ' ' + o.title + ' ↩</button>';
+            });
+            html += '</div>';
+        }
 
-                        '<button class="p2-option shadow-xl" style="' + nashStyle('poll') + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'poll\')">' +
-                            '<span style="font-size:2rem;">🗳️</span>' +
-                            '<div>' +
-                            '<h4>Enquete entre Participantes</h4>' +
-                            '<p>Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</p>' +
-                            '</div>' +
-                            nashPill('poll') +
-                        '</button>';
-                    })()}
-                </div>
-            </div>
+        return html;
+    };
 
-            <div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">
-                <div style="font-size:0.8rem;color:#64748b;">Ajuste manual disponível no rascunho de chaveamento.</div>
-                <button onclick="window._cancelPowerOf2Panel('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
-            </div>
-        </div>
-    `;
+    // State for excluded options
+    window._p2ExcludedKeys = [];
+
+    window._excludeP2Option = function(key) {
+        if (window._p2ExcludedKeys.indexOf(key) === -1) window._p2ExcludedKeys.push(key);
+        var grid = document.getElementById('p2-options-grid');
+        if (grid) grid.innerHTML = window._renderP2Options(window._p2ExcludedKeys);
+    };
+
+    window._restoreP2Option = function(key) {
+        window._p2ExcludedKeys = window._p2ExcludedKeys.filter(function(k) { return k !== key; });
+        var grid = document.getElementById('p2-options-grid');
+        if (grid) grid.innerHTML = window._renderP2Options(window._p2ExcludedKeys);
+    };
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:750px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">' +
+        '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">' +
+            '<div style="display:flex;align-items:center;gap:20px;margin-bottom:2rem;">' +
+                '<div style="width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(5px);">⚙️</div>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#fef3c7;font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
+                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.95rem;opacity:0.9;">O chaveamento exige uma potência de 2 para ser exato.</p>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
+                '<div style="text-align:right;">' +
+                    '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
+                    '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
+                        '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.lo + '</span>' +
+                        '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">' + excessLabel + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);">' +
+                    '<div style="position:absolute;width:100%;height:100%;border:2px dashed rgba(251,191,36,0.3);border-radius:50%;animation: rotate 20s linear infinite;"></div>' +
+                    '<div style="text-align:center;position:relative;z-index:2;">' +
+                        '<div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3);">' + info.count + '</div>' +
+                        '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;line-height:1.3;">Total de<br>' + (isTeam ? 'Times' : 'Inscritos') + '</div>' +
+                        (isTeam ? '<div style="font-size:0.6rem;color:#64748b;margin-top:2px;">(' + info.rawCount + ' participantes)</div>' : '') +
+                    '</div>' +
+                '</div>' +
+                '<div style="text-align:left;">' +
+                    '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
+                    '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
+                        '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hi + '</span>' +
+                        '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">' + missingLabel + '</span>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<style>' +
+            '@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
+            '.p2-option { border-radius:18px; padding:2.2rem 1.5rem 2.2rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }' +
+            '.p2-option:hover { transform:translateY(-2px); filter:brightness(1.15); }' +
+            '.p2-option::after { content:""; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(255,255,255,0.06), transparent); transform:translateX(-100%); transition:0.5s; }' +
+            '.p2-option:hover::after { transform:translateX(100%); }' +
+            '.p2-option h4 { margin:0 0 4px; font-weight:800; font-size:1.05rem; color:#fff; }' +
+            '.p2-option p { margin:0; font-size:0.8rem; color:#94a3b8; line-height:1.5; }' +
+            '.p2-badge { position:absolute; top:10px; right:40px; background:rgba(34,197,94,0.15); color:#4ade80; padding:3px 10px; border-radius:8px; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none; }' +
+            '.nash-corner { position:absolute; bottom:10px; right:12px; padding:3px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; letter-spacing:0.3px; pointer-events:none; }' +
+        '</style>' +
+        '<div style="padding:2.5rem;">' +
+            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
+            '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
+            '<div id="p2-options-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+                window._renderP2Options([]) +
+            '</div>' +
+        '</div>' +
+        '<div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
+            '<div style="font-size:0.8rem;color:#64748b;">Ajuste manual disponível no rascunho de chaveamento.</div>' +
+            '<button onclick="window._cancelPowerOf2Panel(\'' + String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>' +
+        '</div>' +
+    '</div>';
+
     document.body.appendChild(overlay);
 };
 
@@ -871,14 +1088,15 @@ window._computeNashRecommendation = function(pollOptions, context, info) {
     // Payoff matrix: rate each option 0-10 on (fairness, inclusion, effort)
     var payoffs = {
         // Incomplete teams context
-        'reopen':   { fairness: 10, inclusion: 10, effort: 3 },  // fair but slow
-        'lottery':  { fairness: 4,  inclusion: 8,  effort: 8 },  // bots reduce fairness
-        'standby':  { fairness: 6,  inclusion: 4,  effort: 9 },  // excludes some
-        'dissolve': { fairness: 7,  inclusion: 7,  effort: 4 },  // manual work
+        'reopen':    { fairness: 10, inclusion: 10, effort: 3 },  // fair but slow
+        'lottery':   { fairness: 4,  inclusion: 8,  effort: 8 },  // bots reduce fairness
+        'standby':   { fairness: 6,  inclusion: 4,  effort: 9 },  // excludes some
+        'dissolve':  { fairness: 7,  inclusion: 7,  effort: 4 },  // manual work
         // P2 context
-        'bye':      { fairness: 6,  inclusion: 10, effort: 9 },  // some get free pass
-        'playin':   { fairness: 8,  inclusion: 10, effort: 6 },  // extra games but fair
-        'swiss':    { fairness: 9,  inclusion: 10, effort: 5 }   // fair, more games
+        'bye':       { fairness: 6,  inclusion: 10, effort: 9 },  // some get free pass
+        'playin':    { fairness: 8,  inclusion: 10, effort: 6 },  // extra games but fair
+        'exclusion': { fairness: 3,  inclusion: 2,  effort: 10 }, // fast but excludes
+        'swiss':     { fairness: 9,  inclusion: 10, effort: 5 }   // fair, more games
     };
 
     // Context-specific adjustments
@@ -1172,7 +1390,7 @@ window._showPollVotingDialog = function(tId, pollId) {
             '</div>';
     }).join('');
 
-    var contextLabel = (poll.context === 'p2') ? 'Ajuste de Chaveamento' : 'Times Incompletos';
+    var contextLabel = (poll.context === 'p2') ? 'Ajuste de Chaveamento' : (poll.context === 'odd') ? 'Número Ímpar' : 'Times Incompletos';
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:95%;max-width:560px;border-radius:24px;border:1px solid rgba(99,102,241,0.2);box-shadow:0 30px 80px rgba(0,0,0,0.6);margin:auto;animation:fadeIn 0.2s ease;overflow:hidden;">' +
         '<div style="background:linear-gradient(135deg,#312e81 0%,#6366f1 100%);padding:1.5rem 2rem;">' +
@@ -1636,6 +1854,8 @@ window._applyPollResult = function(tId, pollId) {
         window._handleIncompleteOption(tId, winnerKey);
     } else if (poll.context === 'p2') {
         window._handleP2Option(tId, winnerKey);
+    } else if (poll.context === 'odd') {
+        window._handleOddOption(tId, winnerKey);
     }
 };
 
@@ -1658,6 +1878,36 @@ window._handleP2Option = function (tId, option) {
         return;
     }
 
+    if (option === 'exclusion') {
+        // Remove the last N enrolled participants to reach lower power of 2
+        var isTeam = info.teamSize > 1;
+        var removeCount = info.excess;
+        var label = isTeam ? ('os últimos ' + removeCount + ' times inscritos') : ('os últimos ' + removeCount + ' inscritos');
+        showConfirmDialog(
+            '🚫 Confirmar Exclusão',
+            'Deseja remover ' + label + ' do torneio? O chaveamento ficará com ' + info.lo + (isTeam ? ' times' : ' participantes') + ' (potência de 2 perfeita).\n\nOs removidos serão os últimos a se inscrever.',
+            function() {
+                var arr = Array.isArray(t.participants) ? t.participants : [];
+                // Remove from the end (last enrolled)
+                var removed = arr.splice(arr.length - removeCount, removeCount);
+                var removedNames = removed.map(function(p) {
+                    return typeof p === 'string' ? p : (p.displayName || p.name || '?');
+                });
+                t.p2Resolution = 'exclusion';
+                window.AppStore.logAction(tId, 'Exclusão: removidos ' + removeCount + ' últimos inscritos (' + removedNames.join(', ') + ')');
+                window.AppStore.sync();
+                var p2Panel = document.getElementById('p2-resolution-panel');
+                if (p2Panel) p2Panel.remove();
+                showNotification('Participantes Removidos', removeCount + ' último(s) inscrito(s) removido(s). Chaveamento de ' + info.lo + '.', 'warning');
+                // Continue draw
+                window.generateDrawFunction(tId);
+            },
+            null,
+            { type: 'danger', confirmText: 'Remover e Continuar', cancelText: 'Cancelar' }
+        );
+        return;
+    }
+
     if (option === 'poll') {
         const p2Panel = document.getElementById('p2-resolution-panel');
         if (p2Panel) p2Panel.remove();
@@ -1666,6 +1916,7 @@ window._handleP2Option = function (tId, option) {
             { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' inscritos para chegar a ' + info.hi + '. Igualdade total.' },
             { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' participantes avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
             { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' participantes disputam ' + info.excess + ' vaga(s). Vencedores enfrentam quem avançou direto.' },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + ' inscritos para chaveamento perfeito de ' + info.lo + '.' },
             { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' participantes vão para lista de espera. Chaveamento de ' + info.lo + '.' },
             { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' }
         ];

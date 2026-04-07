@@ -5,9 +5,6 @@ window._sportScoringDefaults = {
   'Padel':        { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
   'Pickleball':   { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
   'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
-  'Vôlei':        { type:'sets', setsToWin:2, gamesPerSet:25, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:15, countingType:'numeric', advantageRule:false },
-  'Futebol':      { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
-  'Xadrez':       { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
   '_default':     { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false }
 };
 
@@ -35,20 +32,21 @@ function setupCreateTournamentModal() {
                 </div>
                 <div class="form-group full-width">
                   <label class="form-label">Modalidade</label>
-                  <select class="form-control" id="select-sport" onchange="window._onSportChange()">
+                  <!-- Hidden select for backward compatibility -->
+                  <select class="form-control" id="select-sport" onchange="window._onSportChange()" style="display:none;">
                     <option>🎾 Beach Tennis</option>
-                    <option>⚽ Futebol</option>
-                    <option>🃏 Magic / TCG</option>
-                    <option>🎾 Tênis</option>
-                    <option>🏐 Vôlei</option>
-                    <option>♟️ Xadrez</option>
-                    <option>🎴 Dominó</option>
                     <option>🏸 Padel</option>
                     <option>🥒 Pickleball</option>
+                    <option>🎾 Tênis</option>
                     <option>🏓 Tênis de Mesa</option>
-                    <option>🃏 Truco</option>
-                    <option>🏅 Outro</option>
                   </select>
+                  <div id="sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="sport-btn sport-btn-active" data-sport="🎾 Beach Tennis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
+                    <button type="button" class="sport-btn" data-sport="🏸 Padel" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
+                    <button type="button" class="sport-btn" data-sport="🥒 Pickleball" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🥒 Pickleball</button>
+                    <button type="button" class="sport-btn" data-sport="🎾 Tênis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🎾 Tênis</button>
+                    <button type="button" class="sport-btn" data-sport="🏓 Tênis de Mesa" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏓 Tênis de Mesa</button>
+                  </div>
                 </div>
               </div>
 
@@ -400,16 +398,20 @@ function setupCreateTournamentModal() {
                   <input type="number" class="form-control" id="tourn-max-participants" min="2" placeholder="Sem limite" oninput="window._updateAutoCloseVisibility(); window._recalcDuration()">
                 </div>
                 <div class="form-group full-width">
-                  <label class="form-label">Modo de Inscrição</label>
-                  <select class="form-control" id="select-inscricao" onchange="window._onInscricaoChange()">
+                  <label class="form-label">Tipo de Jogo</label>
+                  <div id="game-type-buttons" style="display:flex;gap:8px;">
+                    <button type="button" id="btn-tipo-simples" class="game-type-btn" onclick="window._toggleGameType('simples')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">Simples</button>
+                    <button type="button" id="btn-tipo-duplas" class="game-type-btn game-type-active" onclick="window._toggleGameType('duplas')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">Duplas</button>
+                  </div>
+                  <small class="text-muted" style="display:block;margin-top:4px;">Selecione um ou ambos. Se ambos, o torneio terá chaves paralelas.</small>
+                  <!-- Hidden fields for backward compat -->
+                  <select class="form-control" id="select-inscricao" style="display:none;">
                     <option value="individual">Individual</option>
                     <option value="time">Apenas Times</option>
                     <option value="misto">Misto (Individual e Times)</option>
                   </select>
-                </div>
-                <div class="form-group" id="team-size-container" style="min-width:70px;max-width:90px;">
-                  <label class="form-label">Por Time</label>
-                  <input type="number" class="form-control" id="tourn-team-size" min="1" max="11" value="2" style="text-align:center;">
+                  <input type="hidden" id="tourn-team-size" value="2">
+                  <input type="hidden" id="tourn-game-types" value="duplas">
                 </div>
               </div>
 
@@ -459,18 +461,17 @@ function setupCreateTournamentModal() {
 
               <!-- Classificação -->
               <div id="elim-settings" style="display:none; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Classificação</p>
-                <div class="form-group mb-2">
-                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="elim-third-place" checked style="width:18px;height:18px;">
-                    <span style="font-weight:bold; color:var(--text-color);">Disputa de 3º e 4º lugar</span>
-                  </label>
-                </div>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Classificação Final</p>
+                <input type="hidden" id="elim-third-place" value="always">
                 <div class="form-group">
-                  <label class="form-label">Classificação final</label>
-                  <select class="form-control" id="elim-ranking-type">
-                    <option value="individual">Individual — cada participante recebe uma colocação específica</option>
-                    <option value="blocks">Em blocos — eliminados na mesma fase compartilham a colocação</option>
+                  <div id="ranking-type-buttons" style="display:flex;gap:8px;">
+                    <button type="button" class="ranking-type-btn ranking-type-active" data-value="individual" onclick="window._selectRankingType('individual')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #f87171;background:rgba(248,113,113,0.12);color:#fca5a5;font-weight:600;text-align:center;">Personalizado</button>
+                    <button type="button" class="ranking-type-btn" data-value="blocks" onclick="window._selectRankingType('blocks')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Em Blocos</button>
+                  </div>
+                  <small class="text-muted" style="display:block;margin-top:6px;">Personalizado: cada participante recebe colocação específica. Em blocos: eliminados na mesma fase compartilham a colocação.</small>
+                  <select class="form-control" id="elim-ranking-type" style="display:none;">
+                    <option value="individual">Personalizado</option>
+                    <option value="blocks">Em blocos</option>
                   </select>
                 </div>
               </div>
@@ -625,9 +626,113 @@ function setupCreateTournamentModal() {
   }
 
   const _sportTeamDefaults = {
-    'Beach Tennis': 2, 'Futebol': 5, 'Magic / TCG': 1, 'Tênis': 1,
-    'Vôlei': 6, 'Xadrez': 1, 'Dominó': 2, 'Padel': 2, 'Pickleball': 2,
-    'Tênis de Mesa': 1, 'Truco': 2, 'Outro': 2
+    'Beach Tennis': 2, 'Padel': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1
+  };
+
+  // ── Sport Button Selection ──
+  window._selectSport = function(btn) {
+    // Deselect all sport buttons
+    var btns = document.querySelectorAll('#sport-buttons .sport-btn');
+    btns.forEach(function(b) {
+      b.classList.remove('sport-btn-active');
+      b.style.border = '2px solid rgba(255,255,255,0.18)';
+      b.style.background = 'rgba(255,255,255,0.06)';
+      b.style.color = 'var(--text-main)';
+    });
+    // Select clicked
+    btn.classList.add('sport-btn-active');
+    btn.style.border = '2px solid #fbbf24';
+    btn.style.background = 'rgba(251,191,36,0.15)';
+    btn.style.color = '#fbbf24';
+    // Sync hidden select
+    var sel = document.getElementById('select-sport');
+    if (sel) {
+      var val = btn.getAttribute('data-sport');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text === val || sel.options[i].value === val) { sel.selectedIndex = i; break; }
+      }
+    }
+    window._onSportChange();
+  };
+
+  // ── Game Type (Simples/Duplas) Toggle ──
+  window._toggleGameType = function(type) {
+    var btnS = document.getElementById('btn-tipo-simples');
+    var btnD = document.getElementById('btn-tipo-duplas');
+    if (!btnS || !btnD) return;
+
+    // Toggle the clicked button
+    if (type === 'simples') {
+      var isActive = btnS.classList.contains('game-type-active');
+      if (isActive) {
+        // Can't deselect if it's the only one selected
+        if (!btnD.classList.contains('game-type-active')) return;
+        btnS.classList.remove('game-type-active');
+        btnS.style.border = '2px solid rgba(255,255,255,0.18)';
+        btnS.style.background = 'rgba(255,255,255,0.06)';
+        btnS.style.color = 'var(--text-main)';
+      } else {
+        btnS.classList.add('game-type-active');
+        btnS.style.border = '2px solid #3b82f6';
+        btnS.style.background = 'rgba(59,130,246,0.15)';
+        btnS.style.color = '#60a5fa';
+      }
+    } else {
+      var isActiveD = btnD.classList.contains('game-type-active');
+      if (isActiveD) {
+        if (!btnS.classList.contains('game-type-active')) return;
+        btnD.classList.remove('game-type-active');
+        btnD.style.border = '2px solid rgba(255,255,255,0.18)';
+        btnD.style.background = 'rgba(255,255,255,0.06)';
+        btnD.style.color = 'var(--text-main)';
+      } else {
+        btnD.classList.add('game-type-active');
+        btnD.style.border = '2px solid #3b82f6';
+        btnD.style.background = 'rgba(59,130,246,0.15)';
+        btnD.style.color = '#60a5fa';
+      }
+    }
+
+    // Update hidden fields
+    var simplesOn = btnS.classList.contains('game-type-active');
+    var duplasOn = btnD.classList.contains('game-type-active');
+    var gameTypesField = document.getElementById('tourn-game-types');
+    var teamSizeField = document.getElementById('tourn-team-size');
+    var inscricaoField = document.getElementById('select-inscricao');
+
+    if (simplesOn && duplasOn) {
+      if (gameTypesField) gameTypesField.value = 'simples,duplas';
+      if (teamSizeField) teamSizeField.value = '2';
+      if (inscricaoField) inscricaoField.value = 'misto';
+    } else if (duplasOn) {
+      if (gameTypesField) gameTypesField.value = 'duplas';
+      if (teamSizeField) teamSizeField.value = '2';
+      if (inscricaoField) inscricaoField.value = 'time';
+    } else {
+      if (gameTypesField) gameTypesField.value = 'simples';
+      if (teamSizeField) teamSizeField.value = '1';
+      if (inscricaoField) inscricaoField.value = 'individual';
+    }
+  };
+
+  // ── Ranking Type Selection ──
+  window._selectRankingType = function(value) {
+    var btns = document.querySelectorAll('#ranking-type-buttons .ranking-type-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('ranking-type-active');
+        b.style.border = '2px solid #f87171';
+        b.style.background = 'rgba(248,113,113,0.12)';
+        b.style.color = '#fca5a5';
+      } else {
+        b.classList.remove('ranking-type-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+      }
+    });
+    var sel = document.getElementById('elim-ranking-type');
+    if (sel) sel.value = value;
   };
 
   // ── Logo Generator ──
@@ -878,7 +983,34 @@ function setupCreateTournamentModal() {
       teamSizeEl.value = defaultSize;
     }
 
-    // No longer auto-setting enrollment mode — it's independent from team size
+    // Set default game type based on sport
+    var btnS = document.getElementById('btn-tipo-simples');
+    var btnD = document.getElementById('btn-tipo-duplas');
+    if (btnS && btnD) {
+      if (defaultSize === 1) {
+        // Solo sport: default Simples on, Duplas off
+        btnS.classList.add('game-type-active');
+        btnS.style.border = '2px solid #3b82f6';
+        btnS.style.background = 'rgba(59,130,246,0.15)';
+        btnS.style.color = '#60a5fa';
+        btnD.classList.remove('game-type-active');
+        btnD.style.border = '2px solid rgba(255,255,255,0.18)';
+        btnD.style.background = 'rgba(255,255,255,0.06)';
+        btnD.style.color = 'var(--text-main)';
+      } else {
+        // Doubles sport: default Duplas on, Simples off
+        btnD.classList.add('game-type-active');
+        btnD.style.border = '2px solid #3b82f6';
+        btnD.style.background = 'rgba(59,130,246,0.15)';
+        btnD.style.color = '#60a5fa';
+        btnS.classList.remove('game-type-active');
+        btnS.style.border = '2px solid rgba(255,255,255,0.18)';
+        btnS.style.background = 'rgba(255,255,255,0.06)';
+        btnS.style.color = 'var(--text-main)';
+      }
+      // Update hidden fields
+      window._toggleGameType(defaultSize === 1 ? 'simples' : 'duplas');
+    }
   };
 
   window._onFormatoChange = function () {
@@ -1966,7 +2098,49 @@ function setupCreateTournamentModal() {
     document.getElementById('tourn-end-time').value = endT;
     document.getElementById('select-inscricao').value = t.enrollmentMode || 'individual';
     if (t.teamSize) document.getElementById('tourn-team-size').value = t.teamSize;
-    window._onInscricaoChange();
+
+    // Restore game types (Simples/Duplas)
+    var _gt = t.gameTypes || '';
+    var _btnS = document.getElementById('btn-tipo-simples');
+    var _btnD = document.getElementById('btn-tipo-duplas');
+    if (_btnS && _btnD) {
+      var hasSim = _gt.indexOf('simples') !== -1;
+      var hasDup = _gt.indexOf('duplas') !== -1;
+      // Fallback from legacy teamSize
+      if (!hasSim && !hasDup) {
+        hasDup = parseInt(t.teamSize) >= 2;
+        hasSim = parseInt(t.teamSize) <= 1;
+      }
+      if (hasSim) { _btnS.classList.add('game-type-active'); _btnS.style.border='2px solid #3b82f6'; _btnS.style.background='rgba(59,130,246,0.15)'; _btnS.style.color='#60a5fa'; }
+      else { _btnS.classList.remove('game-type-active'); _btnS.style.border='2px solid rgba(255,255,255,0.18)'; _btnS.style.background='rgba(255,255,255,0.06)'; _btnS.style.color='var(--text-main)'; }
+      if (hasDup) { _btnD.classList.add('game-type-active'); _btnD.style.border='2px solid #3b82f6'; _btnD.style.background='rgba(59,130,246,0.15)'; _btnD.style.color='#60a5fa'; }
+      else { _btnD.classList.remove('game-type-active'); _btnD.style.border='2px solid rgba(255,255,255,0.18)'; _btnD.style.background='rgba(255,255,255,0.06)'; _btnD.style.color='var(--text-main)'; }
+      var gtField = document.getElementById('tourn-game-types');
+      if (gtField) gtField.value = _gt || (hasSim && hasDup ? 'simples,duplas' : hasDup ? 'duplas' : 'simples');
+    }
+
+    // Restore sport button
+    var _sportBtns = document.querySelectorAll('#sport-buttons .sport-btn');
+    _sportBtns.forEach(function(sb) {
+      var sportText = sb.getAttribute('data-sport') || '';
+      var sportCleanBtn = sportText.replace(/^[^\w\u00C0-\u024F]+/u, '').trim();
+      if (sportCleanBtn === (t.sport || '').replace(/^[^\w\u00C0-\u024F]+/u, '').trim()) {
+        sb.classList.add('sport-btn-active'); sb.style.border='2px solid #fbbf24'; sb.style.background='rgba(251,191,36,0.15)'; sb.style.color='#fbbf24';
+      } else {
+        sb.classList.remove('sport-btn-active'); sb.style.border='2px solid rgba(255,255,255,0.18)'; sb.style.background='rgba(255,255,255,0.06)'; sb.style.color='var(--text-main)';
+      }
+    });
+
+    // Restore ranking type button
+    var _rkType = t.rankingType || 'individual';
+    var _rkBtns = document.querySelectorAll('#ranking-type-buttons .ranking-type-btn');
+    _rkBtns.forEach(function(rb) {
+      if (rb.getAttribute('data-value') === _rkType) {
+        rb.classList.add('ranking-type-active'); rb.style.border='2px solid #f87171'; rb.style.background='rgba(248,113,113,0.12)'; rb.style.color='#fca5a5';
+      } else {
+        rb.classList.remove('ranking-type-active'); rb.style.border='2px solid rgba(255,255,255,0.18)'; rb.style.background='rgba(255,255,255,0.06)'; rb.style.color='var(--text-main)';
+      }
+    });
     document.getElementById('tourn-max-participants').value = t.maxParticipants || '';
     document.getElementById('tourn-auto-close').checked = !!t.autoCloseOnFull;
     document.getElementById('tourn-public').checked = t.isPublic !== false;
@@ -2216,6 +2390,8 @@ function setupCreateTournamentModal() {
           registrationLimit: regDateVal,
           enrollmentMode: enrollmentVal,
           teamSize: teamSizeVal,
+          gameTypes: (document.getElementById('tourn-game-types') || {}).value || 'duplas',
+          thirdPlace: true,
           maxParticipants: maxPartsVal,
           autoCloseOnFull: autoCloseVal,
           resultEntry: resultEntryVal,

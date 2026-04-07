@@ -151,8 +151,17 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Verificação de potência de 2 para eliminatórias ──────────────
+    // ── Verificação de número ímpar (formatos não-eliminatórios) ──────
     const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
+    if (!isElim && !t.oddResolution && typeof window.checkOddEntries === 'function') {
+        const oddInfo = window.checkOddEntries(t);
+        if (oddInfo.isOdd) {
+            window.showOddEntriesPanel(tId);
+            return;
+        }
+    }
+
+    // ── Verificação de potência de 2 para eliminatórias ──────────────
     if (isElim && !t.p2Resolution) {
         const info = window.checkPowerOf2(t);
         if (info.count < 2) {
