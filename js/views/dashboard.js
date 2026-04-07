@@ -1,5 +1,5 @@
 // ─── Organizer Analytics Section ────────────────────────────────────────────
-function _buildAnalyticsSection(organizados) {
+window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
   if (!window.AppStore || !window.AppStore.currentUser) return '';
   if (!organizados || organizados.length < 2) return '';
   if (window.AppStore.viewMode !== 'organizer') return '';
@@ -103,7 +103,7 @@ function _buildAnalyticsSection(organizados) {
     '</div>' +
     '</details>' +
   '</div>';
-}
+};
 
 function renderDashboard(container) {
   const visible = window.AppStore.getVisibleTournaments();
