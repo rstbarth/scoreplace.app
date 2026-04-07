@@ -1,11 +1,11 @@
 // ── Game Set Match Scoring Defaults by Sport ──
 window._sportScoringDefaults = {
-  'Beach Tennis': { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
-  'Tênis':        { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true },
-  'Padel':        { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
-  'Pickleball':   { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
+  'Beach Tennis':  { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
+  'Pickleball':    { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
+  'Tênis':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true },
   'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
-  '_default':     { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false }
+  'Padel':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
+  '_default':      { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false }
 };
 
 function setupCreateTournamentModal() {
@@ -35,17 +35,17 @@ function setupCreateTournamentModal() {
                   <!-- Hidden select for backward compatibility -->
                   <select class="form-control" id="select-sport" onchange="window._onSportChange()" style="display:none;">
                     <option>🎾 Beach Tennis</option>
-                    <option>🏸 Padel</option>
                     <option>🥒 Pickleball</option>
                     <option>🎾 Tênis</option>
                     <option>🏓 Tênis de Mesa</option>
+                    <option>🏸 Padel</option>
                   </select>
                   <div id="sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button type="button" class="sport-btn sport-btn-active" data-sport="🎾 Beach Tennis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
-                    <button type="button" class="sport-btn" data-sport="🏸 Padel" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
                     <button type="button" class="sport-btn" data-sport="🥒 Pickleball" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🥒 Pickleball</button>
                     <button type="button" class="sport-btn" data-sport="🎾 Tênis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🎾 Tênis</button>
                     <button type="button" class="sport-btn" data-sport="🏓 Tênis de Mesa" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏓 Tênis de Mesa</button>
+                    <button type="button" class="sport-btn" data-sport="🏸 Padel" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
                   </div>
                 </div>
               </div>
@@ -88,13 +88,22 @@ function setupCreateTournamentModal() {
               <!-- Formato -->
               <div class="form-group mb-3">
                 <label class="form-label">Formato do Torneio</label>
-                <select class="form-control" id="select-formato" onchange="window._onFormatoChange()">
+                <!-- Hidden select for backward compatibility -->
+                <select class="form-control" id="select-formato" onchange="window._onFormatoChange()" style="display:none;">
                   <option value="elim_simples">Eliminatórias Simples — eliminação na primeira derrota</option>
                   <option value="elim_dupla">Dupla Eliminatória — eliminação na segunda derrota</option>
                   <option value="grupos_mata">Fase de Grupos + Eliminatórias — estilo Copa do Mundo</option>
                   <option value="suico">Suíço Clássico — pontos corridos com emparelhamentos por pontos</option>
                   <option value="liga">Liga — temporada contínua com classificação por pontos</option>
                 </select>
+                <div id="formato-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" class="formato-btn formato-btn-active" data-value="elim_simples" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;">Eliminatórias</button>
+                  <button type="button" class="formato-btn" data-value="elim_dupla" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Dupla Eliminatória</button>
+                  <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Grupos + Mata</button>
+                  <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Suíço</button>
+                  <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Liga</button>
+                </div>
+                <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">Eliminação na primeira derrota.</small>
               </div>
 
               <!-- Público/Privado -->
@@ -626,7 +635,7 @@ function setupCreateTournamentModal() {
   }
 
   const _sportTeamDefaults = {
-    'Beach Tennis': 2, 'Padel': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1
+    'Beach Tennis': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1, 'Padel': 2
   };
 
   // ── Sport Button Selection ──
@@ -713,6 +722,41 @@ function setupCreateTournamentModal() {
       if (teamSizeField) teamSizeField.value = '1';
       if (inscricaoField) inscricaoField.value = 'individual';
     }
+  };
+
+  // ── Formato Button Selection ──
+  var _formatoDescs = {
+    'elim_simples': 'Eliminação na primeira derrota.',
+    'elim_dupla': 'Eliminação na segunda derrota (chave de perdedores).',
+    'grupos_mata': 'Fase de grupos seguida de eliminatórias (estilo Copa do Mundo).',
+    'suico': 'Pontos corridos com emparelhamentos baseados em pontuação.',
+    'liga': 'Temporada contínua com classificação por pontos.'
+  };
+  window._selectFormato = function(btn) {
+    var value = btn.getAttribute('data-value');
+    var btns = document.querySelectorAll('#formato-buttons .formato-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('formato-btn-active');
+        b.style.border = '2px solid #3b82f6';
+        b.style.background = 'rgba(59,130,246,0.15)';
+        b.style.color = '#60a5fa';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('formato-btn-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '500';
+      }
+    });
+    // Sync hidden select
+    var sel = document.getElementById('select-formato');
+    if (sel) { sel.value = value; }
+    // Update description
+    var descEl = document.getElementById('formato-desc');
+    if (descEl) descEl.textContent = _formatoDescs[value] || '';
+    window._onFormatoChange();
   };
 
   // ── Ranking Type Selection ──
@@ -802,13 +846,11 @@ function setupCreateTournamentModal() {
 
     // Sport-themed color palettes (more variety)
     var sportPalettes = {
-      'Beach Tennis': [['#f59e0b', '#d97706'], ['#f97316', '#ea580c'], ['#eab308', '#ca8a04']],
-      'Futebol': [['#15803d', '#22c55e'], ['#166534', '#4ade80'], ['#047857', '#34d399']],
-      'Vôlei': [['#0369a1', '#38bdf8'], ['#0284c7', '#7dd3fc'], ['#1e40af', '#60a5fa']],
-      'Xadrez': [['#1e293b', '#475569'], ['#27272a', '#71717a'], ['#1c1917', '#78716c']],
-      'Padel': [['#4338ca', '#6366f1'], ['#4f46e5', '#818cf8'], ['#3730a3', '#a5b4fc']],
-      'Pickleball': [['#15803d', '#86efac'], ['#166534', '#6ee7b7'], ['#047857', '#a7f3d0']],
+      'Beach Tennis':  [['#f59e0b', '#d97706'], ['#f97316', '#ea580c'], ['#eab308', '#ca8a04']],
+      'Pickleball':    [['#15803d', '#86efac'], ['#166534', '#6ee7b7'], ['#047857', '#a7f3d0']],
+      'Tênis':         [['#0369a1', '#38bdf8'], ['#0284c7', '#7dd3fc'], ['#1e40af', '#60a5fa']],
       'Tênis de Mesa': [['#b91c1c', '#ef4444'], ['#dc2626', '#f87171'], ['#991b1b', '#fca5a5']],
+      'Padel':         [['#4338ca', '#6366f1'], ['#4f46e5', '#818cf8'], ['#3730a3', '#a5b4fc']],
     };
     var palettes = sportPalettes[sportName] || [
       ['#4338ca', '#6366f1'], ['#0f766e', '#14b8a6'], ['#b91c1c', '#ef4444'],
@@ -2080,6 +2122,25 @@ function setupCreateTournamentModal() {
     else if (t.format === 'Dupla Eliminatória') fmtValue = 'elim_dupla';
     else if (t.format === 'Fase de Grupos + Eliminatórias') fmtValue = 'grupos_mata';
     document.getElementById('select-formato').value = fmtValue;
+    // Sync formato buttons with loaded value
+    var fmtBtns = document.querySelectorAll('#formato-buttons .formato-btn');
+    fmtBtns.forEach(function(b) {
+      if (b.getAttribute('data-value') === fmtValue) {
+        b.classList.add('formato-btn-active');
+        b.style.border = '2px solid #3b82f6';
+        b.style.background = 'rgba(59,130,246,0.15)';
+        b.style.color = '#60a5fa';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('formato-btn-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '500';
+      }
+    });
+    var fmtDescEl = document.getElementById('formato-desc');
+    if (fmtDescEl && typeof _formatoDescs !== 'undefined') fmtDescEl.textContent = _formatoDescs[fmtValue] || '';
 
     // Split stored datetime values (YYYY-MM-DD or YYYY-MM-DDTHH:MM) into date + time fields
     const _splitDT = (v) => {

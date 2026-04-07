@@ -2,6 +2,463 @@
 
 (function() {
 
+// ============ UNIFIED RESOLUTION PANEL SYSTEM ============
+
+window._diagnoseAll = function(t) {
+    const enrMode = t.enrollmentMode || t.enrollment || 'individual';
+    let teamSize = parseInt(t.teamSize) || 1;
+    if ((enrMode === 'time' || enrMode === 'misto') && teamSize < 2) teamSize = 2;
+
+    const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+
+    // Count effective teams and individuals
+    let preFormedTeams = 0;
+    let individuals = 0;
+    const incompleteTeams = [];
+
+    arr.forEach(function(p, idx) {
+        const pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        if (pName.includes(' / ') || pName.includes('/')) {
+            const members = pName.split('/').map(m => m.trim()).filter(m => m.length > 0);
+            if (members.length < teamSize) {
+                incompleteTeams.push({ index: idx, name: pName, members: members, missing: teamSize - members.length });
+                preFormedTeams++;
+            } else {
+                preFormedTeams++;
+            }
+        } else {
+            individuals++;
+        }
+    });
+
+    // Scenario A: Remainder (individuals that can't form teams)
+    const remainder = individuals % teamSize;
+    const completeTeamsFromIndividuals = Math.floor(individuals / teamSize);
+    const effectiveTeams = preFormedTeams + completeTeamsFromIndividuals;
+
+    // Scenario B+C: Power of 2 check
+    const isPowerOf2 = effectiveTeams > 0 && (effectiveTeams & (effectiveTeams - 1)) === 0;
+    let loP2 = 1;
+    while (loP2 * 2 <= effectiveTeams) loP2 *= 2;
+    const hiP2 = loP2 * 2;
+
+    const excess = effectiveTeams - loP2;
+    const missing = hiP2 - effectiveTeams;
+    const isOdd = effectiveTeams > 0 && effectiveTeams % 2 !== 0;
+
+    // Participant equivalents
+    const excessParticipants = excess * teamSize;
+    const missingParticipants = missing * teamSize;
+    const remainderParticipants = remainder;
+
+    return {
+        hasIssues: incompleteTeams.length > 0 || remainder > 0 || isOdd || !isPowerOf2,
+        teamSize: teamSize,
+        totalRawParticipants: arr.length,
+        individuals: individuals,
+        preFormedTeams: preFormedTeams,
+        effectiveTeams: effectiveTeams,
+        incompleteTeams: incompleteTeams,
+        remainder: remainder,
+        isOdd: isOdd,
+        isPowerOf2: isPowerOf2,
+        loP2: loP2,
+        hiP2: hiP2,
+        excess: excess,
+        missing: missing,
+        isTeam: teamSize > 1,
+        excessParticipants: excessParticipants,
+        missingParticipants: missingParticipants,
+        remainderParticipants: remainderParticipants
+    };
+};
+
+window.showUnifiedResolutionPanel = function(tId) {
+    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    if (!t) return;
+
+    // Suspend enrollment while decision panel is open
+    if (t.status !== 'closed') {
+        t.status = 'closed';
+        t._suspendedByPanel = true;
+        window.AppStore.sync();
+    }
+
+    const info = window._diagnoseAll(t);
+
+    // If no issues, proceed directly to draw generation
+    if (!info.hasIssues) {
+        // Auto-restore enrollment
+        if (t._suspendedByPanel) {
+            t.status = 'open';
+            delete t._suspendedByPanel;
+            window.AppStore.sync();
+        }
+        window.showFinalReviewPanel(tId);
+        return;
+    }
+
+    // Remove any existing panels
+    const existing = document.getElementById('unified-resolution-panel');
+    if (existing) existing.remove();
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'unified-resolution-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+
+    // Build issues description
+    let issuesList = [];
+    if (info.incompleteTeams.length > 0) {
+        issuesList.push('Times incompletos: ' + info.incompleteTeams.length);
+    }
+    if (info.remainder > 0) {
+        issuesList.push('Resto de ' + info.remainder + ' ' + (info.isTeam ? 'participantes' : 'inscrito(s)'));
+    }
+    if (info.isOdd && info.remainder === 0) {
+        issuesList.push('Número ímpar de ' + (info.isTeam ? 'times' : 'inscritos'));
+    }
+    if (!info.isPowerOf2 && info.remainder === 0 && !info.isOdd) {
+        issuesList.push('Não é potência de 2');
+    }
+
+    const issuesText = issuesList.join(', ');
+    const tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    // State for excluded options
+    if (!window._unifiedExcludedKeys) {
+        window._unifiedExcludedKeys = [];
+    }
+
+    // Render function (allows re-rendering on exclude)
+    window._renderUnifiedOptions = function(excludedKeys) {
+        excludedKeys = excludedKeys || [];
+
+        // Define all possible options
+        const allOptions = [
+            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aumentar número de inscritos para resolver pendências e potência de 2.' },
+            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: 'BYEs automáticos para próxima potência de 2.' },
+            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: 'Rodada de repescagem para resolver discrepâncias.' },
+            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: 'Excluir excedentes para lista de espera.' },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover participantes para potência inferior exata.' },
+            { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Alternar para formato suíço (resolve ambos os problemas).' },
+            { key: 'dissolve', icon: '🧩', title: 'Ajuste Manual', desc: 'Reorganizar times manualmente (arrastar e soltar).' },
+            { key: 'poll', icon: '🗳️', title: 'Enquete', desc: 'Deixar que os participantes votem na solução.' }
+        ];
+
+        // Filter options based on context
+        let activeOptions = allOptions.filter(function(o) {
+            return excludedKeys.indexOf(o.key) === -1;
+        });
+
+        // Nash scoring: fairness 45%, inclusion 35%, effort 20%
+        const wF = 0.45, wI = 0.35, wE = 0.20;
+        const payoffs = {
+            reopen:    { f: 10, i: 10, e: 3 },
+            bye:       { f: 6,  i: 10, e: 9 },
+            playin:    { f: 8,  i: 10, e: 6 },
+            standby:   { f: 6,  i: 4,  e: 9 },
+            exclusion: { f: 3,  i: 2,  e: 10 },
+            swiss:     { f: 9,  i: 10, e: 5 },
+            dissolve:  { f: 7,  i: 7,  e: 4 },
+            poll:      { f: 10, i: 10, e: 2 }
+        };
+
+        // Boost effort for reopen if missing is small
+        if ((info.missing + info.remainder) <= 2) {
+            payoffs.reopen.e = 8;
+        }
+
+        // Calculate scores
+        let scores = {};
+        let maxScore = 0, minScore = 10;
+        activeOptions.forEach(function(o) {
+            if (!payoffs[o.key]) return;
+            const p = payoffs[o.key];
+            scores[o.key] = p.f * wF + p.i * wI + p.e * wE;
+            if (scores[o.key] > maxScore) maxScore = scores[o.key];
+            if (scores[o.key] < minScore) minScore = scores[o.key];
+        });
+
+        const range = maxScore - minScore || 1;
+        const norm = {};
+        activeOptions.forEach(function(o) {
+            if (scores[o.key] !== undefined) {
+                norm[o.key] = (scores[o.key] - minScore) / range;
+            }
+        });
+
+        // Color function: continuous green→red gradient
+        function nashColorContinuous(n) {
+            const hue = Math.round(n * 142);
+            const sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
+            const bgAlpha = (0.10 + n * 0.10).toFixed(2);
+            const borderAlpha = (0.30 + n * 0.25).toFixed(2);
+            const glowAlpha = (0.05 + n * 0.20).toFixed(2);
+            return {
+                bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgAlpha + ')',
+                border: 'hsla(' + hue + ',' + sat + '%,55%,' + borderAlpha + ')',
+                glow: parseFloat(glowAlpha) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + glowAlpha + ')' : 'none',
+                pill: 'hsl(' + hue + ',' + sat + '%,65%)',
+                pillBg: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
+            };
+        }
+
+        // Find best (excluding poll)
+        let bestKey = '', bestVal = -1;
+        activeOptions.forEach(function(o) {
+            if (o.key !== 'poll' && scores[o.key] > bestVal) {
+                bestVal = scores[o.key];
+                bestKey = o.key;
+            }
+        });
+
+        let html = '';
+        activeOptions.forEach(function(o) {
+            const n = norm[o.key] !== undefined ? norm[o.key] : 0;
+            const c = nashColorContinuous(n);
+            const pct = Math.round(n * 100);
+            const isBest = o.key === bestKey;
+
+            const badgeHtml = isBest ? '<div style="position:absolute;top:10px;right:40px;background:rgba(34,197,94,0.15);color:#4ade80;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</div>' : '';
+            const pillHtml = '<span style="position:absolute;bottom:10px;right:12px;padding:3px 10px;border-radius:8px;font-size:0.65rem;font-weight:800;background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
+            const style = 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
+
+            const canExclude = activeOptions.length > 2;
+            const excludeBtn = canExclude ? '<button style="position:absolute;top:8px;right:' + (isBest ? '110px' : '8px') + ';width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#94a3b8;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2;" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\';this.style.borderColor=\'rgba(239,68,68,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\';this.style.color=\'#94a3b8\';this.style.borderColor=\'rgba(255,255,255,0.15)\'">✕</button>' : '';
+
+            html += '<button style="position:relative;' + style + 'border-radius:18px;padding:1.8rem 1.5rem 2.2rem;cursor:pointer;transition:all 0.3s;text-align:left;color:#e2e8f0;display:flex;gap:16px;align-items:flex-start;overflow:hidden;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.15)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'" onclick="window._handleUnifiedOption(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
+                badgeHtml + excludeBtn +
+                '<span style="font-size:2rem;">' + o.icon + '</span>' +
+                '<div style="flex:1;padding-right:' + (canExclude ? '32px' : '0') + ';">' +
+                '<h4 style="margin:0 0 4px;font-weight:800;font-size:1.05rem;color:#fff;">' + o.title + '</h4>' +
+                '<p style="margin:0;font-size:0.8rem;color:#94a3b8;line-height:1.5;">' + o.desc + '</p>' +
+                '</div>' +
+                pillHtml +
+            '</button>';
+        });
+
+        // Show excluded options
+        const excludedOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) !== -1; });
+        if (excludedOptions.length > 0) {
+            html += '<div style="grid-column:span 2;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
+            html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">Excluídas:</span>';
+            excludedOptions.forEach(function(o) {
+                html += '<button onclick="event.stopPropagation();window._restoreUnifiedOption(\'' + o.key + '\')" style="background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:4px 12px;color:#64748b;font-size:0.72rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.color=\'#94a3b8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.color=\'#64748b\'">' + o.icon + ' ' + o.title + ' ↩</button>';
+            });
+            html += '</div>';
+        }
+
+        return html;
+    };
+
+    window._excludeUnifiedOption = function(key) {
+        if (!window._unifiedExcludedKeys) window._unifiedExcludedKeys = [];
+        if (window._unifiedExcludedKeys.indexOf(key) === -1) {
+            window._unifiedExcludedKeys.push(key);
+        }
+        const grid = document.getElementById('unified-options-grid');
+        if (grid) grid.innerHTML = window._renderUnifiedOptions(window._unifiedExcludedKeys);
+    };
+
+    window._restoreUnifiedOption = function(key) {
+        if (!window._unifiedExcludedKeys) window._unifiedExcludedKeys = [];
+        window._unifiedExcludedKeys = window._unifiedExcludedKeys.filter(function(k) { return k !== key; });
+        const grid = document.getElementById('unified-options-grid');
+        if (grid) grid.innerHTML = window._renderUnifiedOptions(window._unifiedExcludedKeys);
+    };
+
+    window._handleUnifiedOption = function(tId, option) {
+        const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+        if (!t) return;
+
+        // Remove panel
+        const panel = document.getElementById('unified-resolution-panel');
+        if (panel) panel.remove();
+
+        // Handle option
+        if (option === 'reopen') {
+            window._showReopenPanel(tId, info);
+        } else if (option === 'bye') {
+            window.showResolutionSimulationPanel(tId, 'bye');
+        } else if (option === 'playin') {
+            window.showResolutionSimulationPanel(tId, 'playin');
+        } else if (option === 'standby') {
+            window.showResolutionSimulationPanel(tId, 'standby');
+        } else if (option === 'swiss') {
+            window.showResolutionSimulationPanel(tId, 'swiss');
+        } else if (option === 'exclusion') {
+            window.showAlertDialog('Confirmar Exclusão', 'Remover os últimos ' + info.excess + (info.isTeam ? ' times' : ' inscritos') + ' para chegar em ' + info.loP2 + '?', function() {
+                const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+                if (!t) return;
+
+                // Restore enrollment status
+                if (t._suspendedByPanel) {
+                    t.status = 'open';
+                    delete t._suspendedByPanel;
+                }
+
+                // Remove excess participants
+                const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+                let effective = [];
+                arr.forEach(function(p) {
+                    const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+                    if (name.includes(' / ') || name.includes('/')) {
+                        effective.push(p);
+                    } else {
+                        effective.push(p);
+                    }
+                });
+
+                // Keep first loP2 teams
+                let kept = 0, removed = 0;
+                const newParticipants = [];
+                for (let i = 0; i < arr.length && kept < info.loP2; i++) {
+                    const p = arr[i];
+                    const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+                    const isTeam = name.includes(' / ') || name.includes('/');
+
+                    if (isTeam || (info.isTeam ? i % info.teamSize < info.loP2 * info.teamSize % info.teamSize : true)) {
+                        newParticipants.push(p);
+                        if (isTeam || i % info.teamSize === info.teamSize - 1) kept++;
+                    } else {
+                        removed++;
+                    }
+                }
+
+                t.participants = newParticipants;
+                window.AppStore.sync();
+                window.showFinalReviewPanel(tId);
+            });
+        } else if (option === 'dissolve') {
+            window.showDissolveTeamsPanel(tId);
+        } else if (option === 'poll') {
+            window._showPollCreationDialog(tId, 'unified', null);
+        }
+    };
+
+    window._cancelUnifiedPanel = function(tId) {
+        const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+        if (!t) return;
+
+        // Restore enrollment
+        if (t._suspendedByPanel) {
+            t.status = 'open';
+            delete t._suspendedByPanel;
+            window.AppStore.sync();
+        }
+
+        // Close panel
+        const panel = document.getElementById('unified-resolution-panel');
+        if (panel) panel.remove();
+    };
+
+    // Build the panel HTML
+    let gaugeHtml = '';
+    if (info.isTeam) {
+        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
+            '<div style="text-align:right;">' +
+            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
+            '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</span>' +
+            '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">Times (' + (info.loP2 * info.teamSize) + ' participantes)</span>' +
+            '</div>' +
+            '</div>' +
+            '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);"><div style="text-align:center;position:relative;z-index:2;"><div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;">' + info.effectiveTeams + '</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;">Times Atuais</div></div></div>' +
+            '<div style="text-align:left;">' +
+            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
+            '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</span>' +
+            '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">Times (' + (info.hiP2 * info.teamSize) + ' participantes)</span>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+    } else {
+        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
+            '<div style="text-align:right;">' +
+            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
+            '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</span>' +
+            '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">Inscritos</span>' +
+            '</div>' +
+            '</div>' +
+            '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);"><div style="text-align:center;position:relative;z-index:2;"><div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;">' + info.effectiveTeams + '</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;">Total de Inscritos</div></div></div>' +
+            '<div style="text-align:left;">' +
+            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
+            '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</span>' +
+            '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">Inscritos</span>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:800px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">' +
+        '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">' +
+            '<div style="display:flex;align-items:center;gap:20px;margin-bottom:1.5rem;">' +
+                '<div style="width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(5px);">⚙️</div>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#fef3c7;font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
+                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.95rem;opacity:0.9;">Detectado: ' + issuesText + '</p>' +
+                '</div>' +
+            '</div>' +
+            gaugeHtml +
+        '</div>' +
+        '<style>' +
+            '@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
+            '@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }' +
+        '</style>' +
+        '<div style="padding:2.5rem;">' +
+            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
+            '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
+            '<div id="unified-options-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+                window._renderUnifiedOptions([]) +
+            '</div>' +
+        '</div>' +
+        '<div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
+            '<div style="font-size:0.8rem;color:#64748b;">Escolha uma estratégia para continuar.</div>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>' +
+        '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+};
+
+window._showReopenPanel = function(tId, info) {
+    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    if (!t) return;
+
+    const existing = document.getElementById('reopen-panel');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'reopen-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem 0;';
+
+    const currentLabel = info.isTeam ? 'Times atuais: ' + info.effectiveTeams + ' (' + (info.effectiveTeams * info.teamSize) + ' participantes)' : 'Inscritos atuais: ' + info.effectiveTeams;
+    const needLabel = info.isTeam ? 'Faltam: ' + info.missing + ' times (' + info.missingParticipants + ' participantes)' : 'Faltam: ' + info.missing + ' inscritos';
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:24px;border:1px solid rgba(59,130,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;animation:modalFadeIn 0.3s ease-out;">' +
+        '<div style="background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);padding:1.5rem 2rem;">' +
+            '<div style="display:flex;align-items:center;gap:15px;">' +
+                '<span style="font-size:2.5rem;">↩️</span>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#dbeafe;font-size:1.25rem;font-weight:800;">Reabrir Inscrições</h3>' +
+                    '<p style="margin:4px 0 0;color:#bfdbfe;font-size:0.9rem;">' + currentLabel + '<br>' + needLabel + '</p>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div style="padding:1.5rem 2rem;">' +
+            '<p style="margin:0 0 1rem;font-size:0.85rem;color:#cbd5e1;line-height:1.6;">As inscrições serão reabertas. Quando alcançar ' + info.hiP2 + (info.isTeam ? ' times' : ' inscritos') + ' (ou a próxima potência de 2), volte para sortear.</p>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;width:100%;">Voltar para o Torneio</button>' +
+        '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+};
+
+// ============ END UNIFIED RESOLUTION PANEL ============
+
 window.checkIncompleteTeams = function (t) {
     const enrMode = t.enrollmentMode || t.enrollment || 'individual';
     let teamSize = parseInt(t.teamSize) || 1;
@@ -36,182 +493,8 @@ window.checkIncompleteTeams = function (t) {
 };
 
 window.showIncompleteTeamsPanel = function (tId) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-    if (!t) return;
-    const res = window.checkIncompleteTeams(t);
-    if (!res.hasIssues) {
-        window.showPowerOf2Panel(tId);
-        return;
-    }
-
-    const enrMode2 = t.enrollmentMode || t.enrollment || 'individual';
-    let teamSize = parseInt(t.teamSize) || 1;
-    if ((enrMode2 === 'time' || enrMode2 === 'misto') && teamSize < 2) teamSize = 2;
-    const p2Info = window.checkPowerOf2(t);
-    const canShowBye = p2Info.isPowerOf2;
-
-    const existing = document.getElementById('incomplete-teams-panel');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'incomplete-teams-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem 0;';
-
-    let issuesHtml = '';
-    if (res.incompleteTeams.length > 0) {
-        issuesHtml += `
-            <div style="margin-bottom:1rem;">
-                <h5 style="margin:0 0 8px; color:#f87171; font-size:0.8rem; text-transform:uppercase;">Times Incompletos (${res.incompleteTeams.length})</h5>
-                <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:0.5rem; max-height:120px; overflow-y:auto;">
-                    ${res.incompleteTeams.map(it => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <span style="font-size:0.85rem; font-weight:600; color:#fca5a5;">${window._safeHtml(it.name)}</span>
-                            <span style="font-size:0.75rem; color:#94a3b8;">Faltam ${it.missing}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    if (res.leftoverIndividuals.length > 0) {
-        issuesHtml += `
-            <div>
-                <h5 style="margin:0 0 8px; color:#fbbf24; font-size:0.8rem; text-transform:uppercase;">Jogadores Avulsos (${res.leftoverIndividuals.length})</h5>
-                <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:0.5rem; max-height:120px; overflow-y:auto;">
-                     ${res.leftoverIndividuals.map(li => `
-                        <div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); color:#fde68a; font-size:0.85rem; font-weight:600;">
-                            ${window._safeHtml(li.name)}
-                        </div>
-                     `).join('')}
-                </div>
-                <p style="margin:8px 0 0; color:#fbbf24; font-size:0.7rem; opacity:0.8;">Estes jogadores não formam um time completo de ${teamSize}.</p>
-            </div>
-        `;
-    }
-
-    overlay.innerHTML = `
-        <div style="background:var(--bg-card,#1e293b);width:94%;max-width:700px;border-radius:24px;border:1px solid rgba(239,68,68,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;animation: modalFadeIn 0.3s ease-out;">
-            <div style="background:linear-gradient(135deg,#7f1d1d 0%,#dc2626 100%);padding:1.5rem 2rem;">
-                <div style="display:flex;align-items:center;gap:15px;">
-                    <span style="font-size:2.5rem;">⚠️</span>
-                    <div>
-                        <h3 style="margin:0;color:#fef2f2;font-size:1.25rem;font-weight:800;">Pendências de Jogadores/Times</h3>
-                        <p style="margin:4px 0 0;color:#f87171;font-size:0.9rem;">Existem participantes que não preenchem times completos de ${teamSize}.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div style="padding:1.5rem 2rem;">
-                ${issuesHtml}
-
-                <h4 style="margin:1.5rem 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Como deseja resolver?</h4>
-                <p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho)</p>
-
-                ${(function(){
-                    // Nash scoring for incomplete teams options — continuous green→red gradient
-                    var wF = 0.45, wI = 0.35, wE = 0.20;
-                    var payoffs = {
-                        reopen:   { f: 10, i: 10, e: 3 },
-                        lottery:  { f: 4,  i: 8,  e: 8 },
-                        standby:  { f: 6,  i: 4,  e: 9 },
-                        dissolve: { f: 7,  i: 7,  e: 4 },
-                        poll:     { f: 10, i: 10, e: 2 }
-                    };
-                    var scores = {};
-                    var maxS = 0, minS = 10;
-                    Object.keys(payoffs).forEach(function(k) {
-                        var p = payoffs[k];
-                        scores[k] = p.f * wF + p.i * wI + p.e * wE;
-                        if (scores[k] > maxS) maxS = scores[k];
-                        if (scores[k] < minS) minS = scores[k];
-                    });
-                    var rng = maxS - minS || 1;
-                    var norm = {};
-                    Object.keys(scores).forEach(function(k) { norm[k] = (scores[k] - minS) / rng; });
-                    // Continuous green→red: hue 142 (green) to 0 (red)
-                    function nC(n) {
-                        var hue = Math.round(n * 142);
-                        var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
-                        var bgA = (0.06 + n * 0.08).toFixed(2);
-                        var bdA = (0.20 + n * 0.25).toFixed(2);
-                        var gwA = (n * 0.15).toFixed(2);
-                        return {
-                            bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgA + ')',
-                            bd: 'hsla(' + hue + ',' + sat + '%,55%,' + bdA + ')',
-                            gw: parseFloat(gwA) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + gwA + ')' : 'none',
-                            pc: 'hsl(' + hue + ',' + sat + '%,65%)',
-                            pb: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
-                        };
-                    }
-                    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:14px 14px 2rem;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;'; }
-                    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="position:absolute;bottom:8px;right:10px;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';pointer-events:none;">Nash ' + pct + '%</span>'; }
-                    var bestK = '', bestV = -1;
-                    Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestV) { bestV = scores[k]; bestK = k; } });
-                    var bdg = '<span style="position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>';
-                    var sid = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-                    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-
-                    '<button style="position:relative;' + sty('reopen') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'reopen\')">' +
-                        (bestK === 'reopen' ? bdg : '') +
-                        '<span style="font-size:1.5rem;">↩️</span>' +
-                        '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>' +
-                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Apenas para fechar os times faltantes.</div>' +
-                        '</div>' +
-                        pill('reopen') +
-                    '</button>' +
-
-                    '<button style="position:relative;' + sty('lottery') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'lottery\')">' +
-                        (bestK === 'lottery' ? bdg : '') +
-                        '<span style="font-size:1.5rem;">🎲</span>' +
-                        '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Sorteio de \'Bots\'</div>' +
-                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Preencher vagas com nomes fictícios ou convites.</div>' +
-                        '</div>' +
-                        pill('lottery') +
-                    '</button>' +
-
-                    '<button style="position:relative;' + sty('standby') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'standby\')">' +
-                        (bestK === 'standby' ? bdg : '') +
-                        '<span style="font-size:1.5rem;">⏱️</span>' +
-                        '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Lista de Espera</div>' +
-                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os que sobrarem ficam fora do torneio principal.</div>' +
-                        '</div>' +
-                        pill('standby') +
-                    '</button>' +
-
-                    '<button style="position:relative;' + sty('dissolve') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'dissolve\')">' +
-                        (bestK === 'dissolve' ? bdg : '') +
-                        '<span style="font-size:1.5rem;">🧩</span>' +
-                        '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Ajuste Manual</div>' +
-                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remanejar jogadores entre times (Arrastar e Soltar).</div>' +
-                        '</div>' +
-                        pill('dissolve') +
-                    '</button>' +
-
-                    '<button style="position:relative;' + sty('poll') + 'grid-column:span 2;" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleIncompleteOption(\'' + sid + '\', \'poll\')">' +
-                        '<span style="font-size:1.5rem;">🗳️</span>' +
-                        '<div>' +
-                        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete entre Participantes</div>' +
-                        '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem. Defina um prazo e acompanhe a contagem regressiva.</div>' +
-                        '</div>' +
-                        pill('poll') +
-                    '</button>' +
-
-                    '</div>';
-                })()}
-            </div>
-
-            <div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">
-                <button onclick="document.getElementById('incomplete-teams-panel').remove();" style="background:transparent;color:#94a3b8;border:none;padding:10px 20px;font-weight:600;font-size:0.9rem;cursor:pointer;">Cancelar</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+    // Redirect to unified resolution panel
+    window.showUnifiedResolutionPanel(tId);
 };
 
 
@@ -623,127 +906,8 @@ window.checkOddEntries = function (t) {
 };
 
 window.showOddEntriesPanel = function (tId) {
-    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
-    if (!t) return;
-
-    var oddInfo = window.checkOddEntries(t);
-    if (!oddInfo.isOdd) {
-        // Not odd — continue to next check
-        window.generateDrawFunction(tId);
-        return;
-    }
-
-    var existing = document.getElementById('odd-entries-panel');
-    if (existing) existing.remove();
-
-    var isTeam = oddInfo.teamSize > 1;
-    var label = isTeam ? 'times' : 'inscritos';
-    var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-    // Nash scoring for odd entries options
-    var wF = 0.45, wI = 0.35, wE = 0.20;
-    var payoffs = {
-        reopen:    { f: 10, i: 10, e: 3 },
-        bye_odd:   { f: 7,  i: 10, e: 9 },
-        exclusion: { f: 3,  i: 2,  e: 10 },
-        poll:      { f: 10, i: 10, e: 2 }
-    };
-    var scores = {}, maxS = 0, minS = 10;
-    Object.keys(payoffs).forEach(function(k) {
-        var p = payoffs[k];
-        scores[k] = p.f * wF + p.i * wI + p.e * wE;
-        if (scores[k] > maxS) maxS = scores[k];
-        if (scores[k] < minS) minS = scores[k];
-    });
-    var rng = maxS - minS || 1;
-    var norm = {};
-    Object.keys(scores).forEach(function(k) { norm[k] = (scores[k] - minS) / rng; });
-
-    function nC(n) {
-        var hue = Math.round(n * 142);
-        var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
-        var bgA = (0.06 + n * 0.08).toFixed(2);
-        var bdA = (0.20 + n * 0.25).toFixed(2);
-        var gwA = (n * 0.15).toFixed(2);
-        return {
-            bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgA + ')',
-            bd: 'hsla(' + hue + ',' + sat + '%,55%,' + bdA + ')',
-            gw: parseFloat(gwA) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + gwA + ')' : 'none',
-            pc: 'hsl(' + hue + ',' + sat + '%,65%)',
-            pb: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
-        };
-    }
-    function sty(key) { var c = nC(norm[key]); return 'background:' + c.bg + ';border:1px solid ' + c.bd + ';box-shadow:' + c.gw + ';border-radius:16px;padding:1.25rem 1rem 2.2rem;cursor:pointer;display:flex;gap:14px;align-items:flex-start;transition:all 0.3s;color:#e2e8f0;position:relative;'; }
-    function pill(key) { var c = nC(norm[key]); var pct = Math.round(norm[key] * 100); return '<span style="position:absolute;bottom:8px;right:10px;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pb + ';color:' + c.pc + ';pointer-events:none;">Nash ' + pct + '%</span>'; }
-    var bestK = '', bestV = -1;
-    Object.keys(scores).forEach(function(k) { if (k !== 'poll' && scores[k] > bestV) { bestV = scores[k]; bestK = k; } });
-    var bdg = '<span style="position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>';
-
-    var overlay = document.createElement('div');
-    overlay.id = 'odd-entries-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
-
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:650px;border-radius:24px;margin:auto 0;border:1px solid rgba(245,158,11,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;animation:modalFadeIn 0.3s ease-out;">' +
-        '<div style="background:linear-gradient(135deg,#78350f 0%,#d97706 100%);padding:1.5rem 2rem;">' +
-            '<div style="display:flex;align-items:center;gap:15px;">' +
-                '<span style="font-size:2.5rem;">⚠️</span>' +
-                '<div>' +
-                    '<h3 style="margin:0;color:#fef3c7;font-size:1.25rem;font-weight:800;">Número Ímpar de ' + (isTeam ? 'Times' : 'Inscritos') + '</h3>' +
-                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.9rem;">Há <b>' + oddInfo.count + '</b> ' + label + '. Um ficará sem adversário a cada rodada.</p>' +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-        '<div style="padding:1.5rem 2rem;">' +
-            '<p style="margin:0 0 1rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor → <span style="color:#ef4444;">■</span> menor</p>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-
-            '<button style="' + sty('reopen') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'reopen\')">' +
-                (bestK === 'reopen' ? bdg : '') +
-                '<span style="font-size:1.5rem;">↩️</span>' +
-                '<div>' +
-                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Reabrir Inscrições</div>' +
-                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Aguardar mais 1 inscrito para ficar par.</div>' +
-                '</div>' +
-                pill('reopen') +
-            '</button>' +
-
-            '<button style="' + sty('bye_odd') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'bye_odd\')">' +
-                (bestK === 'bye_odd' ? bdg : '') +
-                '<span style="font-size:1.5rem;">🥇</span>' +
-                '<div>' +
-                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">BYE Rotativo</div>' +
-                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">A cada rodada, um ' + (isTeam ? 'time' : 'jogador') + ' diferente descansa (BYE). Todos participam igualmente.</div>' +
-                '</div>' +
-                pill('bye_odd') +
-            '</button>' +
-
-            '<button style="' + sty('exclusion') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'exclusion\')">' +
-                (bestK === 'exclusion' ? bdg : '') +
-                '<span style="font-size:1.5rem;">🚫</span>' +
-                '<div>' +
-                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Exclusão</div>' +
-                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + ' ' + label + '.</div>' +
-                '</div>' +
-                pill('exclusion') +
-            '</button>' +
-
-            '<button style="' + sty('poll') + '" onmouseover="this.style.filter=\'brightness(1.15)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.filter=\'\';this.style.transform=\'\'" onclick="window._handleOddOption(\'' + tIdSafe + '\', \'poll\')">' +
-                '<span style="font-size:1.5rem;">🗳️</span>' +
-                '<div>' +
-                '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Enquete</div>' +
-                '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.4;">Os inscritos votam na solução que preferem.</div>' +
-                '</div>' +
-                pill('poll') +
-            '</button>' +
-
-            '</div>' +
-        '</div>' +
-        '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
-            '<button onclick="document.getElementById(\'odd-entries-panel\').remove();" style="background:transparent;color:#94a3b8;border:none;padding:10px 20px;font-weight:600;font-size:0.9rem;cursor:pointer;">Cancelar</button>' +
-        '</div>' +
-    '</div>';
-
-    document.body.appendChild(overlay);
+    // Redirect to unified resolution panel
+    window.showUnifiedResolutionPanel(tId);
 };
 
 window._handleOddOption = function (tId, option) {
@@ -839,218 +1003,8 @@ window.checkPowerOf2 = function (t) {
 };
 
 window.showPowerOf2Panel = function (tId) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-    if (!t) return;
-
-    // Suspender inscrições enquanto a decisão está sendo tomada
-    if (t.status !== 'closed') {
-        t.status = 'closed';
-        t._suspendedByPanel = true;
-        window.AppStore.sync();
-    }
-
-    const info = window.checkPowerOf2(t);
-    if (info.isPowerOf2) {
-        window.showFinalReviewPanel(tId);
-        return;
-    }
-
-    const existing = document.getElementById('p2-resolution-panel');
-    if (existing) existing.remove();
-
-    // Individual participant counts for gauge
-    var excessParticipants = info.excess * info.teamSize;
-    var missingParticipants = info.missing * info.teamSize;
-    var isTeam = info.teamSize > 1;
-    var excessLabel = isTeam ? 'Sobram <b>' + info.excess + '</b> times (' + excessParticipants + ' participantes)' : 'Sobram <b>' + info.excess + '</b>';
-    var missingLabel = isTeam ? 'Faltam <b>' + info.missing + '</b> times (' + missingParticipants + ' participantes)' : 'Faltam <b>' + info.missing + '</b>';
-
-    var overlay = document.createElement('div');
-    overlay.id = 'p2-resolution-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
-
-    // Build panel HTML via function to allow re-render on exclude
-    window._renderP2Options = function(excludedKeys) {
-        excludedKeys = excludedKeys || [];
-        var allOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + (isTeam ? ' times' : ' inscritos') + ' para chegar em ' + info.hi + '.' },
-            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + (isTeam ? ' times avançam' : ' participantes avançam') + ' direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
-            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + (isTeam ? ' times disputam ' : ' participantes disputam ') + info.excess + ' vaga(s) na repescagem.' },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + (isTeam ? ' times inscritos' : ' inscritos') + ' para chegar em ' + info.lo + '. Chaveamento perfeito.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.lo + (isTeam ? ' times jogam' : ' jogam') + ' em ' + Math.floor(info.lo / 2) + ' partidas. ' + (info.count - info.lo) + ' na lista de espera.' },
-            { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' },
-            { key: 'poll', icon: '🗳️', title: 'Enquete', desc: 'Os inscritos votam na solução que preferem.' }
-        ];
-
-        var activeOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) === -1; });
-
-        // Nash scoring — fairness 45%, inclusion 35%, effort 20%
-        var wF = 0.45, wI = 0.35, wE = 0.20;
-        var payoffs = {
-            reopen:    { f: 10, i: 10, e: 3 },
-            bye:       { f: 6,  i: 10, e: 9 },
-            playin:    { f: 8,  i: 10, e: 6 },
-            exclusion: { f: 3,  i: 2,  e: 10 },
-            standby:   { f: 6,  i: 4,  e: 9 },
-            swiss:     { f: 9,  i: 10, e: 5 },
-            poll:      { f: 10, i: 10, e: 2 }
-        };
-        if (info.missing <= 2) payoffs.reopen = { f: 10, i: 10, e: 8 };
-        if (info.missing <= info.excess * 2) payoffs.bye.e = 10;
-
-        var scores = {};
-        var maxScore = 0, minScore = 10;
-        activeOptions.forEach(function(o) {
-            var p = payoffs[o.key];
-            if (!p) return;
-            scores[o.key] = p.f * wF + p.i * wI + p.e * wE;
-            if (scores[o.key] > maxScore) maxScore = scores[o.key];
-            if (scores[o.key] < minScore) minScore = scores[o.key];
-        });
-        var range = maxScore - minScore || 1;
-        var norm = {};
-        activeOptions.forEach(function(o) {
-            if (scores[o.key] !== undefined) norm[o.key] = (scores[o.key] - minScore) / range;
-        });
-
-        // Continuous green→red gradient: 1.0 = #22c55e (green-500), 0.0 = #ef4444 (red-500)
-        function nashColorContinuous(n) {
-            // HSL interpolation: green=142, yellow=48, red=0
-            var hue = Math.round(n * 142);
-            var sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20); // boost saturation in middle
-            var bgAlpha = 0.06 + n * 0.08;
-            var borderAlpha = 0.20 + n * 0.25;
-            var glowAlpha = n * 0.15;
-            return {
-                bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgAlpha.toFixed(2) + ')',
-                border: 'hsla(' + hue + ',' + sat + '%,55%,' + borderAlpha.toFixed(2) + ')',
-                glow: glowAlpha > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + glowAlpha.toFixed(2) + ')' : 'none',
-                pill: 'hsl(' + hue + ',' + sat + '%,65%)',
-                pillBg: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
-            };
-        }
-
-        // Find best (excluding poll) for badge
-        var bestKey = '', bestVal = -1;
-        activeOptions.forEach(function(o) {
-            if (o.key !== 'poll' && scores[o.key] > bestVal) { bestVal = scores[o.key]; bestKey = o.key; }
-        });
-
-        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        var html = '';
-
-        activeOptions.forEach(function(o) {
-            var n = norm[o.key] !== undefined ? norm[o.key] : 0;
-            var c = nashColorContinuous(n);
-            var pct = Math.round(n * 100);
-            var isBest = o.key === bestKey;
-            var badgeHtml = isBest ? '<div class="p2-badge">⭐ Recomendado</div>' : '';
-            var pillHtml = '<span class="nash-corner" style="background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
-            var style = 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
-
-            // X button to exclude (not for poll if it's the only non-excluded)
-            var canExclude = activeOptions.length > 2; // keep at least 2 options
-            var excludeBtn = canExclude ? '<button class="p2-exclude-btn" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeP2Option(\'' + o.key + '\')" style="position:absolute;top:8px;right:' + (isBest ? '110px' : '8px') + ';width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#94a3b8;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2;" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\';this.style.borderColor=\'rgba(239,68,68,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\';this.style.color=\'#94a3b8\';this.style.borderColor=\'rgba(255,255,255,0.15)\'">✕</button>' : '';
-
-            html += '<button class="p2-option shadow-xl" style="' + style + '" onclick="window._handleP2Option(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
-                badgeHtml + excludeBtn +
-                '<span style="font-size:2rem;">' + o.icon + '</span>' +
-                '<div style="flex:1;padding-right:' + (canExclude ? '32px' : '0') + ';">' +
-                '<h4>' + o.title + '</h4>' +
-                '<p>' + o.desc + '</p>' +
-                '</div>' +
-                pillHtml +
-            '</button>';
-        });
-
-        // Show excluded options as small restore buttons
-        var excludedOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) !== -1; });
-        if (excludedOptions.length > 0) {
-            html += '<div style="grid-column:span 2;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
-            html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">Excluídas:</span>';
-            excludedOptions.forEach(function(o) {
-                html += '<button onclick="event.stopPropagation();window._restoreP2Option(\'' + o.key + '\')" style="background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:4px 12px;color:#64748b;font-size:0.72rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.color=\'#94a3b8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.color=\'#64748b\'">' + o.icon + ' ' + o.title + ' ↩</button>';
-            });
-            html += '</div>';
-        }
-
-        return html;
-    };
-
-    // State for excluded options
-    window._p2ExcludedKeys = [];
-
-    window._excludeP2Option = function(key) {
-        if (window._p2ExcludedKeys.indexOf(key) === -1) window._p2ExcludedKeys.push(key);
-        var grid = document.getElementById('p2-options-grid');
-        if (grid) grid.innerHTML = window._renderP2Options(window._p2ExcludedKeys);
-    };
-
-    window._restoreP2Option = function(key) {
-        window._p2ExcludedKeys = window._p2ExcludedKeys.filter(function(k) { return k !== key; });
-        var grid = document.getElementById('p2-options-grid');
-        if (grid) grid.innerHTML = window._renderP2Options(window._p2ExcludedKeys);
-    };
-
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:750px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">' +
-        '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">' +
-            '<div style="display:flex;align-items:center;gap:20px;margin-bottom:2rem;">' +
-                '<div style="width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(5px);">⚙️</div>' +
-                '<div>' +
-                    '<h3 style="margin:0;color:#fef3c7;font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
-                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.95rem;opacity:0.9;">O chaveamento exige uma potência de 2 para ser exato.</p>' +
-                '</div>' +
-            '</div>' +
-            '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:2rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);">' +
-                '<div style="text-align:right;">' +
-                    '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
-                    '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
-                        '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.lo + '</span>' +
-                        '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">' + excessLabel + '</span>' +
-                    '</div>' +
-                '</div>' +
-                '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);">' +
-                    '<div style="position:absolute;width:100%;height:100%;border:2px dashed rgba(251,191,36,0.3);border-radius:50%;animation: rotate 20s linear infinite;"></div>' +
-                    '<div style="text-align:center;position:relative;z-index:2;">' +
-                        '<div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3);">' + info.count + '</div>' +
-                        '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;line-height:1.3;">Total de<br>' + (isTeam ? 'Times' : 'Inscritos') + '</div>' +
-                        (isTeam ? '<div style="font-size:0.6rem;color:#64748b;margin-top:2px;">(' + info.rawCount + ' participantes)</div>' : '') +
-                    '</div>' +
-                '</div>' +
-                '<div style="text-align:left;">' +
-                    '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
-                    '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
-                        '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hi + '</span>' +
-                        '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">' + missingLabel + '</span>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-        '<style>' +
-            '@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
-            '.p2-option { border-radius:18px; padding:2.2rem 1.5rem 2.2rem; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align:left; color:#e2e8f0; display:flex; gap:16px; align-items:flex-start; position:relative; overflow:hidden; }' +
-            '.p2-option:hover { transform:translateY(-2px); filter:brightness(1.15); }' +
-            '.p2-option::after { content:""; position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(45deg, transparent, rgba(255,255,255,0.06), transparent); transform:translateX(-100%); transition:0.5s; }' +
-            '.p2-option:hover::after { transform:translateX(100%); }' +
-            '.p2-option h4 { margin:0 0 4px; font-weight:800; font-size:1.05rem; color:#fff; }' +
-            '.p2-option p { margin:0; font-size:0.8rem; color:#94a3b8; line-height:1.5; }' +
-            '.p2-badge { position:absolute; top:10px; right:40px; background:rgba(34,197,94,0.15); color:#4ade80; padding:3px 10px; border-radius:8px; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none; }' +
-            '.nash-corner { position:absolute; bottom:10px; right:12px; padding:3px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; letter-spacing:0.3px; pointer-events:none; }' +
-        '</style>' +
-        '<div style="padding:2.5rem;">' +
-            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
-            '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
-            '<div id="p2-options-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
-                window._renderP2Options([]) +
-            '</div>' +
-        '</div>' +
-        '<div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
-            '<div style="font-size:0.8rem;color:#64748b;">Ajuste manual disponível no rascunho de chaveamento.</div>' +
-            '<button onclick="window._cancelPowerOf2Panel(\'' + String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>' +
-        '</div>' +
-    '</div>';
-
-    document.body.appendChild(overlay);
+    // Redirect to unified resolution panel
+    window.showUnifiedResolutionPanel(tId);
 };
 
 // Cancelar painel de decisão e restaurar inscrições se suspensas
