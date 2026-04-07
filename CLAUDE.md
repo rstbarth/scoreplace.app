@@ -2,9 +2,9 @@
 
 ## O que e o scoreplace.app
 
-Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** — sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
+Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.4.4-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.4.12-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -18,9 +18,24 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 
 ### Changelog
 
+**v0.4.12-alpha (Abril 2026)**
+- Painel Unificado de Resolucao Numerica: os 3 paineis de decisao (times incompletos, numero impar, potencia de 2) foram consolidados em um unico painel com diagnostico completo.
+  - Gauge visual mostra potencia inferior/atual/superior com contagem de participantes.
+  - Cores Nash continuas verde-vermelho com maior distincao visual.
+  - Botao X para excluir opcoes temporariamente e recalcular Nash.
+  - Novas opcoes: Repescagem e Exclusao em todos os cenarios.
+- Simplificacao de Esportes: apenas modalidades derivadas do tenis: Beach Tennis, Pickleball, Tenis, Tenis de Mesa, Padel. Icones de esporte limpos em todo o app.
+- Formato como Botoes: dropdown de formato substituido por botoes excludentes com descricao dinamica.
+
+**v0.4.5-alpha (Abril 2026)**
+- Sorteio de times corrigido: verificacao de potencia de 2 agora conta times (nao participantes individuais). Paineis de decisao exibem contagem correta de times quando teamSize > 1.
+- Botao Convidar sem restricoes: botao "Convidar" visivel e funcional para organizadores e participantes em qualquer estado do torneio.
+- Botoes de acao apos sorteio: grid de acoes (Regras, Inscritos, QR Code, Imprimir, Exportar CSV, Modo TV). Layout 2 colunas no mobile.
+- Iniciar Torneio no bracket: re-renderiza o bracket corretamente apos clique.
+
 **v0.4.4-alpha (Abril 2026)**
 - Paineis de Decisao com Equilibrio de Nash: paineis de potencia de 2 e times incompletos agora exibem indicador visual de equilibrio de Nash em cada opcao de resolucao.
-  - Cores por temperatura de Nash: verde (melhor equilibrio, >=80%) → amarelo (>=60%) → laranja (>=35%) → azul (menor equilibrio). Background, borda e glow variam proporcionalmente.
+  - Cores por temperatura de Nash: verde (melhor equilibrio, >=80%) â amarelo (>=60%) â laranja (>=35%) â azul (menor equilibrio). Background, borda e glow variam proporcionalmente.
   - Badge "Nash X%" em cada botao mostra o score normalizado.
   - Painel de potencia de 2: layout 3x2 (Reabrir, BYE, Play-in, Lista de Espera, Suico, Enquete). Enquete ao lado do Formato Suico em vez de span 2 no rodape.
   - Painel de times incompletos: mesmo sistema de cores aplicado aos 5 botoes (Reabrir, Bots, Lista de Espera, Ajuste Manual, Enquete).
@@ -35,27 +50,27 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
   - Dados da Google Places API (mainText, secondaryText, venue name/address) e OpenWeather API (description) sanitizados com _safeHtml() em create-tournament.js.
   - auth.js: displayName e photoUrl sanitizados na topbar.
   - Error messages de APIs sanitizadas antes de innerHTML.
-- Bug fix: firebase-db.js:66 — substring matching (.includes) na verificacao de duplicata de inscricao substituido por comparacao exata (===) por email, displayName e uid.
-- Bug fix: dashboard.js:113 — operador logico sem parenteses fazia torneios Liga encerrados mostrarem "Inscricoes Abertas". Corrigido com parenteses.
-- Bug fix: auth.js:851-852 — race condition: flag _simulateLoginInProgress era limpa ANTES do setTimeout de auto-enroll. Reordenado.
-- Bug fix: tournaments-categories.js — funcao window._groupEligibleCategories() estava ausente (perdida na refatoracao v0.4.2). Restaurada junto com _getCategoryGenderPrefix() e _nonExclusivePrefixes.
-- Bug fix: participants.js:476 — variavel isVip usada antes da declaracao. Corrigido movendo logica de VIP para antes do uso.
-- Bug fix: dashboard.js:412 — _isMe() usava .includes() para email (substring match). Corrigido para comparacao exata ===.
-- Bug fix: tournaments.js:441 — isParticipating usava .includes() para email. Corrigido para comparacao exata por email/displayName/uid.
-- Bug fix: dashboard.js:359 — displayName null causava crash em .split(). Adicionado null check.
-- Bug fix: dashboard.js:179-182 — deteccao de times agora suporta formato objeto (p.participants array) alem do formato slash "name1/name2".
-- Bug fix: create-tournament.js — booleanos GSM (tiebreakEnabled, superTiebreak, advantageRule) agora salvos explicitamente como string 'true'/'false' para consistencia.
-- Bug fix: rules.js:58 — datas invalidas em historico de atividades agora tratadas graciosamente (isNaN check) em vez de exibir "Invalid Date".
-- Memory leak fix: hints.js — event listeners nos botoes "Entendi"/"Desativar" agora usam {once:true}. Auto-dismiss timeout (clearTimeout) limpo ao descartar manualmente. Resize/scroll listeners removidos ao desativar hints, re-adicionados ao reativar.
-- Memory leak fix: participants.js — onerror handler para avatar sempre presente (fallback para initials), nao apenas quando cache existe.
-- Melhoria: notifications-view.js — seletor DOM fragil para dot de notificacao nao-lida substituido por classe CSS .notif-unread-dot.
-- Melhoria: tournaments-categories.js — escaping completo (backslash + aspas) em nomes de categoria em onclick/data-cat handlers.
-- Cleanup: store.js — fallback redundante em _themeOrder removido.
+- Bug fix: firebase-db.js:66 â substring matching (.includes) na verificacao de duplicata de inscricao substituido por comparacao exata (===) por email, displayName e uid.
+- Bug fix: dashboard.js:113 â operador logico sem parenteses fazia torneios Liga encerrados mostrarem "Inscricoes Abertas". Corrigido com parenteses.
+- Bug fix: auth.js:851-852 â race condition: flag _simulateLoginInProgress era limpa ANTES do setTimeout de auto-enroll. Reordenado.
+- Bug fix: tournaments-categories.js â funcao window._groupEligibleCategories() estava ausente (perdida na refatoracao v0.4.2). Restaurada junto com _getCategoryGenderPrefix() e _nonExclusivePrefixes.
+- Bug fix: participants.js:476 â variavel isVip usada antes da declaracao. Corrigido movendo logica de VIP para antes do uso.
+- Bug fix: dashboard.js:412 â _isMe() usava .includes() para email (substring match). Corrigido para comparacao exata ===.
+- Bug fix: tournaments.js:441 â isParticipating usava .includes() para email. Corrigido para comparacao exata por email/displayName/uid.
+- Bug fix: dashboard.js:359 â displayName null causava crash em .split(). Adicionado null check.
+- Bug fix: dashboard.js:179-182 â deteccao de times agora suporta formato objeto (p.participants array) alem do formato slash "name1/name2".
+- Bug fix: create-tournament.js â booleanos GSM (tiebreakEnabled, superTiebreak, advantageRule) agora salvos explicitamente como string 'true'/'false' para consistencia.
+- Bug fix: rules.js:58 â datas invalidas em historico de atividades agora tratadas graciosamente (isNaN check) em vez de exibir "Invalid Date".
+- Memory leak fix: hints.js â event listeners nos botoes "Entendi"/"Desativar" agora usam {once:true}. Auto-dismiss timeout (clearTimeout) limpo ao descartar manualmente. Resize/scroll listeners removidos ao desativar hints, re-adicionados ao reativar.
+- Memory leak fix: participants.js â onerror handler para avatar sempre presente (fallback para initials), nao apenas quando cache existe.
+- Melhoria: notifications-view.js â seletor DOM fragil para dot de notificacao nao-lida substituido por classe CSS .notif-unread-dot.
+- Melhoria: tournaments-categories.js â escaping completo (backslash + aspas) em nomes de categoria em onclick/data-cat handlers.
+- Cleanup: store.js â fallback redundante em _themeOrder removido.
 
 **v0.4.2-alpha (Abril 2026)**
 - Refatoracao de tournaments.js: arquivo monolitico de 6.503 linhas dividido em 5 modulos focados.
   - tournaments.js (1.847 linhas): orquestrador principal, render de cards e detalhes do torneio.
-  - tournaments-categories.js (1.710 linhas): sistema de categorias completo — gerenciador modal, merge/unmerge com drag-and-drop (desktop + touch), auto-assign por genero, notificacoes de categoria, _buildCategoryCountHtml, _buildTimeEstimation.
+  - tournaments-categories.js (1.710 linhas): sistema de categorias completo â gerenciador modal, merge/unmerge com drag-and-drop (desktop + touch), auto-assign por genero, notificacoes de categoria, _buildCategoryCountHtml, _buildTimeEstimation.
   - tournaments-enrollment.js (440 linhas): inscricao/desinscricao, adicionar participante/time, excluir torneio.
   - tournaments-draw-prep.js (2.144 linhas): preparacao de sorteio, enquetes (polls) com Nash, resolucao de times incompletos e potencia de 2.
   - tournaments-draw.js (878 linhas): geracao de chaves (single/double elim, grupos, suico), drag-and-drop de times, painel de revisao final.
@@ -66,10 +81,10 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
   - Arquivos corrigidos: bracket.js, bracket-ui.js, explore.js, pre-draw.js, notifications-view.js, auth.js, rules.js.
   - Padroes corrigidos: innerHTML com template literals, concatenacao de strings em onclick handlers, atributos title/value sem escape.
   - IDs em onclick handlers (uid, tournamentId, notifId) agora com escape de aspas e barras.
-- Bug fix: firebase-db.js:175 usava `fromUid` ao inves de `toUid` ao verificar pedidos de amizade mutuos em `sendFriendRequest()` — buscava documento do remetente em vez do destinatario.
-- Bug fix: dashboard.js:8 truthy check em `sorteioRealizado` — arrays vazios `[]` eram avaliados como truthy. Corrigido para usar `Array.isArray(x) && x.length > 0` (consistente com linha 111).
-- Bug fix: dashboard.js:131 substring matching na deteccao de participante — `str.includes(user.email)` podia dar falso positivo (ex: "john@example.com" matchava "johnsmith@example.com"). Corrigido para comparacao exata por email, uid e displayName.
-- Bug fix: bracket-ui.js:396 tiebreak com pontos iguais nao era tratado — quando tbP1 === tbP2 nenhum jogador recebia o game extra. Agora valida margem minima (tiebreakMargin) e pontuacao minima (tiebreakPoints) antes de atribuir vencedor do tiebreak.
+- Bug fix: firebase-db.js:175 usava `fromUid` ao inves de `toUid` ao verificar pedidos de amizade mutuos em `sendFriendRequest()` â buscava documento do remetente em vez do destinatario.
+- Bug fix: dashboard.js:8 truthy check em `sorteioRealizado` â arrays vazios `[]` eram avaliados como truthy. Corrigido para usar `Array.isArray(x) && x.length > 0` (consistente com linha 111).
+- Bug fix: dashboard.js:131 substring matching na deteccao de participante â `str.includes(user.email)` podia dar falso positivo (ex: "john@example.com" matchava "johnsmith@example.com"). Corrigido para comparacao exata por email, uid e displayName.
+- Bug fix: bracket-ui.js:396 tiebreak com pontos iguais nao era tratado â quando tbP1 === tbP2 nenhum jogador recebia o game extra. Agora valida margem minima (tiebreakMargin) e pontuacao minima (tiebreakPoints) antes de atribuir vencedor do tiebreak.
 - CSS: removidos blocos de temas mortos (high-contrast, alternative) de components.css. Adicionados overrides de hint-balloon-text e hint-balloon-got-it para temas sunset e ocean.
 
 **v0.4.1-alpha (Abril 2026)**
@@ -84,25 +99,25 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
   - Dados da partida: `m.sets[]` com gamesP1, gamesP2, tiebreak {pointsP1, pointsP2}. Campos m.setsWonP1, m.setsWonP2.
   - Display: sets formatados como "6-4 3-6 7-6(5)" nos cards de partida e badge do vencedor.
   - Funcoes: `_openSetScoring(tId, matchId)`, `_checkSetComplete(tId, matchId, setIndex)`, `_saveSetResult(tId, matchId)`, `_openGSMConfig()`, `_gsmSetType()`, `_gsmSetCounting()`, `_gsmToggleTiebreak()`, `_gsmToggleSuperTb()`, `_gsmUpdateSummary()`, `_gsmSaveConfig()`.
-  - Desempate GSM na classificacao (Liga/Suico): novos criterios automaticos quando torneio usa sets — saldo_sets, saldo_games, sets_vencidos, games_vencidos, tiebreaks_vencidos. Campos acumulados em _computeStandings: setsWon, setsLost, gamesWon, gamesLost, tiebreaksWon.
-  - Tabela de classificacao: colunas extras "±S" (saldo de sets) e "±G" (saldo de games) quando torneio usa GSM. Colunas clicaveis para ordenacao.
+  - Desempate GSM na classificacao (Liga/Suico): novos criterios automaticos quando torneio usa sets â saldo_sets, saldo_games, sets_vencidos, games_vencidos, tiebreaks_vencidos. Campos acumulados em _computeStandings: setsWon, setsLost, gamesWon, gamesLost, tiebreaksWon.
+  - Tabela de classificacao: colunas extras "Â±S" (saldo de sets) e "Â±G" (saldo de games) quando torneio usa GSM. Colunas clicaveis para ordenacao.
 
 **v0.4.0-alpha (Abril 2026)**
 - Auditoria Completa e Correcao de Bugs: revisao linha a linha de todo o codebase (~34 bugs identificados e corrigidos em 3 ondas).
-  - Bug fix: "Reabrir Inscricao" nao funcionava — usava `delete t.status` (undefined). Corrigido para `t.status = 'open'` com guard contra reabrir apos sorteio.
-  - Bug fix: Race condition de inscricoes durante tela de decisao — inscricoes agora suspensas (`t._suspendedByPanel = true`) ao abrir painel de potencia de 2, restauradas no cancelamento.
-  - Bug fix: Operador logico sem parenteses — `|| ligaAberta` sobrescrevia status closed/active. Corrigido com parenteses em todas as 3 ocorrencias.
+  - Bug fix: "Reabrir Inscricao" nao funcionava â usava `delete t.status` (undefined). Corrigido para `t.status = 'open'` com guard contra reabrir apos sorteio.
+  - Bug fix: Race condition de inscricoes durante tela de decisao â inscricoes agora suspensas (`t._suspendedByPanel = true`) ao abrir painel de potencia de 2, restauradas no cancelamento.
+  - Bug fix: Operador logico sem parenteses â `|| ligaAberta` sobrescrevia status closed/active. Corrigido com parenteses em todas as 3 ocorrencias.
   - Bug fix: `_handleSortearClick` faz await no Firestore save antes de navegar para pre-draw.
   - Bug fix: `_computeStandings` nao inicializava campo `draws: 0` no scoreMap.
   - Bug fix: `_maybeFinishElimination` retorna early durante fase de grupos (`t.currentStage === 'groups'`).
   - Bug fix: Modo TV valida existencia do torneio antes de renderizar.
-  - Bug fix: XSS em notifications-view.js e explore.js — uid escapado em onclick handlers.
-  - Bug fix: enroll-modal.js reescrito — removido botao "Quero Participar" nao-funcional, share link dinamico com ID do torneio, WhatsApp share funcional.
-  - Bug fix: result-modal.js marcado como deprecated (dead code — resultados salvos via bracket-ui.js).
+  - Bug fix: XSS em notifications-view.js e explore.js â uid escapado em onclick handlers.
+  - Bug fix: enroll-modal.js reescrito â removido botao "Quero Participar" nao-funcional, share link dinamico com ID do torneio, WhatsApp share funcional.
+  - Bug fix: result-modal.js marcado como deprecated (dead code â resultados salvos via bracket-ui.js).
   - Bug fix: "Encerrar Torneio" oculto para formato Liga.
   - Bug fix: `sorteioRealizado` nao exigia mais `t.status === 'active'`.
-- Novos Temas: 4 temas disponiveis — Noturno (dark), Claro (light), Por do Sol (sunset), Oceano (ocean).
-  - Ciclo de temas via botao no header: dark → light → sunset → ocean.
+- Novos Temas: 4 temas disponiveis â Noturno (dark), Claro (light), Por do Sol (sunset), Oceano (ocean).
+  - Ciclo de temas via botao no header: dark â light â sunset â ocean.
   - CSS variables por tema em style.css para componentes: --btn-secondary-bg/text/hover, --btn-danger-ghost-text/bg, --info-pill-bg, --info-box-bg, --stat-box-bg, --card-org-border, --card-part-border.
   - Dashboard cards com gradientes adaptativos por tema. Tema claro com texto escuro e bordas sutis.
   - components.css refatorado para usar variaveis CSS em vez de cores hardcoded.
@@ -110,7 +125,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
   - store.js: `_themeOrder`, `_themeIcons`, `_themeNames` para ciclo de temas.
 
 **v0.3.18-alpha (Abril 2026)**
-- Duração Estimada do Torneio: quando endDate não está preenchida, a página de detalhes exibe box "⏱️ Duração Estimada" com simulações para 8, 16, 32 e 64 participantes. Se houver inscritos (2+), mostra também linha destacada com o número real. Cálculo por formato: Eliminatórias (por rodadas paralelas), Dupla Eliminatória (~2x simples), Grupos + Eliminatórias (round-robin + mata-mata), Suíço (rounds * pairings), Liga (total combinações). Considera gameDuration, courtCount, callTime e warmupTime do torneio. Mostra número de partidas e horário estimado de término quando startDate inclui hora. Posicionado entre datas e local nos detalhes do torneio. Função global window._buildTimeEstimation(t) em tournaments.js.
+- DuraÃ§Ã£o Estimada do Torneio: quando endDate nÃ£o estÃ¡ preenchida, a pÃ¡gina de detalhes exibe box "â±ï¸ DuraÃ§Ã£o Estimada" com simulaÃ§Ãµes para 8, 16, 32 e 64 participantes. Se houver inscritos (2+), mostra tambÃ©m linha destacada com o nÃºmero real. CÃ¡lculo por formato: EliminatÃ³rias (por rodadas paralelas), Dupla EliminatÃ³ria (~2x simples), Grupos + EliminatÃ³rias (round-robin + mata-mata), SuÃ­Ã§o (rounds * pairings), Liga (total combinaÃ§Ãµes). Considera gameDuration, courtCount, callTime e warmupTime do torneio. Mostra nÃºmero de partidas e horÃ¡rio estimado de tÃ©rmino quando startDate inclui hora. Posicionado entre datas e local nos detalhes do torneio. FunÃ§Ã£o global window._buildTimeEstimation(t) em tournaments.js.
 
 **v0.3.5-alpha (Abril 2026)**
 - Consistencia Visual Total: Todos os botoes agora 100% solidos e coloridos (sem cinza). btn-outline, btn-ghost, btn-tool, btn-secondary convertidos de cinza para azul escuro (#1e3a5f). btn-danger-ghost mantido transparente (Add Bot + Apagar).
@@ -136,7 +151,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - CSV export: Cabecalho horizontal (Torneio, Formato, Esporte, Data, Local, Inscritos) em uma linha para melhor visualizacao em paisagem.
 
 **v0.3.2-alpha (Marco 2026)**
-- Countdown legibilidade: Textos "Começa em X dias" e "Inscrições encerram em X dias" nos cards do dashboard com fonte maior (0.85rem), fundo colorido pill-style e cores de alto contraste para fundos escuros.
+- Countdown legibilidade: Textos "ComeÃ§a em X dias" e "InscriÃ§Ãµes encerram em X dias" nos cards do dashboard com fonte maior (0.85rem), fundo colorido pill-style e cores de alto contraste para fundos escuros.
 - Ferramentas do Organizador consolidadas: Botoes Ver Chaves, Encerrar Torneio e Apagar Torneio movidos para a secao "Ferramentas do Organizador" no rodape do card de detalhes. Todos os botoes com backgrounds mais opacos, bordas mais visiveis, padding maior.
 - Zoom slider no bracket: Barra deslizante (range input) entre botoes -/+ para controle fluido do zoom. Slider sincroniza com botoes e reset.
 - Topbar estavel no desktop: flex-wrap nowrap + overflow hidden para eliminar jitter de altura ao redimensionar janela.
@@ -159,7 +174,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - QR Code PIX centralizado no modal de apoio.
 
 **v0.2.41-alpha (Marco 2026)**
-- Monetizacao Fase 1: Modelo freemium implementado. Plano Free (ate 3 torneios ativos, 32 participantes, logo so gerada) e plano Pro (R$19,90/mes — ilimitado, upload logo, Modo TV sem marca). Sistema de planos no Firestore (campo plan/planExpiresAt no perfil). Feature gates em create-tournament.js e tournaments.js. Modal de upgrade Pro com beneficios e botao de checkout Stripe. Botao "Apoie" com PIX voluntario (QR code + copia-e-cola, chave CNPJ 51590996000173). Cloud Functions: createCheckoutSession, stripeWebhook (auto-ativa/desativa Pro), createDonationCheckout. Botoes Pro e Apoie na topbar.
+- Monetizacao Fase 1: Modelo freemium implementado. Plano Free (ate 3 torneios ativos, 32 participantes, logo so gerada) e plano Pro (R$19,90/mes â ilimitado, upload logo, Modo TV sem marca). Sistema de planos no Firestore (campo plan/planExpiresAt no perfil). Feature gates em create-tournament.js e tournaments.js. Modal de upgrade Pro com beneficios e botao de checkout Stripe. Botao "Apoie" com PIX voluntario (QR code + copia-e-cola, chave CNPJ 51590996000173). Cloud Functions: createCheckoutSession, stripeWebhook (auto-ativa/desativa Pro), createDonationCheckout. Botoes Pro e Apoie na topbar.
 
 **v0.2.40-alpha (Marco 2026)**
 - Push Notifications (FCM) client-side: Firebase Messaging SDK adicionado (firebase-messaging-compat.js). Funcao window._initFCM() em notifications.js solicita permissao de notificacao no browser, obtem token FCM e salva no Firestore (campo fcmToken no perfil do usuario). Chamada automaticamente 3s apos login via simulateLoginSuccess. Service worker atualizado com importScripts do Firebase, onBackgroundMessage para exibir push em background, e notificationclick para abrir o app no torneio relevante. Token refresh automatico via onTokenRefresh. Mensagens foreground exibidas como toast via showNotification. Cloud Functions autoDraw e sendPushNotification ja deployados no Firebase completam o fluxo end-to-end.
@@ -171,22 +186,22 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - Paginacao no Dashboard: torneios carregam em lotes de 12 (PAGE_SIZE). Botao "Carregar mais (N restantes)" aparece quando ha mais de 12 torneios visiveis. Funciona com todos os filtros (Todos, Organizados, Participando, etc.) e com modo compacto. Paginacao reseta ao trocar filtro via window._dashPage. Variavel global window._dashPage controlada pelos filtros e botao.
 
 **v0.2.37-alpha (Marco 2026)**
-- Acessibilidade Basica (WCAG 2.1): link "Pular para o conteudo" no topo da pagina para navegacao por teclado. ARIA roles (application, main, banner, navigation, region, dialog) e aria-labels em todos os elementos interativos da topbar. aria-expanded no botao hamburger. Focus trap em modais — Tab circula dentro do modal aberto. Live region (aria-live="polite") para anunciar notificacoes e estados de modais a leitores de tela. Funcoes globais: window._trapFocus(el), window._releaseFocusTrap(el), window._announce(msg). Intercepta openModal/closeModal e showNotification para adicionar comportamento acessivel automaticamente.
+- Acessibilidade Basica (WCAG 2.1): link "Pular para o conteudo" no topo da pagina para navegacao por teclado. ARIA roles (application, main, banner, navigation, region, dialog) e aria-labels em todos os elementos interativos da topbar. aria-expanded no botao hamburger. Focus trap em modais â Tab circula dentro do modal aberto. Live region (aria-live="polite") para anunciar notificacoes e estados de modais a leitores de tela. Funcoes globais: window._trapFocus(el), window._releaseFocusTrap(el), window._announce(msg). Intercepta openModal/closeModal e showNotification para adicionar comportamento acessivel automaticamente.
 
 **v0.2.36-alpha (Marco 2026)**
 - Modo Compacto do Dashboard: toggle "Cards/Lista" no canto superior direito do dashboard. Modo cards (padrao) exibe cards com visual completo. Modo lista compacta mostra uma linha por torneio com: logo/icone, nome, esporte, formato, data, contagem de participantes, progresso (%), status e badge de organizador. Preferencia salva em localStorage (scoreplace_dashView). Funcao window._setDashView(view) e _buildCompactList(items) em dashboard.js.
 
 **v0.2.35-alpha (Marco 2026)**
-- Atalhos de Teclado Globais: navegacao rapida pelo teclado. D=Dashboard, E=Explorar Torneios, N=Novo Torneio, /=Busca Rapida, ?=Ajuda, ESC=Fechar modal. Atalhos desativados automaticamente quando um campo de texto esta focado ou quando modais estao abertos. Nova secao "⌨️ Atalhos de Teclado" no modal de Ajuda com listagem visual dos atalhos. Funcao setupGlobalShortcuts() em main.js.
+- Atalhos de Teclado Globais: navegacao rapida pelo teclado. D=Dashboard, E=Explorar Torneios, N=Novo Torneio, /=Busca Rapida, ?=Ajuda, ESC=Fechar modal. Atalhos desativados automaticamente quando um campo de texto esta focado ou quando modais estao abertos. Nova secao "â¨ï¸ Atalhos de Teclado" no modal de Ajuda com listagem visual dos atalhos. Funcao setupGlobalShortcuts() em main.js.
 
 **v0.2.34-alpha (Marco 2026)**
-- Historico de Atividades: secao "📜 Historico de Atividades" na pagina de detalhes do torneio. Log visual cronologico com: criacao do torneio, inscricoes de jogadores, encerramento de inscricoes, sorteio realizado, inicio do torneio, resultados de partidas e encerramento. Collapsible via <details>, mostra ultimos 15 eventos com opcao de expandir anteriores. Construido dinamicamente dos dados existentes do torneio (nao requer collection extra no Firestore). Funcao window._buildActivityLog(tournamentId).
+- Historico de Atividades: secao "ð Historico de Atividades" na pagina de detalhes do torneio. Log visual cronologico com: criacao do torneio, inscricoes de jogadores, encerramento de inscricoes, sorteio realizado, inicio do torneio, resultados de partidas e encerramento. Collapsible via <details>, mostra ultimos 15 eventos com opcao de expandir anteriores. Construido dinamicamente dos dados existentes do torneio (nao requer collection extra no Firestore). Funcao window._buildActivityLog(tournamentId).
 
 **v0.2.33-alpha (Marco 2026)**
 - Estatisticas do Jogador: clicar no nome de qualquer jogador abre modal com estatisticas consolidadas em todos os torneios. Exibe: torneios disputados, vitorias, derrotas, empates, total de partidas, % de aproveitamento, titulos e podios. Lista de torneios disputados com links clicaveis. Nomes clicaveis no chaveamento (bracket.js), classificacao (standings) e lista de inscritos (participants.js). Funcao global window._showPlayerStats(playerName, currentTournamentId).
 
 **v0.2.32-alpha (Marco 2026)**
-- QR Code do Torneio: botao "📱 QR Code" na pagina de detalhes do torneio e no chaveamento. Abre modal com QR code gerado via API (api.qrserver.com) contendo o link do torneio. Modal com opcoes: copiar link, baixar imagem PNG e imprimir em pagina dedicada. Suporta tema claro/escuro (QR code adapta cores). Funcoes: window._showQRCode(tId), window._downloadQRCode(tId), window._printQRCode(). Ideal para projetar em eventos presenciais.
+- QR Code do Torneio: botao "ð± QR Code" na pagina de detalhes do torneio e no chaveamento. Abre modal com QR code gerado via API (api.qrserver.com) contendo o link do torneio. Modal com opcoes: copiar link, baixar imagem PNG e imprimir em pagina dedicada. Suporta tema claro/escuro (QR code adapta cores). Funcoes: window._showQRCode(tId), window._downloadQRCode(tId), window._printQRCode(). Ideal para projetar em eventos presenciais.
 
 **v0.2.31-alpha (Marco 2026)**
 - Busca Rapida Global (Ctrl+K): modal de busca acessivel via Ctrl+K / Cmd+K ou botao no header. Busca torneios por nome, esporte, formato e local, e jogadores em todos os torneios. Acoes rapidas padrao: Novo Torneio, Dashboard, Explorar, Notificacoes, Ajuda. Input com debounce de 150ms. ESC para fechar. Overlay escuro com animacao. Funcoes: window._openQuickSearch(), window._closeQuickSearch(), window._performQuickSearch(query), window._showQuickSearchDefaults().
@@ -195,28 +210,28 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - Torneios Encerrados separados: no dashboard, quando filtro "Todos" esta ativo e ha torneios encerrados, estes sao agrupados em secao colapsavel "Torneios Encerrados (N)" via <details> abaixo dos torneios ativos. Novo filtro "Encerrados" no painel de filtros do hero box (aparece quando ha ao menos 1 encerrado).
 
 **v0.2.29-alpha (Marco 2026)**
-- Compartilhar Resultado: botao "📤 Compartilhar" em cada card de partida concluida no chaveamento. Usa navigator.share() no mobile com fallback para clipboard. Texto formatado com jogadores, placar, resultado e link do torneio. Funcao window._shareMatchResult(tId, matchId). Busca a partida em todas as estruturas (matches, rounds, groups, rodadas).
+- Compartilhar Resultado: botao "ð¤ Compartilhar" em cada card de partida concluida no chaveamento. Usa navigator.share() no mobile com fallback para clipboard. Texto formatado com jogadores, placar, resultado e link do torneio. Funcao window._shareMatchResult(tId, matchId). Busca a partida em todas as estruturas (matches, rounds, groups, rodadas).
 
 **v0.2.28-alpha (Marco 2026)**
-- Tema Claro/Escuro: botao 🌙/☀️ no header da topbar para alternar entre tema escuro e claro. Usa data-theme="light" no <html>. Preferencia salva em localStorage (scoreplace_theme). CSS ja tinha variaveis para light theme em style.css — agora ativado via toggle. Overrides CSS em style.css para cards, hero-box, badges e topbar no tema claro. Transicao suave de 300ms. Funcao window._toggleTheme() em store.js. Auto-apply do tema salvo no carregamento.
+- Tema Claro/Escuro: botao ð/âï¸ no header da topbar para alternar entre tema escuro e claro. Usa data-theme="light" no <html>. Preferencia salva em localStorage (scoreplace_theme). CSS ja tinha variaveis para light theme em style.css â agora ativado via toggle. Overrides CSS em style.css para cards, hero-box, badges e topbar no tema claro. Transicao suave de 300ms. Funcao window._toggleTheme() em store.js. Auto-apply do tema salvo no carregamento.
 
 **v0.2.27-alpha (Marco 2026)**
 - Countdown de Inicio: torneios com startDate futura mostram contagem regressiva nos cards do dashboard e na pagina de detalhes. "Comeca hoje!" (verde, 0 dias), "Comeca amanha!" (verde, 1 dia), "Comeca em X dias" (azul/roxo, ate 30 dias). Complementa o countdown de inscricoes existente.
 
 **v0.2.26-alpha (Marco 2026)**
-- Navegacao Suave: scroll automatico para o topo ao navegar entre views (window.scrollTo smooth) e animacao fade-in (opacity 0→1 em 250ms) no container da view. Implementado no router.js via requestAnimationFrame duplo para garantir transicao CSS.
+- Navegacao Suave: scroll automatico para o topo ao navegar entre views (window.scrollTo smooth) e animacao fade-in (opacity 0â1 em 250ms) no container da view. Implementado no router.js via requestAnimationFrame duplo para garantir transicao CSS.
 
 **v0.2.25-alpha (Marco 2026)**
 - Confrontos Diretos (Head-to-Head): secao expansivel "Confrontos Diretos" abaixo da classificacao em Liga/Suico. Matriz NxN mostrando retrospecto entre cada par de jogadores no formato V-E-D (Vitorias-Empates-Derrotas). Celulas coloridas: verde para vantagem, vermelho para desvantagem, cinza para empate. Nomes verticais nos cabecalhos de coluna. Suporta categorias (uma tabela por categoria). Tooltip com detalhes. Limitada a 2-20 jogadores por categoria.
 
 **v0.2.24-alpha (Marco 2026)**
-- Ordenacao de Colunas: cabecalhos da tabela de classificacao (Liga/Suico) sao clicaveis para ordenar por qualquer coluna. Setas indicadoras (▲/▼/⇅) mostram direcao ativa. Suporta ordenacao numerica (pontos, vitorias, saldo, etc.) e textual (nome do participante). Funcao window._sortStandingsTable(thElement) manipula o DOM diretamente sem re-render. Funciona em todas as categorias.
+- Ordenacao de Colunas: cabecalhos da tabela de classificacao (Liga/Suico) sao clicaveis para ordenar por qualquer coluna. Setas indicadoras (â²/â¼/â) mostram direcao ativa. Suporta ordenacao numerica (pontos, vitorias, saldo, etc.) e textual (nome do participante). Funcao window._sortStandingsTable(thElement) manipula o DOM diretamente sem re-render. Funciona em todas as categorias.
 
 **v0.2.23-alpha (Marco 2026)**
-- Modo TV (Placar ao Vivo): botao "📺 Modo TV" na pagina do chaveamento/classificacao. Abre overlay fullscreen (Fullscreen API) otimizado para projetores/TVs no local do torneio. Fundo escuro (#0a0e1a), relogio em tempo real, barra de progresso, auto-refresh a cada 30s que re-renderiza o bracket e atualiza o conteudo. CSS inline para tabelas e bracket com tema escuro. Sair com ESC, botao Sair, ou saindo do fullscreen. Funcoes: window._tvMode(tId), window._exitTvMode().
+- Modo TV (Placar ao Vivo): botao "ðº Modo TV" na pagina do chaveamento/classificacao. Abre overlay fullscreen (Fullscreen API) otimizado para projetores/TVs no local do torneio. Fundo escuro (#0a0e1a), relogio em tempo real, barra de progresso, auto-refresh a cada 30s que re-renderiza o bracket e atualiza o conteudo. CSS inline para tabelas e bracket com tema escuro. Sair com ESC, botao Sair, ou saindo do fullscreen. Funcoes: window._tvMode(tId), window._exitTvMode().
 
 **v0.2.22-alpha (Marco 2026)**
-- Favoritar Torneios: estrela (☆/★) nos cards do dashboard e na pagina de detalhes do torneio. Favoritos salvos em localStorage por usuario (chave scoreplace_favorites_email). Helpers globais: window._getFavorites(), window._isFavorite(tId), window._toggleFavorite(tId, event). Filtro "Favoritos" no dashboard aparece quando ha ao menos 1 favorito. Estrelas atualizam em tempo real sem re-render da pagina via querySelectorAll('[data-fav-id]').
+- Favoritar Torneios: estrela (â/â) nos cards do dashboard e na pagina de detalhes do torneio. Favoritos salvos em localStorage por usuario (chave scoreplace_favorites_email). Helpers globais: window._getFavorites(), window._isFavorite(tId), window._toggleFavorite(tId, event). Filtro "Favoritos" no dashboard aparece quando ha ao menos 1 favorito. Estrelas atualizam em tempo real sem re-render da pagina via querySelectorAll('[data-fav-id]').
 
 **v0.2.21-alpha (Marco 2026)**
 - Imprimir Chaveamento: botao "Imprimir" na pagina do bracket/classificacao. CSS @media print completo com fundo branco, tabelas com bordas visiveis, avatares ocultados, badges com borda, orientacao paisagem automatica (@page landscape). Classe .no-print para ocultar elementos na impressao. Funcao window._printBracket().
@@ -226,7 +241,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - _isLigaFormat global: definicao movida para o topo de tournaments.js (fora do escopo de renderTournaments) para que esteja disponivel imediatamente no carregamento do script. Usa padrao `window._isLigaFormat = window._isLigaFormat || function(){}` para nao sobrescrever se ja definido.
 
 **v0.2.19-alpha (Marco 2026)**
-- Confrontos do Jogador: clicar no nome de um jogador na tabela de classificacao (Liga/Suico) abre popup com historico completo de partidas — adversario, placar, resultado (V/E/D) e resumo. Funcao window._showPlayerHistory(tId, playerName). Usa showAlertDialog para exibir tabela formatada.
+- Confrontos do Jogador: clicar no nome de um jogador na tabela de classificacao (Liga/Suico) abre popup com historico completo de partidas â adversario, placar, resultado (V/E/D) e resumo. Funcao window._showPlayerHistory(tId, playerName). Usa showAlertDialog para exibir tabela formatada.
 - Notificacao de Resultado: ao salvar resultado de partida via _saveResultInline, ambos os jogadores recebem notificacao automatica via _sendUserNotification (tipo 'result', level 'all'). Requer que participante tenha uid no objeto de participante.
 - Ultima Atualizacao: torneios agora registram t.updatedAt (ISO string) a cada syncImmediate. Exibido na pagina de detalhes do torneio como "Atualizado em DD/MM/AAAA as HH:MM".
 
@@ -245,11 +260,11 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 
 **v0.2.15-alpha (Marco 2026)**
 - Proximas Partidas: dashboard exibe widget "Suas Proximas Partidas" com partidas pendentes do usuario (sem resultado) em torneios ativos. Mostra oponente, torneio, esporte e link direto. Max 5 visiveis.
-- Indicador offline/online: banner fixo no rodape quando perde conexao ("Sem conexao — modo offline") e feedback quando reconecta ("Conexao restaurada"). Complemento do PWA.
+- Indicador offline/online: banner fixo no rodape quando perde conexao ("Sem conexao â modo offline") e feedback quando reconecta ("Conexao restaurada"). Complemento do PWA.
 - Error logging melhorado: catch silencioso em store.js._loadFromCache agora faz console.warn para facilitar debug.
 
 **v0.2.14-alpha (Marco 2026)**
-- Filtro de torneios: barra de busca por nome/esporte/formato + dropdown de status (Todos, Inscrições Abertas, Em Andamento, Encerrados) na lista de torneios. Aparece quando ha mais de 3 torneios. Filtragem instantanea por texto e status.
+- Filtro de torneios: barra de busca por nome/esporte/formato + dropdown de status (Todos, InscriÃ§Ãµes Abertas, Em Andamento, Encerrados) na lista de torneios. Aparece quando ha mais de 3 torneios. Filtragem instantanea por texto e status.
 
 **v0.2.13-alpha (Marco 2026)**
 - PWA: manifest.json, service worker (sw.js) com stale-while-revalidate para assets estaticos e network-only para Firebase/APIs. Icones SVG em icons/. Meta tags apple-mobile-web-app. Registro do SW em index.html.
@@ -261,7 +276,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - Utilitario global window._safeHtml() em store.js para escape de HTML reutilizavel.
 
 **v0.2.11-alpha (Marco 2026)**
-- Meu Desempenho: perfil do jogador agora exibe estatisticas pessoais — torneios participados, partidas jogadas, vitorias, derrotas, empates, aproveitamento (%) e titulos conquistados. Dados calculados em tempo real a partir de todos os torneios. Funcao _populatePlayerStats() em auth.js.
+- Meu Desempenho: perfil do jogador agora exibe estatisticas pessoais â torneios participados, partidas jogadas, vitorias, derrotas, empates, aproveitamento (%) e titulos conquistados. Dados calculados em tempo real a partir de todos os torneios. Funcao _populatePlayerStats() em auth.js.
 
 **v0.2.10-alpha (Marco 2026)**
 - Validacao de datas: criar/editar torneio agora valida que data fim > data inicio e prazo inscricao < data inicio.
@@ -304,7 +319,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 **v0.2.4-alpha (Marco 2026)**
 - Auto-inscricao com categorias: ao aceitar convite, participante e inscrito na categoria correta com base no genero do perfil. Organizador recebe notificacao.
 - Cancelar inscricao seguro: corrigido bug de substring match que podia remover participante errado (ex: "Ana" removendo "Ana Paula"). Agora usa comparacao exata.
-- Criar torneio — limpeza: removida referencia a campo liga-periodicity que nao existia mais no HTML, eliminando erros silenciosos.
+- Criar torneio â limpeza: removida referencia a campo liga-periodicity que nao existia mais no HTML, eliminando erros silenciosos.
 - Typo fix: "neste torneos?" corrigido para "neste torneio?"
 
 **v0.2.3-alpha (Marco 2026)**
@@ -336,7 +351,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - Multi-categoria: `p.categories[]` com exclusividade (Fem/Masc radio) e nao-exclusividade (Misto checkbox)
 - Ordenacao de mesclagem por forca (A antes de B); simplificacao quando todas habilidades mescladas
 - Botao Voltar padronizado (pill com SVG arrow, hover-lift)
-- Prefixo "orig:" removido — exibe apenas "(Fem B)" em vez de "(orig: Fem B)"
+- Prefixo "orig:" removido â exibe apenas "(Fem B)" em vez de "(orig: Fem B)"
 - Cache-busters: todos os arquivos usam `?v=0.2.3-alpha` (convencao adotada a partir desta versao)
 
 **v0.2.1-alpha (Marco 2026)**
@@ -388,12 +403,12 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
   - Bracket renderiza tabelas separadas por categoria
   - Gerenciador de Categorias: `_openCategoryManager(tId)` modal para organizador
     - Cards por categoria com contagem de inscritos e lista de nomes
-    - Merge por drag-and-drop: Fem A + Fem B → Fem A/B (nome inteligente com prefixo comum)
+    - Merge por drag-and-drop: Fem A + Fem B â Fem A/B (nome inteligente com prefixo comum)
     - Atribuir participantes sem categoria arrastando para card de categoria
     - Categoria original preservada em `p.originalCategory`
     - Funcoes: `_confirmMergeCategories`, `_executeMerge`, `_assignParticipantCategory`
 - Convite por QR Code: imagem gerada automaticamente via api.qrserver.com no painel de convite
-- Dashboard: "Inscricoes Abertas" → "Inscricoes Disponiveis" na saudacao
+- Dashboard: "Inscricoes Abertas" â "Inscricoes Disponiveis" na saudacao
 - Detalhes do torneio: mostra temporada, data/hora do 1o sorteio e intervalo entre sorteios para Ranking/Suico
 - Estimativas de tempo: container com ID `time-estimates-container` para esconder confiavelmente no Ranking
 - Manual: nova secao "Categorias" + QR Code mencionado em "Convidar Amigos" + formato Ranking documentado
@@ -452,50 +467,50 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 
 ```
 scoreplace-app/
-├── index.html          # Entry point SPA (topbar com Inicio, Explorar, Notificacoes, ?, Login)
-├── css/
-│   ├── style.css       # Variaveis de tema e estilos base
-│   ├── components.css  # Componentes (botoes, modais, cards, forms)
-│   ├── layout.css      # Layout principal
-│   ├── bracket.css     # Estilos do chaveamento/bracket
-│   ├── responsive.css  # Media queries (767px / 768-1199px / 1200px+)
-│   └── drag-drop.css   # Drag-and-drop (sorteio)
-├── js/
-│   ├── theme.js        # Injecao de tema (antes do body para evitar flicker)
-│   ├── store.js        # SCOREPLACE_VERSION + Estado global (AppStore) + Firestore sync
-│   │                   #   Inclui notifyLevel e preferredCeps no perfil do usuario
-│   ├── firebase-db.js  # CRUD Firestore (saveTournament, loadAllTournaments, etc.)
-│   ├── notifications.js# Sistema de notificacoes toast
-│   ├── ui.js           # Helpers de UI (modais, elementos interativos)
-│   ├── router.js       # Roteador hash-based (#dashboard, #tournaments, etc.)
-│   ├── main.js         # Inicializacao + modal Help (searchable accordion) + modal Criacao Rapida
-│   └── views/
-│       ├── auth.js             # Firebase Auth REAL + perfil com CEPs de preferencia + filtros de notificacao
-│       ├── dashboard.js        # Tela inicial com hero box + cards com logo de torneio
-│       ├── tournaments-utils.js # Funcoes utilitarias de torneios
-│       ├── tournaments-sharing.js # Compartilhamento e convites
-│       ├── tournaments-analytics.js # Estatisticas e analytics
-│       ├── tournaments-organizer.js # Ferramentas do organizador
-│       ├── tournaments-categories.js # Sistema de categorias: gerenciador, merge/unmerge, auto-assign, estimativa de duracao
-│       ├── tournaments-enrollment.js # Inscricao/desinscricao, adicionar participante/time, excluir torneio
-│       ├── tournaments-draw-prep.js # Preparacao de sorteio, enquetes (polls), resolucao times/potencia de 2
-│       ├── tournaments-draw.js  # Geracao de chaves, drag-and-drop, painel de revisao final
-│       ├── tournaments.js      # Orquestrador principal: render de cards, detalhes, notificacoes, comunicacao
-│       ├── create-tournament.js# Modal de criacao/edicao + logo canvas generator + GSM config + deteccao de alteracoes
-│       ├── participants.js     # Gestao de participantes
-│       ├── pre-draw.js         # Tela de pre-sorteio
-│       ├── bracket-logic.js     # Computacao de standings, Swiss pairing, advance winner, auto-finish, 3rd place
-│       ├── bracket.js          # Renderizacao do chaveamento/bracket + classificacao + GSM display
-│       ├── bracket-ui.js       # UI interativa: save result inline, set scoring overlay, TV mode, sort standings
-│       ├── rules.js            # Regras do torneio
-│       ├── explore.js          # Explorar torneios publicos da comunidade
-│       ├── notifications-view.js # View de notificacoes
-│       ├── result-modal.js     # Modal de resultado de partida
-│       └── enroll-modal.js     # Modal de inscricao
+âââ index.html          # Entry point SPA (topbar com Inicio, Explorar, Notificacoes, ?, Login)
+âââ css/
+â   âââ style.css       # Variaveis de tema e estilos base
+â   âââ components.css  # Componentes (botoes, modais, cards, forms)
+â   âââ layout.css      # Layout principal
+â   âââ bracket.css     # Estilos do chaveamento/bracket
+â   âââ responsive.css  # Media queries (767px / 768-1199px / 1200px+)
+â   âââ drag-drop.css   # Drag-and-drop (sorteio)
+âââ js/
+â   âââ theme.js        # Injecao de tema (antes do body para evitar flicker)
+â   âââ store.js        # SCOREPLACE_VERSION + Estado global (AppStore) + Firestore sync
+â   â                   #   Inclui notifyLevel e preferredCeps no perfil do usuario
+â   âââ firebase-db.js  # CRUD Firestore (saveTournament, loadAllTournaments, etc.)
+â   âââ notifications.js# Sistema de notificacoes toast
+â   âââ ui.js           # Helpers de UI (modais, elementos interativos)
+â   âââ router.js       # Roteador hash-based (#dashboard, #tournaments, etc.)
+â   âââ main.js         # Inicializacao + modal Help (searchable accordion) + modal Criacao Rapida
+â   âââ views/
+â       âââ auth.js             # Firebase Auth REAL + perfil com CEPs de preferencia + filtros de notificacao
+â       âââ dashboard.js        # Tela inicial com hero box + cards com logo de torneio
+â       âââ tournaments-utils.js # Funcoes utilitarias de torneios
+â       âââ tournaments-sharing.js # Compartilhamento e convites
+â       âââ tournaments-analytics.js # Estatisticas e analytics
+â       âââ tournaments-organizer.js # Ferramentas do organizador
+â       âââ tournaments-categories.js # Sistema de categorias: gerenciador, merge/unmerge, auto-assign, estimativa de duracao
+â       âââ tournaments-enrollment.js # Inscricao/desinscricao, adicionar participante/time, excluir torneio
+â       âââ tournaments-draw-prep.js # Preparacao de sorteio, enquetes (polls), resolucao times/potencia de 2
+â       âââ tournaments-draw.js  # Geracao de chaves, drag-and-drop, painel de revisao final
+â       âââ tournaments.js      # Orquestrador principal: render de cards, detalhes, notificacoes, comunicacao
+â       âââ create-tournament.js# Modal de criacao/edicao + logo canvas generator + GSM config + deteccao de alteracoes
+â       âââ participants.js     # Gestao de participantes
+â       âââ pre-draw.js         # Tela de pre-sorteio
+â       âââ bracket-logic.js     # Computacao de standings, Swiss pairing, advance winner, auto-finish, 3rd place
+â       âââ bracket.js          # Renderizacao do chaveamento/bracket + classificacao + GSM display
+â       âââ bracket-ui.js       # UI interativa: save result inline, set scoring overlay, TV mode, sort standings
+â       âââ rules.js            # Regras do torneio
+â       âââ explore.js          # Explorar torneios publicos da comunidade
+â       âââ notifications-view.js # View de notificacoes
+â       âââ result-modal.js     # Modal de resultado de partida
+â       âââ enroll-modal.js     # Modal de inscricao
 ```
 
 ### Cache-busters atuais (index.html)
-Todos os arquivos JS e CSS usam `?v=0.4.4` a partir da v0.4.4-alpha.
+Todos os arquivos JS e CSS usam `?v=0.4.12` a partir da v0.4.12-alpha.
 
 ## Regras de Seguranca de Codigo
 
@@ -517,7 +532,7 @@ Ao escapar IDs em onclick handlers dentro de template literals, **nunca** quebra
 ```js
 onclick="func('${String(id).replace(/'/g, "\\'")}'${', \'arg2\''})"
 ```
-O `'${'` fecha a string JS prematuramente → SyntaxError → arquivo inteiro nao carrega e TODAS as funcoes definidas nele deixam de existir silenciosamente.
+O `'${'` fecha a string JS prematuramente â SyntaxError â arquivo inteiro nao carrega e TODAS as funcoes definidas nele deixam de existir silenciosamente.
 
 **CORRETO:**
 ```js
@@ -535,9 +550,9 @@ Hash-based SPA routing em `router.js`. Rotas: `#dashboard`, `#tournaments`, `#pr
 
 ### Estado Global
 `window.AppStore` em `store.js` com metodos:
-- `sync()` — salva torneios do organizador no Firestore (ATENCAO: so salva torneios onde organizerEmail === currentUser.email)
-- `toggleViewMode()` — alterna organizador/participante
-- `isOrganizer(tournament)` — verifica se usuario logado e organizador
+- `sync()` â salva torneios do organizador no Firestore (ATENCAO: so salva torneios onde organizerEmail === currentUser.email)
+- `toggleViewMode()` â alterna organizador/participante
+- `isOrganizer(tournament)` â verifica se usuario logado e organizador
 - `getVisibleTournaments()`, `getMyOrganized()`, `getMyParticipations()`
 - `addTournament(data)`, `logAction(tournamentId, message)`
 - `loadFromFirestore()`, `loadUserProfile(uid)`
@@ -546,10 +561,10 @@ Hash-based SPA routing em `router.js`. Rotas: `#dashboard`, `#tournaments`, `#pr
 
 ### Autenticacao
 Firebase Auth (compat mode) em `auth.js` com credenciais REAIS do projeto `scoreplace-app`:
-- `handleGoogleLogin()` — popup Google real
-- `simulateLoginSuccess(user)` — atualiza AppStore + UI do topbar (avatar + nome + icone logout)
-- `handleLogout()` — Firebase signout + reset de UI
-- `setupLoginModal()`, `setupProfileModal()` — criam modais no DOM
+- `handleGoogleLogin()` â popup Google real
+- `simulateLoginSuccess(user)` â atualiza AppStore + UI do topbar (avatar + nome + icone logout)
+- `handleLogout()` â Firebase signout + reset de UI
+- `setupLoginModal()`, `setupProfileModal()` â criam modais no DOM
 - Dominio autorizado no Firebase: `scoreplace.app`
 - Auto-inscricao pos-login via `_pendingEnrollTournamentId` (sessionStorage)
 - Perfil inclui: `notifyLevel` (todas/importantes/fundamentais), `preferredCeps` (string CSV)
@@ -558,11 +573,11 @@ Firebase Auth (compat mode) em `auth.js` com credenciais REAIS do projeto `score
 
 ### Sistema de Notificacoes (tournaments.js)
 Funcoes centralizadas no topo de `tournaments.js`:
-- `_notifLevelAllowed(userLevel, notifLevel)` — verifica se notificacao deve ser enviada
-- `_sendUserNotification(uid, notifData)` — envia para um usuario (Firestore subcollection `users/{uid}/notifications/`)
-- `_notifyTournamentParticipants(tournament, notifData, excludeEmail)` — envia para todos inscritos
-- `_checkTournamentReminders()` — lembretes 7d/2d/dia-do, deduplicacao via localStorage
-- `_checkNearbyTournaments()` — torneios no CEP de preferencia (unica excecao: envia mesmo sem inscricao)
+- `_notifLevelAllowed(userLevel, notifLevel)` â verifica se notificacao deve ser enviada
+- `_sendUserNotification(uid, notifData)` â envia para um usuario (Firestore subcollection `users/{uid}/notifications/`)
+- `_notifyTournamentParticipants(tournament, notifData, excludeEmail)` â envia para todos inscritos
+- `_checkTournamentReminders()` â lembretes 7d/2d/dia-do, deduplicacao via localStorage
+- `_checkNearbyTournaments()` â torneios no CEP de preferencia (unica excecao: envia mesmo sem inscricao)
 - Niveis de notificacao: 'fundamental', 'important', 'all'
 - Comunicacao do organizador: `_sendOrgCommunication(tId)` com modal de texto + seletor de importancia
 - Botao "Comunicar Inscritos" visivel so para organizador na view de detalhe
@@ -570,7 +585,7 @@ Funcoes centralizadas no topo de `tournaments.js`:
 ### Logo de Torneio (create-tournament.js)
 - Canvas API com paletas por esporte (`_sportColorPalettes`), gradientes, emoji watermark
 - Considera: venue, sport, format na geracao
-- Botoes: Gerar (🎨), Regerar (🔄), Lock/Unlock (🔒/🔓), Download (⬇️), Upload (📁), Clear (✕)
+- Botoes: Gerar (ð¨), Regerar (ð), Lock/Unlock (ð/ð), Download (â¬ï¸), Upload (ð), Clear (â)
 - Upload: FileReader + canvas resize (max 400x400, JPEG quality 0.85)
 - Dados salvos no Firestore: `logoData` (base64), `logoLocked` (boolean)
 - Logo exibida no dashboard cards (56x56) e na view de detalhe
@@ -583,7 +598,7 @@ Funcoes centralizadas no topo de `tournaments.js`:
 
 ### Fluxo de Convite (Invite Flow)
 1. Usuario recebe link `https://scoreplace.app/#tournaments/{id}`
-2. Router permite acesso SEM login — salva `_pendingInviteHash`
+2. Router permite acesso SEM login â salva `_pendingInviteHash`
 3. Pagina de detalhes do torneio exibe CTA "Inscrever-se" em destaque
 4. Clique no botao dispara login Google
 5. Apos login, auto-inscricao via `_pendingEnrollTournamentId` (sessionStorage)
@@ -593,9 +608,9 @@ Funcoes centralizadas no topo de `tournaments.js`:
 1. Usuario clica "+Novo Torneio" no dashboard
 2. Abre `modal-quick-create` (modal intermediario em `main.js`) com:
    - Seletor de modalidade esportiva
-   - "Criar Torneio" — cria com defaults + auto-nome + redireciona para pagina do torneio
-   - "Detalhes Avancados" — abre `modal-create-tournament` (formulario completo em `create-tournament.js`)
-   - "Cancelar" — fecha sem criar
+   - "Criar Torneio" â cria com defaults + auto-nome + redireciona para pagina do torneio
+   - "Detalhes Avancados" â abre `modal-create-tournament` (formulario completo em `create-tournament.js`)
+   - "Cancelar" â fecha sem criar
 3. Auto-nome: "Torneio [modo] de [modalidade] de [primeiro nome do usuario]"
 
 ### Deteccao de Alteracoes em Torneio (create-tournament.js)
@@ -612,12 +627,12 @@ Ao salvar edicao de torneio, compara campos antes/depois:
 - Variaveis CSS em `:root` para temas (dark padrao, light, high-contrast, catppuccin)
 
 ### Busca de Local (Venue)
-- Google Places API (New) — `AutocompleteSuggestion.fetchAutocompleteSuggestions()` (programmatic, sem UI do Google)
+- Google Places API (New) â `AutocompleteSuggestion.fetchAutocompleteSuggestions()` (programmatic, sem UI do Google)
 - Custom UI: input `#tourn-venue` + dropdown `#venue-suggestions` em dark theme
 - Restrito ao Brasil: `includedRegionCodes: ['br']`
 - Dados salvos: venue, venueLat, venueLon, venueAddress, venuePlaceId, venueAccess
 - API key: compartilhada com Firebase (Google Cloud Console projeto scoreplace-app)
-- **NAO usar** `PlaceAutocompleteElement` — causa crash de tela branca
+- **NAO usar** `PlaceAutocompleteElement` â causa crash de tela branca
 
 ### Botoes do Organizador (Tournament Detail View)
 - **Inscricoes abertas, sem sorteio**: Convidar, Inscrever-se, +Participante, +Time (if mode allows), Encerrar Inscricoes, Sortear, Comunicar Inscritos, Apagar
@@ -631,27 +646,27 @@ Ao salvar edicao de torneio, compara campos antes/depois:
 O projeto segue semver simplificado. Versao definida em `window.SCOREPLACE_VERSION` (store.js).
 Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 
-- **0.1.x-alpha** — Fase inicial. Firestore ativo, auth real, fluxo de convite
-- **0.2.x-alpha** — Fase atual. Unificacao Liga/Ranking, encerramento automatico, podio, validacoes, seguranca
-- **0.3.x-alpha** — Rankings, historico, PWA, push notifications
-- **0.4.x-alpha** — Auditoria completa, novos temas, sistema GSM
-- **1.0.0** — Release estavel
+- **0.1.x-alpha** â Fase inicial. Firestore ativo, auth real, fluxo de convite
+- **0.2.x-alpha** â Fase atual. Unificacao Liga/Ranking, encerramento automatico, podio, validacoes, seguranca
+- **0.3.x-alpha** â Rankings, historico, PWA, push notifications
+- **0.4.x-alpha** â Auditoria completa, novos temas, sistema GSM
+- **1.0.0** â Release estavel
 
 ## Proximos Passos Conhecidos
 
-### Fase 2 — Infraestrutura e Qualidade
+### Fase 2 â Infraestrutura e Qualidade
 1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console. *(Acao do usuario)*
-2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes. *(Adiado — alto risco)*
-3. ~~**Otimizacao:**~~ **FEITO em v0.4.2** — tournaments.js refatorado de 6.503 linhas em 5 modulos (tournaments.js, tournaments-categories.js, tournaments-enrollment.js, tournaments-draw-prep.js, tournaments-draw.js). bracket.js ainda grande (~143KB) mas funcional.
-4. ~~**Testes:**~~ **FEITO em v0.2.20** — 21 testes unitarios em tests.html.
+2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes. *(Adiado â alto risco)*
+3. ~~**Otimizacao:**~~ **FEITO em v0.4.2** â tournaments.js refatorado de 6.503 linhas em 5 modulos (tournaments.js, tournaments-categories.js, tournaments-enrollment.js, tournaments-draw-prep.js, tournaments-draw.js). bracket.js ainda grande (~143KB) mas funcional.
+4. ~~**Testes:**~~ **FEITO em v0.2.20** â 21 testes unitarios em tests.html.
 
-### Fase 3 — Features Novas (Client-Side COMPLETAS)
-5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11 + v0.2.33** — Perfil com estatisticas + modal de stats global ao clicar no nome.
-6. ~~**Auto-draw Cloud Function:**~~ **FEITO em v0.2.40** — Cloud Function `autoDraw` deployada (onSchedule every 1 hour). Gera rounds automaticos para Liga/Ranking.
+### Fase 3 â Features Novas (Client-Side COMPLETAS)
+5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11 + v0.2.33** â Perfil com estatisticas + modal de stats global ao clicar no nome.
+6. ~~**Auto-draw Cloud Function:**~~ **FEITO em v0.2.40** â Cloud Function `autoDraw` deployada (onSchedule every 1 hour). Gera rounds automaticos para Liga/Ranking.
 7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12.**
-8. ~~**Notificacoes push:**~~ **FEITO em v0.2.40** — Cloud Function `sendPushNotification` deployada + client-side FCM token registration. Fluxo end-to-end completo.
+8. ~~**Notificacoes push:**~~ **FEITO em v0.2.40** â Cloud Function `sendPushNotification` deployada + client-side FCM token registration. Fluxo end-to-end completo.
 9. ~~**PWA:**~~ **FEITO em v0.2.13.**
-10. ~~**Previsao do tempo:**~~ **FEITO em v0.2.39** — API key configurada, previsao exibida automaticamente.
+10. ~~**Previsao do tempo:**~~ **FEITO em v0.2.39** â API key configurada, previsao exibida automaticamente.
 11. ~~**Imprimir Chaveamento:**~~ **FEITO em v0.2.21.**
 12. ~~**Favoritar Torneios:**~~ **FEITO em v0.2.22.**
 13. ~~**Modo TV:**~~ **FEITO em v0.2.23.**
@@ -670,8 +685,8 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 
 ### Pendencias que requerem acao do usuario (backend/config)
 - ~~Firestore rules (Firebase Console)~~ **FEITO em v0.2.39**
-- ~~Auto-draw Cloud Function (Firebase Cloud Functions)~~ **FEITO em v0.2.40** — deployada
-- ~~Push Notifications (Firebase Cloud Messaging)~~ **FEITO em v0.2.40** — Cloud Function + client-side
+- ~~Auto-draw Cloud Function (Firebase Cloud Functions)~~ **FEITO em v0.2.40** â deployada
+- ~~Push Notifications (Firebase Cloud Messaging)~~ **FEITO em v0.2.40** â Cloud Function + client-side
 - ~~Weather API (OpenWeatherMap API key)~~ **FEITO em v0.2.39**
 - **VAPID Key:** Usuario precisa gerar Web Push certificate no Firebase Console > Project Settings > Cloud Messaging e configurar em window._FCM_VAPID_KEY no codigo
 
@@ -681,7 +696,7 @@ O deploy e feito via upload de arquivos no repositorio `rstbarth/scoreplace.app`
 
 ### DNS
 - A records: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153
-- CNAME www → rstbarth.github.io
+- CNAME www â rstbarth.github.io
 
 ### Fluxo de deploy padrao (PASSO A PASSO OBRIGATORIO)
 1. Separar arquivos alterados por pasta de destino no GitHub (ex: `passo1/` para `js/views/`, `passo2/` para `js/`)
