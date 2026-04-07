@@ -192,9 +192,9 @@ window.showUnifiedResolutionPanel = function(tId) {
         function nashColorContinuous(n) {
             const hue = Math.round(n * 142);
             const sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
-            const bgAlpha = (0.10 + n * 0.10).toFixed(2);
-            const borderAlpha = (0.30 + n * 0.25).toFixed(2);
-            const glowAlpha = (0.05 + n * 0.20).toFixed(2);
+            const bgAlpha = (0.20 + n * 0.25).toFixed(2);
+            const borderAlpha = (0.40 + n * 0.30).toFixed(2);
+            const glowAlpha = (0.08 + n * 0.22).toFixed(2);
             return {
                 bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgAlpha + ')',
                 border: 'hsla(' + hue + ',' + sat + '%,55%,' + borderAlpha + ')',
@@ -219,29 +219,27 @@ window.showUnifiedResolutionPanel = function(tId) {
             const c = nashColorContinuous(n);
             const pct = Math.round(n * 100);
             const isBest = o.key === bestKey;
-
-            const badgeHtml = isBest ? '<div style="position:absolute;top:10px;right:40px;background:rgba(34,197,94,0.15);color:#4ade80;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</div>' : '';
-            const pillHtml = '<span style="position:absolute;bottom:10px;right:12px;padding:3px 10px;border-radius:8px;font-size:0.65rem;font-weight:800;background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span>';
-            const style = 'background:' + c.bg + ';border:1px solid ' + c.border + ';box-shadow:' + c.glow + ';';
-
             const canExclude = activeOptions.length > 2;
-            const excludeBtn = canExclude ? '<button style="position:absolute;top:8px;right:' + (isBest ? '110px' : '8px') + ';width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#94a3b8;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2;" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\';this.style.borderColor=\'rgba(239,68,68,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\';this.style.color=\'#94a3b8\';this.style.borderColor=\'rgba(255,255,255,0.15)\'">✕</button>' : '';
 
-            html += '<button style="position:relative;' + style + 'border-radius:18px;padding:1.8rem 1.5rem 2.2rem;cursor:pointer;transition:all 0.3s;text-align:left;color:#e2e8f0;display:flex;gap:16px;align-items:flex-start;overflow:hidden;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.15)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'" onclick="window._handleUnifiedOption(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
-                badgeHtml + excludeBtn +
-                '<span style="font-size:2rem;">' + o.icon + '</span>' +
-                '<div style="flex:1;padding-right:' + (canExclude ? '32px' : '0') + ';">' +
-                '<h4 style="margin:0 0 4px;font-weight:800;font-size:1.05rem;color:#fff;">' + o.title + '</h4>' +
-                '<p style="margin:0;font-size:0.8rem;color:#94a3b8;line-height:1.5;">' + o.desc + '</p>' +
-                '</div>' +
-                pillHtml +
+            // Top row: Recomendado badge (left) + Exclude ✕ (right)
+            var topRow = '<div style="display:flex;justify-content:space-between;align-items:center;min-height:22px;">';
+            topRow += isBest ? '<span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>' : '<span></span>';
+            topRow += canExclude ? '<span style="width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.25);color:#94a3b8;font-size:0.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.color=\'#94a3b8\'">✕</span>' : '';
+            topRow += '</div>';
+
+            html += '<button style="background:' + c.bg + ';border:2px solid ' + c.border + ';box-shadow:' + c.glow + ';border-radius:16px;padding:12px 16px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;overflow:hidden;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'" onclick="window._handleUnifiedOption(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
+                topRow +
+                '<div style="font-size:1.8rem;line-height:1;">' + o.icon + '</div>' +
+                '<div style="font-weight:800;font-size:0.95rem;color:#fff;">' + o.title + '</div>' +
+                '<div style="font-size:0.75rem;color:rgba(255,255,255,0.65);line-height:1.4;">' + o.desc + '</div>' +
+                '<div style="margin-top:auto;padding-top:6px;"><span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:0.65rem;font-weight:800;background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + pct + '%</span></div>' +
             '</button>';
         });
 
         // Show excluded options
         const excludedOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) !== -1; });
         if (excludedOptions.length > 0) {
-            html += '<div style="grid-column:span 2;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
+            html += '<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
             html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">Excluídas:</span>';
             excludedOptions.forEach(function(o) {
                 html += '<button onclick="event.stopPropagation();window._restoreUnifiedOption(\'' + o.key + '\')" style="background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:4px 12px;color:#64748b;font-size:0.72rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.color=\'#94a3b8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.color=\'#64748b\'">' + o.icon + ' ' + o.title + ' ↩</button>';
@@ -412,7 +410,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         '<div style="padding:2.5rem;">' +
             '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
             '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
-            '<div id="unified-options-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+            '<div id="unified-options-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">' +
                 window._renderUnifiedOptions([]) +
             '</div>' +
         '</div>' +
