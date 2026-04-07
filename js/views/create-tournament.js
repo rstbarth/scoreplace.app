@@ -2922,17 +2922,17 @@ window._onSportChange = function() {
     config = window._sportScoringDefaults[sport] || window._sportScoringDefaults['_default'];
   }
 
-  // Apply to hidden fields
+  // Apply to hidden fields (always use strings for .value)
   document.getElementById('gsm-type').value = config.type || 'simple';
-  document.getElementById('gsm-setsToWin').value = config.setsToWin || 1;
-  document.getElementById('gsm-gamesPerSet').value = config.gamesPerSet || 6;
-  document.getElementById('gsm-tiebreakEnabled').value = config.tiebreakEnabled || false;
-  document.getElementById('gsm-tiebreakPoints').value = config.tiebreakPoints || 7;
-  document.getElementById('gsm-tiebreakMargin').value = config.tiebreakMargin || 2;
-  document.getElementById('gsm-superTiebreak').value = config.superTiebreak || false;
-  document.getElementById('gsm-superTiebreakPoints').value = config.superTiebreakPoints || 10;
+  document.getElementById('gsm-setsToWin').value = String(config.setsToWin || 1);
+  document.getElementById('gsm-gamesPerSet').value = String(config.gamesPerSet || 6);
+  document.getElementById('gsm-tiebreakEnabled').value = config.tiebreakEnabled ? 'true' : 'false';
+  document.getElementById('gsm-tiebreakPoints').value = String(config.tiebreakPoints || 7);
+  document.getElementById('gsm-tiebreakMargin').value = String(config.tiebreakMargin || 2);
+  document.getElementById('gsm-superTiebreak').value = config.superTiebreak ? 'true' : 'false';
+  document.getElementById('gsm-superTiebreakPoints').value = String(config.superTiebreakPoints || 10);
   document.getElementById('gsm-countingType').value = config.countingType || 'numeric';
-  document.getElementById('gsm-advantageRule').value = config.advantageRule || false;
+  document.getElementById('gsm-advantageRule').value = config.advantageRule ? 'true' : 'false';
 
   // Update detailed summary
   if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
