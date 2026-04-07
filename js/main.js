@@ -696,7 +696,10 @@
       organizerEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
       participants: [],
       matches: [],
-      tiebreakers: ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio']
+      tiebreakers: ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'],
+      scoring: (window._sportScoringDefaults && window._sportScoringDefaults[sportClean])
+        ? Object.assign({}, window._sportScoringDefaults[sportClean])
+        : { type: 'simple', setsToWin: 1, gamesPerSet: 1, tiebreakEnabled: false, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'numeric', advantageRule: false }
     };
 
     window.AppStore.addTournament(tourData);
