@@ -191,12 +191,16 @@ function showNotification(title, message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.style.cssText = `
-    background: ${bg};
+    background: var(--bg-card, #1e293b);
     border-left: 4px solid ${border};
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    min-width: 250px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 4px solid ${border};
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    min-width: 240px;
+    max-width: 320px;
     transform: translateX(100%);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
