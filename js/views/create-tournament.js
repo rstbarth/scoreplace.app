@@ -2937,3 +2937,62 @@ window._onSportChange = function() {
   // Update detailed summary
   if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
 };
+
+// ─── Pre-fill form from a saved template ──────────────────────────────────
+window._prefillFromTemplate = function(tpl) {
+  if (!tpl) return;
+
+  // Sport
+  var sportSel = document.getElementById('select-sport');
+  if (sportSel && tpl.sport) {
+    var opt = Array.from(sportSel.options).find(function(o) { return o.value === tpl.sport || o.text === tpl.sport; });
+    if (opt) sportSel.value = opt.value;
+    if (typeof window._onSportChange === 'function') window._onSportChange();
+  }
+
+  // Format — click the matching format button
+  if (tpl.format) {
+    var fmtBtns = document.querySelectorAll('.formato-btn');
+    fmtBtns.forEach(function(btn) {
+      if (btn.getAttribute('data-format') === tpl.format) btn.click();
+    });
+  }
+
+  // Enrollment mode
+  var enrollSel = document.getElementById('enrollment-mode');
+  if (enrollSel && tpl.enrollmentMode) enrollSel.value = tpl.enrollmentMode;
+
+  // Max participants
+  var maxP = document.getElementById('tourn-max-participants');
+  if (maxP && tpl.maxParticipants) maxP.value = tpl.maxParticipants;
+
+  // Courts
+  var courts = document.getElementById('tourn-court-count');
+  if (courts && tpl.courtCount) courts.value = tpl.courtCount;
+
+  // Game duration
+  var dur = document.getElementById('tourn-game-duration');
+  if (dur && tpl.gameDuration) dur.value = tpl.gameDuration;
+
+  // Team size
+  var ts = document.getElementById('tourn-team-size');
+  if (ts && tpl.teamSize && tpl.teamSize > 1) ts.value = tpl.teamSize;
+
+  // Venue
+  var venueInput = document.getElementById('tourn-venue');
+  if (venueInput && tpl.venue) venueInput.value = tpl.venue;
+
+  // Scoring (GSM)
+  if (tpl.scoring && tpl.scoring.type === 'gsm' && typeof window._gsmApplyConfig === 'function') {
+    window._gsmApplyConfig(tpl.scoring);
+  }
+
+  // Categories (store in hidden data for save function to pick up)
+  if (tpl.genderCategories && tpl.genderCategories.length > 0) {
+    window._templateCategories = {
+      gender: tpl.genderCategories,
+      skill: tpl.skillCategories || [],
+      combined: tpl.combinedCategories || []
+    };
+  }
+};

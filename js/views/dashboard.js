@@ -1,3 +1,110 @@
+// ─── Organizer Analytics Section ────────────────────────────────────────────
+function _buildAnalyticsSection(organizados) {
+  if (!window.AppStore || !window.AppStore.currentUser) return '';
+  if (!organizados || organizados.length < 2) return '';
+  if (window.AppStore.viewMode !== 'organizer') return '';
+
+  var t = window._t || function(k) { return k; };
+  var total = organizados.length;
+
+  // Unique participants
+  var participantSet = {};
+  var totalParts = 0;
+  organizados.forEach(function(tour) {
+    var parts = tour.participants || [];
+    parts.forEach(function(p) {
+      var key = (typeof p === 'string') ? p : (p.email || p.displayName || p.uid || JSON.stringify(p));
+      participantSet[key] = true;
+    });
+    totalParts += parts.length;
+  });
+  var uniqueCount = Object.keys(participantSet).length;
+  var avgParts = total > 0 ? Math.round(totalParts / total) : 0;
+
+  // By format
+  var formatCounts = {};
+  organizados.forEach(function(tour) {
+    var f = tour.format || 'Outro';
+    formatCounts[f] = (formatCounts[f] || 0) + 1;
+  });
+
+  // By sport
+  var sportCounts = {};
+  organizados.forEach(function(tour) {
+    var s = tour.sport ? tour.sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : 'Outro';
+    sportCounts[s] = (sportCounts[s] || 0) + 1;
+  });
+
+  // Best month
+  var monthCounts = {};
+  organizados.forEach(function(tour) {
+    var d = tour.createdAt || tour.startDate;
+    if (d) {
+      var dt = new Date(d);
+      if (!isNaN(dt.getTime())) {
+        var mk = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+        monthCounts[mk] = (monthCounts[mk] || 0) + 1;
+      }
+    }
+  });
+  var bestMonth = '';
+  var bestMonthCount = 0;
+  Object.keys(monthCounts).forEach(function(mk) {
+    if (monthCounts[mk] > bestMonthCount) {
+      bestMonthCount = monthCounts[mk];
+      bestMonth = mk;
+    }
+  });
+  var bestMonthLabel = bestMonth ? (function() {
+    var parts = bestMonth.split('-');
+    var months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return months[parseInt(parts[1], 10) - 1] + '/' + parts[0];
+  })() : '-';
+
+  // Bar chart helper
+  function barChart(counts) {
+    var max = 0;
+    Object.keys(counts).forEach(function(k) { if (counts[k] > max) max = counts[k]; });
+    if (max === 0) return '';
+    var html = '';
+    Object.keys(counts).sort(function(a,b) { return counts[b] - counts[a]; }).forEach(function(k) {
+      var pct = Math.round((counts[k] / max) * 100);
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+        '<span style="min-width:120px;font-size:0.78rem;color:var(--text-muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(k) + '</span>' +
+        '<div style="flex:1;height:18px;background:var(--bg-darker);border-radius:6px;overflow:hidden;">' +
+          '<div style="width:' + pct + '%;height:100%;background:var(--primary-color);border-radius:6px;transition:width 0.3s;"></div>' +
+        '</div>' +
+        '<span style="min-width:24px;font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + counts[k] + '</span>' +
+      '</div>';
+    });
+    return html;
+  }
+
+  var isOpen = localStorage.getItem('scoreplace_analytics_open') === '1';
+
+  return '<div style="margin-bottom:1rem;">' +
+    '<details' + (isOpen ? ' open' : '') + ' ontoggle="localStorage.setItem(\'scoreplace_analytics_open\', this.open ? \'1\' : \'0\')">' +
+    '<summary style="cursor:pointer;font-weight:700;font-size:1rem;color:var(--text-bright);padding:12px 16px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;user-select:none;list-style:none;display:flex;align-items:center;gap:8px;">' +
+      '<span style="transition:transform 0.2s;">📊</span> ' + t('analytics.title') +
+    '</summary>' +
+    '<div style="margin-top:8px;padding:16px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;">' +
+      // Stat cards row
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">' +
+        '<div class="stat-box"><div style="font-size:1.5rem;font-weight:800;color:var(--primary-color);">' + total + '</div><div style="font-size:0.78rem;color:var(--text-muted);">' + t('analytics.totalTournaments') + '</div></div>' +
+        '<div class="stat-box"><div style="font-size:1.5rem;font-weight:800;color:var(--primary-color);">' + uniqueCount + '</div><div style="font-size:0.78rem;color:var(--text-muted);">' + t('analytics.uniqueParticipants') + '</div></div>' +
+        '<div class="stat-box"><div style="font-size:1.5rem;font-weight:800;color:var(--primary-color);">' + avgParts + '</div><div style="font-size:0.78rem;color:var(--text-muted);">' + t('analytics.avgParticipants') + '</div></div>' +
+        '<div class="stat-box"><div style="font-size:1.5rem;font-weight:800;color:var(--primary-color);">' + bestMonthLabel + '</div><div style="font-size:0.78rem;color:var(--text-muted);">' + t('analytics.bestMonth') + '</div></div>' +
+      '</div>' +
+      // Bar charts
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+        '<div><div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);margin-bottom:8px;">' + t('analytics.byFormat') + '</div>' + barChart(formatCounts) + '</div>' +
+        '<div><div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);margin-bottom:8px;">' + t('analytics.bySport') + '</div>' + barChart(sportCounts) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '</details>' +
+  '</div>';
+}
+
 function renderDashboard(container) {
   const visible = window.AppStore.getVisibleTournaments();
 
@@ -715,6 +822,9 @@ function renderDashboard(container) {
         ${encerradosCount > 0 ? _fStyle('encerrados', '🏆', encerradosCount, 'Encerrados') : ''}
       </div>
     </div>
+
+    <!-- Organizer Analytics -->
+    ${_buildAnalyticsSection(organizados)}
 
     <!-- Filter Bar -->
     ${filterBarHtml}

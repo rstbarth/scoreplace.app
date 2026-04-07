@@ -1661,6 +1661,16 @@ function setupProfileModal() {
               '</div>' +
               '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.</span>' +
             '</div>' +
+            // Language selector
+            '<div style="margin-bottom: 1rem;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Idioma / Language</label>' +
+                '<select id="profile-language" style="padding:6px 12px;border-radius:8px;background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-color);font-size:0.82rem;" onchange="if(typeof window._setLang===\'function\')window._setLang(this.value)">' +
+                  '<option value="pt"' + (window._lang === 'pt' ? ' selected' : '') + '>Portugues</option>' +
+                  '<option value="en"' + (window._lang === 'en' ? ' selected' : '') + '>English</option>' +
+                '</select>' +
+              '</div>' +
+            '</div>' +
             // Player Stats Section
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             '<div id="profile-stats-section">' +

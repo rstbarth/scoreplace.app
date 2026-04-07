@@ -367,3 +367,39 @@ window._confirmSendComm = async function(tId) {
         window.open(window._whatsappShareUrl(waMsg), '_blank');
     }
 };
+
+// ─── Save as Template ─────────────────────────────────────────────────────
+window._saveAsTemplate = function(tId) {
+  var t = (window.AppStore.tournaments || []).find(function(x) { return x.id === tId; });
+  if (!t) return;
+  var _t = window._t || function(k) { return k; };
+  if (typeof showInputDialog === 'function') {
+    showInputDialog(_t('template.namePrompt'), t.name, function(templateName) {
+      if (!templateName || !templateName.trim()) return;
+      var template = {
+        name: templateName.trim(),
+        sport: t.sport || '',
+        format: t.format || '',
+        scoring: t.scoring || null,
+        genderCategories: t.genderCategories || [],
+        skillCategories: t.skillCategories || [],
+        combinedCategories: t.combinedCategories || [],
+        enrollmentMode: t.enrollmentMode || 'open',
+        maxParticipants: t.maxParticipants || '',
+        courtCount: t.courtCount || '',
+        gameDuration: t.gameDuration || '',
+        venue: t.venue || '',
+        venueLat: t.venueLat || null,
+        venueLon: t.venueLon || null,
+        venueAddress: t.venueAddress || '',
+        teamSize: t.teamSize || 1
+      };
+      var ok = window._saveTemplate(template);
+      if (ok) {
+        showNotification(_t('template.saved'), '', 'success');
+      } else {
+        showNotification(_t('template.limitFree'), '', 'warning');
+      }
+    });
+  }
+};
