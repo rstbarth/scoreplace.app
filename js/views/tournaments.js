@@ -584,33 +584,36 @@ function renderTournaments(container, tournamentId = null) {
              <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; cursor: default; box-sizing: border-box;" onclick="event.stopPropagation()">
                 <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background: var(--bg-card); width: calc(100% - 2rem); max-width: 340px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease; box-sizing: border-box; overflow: hidden;">
 
-                   <div style="padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; box-sizing: border-box;">
+                   <div style="padding: 0.6rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; box-sizing: border-box;">
+
+                      <!-- Title -->
+                      <div style="text-align:center;font-size:0.95rem;font-weight:700;color:var(--text-bright);">Convidar para o Torneio</div>
 
                       <!-- 3 buttons row -->
                       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-                         <button class="btn btn-success btn-sm hover-lift" id="invite-friends-btn-${t.id}" style="flex-direction:column;gap:2px;padding:10px 4px;font-size:0.68rem;display:flex;align-items:center;justify-content:center;" onclick="event.stopPropagation(); window._inviteFriendsToTournament('${t.id}', '${inviteTextSafe}')">
-                            <span style="font-size:1.2rem;">👥</span>Amigos${_friendCount}
+                         <button class="btn btn-success btn-sm hover-lift" id="invite-friends-btn-${t.id}" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="event.stopPropagation(); window._inviteFriendsToTournament('${t.id}', '${inviteTextSafe}')">
+                            <span style="font-size:1.1rem;">👥</span>Amigos${_friendCount}
                          </button>
-                         <button class="btn btn-whatsapp btn-sm hover-lift" style="flex-direction:column;gap:2px;padding:10px 4px;font-size:0.68rem;display:flex;align-items:center;justify-content:center;" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent('${inviteTextSafe}'), '_blank')">
-                            <span style="font-size:1.2rem;">💬</span>WhatsApp
+                         <button class="btn btn-whatsapp btn-sm hover-lift" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent('${inviteTextSafe}'), '_blank')">
+                            <span style="font-size:1.1rem;">💬</span>WhatsApp
                          </button>
-                         <button class="btn btn-primary btn-sm hover-lift" style="flex-direction:column;gap:2px;padding:10px 4px;font-size:0.68rem;display:flex;align-items:center;justify-content:center;" onclick="navigator.clipboard.writeText('${inviteUrl}'); showNotification('Copiado!', 'Link copiado.', 'success')">
-                            <span style="font-size:1.2rem;">🔗</span>Copiar Link
+                         <button class="btn btn-primary btn-sm hover-lift" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="navigator.clipboard.writeText('${inviteUrl}'); showNotification('Copiado!', 'Link copiado.', 'success')">
+                            <span style="font-size:1.1rem;">🔗</span>Copiar Link
                          </button>
                       </div>
                       <div id="invite-friends-status-${t.id}" style="font-size: 0.68rem; color: var(--text-muted); text-align: center; min-height:0;"></div>
 
                       <!-- QR Code centered -->
                       <div style="text-align: center;">
-                         <div style="background: white; padding: 8px; border-radius: 10px; display: inline-block;">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=111111&data=${encodeURIComponent(inviteUrl)}" alt="QR Code" width="140" height="140" style="display: block;">
+                         <div style="background: white; padding: 6px; border-radius: 10px; display: inline-block;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&color=111111&data=${encodeURIComponent(inviteUrl)}" alt="QR Code" width="120" height="120" style="display: block;">
                          </div>
-                         <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;">Escaneie para se inscrever</div>
+                         <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 3px;">Escaneie para se inscrever</div>
                       </div>
 
                       <!-- Email -->
-                      <div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Convide por e-mail</div>
-                      <div style="display: flex; gap: 6px; align-items: stretch; margin-top:-4px;">
+                      <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);letter-spacing:0.3px;">Convide por e-mail</div>
+                      <div style="display: flex; gap: 6px; align-items: stretch; margin-top:-3px;">
                          <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.75rem; min-width: 0; box-sizing: border-box;">
                          <button class="btn btn-indigo btn-sm hover-lift" style="font-size:0.75rem;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification('Atenção','Digite um e-mail.','warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${window._safeHtml(t.name)}') + '&body=' + encodeURIComponent('${inviteTextSafe}'), '_self'); showNotification('E-mail', 'Abrindo seu cliente de e-mail...', 'info');">E-mail</button>
                       </div>
