@@ -241,6 +241,12 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Painel Unificado de Resolução Numérica</b> — Os 3 painéis de decisão (times incompletos, número ímpar, potência de 2) foram consolidados em um único painel com diagnóstico completo. Gauge visual mostra potência inferior/atual/superior com contagem de participantes. Cores Nash contínuas verde→vermelho com maior distinção visual. Botão ✕ para excluir opções temporariamente e recalcular Nash. Novas opções: Repescagem e Exclusão em todos os cenários.</p>' +
+        '<p><b>Simplificação de Esportes</b> — Apenas modalidades derivadas do tênis: Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel. Ícones de esporte limpos em todo o app.</p>' +
+        '<p><b>Formato como Botões</b> — Dropdown de formato substituído por botões excludentes com descrição dinâmica.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Sorteio de times corrigido</b> — A verificação de potência de 2 agora conta times (não participantes individuais). Painéis de decisão exibem contagem correta de times quando teamSize > 1.</p>' +
         '<p><b>Botão Convidar sem restrições</b> — Botão "Convidar" visível e funcional para organizadores e participantes em qualquer estado do torneio.</p>' +
@@ -588,17 +594,17 @@
           <label class="form-label">Modalidade Esportiva</label>
           <div id="qc-sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
             <button type="button" class="qc-sport-btn qc-sport-active" data-sport="🎾 Beach Tennis" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
-            <button type="button" class="qc-sport-btn" data-sport="🏸 Padel" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
             <button type="button" class="qc-sport-btn" data-sport="🥒 Pickleball" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🥒 Pickleball</button>
             <button type="button" class="qc-sport-btn" data-sport="🎾 Tênis" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🎾 Tênis</button>
             <button type="button" class="qc-sport-btn" data-sport="🏓 Tênis de Mesa" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏓 Tênis de Mesa</button>
+            <button type="button" class="qc-sport-btn" data-sport="🏸 Padel" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
           </div>
           <select class="form-control" id="quick-create-sport" style="display:none;">
             <option>🎾 Beach Tennis</option>
-            <option>🏸 Padel</option>
             <option>🥒 Pickleball</option>
             <option>🎾 Tênis</option>
             <option>🏓 Tênis de Mesa</option>
+            <option>🏸 Padel</option>
           </select>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -656,7 +662,7 @@
 
     // Determine team size from sport defaults
     const _qcSportTeamDefaults = {
-      'Beach Tennis': 2, 'Padel': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1
+      'Beach Tennis': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1, 'Padel': 2
     };
     const qcTeamSize = _qcSportTeamDefaults[sportClean] || 2;
 
