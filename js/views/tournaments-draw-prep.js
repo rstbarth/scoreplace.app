@@ -188,19 +188,21 @@ window.showUnifiedResolutionPanel = function(tId) {
             }
         });
 
-        // Color function: continuous green→red gradient
-        function nashColorContinuous(n) {
-            const hue = Math.round(n * 142);
-            const sat = Math.round(70 + (1 - Math.abs(n - 0.5) * 2) * 20);
-            const bgAlpha = (0.20 + n * 0.25).toFixed(2);
-            const borderAlpha = (0.40 + n * 0.30).toFixed(2);
-            const glowAlpha = (0.08 + n * 0.22).toFixed(2);
+        // Color palette: 8 distinct colors ranked from best (0) to worst (7)
+        var _nashPalette = ['#2ABFA3','#4A90D9','#A8D44B','#B3D9F7','#F5D63D','#F5A623','#F5653D','#D62020'];
+        // Assign color by rank position (sorted descending, so index 0 = best)
+        var _sortedKeys = activeOptions.slice().sort(function(a,b){ return (scores[b.key]||0)-(scores[a.key]||0); }).map(function(o){ return o.key; });
+
+        function nashColorContinuous(n, key) {
+            var rank = _sortedKeys.indexOf(key);
+            if (rank < 0) rank = _sortedKeys.length - 1;
+            var color = _nashPalette[Math.min(rank, _nashPalette.length - 1)];
             return {
-                bg: 'hsla(' + hue + ',' + sat + '%,55%,' + bgAlpha + ')',
-                border: 'hsla(' + hue + ',' + sat + '%,55%,' + borderAlpha + ')',
-                glow: parseFloat(glowAlpha) > 0.03 ? '0 0 ' + Math.round(10 + n * 10) + 'px hsla(' + hue + ',' + sat + '%,55%,' + glowAlpha + ')' : 'none',
-                pill: 'hsl(' + hue + ',' + sat + '%,65%)',
-                pillBg: 'hsla(' + hue + ',' + sat + '%,55%,0.15)'
+                bg: color + '30',
+                border: color + '80',
+                glow: '0 0 12px ' + color + '25',
+                pill: color,
+                pillBg: color + '20'
             };
         }
 
@@ -221,7 +223,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         let html = '';
         activeOptions.forEach(function(o) {
             const n = norm[o.key] !== undefined ? norm[o.key] : 0;
-            const c = nashColorContinuous(n);
+            const c = nashColorContinuous(n, o.key);
             const pct = Math.round(n * 100);
             const isBest = o.key === bestKey;
             const canExclude = activeOptions.length > 2;
