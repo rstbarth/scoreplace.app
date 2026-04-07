@@ -605,7 +605,14 @@
     if (_initialized) return;
     _initialized = true;
     _loadSeen();
-    if (!_isDisabled()) _startIdleWatch();
+    // If hints were disabled but no hints were ever seen, re-enable (first-time UX)
+    if (_isDisabled() && Object.keys(_seenHints).length === 0) {
+      try { localStorage.removeItem(LS_DISABLED_KEY); } catch(e) {}
+    }
+    if (!_isDisabled()) {
+      _startIdleWatch();
+      console.log('[hints] system active, idle timeout=' + IDLE_TIMEOUT + 'ms');
+    }
   }
 
   function _resetHints() {
