@@ -586,19 +586,19 @@
         <h2 style="margin:0 0 1.25rem; font-size:1.3rem; font-weight:700; color:var(--text-bright); text-align:center;">Novo Torneio</h2>
         <div class="form-group" style="margin-bottom:1.25rem;">
           <label class="form-label">Modalidade Esportiva</label>
-          <select class="form-control" id="quick-create-sport">
+          <div id="qc-sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="qc-sport-btn qc-sport-active" data-sport="🎾 Beach Tennis" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
+            <button type="button" class="qc-sport-btn" data-sport="🏸 Padel" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
+            <button type="button" class="qc-sport-btn" data-sport="🥒 Pickleball" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🥒 Pickleball</button>
+            <button type="button" class="qc-sport-btn" data-sport="🎾 Tênis" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🎾 Tênis</button>
+            <button type="button" class="qc-sport-btn" data-sport="🏓 Tênis de Mesa" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏓 Tênis de Mesa</button>
+          </div>
+          <select class="form-control" id="quick-create-sport" style="display:none;">
             <option>🎾 Beach Tennis</option>
-            <option>⚽ Futebol</option>
-            <option>🃏 Magic / TCG</option>
-            <option>🎾 Tênis</option>
-            <option>🏐 Vôlei</option>
-            <option>♟️ Xadrez</option>
-            <option>🎴 Dominó</option>
             <option>🏸 Padel</option>
             <option>🥒 Pickleball</option>
+            <option>🎾 Tênis</option>
             <option>🏓 Tênis de Mesa</option>
-            <option>🃏 Truco</option>
-            <option>🏅 Outro</option>
           </select>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -615,6 +615,29 @@
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
+
+  // Quick Create sport button selection
+  window._qcSelectSport = function(btn) {
+    var btns = document.querySelectorAll('#qc-sport-buttons .qc-sport-btn');
+    btns.forEach(function(b) {
+      b.classList.remove('qc-sport-active');
+      b.style.border = '2px solid rgba(255,255,255,0.18)';
+      b.style.background = 'rgba(255,255,255,0.06)';
+      b.style.color = 'var(--text-main)';
+    });
+    btn.classList.add('qc-sport-active');
+    btn.style.border = '2px solid #fbbf24';
+    btn.style.background = 'rgba(251,191,36,0.15)';
+    btn.style.color = '#fbbf24';
+    // Sync hidden select
+    var sel = document.getElementById('quick-create-sport');
+    if (sel) {
+      var val = btn.getAttribute('data-sport');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text === val) { sel.selectedIndex = i; break; }
+      }
+    }
+  };
 
   // Criar Torneio (rápido com auto-nome)
   document.getElementById('btn-quick-create').addEventListener('click', function () {
@@ -633,9 +656,7 @@
 
     // Determine team size from sport defaults
     const _qcSportTeamDefaults = {
-      'Beach Tennis': 2, 'Futebol': 5, 'Tênis': 1, 'Vôlei': 6,
-      'Xadrez': 1, 'Dominó': 2, 'Padel': 2, 'Pickleball': 2,
-      'Tênis de Mesa': 1, 'Truco': 2, 'Magic / TCG': 1, 'Outro': 2
+      'Beach Tennis': 2, 'Padel': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1
     };
     const qcTeamSize = _qcSportTeamDefaults[sportClean] || 2;
 
@@ -647,6 +668,8 @@
       isPublic: true,
       enrollmentMode: qcTeamSize > 1 ? 'time' : 'individual',
       teamSize: qcTeamSize,
+      gameTypes: qcTeamSize > 1 ? 'duplas' : 'simples',
+      thirdPlace: true,
       status: 'open',
       createdAt: new Date().toISOString(),
       organizerId: window.AppStore.currentUser ? window.AppStore.currentUser.uid : 'local',
