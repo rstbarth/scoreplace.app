@@ -1540,9 +1540,13 @@ function setupProfileModal() {
 
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
       '<div class="modal" style="max-width: 520px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; width: calc(100% - 2rem);">' +
-        '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding-bottom: 0.5rem;">' +
-          '<h2 class="card-title">Meu Perfil</h2>' +
-          '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">&times;</button>' +
+        '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">' +
+          '<h2 class="card-title" style="margin:0;font-size:1.1rem;">Meu Perfil</h2>' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">Salvar</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" onclick="handleLogout()">Sair</button>' +
+            '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')" style="margin-left:4px;">&times;</button>' +
+          '</div>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
           // Avatar row
@@ -1678,10 +1682,7 @@ function setupProfileModal() {
               '<div id="profile-stats-content" style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">Calculando...</div>' +
             '</div>' +
             // Buttons
-            '<div style="display: flex; gap: 10px; margin-top: 1rem;">' +
-              '<button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>' +
-              '<button type="button" class="btn btn-danger" onclick="handleLogout()" style="flex: 1;">Sair</button>' +
-            '</div>' +
+            /* Salvar/Sair buttons moved to sticky header */ '' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
               '<button type="button" class="btn btn-ghost btn-micro" onclick="window._confirmDeleteAccount()" style="text-decoration:underline;">Excluir minha conta permanentemente</button>' +
             '</div>' +
