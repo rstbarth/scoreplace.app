@@ -609,7 +609,8 @@ function renderTournaments(container, tournamentId = null) {
                       </div>
 
                       <!-- Email -->
-                      <div style="display: flex; gap: 6px; align-items: stretch;">
+                      <div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Convide por e-mail</div>
+                      <div style="display: flex; gap: 6px; align-items: stretch; margin-top:-4px;">
                          <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.75rem; min-width: 0; box-sizing: border-box;">
                          <button class="btn btn-indigo btn-sm hover-lift" style="font-size:0.75rem;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification('Atenção','Digite um e-mail.','warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${window._safeHtml(t.name)}') + '&body=' + encodeURIComponent('${inviteTextSafe}'), '_self'); showNotification('E-mail', 'Abrindo seu cliente de e-mail...', 'info');">E-mail</button>
                       </div>
