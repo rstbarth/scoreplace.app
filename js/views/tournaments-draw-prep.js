@@ -353,43 +353,28 @@ window.showUnifiedResolutionPanel = function(tId) {
 
     // Build the panel HTML
     let gaugeHtml = '';
-    if (info.isTeam) {
-        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:1.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);" class="unified-gauge">' +
-            '<div style="text-align:right;">' +
-            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
-            '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
-            '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</span>' +
-            '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">Times (' + (info.loP2 * info.teamSize) + ' participantes)</span>' +
-            '</div>' +
-            '</div>' +
-            '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);"><div style="text-align:center;position:relative;z-index:2;"><div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;">' + info.effectiveTeams + '</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;">Times Atuais</div></div></div>' +
-            '<div style="text-align:left;">' +
-            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
-            '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
-            '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</span>' +
-            '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">Times (' + (info.hiP2 * info.teamSize) + ' participantes)</span>' +
-            '</div>' +
-            '</div>' +
-            '</div>';
-    } else {
-        gaugeHtml = '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5rem;background:rgba(0,0,0,0.3);padding:1.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);" class="unified-gauge">' +
-            '<div style="text-align:right;">' +
-            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Inferior</div>' +
-            '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
-            '<span style="font-size:2rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</span>' +
-            '<span style="font-size:0.8rem;color:#86efac;margin-top:4px;">Inscritos</span>' +
-            '</div>' +
-            '</div>' +
-            '<div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%);"><div style="text-align:center;position:relative;z-index:2;"><div style="font-size:3rem;font-weight:950;color:#fff;line-height:1;">' + info.effectiveTeams + '</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;">Total de Inscritos</div></div></div>' +
-            '<div style="text-align:left;">' +
-            '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">Potência Superior</div>' +
-            '<div style="display:flex;flex-direction:column;align-items:flex-start;">' +
-            '<span style="font-size:2rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</span>' +
-            '<span style="font-size:0.8rem;color:#93c5fd;margin-top:4px;">Inscritos</span>' +
-            '</div>' +
-            '</div>' +
-            '</div>';
-    }
+    var _centerLabel = info.isTeam ? 'Times Atuais' : 'Inscritos';
+    var _centerSub = info.isTeam ? '(' + info.totalRawParticipants + ' participantes)' : '';
+    var _loSub = info.isTeam ? 'Times (' + (info.loP2 * info.teamSize) + ' part.)' : 'Inscritos';
+    var _hiSub = info.isTeam ? 'Times (' + (info.hiP2 * info.teamSize) + ' part.)' : 'Inscritos';
+
+    gaugeHtml = '<div style="display:flex;align-items:center;justify-content:center;gap:1rem;background:rgba(0,0,0,0.3);padding:1.25rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">' +
+        '<div style="text-align:center;min-width:80px;">' +
+        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Inferior</div>' +
+        '<div style="font-size:1.8rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</div>' +
+        '<div style="font-size:0.7rem;color:#86efac;margin-top:2px;">' + _loSub + '</div>' +
+        '</div>' +
+        '<div style="text-align:center;min-width:100px;padding:0 0.5rem;">' +
+        '<div style="font-size:2.5rem;font-weight:950;color:#fbbf24;line-height:1;">' + info.effectiveTeams + '</div>' +
+        '<div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:800;margin-top:2px;">' + _centerLabel + '</div>' +
+        (info.isTeam ? '<div style="font-size:0.65rem;color:#fde68a;margin-top:1px;">' + _centerSub + '</div>' : '') +
+        '</div>' +
+        '<div style="text-align:center;min-width:80px;">' +
+        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Superior</div>' +
+        '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</div>' +
+        '<div style="font-size:0.7rem;color:#93c5fd;margin-top:2px;">' + _hiSub + '</div>' +
+        '</div>' +
+        '</div>';
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:800px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">' +
         '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">' +
@@ -405,7 +390,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         '<style>' +
             '@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
             '@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }' +
-            '@media (max-width:640px) { #unified-options-grid { grid-template-columns: 1fr !important; } .unified-gauge { grid-template-columns: 1fr !important; gap: 1rem !important; text-align: center !important; } .unified-gauge > div { text-align: center !important; } .unified-gauge > div > div { align-items: center !important; } }' +
+            '@media (max-width:640px) { #unified-options-grid { grid-template-columns: 1fr 1fr !important; } } @media (max-width:400px) { #unified-options-grid { grid-template-columns: 1fr !important; } }' +
         '</style>' +
         '<div style="padding:2.5rem;">' +
             '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
