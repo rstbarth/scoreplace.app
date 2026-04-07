@@ -241,6 +241,15 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.5.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Landing Page</b> — Página de apresentação para visitantes não logados com hero, features, "como funciona" e call-to-action. Funciona nos 4 temas.</p>' +
+        '<p><b>Internacionalização (i18n)</b> — Sistema de tradução _t(key) com suporte a Português e Inglês. Seletor de idioma no perfil. Infraestrutura pronta para tradução gradual.</p>' +
+        '<p><b>Templates de Torneio</b> — Salve configurações de torneio como template reutilizável. Botão "Salvar como Template" no detalhe do torneio. "Usar Template" na criação rápida. Limite de 10 no plano Free.</p>' +
+        '<p><b>Analytics do Organizador</b> — Painel colapsável "Minhas Estatísticas" no dashboard: total de torneios, participantes únicos, média por torneio, gráficos por formato/esporte, mês mais ativo.</p>' +
+        '<p><b>Templates de Email</b> — Templates HTML prontos para notificações por email (inscrição, resultado, lembrete, atualização). Preparação client-side para Cloud Function futura.</p>' +
+        '<p><b>Cleanup</b> — Identificado e removido js/tournaments.js raiz (6.264 linhas de dead code). ~20 novos testes automatizados (total ~97).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.4.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Painel Unificado de Resolução Numérica</b> — Os 3 painéis de decisão (times incompletos, número ímpar, potência de 2) foram consolidados em um único painel com diagnóstico completo. Gauge visual mostra potência inferior/atual/superior com contagem de participantes. Cores Nash contínuas verde→vermelho com maior distinção visual. Botão ✕ para excluir opções temporariamente e recalcular Nash. Novas opções: Repescagem e Exclusão em todos os cenários.</p>' +
         '<p><b>Simplificação de Esportes</b> — Apenas modalidades derivadas do tênis: Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel. Ícones de esporte limpos em todo o app.</p>' +
@@ -607,9 +616,13 @@
             <option>🏸 Padel</option>
           </select>
         </div>
+        <div id="qc-template-area" style="margin-bottom:10px;display:none;"></div>
         <div style="display:flex; flex-direction:column; gap:10px;">
           <button class="btn btn-primary btn-block" id="btn-quick-create">
             🏆 Criar Torneio
+          </button>
+          <button class="btn btn-tool-amber btn-block" id="btn-quick-template" style="display:none;">
+            💾 Usar Template
           </button>
           <button class="btn btn-secondary btn-block" id="btn-quick-advanced">
             ⚙️ Detalhes Avançados
@@ -731,6 +744,86 @@
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
     }, 100);
   });
+
+  // ─── Template Integration ────────────────────────────────────────────────
+  // Show "Usar Template" button when templates exist
+  var _origOpen = window._origOpenQC || null;
+  // Hook into modal-quick-create open to refresh template button visibility
+  var _qcObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.target.id === 'modal-quick-create' && m.target.style.display !== 'none') {
+        var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
+        var btn = document.getElementById('btn-quick-template');
+        var area = document.getElementById('qc-template-area');
+        if (btn) btn.style.display = templates.length > 0 ? 'block' : 'none';
+        if (area) area.style.display = 'none';
+      }
+    });
+  });
+  var qcModal = document.getElementById('modal-quick-create');
+  if (qcModal) _qcObserver.observe(qcModal, { attributes: true, attributeFilter: ['style'] });
+
+  // "Usar Template" button handler
+  document.getElementById('btn-quick-template').addEventListener('click', function() {
+    var area = document.getElementById('qc-template-area');
+    if (!area) return;
+    var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
+    var _t = window._t || function(k) { return k; };
+    if (templates.length === 0) {
+      area.style.display = 'block';
+      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">' + _t('template.empty') + '</p>';
+      return;
+    }
+    var html = '<div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">';
+    templates.forEach(function(tpl, i) {
+      var sportIcon = tpl.sport ? tpl.sport.split(' ')[0] : '🏆';
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;cursor:pointer;" ' +
+        'onclick="window._qcApplyTemplate(' + i + ')">' +
+        '<span style="font-size:1.2rem;">' + sportIcon + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;font-size:0.85rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(tpl.name) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-muted);">' + window._safeHtml(tpl.format || '') + '</div>' +
+        '</div>' +
+        '<button class="btn btn-micro btn-danger-ghost" onclick="event.stopPropagation();window._qcDeleteTemplate(' + i + ')" title="Apagar">✕</button>' +
+      '</div>';
+    });
+    html += '</div>';
+    area.style.display = 'block';
+    area.innerHTML = html;
+  });
+
+  window._qcApplyTemplate = function(index) {
+    var tpl = typeof window._applyTemplate === 'function' ? window._applyTemplate(index) : null;
+    if (!tpl) return;
+    if (typeof closeModal === 'function') closeModal('modal-quick-create');
+    // Open advanced form and pre-fill
+    var form = document.getElementById('form-create-tournament');
+    if (form) form.reset();
+    var editId = document.getElementById('edit-tournament-id');
+    if (editId) editId.value = '';
+    var title = document.getElementById('create-modal-title');
+    if (title) title.innerText = 'Novo Torneio (Template)';
+    var pub = document.getElementById('tourn-public');
+    if (pub) pub.checked = true;
+
+    // Pre-fill from template
+    if (typeof window._prefillFromTemplate === 'function') {
+      window._prefillFromTemplate(tpl);
+    }
+    if (typeof openModal === 'function') openModal('modal-create-tournament');
+    setTimeout(function() {
+      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
+      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+    }, 100);
+  };
+
+  window._qcDeleteTemplate = function(index) {
+    if (typeof window._deleteTemplate === 'function') window._deleteTemplate(index);
+    var _t = window._t || function(k) { return k; };
+    if (typeof showNotification === 'function') showNotification(_t('template.deleted'), '', 'info');
+    // Refresh the list
+    document.getElementById('btn-quick-template').click();
+  };
 })();
 
 // Inicializa estrutura base da UI (Modais, Menus)

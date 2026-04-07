@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.4.12-alpha';
+window.SCOREPLACE_VERSION = '0.5.0-alpha';
 
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.
@@ -715,6 +715,43 @@ window.AppStore = {
     var email = this.currentUser.email;
     return this.tournaments.some(function(t) { return t.organizerEmail === email; });
   }
+};
+
+// ─── Tournament Templates ─────────────────────────────────────────────────
+window._getTemplates = function() {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u) return [];
+  try {
+    var raw = localStorage.getItem('scoreplace_templates_' + u.email);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+};
+
+window._saveTemplate = function(template) {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u) return false;
+  var templates = window._getTemplates();
+  var isPro = u.plan === 'pro';
+  if (!isPro && templates.length >= 10) return false;
+  template.createdAt = new Date().toISOString();
+  templates.push(template);
+  localStorage.setItem('scoreplace_templates_' + u.email, JSON.stringify(templates));
+  return true;
+};
+
+window._deleteTemplate = function(index) {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u) return;
+  var templates = window._getTemplates();
+  if (index >= 0 && index < templates.length) {
+    templates.splice(index, 1);
+    localStorage.setItem('scoreplace_templates_' + u.email, JSON.stringify(templates));
+  }
+};
+
+window._applyTemplate = function(index) {
+  var templates = window._getTemplates();
+  return (index >= 0 && index < templates.length) ? templates[index] : null;
 };
 
 // Global Helper para controle do botão ViewMode na Topbar

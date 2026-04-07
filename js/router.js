@@ -78,6 +78,13 @@ function initRouter() {
       });
     }
 
+    // Landing page gate: non-logged users on dashboard see landing page
+    var _isLoggedInNow = !!(window.AppStore && window.AppStore.currentUser);
+    if (!_isLoggedInNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+      renderLanding(viewContainer);
+      return;
+    }
+
     switch (view) {
       case '':
       case 'dashboard':
