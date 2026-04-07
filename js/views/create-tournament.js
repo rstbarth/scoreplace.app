@@ -722,6 +722,9 @@ function setupCreateTournamentModal() {
       if (teamSizeField) teamSizeField.value = '1';
       if (inscricaoField) inscricaoField.value = 'individual';
     }
+
+    // Update category preview to reflect game type change
+    if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
   };
 
   // ── Formato Button Selection ──
@@ -1134,28 +1137,45 @@ function setupCreateTournamentModal() {
     var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
     var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
 
+    // Game type dimension
+    var gameTypesVal = (document.getElementById('tourn-game-types') || {}).value || '';
+    var gameTypes = [];
+    if (gameTypesVal === 'simples,duplas') { gameTypes = ['Simples', 'Duplas']; }
+    else if (gameTypesVal === 'simples') { gameTypes = ['Simples']; }
+    else if (gameTypesVal === 'duplas') { gameTypes = ['Duplas']; }
+
     var preview = document.getElementById('category-preview');
     var list = document.getElementById('category-preview-list');
     if (!preview || !list) return;
 
     var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
-    var combined = [];
-
-    if (genderVals.length === 0 && skillCats.length === 0) {
-      preview.style.display = 'none';
-      return;
-    }
+    var baseCats = [];
 
     if (genderVals.length > 0 && skillCats.length > 0) {
       genderVals.forEach(function(g) {
         skillCats.forEach(function(s) {
-          combined.push((genderLabels[g] || g) + ' ' + s);
+          baseCats.push((genderLabels[g] || g) + ' ' + s);
         });
       });
     } else if (genderVals.length > 0) {
-      genderVals.forEach(function(g) { combined.push(genderLabels[g] || g); });
+      genderVals.forEach(function(g) { baseCats.push(genderLabels[g] || g); });
+    } else if (skillCats.length > 0) {
+      skillCats.forEach(function(s) { baseCats.push(s); });
+    }
+
+    // Cross with game types only if both types selected AND there are gender/skill categories
+    var combined = [];
+    if (gameTypes.length === 2 && baseCats.length > 0) {
+      baseCats.forEach(function(c) {
+        gameTypes.forEach(function(gt) { combined.push(c + ' ' + gt); });
+      });
     } else {
-      skillCats.forEach(function(s) { combined.push(s); });
+      combined = baseCats;
+    }
+
+    if (combined.length === 0) {
+      preview.style.display = 'none';
+      return;
     }
 
     var _dnPreview = (typeof window._displayCategoryName === 'function') ? window._displayCategoryName : function(c) { return c; };
@@ -1170,16 +1190,33 @@ function setupCreateTournamentModal() {
     var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
     var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
     var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
-    var combined = [];
+
+    // Game type dimension
+    var gameTypesVal = (document.getElementById('tourn-game-types') || {}).value || '';
+    var gameTypes = [];
+    if (gameTypesVal === 'simples,duplas') { gameTypes = ['Simples', 'Duplas']; }
+
+    var baseCats = [];
     if (genderVals.length > 0 && skillCats.length > 0) {
       genderVals.forEach(function(g) {
-        skillCats.forEach(function(s) { combined.push((genderLabels[g] || g) + ' ' + s); });
+        skillCats.forEach(function(s) { baseCats.push((genderLabels[g] || g) + ' ' + s); });
       });
     } else if (genderVals.length > 0) {
-      genderVals.forEach(function(g) { combined.push(genderLabels[g] || g); });
+      genderVals.forEach(function(g) { baseCats.push(genderLabels[g] || g); });
     } else if (skillCats.length > 0) {
-      combined = skillCats.slice();
+      baseCats = skillCats.slice();
     }
+
+    // Cross with game types only if both types selected AND there are categories
+    var combined = [];
+    if (gameTypes.length === 2 && baseCats.length > 0) {
+      baseCats.forEach(function(c) {
+        gameTypes.forEach(function(gt) { combined.push(c + ' ' + gt); });
+      });
+    } else {
+      combined = baseCats;
+    }
+
     return { genderCategories: genderVals, skillCategories: skillCats, combinedCategories: combined };
   };
 
@@ -2640,12 +2677,17 @@ window._openGSMConfig = function() {
   overlay.id = 'gsm-config-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
 
-  overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;">' +
-    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1.5rem 2rem;">' +
-      '<h3 style="margin:0;color:#f5f3ff;font-size:1.3rem;font-weight:800;">🎾 Sistema de Pontuação</h3>' +
-      '<p style="margin:6px 0 0;color:#e9d5ff;font-size:0.85rem;opacity:0.9;">Configure o sistema de pontuação do torneio</p>' +
+  overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;max-height:90vh;display:flex;flex-direction:column;">' +
+    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+      '<div>' +
+        '<h3 style="margin:0;color:#f5f3ff;font-size:1.1rem;font-weight:800;">🎾 Sistema de Pontuação</h3>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button type="button" onclick="document.getElementById(\'gsm-config-overlay\').remove();" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#f5f3ff;border:1px solid rgba(255,255,255,0.25);">Cancelar</button>' +
+        '<button type="button" onclick="window._gsmSaveConfig();" class="btn btn-sm" style="background:#fff;color:#6d28d9;font-weight:700;border:none;">Aplicar</button>' +
+      '</div>' +
     '</div>' +
-    '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1.2rem;">' +
+    '<div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1.2rem;overflow-y:auto;overflow-x:hidden;flex:1;-webkit-overflow-scrolling:touch;">' +
 
       // Tipo de placar
       '<div>' +
@@ -2663,9 +2705,9 @@ window._openGSMConfig = function() {
           '<div style="flex:1;min-width:120px;">' +
             '<label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;display:block;margin-bottom:4px;">Sets para vencer</label>' +
             '<select id="gsm-cfg-setsToWin" class="form-control" style="font-size:0.85rem;" onchange="window._gsmUpdateSummary()">' +
-              '<option value="1"' + (setsToWin==='1'?' selected':'') + '>Melhor de 1 (1 set)</option>' +
-              '<option value="2"' + (setsToWin==='2'?' selected':'') + '>Melhor de 3 (2 sets)</option>' +
-              '<option value="3"' + (setsToWin==='3'?' selected':'') + '>Melhor de 5 (3 sets)</option>' +
+              '<option value="1"' + (setsToWin==='1'?' selected':'') + '>1 set</option>' +
+              '<option value="2"' + (setsToWin==='2'?' selected':'') + '>2 sets</option>' +
+              '<option value="3"' + (setsToWin==='3'?' selected':'') + '>3 sets</option>' +
             '</select>' +
           '</div>' +
           '<div style="flex:1;min-width:120px;">' +
@@ -2731,11 +2773,7 @@ window._openGSMConfig = function() {
 
     '</div>' +
 
-    // Footer
-    '<div style="padding:1rem 2rem;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color);">' +
-      '<button type="button" onclick="document.getElementById(\'gsm-config-overlay\').remove();" class="btn btn-secondary">Cancelar</button>' +
-      '<button type="button" onclick="window._gsmSaveConfig();" class="btn btn-purple">Aplicar</button>' +
-    '</div>' +
+    /* buttons moved to sticky header */ '' +
   '</div>';
 
   document.body.appendChild(overlay);
@@ -2805,7 +2843,7 @@ window._gsmUpdateSummary = function() {
 
   var totalSets = sets * 2 - 1;
   var lines = [];
-  lines.push('<strong>Melhor de ' + totalSets + '</strong> — vence quem ganhar <strong>' + sets + ' set' + (sets > 1 ? 's' : '') + '</strong>');
+  lines.push('<strong>' + sets + ' set' + (sets > 1 ? 's' : '') + '</strong> de ' + games + ' games');
   lines.push('Cada set vai a <strong>' + games + ' games</strong>' + (counting === 'tennis' ? ' (contagem 15-30-40)' : ' (contagem numérica)'));
   if (counting === 'tennis' && advOn) lines.push('Com regra de vantagem (Deuce/Ad)');
   if (tbOn) lines.push('Tie-break em ' + (games-1) + '-' + (games-1) + ': primeiro a <strong>' + tbPts + ' pontos</strong> (mín. ' + tbMargin + ' de diferença)');
@@ -2895,7 +2933,7 @@ window._updateGSMSummaryFromHidden = function() {
   var advOn = document.getElementById('gsm-advantageRule').value === 'true';
 
   var lines = [];
-  lines.push('<strong>Melhor de ' + totalS + '</strong> — ' + s + ' set' + (s > 1 ? 's' : '') + ' de ' + g + ' games');
+  lines.push('<strong>' + s + ' set' + (s > 1 ? 's' : '') + '</strong> de ' + g + ' games');
   lines.push('Contagem: ' + (counting === 'tennis' ? '15-30-40' : 'numérica') + (counting === 'tennis' && advOn ? ' + vantagem' : ''));
   if (tbOn) lines.push('Tie-break ' + (g-1) + '-' + (g-1) + ': ' + tbPts + ' pts');
   if (stbOn && s > 1) lines.push('Super tie-break no decisivo: ' + stbPts + ' pts');
