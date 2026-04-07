@@ -500,14 +500,31 @@ window._buildTimeEstimation = function(t) {
     // Só mostra nota informativa
   }
 
-  // Construir linhas de simulação
+  // Construir linhas de simulação — ordem crescente de participantes
+  // com inscritos reais posicionados entre a potência inferior e superior
   var rows = [];
+
+  // Linhas para potências de 2
+  powersOf2.forEach(function(n) {
+    if (n === realCount) return; // será incluído como "inscritos"
+    var dur = estimateDuration(n, format);
+    var endTime = fmtEndTime(t.startDate, dur);
+    rows.push({
+      n: n,
+      label: n + ' participantes',
+      duration: fmtDur(dur),
+      endTime: endTime,
+      matches: calcMatches(n, format),
+      highlight: false
+    });
+  });
 
   // Linha com inscritos reais (se houver 2+)
   if (realCount >= 2) {
     var durReal = estimateDuration(realCount, format);
     var endTimeReal = fmtEndTime(t.startDate, durReal);
     rows.push({
+      n: realCount,
       label: realCount + ' inscritos',
       duration: fmtDur(durReal),
       endTime: endTimeReal,
@@ -516,19 +533,8 @@ window._buildTimeEstimation = function(t) {
     });
   }
 
-  // Linhas para potências de 2
-  powersOf2.forEach(function(n) {
-    if (n === realCount) return; // já mostrado acima
-    var dur = estimateDuration(n, format);
-    var endTime = fmtEndTime(t.startDate, dur);
-    rows.push({
-      label: n + ' participantes',
-      duration: fmtDur(dur),
-      endTime: endTime,
-      matches: calcMatches(n, format),
-      highlight: false
-    });
-  });
+  // Sort ascending by participant count
+  rows.sort(function(a, b) { return a.n - b.n; });
 
   if (rows.length === 0) return '';
 
