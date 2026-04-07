@@ -682,16 +682,16 @@ window._openCategoryManager = function(tId) {
                 '</div>';
         }
 
-        var modalHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;" onclick="event.stopPropagation();">' +
-            '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);margin:auto;animation:fadeIn 0.2s ease;">' +
-            '<div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
-            '<h3 style="margin:0;font-size:1.15rem;color:var(--text-bright);">🏷️ Gerenciar Categorias</h3>' +
+        var modalHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:center;justify-content:center;padding:1rem;" onclick="event.stopPropagation();">' +
+            '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);animation:fadeIn 0.2s ease;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">' +
+            '<div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-weight:500;font-size:0.78rem;cursor:pointer;" onclick="document.getElementById(\'' + modalId + '\').remove();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
+            '<h3 style="margin:0;font-size:1.05rem;color:var(--text-bright);">🏷️ Categorias</h3>' +
+            '</div>' +
             '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
             '</div>' +
-            '<div style="padding:10px 1.5rem 0;">' +
-            '<button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-weight:500;font-size:0.8rem;cursor:pointer;" onclick="document.getElementById(\'' + modalId + '\').remove();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
-            '</div>' +
-            '<div style="padding:0 1.5rem 1.5rem;">' +
+            '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
             '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Arraste uma categoria sobre outra para mesclar. Arraste participantes sem categoria para atribuí-los.</div>' +
             '<div id="cat-mgr-cards">' + catRowsHtml + '</div>' +
             uncatHtml +
