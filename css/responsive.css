@@ -920,6 +920,8 @@ img {
   margin-top: 8px;
 }
 .topbar.topbar-hamburger .topbar-menu.open { display: flex !important; }
+/* Hide notification bell when hamburger menu is open (avoid duplicate with nav bell) */
+.topbar-menu-open #header-notif-bell { display: none !important; }
 .topbar.topbar-hamburger .topbar-nav-group {
   width: 100%; justify-content: center !important; gap: 4px !important;
 }
