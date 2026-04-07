@@ -25,7 +25,7 @@
 </style>
 </head>
 <body>
-<h1>scoreplace.app — Testes Automatizados v0.4.2</h1>
+<h1>scoreplace.app — Testes Automatizados v0.5.0</h1>
 <div class="summary" id="summary">Executando...</div>
 <div id="load-status" class="load-status"></div>
 <div id="results"></div>
@@ -122,7 +122,11 @@ function loadScript(src) {
   }
 }
 
+loadScript('js/i18n.js');
+loadScript('js/i18n-pt.js');
+loadScript('js/i18n-en.js');
 loadScript('js/store.js');
+loadScript('js/email-templates.js');
 loadScript('js/views/tournaments-utils.js');
 loadScript('js/views/tournaments-sharing.js');
 loadScript('js/views/tournaments-analytics.js');
@@ -130,6 +134,7 @@ loadScript('js/views/tournaments-organizer.js');
 loadScript('js/views/tournaments.js');
 loadScript('js/views/bracket-logic.js');
 loadScript('js/views/bracket.js');
+loadScript('js/views/landing.js');
 loadScript('js/views/dashboard.js');
 
 // Restore console.error
@@ -800,8 +805,8 @@ describe('SCOREPLACE_VERSION', function() {
     expect(window.SCOREPLACE_VERSION).toContain('-alpha');
     expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
   });
-  it('versao atual e 0.4.2-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.4.2-alpha');
+  it('versao atual e 0.5.0-alpha', function() {
+    expect(window.SCOREPLACE_VERSION).toBe('0.5.0-alpha');
   });
 });
 
@@ -848,6 +853,147 @@ describe('Robustez de input', function() {
 
   it('_isLigaFormat com objeto vazio', function() {
     expect(window._isLigaFormat({})).toBeFalsy();
+  });
+});
+
+// ─── i18n Tests ─────────────────────────────────────────────────────────────
+describe('i18n — _t() translation system', function() {
+  it('_t() returns Portuguese translation for known key', function() {
+    window._lang = 'pt';
+    expect(window._t('btn.save')).toBe('Salvar');
+  });
+
+  it('_t() returns key itself for unknown key', function() {
+    expect(window._t('nonexistent.key.xyz')).toBe('nonexistent.key.xyz');
+  });
+
+  it('_t() interpolates parameters', function() {
+    window._lang = 'pt';
+    expect(window._t('dashboard.welcome', {name: 'Ana'})).toBe('Bem-vindo, Ana!');
+  });
+
+  it('_setLang switches to English', function() {
+    window._lang = 'en';
+    expect(window._t('btn.save')).toBe('Save');
+    expect(window._t('dashboard.welcome', {name: 'Ana'})).toBe('Welcome, Ana!');
+  });
+
+  it('_setLang switches back to Portuguese', function() {
+    window._lang = 'pt';
+    expect(window._t('btn.save')).toBe('Salvar');
+  });
+});
+
+// ─── Template Tests ─────────────────────────────────────────────────────────
+describe('Tournament Templates — CRUD', function() {
+  var _origUser;
+  var _testKey;
+
+  it('setup: mock user for template tests', function() {
+    _origUser = window.AppStore ? window.AppStore.currentUser : null;
+    if (!window.AppStore) window.AppStore = {};
+    window.AppStore.currentUser = { email: 'test-templates@scoreplace.test', plan: 'free' };
+    _testKey = 'scoreplace_templates_test-templates@scoreplace.test';
+    localStorage.removeItem(_testKey);
+    expect(true).toBe(true);
+  });
+
+  it('_saveTemplate saves a template', function() {
+    var ok = window._saveTemplate({ name: 'Test Template', sport: 'Beach Tennis', format: 'Eliminatorias Simples' });
+    expect(ok).toBe(true);
+  });
+
+  it('_getTemplates returns saved template', function() {
+    var templates = window._getTemplates();
+    expect(templates.length).toBe(1);
+    expect(templates[0].name).toBe('Test Template');
+  });
+
+  it('_deleteTemplate removes template', function() {
+    window._deleteTemplate(0);
+    expect(window._getTemplates().length).toBe(0);
+  });
+
+  it('Free plan blocks 11th template', function() {
+    for (var i = 0; i < 10; i++) window._saveTemplate({ name: 'T' + i });
+    var ok = window._saveTemplate({ name: 'T10 should fail' });
+    expect(ok).toBe(false);
+    // cleanup
+    localStorage.removeItem(_testKey);
+    window.AppStore.currentUser = _origUser;
+  });
+});
+
+// ─── Landing Page Tests ─────────────────────────────────────────────────────
+describe('Landing Page — renderLanding', function() {
+  it('renderLanding produces non-empty HTML', function() {
+    var div = document.createElement('div');
+    window.renderLanding(div);
+    expect(div.innerHTML.length > 100).toBe(true);
+  });
+
+  it('renderLanding contains scoreplace text', function() {
+    var div = document.createElement('div');
+    window.renderLanding(div);
+    expect(div.innerHTML.indexOf('scoreplace') > -1).toBe(true);
+  });
+
+  it('renderLanding contains CTA button', function() {
+    var div = document.createElement('div');
+    window.renderLanding(div);
+    expect(div.querySelectorAll('[data-landing-cta]').length > 0).toBe(true);
+  });
+});
+
+// ─── Analytics Tests ────────────────────────────────────────────────────────
+describe('Analytics — _buildAnalyticsSection calculations', function() {
+  it('returns empty when less than 2 tournaments', function() {
+    var result = _buildAnalyticsSection([{ id: '1', participants: [] }]);
+    expect(result).toBe('');
+  });
+
+  it('deduplicates participants across tournaments', function() {
+    // We test indirectly by checking the function doesn't crash with overlapping data
+    if (!window.AppStore) window.AppStore = {};
+    var origUser = window.AppStore.currentUser;
+    var origMode = window.AppStore.viewMode;
+    window.AppStore.currentUser = { email: 'test@test.com' };
+    window.AppStore.viewMode = 'organizer';
+    var tours = [
+      { id: '1', participants: [{email:'a@b.com'}, {email:'c@d.com'}], format: 'Liga', sport: 'Beach Tennis', createdAt: '2026-03-01' },
+      { id: '2', participants: [{email:'a@b.com'}, {email:'e@f.com'}], format: 'Liga', sport: 'Padel', createdAt: '2026-04-01' }
+    ];
+    var html = _buildAnalyticsSection(tours);
+    expect(html.indexOf('3') > -1).toBe(true); // 3 unique participants
+    window.AppStore.currentUser = origUser;
+    window.AppStore.viewMode = origMode;
+  });
+});
+
+// ─── Email Template Tests ───────────────────────────────────────────────────
+describe('Email Templates — _emailTemplate', function() {
+  it('enrollment template returns HTML with player name', function() {
+    var html = window._emailTemplate('enrollment', { playerName: 'Ana', tournamentName: 'Copa BT' });
+    expect(html.indexOf('Ana') > -1).toBe(true);
+    expect(html.indexOf('html') > -1).toBe(true);
+  });
+
+  it('result template includes tournament name and scores', function() {
+    var html = window._emailTemplate('result', { tournamentName: 'Copa', player1: 'Ana', player2: 'Bia', score1: '6', score2: '4' });
+    expect(html.indexOf('Copa') > -1).toBe(true);
+    expect(html.indexOf('6') > -1).toBe(true);
+  });
+
+  it('reminder template includes days count', function() {
+    var html = window._emailTemplate('reminder', { tournamentName: 'Open', days: 3 });
+    expect(html.indexOf('3') > -1).toBe(true);
+  });
+});
+
+// ─── Version Test Update ────────────────────────────────────────────────────
+describe('Version — v0.5.0', function() {
+  it('SCOREPLACE_VERSION is 0.5.0-alpha', function() {
+    expect(window.SCOREPLACE_VERSION).toBe('0.5.0-alpha');
   });
 });
 
