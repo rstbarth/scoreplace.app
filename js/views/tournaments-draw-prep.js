@@ -2057,20 +2057,19 @@ window.toggleRegistrationStatus = function (tId) {
         return;
     }
 
-    // Verificar potência de 2 para formatos eliminatórios
-    var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
-    if (isElim) {
-        var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-        if (arr.length < 2) {
-            if (typeof showAlertDialog === 'function') showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
+    // Verificar número de inscritos para todos os formatos
+    var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+    if (arr.length < 2) {
+        if (typeof showAlertDialog === 'function') showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
+        return;
+    }
+
+    // Run unified diagnostics (power of 2, odd count, incomplete teams, remainder)
+    if (typeof window._diagnoseAll === 'function') {
+        var diag = window._diagnoseAll(t);
+        if (diag.hasIssues) {
+            window.showUnifiedResolutionPanel(tId);
             return;
-        }
-        if (typeof window.checkPowerOf2 === 'function') {
-            var info = window.checkPowerOf2(t);
-            if (!info.isPowerOf2) {
-                window.showPowerOf2Panel(tId);
-                return;
-            }
         }
     }
 
