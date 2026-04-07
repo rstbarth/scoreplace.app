@@ -213,6 +213,11 @@ window.showUnifiedResolutionPanel = function(tId) {
             }
         });
 
+        // Sort by Nash score descending (highest recommendation first)
+        activeOptions.sort(function(a, b) {
+            return (scores[b.key] || 0) - (scores[a.key] || 0);
+        });
+
         let html = '';
         activeOptions.forEach(function(o) {
             const n = norm[o.key] !== undefined ? norm[o.key] : 0;
