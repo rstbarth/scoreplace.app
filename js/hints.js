@@ -136,6 +136,7 @@
 
   function _getCurrentContext() {
     // Overlay contexts take priority — if a blocking overlay is open, use its context
+    if (document.getElementById('unified-resolution-panel')) return 'p2-panel';
     if (document.getElementById('p2-resolution-panel')) return 'p2-panel';
     if (document.getElementById('incomplete-teams-panel')) return 'incomplete-panel';
     if (document.getElementById('poll-creation-dialog')) return 'poll-creation';
@@ -258,9 +259,15 @@
     var loggedIn = _isLoggedIn();
     var plan = _getUserPlan();
 
+    // Overlay contexts block global hints — only show hints for the overlay itself
+    var _overlayContexts = ['p2-panel', 'incomplete-panel', 'poll-creation', 'poll-voting', 'gsm-config', 'set-scoring', 'dissolve-panel', 'draw-visibility', 'create-tournament'];
+    var _isOverlay = _overlayContexts.indexOf(ctx) !== -1;
+
     var eligible = _hints.filter(function(h) {
-      // Must match context or be global
-      if (h.context !== ctx && h.context !== 'global') return false;
+      // In overlay context: only show hints matching that overlay, never global
+      if (_isOverlay) { if (h.context !== ctx) return false; }
+      // In page context: match context or global
+      else if (h.context !== ctx && h.context !== 'global') return false;
       // Don't repeat the hint we just showed
       if (h.id === _lastHintId) return false;
       // Check login requirement
