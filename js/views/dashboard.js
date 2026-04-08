@@ -361,10 +361,7 @@ function renderDashboard(container) {
             </div>
 
             <!-- Organizer -->
-            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-top:4px;">
-               <span>${window._safeHtml(t.organizerName || t.organizerEmail || '')}</span>
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
-            </div>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-top:4px;">${window._safeHtml(t.organizerName || t.organizerEmail || '')} <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></span>
 
             <!-- Below Name: Calendário + Data -->
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
