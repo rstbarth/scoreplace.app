@@ -381,7 +381,7 @@ window._buildTimeEstimation = function(t) {
       // Upper bracket: n-1, Lower bracket: ~n-1, Grand final: 1-2
       return Math.ceil(n * 2 - 1);
     } else if (fmt === 'Grupos + Elim.' || fmt === 'Fase de Grupos + Eliminatórias') {
-      // Grupos (round robin dentro dos grupos) + mata-mata dos classificados
+      // Grupos (round robin dentro dos grupos) + eliminatória dos classificados
       var groupSize = 4;
       var numGroups = Math.max(Math.ceil(n / groupSize), 1);
       var perGroup = Math.ceil(n / numGroups);
