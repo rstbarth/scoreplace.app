@@ -729,8 +729,7 @@
     if (pub) pub.checked = true;
     const liga = document.getElementById('liga-open-enrollment');
     if (liga) liga.checked = true;
-    const tp = document.getElementById('elim-third-place');
-    if (tp) tp.checked = true;
+    // elimThirdPlace is always true — no toggle needed
 
     // Pré-selecionar sport
     const sportSelect = document.getElementById('select-sport');
