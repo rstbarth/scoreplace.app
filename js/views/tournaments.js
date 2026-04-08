@@ -840,6 +840,10 @@ function renderTournaments(container, tournamentId = null) {
               </h4>
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-bottom:4px;">
+               <span>${window._safeHtml(t.organizerName || t.organizerEmail || '')}</span>
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
+            </div>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
