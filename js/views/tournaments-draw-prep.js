@@ -1983,27 +1983,20 @@ window.finishTournament = function(tId) {
 
 // ─── Painel Integrado de Encerramento ───
 window.toggleRegistrationStatus = function (tId) {
-    console.log('[toggleRegistrationStatus] called with tId:', tId);
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
-    if (!t) { console.warn('toggleRegistrationStatus: tournament not found', tId); return; }
-    console.log('[toggleRegistrationStatus] tournament found, status:', t.status);
+    if (!t) { return; }
 
-    // Helper: save tournament with fallback
+    // Helper: save tournament
     var _saveTournament = function(callback) {
         if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
-            console.log('[toggleRegistrationStatus] saving via FirestoreDB...');
             window.FirestoreDB.saveTournament(t).then(function() {
-                console.log('[toggleRegistrationStatus] save OK');
                 if (callback) callback();
             }).catch(function(err) {
                 console.error('[toggleRegistrationStatus] save error:', err);
-                // Fallback: try AppStore.sync
-                try { window.AppStore.sync(); } catch(e) { console.error('sync fallback error:', e); }
                 if (callback) callback();
                 if (typeof showNotification === 'function') showNotification('Aviso', 'Salvo localmente. Pode demorar a sincronizar.', 'warning');
             });
         } else {
-            console.log('[toggleRegistrationStatus] no FirestoreDB, using AppStore.sync');
             try { window.AppStore.sync(); } catch(e) { console.error('sync error:', e); }
             if (callback) callback();
         }
@@ -2080,7 +2073,6 @@ window.toggleRegistrationStatus = function (tId) {
     // Confirmar antes de encerrar
     if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
     showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + window._safeHtml(t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
-        console.log('[toggleRegistrationStatus] user confirmed close');
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
         _saveTournament(function() {
