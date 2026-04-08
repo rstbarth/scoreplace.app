@@ -204,7 +204,7 @@ function renderTournaments(container, tournamentId = null) {
     }
 
     if (!window.removeParticipantSetupDone) {
-        window.removeParticipantFunction = function (tId, participantIndex) {
+        window.removeParticipantFunction = function (tId, participantName) {
             showConfirmDialog(
                 'Remover Participante',
                 'Deseja realmente remover este participante?',
@@ -212,10 +212,19 @@ function renderTournaments(container, tournamentId = null) {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t && t.participants) {
                         let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-                        arr.splice(participantIndex, 1);
+                        var idx = arr.findIndex(function(p) {
+                            var name = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+                            return name === participantName;
+                        });
+                        if (idx === -1) return;
+                        arr.splice(idx, 1);
                         t.participants = arr;
 
-                        if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+                        if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
+                            window.FirestoreDB.saveTournament(t);
+                        } else if (typeof window.AppStore.sync === 'function') {
+                            window.AppStore.sync();
+                        }
 
                         const container = document.getElementById('view-container');
                         if (container) {
@@ -231,7 +240,7 @@ function renderTournaments(container, tournamentId = null) {
     }
 
     if (!window.splitParticipantSetupDone) {
-        window.splitParticipantFunction = function (tId, participantIndex) {
+        window.splitParticipantFunction = function (tId, participantName) {
             showConfirmDialog(
                 'Desfazer Equipe',
                 'Deseja desfazer esta equipe e retornar os jogadores como individuais?',
@@ -239,16 +248,25 @@ function renderTournaments(container, tournamentId = null) {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t && t.participants) {
                         let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-                        const p = arr[participantIndex];
+                        var idx = arr.findIndex(function(p) {
+                            var name = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+                            return name === participantName;
+                        });
+                        if (idx === -1) return;
+                        const p = arr[idx];
                         const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
 
                         if (pStr.includes('/')) {
                             const parts = pStr.split('/').map(s => s.trim());
-                            arr.splice(participantIndex, 1);
-                            arr.splice(participantIndex, 0, ...parts);
+                            arr.splice(idx, 1);
+                            arr.splice(idx, 0, ...parts);
                             t.participants = arr;
 
-                            if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+                            if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
+                                window.FirestoreDB.saveTournament(t);
+                            } else if (typeof window.AppStore.sync === 'function') {
+                                window.AppStore.sync();
+                            }
 
                             const container = document.getElementById('view-container');
                             if (container) {
@@ -694,17 +712,17 @@ function renderTournaments(container, tournamentId = null) {
                                 <div style="display:flex;justify-content:center;align-items:flex-end;gap:1.5rem;margin-top:1rem;flex-wrap:wrap;">
                                     <div style="text-align:center;order:1;">
                                         <div style="font-size:1.8rem;">🥈</div>
-                                        <div style="font-weight:700;color:#94a3b8;font-size:0.95rem;">${_2nd}</div>
+                                        <div style="font-weight:700;color:#94a3b8;font-size:0.95rem;">${window._safeHtml(_2nd)}</div>
                                         <div style="font-size:0.7rem;color:var(--text-muted);">2º Lugar</div>
                                     </div>
                                     <div style="text-align:center;order:0;">
                                         <div style="font-size:2.5rem;">🥇</div>
-                                        <div style="font-weight:800;color:#fbbf24;font-size:1.2rem;">${_1st}</div>
+                                        <div style="font-weight:800;color:#fbbf24;font-size:1.2rem;">${window._safeHtml(_1st)}</div>
                                         <div style="font-size:0.75rem;color:#fbbf24;font-weight:600;">Campeão</div>
                                     </div>
                                     ${_3rd ? `<div style="text-align:center;order:2;">
                                         <div style="font-size:1.5rem;">🥉</div>
-                                        <div style="font-weight:700;color:#cd7f32;font-size:0.9rem;">${_3rd}</div>
+                                        <div style="font-weight:700;color:#cd7f32;font-size:0.9rem;">${window._safeHtml(_3rd)}</div>
                                         <div style="font-size:0.7rem;color:var(--text-muted);">3º Lugar</div>
                                     </div>` : ''}
                                 </div>
@@ -724,7 +742,7 @@ function renderTournaments(container, tournamentId = null) {
                                     var order = i === 0 ? 1 : (i === 1 ? 0 : 2);
                                     return '<div style="text-align:center;order:' + order + ';">' +
                                         '<div style="font-size:' + (i === 0 ? '2.5rem' : '1.5rem') + ';">' + _medals[i] + '</div>' +
-                                        '<div style="font-weight:' + (i === 0 ? '800' : '700') + ';color:' + _colors[i] + ';font-size:' + _sizes[i] + ';">' + (s.name || s.player) + '</div>' +
+                                        '<div style="font-weight:' + (i === 0 ? '800' : '700') + ';color:' + _colors[i] + ';font-size:' + _sizes[i] + ';">' + window._safeHtml(s.name || s.player) + '</div>' +
                                         '<div style="font-size:0.7rem;color:var(--text-muted);">' + s.points + ' pts</div>' +
                                     '</div>';
                                 }).join('')}
@@ -836,7 +854,7 @@ function renderTournaments(container, tournamentId = null) {
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
               ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
               <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1;">
-                ${t.name}
+                ${window._safeHtml(t.name)}
               </h4>
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
@@ -860,8 +878,8 @@ function renderTournaments(container, tournamentId = null) {
             <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; font-weight: 500; opacity: 0.65; margin-top: 6px;">
                <span style="font-size: 1rem; flex-shrink:0;">📍</span>
                <span style="display:flex; flex-direction:column; gap:1px;">
-                 <span>${t.venue}${t.courtCount > 1 ? ' — ' + t.courtCount + ' quadras' : t.courtCount === 1 ? ' — 1 quadra' : ''}</span>
-                 ${t.venueAddress ? '<span style="font-size:0.75rem; font-weight:400; opacity:0.7;">' + t.venueAddress + '</span>' : ''}
+                 <span>${window._safeHtml(t.venue)}${t.courtCount > 1 ? ' — ' + t.courtCount + ' quadras' : t.courtCount === 1 ? ' — 1 quadra' : ''}</span>
+                 ${t.venueAddress ? '<span style="font-size:0.75rem; font-weight:400; opacity:0.7;">' + window._safeHtml(t.venueAddress) + '</span>' : ''}
                </span>
                ${t.venueLat && t.venueLon ? '<a href="' + (t.venuePlaceId ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.venue) + '&query_place_id=' + t.venuePlaceId : 'https://www.google.com/maps/search/?api=1&query=' + t.venueLat + ',' + t.venueLon) + '" target="_blank" title="Ver no mapa" style="color:#818cf8; text-decoration:none; font-size:1rem; flex-shrink:0;">🗺️</a>' : ''}
             </div>` : ''}
@@ -1307,10 +1325,10 @@ function renderTournaments(container, tournamentId = null) {
                     let dragProps = '';
                     if (isOrg && !drawDone) {
                         const vipBtn = `<button title="${isVip ? 'Remover VIP' : 'Marcar como VIP'}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; border-radius: 6px; cursor: pointer; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; transition: transform 0.2s; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
-                        const delBtn = `<button title="Remover" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px dashed #ef4444;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:0.75rem;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', ${idx});">🗑️</button>`;
+                        const delBtn = `<button title="Remover" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px dashed #ef4444;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:0.75rem;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', '${safeP}');">🗑️</button>`;
                         let splitBtn = '';
                         if (pName.includes('/')) {
-                            splitBtn = `<button title="Desfazer Equipe" style="background:rgba(14,165,233,0.1);color:#38bdf8;border:1px dashed #0ea5e9;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:0.75rem;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', ${idx});">✂️</button>`;
+                            splitBtn = `<button title="Desfazer Equipe" style="background:rgba(14,165,233,0.1);color:#38bdf8;border:1px dashed #0ea5e9;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:0.75rem;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', '${safeP}');">✂️</button>`;
                         }
                         actionsHtml = `<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:6px;">${vipBtn}${splitBtn}${delBtn}</div>`;
                         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
