@@ -1203,4 +1203,71 @@ window._advanceToElimination = function (tId) {
   renderBracket(document.getElementById('view-container'), tId);
 };
 
+// ─── Advance Monarch to Elimination ──────────────────────────────────────────
+window._advanceMonarchToElimination = function(tId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+  if (!t || !t.groups) return;
+
+  var classified = t.monarchClassified || 1;
+  var qualifiedPlayers = [];
+
+  t.groups.forEach(function(g) {
+    var standings = window._computeMonarchStandings(g);
+    for (var i = 0; i < Math.min(classified, standings.length); i++) {
+      qualifiedPlayers.push(standings[i].name);
+    }
+  });
+
+  if (qualifiedPlayers.length < 2) {
+    showAlertDialog('Insuficiente', 'Precisa de pelo menos 2 classificados para a eliminatoria.', null, { type: 'warning' });
+    return;
+  }
+
+  // Cross-seed: alternate from different groups
+  var seeded = [];
+  var maxPerGroup = classified;
+  for (var rank = 0; rank < maxPerGroup; rank++) {
+    t.groups.forEach(function(g) {
+      var standings = window._computeMonarchStandings(g);
+      if (standings[rank]) seeded.push(standings[rank].name);
+    });
+  }
+
+  // Generate elimination bracket
+  t.currentStage = 'elimination';
+  t.matches = [];
+  var ts = Date.now();
+  var matchCounter = 0;
+
+  // Pad to power of 2 with BYEs
+  var n = seeded.length;
+  var pow = 1;
+  while (pow < n) pow *= 2;
+
+  var r1 = [];
+  for (var i = 0; i < pow / 2; i++) {
+    var p1 = seeded[i] || 'BYE';
+    var p2 = seeded[pow - 1 - i] || 'BYE';
+    var isBye = p1 === 'BYE' || p2 === 'BYE';
+    var m = {
+      id: 'match-' + ts + '-' + (matchCounter++),
+      round: 1, p1: p1, p2: p2,
+      winner: isBye ? (p1 === 'BYE' ? p2 : p1) : null,
+      isBye: isBye
+    };
+    r1.push(m);
+    t.matches.push(m);
+  }
+
+  // Build next rounds
+  if (typeof window._buildNextMatchLinks === 'function') {
+    window._buildNextMatchLinks(t, r1, ts, matchCounter);
+  }
+
+  t.elimThirdPlace = true;
+  window.AppStore.syncImmediate(tId);
+  showNotification('Fase Eliminatoria', seeded.length + ' classificados avancaram para as eliminatorias!', 'success');
+  renderBracket(document.getElementById('view-container'), tId);
+};
+
 // _closeRound is in bracket-logic.js
