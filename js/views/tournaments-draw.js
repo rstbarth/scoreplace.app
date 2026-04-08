@@ -895,10 +895,21 @@ window.handleDragStart = function (e, idx, tId) {
     e.dataTransfer.setData('text/plain', JSON.stringify({ idx, tId }));
     e.dataTransfer.effectAllowed = 'move';
     setTimeout(() => e.target.style.opacity = '0.4', 0);
+    // Store participant data for crown drop and show crown target
+    var t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
+    if (t && Array.isArray(t.participants) && t.participants[idx]) {
+      window._participantDragData = t.participants[idx];
+      window._participantDragTId = tId;
+    }
+    var crown = document.getElementById('crown-drop-target');
+    if (crown) crown.style.display = 'flex';
 };
 
 window.handleDragEnd = function (e) {
     e.target.style.opacity = '1';
+    window._participantDragData = null;
+    var crown = document.getElementById('crown-drop-target');
+    if (crown) crown.style.display = 'none';
     // Restore original styles on all cards that might have been highlighted
     document.querySelectorAll('.participant-card').forEach(c => {
         if (c.dataset.originalBg) {
