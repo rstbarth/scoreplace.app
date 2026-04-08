@@ -394,6 +394,12 @@ window.addTeamFunction = function (tId) {
 };
 
 window.deleteTournamentFunction = function (tId) {
+    // Only the original creator can delete
+    var _t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
+    if (_t && !window.AppStore.isCreator(_t)) {
+      showAlertDialog('Sem Permissao', 'Apenas o criador original pode apagar o torneio.', null, { type: 'warning' });
+      return;
+    }
     showConfirmDialog(
         'Apagar Torneio',
         'TEM CERTEZA absoluta que deseja apagar este torneio? Esta ação NÃO pode ser desfeita. O torneio será removido permanentemente para todos os usuários.',
