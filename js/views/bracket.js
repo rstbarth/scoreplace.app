@@ -65,7 +65,7 @@ function renderBracket(container, tournamentId, isInline) {
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
-        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : 'Chaves — '}${window._safeHtml(t.name)}</h2>
+        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : t.format === 'Rei/Rainha da Praia' ? '👑 Rei/Rainha — ' : 'Chaves — '}${window._safeHtml(t.name)}</h2>
         <div class="d-flex gap-2 mt-1">
           ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
@@ -117,6 +117,15 @@ function renderBracket(container, tournamentId, isInline) {
       return;
     }
     // If stage is elimination, fall through to bracket rendering below
+  }
+
+  // ── Rei/Rainha da Praia ───────────────────────────────────────────────────
+  var isMonarch = t.format === 'Rei/Rainha da Praia';
+  if (isMonarch && t.groups && t.groups.length > 0) {
+    if (t.currentStage === 'groups') {
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult);
+      return;
+    }
   }
 
   // ── Sem matches ────────────────────────────────────────────────────────────
@@ -1144,6 +1153,81 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 }
 
 // ─── Highlight winner based on score while typing ─────────────────────────────
+
+// ── Rei/Rainha da Praia Rendering ────────────────────────────────────────────
+function _renderMonarchStage(t, isOrg, canEnterResult) {
+  var html = '';
+  var allGroupsDone = true;
+
+  (t.groups || []).forEach(function(g, gi) {
+    var standings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
+    var matches = (g.rounds && g.rounds[0]) ? g.rounds[0].matches : [];
+    var groupDone = matches.length > 0 && matches.every(function(m) { return !!m.winner; });
+    if (!groupDone) allGroupsDone = false;
+
+    // Standings table
+    var medal = function(i) { return i === 0 ? '👑' : (i + 1) + 'º'; };
+    var classified = t.monarchClassified || 1;
+    var standingsRows = standings.map(function(s, i) {
+      var diff = s.pointsFor - s.pointsAgainst;
+      var bg = i < classified ? 'rgba(251,191,36,0.08)' : '';
+      var clr = i < classified ? '#fbbf24' : 'var(--text-muted)';
+      return '<tr style="border-bottom:1px solid var(--border-color);' + (bg ? 'background:' + bg + ';' : '') + '">' +
+        '<td style="padding:6px 10px;font-weight:700;color:' + clr + ';text-align:center;">' + medal(i) + '</td>' +
+        '<td style="padding:6px 10px;font-weight:600;color:var(--text-bright);">' + window._safeHtml(s.name) + (i < classified ? ' <span style="font-size:0.6rem;color:#fbbf24;font-weight:800;">CLASSIF.</span>' : '') + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:#4ade80;font-weight:700;">' + s.wins + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:#f87171;">' + s.losses + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:var(--text-bright);">' + s.pointsFor + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:var(--text-muted);">' + s.pointsAgainst + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';">' + (diff >= 0 ? '+' : '') + diff + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var standingsTable = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:1rem;">' +
+      '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">#</th>' +
+      '<th style="padding:6px 10px;color:var(--text-muted);font-size:0.7rem;">Jogador</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">V</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">D</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">PF</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">PC</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">Saldo</th>' +
+      '</tr></thead><tbody>' + standingsRows + '</tbody></table>';
+
+    // Match cards
+    var matchCards = matches.map(function(m, mi) {
+      return renderMatchCard(m, canEnterResult && !m.winner, t.id, (gi * 3) + mi + 1);
+    }).join('');
+
+    var statusBadge = groupDone ? '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">Concluído</span>' : '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">Em andamento</span>';
+
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-left:4px solid ' + (groupDone ? '#4ade80' : '#fbbf24') + ';border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
+        '<h3 style="margin:0;font-size:1.1rem;color:var(--text-bright);flex:1;">' + window._safeHtml(g.name) + '</h3>' +
+        statusBadge +
+      '</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (g.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
+      standingsTable +
+      '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Partidas com rodízio de parceiros</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' + matchCards + '</div>' +
+    '</div>';
+  });
+
+  // Advance button
+  if (allGroupsDone && t.monarchAdvanceToElim && isOrg) {
+    html += '<div style="text-align:center;margin-top:1.5rem;">' +
+      '<button class="btn btn-success btn-cta hover-lift" onclick="window._advanceMonarchToElimination(\'' + String(t.id).replace(/'/g, "\\'") + '\')">🏆 Avançar Classificados para Eliminatória</button>' +
+    '</div>';
+  } else if (allGroupsDone && !t.monarchAdvanceToElim) {
+    html += '<div style="text-align:center;margin-top:1.5rem;padding:1rem;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;">' +
+      '<div style="font-size:1.5rem;">👑</div>' +
+      '<div style="font-weight:700;color:#fbbf24;font-size:1rem;">Torneio Finalizado!</div>' +
+      '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Veja os Reis/Rainhas de cada grupo acima.</div>' +
+    '</div>';
+  }
+
+  return html;
+}
 
 function renderGroupStage(t, isOrg, canEnterResult) {
   const groups = t.groups || [];
