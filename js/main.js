@@ -241,6 +241,10 @@
       title: 'Notas das Versões',
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.7.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Foto do Organizador</b> — Foto/ícone de perfil do organizador agora aparece à esquerda do nome em todos os cards de organizador: seção ORGANIZAÇÃO, cabeçalho de detalhes do torneio e cards do dashboard. Fotos de organizadores e co-organizadores são pré-carregadas junto com as dos participantes.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.5.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Landing Page</b> — Página de apresentação para visitantes não logados com hero, features, "como funciona" e call-to-action. Funciona nos 4 temas.</p>' +
         '<p><b>Internacionalização (i18n)</b> — Sistema de tradução _t(key) com suporte a Português e Inglês. Seletor de idioma no perfil. Infraestrutura pronta para tradução gradual.</p>' +
