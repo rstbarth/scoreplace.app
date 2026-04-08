@@ -9,6 +9,8 @@ function renderBracket(container, tournamentId, isInline) {
     container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>Torneio não encontrado</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
     return;
   }
+  // Store for crown helper access in sub-functions
+  window._currentBracketTournament = t;
 
   // Pre-load player photos from Firestore, then update bracket images
   _preloadPlayerPhotos(t).then(function() {
@@ -773,7 +775,7 @@ function renderSingleElimBracket(t, canEnterResult) {
   const championHtml = champion ? `
     <div style="text-align:center;margin-bottom:1.5rem;padding:1rem;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;">
       <div style="font-size:1.5rem;">🏆</div>
-      <div style="font-weight:800;color:#fbbf24;font-size:1.1rem;">${champion}</div>
+      <div style="font-weight:800;color:#fbbf24;font-size:1.1rem;display:flex;align-items:center;justify-content:center;gap:4px;">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(champion, t) : window._safeHtml(champion)}</div>
       <div style="font-size:0.75rem;color:var(--text-muted);">Campeão</div>
     </div>` : '';
 
@@ -787,7 +789,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       var name = e[0];
       var badge = medals[pos] || pos + 'º';
       var color = pos === 1 ? '#fbbf24' : pos === 2 ? '#94a3b8' : pos === 3 ? '#cd7f32' : 'var(--text-muted)';
-      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;">' + window._safeHtml(name) + '</span></div>';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;display:inline-flex;align-items:center;gap:2px;">' + (typeof window._nameWithCrown === 'function' ? window._nameWithCrown(name, t) : window._safeHtml(name)) + '</span></div>';
     }).join('');
     classifHtml = '<details style="margin-bottom:1rem;" ' + (t.status === 'finished' ? 'open' : '') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">🏅 Classificação (' + entries.length + ' posições definidas)</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + rows + '</div></details>';
   }
@@ -990,7 +992,7 @@ function _teamAvatarHtml(teamName) {
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
       `<img src="${photoSrc}" ${onerror} data-player-name="${name}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
-      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${window._safeHtml(name)}</span>` +
+      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:2px;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(name, window._currentBracketTournament) : window._safeHtml(name)}</span>` +
     `</div>`;
   });
   if (members.length > 1) html += '</div>';
@@ -1093,7 +1095,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
   const winnerBadge = isDecided && !isByeMatch
-    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;">🏆 ${window._safeHtml(m.winner)}</div>${setsDisplay}`
+    ? `<div style="text-align:center;font-size:0.75rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px;background:rgba(16,185,129,0.1);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:4px;">🏆 ${typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(m.winner, window._currentBracketTournament) : window._safeHtml(m.winner)}</div>${setsDisplay}`
     : isByeMatch
     ? `<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;">BYE — Avança Direto</div>`
     : '';
@@ -1174,7 +1176,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
       var clr = i < classified ? '#fbbf24' : 'var(--text-muted)';
       return '<tr style="border-bottom:1px solid var(--border-color);' + (bg ? 'background:' + bg + ';' : '') + '">' +
         '<td style="padding:6px 10px;font-weight:700;color:' + clr + ';text-align:center;">' + medal(i) + '</td>' +
-        '<td style="padding:6px 10px;font-weight:600;color:var(--text-bright);">' + window._safeHtml(s.name) + (i < classified ? ' <span style="font-size:0.6rem;color:#fbbf24;font-weight:800;">CLASSIF.</span>' : '') + '</td>' +
+        '<td style="padding:6px 10px;font-weight:600;color:var(--text-bright);">' + (typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(s.name, window._currentBracketTournament) : window._safeHtml(s.name)) + (i < classified ? ' <span style="font-size:0.6rem;color:#fbbf24;font-weight:800;">CLASSIF.</span>' : '') + '</td>' +
         '<td style="padding:6px 10px;text-align:center;color:#4ade80;font-weight:700;">' + s.wins + '</td>' +
         '<td style="padding:6px 10px;text-align:center;color:#f87171;">' + s.losses + '</td>' +
         '<td style="padding:6px 10px;text-align:center;color:var(--text-bright);">' + s.pointsFor + '</td>' +
@@ -1281,7 +1283,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     const rows = sorted.map((s, i) => `
       <tr style="border-bottom:1px solid var(--border-color);${i < classified ? 'background:rgba(34,197,94,0.08);' : ''}">
         <td style="padding:8px 12px;font-weight:700;color:${i < classified ? '#4ade80' : 'var(--text-muted)'};">${medal(i)}</td>
-        <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${window._safeHtml(s.name)} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
+        <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
         <td style="padding:8px 12px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
         <td style="padding:8px 12px;text-align:center;color:#4ade80;">${s.wins}</td>
         <td style="padding:8px 12px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
@@ -1372,7 +1374,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
