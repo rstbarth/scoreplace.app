@@ -592,7 +592,23 @@ window._saveResultInline = function (tId, matchId) {
     });
   }
 
+  // Remember next match to scroll to after re-render
+  var _scrollToMatchId = m.nextMatchId || null;
+
   renderBracket(document.getElementById('view-container'), tId);
+
+  // Auto-scroll to next match where the winner advances
+  if (_scrollToMatchId) {
+    setTimeout(function() {
+      var nextEl = document.getElementById('match-card-' + _scrollToMatchId) || document.querySelector('[data-match-id="' + _scrollToMatchId + '"]');
+      if (nextEl) {
+        nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        nextEl.style.transition = 'box-shadow 0.3s';
+        nextEl.style.boxShadow = '0 0 20px rgba(59,130,246,0.5)';
+        setTimeout(function() { nextEl.style.boxShadow = ''; }, 2000);
+      }
+    }, 300);
+  }
 };
 
 window._editResult = function (tId, matchId) {
