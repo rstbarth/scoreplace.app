@@ -96,7 +96,7 @@ window._toggleVip = function (tId, participantName) {
   } else {
     t.vips[participantName] = Date.now();
   }
-  window.AppStore.sync();
+  window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
 };
 
