@@ -136,9 +136,10 @@ function renderNotifications(container) {
 
     listDiv.innerHTML = html;
 
-    // Mark all as read after viewing
+    // Mark all as read after viewing (skip notifications with pending actions)
+    var _actionTypes = ['host_transfer_invite', 'cohost_invite', 'host_transfer_sent', 'cohost_invite_sent', 'friend_request'];
     notifs.forEach(function(n) {
-      if (!n.read) {
+      if (!n.read && _actionTypes.indexOf(n.type) === -1) {
         window.FirestoreDB.markNotificationRead(uid, n._id);
       }
     });
