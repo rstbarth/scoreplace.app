@@ -2057,7 +2057,7 @@ window.toggleRegistrationStatus = function (tId) {
 
     // Run unified diagnostics for formats that need it
     var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
-    var isGrupos = t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
+    var isGrupos = t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
     if (typeof window._diagnoseAll === 'function') {
         var diag = window._diagnoseAll(t);
         // Elimination: full check (power of 2, odd, incomplete teams, remainder)
