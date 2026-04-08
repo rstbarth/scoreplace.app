@@ -495,7 +495,7 @@ window._handleIncompleteOption = function (tId, option) {
     if (!t) return;
 
     if (option === 'reopen') {
-        t.status = 'active';
+        t.status = 'open';
         t.enrollmentStatus = 'open';
         window.AppStore.logAction(tId, 'Inscrições reabertas para completar times');
         window.AppStore.sync();
