@@ -1000,7 +1000,7 @@ function renderTournaments(container, tournamentId = null) {
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
-                <button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>
+                ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>` : ''}
               </div>
             </div>` : ''}
 
@@ -1287,8 +1287,31 @@ function renderTournaments(container, tournamentId = null) {
                 ? 'display:flex;flex-direction:column;gap:6px;'
                 : 'display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:1rem;';
 
+            // Build organizers section
+            var _orgCards = '';
+            var _crownSvg = window._CROWN_SVG || '<svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
+            var _isCreatorNow = window.AppStore.isCreator(t);
+            // Primary organizer
+            _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
+              _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(t.organizerName || t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
+            // Co-hosts
+            if (Array.isArray(t.coHosts)) {
+              t.coHosts.forEach(function(ch) {
+                if (ch.status !== 'active') return;
+                _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;min-width:160px;">' +
+                  _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(ch.displayName || ch.email) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Co-organizador</div></div>' +
+                  (_isCreatorNow ? '<button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px;line-height:1;" title="Remover co-organizador" onclick="event.stopPropagation();window._removeCoHost(\'' + window._safeHtml(String(t.id)) + '\',\'' + window._safeHtml(ch.email) + '\')">✕</button>' : '') +
+                  '</div>';
+              });
+            }
+
             participantsHtml = `
               <div class="mt-5 mb-4">
+                 <!-- Organizers -->
+                 <div style="margin-bottom:1.25rem;">
+                   <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>
+                   <div style="display:flex;gap:8px;flex-wrap:wrap;">${_orgCards}</div>
+                 </div>
                  <h3 style="margin-bottom: 1.5rem; font-size: 1.3rem; color: var(--text-bright); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
                     👥 Inscritos Confirmados <span style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 12px; font-weight: 600; margin-left: 5px; color: var(--text-muted);">${individualCountParts}</span>
                  </h3>
@@ -1296,6 +1319,13 @@ function renderTournaments(container, tournamentId = null) {
                  <div style="${gridStyle}">
                     ${cardsStr}
                  </div>
+                 ${isOrg ? `<div id="crown-drop-target" style="display:none;position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4);z-index:100;cursor:pointer;align-items:center;justify-content:center;transition:transform 0.2s;"
+                   ondragover="event.preventDefault();event.dataTransfer.dropEffect='copy';"
+                   ondragenter="this.style.transform='scale(1.2)';this.style.boxShadow='0 6px 30px rgba(251,191,36,0.7)';"
+                   ondragleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(251,191,36,0.4)';"
+                   ondrop="window._handleCrownDrop(event, '${t.id}')" title="Arraste um participante aqui para tornar organizador">
+                   <svg width="28" height="28" viewBox="0 0 24 24" fill="#78350f"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
+                 </div>` : ''}
               </div>
           `;
         }
