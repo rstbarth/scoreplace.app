@@ -768,6 +768,21 @@ function renderSingleElimBracket(t, canEnterResult) {
       <div style="font-size:0.75rem;color:var(--text-muted);">Campeão</div>
     </div>` : '';
 
+  // Progressive classification
+  let classifHtml = '';
+  if (t.classification && Object.keys(t.classification).length > 0) {
+    const medals = {1:'🥇',2:'🥈',3:'🥉',4:'4º'};
+    const entries = Object.entries(t.classification).sort((a,b) => a[1] - b[1]);
+    const rows = entries.map(function(e) {
+      var pos = e[1];
+      var name = e[0];
+      var badge = medals[pos] || pos + 'º';
+      var color = pos === 1 ? '#fbbf24' : pos === 2 ? '#94a3b8' : pos === 3 ? '#cd7f32' : 'var(--text-muted)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;">' + window._safeHtml(name) + '</span></div>';
+    }).join('');
+    classifHtml = '<details style="margin-bottom:1rem;" ' + (t.status === 'finished' ? 'open' : '') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">🏅 Classificação (' + entries.length + ' posições definidas)</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + rows + '</div></details>';
+  }
+
   // Toggle button: Linear ↔ Espelhado
   const modeLabel = canMirror ? 'Linear' : 'Espelhado';
   const modeIcon = canMirror ? '➡️' : '🏆';
@@ -809,6 +824,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
   return `
     ${championHtml}
+    ${classifHtml}
     ${toolbarHtml}
     <div class="bracket-sticky-scroll-wrapper" style="overflow-x:scroll!important;overflow-y:visible;display:block;width:100%;max-width:100%;">
       <div class="bracket-scroll-content" style="display:inline-flex;gap:32px;align-items:flex-start;padding:1rem 0;min-width:max-content;${zoomTransform}">
