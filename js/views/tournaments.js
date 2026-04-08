@@ -1037,6 +1037,48 @@ function renderTournaments(container, tournamentId = null) {
 
     let participantsHtml = '';
     var _organizersHtml = '';
+
+    // Build organizers section — always shown in detail view regardless of participants
+    if (tournamentId && visible.length === 1) {
+      (function() {
+        var _t = visible[0];
+        var _crownSvg = window._CROWN_SVG || '<svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
+        var _isCreatorNow = window.AppStore.isCreator(_t);
+        var _parts = _t.participants ? (Array.isArray(_t.participants) ? _t.participants : Object.values(_t.participants)) : [];
+        var _enrolledEmails = {};
+        _parts.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
+
+        var _orgCards = '';
+        // Primary organizer — only in org section if NOT enrolled
+        if (!_enrolledEmails[_t.organizerEmail]) {
+          _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
+            _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(_t.organizerName || _t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
+        }
+        if (Array.isArray(_t.coHosts)) {
+          _t.coHosts.forEach(function(ch) {
+            if (ch.status !== 'active') return;
+            if (_enrolledEmails[ch.email]) return;
+            _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;min-width:160px;">' +
+              _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(ch.displayName || ch.email) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Co-organizador</div></div>' +
+              (_isCreatorNow ? '<button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px;line-height:1;" title="Remover co-organizador" onclick="event.stopPropagation();window._removeCoHost(\'' + window._safeHtml(String(_t.id)) + '\',\'' + window._safeHtml(ch.email) + '\')">✕</button>' : '') +
+              '</div>';
+          });
+        }
+        // Always show section if organizer is not enrolled (or if there are non-enrolled co-hosts)
+        // Also show if there are NO participants yet (organizer still visible)
+        if (_orgCards || _parts.length === 0) {
+          // If no org cards built but no participants, show the primary organizer regardless
+          if (!_orgCards && _parts.length === 0) {
+            _orgCards = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
+              _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(_t.organizerName || _t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
+          }
+          _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
+            '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + _orgCards + '</div></div>';
+        }
+      })();
+    }
+
     if (tournamentId && visible.length === 1) {
         const t = visible[0];
         const isOrg = typeof window.AppStore.isOrganizer === 'function' ? window.AppStore.isOrganizer(t) : false;
@@ -1308,38 +1350,6 @@ function renderTournaments(container, tournamentId = null) {
             const gridStyle = canCheckIn
                 ? 'display:flex;flex-direction:column;gap:6px;'
                 : 'display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:1rem;';
-
-            // Build organizers section — only show organizers NOT enrolled as participants
-            var _orgCards = '';
-            var _crownSvg = window._CROWN_SVG || '<svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
-            var _isCreatorNow = window.AppStore.isCreator(t);
-            // Set of enrolled emails for filtering
-            var _enrolledEmails = {};
-            parts.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
-
-            // Primary organizer — only show if NOT enrolled
-            if (!_enrolledEmails[t.organizerEmail]) {
-              _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
-                _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(t.organizerName || t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
-            }
-            // Co-hosts — only show if NOT enrolled
-            if (Array.isArray(t.coHosts)) {
-              t.coHosts.forEach(function(ch) {
-                if (ch.status !== 'active') return;
-                if (_enrolledEmails[ch.email]) return; // enrolled = shows in participants list with crown
-                _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;min-width:160px;">' +
-                  _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(ch.displayName || ch.email) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Co-organizador</div></div>' +
-                  (_isCreatorNow ? '<button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px;line-height:1;" title="Remover co-organizador" onclick="event.stopPropagation();window._removeCoHost(\'' + window._safeHtml(String(t.id)) + '\',\'' + window._safeHtml(ch.email) + '\')">✕</button>' : '') +
-                  '</div>';
-              });
-            }
-
-            // Organizers section — only rendered if there are non-enrolled organizers
-            var _organizersHtml = _orgCards ? `
-              <div style="margin-top:1.25rem;margin-bottom:0.5rem;">
-                <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">${_orgCards}</div>
-              </div>` : '';
 
             participantsHtml = `
               <div class="mt-5 mb-4">
