@@ -963,12 +963,12 @@ window._tvMode = function(tId) {
     }
   }
   updateClock();
-  var clockInterval = setInterval(updateClock, 1000);
+  window._tvModeClockInterval = setInterval(updateClock, 1000);
 
   // Auto-refresh every 30s
   window._tvModeInterval = setInterval(function() {
     var ov = document.getElementById('tv-mode-overlay');
-    if (!ov) { clearInterval(window._tvModeInterval); clearInterval(clockInterval); return; }
+    if (!ov) { clearInterval(window._tvModeInterval); clearInterval(window._tvModeClockInterval); return; }
     // Reload tournament data
     var tNow = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
     if (!tNow) return;
@@ -1020,6 +1020,7 @@ window._tvMode = function(tId) {
 
 window._exitTvMode = function() {
   if (window._tvModeInterval) { clearInterval(window._tvModeInterval); window._tvModeInterval = null; }
+  if (window._tvModeClockInterval) { clearInterval(window._tvModeClockInterval); window._tvModeClockInterval = null; }
   var overlay = document.getElementById('tv-mode-overlay');
   if (overlay) overlay.remove();
   if (document.fullscreenElement) document.exitFullscreen().catch(function() {});
