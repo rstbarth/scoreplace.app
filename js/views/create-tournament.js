@@ -471,7 +471,7 @@ function setupCreateTournamentModal() {
               <!-- Classificação -->
               <div id="elim-settings" style="display:none; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Classificação Final</p>
-                <input type="hidden" id="elim-third-place" value="always">
+                <input type="hidden" id="elim-third-place" value="true">
                 <div class="form-group">
                   <div id="ranking-type-buttons" style="display:flex;gap:8px;">
                     <button type="button" class="ranking-type-btn ranking-type-active" data-value="individual" onclick="window._selectRankingType('individual')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #f87171;background:rgba(248,113,113,0.12);color:#fca5a5;font-weight:600;text-align:center;">Personalizado</button>
@@ -2355,7 +2355,7 @@ function setupCreateTournamentModal() {
     if (t.format === 'Liga') document.getElementById('liga-manual-draw').checked = !!t.drawManual;
 
     // Elim settings
-    document.getElementById('elim-third-place').checked = t.elimThirdPlace !== false;
+    // elimThirdPlace is always true — no toggle needed
     document.getElementById('elim-ranking-type').value = t.elimRankingType || 'individual';
 
     // Grupos
@@ -2560,7 +2560,7 @@ function setupCreateTournamentModal() {
 
         // Eliminatórias
         if (formatValue === 'elim_simples' || formatValue === 'elim_dupla' || formatValue === 'grupos_mata') {
-          tourData.elimThirdPlace = document.getElementById('elim-third-place').checked;
+          tourData.elimThirdPlace = true;
           tourData.elimRankingType = document.getElementById('elim-ranking-type').value;
         }
 
