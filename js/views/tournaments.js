@@ -1036,6 +1036,7 @@ function renderTournaments(container, tournamentId = null) {
   `;
 
     let participantsHtml = '';
+    var _organizersHtml = '';
     if (tournamentId && visible.length === 1) {
         const t = visible[0];
         const isOrg = typeof window.AppStore.isOrganizer === 'function' ? window.AppStore.isOrganizer(t) : false;
@@ -1306,13 +1307,15 @@ function renderTournaments(container, tournamentId = null) {
               });
             }
 
+            // Organizers section — rendered separately, between card and participants
+            var _organizersHtml = `
+              <div style="margin-top:1.25rem;margin-bottom:0.5rem;">
+                <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">${_orgCards}</div>
+              </div>`;
+
             participantsHtml = `
               <div class="mt-5 mb-4">
-                 <!-- Organizers -->
-                 <div style="margin-bottom:1.25rem;">
-                   <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>
-                   <div style="display:flex;gap:8px;flex-wrap:wrap;">${_orgCards}</div>
-                 </div>
                  <h3 style="margin-bottom: 1.5rem; font-size: 1.3rem; color: var(--text-bright); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
                     👥 Inscritos Confirmados <span style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 12px; font-weight: 600; margin-left: 5px; color: var(--text-muted);">${individualCountParts}</span>
                  </h3>
@@ -1378,6 +1381,8 @@ function renderTournaments(container, tournamentId = null) {
     <div class="tournaments-grid" id="tourn-grid-container" style="display: grid; grid-template-columns: ${tournamentId ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'}; gap: 1.5rem;">
       ${gridHtml}
     </div>
+
+    ${tournamentId ? _organizersHtml : ''}
 
     ${hasDrawn ? '' : participantsHtml}
 
