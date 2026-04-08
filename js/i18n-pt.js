@@ -78,6 +78,7 @@ window._translations['pt'] = {
   'format.groups': 'Grupos + Eliminatória',
   'format.swiss': 'Suico',
   'format.league': 'Liga',
+  'format.monarch': 'Rei/Rainha da Praia',
 
   // Landing page
   'landing.tagline': 'Gerencie torneios esportivos de forma simples e profissional.',
