@@ -93,6 +93,7 @@ function setupCreateTournamentModal() {
                   <option value="elim_simples">Eliminatórias Simples — eliminação na primeira derrota</option>
                   <option value="elim_dupla">Dupla Eliminatória — eliminação na segunda derrota</option>
                   <option value="grupos_mata">Fase de Grupos + Eliminatórias — estilo Copa do Mundo</option>
+                  <option value="rei_rainha">Rei/Rainha da Praia — grupos de 4 com parceiros rotativos</option>
                   <option value="suico">Suíço Clássico — pontos corridos com emparelhamentos por pontos</option>
                   <option value="liga">Liga — temporada contínua com classificação por pontos</option>
                 </select>
@@ -102,6 +103,7 @@ function setupCreateTournamentModal() {
                   <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Grupos + Elim.</button>
                   <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Suíço</button>
                   <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Liga</button>
+                  <button type="button" class="formato-btn" data-value="rei_rainha" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Rei/Rainha</button>
                 </div>
                 <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">Eliminação na primeira derrota.</small>
               </div>
@@ -470,6 +472,27 @@ function setupCreateTournamentModal() {
                 </select>
               </div>
 
+              <!-- Rei/Rainha da Praia -->
+              <div id="rei-rainha-fields" style="display:none; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">👑 Rei/Rainha da Praia</p>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">Grupos de 4 jogadores com 3 partidas e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual.</div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                  <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+                    <label class="form-label" style="font-size:0.75rem;">Classificados por grupo</label>
+                    <select id="monarch-classified" class="form-control" style="font-size:0.85rem;">
+                      <option value="1" selected>1 (Rei/Rainha)</option>
+                      <option value="2">2 (Rei + Vice)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0;flex:1;min-width:160px;display:flex;align-items:flex-end;">
+                    <label class="form-label d-flex align-center" style="gap:8px;cursor:pointer;margin:0;">
+                      <input type="checkbox" id="monarch-advance-elim" style="width:18px;height:18px;">
+                      <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Avançar para Eliminatória</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <!-- Classificação -->
               <div id="elim-settings" style="display:none; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Classificação Final</p>
@@ -735,7 +758,8 @@ function setupCreateTournamentModal() {
     'elim_dupla': 'Eliminação na segunda derrota (chave de perdedores).',
     'grupos_mata': 'Fase de grupos seguida de eliminatórias (estilo Copa do Mundo).',
     'suico': 'Pontos corridos com emparelhamentos baseados em pontuação.',
-    'liga': 'Temporada contínua com classificação por pontos.'
+    'liga': 'Temporada contínua com classificação por pontos.',
+    'rei_rainha': 'Grupos de 4 com parceiros rotativos. Pontuação individual. Quem vencer os 3 jogos é o Rei/Rainha.'
   };
   window._selectFormato = function(btn) {
     var value = btn.getAttribute('data-value');
@@ -839,7 +863,7 @@ function setupCreateTournamentModal() {
     // Format label
     var formatMap = {
       liga: 'Liga', suico: 'Suíço', elim_simples: 'Eliminatórias',
-      elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.'
+      elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.', rei_rainha: 'Rei/Rainha'
     };
     var formatLabel = formatMap[formatValue] || '';
 
@@ -1086,12 +1110,14 @@ function setupCreateTournamentModal() {
     const isSuico = fmt === 'suico';
     const isLiga = fmt === 'liga';
     const isGrupos = fmt === 'grupos_mata';
+    const isMonarch = fmt === 'rei_rainha';
 
     document.getElementById('suico-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('liga-fields').style.display = isLiga ? 'block' : 'none';
     document.getElementById('suico-draw-schedule-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
+    document.getElementById('rei-rainha-fields').style.display = isMonarch ? 'block' : 'none';
 
     // Esconder estimativas de tempo para Liga e Suíço (não fazem sentido)
     var estimContainer = document.getElementById('time-estimates-container');
@@ -2180,7 +2206,15 @@ function setupCreateTournamentModal() {
     else if (t.format === 'Eliminatórias Simples') fmtValue = 'elim_simples';
     else if (t.format === 'Dupla Eliminatória') fmtValue = 'elim_dupla';
     else if (t.format === 'Fase de Grupos + Eliminatórias') fmtValue = 'grupos_mata';
+    else if (t.format === 'Rei/Rainha da Praia') fmtValue = 'rei_rainha';
     document.getElementById('select-formato').value = fmtValue;
+    // Monarch config
+    if (fmtValue === 'rei_rainha') {
+      var _mcEl = document.getElementById('monarch-classified');
+      if (_mcEl) _mcEl.value = String(t.monarchClassified || 1);
+      var _maEl = document.getElementById('monarch-advance-elim');
+      if (_maEl) _maEl.checked = t.monarchAdvanceToElim === true;
+    }
     // Sync formato buttons with loaded value
     var fmtBtns = document.querySelectorAll('#formato-buttons .formato-btn');
     fmtBtns.forEach(function(b) {
@@ -2442,7 +2476,8 @@ function setupCreateTournamentModal() {
           suico: 'Suíço Clássico',
           elim_simples: 'Eliminatórias Simples',
           elim_dupla: 'Dupla Eliminatória',
-          grupos_mata: 'Fase de Grupos + Eliminatórias'
+          grupos_mata: 'Fase de Grupos + Eliminatórias',
+          rei_rainha: 'Rei/Rainha da Praia'
         };
         const format = formatMap[formatValue] || 'Eliminatórias Simples';
 
@@ -2593,6 +2628,11 @@ function setupCreateTournamentModal() {
         if (formatValue === 'grupos_mata') {
           tourData.gruposCount = parseInt(document.getElementById('grupos-count').value) || 4;
           tourData.gruposClassified = parseInt(document.getElementById('grupos-classified').value) || 2;
+        }
+
+        if (formatValue === 'rei_rainha') {
+          tourData.monarchClassified = parseInt(document.getElementById('monarch-classified').value) || 1;
+          tourData.monarchAdvanceToElim = document.getElementById('monarch-advance-elim').checked;
         }
 
         // Tiebreakers (ordem configurada pelo organizador)
