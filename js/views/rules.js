@@ -119,10 +119,6 @@ function renderRules(container, tournamentId) {
 
           ${(t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória') ? `
             <li style="padding:0.85rem 0;border-bottom:1px solid var(--border-color);">
-              <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">Disputa de 3º Lugar</div>
-              <div style="font-weight:600;color:var(--text-bright);">${t.elimThirdPlace !== false ? 'Sim' : 'Não'}</div>
-            </li>
-            <li style="padding:0.85rem 0;border-bottom:1px solid var(--border-color);">
               <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">Classificação Final</div>
               <div style="font-weight:600;color:var(--text-bright);">${t.elimRankingType === 'blocks' ? 'Em blocos por fase' : 'Individual (colocação específica)'}</div>
             </li>
