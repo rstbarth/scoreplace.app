@@ -359,10 +359,7 @@ function _updateProgressiveClassification(t) {
         t.classification[loser] = 2;
       } else if (roundFromEnd === 1) {
         // Semi: losers get 3rd-4th (resolved by 3rd place match if enabled)
-        if (!t.elimThirdPlace) {
-          t.classification[loser] = 3; // tied 3rd without playoff
-        }
-        // If elimThirdPlace enabled, wait for that match result
+        // Wait for 3rd place match result to determine 3rd vs 4th
       } else {
         // Earlier rounds: position = 2^(roundFromEnd) + 1 through 2^(roundFromEnd+1)
         // e.g. quarterfinal losers = 5th-8th
@@ -402,7 +399,7 @@ function _maybeFinishElimination(t) {
   if (tbdMatches.length > 0) return;
 
   // Check 3rd place match if enabled
-  if (t.elimThirdPlace && t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return;
+  if (t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return;
 
   // Check group stage completion (Fase de Grupos)
   if (Array.isArray(t.groups) && t.groups.length > 0) {
@@ -434,7 +431,7 @@ function _maybeFinishElimination(t) {
 // Garante que o thirdPlaceMatch existe com TBD e preenche progressivamente
 // com os perdedores das semifinais conforme os resultados são lançados
 function _maybeGenerate3rdPlace(t) {
-  if (!t.elimThirdPlace) return;
+  // 3rd place match is always generated for elimination formats
 
   const allMatches = t.matches || [];
 
