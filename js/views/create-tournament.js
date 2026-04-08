@@ -108,11 +108,13 @@ function setupCreateTournamentModal() {
 
               <!-- Público/Privado -->
               <div class="form-group mb-2">
-                <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                  <input type="checkbox" id="tourn-public" checked style="width:18px; height:18px;">
-                  <span style="font-weight:bold; color:var(--text-color);">Torneio Público</span>
-                </label>
-                <small class="text-muted" style="display:block; margin-left:28px;">Se desmarcado, apenas você e seus jogadores convidados poderão ver o torneio.</small>
+                <label class="form-label" style="margin-bottom:6px;">Visibilidade</label>
+                <input type="hidden" id="tourn-public" value="true">
+                <div style="display:flex;gap:6px;">
+                  <button type="button" id="btn-vis-public" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;" onclick="window._setVisibility('public')">🌐 Público</button>
+                  <button type="button" id="btn-vis-private" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);" onclick="window._setVisibility('private')">🔒 Privado</button>
+                </div>
+                <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.</small>
               </div>
 
               <!-- Campos específicos: Fase de Grupos -->
@@ -1013,6 +1015,26 @@ function setupCreateTournamentModal() {
     if (btn) { btn.textContent = '🔓'; btn.style.border = '1px solid rgba(255,255,255,0.1)'; btn.style.background = 'rgba(255,255,255,0.05)'; btn.style.color = 'var(--text-muted)'; }
     var hiddenLock = document.getElementById('tourn-logo-locked');
     if (hiddenLock) hiddenLock.value = '';
+  };
+
+  // ── Visibility toggle ──
+  window._setVisibility = function(vis) {
+    var btnPub = document.getElementById('btn-vis-public');
+    var btnPri = document.getElementById('btn-vis-private');
+    var hidden = document.getElementById('tourn-public');
+    var desc = document.getElementById('vis-desc');
+    if (!btnPub || !btnPri) return;
+    if (vis === 'public') {
+      btnPub.style.border = '2px solid #3b82f6'; btnPub.style.background = 'rgba(59,130,246,0.15)'; btnPub.style.color = '#60a5fa';
+      btnPri.style.border = '2px solid rgba(255,255,255,0.18)'; btnPri.style.background = 'rgba(255,255,255,0.06)'; btnPri.style.color = 'var(--text-main)';
+      if (hidden) hidden.value = 'true';
+      if (desc) desc.textContent = 'Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.';
+    } else {
+      btnPri.style.border = '2px solid #3b82f6'; btnPri.style.background = 'rgba(59,130,246,0.15)'; btnPri.style.color = '#60a5fa';
+      btnPub.style.border = '2px solid rgba(255,255,255,0.18)'; btnPub.style.background = 'rgba(255,255,255,0.06)'; btnPub.style.color = 'var(--text-main)';
+      if (hidden) hidden.value = 'false';
+      if (desc) desc.textContent = 'Apenas você e jogadores convidados poderão ver o torneio.';
+    }
   };
 
   window._onSportChange = function () {
@@ -2241,7 +2263,7 @@ function setupCreateTournamentModal() {
     });
     document.getElementById('tourn-max-participants').value = t.maxParticipants || '';
     document.getElementById('tourn-auto-close').checked = !!t.autoCloseOnFull;
-    document.getElementById('tourn-public').checked = t.isPublic !== false;
+    window._setVisibility(t.isPublic !== false ? 'public' : 'private');
     document.getElementById('select-result-entry').value = t.resultEntry || 'organizer';
 
     // Venue / Courts / Time
@@ -2441,7 +2463,7 @@ function setupCreateTournamentModal() {
         const maxPartsVal = parseInt(document.getElementById('tourn-max-participants').value) || null;
         const autoCloseVal = document.getElementById('tourn-auto-close').checked;
         const resultEntryVal = document.getElementById('select-result-entry').value || 'organizer';
-        const isPublicVal = document.getElementById('tourn-public').checked;
+        const isPublicVal = document.getElementById('tourn-public').value === 'true';
 
         // Venue / Courts / Time
         const venueVal = document.getElementById('tourn-venue').value.trim();
@@ -2849,8 +2871,14 @@ window._gsmUpdateSummary = function() {
   lines.push('<strong>' + sets + ' set' + (sets > 1 ? 's' : '') + '</strong> de ' + games + ' games');
   lines.push('Cada set vai a <strong>' + games + ' games</strong>' + (counting === 'tennis' ? ' (contagem 15-30-40)' : ' (contagem numérica)'));
   if (counting === 'tennis' && advOn) lines.push('Com regra de vantagem (Deuce/Ad)');
-  if (tbOn) lines.push('Tie-break em ' + (games-1) + '-' + (games-1) + ': primeiro a <strong>' + tbPts + ' pontos</strong> (mín. ' + tbMargin + ' de diferença)');
-  if (stbOn && sets > 1) lines.push('Super tie-break no set decisivo: primeiro a <strong>' + stbPts + ' pontos</strong> (mín. 2 de diferença)');
+  if (tbOn) {
+    var _tbDraw = tbPts - tbMargin;
+    lines.push('Tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + '), prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem.');
+  }
+  if (stbOn && sets > 1) {
+    var _stbDraw = stbPts - 2;
+    lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + '), prorroga até o vencedor ter 2 pontos de vantagem.');
+  }
 
   el.innerHTML = lines.join('<br>');
 };
@@ -2938,8 +2966,14 @@ window._updateGSMSummaryFromHidden = function() {
   var lines = [];
   lines.push('<strong>' + s + ' set' + (s > 1 ? 's' : '') + '</strong> de ' + g + ' games');
   lines.push('Contagem: ' + (counting === 'tennis' ? '15-30-40' : 'numérica') + (counting === 'tennis' && advOn ? ' + vantagem' : ''));
-  if (tbOn) lines.push('Tie-break ' + (g-1) + '-' + (g-1) + ': ' + tbPts + ' pts');
-  if (stbOn && s > 1) lines.push('Super tie-break no decisivo: ' + stbPts + ' pts');
+  var tbMargin = parseInt(document.getElementById('gsm-tiebreakMargin').value) || 2;
+  if (tbOn) {
+    var tbDraw = parseInt(tbPts) - tbMargin;
+    lines.push('Tie-break de ' + tbPts + ' pontos (' + tbDraw + ' a ' + tbDraw + '), prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem.');
+  }
+  if (stbOn && s > 1) {
+    lines.push('Super tie-break no decisivo: ' + stbPts + ' pts');
+  }
   summaryEl.innerHTML = lines.join('<br>');
 };
 
