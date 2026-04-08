@@ -72,8 +72,8 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
                     stats.totalLosses += computed[si].losses || 0;
                     stats.totalDraws += computed[si].draws || 0;
                     stats.totalMatches += computed[si].played || 0;
-                    if (si === 0 && t.status === 'closed') stats.titles++;
-                    if (si < 3 && t.status === 'closed') stats.podiums++;
+                    if (si === 0 && (t.status === 'finished' || t.status === 'closed')) stats.titles++;
+                    if (si < 3 && (t.status === 'finished' || t.status === 'closed')) stats.podiums++;
                     break;
                 }
             }
@@ -98,7 +98,7 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
                 }
             });
             // Check if champion (last match winner in single elimination)
-            if (t.status === 'closed' && Array.isArray(t.matches) && t.matches.length > 0) {
+            if ((t.status === 'finished' || t.status === 'closed') && Array.isArray(t.matches) && t.matches.length > 0) {
                 var finalMatch = t.matches[t.matches.length - 1];
                 if (finalMatch && _nameMatch(finalMatch.winner, playerName)) {
                     stats.titles++;
