@@ -27,7 +27,7 @@ window._toggleCheckIn = function (tId, playerName) {
     t.checkedIn[playerName] = Date.now();
     delete t.absent[playerName];
   }
-  window.AppStore.sync();
+  window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
 };
 
@@ -44,7 +44,7 @@ window._markAbsent = function (tId, playerName) {
     t.absent[playerName] = Date.now();
     delete t.checkedIn[playerName];
   }
-  window.AppStore.sync();
+  window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
 };
 
@@ -53,7 +53,7 @@ window._resetCheckIn = function (tId) {
   if (!t) return;
   t.checkedIn = {};
   t.absent = {};
-  window.AppStore.sync();
+  window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
   if (typeof showNotification === 'function') showNotification('Chamada Reiniciada', 'Todos os check-ins e ausências foram removidos.', 'info');
 };
