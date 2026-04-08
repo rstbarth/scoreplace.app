@@ -502,7 +502,7 @@ function _ensureFutureRounds(t) {
   }
 
   // Inicializar thirdPlaceMatch se configurado e ainda não existe
-  if (t.elimThirdPlace && !t.thirdPlaceMatch) {
+  if (!t.thirdPlaceMatch) {
     const finalRound = allRoundNums[allRoundNums.length - 1];
     t.thirdPlaceMatch = {
       id: `match-3rd-${Date.now()}`,
@@ -513,7 +513,7 @@ function _ensureFutureRounds(t) {
   }
 
   // Sempre recalcular participantes do 3º lugar baseado nas semifinais
-  if (t.elimThirdPlace && t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) {
+  if (t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) {
     const semiRound = allRoundNums.length >= 2 ? allRoundNums[allRoundNums.length - 2] : null;
     if (semiRound && currentRoundsMap[semiRound]) {
       const losers = currentRoundsMap[semiRound]
@@ -595,8 +595,8 @@ function renderSingleElimBracket(t, canEnterResult) {
   let globalMatchNum = 0;
 
   // 3rd place match
-  const thirdPlaceMatch = t.thirdPlaceMatch || (t.elimThirdPlace ? { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null } : null);
-  const hasThirdPlace = !!t.elimThirdPlace && activeRounds.length >= 2;
+  const thirdPlaceMatch = t.thirdPlaceMatch || { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null };
+  const hasThirdPlace = activeRounds.length >= 2;
 
   const semiRoundIdx = activeRounds.length >= 2 ? activeRounds.length - 2 : -1;
   const matchesBeforeFinal = semiRoundIdx >= 0
