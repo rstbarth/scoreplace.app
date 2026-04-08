@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.5.7-alpha';
+window.SCOREPLACE_VERSION = '0.6.0-alpha';
 
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.
@@ -441,7 +441,8 @@ window.AppStore = {
     var store = this;
     if (!window.FirestoreDB || !window.FirestoreDB.db || !store.currentUser) return;
     store.tournaments.forEach(function(t) {
-      if (t.organizerEmail === store.currentUser.email) {
+      if (t.organizerEmail === store.currentUser.email ||
+          (Array.isArray(t.coHosts) && t.coHosts.some(function(ch) { return ch.email === store.currentUser.email && ch.status === 'active'; }))) {
         window.FirestoreDB.saveTournament(t).catch(function(err) {
           console.warn('Sync error:', err);
         });
@@ -636,7 +637,19 @@ window.AppStore = {
 
   isOrganizer(tournament) {
     if (this.viewMode === 'participant') return false;
-    return this.currentUser && tournament.organizerEmail === this.currentUser.email;
+    if (!this.currentUser) return false;
+    var email = this.currentUser.email;
+    if (tournament.organizerEmail === email) return true;
+    if (Array.isArray(tournament.coHosts)) {
+      return tournament.coHosts.some(function(ch) { return ch.email === email && ch.status === 'active'; });
+    }
+    return false;
+  },
+
+  isCreator(tournament) {
+    if (!this.currentUser) return false;
+    var creator = tournament.creatorEmail || tournament.organizerEmail;
+    return creator === this.currentUser.email;
   },
 
   getVisibleTournaments() {
