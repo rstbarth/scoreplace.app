@@ -689,6 +689,7 @@
       teamSize: qcTeamSize,
       gameTypes: qcTeamSize > 1 ? 'duplas' : 'simples',
       thirdPlace: true,
+      elimThirdPlace: true,
       status: 'open',
       createdAt: new Date().toISOString(),
       organizerId: window.AppStore.currentUser ? window.AppStore.currentUser.uid : 'local',
