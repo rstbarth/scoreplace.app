@@ -81,7 +81,7 @@ window.showUnifiedResolutionPanel = function(tId) {
     if (t.status !== 'closed') {
         t.status = 'closed';
         t._suspendedByPanel = true;
-        window.AppStore.sync();
+        window.FirestoreDB.saveTournament(t);
     }
 
     const info = window._diagnoseAll(t);
@@ -92,7 +92,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         if (t._suspendedByPanel) {
             t.status = 'open';
             delete t._suspendedByPanel;
-            window.AppStore.sync();
+            window.FirestoreDB.saveTournament(t);
         }
         window.showFinalReviewPanel(tId);
         return;
@@ -350,7 +350,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         if (t._suspendedByPanel) {
             t.status = 'open';
             delete t._suspendedByPanel;
-            window.AppStore.sync();
+            window.FirestoreDB.saveTournament(t);
         }
 
         // Close panel
