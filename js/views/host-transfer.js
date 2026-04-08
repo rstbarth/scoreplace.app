@@ -192,7 +192,7 @@
         }
       }
       if (typeof showNotification === 'function') showNotification('Aceito!', 'Voce agora e ' + (inviteType === 'transfer' ? 'organizador' : 'co-organizador') + '.', 'success');
-    });
+    }).catch(function(e) { console.warn('Accept host invite error:', e); if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível processar. Tente novamente.', 'error'); });
   };
 
   // ─── Reject host invite ───────────────────────────────────────────────────
@@ -225,7 +225,7 @@
         }
       }
       if (typeof showNotification === 'function') showNotification('Recusado', 'Convite recusado.', 'info');
-    });
+    }).catch(function(e) { console.warn('Reject host invite error:', e); if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível processar. Tente novamente.', 'error'); });
   };
 
   // ─── Cancel host invite (by organizer) ────────────────────────────────────
