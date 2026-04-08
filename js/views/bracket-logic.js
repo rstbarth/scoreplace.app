@@ -1,4 +1,44 @@
 // ── Bracket Logic & Computation ──
+
+// ── Monarch (Rei/Rainha) individual standings per group ──
+window._computeMonarchStandings = function(group) {
+  var stats = {};
+  (group.players || []).forEach(function(name) {
+    stats[name] = { name: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, played: 0 };
+  });
+
+  var matches = (group.rounds && group.rounds[0]) ? group.rounds[0].matches : [];
+  matches.forEach(function(m) {
+    if (!m.winner || !m.team1 || !m.team2) return;
+    var s1 = parseInt(m.scoreP1) || 0;
+    var s2 = parseInt(m.scoreP2) || 0;
+    var team1Won = m.winner === m.p1;
+
+    m.team1.forEach(function(name) {
+      if (!stats[name]) return;
+      stats[name].played++;
+      stats[name].pointsFor += s1;
+      stats[name].pointsAgainst += s2;
+      if (team1Won) stats[name].wins++; else stats[name].losses++;
+    });
+    m.team2.forEach(function(name) {
+      if (!stats[name]) return;
+      stats[name].played++;
+      stats[name].pointsFor += s2;
+      stats[name].pointsAgainst += s1;
+      if (!team1Won) stats[name].wins++; else stats[name].losses++;
+    });
+  });
+
+  return Object.values(stats).sort(function(a, b) {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    var aDiff = a.pointsFor - a.pointsAgainst;
+    var bDiff = b.pointsFor - b.pointsAgainst;
+    if (bDiff !== aDiff) return bDiff - aDiff;
+    return b.pointsFor - a.pointsFor;
+  });
+};
+
 function _checkGroupRoundComplete(t, groupIndex) {
   if (!t.groups || !t.groups[groupIndex]) return;
   const g = t.groups[groupIndex];
