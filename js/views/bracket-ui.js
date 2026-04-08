@@ -404,8 +404,9 @@ window._saveSetResult = function(tId, matchId) {
     }
 
     sets.push(setData);
-    if (g1 > g2) p1Sets++;
-    else if (g2 > g1) p2Sets++;
+    // Use adjusted games (after tiebreak) for set winner determination
+    if (setData.gamesP1 > setData.gamesP2) p1Sets++;
+    else if (setData.gamesP2 > setData.gamesP1) p2Sets++;
 
     if (p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin) break;
   }
@@ -629,11 +630,33 @@ window._editResult = function (tId, matchId) {
           if (next.p2 === m.winner) next.p2 = 'TBD';
         }
       }
+      // Undo loser advancement in double elimination (lower bracket)
+      if (m.loserMatchId) {
+        const lm = _findMatch(t, m.loserMatchId);
+        if (lm && !lm.winner) {
+          const oldLoser = m.winner === m.p1 ? m.p2 : m.p1;
+          if (lm.p1 === oldLoser) lm.p1 = 'TBD';
+          if (lm.p2 === oldLoser) lm.p2 = 'TBD';
+        }
+      }
+      // Clear progressive classification entries
+      if (t.classification) {
+        var oldLoser2 = m.winner === m.p1 ? m.p2 : m.p1;
+        delete t.classification[m.winner];
+        delete t.classification[oldLoser2];
+      }
 
       const prevWinner = m.winner;
       m.winner = null;
       m.scoreP1 = undefined;
       m.scoreP2 = undefined;
+      m.draw = undefined;
+      // Clear GSM data
+      m.sets = undefined;
+      m.setsWonP1 = undefined;
+      m.setsWonP2 = undefined;
+      m.totalGamesP1 = undefined;
+      m.totalGamesP2 = undefined;
 
       window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
       window.AppStore.syncImmediate(tId);
