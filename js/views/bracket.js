@@ -1274,7 +1274,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
         scoreMap[m.p1].played++; scoreMap[m.p2].played++;
         scoreMap[m.p1].pointsDiff += (s1 - s2);
         scoreMap[m.p2].pointsDiff += (s2 - s1);
-        if (m.draw) {
+        if (m.draw || m.winner === 'draw') {
           scoreMap[m.p1].draws++; scoreMap[m.p1].points += 1;
           scoreMap[m.p2].draws++; scoreMap[m.p2].points += 1;
         } else {
