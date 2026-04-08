@@ -1049,31 +1049,36 @@ function renderTournaments(container, tournamentId = null) {
         _parts.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
 
         var _orgCards = '';
+        // Helper: build organizer card with crown next to name
+        function _buildOrgCard(name, role, bgStyle, canRemove, removeEmail) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;' + bgStyle + 'border-radius:10px;min-width:160px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(name) + ' ' + _crownSvg + '</div>' +
+              '<div style="font-size:0.65rem;color:var(--text-muted);">' + role + '</div>' +
+            '</div>' +
+            (canRemove ? '<button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px;line-height:1;" title="Remover co-organizador" onclick="event.stopPropagation();window._removeCoHost(\'' + window._safeHtml(String(_t.id)) + '\',\'' + window._safeHtml(removeEmail) + '\')">✕</button>' : '') +
+          '</div>';
+        }
+        var _orgBgPrimary = 'background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);';
+        var _orgBgCohost = 'background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);';
+
         // Primary organizer — only in org section if NOT enrolled
         if (!_enrolledEmails[_t.organizerEmail]) {
-          _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
-            _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(_t.organizerName || _t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
+          _orgCards += _buildOrgCard(_t.organizerName || _t.organizerEmail, 'Organizador', _orgBgPrimary, false, '');
         }
         if (Array.isArray(_t.coHosts)) {
           _t.coHosts.forEach(function(ch) {
             if (ch.status !== 'active') return;
             if (_enrolledEmails[ch.email]) return;
-            _orgCards += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;min-width:160px;">' +
-              _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(ch.displayName || ch.email) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Co-organizador</div></div>' +
-              (_isCreatorNow ? '<button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px;line-height:1;" title="Remover co-organizador" onclick="event.stopPropagation();window._removeCoHost(\'' + window._safeHtml(String(_t.id)) + '\',\'' + window._safeHtml(ch.email) + '\')">✕</button>' : '') +
-              '</div>';
+            _orgCards += _buildOrgCard(ch.displayName || ch.email, 'Co-organizador', _orgBgCohost, _isCreatorNow, ch.email);
           });
         }
-        // Always show section if organizer is not enrolled (or if there are non-enrolled co-hosts)
-        // Also show if there are NO participants yet (organizer still visible)
         if (_orgCards || _parts.length === 0) {
-          // If no org cards built but no participants, show the primary organizer regardless
           if (!_orgCards && _parts.length === 0) {
-            _orgCards = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:10px;min-width:160px;">' +
-              _crownSvg + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(_t.organizerName || _t.organizerEmail) + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Organizador</div></div></div>';
+            _orgCards = _buildOrgCard(_t.organizerName || _t.organizerEmail, 'Organizador', _orgBgPrimary, false, '');
           }
           _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
-            '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Organizacao</div>' +
+            '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">ORGANIZAÇÃO</div>' +
             '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + _orgCards + '</div></div>';
         }
       })();
