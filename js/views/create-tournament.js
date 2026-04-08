@@ -2519,7 +2519,10 @@ function setupCreateTournamentModal() {
             countingType: document.getElementById('gsm-countingType').value || 'numeric',
             advantageRule: document.getElementById('gsm-advantageRule').value === 'true'
           },
-          organizerEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local'
+          organizerEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
+          creatorEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
+          creatorUid: window.AppStore.currentUser ? window.AppStore.currentUser.uid : '',
+          coHosts: []
         };
 
         // Suíço
