@@ -247,6 +247,68 @@ window.generateDrawFunction = function (tId) {
         return;
     }
 
+    // ── Rei/Rainha da Praia ──────────────────────────────────────────
+    if (t.format === 'Rei/Rainha da Praia') {
+        let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
+        const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || '');
+
+        // Shuffle
+        for (let i = participants.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [participants[i], participants[j]] = [participants[j], participants[i]];
+        }
+
+        if (participants.length < 4) {
+            showAlertDialog('Mínimo 4 Participantes', 'O formato Rei/Rainha da Praia precisa de pelo menos 4 participantes.', null, { type: 'warning' });
+            return;
+        }
+
+        const numGroups = Math.floor(participants.length / 4);
+        const remainder = participants.length % 4;
+        const groups = [];
+        const ts = Date.now();
+
+        for (let g = 0; g < numGroups; g++) {
+            const players = [getName(participants[g*4]), getName(participants[g*4+1]), getName(participants[g*4+2]), getName(participants[g*4+3])];
+            const [A, B, C, D] = players;
+            groups.push({
+                name: 'Grupo ' + String.fromCharCode(65 + g),
+                players: players,
+                rounds: [{
+                    round: 1, status: 'active',
+                    matches: [
+                        { id: 'monarch-g'+g+'-m0-'+ts, team1:[A,B], team2:[C,D], p1:A+' / '+B, p2:C+' / '+D, scoreP1:null, scoreP2:null, winner:null, group:g, matchIndex:0, isMonarch:true },
+                        { id: 'monarch-g'+g+'-m1-'+ts, team1:[A,C], team2:[B,D], p1:A+' / '+C, p2:B+' / '+D, scoreP1:null, scoreP2:null, winner:null, group:g, matchIndex:1, isMonarch:true },
+                        { id: 'monarch-g'+g+'-m2-'+ts, team1:[A,D], team2:[B,C], p1:A+' / '+D, p2:B+' / '+C, scoreP1:null, scoreP2:null, winner:null, group:g, matchIndex:2, isMonarch:true }
+                    ]
+                }],
+                individualStandings: players.map(function(n) { return { name:n, wins:0, losses:0, pointsFor:0, pointsAgainst:0, played:0 }; })
+            });
+        }
+
+        // Remainder players join last group (5-player group with more rotations) or show warning
+        if (remainder > 0) {
+            showNotification('Aviso', remainder + ' jogador(es) nao formam grupo de 4. Recomendamos ajustar para multiplos de 4.', 'warning');
+        }
+
+        t.groups = groups;
+        t.currentStage = 'groups';
+        t.status = 'active';
+        window.AppStore.logAction(tId, 'Sorteio Rei/Rainha realizado — ' + numGroups + ' grupos de 4');
+
+        if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
+            window.FirestoreDB.saveTournament(t).then(function() {
+                showNotification('Sorteio Realizado!', numGroups + ' grupos formados para Rei/Rainha da Praia.', 'success');
+                window.location.hash = '#bracket/' + tId;
+            });
+        } else {
+            window.AppStore.sync();
+            showNotification('Sorteio Realizado!', numGroups + ' grupos formados para Rei/Rainha da Praia.', 'success');
+            window.location.hash = '#bracket/' + tId;
+        }
+        return;
+    }
+
     // ── Fase de Grupos + Eliminatórias ──────────────────────────────
     if (t.format === 'Fase de Grupos + Eliminatórias') {
         let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
