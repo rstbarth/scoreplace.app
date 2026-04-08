@@ -309,8 +309,75 @@ function _advanceWinner(t, completedMatch) {
 
   _maybeGenerate3rdPlace(t);
 
+  // Progressive classification: assign final positions to eliminated players
+  _updateProgressiveClassification(t);
+
   // Auto-detect tournament completion for elimination formats
   _maybeFinishElimination(t);
+}
+
+// ─── Progressive classification for elimination formats ─────────────────────
+// Assigns finalPosition to eliminated players whose rank cannot change anymore.
+// In single elimination: losing in round R with N total rounds gives position
+// based on the round where they were eliminated.
+function _updateProgressiveClassification(t) {
+  if (!t.matches || t.matches.length === 0) return;
+  var fmt = t.format || '';
+  if (fmt.indexOf('Elim') === -1 && fmt.indexOf('Fase') === -1) return;
+
+  if (!t.classification) t.classification = {};
+
+  var allMatches = t.matches;
+  var roundNums = {};
+  allMatches.forEach(function(m) {
+    if (m.round !== undefined && m.bracket !== 'lower' && m.bracket !== 'grand') {
+      roundNums[m.round] = true;
+    }
+  });
+  var rounds = Object.keys(roundNums).map(Number).sort(function(a,b) { return a - b; });
+  var totalRounds = rounds.length;
+  if (totalRounds < 1) return;
+
+  // Position mapping: final round loser = 2nd, semifinal losers = 3rd-4th, etc.
+  // Round index from end: 0=final, 1=semi, 2=quarter, etc.
+  rounds.forEach(function(roundNum, idx) {
+    var roundFromEnd = totalRounds - 1 - idx;
+    var matchesInRound = allMatches.filter(function(m) {
+      return m.round === roundNum && m.bracket !== 'lower' && m.bracket !== 'grand';
+    });
+
+    matchesInRound.forEach(function(m) {
+      if (!m.winner || m.winner === 'draw' || m.isBye) return;
+      var loser = m.winner === m.p1 ? m.p2 : m.p1;
+      if (!loser || loser === 'TBD' || loser === 'BYE') return;
+      // Don't override if already classified (e.g. 3rd place match result)
+      if (t.classification[loser]) return;
+
+      if (roundFromEnd === 0) {
+        // Final: winner = 1st, loser = 2nd
+        t.classification[m.winner] = 1;
+        t.classification[loser] = 2;
+      } else if (roundFromEnd === 1) {
+        // Semi: losers get 3rd-4th (resolved by 3rd place match if enabled)
+        if (!t.elimThirdPlace) {
+          t.classification[loser] = 3; // tied 3rd without playoff
+        }
+        // If elimThirdPlace enabled, wait for that match result
+      } else {
+        // Earlier rounds: position = 2^(roundFromEnd) + 1 through 2^(roundFromEnd+1)
+        // e.g. quarterfinal losers = 5th-8th
+        var posStart = Math.pow(2, roundFromEnd) + 1;
+        t.classification[loser] = posStart;
+      }
+    });
+  });
+
+  // Handle 3rd place match result
+  if (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+    t.classification[t.thirdPlaceMatch.winner] = 3;
+    var tp_loser = t.thirdPlaceMatch.winner === t.thirdPlaceMatch.p1 ? t.thirdPlaceMatch.p2 : t.thirdPlaceMatch.p1;
+    if (tp_loser && tp_loser !== 'TBD') t.classification[tp_loser] = 4;
+  }
 }
 
 // ─── Auto-finish elimination tournament ──────────────────────────────────────
