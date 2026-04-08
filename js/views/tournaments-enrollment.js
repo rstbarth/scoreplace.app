@@ -346,9 +346,9 @@ window.addParticipantFunction = function (tId) {
             arr.push({ name: pName.trim(), displayName: pName.trim() });
             t.participants = arr;
 
-            if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+            window.FirestoreDB.saveTournament(t);
             if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
-                t.status = 'closed'; window.AppStore.sync();
+                t.status = 'closed'; window.FirestoreDB.saveTournament(t);
                 if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${window._safeHtml(t.name)}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
             }
             const container = document.getElementById('view-container');
@@ -381,9 +381,9 @@ window.addTeamFunction = function (tId) {
             if (!t.teamOrigins) t.teamOrigins = {};
             t.teamOrigins[teamString] = 'formada';
 
-            if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+            window.FirestoreDB.saveTournament(t);
             if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
-                t.status = 'closed'; window.AppStore.sync();
+                t.status = 'closed'; window.FirestoreDB.saveTournament(t);
                 if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${window._safeHtml(t.name)}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
             }
             const container = document.getElementById('view-container');
