@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.7.2-alpha';
+window.SCOREPLACE_VERSION = '0.7.3-alpha';
 
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.
@@ -765,6 +765,30 @@ window._deleteTemplate = function(index) {
 window._applyTemplate = function(index) {
   var templates = window._getTemplates();
   return (index >= 0 && index < templates.length) ? templates[index] : null;
+};
+
+// ─── Crown helper: adds crown SVG next to organizer names ──────────────────
+window._CROWN_MINI = '<svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.85)" style="flex-shrink:0;vertical-align:middle;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
+
+window._isOrgName = function(name, tournament) {
+  if (!name || !tournament) return false;
+  var orgName = tournament.organizerName || '';
+  var orgEmail = tournament.organizerEmail || '';
+  if (name === orgName || name === orgEmail) return true;
+  if (Array.isArray(tournament.coHosts)) {
+    return tournament.coHosts.some(function(ch) {
+      return ch.status === 'active' && (ch.displayName === name || ch.email === name);
+    });
+  }
+  return false;
+};
+
+window._nameWithCrown = function(name, tournament) {
+  var safe = window._safeHtml(name);
+  if (window._isOrgName(name, tournament)) {
+    return safe + ' ' + window._CROWN_MINI;
+  }
+  return safe;
 };
 
 // Global Helper para controle do botão ViewMode na Topbar
