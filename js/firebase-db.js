@@ -180,10 +180,11 @@ window.FirestoreDB = {
     if (!this.db || !fromUid || !toUid) return;
     try {
       // Check if the other person already sent us a request — if so, auto-accept (mutual)
-      var toDoc = await this.db.collection('users').doc(toUid).get();
-      var toData = toDoc.exists ? toDoc.data() : {};
-      var receivedList = toData.friendRequestsReceived || [];
-      if (receivedList.indexOf(fromUid) !== -1) {
+      // We check OUR (fromUid) received list to see if toUid already sent us a request
+      var fromDoc = await this.db.collection('users').doc(fromUid).get();
+      var fromDocData = fromDoc.exists ? fromDoc.data() : {};
+      var receivedList = fromDocData.friendRequestsReceived || [];
+      if (receivedList.indexOf(toUid) !== -1) {
         // Mutual request! Auto-accept both directions
         await this.acceptFriendRequest(fromUid, toUid);
         // Notify both
