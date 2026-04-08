@@ -2964,7 +2964,7 @@ window._gsmSaveConfig = function() {
     try {
       var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
       prefs[sport] = {
-        type: type,
+        type: document.getElementById('gsm-type') ? document.getElementById('gsm-type').value : 'sets',
         setsToWin: document.getElementById('gsm-setsToWin').value,
         gamesPerSet: document.getElementById('gsm-gamesPerSet').value,
         tiebreakEnabled: document.getElementById('gsm-tiebreakEnabled').value,
