@@ -840,7 +840,6 @@ function renderTournaments(container, tournamentId = null) {
               </h4>
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
-            <span style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-bottom:4px;"><img src="${(window._playerPhotoCache && window._playerPhotoCache[(t.organizerName || '').toLowerCase()] && window._playerPhotoCache[(t.organizerName || '').toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[(t.organizerName || '').toLowerCase()] : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(t.organizerName || t.organizerEmail || '') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf'}" onerror="this.onerror=null;this.src='https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(t.organizerName || t.organizerEmail || '')}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf'" data-player-name="${window._safeHtml(t.organizerName || '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;" />${window._safeHtml(t.organizerName || t.organizerEmail || '')} <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></span>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
@@ -1209,14 +1208,13 @@ function renderTournaments(container, tournamentId = null) {
                     const _ciSafeName = ind.name.replace(/'/g, "\\'");
                     const _ciSafeNameHtml = window._safeHtml(_ciSafeName);
                     const _ciIsOrg = typeof window._isOrgName === 'function' && window._isOrgName(ind.name, t);
-                    const _ciCrown = _ciIsOrg ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(251,191,36,0.85)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : '';
+                    const _ciCrownInline = _ciIsOrg ? ' <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)" style="flex-shrink:0;vertical-align:middle;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : '';
                     return `
-                      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;position:relative;background:${mc ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${mc ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'};${isVipCI ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;cursor:pointer;" onclick="window._toggleCheckIn('${t.id}', '${_ciSafeName}')">
-                          ${_ciIsOrg ? '<div style="position:absolute;right:8px;bottom:6px;z-index:2;pointer-events:none;">' + _ciCrown + '</div>' : ''}
+                      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${mc ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${mc ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'};${isVipCI ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;cursor:pointer;" onclick="window._toggleCheckIn('${t.id}', '${_ciSafeName}')">
                           <input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${t.id}', '${_ciSafeName}');" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;flex-shrink:0;" />
                           <img src="${_ciAvatar}" onerror="this.onerror=null;this.src='${_ciFallback}'" data-player-name="${ind.name}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'};" />
                           <div style="flex:1;overflow:hidden;">
-                              <div style="font-weight:600;font-size:0.92rem;color:${mc ? '#4ade80' : 'var(--text-bright)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${mc ? 'text-decoration:line-through;text-decoration-color:rgba(74,222,128,0.3);' : ''}">${window._safeHtml(ind.name)}${vipTagCI}</div>
+                              <div style="font-weight:600;font-size:0.92rem;color:${mc ? '#4ade80' : 'var(--text-bright)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${mc ? 'text-decoration:line-through;text-decoration-color:rgba(74,222,128,0.3);' : ''}">${window._safeHtml(ind.name)}${_ciCrownInline}${vipTagCI}</div>
                               ${teamLabel ? `<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.5;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window._safeHtml(teamLabel)}</div>` : ''}
                           </div>
                           <div style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:8px;${mc ? 'background:rgba(16,185,129,0.15);color:#4ade80;' : 'background:rgba(100,116,139,0.15);color:#94a3b8;'}">${mc ? 'Presente' : 'Ausente'}</div>
@@ -1268,10 +1266,10 @@ function renderTournaments(container, tournamentId = null) {
                         pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhoto}" onerror="this.onerror=null;this.src='${_pFallback}'" data-player-name="${window._safeHtml(pName)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;" title="${window._safeHtml(pName)}">${window._safeHtml(pName)}</span></div>`;
                     }
 
-                    // Crown badge for organizer participants — positioned bottom-right of card
+                    // Crown badge inline to the right of organizer name
                     var _pEmail = typeof p === 'object' ? (p.email || '') : '';
                     var _isOrgParticipant = !!_orgEmails[_pEmail];
-                    var _crownCorner = _isOrgParticipant ? '<div style="position:absolute;right:8px;bottom:6px;z-index:2;pointer-events:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.85)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : '';
+                    if (_isOrgParticipant) pNameHtml += ' <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)" style="flex-shrink:0;vertical-align:middle;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
 
                     const vipBadge = isVip ? '<span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.6rem;font-weight:900;padding:1px 6px;border-radius:4px;letter-spacing:0.5px;margin-left:4px;">⭐ VIP</span>' : '';
                     // Label de tipo: origem da equipe
@@ -1332,7 +1330,6 @@ function renderTournaments(container, tournamentId = null) {
 
                     return `
                       <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                          ${_crownCorner}
                           <div style="position:absolute;right:8px;top:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
                           <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
                               <div style="display:flex;align-items:center;gap:12px;">
