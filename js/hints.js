@@ -66,7 +66,7 @@
 
     // ── Create Tournament ──
     { id: 'ct-sport', selector: '#select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação e regras próprias.', context: 'create-tournament', priority: 8, position: 'bottom' },
-    { id: 'ct-format', selector: '#select-formato', text: 'Eliminatória (mata-mata), Liga (todos contra todos), Suíço (pareamento por pontos), Grupos + Eliminatórias...', context: 'create-tournament', priority: 8, position: 'bottom' },
+    { id: 'ct-format', selector: '#select-formato', text: 'Eliminatória Simples, Dupla Eliminatória, Liga (todos contra todos), Suíço (pareamento por pontos), Grupos + Eliminatória...', context: 'create-tournament', priority: 8, position: 'bottom' },
     { id: 'ct-venue', selector: '#tourn-venue', text: 'Informe o local! A busca mostra endereços reais e até previsão do tempo para o dia do evento.', context: 'create-tournament', priority: 6, position: 'bottom' },
     { id: 'ct-categories', selector: '#btn-cat-fem', text: 'Ative categorias para separar chaveamentos por gênero e/ou nível de habilidade.', context: 'create-tournament', priority: 5, position: 'bottom' },
     { id: 'ct-gsm', selector: '#btn-gsm-config', text: 'Configure sets, games e tiebreaks! Ideal para tênis, beach tennis, padel e vôlei.', context: 'create-tournament', priority: 7, position: 'bottom' },
