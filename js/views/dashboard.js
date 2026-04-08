@@ -328,11 +328,9 @@ function renderDashboard(container) {
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
     return `
         <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: 1px solid ${_isLight ? 'rgba(0,0,0,0.08)' : 'transparent'}; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,${_isLight ? '0.06' : '0.1'}); cursor: pointer; transition: transform 0.2s;" onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
-          ${(isParticipating && isOrg) ? `
-             <div style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; overflow: hidden; display: flex; align-items: flex-end; justify-content: flex-end;" title="Você é o Organizador e também está Inscrito">
-               <svg viewBox="0 0 36 36" width="36" height="36" style="display: block;">
-                 <path d="M0 36 L36 0 L36 36 Z" fill="rgba(251, 191, 36, 0.95)" />
-               </svg>
+          ${isOrg ? `
+             <div style="position: absolute; bottom: 6px; right: 8px; opacity: 0.85; pointer-events: none;" title="Organizador">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
              </div>
           ` : ''}
           <div class="card-body p-4">
