@@ -1513,7 +1513,7 @@ function _populatePlayerStats() {
       var safeName = window._safeHtml ? window._safeHtml(h.name) : h.name;
 
       var escapedId = String(h.id).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-      html += '<div onclick="window.location.hash=\'#tournament/' + escapedId + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
+      html += '<div onclick="window.location.hash=\'#tournaments/' + escapedId + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
         'style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:background 0.15s;" ' +
         'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
         '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +
