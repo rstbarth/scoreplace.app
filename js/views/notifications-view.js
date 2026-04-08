@@ -71,6 +71,21 @@ function renderNotifications(container) {
       } else if (n.type === 'org_communication') {
         icon = '📣';
         accentColor = '#f59e0b';
+      } else if (n.type === 'host_transfer_invite' || n.type === 'cohost_invite') {
+        icon = '👑';
+        accentColor = '#fbbf24';
+      } else if (n.type === 'host_transfer_sent' || n.type === 'cohost_invite_sent') {
+        icon = '📨';
+        accentColor = '#fbbf24';
+      } else if (n.type === 'host_invite_accepted') {
+        icon = '✅';
+        accentColor = 'var(--success-color)';
+      } else if (n.type === 'host_invite_rejected') {
+        icon = '❌';
+        accentColor = 'var(--danger-color)';
+      } else if (n.type === 'cohost_removed') {
+        icon = '🚫';
+        accentColor = 'var(--danger-color)';
       }
 
       var timeAgo = _timeAgo(n.createdAt);
@@ -80,7 +95,18 @@ function renderNotifications(container) {
       var safeFromUid = (n.fromUid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       var safeNotifId = (n._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       var safeTournamentId = (n.tournamentId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      if (n.type === 'friend_request' && isUnread) {
+      if ((n.type === 'host_transfer_invite' || n.type === 'cohost_invite') && isUnread) {
+        var _invType = n.type === 'host_transfer_invite' ? 'transfer' : 'cohost';
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
+          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window._acceptHostInvite(\'' + safeTournamentId + '\',\'' + _invType + '\'); _markNotifRead(\'' + safeNotifId + '\')">Aceitar</button>' +
+          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); window._rejectHostInvite(\'' + safeTournamentId + '\',\'' + _invType + '\'); _markNotifRead(\'' + safeNotifId + '\')">Recusar</button>' +
+        '</div>';
+      } else if ((n.type === 'host_transfer_sent' || n.type === 'cohost_invite_sent') && isUnread) {
+        var _cancelType = n.inviteType || 'cohost';
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
+          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); window._cancelHostInvite(\'' + safeTournamentId + '\',\'' + _cancelType + '\'); _markNotifRead(\'' + safeNotifId + '\')">Cancelar Convite</button>' +
+        '</div>';
+      } else if (n.type === 'friend_request' && isUnread) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
           '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); _acceptFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">Aceitar</button>' +
           '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); _rejectFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">Recusar</button>' +
