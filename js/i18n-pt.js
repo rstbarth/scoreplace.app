@@ -75,7 +75,7 @@ window._translations['pt'] = {
   // Formats
   'format.single': 'Eliminatorias Simples',
   'format.double': 'Dupla Eliminatoria',
-  'format.groups': 'Grupos + Mata-Mata',
+  'format.groups': 'Grupos + Eliminatória',
   'format.swiss': 'Suico',
   'format.league': 'Liga',
 
