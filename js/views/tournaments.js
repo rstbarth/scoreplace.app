@@ -1160,6 +1160,11 @@ function renderTournaments(container, tournamentId = null) {
             // Current filter state
             const currentFilter = window._checkInFilter || 'all';
 
+            // Build organizer emails set (shared by check-in and normal modes)
+            var _orgEmailsShared = {};
+            _orgEmailsShared[t.organizerEmail] = true;
+            if (Array.isArray(t.coHosts)) t.coHosts.forEach(function(ch) { if (ch.status === 'active') _orgEmailsShared[ch.email] = true; });
+
             // ── Check-in mode: show each individual with checkbox ──
             let cardsStr = '';
             if (canCheckIn) {
@@ -1203,8 +1208,11 @@ function renderTournaments(container, tournamentId = null) {
 
                     const _ciSafeName = ind.name.replace(/'/g, "\\'");
                     const _ciSafeNameHtml = window._safeHtml(_ciSafeName);
+                    const _ciIsOrg = typeof window._isOrgName === 'function' && window._isOrgName(ind.name, t);
+                    const _ciCrown = _ciIsOrg ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(251,191,36,0.85)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : '';
                     return `
-                      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${mc ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${mc ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'};${isVipCI ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;cursor:pointer;" onclick="window._toggleCheckIn('${t.id}', '${_ciSafeName}')">
+                      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;position:relative;background:${mc ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${mc ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'};${isVipCI ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;cursor:pointer;" onclick="window._toggleCheckIn('${t.id}', '${_ciSafeName}')">
+                          ${_ciIsOrg ? '<div style="position:absolute;right:8px;bottom:6px;z-index:2;pointer-events:none;">' + _ciCrown + '</div>' : ''}
                           <input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${t.id}', '${_ciSafeName}');" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;flex-shrink:0;" />
                           <img src="${_ciAvatar}" onerror="this.onerror=null;this.src='${_ciFallback}'" data-player-name="${ind.name}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'};" />
                           <div style="flex:1;overflow:hidden;">
@@ -1217,10 +1225,8 @@ function renderTournaments(container, tournamentId = null) {
             } else {
                 // ── Normal mode: show teams/individuals with drag, split, delete, VIP ──
                 const _vipMap = t.vips || {};
-                // Build set of organizer emails for badge and sorting
-                var _orgEmails = {};
-                _orgEmails[t.organizerEmail] = true;
-                if (Array.isArray(t.coHosts)) t.coHosts.forEach(function(ch) { if (ch.status === 'active') _orgEmails[ch.email] = true; });
+                // Use shared organizer emails set
+                var _orgEmails = _orgEmailsShared;
 
                 // Sort: organizer participants first, then others
                 var _sortedParts = parts.slice().sort(function(a, b) {
@@ -1262,11 +1268,10 @@ function renderTournaments(container, tournamentId = null) {
                         pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhoto}" onerror="this.onerror=null;this.src='${_pFallback}'" data-player-name="${window._safeHtml(pName)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;" title="${window._safeHtml(pName)}">${window._safeHtml(pName)}</span></div>`;
                     }
 
-                    // Crown badge for organizer participants
+                    // Crown badge for organizer participants — positioned bottom-right of card
                     var _pEmail = typeof p === 'object' ? (p.email || '') : '';
                     var _isOrgParticipant = !!_orgEmails[_pEmail];
-                    var _crownBadge = _isOrgParticipant ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)" style="flex-shrink:0;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : '';
-                    if (_isOrgParticipant) pNameHtml += _crownBadge;
+                    var _crownCorner = _isOrgParticipant ? '<div style="position:absolute;right:8px;bottom:6px;z-index:2;pointer-events:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.85)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : '';
 
                     const vipBadge = isVip ? '<span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.6rem;font-weight:900;padding:1px 6px;border-radius:4px;letter-spacing:0.5px;margin-left:4px;">⭐ VIP</span>' : '';
                     // Label de tipo: origem da equipe
@@ -1327,6 +1332,7 @@ function renderTournaments(container, tournamentId = null) {
 
                     return `
                       <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${!drawDone && isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                          ${_crownCorner}
                           <div style="position:absolute;right:8px;top:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
                           <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
                               <div style="display:flex;align-items:center;gap:12px;">
