@@ -302,7 +302,7 @@ window.generateDrawFunction = function (tId) {
                 window.location.hash = '#bracket/' + tId;
             });
         } else {
-            window.AppStore.sync();
+            window.FirestoreDB.saveTournament(t);
             showNotification('Sorteio Realizado!', numGroups + ' grupos formados para Rei/Rainha da Praia.', 'success');
             window.location.hash = '#bracket/' + tId;
         }
@@ -1052,7 +1052,7 @@ window.handleDropTeam = function (e, targetIdx) {
                 if (!t.teamOrigins) t.teamOrigins = {};
                 t.teamOrigins[newName] = 'formada';
 
-                if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+                window.FirestoreDB.saveTournament(t);
 
                 const container = document.getElementById('view-container');
                 if (container) {
