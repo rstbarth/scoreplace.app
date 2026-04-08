@@ -78,6 +78,7 @@ window._translations['en'] = {
   'format.groups': 'Groups + Knockout',
   'format.swiss': 'Swiss',
   'format.league': 'League',
+  'format.monarch': 'King/Queen of the Beach',
 
   // Landing page
   'landing.tagline': 'Manage sports tournaments simply and professionally.',
