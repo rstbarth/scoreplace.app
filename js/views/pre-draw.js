@@ -275,7 +275,7 @@ function renderPreDraw(container, tournamentId) {
     if (!t) return;
     t.format = newFormat;
     window.AppStore.logAction(tId, `Formato alterado na Janela Pré-Sorteio para: ${newFormat}`);
-    window.AppStore.sync();
+    window.FirestoreDB.saveTournament(t);
     showNotification('Formato Alterado', `O formato foi alterado para ${newFormat}.`, 'info');
     // Re-render to update info panel
     renderPreDraw(container, tId);
@@ -305,7 +305,7 @@ function renderPreDraw(container, tournamentId) {
       t.categories = pd.cats.filter(c => c !== 'Standby');
     }
     window.AppStore.logAction(tId, `Janela Pré-Sorteio confirmada: ${newParticipants.length} participante(s) nas chaves`);
-    window.AppStore.sync();
+    window.FirestoreDB.saveTournament(t);
 
     window.showIncompleteTeamsPanel(tId);
   };
