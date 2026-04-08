@@ -922,6 +922,14 @@ async function _preloadPlayerPhotos(tournament) {
     }
   });
 
+  // Also add organizer name so their photo is cached for org cards
+  if (tournament.organizerName) names.add(tournament.organizerName);
+  if (Array.isArray(tournament.coHosts)) {
+    tournament.coHosts.forEach(function(ch) {
+      if (ch.status === 'active' && ch.displayName) names.add(ch.displayName);
+    });
+  }
+
   // Query Firestore for each unique name to get their photoURL
   var promises = [];
   names.forEach(function(name) {
