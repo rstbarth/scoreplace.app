@@ -169,7 +169,10 @@ window._checkTournamentReminders = async function() {
         var parts = Array.isArray(t.participants) ? t.participants : [];
         var enrolled = parts.some(function(p) {
             var str = typeof p === 'string' ? p : (p.email || p.displayName || '');
-            return str && cu.email && str.indexOf(cu.email) !== -1;
+            var pEmail = typeof p === 'object' ? (p.email || '') : str;
+            var pUid = typeof p === 'object' ? (p.uid || '') : '';
+            var pName = typeof p === 'object' ? (p.displayName || p.name || '') : str;
+            return (cu.email && pEmail === cu.email) || (cu.uid && pUid === cu.uid) || (cu.displayName && pName === cu.displayName);
         });
         if (!enrolled) continue;
 
@@ -247,7 +250,10 @@ window._checkNearbyTournaments = async function() {
             var parts = Array.isArray(t.participants) ? t.participants : [];
             var enrolled = parts.some(function(p) {
                 var str = typeof p === 'string' ? p : (p.email || '');
-                return str && cu.email && str.indexOf(cu.email) !== -1;
+                var pEmail = typeof p === 'object' ? (p.email || '') : str;
+                var pUid = typeof p === 'object' ? (p.uid || '') : '';
+                var pName = typeof p === 'object' ? (p.displayName || p.name || '') : str;
+                return (cu.email && pEmail === cu.email) || (cu.uid && pUid === cu.uid) || (cu.displayName && pName === cu.displayName);
             });
             if (enrolled) continue;
 
