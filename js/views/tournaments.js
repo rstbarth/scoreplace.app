@@ -840,7 +840,7 @@ function renderTournaments(container, tournamentId = null) {
               </h4>
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
             </div>
-            <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-bottom:4px;">${window._safeHtml(t.organizerName || t.organizerEmail || '')} <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-bottom:4px;"><img src="${(window._playerPhotoCache && window._playerPhotoCache[(t.organizerName || '').toLowerCase()] && window._playerPhotoCache[(t.organizerName || '').toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[(t.organizerName || '').toLowerCase()] : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(t.organizerName || t.organizerEmail || '') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf'}" onerror="this.onerror=null;this.src='https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(t.organizerName || t.organizerEmail || '')}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf'" data-player-name="${window._safeHtml(t.organizerName || '')}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;" />${window._safeHtml(t.organizerName || t.organizerEmail || '')} <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.8)" style="flex-shrink:0;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></span>
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
@@ -1050,9 +1050,13 @@ function renderTournaments(container, tournamentId = null) {
         _parts.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
 
         var _orgCards = '';
-        // Helper: build organizer card with crown next to name
+        // Helper: build organizer card with avatar + crown next to name
         function _buildOrgCard(name, role, bgStyle, canRemove, removeEmail) {
+          var _oSeed = encodeURIComponent(name);
+          var _oFallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _oSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+          var _oPhoto = (window._playerPhotoCache && window._playerPhotoCache[(name || '').toLowerCase()] && window._playerPhotoCache[(name || '').toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[(name || '').toLowerCase()] : _oFallback;
           return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;' + bgStyle + 'border-radius:10px;min-width:160px;">' +
+            '<img src="' + _oPhoto + '" onerror="this.onerror=null;this.src=\'' + _oFallback + '\'" data-player-name="' + window._safeHtml(name) + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(99,102,241,0.3);" />' +
             '<div style="flex:1;min-width:0;">' +
               '<div style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:0.82rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(name) + ' ' + _crownSvg + '</div>' +
               '<div style="font-size:0.65rem;color:var(--text-muted);">' + role + '</div>' +
