@@ -259,7 +259,7 @@ window.generateDrawFunction = function (tId) {
         }
 
         if (participants.length < 4) {
-            showAlertDialog('Mínimo 4 Participantes', 'O formato Rei/Rainha da Praia precisa de pelo menos 4 participantes.', null, { type: 'warning' });
+            showAlertDialog(_t('monarch.minParticipantsTitle'), _t('monarch.minParticipants'), null, { type: 'warning' });
             return;
         }
 
@@ -272,7 +272,7 @@ window.generateDrawFunction = function (tId) {
             const players = [getName(participants[g*4]), getName(participants[g*4+1]), getName(participants[g*4+2]), getName(participants[g*4+3])];
             const [A, B, C, D] = players;
             groups.push({
-                name: 'Grupo ' + String.fromCharCode(65 + g),
+                name: _t('label.group') + ' ' + String.fromCharCode(65 + g),
                 players: players,
                 rounds: [{
                     round: 1, status: 'active',
@@ -294,16 +294,16 @@ window.generateDrawFunction = function (tId) {
         t.groups = groups;
         t.currentStage = 'groups';
         t.status = 'active';
-        window.AppStore.logAction(tId, 'Sorteio Rei/Rainha realizado — ' + numGroups + ' grupos de 4');
+        window.AppStore.logAction(tId, _t('monarch.drawDone') + ' — ' + numGroups + ' grupos de 4');
 
         if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
             window.FirestoreDB.saveTournament(t).then(function() {
-                showNotification('Sorteio Realizado!', numGroups + ' grupos formados para Rei/Rainha da Praia.', 'success');
+                showNotification(_t('monarch.drawDone'), _t('monarch.groupsFormed', {count: numGroups}), 'success');
                 window.location.hash = '#bracket/' + tId;
             });
         } else {
             window.FirestoreDB.saveTournament(t);
-            showNotification('Sorteio Realizado!', numGroups + ' grupos formados para Rei/Rainha da Praia.', 'success');
+            showNotification(_t('monarch.drawDone'), _t('monarch.groupsFormed', {count: numGroups}), 'success');
             window.location.hash = '#bracket/' + tId;
         }
         return;
@@ -325,7 +325,7 @@ window.generateDrawFunction = function (tId) {
 
         // Distribute participants into groups (snake draft)
         const groups = Array.from({ length: numGroups }, (_, i) => ({
-            name: `Grupo ${String.fromCharCode(65 + i)}`,
+            name: `${_t('label.group')} ${String.fromCharCode(65 + i)}`,
             participants: [],
             standings: [],
             rounds: []

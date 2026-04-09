@@ -121,17 +121,17 @@ function setupCreateTournamentModal() {
 
               <!-- Rei/Rainha da Praia (logo abaixo do formato, visível só quando rei_rainha selecionado) -->
               <div id="rei-rainha-fields" style="display:none; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">👑 Rei/Rainha da Praia</p>
-                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">Grupos de 4 jogadores com 3 partidas e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual.</div>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">👑 ${_t('format.monarch')}</p>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">${_t('format.monarchDesc')}</div>
                 <div style="margin-bottom:0.75rem;">
-                  <label class="form-label" style="font-size:0.75rem;margin-bottom:6px;">Classificados por grupo</label>
+                  <label class="form-label" style="font-size:0.75rem;margin-bottom:6px;">${_t('label.classifiedPerGroup')}</label>
                   <div style="display:flex;gap:8px;" id="monarch-classified-buttons">
-                    <button type="button" class="monarch-cls-btn monarch-cls-active" data-value="1" onclick="window._selectMonarchClassified(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;text-align:center;">1 (Rei/Rainha)</button>
+                    <button type="button" class="monarch-cls-btn monarch-cls-active" data-value="1" onclick="window._selectMonarchClassified(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;text-align:center;">${_t('monarch.classified1')}</button>
                     <button type="button" class="monarch-cls-btn" data-value="2" onclick="window._selectMonarchClassified(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">2 (Rei + Vice)</button>
                   </div>
                   <input type="hidden" id="monarch-classified" value="1">
                 </div>
-                <div style="font-size:0.75rem;color:#4ade80;font-weight:600;margin-top:4px;">✓ Os classificados avançam automaticamente para eliminatória até coroar o Rei/Rainha.</div>
+                <div style="font-size:0.75rem;color:#4ade80;font-weight:600;margin-top:4px;">✓ ${_t('monarch.advanceHelp')}</div>
               </div>
 
               <!-- Campos específicos: Fase de Grupos -->
@@ -214,8 +214,8 @@ function setupCreateTournamentModal() {
                 <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
                   <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Formato de Rodada</p>
                   <div style="display:flex;gap:8px;margin-bottom:0.75rem;" id="liga-round-format-buttons">
-                    <button type="button" class="liga-rf-btn liga-rf-active" data-value="standard" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;">Padrão</button>
-                    <button type="button" class="liga-rf-btn" data-value="rei_rainha" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">👑 Rei/Rainha</button>
+                    <button type="button" class="liga-rf-btn liga-rf-active" data-value="standard" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;">${_t('liga.formatStandard')}</button>
+                    <button type="button" class="liga-rf-btn" data-value="rei_rainha" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">👑 ${_t('liga.formatMonarch')}</button>
                   </div>
                   <input type="hidden" id="liga-round-format" value="standard">
                   <div id="liga-rf-desc" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Pareamento suíço: jogadores com pontuação similar se enfrentam.</div>

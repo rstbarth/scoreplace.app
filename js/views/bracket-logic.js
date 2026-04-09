@@ -621,7 +621,7 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
   for (var gi = 0; gi < numGroups; gi++) {
     var gPlayers = players.slice(gi * 4, gi * 4 + 4);
     var A = gPlayers[0], B = gPlayers[1], C = gPlayers[2], D = gPlayers[3];
-    var groupName = 'R' + roundNum + ' Grupo ' + String.fromCharCode(65 + gi);
+    var groupName = 'R' + roundNum + ' ' + (typeof _t === 'function' ? _t('label.group') : 'Grupo') + ' ' + String.fromCharCode(65 + gi);
 
     // 3 matches with rotating partners: AB vs CD, AC vs BD, AD vs BC
     var pairings = [

@@ -67,12 +67,12 @@ function renderBracket(container, tournamentId, isInline) {
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
-        <h2 style="margin:0;">${isLiga || isSuico ? 'Classificação — ' : isGrupos ? 'Fase de Grupos — ' : t.format === 'Rei/Rainha da Praia' ? '👑 Rei/Rainha — ' : 'Chaves — '}${window._safeHtml(t.name)}</h2>
+        <h2 style="margin:0;">${isLiga || isSuico ? _t('bracket.title.standings') + ' — ' : isGrupos ? _t('bracket.title.groups') + ' — ' : t.format === 'Rei/Rainha da Praia' ? '👑 ' + _t('bracket.title.monarch') + ' — ' : _t('bracket.title.bracket') + ' — '}${window._safeHtml(t.name)}</h2>
         <div class="d-flex gap-2 mt-1">
           ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
-          ${isGrupos && t.currentStage === 'groups' ? `<span class="badge badge-warning">Fase de Grupos</span>` : ''}
-          ${isGrupos && t.currentStage === 'elimination' ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Fase Eliminatória</span>` : ''}
+          ${isGrupos && t.currentStage === 'groups' ? `<span class="badge badge-warning">${_t('stage.groups')}</span>` : ''}
+          ${isGrupos && t.currentStage === 'elimination' ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">${_t('stage.elimination')}</span>` : ''}
         </div>
       </div>
       <div>${actionBtnsHtml}</div>
@@ -1214,8 +1214,8 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
   // Auto-advance to elimination when all groups are done
   if (allGroupsDone) {
     html += '<div style="text-align:center;margin-top:1.5rem;padding:1rem;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;">' +
-      '<div style="font-size:1.2rem;font-weight:700;color:#fbbf24;">👑 Fase de grupos concluída!</div>' +
-      '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Avançando classificados para eliminatória...</div>' +
+      '<div style="font-size:1.2rem;font-weight:700;color:#fbbf24;">👑 ' + _t('monarch.groupsComplete') + '</div>' +
+      '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">' + _t('monarch.advancingQualified') + '</div>' +
     '</div>';
     // Trigger auto-advance after render
     setTimeout(function() {
