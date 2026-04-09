@@ -947,6 +947,7 @@ function renderTournaments(container, tournamentId = null) {
                <!-- Formato, Regras e Categorias -->
                <div class="info-box">
                   <div><strong>Formato:</strong> ${t.format}</div>
+                  <div><strong>Inscrição:</strong> ${enrollmentText}</div>
                   <div><strong>Acesso:</strong> ${publicText}</div>
                   ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? (() => {
                     const _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
