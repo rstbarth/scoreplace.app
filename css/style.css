@@ -184,6 +184,7 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
   min-height: 100vh;
 }
 

@@ -112,7 +112,6 @@
 .view-container {
   flex: 1;
   min-width: 0;
-  overflow-x: clip;
   padding: 2rem;
   animation: fadeIn 0.3s ease;
 }
@@ -165,4 +164,4 @@
   }
 }
 
-/* overflow-x:hidden removed — breaks position:sticky on topbar */
+/* overflow-x moved from .view-container to body — clip on ancestor breaks position:sticky */
