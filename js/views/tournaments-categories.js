@@ -489,13 +489,26 @@ window._buildTimeEstimation = function(t) {
   // Potências de 2 para simulação
   var powersOf2 = [8, 16, 32, 64];
 
-  // Inscritos reais
+  // Inscritos reais (contar pessoas individuais, não times)
   var parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-  var realCount = parts.length;
+  var unitCount = parts.length; // unidades competitivas (times ou individuais) para cálculo do bracket
+  var realCount = 0;
+  parts.forEach(function(p) {
+    if (typeof p === 'object' && p !== null && Array.isArray(p.participants)) {
+      realCount += p.participants.length;
+    } else {
+      var pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+      if (pStr.includes('/')) {
+        realCount += pStr.split('/').filter(function(n) { return n.trim().length > 0; }).length;
+      } else {
+        realCount++;
+      }
+    }
+  });
 
   // Verificar se formato é Liga com muitos jogadores (seria longo demais)
   var isLiga = window._isLigaFormat && window._isLigaFormat(t);
-  if (isLiga && realCount > 20) {
+  if (isLiga && unitCount > 20) {
     // Liga com muitos jogadores: muitas rodadas, estimativa perde sentido prático
     // Só mostra nota informativa
   }
@@ -511,7 +524,7 @@ window._buildTimeEstimation = function(t) {
     var endTime = fmtEndTime(t.startDate, dur);
     rows.push({
       n: n,
-      label: n + ' participantes',
+      label: n + ' inscritos',
       duration: fmtDur(dur),
       endTime: endTime,
       matches: calcMatches(n, format),
@@ -520,15 +533,15 @@ window._buildTimeEstimation = function(t) {
   });
 
   // Linha com inscritos reais (se houver 2+)
-  if (realCount >= 2) {
-    var durReal = estimateDuration(realCount, format);
+  if (unitCount >= 2) {
+    var durReal = estimateDuration(unitCount, format);
     var endTimeReal = fmtEndTime(t.startDate, durReal);
     rows.push({
       n: realCount,
       label: realCount + ' inscritos',
       duration: fmtDur(durReal),
       endTime: endTimeReal,
-      matches: calcMatches(realCount, format),
+      matches: calcMatches(unitCount, format),
       highlight: true
     });
   }
