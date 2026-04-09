@@ -1074,7 +1074,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      ${showInputs && !useSets
+      ${showInputs
         ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1085,7 +1085,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      ${showInputs && !useSets
+      ${showInputs
         ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1108,17 +1108,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     ? `<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;">BYE — Avança Direto</div>`
     : '';
 
-  const confirmBtn = showInputs ? (useSets
-    ? `<button onclick="window._openSetScoring('${_esc(tId)}','${_esc(m.id)}')"
-        style="width:100%;margin-top:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#c084fc;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
-        onmouseover="this.style.background='rgba(168,85,247,0.3)'" onmouseout="this.style.background='rgba(168,85,247,0.15)'">
-        🎾 Lançar Sets
-      </button>`
-    : `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
+  const confirmBtn = showInputs
+    ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="width:100%;margin-top:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">
         ✓ Confirmar Resultado
-      </button>`)
+      </button>`
     : '';
 
   const editBtn = isDecided && !isByeMatch && canEnterResult
