@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.7.6-alpha';
+window.SCOREPLACE_VERSION = '0.7.7-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -14,14 +14,20 @@ window._formatCountdown = function(diff) {
   return s + 's';
 };
 setInterval(function() {
-  var els = document.querySelectorAll('[data-countdown-target]');
-  if (!els.length) return;
   var now = Date.now();
+  var els = document.querySelectorAll('[data-countdown-target]');
   els.forEach(function(el) {
     var target = parseInt(el.getAttribute('data-countdown-target'));
     if (isNaN(target)) return;
     var diff = target - now;
     el.textContent = diff > 0 ? window._formatCountdown(diff) : 'Agora!';
+  });
+  var els2 = document.querySelectorAll('[data-elapsed-since]');
+  els2.forEach(function(el) {
+    var since = parseInt(el.getAttribute('data-elapsed-since'));
+    if (isNaN(since)) return;
+    var diff = now - since;
+    el.textContent = diff > 0 ? window._formatCountdown(diff) : '0s';
   });
 }, 1000);
 
