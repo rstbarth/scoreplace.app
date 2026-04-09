@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.8.1-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.8.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,22 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.8.3-alpha (Abril 2026)**
+- Formulario de criacao reestruturado: formato do torneio separado em dois grupos de botoes excludentes.
+  - Grupo 1 "Formato" (azul): Eliminatorias, Dupla Eliminatoria, Grupos + Elim., Suico, Liga.
+  - Grupo 2 "Modo de Sorteio" (verde): Sorteio, Rei/Rainha. Rei/Rainha auto-escondido quando Grupos + Elim. selecionado.
+  - Modo de Sorteio sincroniza com toggle interno de formato de rodada da Liga.
+- Modo de Inscricao visivel: botoes Individual, Apenas Times, Misto (roxo) com descricao dinamica. Antes o "Individual" estava oculto no select hidden.
+- Novo campo `t.drawMode` ('sorteio' ou 'rei_rainha') salvo no Firestore para extensibilidade futura.
+- Funcoes: `_selectDrawMode(btn)`, `_selectEnrollMode(btn)`.
+- i18n: 17 novas chaves (create.drawMode, create.descElim*, create.enrollMode*, create.gameType, etc.) em pt e en.
+- Correcao: template restore para enrollment mode usava seletor `#enrollment-mode` inexistente, corrigido para `#select-inscricao`.
+
+**v0.8.2-alpha (Abril 2026)**
+- i18n abrangente: ~120 strings hardcoded em portugues conectadas ao sistema `_t()` em 8 arquivos JS (dashboard.js, tournaments.js, bracket.js, bracket-ui.js, participants.js, main.js, create-tournament.js, landing.js).
+- ~170 novas chaves de traducao adicionadas a i18n-pt.js e i18n-en.js cobrindo: status, inscricao, ferramentas do organizador, bracket, resultados, participantes, favoritos, enquetes, ajuda, eventos, notificacoes, emails.
+- Chaves dedicadas para labels de evento (event.enrollClose, event.tournamentStart, event.tournamentEnd) em vez de extrair por regex.
 
 **v0.8.1-alpha (Abril 2026)**
 - Perfil: dropdown de idioma substituido por icones de bandeira clicaveis (🇧🇷 🇺🇸) com estado ativo visual (borda dourada, glow, escala).
@@ -540,7 +556,7 @@ scoreplace-app/
 ```
 
 ### Cache-busters atuais (index.html)
-Todos os arquivos JS e CSS usam `?v=0.4.12` a partir da v0.4.12-alpha.
+Arquivos modificados recentemente usam versoes individuais (0.8.x). Demais usam `?v=0.5.0` ou superior.
 
 ## Regras de Seguranca de Codigo
 
