@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.8.0-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.8.1-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,14 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.8.1-alpha (Abril 2026)**
+- Perfil: dropdown de idioma substituido por icones de bandeira clicaveis (🇧🇷 🇺🇸) com estado ativo visual (borda dourada, glow, escala).
+- Perfil: botao "Sair" no header substituido por "Cancelar" (fecha modal sem alterar).
+- i18n: todas as strings hardcoded do formato Rei/Rainha conectadas ao sistema `_t()` em bracket.js, bracket-logic.js, create-tournament.js e tournaments-draw.js.
+- Deploy automatico: git inicializado na pasta local com push direto via `gh` CLI. `.gitignore` adicionado. Fluxo manual de upload removido.
+- Cleanup: residual `js/index.html` removido do repositorio.
+- Testes: versao atualizada para 0.8.1-alpha (111 testes).
 
 **v0.8.0-alpha (Abril 2026)**
 - Formato Rei/Rainha da Praia: novo formato de torneio com grupos de 4 jogadores e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuacao individual. Top classificados avancam automaticamente para eliminatoria ate coroar o Rei/Rainha.
