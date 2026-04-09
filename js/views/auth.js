@@ -1544,7 +1544,7 @@ function setupProfileModal() {
           '<h2 class="card-title" style="margin:0;font-size:1.1rem;">Meu Perfil</h2>' +
           '<div style="display:flex;gap:8px;align-items:center;">' +
             '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">Salvar</button>' +
-            '<button type="button" class="btn btn-danger btn-sm" onclick="handleLogout()">Sair</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">Cancelar</button>' +
             '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')" style="margin-left:4px;">&times;</button>' +
           '</div>' +
         '</div>' +
@@ -1665,14 +1665,14 @@ function setupProfileModal() {
               '</div>' +
               '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.</span>' +
             '</div>' +
-            // Language selector
+            // Language selector — flag buttons
             '<div style="margin-bottom: 1rem;">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;">' +
                 '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Idioma / Language</label>' +
-                '<select id="profile-language" style="padding:6px 12px;border-radius:8px;background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-color);font-size:0.82rem;" onchange="if(typeof window._setLang===\'function\')window._setLang(this.value)">' +
-                  '<option value="pt"' + (window._lang === 'pt' ? ' selected' : '') + '>Portugues</option>' +
-                  '<option value="en"' + (window._lang === 'en' ? ' selected' : '') + '>English</option>' +
-                '</select>' +
+                '<div style="display:flex;gap:6px;" id="profile-lang-flags">' +
+                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'pt\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.6rem;background:none;border:2px solid ' + (window._lang === 'pt' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:4px 8px;cursor:pointer;opacity:' + (window._lang === 'pt' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'pt' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'pt' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="Português">🇧🇷</button>' +
+                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'en\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.6rem;background:none;border:2px solid ' + (window._lang === 'en' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:4px 8px;cursor:pointer;opacity:' + (window._lang === 'en' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'en' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'en' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="English">🇺🇸</button>' +
+                '</div>' +
               '</div>' +
             '</div>' +
             // Player Stats Section

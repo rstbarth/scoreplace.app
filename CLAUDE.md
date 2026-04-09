@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.4.12-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.8.0-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,28 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.8.0-alpha (Abril 2026)**
+- Formato Rei/Rainha da Praia: novo formato de torneio com grupos de 4 jogadores e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuacao individual. Top classificados avancam automaticamente para eliminatoria ate coroar o Rei/Rainha.
+  - `_computeMonarchStandings(group)`: standings individuais por grupo (vitorias > saldo de pontos > pontos a favor).
+  - `_generateReiRainhaRoundForPlayers(t, category)`: gera rodada com grupos de 4, 3 matches por grupo, remainder players recebem pairing padrao ou BYE.
+  - Auto-avanco para eliminatoria quando todos os jogos de grupo estao completos (idempotente, sem botao manual).
+  - Config na criacao: classificados por grupo (1 ou 2), sempre avanca para eliminatoria.
+  - Matches com `isMonarch: true`, `team1`/`team2` arrays, `p1`/`p2` como labels de dupla.
+- Liga com rodadas Rei/Rainha: Liga pode adotar formato de rodada Rei/Rainha.
+  - Toggle "Padrao / Rei/Rainha" na criacao de torneio Liga (`t.ligaRoundFormat`).
+  - `_generateNextRound` despacha para `_generateReiRainhaRoundForPlayers` quando `ligaRoundFormat === 'rei_rainha'`.
+  - `_computeStandings` contabiliza matches monarca (team1/team2) com 3pts vitoria, 1pt empate, incluindo saldo de pontos individual.
+  - Renderizacao de grupos Rei/Rainha dentro da classificacao Liga com mini-tabelas e match cards.
+  - Rodadas anteriores exibem prefixo "Rei/Rainha" para rodadas com `format: 'rei_rainha'`.
+- UI do Bracket melhorada:
+  - Botao "Compartilhar" removido do header dos match cards.
+  - Botoes "Confirmar" e "Editar" compactos no header do card de partida.
+  - Scroll preservado ao lancar resultado (sem pulo de tela).
+  - Header sticky do bracket posicionado abaixo da topbar (`top: 60px`).
+  - `overflow-x: hidden` movido de `.view-container` para `body` para compatibilidade com sticky.
+- i18n: chaves de traducao para Rei/Rainha em pt e en (format, bracket, stage, monarch, liga, labels).
+- Testes: 111 testes automatizados (antes 94). Novas suites: `_computeMonarchStandings`, `_computeStandings` com monarch matches, `_generateReiRainhaRoundForPlayers`, idempotencia de advance.
 
 **v0.4.12-alpha (Abril 2026)**
 - Painel Unificado de Resolucao Numerica: os 3 paineis de decisao (times incompletos, numero impar, potencia de 2) foram consolidados em um unico painel com diagnostico completo.
