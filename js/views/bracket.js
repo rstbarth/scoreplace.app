@@ -1118,9 +1118,9 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const editBtn = isDecided && !isByeMatch && canEnterResult
     ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
-        style="background:transparent;border:none;color:var(--text-muted);font-size:0.72rem;cursor:pointer;padding:2px 4px;line-height:1;"
-        onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
-        title="Editar resultado">✏️ Editar</button>` : '';
+        style="width:100%;margin-top:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:8px;padding:6px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;"
+        onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
+        title="Editar resultado">✏️ Editar Resultado</button>` : '';
 
   const shareBtn = isDecided && !isByeMatch
     ? `<button onclick="event.stopPropagation(); window._shareMatchResult('${_esc(tId)}','${_esc(m.id)}')"
@@ -1147,13 +1147,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${shareBtn}${editBtn}</div>
+        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${shareBtn}</div>
       </div>
       ${p1Row}
       ${vsRow}
       ${p2Row}
       ${winnerBadge}
       ${confirmBtn}
+      ${editBtn}
     </div>`;
 }
 
@@ -1201,7 +1202,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
 
     // Match cards
     var matchCards = matches.map(function(m, mi) {
-      return renderMatchCard(m, canEnterResult && !m.winner, t.id, (gi * 3) + mi + 1);
+      return renderMatchCard(m, canEnterResult, t.id, (gi * 3) + mi + 1);
     }).join('');
 
     var statusBadge = groupDone ? '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">Concluído</span>' : '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">Em andamento</span>';
@@ -1300,7 +1301,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       const roundLabelColor = r.status === 'complete' ? '#4ade80' : r.status === 'active' ? '#fbbf24' : 'var(--text-muted)';
       const matchesInRound = (r.matches || []).map(m => {
         groupGlobalMatchNum++;
-        return `<div style="min-width:250px;max-width:300px;flex:1;">${renderMatchCard(m, canEnterResult && r.status === 'active' && !m.winner, t.id, groupGlobalMatchNum)}</div>`;
+        return `<div style="min-width:250px;max-width:300px;flex:1;">${renderMatchCard(m, canEnterResult && r.status === 'active', t.id, groupGlobalMatchNum)}</div>`;
       }).join('');
       return `
         <div style="margin-bottom:0.75rem;">
