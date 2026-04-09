@@ -1,5 +1,30 @@
 window.SCOREPLACE_VERSION = '0.7.6-alpha';
 
+// ─── Live countdown ticker ─────────────────────────────────────────────────
+// Updates all elements with data-countdown-target every second
+window._formatCountdown = function(diff) {
+  if (diff <= 0) return '0s';
+  var d = Math.floor(diff / 86400000);
+  var h = Math.floor((diff % 86400000) / 3600000);
+  var m = Math.floor((diff % 3600000) / 60000);
+  var s = Math.floor((diff % 60000) / 1000);
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+  if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+};
+setInterval(function() {
+  var els = document.querySelectorAll('[data-countdown-target]');
+  if (!els.length) return;
+  var now = Date.now();
+  els.forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-countdown-target'));
+    if (isNaN(target)) return;
+    var diff = target - now;
+    el.textContent = diff > 0 ? window._formatCountdown(diff) : 'Agora!';
+  });
+}, 1000);
+
 // ─── Soft refresh: re-render current view without disrupting UX ────────────
 // Called by real-time Firestore listener when remote data changes.
 // Preserves: scroll position, open modals, focus state, form inputs.
