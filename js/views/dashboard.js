@@ -367,6 +367,45 @@ function renderDashboard(container) {
                <span>${dates}</span>
             </div>
 
+            ${(() => {
+              if (isFinished) return '';
+              var _now = Date.now();
+              var _events = [];
+              // Registration deadline
+              if (isAberto && t.registrationLimit) {
+                var _rd = new Date(t.registrationLimit).getTime();
+                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: 'Inscrições encerram', icon: '⏰', color: '#f59e0b' });
+              }
+              // Start date
+              if (t.startDate) {
+                var _sd = new Date(t.startDate).getTime();
+                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: 'Início do torneio', icon: '🏁', color: '#10b981' });
+              }
+              // End date
+              if (t.endDate) {
+                var _ed = new Date(t.endDate).getTime();
+                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: 'Fim do torneio', icon: '🏆', color: '#8b5cf6' });
+              }
+              if (_events.length === 0) return '';
+              _events.sort(function(a,b) { return a.ts - b.ts; });
+              var _next = _events[0];
+              var _diff = _next.ts - _now;
+              var _days = Math.floor(_diff / 86400000);
+              var _hrs = Math.floor((_diff % 86400000) / 3600000);
+              var _mins = Math.floor((_diff % 3600000) / 60000);
+              var _countdownText = '';
+              if (_days > 0) _countdownText = _days + 'd ' + _hrs + 'h ' + _mins + 'm';
+              else if (_hrs > 0) _countdownText = _hrs + 'h ' + _mins + 'm';
+              else _countdownText = _mins + 'm';
+              var _pillBg = 'rgba(' + (_next.color === '#f59e0b' ? '245,158,11' : _next.color === '#10b981' ? '16,185,129' : '139,92,246') + ',0.12)';
+              var _pillBorder = 'rgba(' + (_next.color === '#f59e0b' ? '245,158,11' : _next.color === '#10b981' ? '16,185,129' : '139,92,246') + ',0.3)';
+              return '<div style="margin-top:10px;display:flex;align-items:center;gap:8px;padding:6px 12px;background:' + _pillBg + ';border:1px solid ' + _pillBorder + ';border-radius:10px;">' +
+                '<span style="font-size:1rem;">' + _next.icon + '</span>' +
+                '<span style="font-size:0.78rem;font-weight:600;color:' + _next.color + ';">' + _next.label + '</span>' +
+                '<span style="margin-left:auto;font-size:0.85rem;font-weight:800;color:' + _next.color + ';font-variant-numeric:tabular-nums;">' + _countdownText + '</span>' +
+              '</div>';
+            })()}
+
             <!-- Linha separadora -->
             <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 1.8rem 0;"></div>
 
@@ -418,37 +457,6 @@ function renderDashboard(container) {
                   _html += '<div style="width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
                   _html += '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 3px;"></div>';
                   _html += '</div></div>';
-                }
-              }
-              // Registration deadline countdown
-              if (isAberto && t.registrationLimit && !isFinished) {
-                var _regDate = new Date(t.registrationLimit);
-                if (!isNaN(_regDate.getTime())) {
-                  var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
-                  if (_daysLeft > 0 && _daysLeft <= 14) {
-                    var _urgIcon = _daysLeft <= 2 ? '🔴' : (_daysLeft <= 5 ? '🟡' : '⏰');
-                    var _urgPillClass = _daysLeft <= 2 ? 'info-pill-red' : (_daysLeft <= 5 ? 'info-pill-amber' : 'info-pill-purple');
-                    _html += '<div class="info-pill ' + _urgPillClass + '" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
-                    _html += '<span>' + _urgIcon + '</span> Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '');
-                    _html += '</div>';
-                  }
-                }
-              }
-              // Start date countdown
-              if (!isFinished && !sorteioRealizado && t.startDate) {
-                var _startDate = new Date(t.startDate);
-                if (!isNaN(_startDate.getTime())) {
-                  var _startDays = Math.ceil((_startDate - new Date()) / 86400000);
-                  if (_startDays > 0 && _startDays <= 30) {
-                    var _startPillClass = _startDays <= 1 ? 'info-pill-green' : (_startDays <= 3 ? 'info-pill-blue' : 'info-pill-purple');
-                    _html += '<div class="info-pill ' + _startPillClass + '" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
-                    _html += _startDays <= 1 ? '<span>🏁</span> Começa amanhã!' : '<span>📅</span> Começa em ' + _startDays + ' dia' + (_startDays > 1 ? 's' : '');
-                    _html += '</div>';
-                  } else if (_startDays === 0) {
-                    _html += '<div class="info-pill info-pill-green" style="margin-top: 8px; font-size: 0.85rem; font-weight: 700;">';
-                    _html += '<span>🏁</span> Começa hoje!';
-                    _html += '</div>';
-                  }
                 }
               }
               // Active poll banner on card
