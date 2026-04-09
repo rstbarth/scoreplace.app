@@ -25,7 +25,7 @@
 </style>
 </head>
 <body>
-<h1>scoreplace.app — Testes Automatizados v0.5.0</h1>
+<h1>scoreplace.app — Testes Automatizados v0.8.0</h1>
 <div class="summary" id="summary">Executando...</div>
 <div id="load-status" class="load-status"></div>
 <div id="results"></div>
@@ -805,8 +805,8 @@ describe('SCOREPLACE_VERSION', function() {
     expect(window.SCOREPLACE_VERSION).toContain('-alpha');
     expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
   });
-  it('versao atual e 0.5.0-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.5.0-alpha');
+  it('versao atual e 0.8.0-alpha', function() {
+    expect(window.SCOREPLACE_VERSION).toBe('0.8.0-alpha');
   });
 });
 
@@ -991,9 +991,307 @@ describe('Email Templates — _emailTemplate', function() {
 });
 
 // ─── Version Test Update ────────────────────────────────────────────────────
-describe('Version — v0.5.0', function() {
-  it('SCOREPLACE_VERSION is 0.5.0-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.5.0-alpha');
+describe('Version — v0.8.0', function() {
+  it('SCOREPLACE_VERSION is 0.8.0-alpha', function() {
+    expect(window.SCOREPLACE_VERSION).toBe('0.8.0-alpha');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _computeMonarchStandings — Standings individuais Rei/Rainha
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_computeMonarchStandings — Rei/Rainha', function() {
+  it('calcula standings basicos de grupo de 4', function() {
+    var group = {
+      players: ['Ana', 'Bia', 'Carlos', 'Dan'],
+      matches: [
+        { id: 'm1', p1: 'Ana / Bia', p2: 'Carlos / Dan', team1: ['Ana', 'Bia'], team2: ['Carlos', 'Dan'], winner: 'Ana / Bia', scoreP1: 6, scoreP2: 3, isMonarch: true },
+        { id: 'm2', p1: 'Ana / Carlos', p2: 'Bia / Dan', team1: ['Ana', 'Carlos'], team2: ['Bia', 'Dan'], winner: 'Ana / Carlos', scoreP1: 6, scoreP2: 4, isMonarch: true },
+        { id: 'm3', p1: 'Ana / Dan', p2: 'Bia / Carlos', team1: ['Ana', 'Dan'], team2: ['Bia', 'Carlos'], winner: 'Bia / Carlos', scoreP1: 3, scoreP2: 6, isMonarch: true }
+      ]
+    };
+    var standings = window._computeMonarchStandings(group);
+    expect(standings.length).toBe(4);
+    var ana = standings.find(function(s) { return s.name === 'Ana'; });
+    expect(ana.wins).toBe(2);
+    expect(ana.losses).toBe(1);
+    expect(ana.played).toBe(3);
+  });
+
+  it('ordena por vitorias > saldo de pontos', function() {
+    var group = {
+      players: ['A', 'B', 'C', 'D'],
+      matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'A / B', scoreP1: 6, scoreP2: 2, isMonarch: true },
+        { id: 'm2', p1: 'A / C', p2: 'B / D', team1: ['A', 'C'], team2: ['B', 'D'], winner: 'A / C', scoreP1: 6, scoreP2: 4, isMonarch: true },
+        { id: 'm3', p1: 'A / D', p2: 'B / C', team1: ['A', 'D'], team2: ['B', 'C'], winner: 'A / D', scoreP1: 6, scoreP2: 3, isMonarch: true }
+      ]
+    };
+    var standings = window._computeMonarchStandings(group);
+    // A venceu todos os 3 jogos — deve ser primeiro
+    expect(standings[0].name).toBe('A');
+    expect(standings[0].wins).toBe(3);
+  });
+
+  it('funciona com matches em rounds[0]', function() {
+    var group = {
+      players: ['A', 'B', 'C', 'D'],
+      rounds: [{ matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'A / B', scoreP1: 6, scoreP2: 4, isMonarch: true }
+      ]}]
+    };
+    var standings = window._computeMonarchStandings(group);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    expect(a.wins).toBe(1);
+    expect(a.pointsFor).toBe(6);
+    expect(a.pointsAgainst).toBe(4);
+  });
+
+  it('ignora matches sem winner', function() {
+    var group = {
+      players: ['A', 'B', 'C', 'D'],
+      matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: null, scoreP1: null, scoreP2: null, isMonarch: true }
+      ]
+    };
+    var standings = window._computeMonarchStandings(group);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    expect(a.played).toBe(0);
+    expect(a.wins).toBe(0);
+  });
+
+  it('retorna array vazio para grupo sem players', function() {
+    var standings = window._computeMonarchStandings({ players: [], matches: [] });
+    expect(standings.length).toBe(0);
+  });
+
+  it('acumula pontos corretamente (pointsFor/pointsAgainst)', function() {
+    var group = {
+      players: ['A', 'B', 'C', 'D'],
+      matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'A / B', scoreP1: 6, scoreP2: 3, isMonarch: true },
+        { id: 'm2', p1: 'A / C', p2: 'B / D', team1: ['A', 'C'], team2: ['B', 'D'], winner: 'B / D', scoreP1: 2, scoreP2: 6, isMonarch: true }
+      ]
+    };
+    var standings = window._computeMonarchStandings(group);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    // Jogo 1: A fez 6 pontos, sofreu 3. Jogo 2: A fez 2 pontos, sofreu 6.
+    expect(a.pointsFor).toBe(8);
+    expect(a.pointsAgainst).toBe(9);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _computeStandings — Matches monarca em Liga
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_computeStandings — Monarch matches em Liga', function() {
+  it('contabiliza vitorias em matches monarca (team1/team2)', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [{ matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'A / B', scoreP1: 6, scoreP2: 3, isMonarch: true },
+        { id: 'm2', p1: 'A / C', p2: 'B / D', team1: ['A', 'C'], team2: ['B', 'D'], winner: 'A / C', scoreP1: 6, scoreP2: 4, isMonarch: true },
+        { id: 'm3', p1: 'A / D', p2: 'B / C', team1: ['A', 'D'], team2: ['B', 'C'], winner: 'B / C', scoreP1: 3, scoreP2: 6, isMonarch: true }
+      ]}]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    expect(a.wins).toBe(2);
+    expect(a.losses).toBe(1);
+    expect(a.points).toBe(6); // 2 vitorias * 3pts
+  });
+
+  it('empate em match monarca da 1 ponto para cada membro do time', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [{ matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'draw', draw: true, scoreP1: 5, scoreP2: 5, isMonarch: true }
+      ]}]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    var c = standings.find(function(s) { return s.name === 'C'; });
+    expect(a.points).toBe(1);
+    expect(c.points).toBe(1);
+    expect(a.draws).toBe(1);
+    expect(a.wins).toBe(0);
+    expect(a.losses).toBe(0);
+  });
+
+  it('saldo de pontos acumula corretamente nos standings gerais', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [{ matches: [
+        { id: 'm1', p1: 'A / B', p2: 'C / D', team1: ['A', 'B'], team2: ['C', 'D'], winner: 'A / B', scoreP1: 6, scoreP2: 2, isMonarch: true }
+      ]}]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    var c = standings.find(function(s) { return s.name === 'C'; });
+    // A: saldo = 6-2 = +4, C: saldo = 2-6 = -4
+    expect(a.pointsDiff).toBe(4);
+    expect(c.pointsDiff).toBe(-4);
+  });
+
+  it('mistura matches normais e monarca na mesma Liga', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [
+        { matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 6, scoreP2: 3 },
+          { p1: 'C', p2: 'D', winner: 'C', scoreP1: 6, scoreP2: 4 }
+        ]},
+        { matches: [
+          { id: 'm1', p1: 'A / C', p2: 'B / D', team1: ['A', 'C'], team2: ['B', 'D'], winner: 'A / C', scoreP1: 6, scoreP2: 2, isMonarch: true }
+        ]}
+      ]
+    };
+    var standings = window._computeStandings(t);
+    var a = standings.find(function(s) { return s.name === 'A'; });
+    // Rodada 1: A venceu = 3pts. Rodada 2 (monarca): A venceu = 3pts. Total = 6pts
+    expect(a.points).toBe(6);
+    expect(a.wins).toBe(2);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _generateReiRainhaRoundForPlayers — Geração de rodada Rei/Rainha
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_generateReiRainhaRoundForPlayers — Liga Rei/Rainha', function() {
+  it('gera rodada com 1 grupo de 4 (3 matches)', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [],
+      ligaRoundFormat: 'rei_rainha'
+    };
+    if (typeof window._generateReiRainhaRoundForPlayers === 'function') {
+      window._generateReiRainhaRoundForPlayers(t, null);
+    } else if (typeof _generateReiRainhaRoundForPlayers === 'function') {
+      _generateReiRainhaRoundForPlayers(t, null);
+    }
+    expect(t.rounds.length).toBe(1);
+    var round = t.rounds[0];
+    expect(round.matches.length).toBe(3);
+    expect(round.format).toBe('rei_rainha');
+    expect(round.monarchGroups.length).toBe(1);
+    expect(round.monarchGroups[0].players.length).toBe(4);
+  });
+
+  it('matches tem isMonarch, team1, team2', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [],
+      ligaRoundFormat: 'rei_rainha'
+    };
+    if (typeof window._generateReiRainhaRoundForPlayers === 'function') {
+      window._generateReiRainhaRoundForPlayers(t, null);
+    } else if (typeof _generateReiRainhaRoundForPlayers === 'function') {
+      _generateReiRainhaRoundForPlayers(t, null);
+    }
+    var m = t.rounds[0].matches[0];
+    expect(m.isMonarch).toBe(true);
+    expect(m.team1.length).toBe(2);
+    expect(m.team2.length).toBe(2);
+    expect(m.p1).toContain(' / ');
+    expect(m.p2).toContain(' / ');
+  });
+
+  it('8 jogadores geram 2 grupos de 4 (6 matches)', function() {
+    var t = {
+      participants: ['A','B','C','D','E','F','G','H'].map(function(n) { return { displayName: n }; }),
+      rounds: [],
+      ligaRoundFormat: 'rei_rainha'
+    };
+    if (typeof window._generateReiRainhaRoundForPlayers === 'function') {
+      window._generateReiRainhaRoundForPlayers(t, null);
+    } else if (typeof _generateReiRainhaRoundForPlayers === 'function') {
+      _generateReiRainhaRoundForPlayers(t, null);
+    }
+    expect(t.rounds.length).toBe(1);
+    expect(t.rounds[0].matches.length).toBe(6); // 2 grupos * 3 matches
+    expect(t.rounds[0].monarchGroups.length).toBe(2);
+  });
+
+  it('rotacao AB/CD, AC/BD, AD/BC dentro de cada grupo', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }, { displayName: 'D' }],
+      rounds: [],
+      ligaRoundFormat: 'rei_rainha'
+    };
+    if (typeof window._generateReiRainhaRoundForPlayers === 'function') {
+      window._generateReiRainhaRoundForPlayers(t, null);
+    } else if (typeof _generateReiRainhaRoundForPlayers === 'function') {
+      _generateReiRainhaRoundForPlayers(t, null);
+    }
+    var matches = t.rounds[0].matches;
+    // Match 1: AB vs CD
+    expect(matches[0].team1.length).toBe(2);
+    expect(matches[0].team2.length).toBe(2);
+    // Match 2: AC vs BD
+    expect(matches[1].team1[0]).toBe(matches[0].team1[0]); // A esta no team1 dos jogos 1 e 2
+    expect(matches[1].team1[1]).toBe(matches[0].team2[0]); // C (era team2 no jogo 1) agora team1
+    // Match 3: AD vs BC
+    expect(matches[2].team1[0]).toBe(matches[0].team1[0]); // A sempre no team1
+    expect(matches[2].team1[1]).toBe(matches[0].team2[1]); // D (era team2 no jogo 1) agora team1
+  });
+
+  it('< 4 jogadores faz fallback para pairing padrao', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }],
+      rounds: [],
+      ligaRoundFormat: 'rei_rainha'
+    };
+    if (typeof window._generateReiRainhaRoundForPlayers === 'function') {
+      window._generateReiRainhaRoundForPlayers(t, null);
+    } else if (typeof _generateReiRainhaRoundForPlayers === 'function') {
+      _generateReiRainhaRoundForPlayers(t, null);
+    }
+    // Deve ter gerado rodada padrao (Swiss) em vez de Rei/Rainha
+    expect(t.rounds.length).toBe(1);
+    // Matches nao devem ser monarca
+    var hasMonarch = t.rounds[0].matches.some(function(m) { return m.isMonarch; });
+    expect(hasMonarch).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Advance Monarch — Idempotência
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Advance Monarch — Idempotência', function() {
+  it('nao avanca se ja esta em elimination', function() {
+    var t = {
+      id: 'test-monarch-idem',
+      format: 'Rei/Rainha da Praia',
+      currentStage: 'elimination',
+      matches: [{ p1: 'A', p2: 'B' }],
+      groups: [{ players: ['A','B','C','D'], matches: [] }],
+      monarchClassified: 1
+    };
+    window.AppStore.tournaments = [t];
+    // Calling should be a no-op
+    if (typeof window._advanceMonarchToElimination === 'function') {
+      window._advanceMonarchToElimination('test-monarch-idem');
+    }
+    // Should still have same matches (no regeneration)
+    expect(t.matches.length).toBe(1);
+    expect(t.matches[0].p1).toBe('A');
+  });
+
+  it('nao avanca se matches ja existem', function() {
+    var t = {
+      id: 'test-monarch-idem2',
+      format: 'Rei/Rainha da Praia',
+      currentStage: 'groups',
+      matches: [{ p1: 'A', p2: 'B' }],
+      groups: [{ players: ['A','B','C','D'], matches: [] }],
+      monarchClassified: 1
+    };
+    window.AppStore.tournaments = [t];
+    if (typeof window._advanceMonarchToElimination === 'function') {
+      window._advanceMonarchToElimination('test-monarch-idem2');
+    }
+    // matches array should remain unchanged
+    expect(t.matches.length).toBe(1);
   });
 });
 
