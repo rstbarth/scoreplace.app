@@ -884,6 +884,42 @@ function renderTournaments(container, tournamentId = null) {
                ${t.venueLat && t.venueLon ? '<a href="' + (t.venuePlaceId ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.venue) + '&query_place_id=' + t.venuePlaceId : 'https://www.google.com/maps/search/?api=1&query=' + t.venueLat + ',' + t.venueLon) + '" target="_blank" title="Ver no mapa" style="color:#818cf8; text-decoration:none; font-size:1rem; flex-shrink:0;">🗺️</a>' : ''}
             </div>` : ''}
 
+            ${(() => {
+              if (isFinished) return '';
+              var _now = Date.now();
+              var _events = [];
+              if (isAberto && t.registrationLimit) {
+                var _rd = new Date(t.registrationLimit).getTime();
+                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: 'Inscrições encerram', icon: '⏰', color: '#f59e0b' });
+              }
+              if (t.startDate) {
+                var _sd = new Date(t.startDate).getTime();
+                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: 'Início do torneio', icon: '🏁', color: '#10b981' });
+              }
+              if (t.endDate) {
+                var _ed = new Date(t.endDate).getTime();
+                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: 'Fim do torneio', icon: '🏆', color: '#8b5cf6' });
+              }
+              if (_events.length === 0) return '';
+              _events.sort(function(a,b) { return a.ts - b.ts; });
+              var _next = _events[0];
+              var _diff = _next.ts - _now;
+              var _days = Math.floor(_diff / 86400000);
+              var _hrs = Math.floor((_diff % 86400000) / 3600000);
+              var _mins = Math.floor((_diff % 3600000) / 60000);
+              var _countdownText = '';
+              if (_days > 0) _countdownText = _days + 'd ' + _hrs + 'h ' + _mins + 'm';
+              else if (_hrs > 0) _countdownText = _hrs + 'h ' + _mins + 'm';
+              else _countdownText = _mins + 'm';
+              var _pillBg = 'rgba(' + (_next.color === '#f59e0b' ? '245,158,11' : _next.color === '#10b981' ? '16,185,129' : '139,92,246') + ',0.12)';
+              var _pillBorder = 'rgba(' + (_next.color === '#f59e0b' ? '245,158,11' : _next.color === '#10b981' ? '16,185,129' : '139,92,246') + ',0.3)';
+              return '<div style="margin-top:10px;display:flex;align-items:center;gap:8px;padding:6px 12px;background:' + _pillBg + ';border:1px solid ' + _pillBorder + ';border-radius:10px;">' +
+                '<span style="font-size:1rem;">' + _next.icon + '</span>' +
+                '<span style="font-size:0.78rem;font-weight:600;color:' + _next.color + ';">' + _next.label + '</span>' +
+                '<span style="margin-left:auto;font-size:0.85rem;font-weight:800;color:' + _next.color + ';font-variant-numeric:tabular-nums;">' + _countdownText + '</span>' +
+              '</div>';
+            })()}
+
             <!-- Linha separadora -->
             <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 1.8rem 0;"></div>
 
@@ -961,41 +997,6 @@ function renderTournaments(container, tournamentId = null) {
                   _html += '<div style="margin-top: 6px; font-size: 0.75rem; color: #10b981; font-weight: 600;">✅ Todas as partidas concluídas!</div>';
                 }
                 _html += '</div>';
-              }
-              // Registration deadline countdown
-              if (isAberto && t.registrationLimit && !isFinished) {
-                var _regDate = new Date(t.registrationLimit);
-                if (!isNaN(_regDate.getTime())) {
-                  var _daysLeft = Math.ceil((_regDate - new Date()) / 86400000);
-                  if (_daysLeft > 0 && _daysLeft <= 14) {
-                    var _urgPillClass = _daysLeft <= 2 ? 'info-pill-red' : (_daysLeft <= 5 ? 'info-pill-amber' : 'info-pill-purple');
-                    var _urgColor = _daysLeft <= 2 ? '#ef4444' : (_daysLeft <= 5 ? '#f59e0b' : '#818cf8');
-                    _html += '<div class="info-pill ' + _urgPillClass + '" style="margin-top: 8px;">';
-                    _html += '<span style="font-size: 1rem;">⏰</span>';
-                    _html += '<span style="color: ' + _urgColor + ';">Inscrições encerram em ' + _daysLeft + ' dia' + (_daysLeft > 1 ? 's' : '') + '</span>';
-                    _html += '</div>';
-                  }
-                }
-              }
-              // Start date countdown
-              if (!isFinished && !sorteioRealizado && t.startDate) {
-                var _startDate2 = new Date(t.startDate);
-                if (!isNaN(_startDate2.getTime())) {
-                  var _startDays2 = Math.ceil((_startDate2 - new Date()) / 86400000);
-                  if (_startDays2 === 0) {
-                    _html += '<div class="info-pill info-pill-green" style="margin-top: 8px;">';
-                    _html += '<span style="font-size: 1rem;">🏁</span>';
-                    _html += '<span style="color: #10b981; font-weight: 700;">Começa hoje!</span>';
-                    _html += '</div>';
-                  } else if (_startDays2 > 0 && _startDays2 <= 30) {
-                    var _startPillClass = _startDays2 <= 1 ? 'info-pill-green' : (_startDays2 <= 3 ? 'info-pill-blue' : 'info-pill-purple');
-                    var _startColor2 = _startDays2 <= 1 ? '#10b981' : (_startDays2 <= 3 ? '#3b82f6' : '#818cf8');
-                    _html += '<div class="info-pill ' + _startPillClass + '" style="margin-top: 8px;">';
-                    _html += '<span style="font-size: 1rem;">' + (_startDays2 <= 1 ? '🏁' : '📅') + '</span>';
-                    _html += '<span style="color: ' + _startColor2 + ';">' + (_startDays2 <= 1 ? 'Começa amanhã!' : 'Começa em ' + _startDays2 + ' dia' + (_startDays2 > 1 ? 's' : '')) + '</span>';
-                    _html += '</div>';
-                  }
-                }
               }
               return _html;
             })()}
