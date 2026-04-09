@@ -714,22 +714,21 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 
 ## Deploy
 
-O deploy e feito via upload de arquivos no repositorio `rstbarth/scoreplace.app` no branch principal. GitHub Pages serve o site em `scoreplace.app` com CNAME configurado.
+Deploy automatico via `git push` para o repositorio `rstbarth/scoreplace.app` (branch `main`). GitHub Pages serve o site em `scoreplace.app` com CNAME configurado.
 
 ### DNS
 - A records: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153
 - CNAME www â rstbarth.github.io
 
-### Fluxo de deploy padrao (PASSO A PASSO OBRIGATORIO)
-1. Separar arquivos alterados por pasta de destino no GitHub (ex: `passo1/` para `js/views/`, `passo2/` para `js/`)
-2. Limpar outputs antes de criar novos arquivos
-3. Para cada passo:
-   a. Abrir pagina de upload do GitHub no subpath correto (ex: `/upload/main/js/views`)
-   b. Mostrar APENAS os arquivos daquele passo na pasta de outputs
-   c. Aguardar usuario arrastar, soltar e commitar
-   d. Limpar pasta do passo antes de prosseguir
-4. Apos todos os uploads, verificar no site ao vivo que as alteracoes estao deployadas
-5. Verificar se nao ha arquivos deslocados (usuario pode ter feito upload na pasta errada)
+### Pre-requisitos
+- Git inicializado na pasta local com remote `origin` apontando para `https://github.com/rstbarth/scoreplace.app.git`
+- `gh auth setup-git` executado para autenticacao via GitHub CLI
+- `.gitignore` configurado (`.DS_Store`, `.claude/`, `*.backup`, `outputs/`)
 
-**NUNCA** misturar arquivos de pastas diferentes no mesmo passo.
-**NUNCA** tentar push via git CLI, GitHub API, ou upload programatico.
+### Fluxo de deploy padrao
+1. Validar sintaxe de todos os JS modificados: `for f in $(find js/ -name '*.js' ! -name '*.backup'); do node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f"; done`
+2. Atualizar cache-busters em `index.html` para arquivos modificados
+3. `git add` dos arquivos alterados (evitar `git add .` — adicionar arquivos especificos)
+4. `git commit` com mensagem descritiva
+5. `git push origin main`
+6. Verificar no site ao vivo que as alteracoes estao deployadas
