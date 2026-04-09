@@ -79,6 +79,37 @@ window._translations['pt'] = {
   'format.swiss': 'Suico',
   'format.league': 'Liga',
   'format.monarch': 'Rei/Rainha da Praia',
+  'format.monarchShort': 'Rei/Rainha',
+  'format.groupsShort': 'Grupos + Elim.',
+  'format.monarchDesc': 'Grupos de 4 jogadores com 3 partidas e parceiros rotativos. Pontuacao individual.',
+
+  // Bracket/Stage
+  'bracket.title.standings': 'Classificacao',
+  'bracket.title.groups': 'Fase de Grupos',
+  'bracket.title.monarch': 'Rei/Rainha',
+  'bracket.title.bracket': 'Chaves',
+  'stage.groups': 'Fase de Grupos',
+  'stage.elimination': 'Fase Eliminatoria',
+
+  // Monarch
+  'monarch.groupsComplete': 'Fase de grupos concluida!',
+  'monarch.advancingQualified': 'Avancando classificados para eliminatoria...',
+  'monarch.advanceHelp': 'Os classificados avancam automaticamente para eliminatoria ate coroar o Rei/Rainha.',
+  'monarch.classified1': '1 (Rei/Rainha)',
+  'monarch.classified2': '2 (Top 2)',
+  'monarch.minParticipants': 'O formato Rei/Rainha da Praia precisa de pelo menos 4 participantes.',
+  'monarch.drawDone': 'Sorteio Realizado!',
+  'monarch.groupsFormed': '{count} grupos formados para Rei/Rainha da Praia.',
+
+  // Liga round format
+  'liga.formatStandard': 'Padrao',
+  'liga.formatMonarch': 'Rei/Rainha',
+
+  // Group labels
+  'label.group': 'Grupo',
+  'label.classifiedPerGroup': 'Classificados por grupo',
+  'label.numGroups': 'Numero de Grupos',
+  'label.qualified': 'Classificados',
 
   // Landing page
   'landing.tagline': 'Gerencie torneios esportivos de forma simples e profissional.',

@@ -79,6 +79,37 @@ window._translations['en'] = {
   'format.swiss': 'Swiss',
   'format.league': 'League',
   'format.monarch': 'King/Queen of the Beach',
+  'format.monarchShort': 'King/Queen',
+  'format.groupsShort': 'Groups + Knockout',
+  'format.monarchDesc': 'Groups of 4 players with 3 matches and rotating partners. Individual scoring.',
+
+  // Bracket/Stage
+  'bracket.title.standings': 'Standings',
+  'bracket.title.groups': 'Group Stage',
+  'bracket.title.monarch': 'King/Queen',
+  'bracket.title.bracket': 'Bracket',
+  'stage.groups': 'Group Stage',
+  'stage.elimination': 'Knockout Stage',
+
+  // Monarch
+  'monarch.groupsComplete': 'Group stage complete!',
+  'monarch.advancingQualified': 'Advancing qualified players to knockout...',
+  'monarch.advanceHelp': 'Qualified players automatically advance to knockout until a King/Queen is crowned.',
+  'monarch.classified1': '1 (King/Queen)',
+  'monarch.classified2': '2 (Top 2)',
+  'monarch.minParticipants': 'King/Queen of the Beach format requires at least 4 participants.',
+  'monarch.drawDone': 'Draw Complete!',
+  'monarch.groupsFormed': '{count} groups formed for King/Queen of the Beach.',
+
+  // Liga round format
+  'liga.formatStandard': 'Standard',
+  'liga.formatMonarch': 'King/Queen',
+
+  // Group labels
+  'label.group': 'Group',
+  'label.classifiedPerGroup': 'Qualified per group',
+  'label.numGroups': 'Number of Groups',
+  'label.qualified': 'Qualified',
 
   // Landing page
   'landing.tagline': 'Manage sports tournaments simply and professionally.',
