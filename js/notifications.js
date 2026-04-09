@@ -446,6 +446,7 @@ function showInputDialog(title, message, onSubmit, options = {}) {
         <div style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">${message}</div>
         <input type="text" id="input-dialog-value" style="
           width: 100%;
+          box-sizing: border-box;
           padding: 12px 14px;
           border-radius: 10px;
           border: 1px solid var(--border-color);
@@ -456,7 +457,7 @@ function showInputDialog(title, message, onSubmit, options = {}) {
           transition: border-color 0.2s;
         " placeholder="${placeholder}" value="${defaultValue}">
       </div>
-      <div style="padding: 1rem 1.25rem 1.25rem; display: flex; gap: 10px; justify-content: flex-end;">
+      <div style="padding: 1rem 1.25rem 1.25rem; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
         <button id="input-cancel-btn" style="
           background: rgba(255, 255, 255, 0.08);
           color: var(--text-main);
@@ -529,6 +530,7 @@ function showMultiInputDialog(title, items, onSubmit, options = {}) {
       <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 6px;">${itemLabel} ${i + 1}</label>
       <input type="text" class="multi-input-field" data-index="${i}" style="
         width: 100%;
+        box-sizing: border-box;
         padding: 12px 14px;
         border-radius: 10px;
         border: 1px solid var(--border-color);
