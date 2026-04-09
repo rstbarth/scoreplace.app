@@ -52,7 +52,8 @@ window._cloneTournament = function(tournamentId) {
     }
 
     window.AppStore.addTournament(newT);
-    if (typeof showNotification === 'function') showNotification('Torneio Clonado!', '"' + newT.name + '" criado com sucesso.', 'success');
+    var _t = window._t || function(k) { return k; };
+    if (typeof showNotification === 'function') showNotification(_t('org.clonedTitle'), '"' + newT.name + '" ' + _t('org.clonedMsg'), 'success');
     // Navigate to the new tournament
     setTimeout(function() {
         var newest = window.AppStore.tournaments.find(function(tour) { return tour.name === newT.name && tour.organizerEmail === newT.organizerEmail; });
@@ -285,28 +286,28 @@ window._sendOrgCommunication = function(tId) {
     var html = '<div id="' + modalId + '" class="modal-overlay active" style="z-index: 10000;">' +
       '<div class="modal" style="max-width: 480px; width: 95%;">' +
         '<div class="modal-header" style="padding: 1.5rem 1.5rem 0;">' +
-          '<h2 class="card-title" style="margin: 0; font-size: 1rem;">📢 Comunicar Inscritos</h2>' +
+          '<h2 class="card-title" style="margin: 0; font-size: 1rem;">📢 ' + (window._t||function(k){return k;})('org.commTitle') + '</h2>' +
           '<button class="modal-close" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1.5rem;">' +
-          '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">Enviar comunicado para todos os inscritos do torneio "' + window._safeHtml(t.name || '') + '".</p>' +
+          '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem;">' + (window._t||function(k){return k;})('org.commDesc', { name: window._safeHtml(t.name || '') }) + '</p>' +
           '<div class="form-group" style="margin-bottom: 1rem;">' +
-            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mensagem</label>' +
-            '<textarea id="org-comm-text-' + tId + '" class="form-control" rows="4" placeholder="Digite sua mensagem para os inscritos..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>' +
+            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + (window._t||function(k){return k;})('org.commMessage') + '</label>' +
+            '<textarea id="org-comm-text-' + tId + '" class="form-control" rows="4" placeholder="' + (window._t||function(k){return k;})('org.commPlaceholder') + '" style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>' +
           '</div>' +
           '<div class="form-group" style="margin-bottom: 1rem;">' +
-            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nível de importância</label>' +
-            '<p style="font-size: 0.65rem; color: var(--text-muted); margin: 0 0 8px;">Determina quem recebe baseado nas preferências de cada usuário.</p>' +
+            '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + (window._t||function(k){return k;})('org.commLevel') + '</label>' +
+            '<p style="font-size: 0.65rem; color: var(--text-muted); margin: 0 0 8px;">' + (window._t||function(k){return k;})('org.commLevelDesc') + '</p>' +
             '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">' +
-              '<button type="button" class="btn org-comm-level-btn" data-level="fundamental" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #f87171; cursor: pointer; text-align: center;">🔴 Fundamental</button>' +
-              '<button type="button" class="btn org-comm-level-btn" data-level="important" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 2px solid rgba(251,191,36,0.7); background: rgba(251,191,36,0.25); color: #fbbf24; cursor: pointer; text-align: center; box-shadow: 0 0 8px rgba(251,191,36,0.2);">🟡 Importante</button>' +
-              '<button type="button" class="btn org-comm-level-btn" data-level="all" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981; cursor: pointer; text-align: center;">🟢 Geral</button>' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="fundamental" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #f87171; cursor: pointer; text-align: center;">🔴 ' + (window._t||function(k){return k;})('org.levelFundamental') + '</button>' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="important" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 2px solid rgba(251,191,36,0.7); background: rgba(251,191,36,0.25); color: #fbbf24; cursor: pointer; text-align: center; box-shadow: 0 0 8px rgba(251,191,36,0.2);">🟡 ' + (window._t||function(k){return k;})('org.levelImportant') + '</button>' +
+              '<button type="button" class="btn org-comm-level-btn" data-level="all" onclick="window._selectCommLevel(this, \'' + tId + '\')" style="padding: 8px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981; cursor: pointer; text-align: center;">🟢 ' + (window._t||function(k){return k;})('org.levelGeneral') + '</button>' +
             '</div>' +
             '<input type="hidden" id="org-comm-level-' + tId + '" value="important">' +
           '</div>' +
           '<div style="display: flex; gap: 8px;">' +
-            '<button type="button" class="btn btn-primary" style="flex: 1;" onclick="window._confirmSendComm(\'' + tId + '\')">Enviar Comunicado</button>' +
-            '<button type="button" class="btn btn-outline" style="flex: 0.6;" onclick="document.getElementById(\'' + modalId + '\').remove();">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary" style="flex: 1;" onclick="window._confirmSendComm(\'' + tId + '\')">' + (window._t||function(k){return k;})('org.sendComm') + '</button>' +
+            '<button type="button" class="btn btn-outline" style="flex: 0.6;" onclick="document.getElementById(\'' + modalId + '\').remove();">' + (window._t||function(k){return k;})('org.cancel') + '</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -343,7 +344,8 @@ window._confirmSendComm = async function(tId) {
     var message = textEl ? textEl.value.trim() : '';
     var level = levelEl ? levelEl.value : 'important';
     if (!message) {
-        if (typeof showAlertDialog !== 'undefined') showAlertDialog('Mensagem Obrigatória', 'Digite uma mensagem para enviar.', null, { type: 'warning' });
+        var _t = window._t || function(k) { return k; };
+        if (typeof showAlertDialog !== 'undefined') showAlertDialog(_t('org.msgRequired'), _t('org.msgRequiredDesc'), null, { type: 'warning' });
         return;
     }
 
@@ -360,7 +362,7 @@ window._confirmSendComm = async function(tId) {
     if (modalEl) modalEl.remove();
 
     var count = result ? result.emails.length + result.phones.length : 0;
-    if (typeof showNotification !== 'undefined') showNotification('Comunicado Enviado!', 'Notificações enviadas para os inscritos do torneio.', 'success');
+    if (typeof showNotification !== 'undefined') showNotification((window._t||function(k){return k;})('org.commSentTitle'), (window._t||function(k){return k;})('org.commSentMsg'), 'success');
 
     // Open email/WhatsApp if collected
     if (result && result.emails.length > 0) {

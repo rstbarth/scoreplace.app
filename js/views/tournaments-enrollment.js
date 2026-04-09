@@ -1,6 +1,7 @@
 // tournaments-enrollment.js — Enrollment/deenrollment system (extracted from tournaments.js)
 
 (function() {
+var _t = window._t || function(k) { return k; };
 
 window.enrollCurrentUser = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -25,14 +26,14 @@ window.enrollCurrentUser = function (tId) {
     if (t) {
         // Verifica se as inscrições estão realmente abertas
         if (t.status === 'finished') {
-            showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
+            showAlertDialog(_t('enroll.tournamentFinished'), _t('enroll.tournamentFinishedMsg'), null, { type: 'warning' });
             return;
         }
         const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
         if (!inscricoesAbertas) {
-            showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
+            showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
             return;
         }
         if (t.enrollmentMode === 'time' && (t.teamSize || 2) > 1) {
@@ -88,7 +89,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
     if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
         window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
             if (result.alreadyEnrolled) {
-                if (typeof showNotification !== 'undefined') showNotification('Já Inscrito', 'Você já está inscrito neste torneio.', 'info');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
                 window._scrollToParticipant(tId, user.displayName);
                 return;
             }
@@ -96,9 +97,9 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             t.participants = result.participants;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + window._safeHtml(t.name) + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
             }
-            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Você foi inscrito com sucesso no torneio "' + window._safeHtml(t.name) + '".', 'success');
+            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
             // Notify organizer about new enrollment
             if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
@@ -152,7 +153,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             window._scrollToParticipant(tId, user.displayName);
         }).catch(function(err) {
             console.warn('Enroll transaction error:', err);
-            if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível completar a inscrição. Tente novamente.', 'error');
+            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.errorMsg'), 'error');
         });
     }
 };
@@ -164,14 +165,14 @@ window.submitTeamEnroll = function (tId) {
 
     // Verifica se as inscrições estão realmente abertas
     if (t.status === 'finished') {
-        showAlertDialog('Torneio Encerrado', 'Este torneio já foi encerrado.', null, { type: 'warning' });
+        showAlertDialog(_t('enroll.tournamentFinished'), _t('enroll.tournamentFinishedMsg'), null, { type: 'warning' });
         return;
     }
     const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
     const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
     const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
     if (!inscricoesAbertas) {
-        showAlertDialog('Inscrições Encerradas', 'As inscrições para este torneio estão encerradas.', null, { type: 'warning' });
+        showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
         return;
     }
 
@@ -186,7 +187,7 @@ window.submitTeamEnroll = function (tId) {
     });
 
     if (!allFilled) {
-        showAlertDialog('Campos Obrigatórios', 'Por favor, preencha o nome de todos os integrantes do seu time.', null, { type: 'warning' });
+        showAlertDialog(_t('enroll.requiredFields'), _t('enroll.requiredFieldsMsg'), null, { type: 'warning' });
         return;
     }
 
@@ -203,7 +204,7 @@ window.submitTeamEnroll = function (tId) {
     if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
         window.FirestoreDB.enrollParticipant(tId, participantObj, { teamOrigins: _teamOrigins }).then(function(result) {
             if (result.alreadyEnrolled) {
-                if (typeof showNotification !== 'undefined') showNotification('Já Inscrito', 'Você já está inscrito neste torneio.', 'info');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
                 window._scrollToParticipant(tId, user.displayName);
                 return;
             }
@@ -211,9 +212,9 @@ window.submitTeamEnroll = function (tId) {
             t.teamOrigins = _teamOrigins;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + window._safeHtml(t.name) + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
             }
-            if (typeof showNotification !== 'undefined') showNotification('✅ Inscrito!', 'Equipe inscrita com sucesso no torneio "' + window._safeHtml(t.name) + '".', 'success');
+            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.teamEnrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
             // Notify organizer about new team enrollment
             if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
@@ -266,7 +267,7 @@ window.submitTeamEnroll = function (tId) {
             window._scrollToParticipant(tId, teamString);
         }).catch(function(err) {
             console.warn('Team enroll transaction error:', err);
-            if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível completar a inscrição. Tente novamente.', 'error');
+            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.errorMsg'), 'error');
         });
     }
 };
@@ -277,8 +278,8 @@ window.deenrollCurrentUser = function (tId) {
     if (!user) return;
     if (t && t.participants) {
         showConfirmDialog(
-            'Cancelar Inscrição',
-            'Deseja realmente cancelar sua inscrição neste torneio?',
+            _t('enroll.cancelEnroll'),
+            _t('enroll.cancelEnrollMsg'),
             () => {
                 let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
                 arr = arr.filter(p => {
@@ -321,7 +322,7 @@ window.deenrollCurrentUser = function (tId) {
                     });
                 }
 
-                if (typeof showNotification !== 'undefined') showNotification('Inscrição Cancelada', 'Sua inscrição foi removida do torneio "' + window._safeHtml(t.name) + '".', 'info');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.cancelledTitle'), _t('enroll.cancelledMsg', { name: window._safeHtml(t.name) }), 'info');
 
                 const container = document.getElementById('view-container');
                 if (container) {
@@ -329,7 +330,7 @@ window.deenrollCurrentUser = function (tId) {
                 }
             },
             null,
-            { type: 'warning', confirmText: 'Cancelar Inscrição', cancelText: 'Manter' }
+            { type: 'warning', confirmText: _t('enroll.cancelEnroll'), cancelText: _t('enroll.keep') }
         );
     }
 };
@@ -338,8 +339,8 @@ window.addParticipantFunction = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
     showInputDialog(
-        'Adicionar Participante',
-        'Digite o nome do novo participante:',
+        _t('enroll.addParticipant'),
+        _t('enroll.addParticipantMsg'),
         (pName) => {
             if (!pName || !pName.trim()) return;
             let arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
@@ -354,7 +355,7 @@ window.addParticipantFunction = function (tId) {
             const container = document.getElementById('view-container');
             if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
         },
-        { placeholder: 'Nome do participante', okText: 'Adicionar' }
+        { placeholder: _t('enroll.participantName'), okText: _t('enroll.add') }
     );
 };
 
@@ -365,11 +366,11 @@ window.addTeamFunction = function (tId) {
     const items = Array.from({ length: teamSize }, (_, i) => ({ placeholder: `Nome do integrante ${i + 1}` }));
 
     showMultiInputDialog(
-        'Adicionar Time',
+        _t('enroll.addTeam'),
         items,
         (teamNames) => {
             if (!teamNames || teamNames.some(n => !n.trim())) {
-                showAlertDialog('Inscrição Cancelada', 'Todos os campos devem ser preenchidos.', null, { type: 'info' });
+                showAlertDialog(_t('enroll.cancelledTitle'), _t('enroll.allFieldsRequired'), null, { type: 'info' });
                 return;
             }
             const teamString = teamNames.join(' / ');
@@ -397,12 +398,12 @@ window.deleteTournamentFunction = function (tId) {
     // Only the original creator can delete
     var _t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
     if (_t && !window.AppStore.isCreator(_t)) {
-      showAlertDialog('Sem Permissao', 'Apenas o criador original pode apagar o torneio.', null, { type: 'warning' });
+      showAlertDialog(_t('enroll.noPermission'), _t('enroll.onlyCreatorDelete'), null, { type: 'warning' });
       return;
     }
     showConfirmDialog(
-        'Apagar Torneio',
-        'TEM CERTEZA absoluta que deseja apagar este torneio? Esta ação NÃO pode ser desfeita. O torneio será removido permanentemente para todos os usuários.',
+        _t('enroll.deleteTournament'),
+        _t('enroll.deleteTournamentMsg'),
         () => {
             const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === tId.toString());
             if (idx !== -1) {
@@ -424,7 +425,7 @@ window.deleteTournamentFunction = function (tId) {
                         try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
                     }).catch(function(err) {
                         console.error('Erro ao deletar torneio do Firestore:', err);
-                        showNotification('Erro ao Apagar', 'Não foi possível apagar do servidor. Tente novamente mais tarde.', 'error');
+                        showNotification(_t('enroll.deleteError'), _t('enroll.deleteErrorMsg'), 'error');
                     });
                 }
 
@@ -434,12 +435,12 @@ window.deleteTournamentFunction = function (tId) {
                 // Limpa cache antigo do boratime se existir
                 try { localStorage.removeItem('boratime_state'); } catch(e) {}
 
-                showNotification('Torneio Apagado', 'O torneio foi removido permanentemente.', 'success');
+                showNotification(_t('enroll.deletedTitle'), _t('enroll.deletedMsg'), 'success');
                 window.location.hash = '#dashboard';
             }
         },
         null,
-        { type: 'danger', confirmText: 'Apagar Permanentemente', cancelText: 'Manter Torneio' }
+        { type: 'danger', confirmText: _t('enroll.deletePermanently'), cancelText: _t('enroll.keepTournament') }
     );
 };
 

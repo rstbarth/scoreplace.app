@@ -3,11 +3,12 @@
 // ========================================
 
 function renderExplore(container) {
+  var _t = window._t || function(k) { return k; };
   var cu = window.AppStore.currentUser;
   if (!cu) {
     container.innerHTML = '<div class="card" style="padding: 2rem; text-align: center;">' +
-      '<p style="color: var(--text-muted); font-size: 1.1rem;">Faça login para explorar a comunidade scoreplace.app</p>' +
-      '<button class="btn btn-primary" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\');" style="margin-top: 1rem;">Entrar</button>' +
+      '<p style="color: var(--text-muted); font-size: 1.1rem;">' + _t('explore.loginRequired') + '</p>' +
+      '<button class="btn btn-primary" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\');" style="margin-top: 1rem;">' + _t('explore.login') + '</button>' +
     '</div>';
     return;
   }
@@ -19,7 +20,7 @@ function renderExplore(container) {
 
   container.innerHTML =
     '<div style="max-width: 800px; margin: 0 auto;">' +
-      '<h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-bright);">Explorar Comunidade</h2>' +
+      '<h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-bright);">' + _t('explore.title') + '</h2>' +
 
       // Pending friend requests
       '<div id="explore-pending"></div>' +
@@ -32,8 +33,8 @@ function renderExplore(container) {
 
       // Search bar
       '<div style="display: flex; gap: 10px; margin-bottom: 1.25rem;">' +
-        '<input type="text" id="explore-search-input" class="form-control" placeholder="Buscar por nome, cidade ou esporte..." style="flex: 1; box-sizing: border-box;">' +
-        '<button class="btn btn-primary" id="explore-search-btn">Buscar</button>' +
+        '<input type="text" id="explore-search-input" class="form-control" placeholder="' + _t('explore.searchPlaceholder') + '" style="flex: 1; box-sizing: border-box;">' +
+        '<button class="btn btn-primary" id="explore-search-btn">' + _t('explore.search') + '</button>' +
       '</div>' +
 
       // Non-friend, non-conhecido results
@@ -116,7 +117,8 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
 function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   var resultsDiv = document.getElementById('explore-results');
   if (!resultsDiv) return;
-  resultsDiv.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">Buscando...</div>';
+  var _t = window._t || function(k) { return k; };
+  resultsDiv.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">' + _t('explore.searching') + '</div>';
 
   window.FirestoreDB.searchUsers(query).then(function(users) {
     // Filter out self, friends, and conhecidos (shown in their own sections)
@@ -142,12 +144,12 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
 
     if (users.length === 0) {
       resultsDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">' +
-        (query ? 'Nenhum usuário encontrado para "' + window._safeHtml(query) + '"' : 'Nenhum outro usuário disponível no momento') +
+        (query ? _t('explore.noResultsFor') + ' "' + window._safeHtml(query) + '"' : _t('explore.noUsers')) +
       '</div>';
       return;
     }
 
-    var html = '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Outros Usuários</div>';
+    var html = '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + _t('explore.otherUsers') + '</div>';
     html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
     users.forEach(function(u) {
@@ -158,14 +160,14 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
       var actionBtn = '';
       var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       if (isSent) {
-        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
+        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">Aceitar</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
         '</div>';
       } else {
-        actionBtn = '<button class="btn btn-primary btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">Convidar</button>';
+        actionBtn = '<button class="btn btn-primary btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
       }
 
       html += _userCardHtml(u, uid, actionBtn, false);
@@ -174,7 +176,7 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
     html += '</div>';
     resultsDiv.innerHTML = html;
   }).catch(function(err) {
-    resultsDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao buscar: ' + window._safeHtml(err.message || err.toString()) + '</div>';
+    resultsDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger-color);">' + _t('explore.searchError') + ': ' + window._safeHtml(err.message || err.toString()) + '</div>';
   });
 }
 
@@ -195,7 +197,7 @@ function _renderPendingRequests(myUid, receivedIds) {
     if (profiles.length === 0) { div.innerHTML = ''; return; }
 
     var html = '<div style="margin-bottom: 1.25rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Convites Pendentes</div>';
+      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.pendingInvites') + '</div>';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
@@ -209,11 +211,11 @@ function _renderPendingRequests(myUid, receivedIds) {
         '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
         '<div style="flex: 1; min-width: 0;">' +
           '<span style="font-weight: 600; color: var(--text-bright); font-size: 0.9rem;">' + window._safeHtml(name) + '</span>' +
-          '<div style="font-size: 0.75rem; color: var(--text-muted);">quer ser seu amigo(a)</div>' +
+          '<div style="font-size: 0.75rem; color: var(--text-muted);">' + (window._t || function(k){return k;})('explore.wantsToBeFriend') + '</div>' +
         '</div>' +
         '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
-          '<button class="btn btn-success btn-sm" onclick="_acceptFriend(\'' + safeUidPending + '\')">Aceitar</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="_rejectFriend(\'' + safeUidPending + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="_acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="_rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
         '</div>' +
       '</div>';
     });
@@ -233,7 +235,7 @@ function _renderMyFriends(myUid, friendIds) {
     return Promise.resolve();
   }
 
-  div.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">Carregando amigos...</div>';
+  div.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">' + (window._t || function(k){return k;})('explore.loadingFriends') + '</div>';
 
   var promises = friendIds.map(function(uid) {
     return window.FirestoreDB.loadUserProfile(uid).then(function(profile) {
@@ -283,13 +285,13 @@ function _renderMyFriends(myUid, friendIds) {
     });
 
     var html = '<div style="margin-bottom: 1.5rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: var(--success-color); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Meus Amigos (' + profiles.length + ')</div>' +
+      '<div style="font-weight: 600; font-size: 0.9rem; color: var(--success-color); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.myFriends') + ' (' + profiles.length + ')</div>' +
       '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
       var safeUidFriend = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var unfriendBtn = '<button class="btn btn-danger btn-sm" style="width: 100%; opacity: 0.7;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + safeUidFriend + '\')">Desfazer amizade</button>';
+      var unfriendBtn = '<button class="btn btn-danger btn-sm" style="width: 100%; opacity: 0.7;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + safeUidFriend + '\')">' + (window._t || function(k){return k;})('explore.unfriend') + '</button>';
       html += _userCardHtml(u, uid, unfriendBtn, true);
     });
 
@@ -427,32 +429,33 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     profiles.sort(function(a, b) { return (b._sharedCount || 0) - (a._sharedCount || 0); });
 
     var html = '<div style="margin-bottom: 1.5rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Conhecidos (' + profiles.length + ')</div>' +
+      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.acquaintances') + ' (' + profiles.length + ')</div>' +
       '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
+    var _tLocal = window._t || function(k){return k;};
     profiles.forEach(function(u) {
       var uid = u._docId || u.email;
       var isSent = mySent.indexOf(uid) !== -1;
       var isReceived = myReceived.indexOf(uid) !== -1;
 
       // Info line: shared tournaments
-      var sharedText = (u._sharedCount || 0) + ' torneio' + ((u._sharedCount || 0) !== 1 ? 's' : '') + ' em comum';
+      var sharedText = (u._sharedCount || 0) + ' ' + _tLocal('explore.sharedTournaments');
       u._extraInfo = sharedText;
 
       var safeUidConhecido = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       var actionBtn = '';
       if (isSent) {
-        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="Clique para cancelar o convite">✉️ Convite enviado ✕</button>';
+        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
       } else if (isReceived) {
         actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUidConhecido + '\')">Aceitar</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUidConhecido + '\')">Recusar</button>' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
         '</div>';
       } else {
         // Check if user accepts friend requests
         var canInvite = u.acceptFriendRequests !== false;
         if (canInvite) {
-          actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUidConhecido + '\')">Convidar</button>';
+          actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
         } else {
           actionBtn = '';
         }
@@ -492,7 +495,7 @@ window._cancelFriendRequest = function(toUid) {
 
   window.FirestoreDB.cancelFriendRequest(myUid, toUid).then(function() {
     if (typeof showNotification !== 'undefined') {
-      showNotification('Convite Cancelado', 'O convite de amizade foi cancelado.', 'info');
+      showNotification((window._t||function(k){return k;})('explore.notifInviteCancelled'), (window._t||function(k){return k;})('explore.notifInviteCancelledMsg'), 'info');
     }
     var container = document.getElementById('view-container');
     if (container) renderExplore(container);
@@ -516,14 +519,14 @@ window._sendFriendRequest = function(toUid) {
       cu.friendRequestsSent = (cu.friendRequestsSent || []).filter(function(id) { return id !== toUid; });
       cu.friendRequestsReceived = (cu.friendRequestsReceived || []).filter(function(id) { return id !== toUid; });
       if (typeof showNotification !== 'undefined') {
-        showNotification('Amizade Formada!', 'Vocês já tinham convites mútuos — agora são amigos!', 'success');
+        showNotification((window._t||function(k){return k;})('explore.notifFriendshipFormed'), (window._t||function(k){return k;})('explore.notifFriendshipFormedMsg'), 'success');
       }
     } else {
       // Normal request sent
       if (!cu.friendRequestsSent) cu.friendRequestsSent = [];
       cu.friendRequestsSent.push(toUid);
       if (typeof showNotification !== 'undefined') {
-        showNotification('Convite Enviado', 'Seu convite de amizade foi enviado!', 'success');
+        showNotification((window._t||function(k){return k;})('explore.notifInviteSent'), (window._t||function(k){return k;})('explore.notifInviteSentMsg'), 'success');
       }
     }
     var container = document.getElementById('view-container');
@@ -545,7 +548,7 @@ window._acceptFriend = function(friendUid) {
 
   window.FirestoreDB.acceptFriendRequest(myUid, friendUid).then(function() {
     if (typeof showNotification !== 'undefined') {
-      showNotification('Amizade Aceita', 'Vocês agora são amigos!', 'success');
+      showNotification((window._t||function(k){return k;})('explore.notifFriendAccepted'), (window._t||function(k){return k;})('explore.notifFriendAcceptedMsg'), 'success');
     }
     if (typeof _updateNotificationBadge === 'function') _updateNotificationBadge();
     var container = document.getElementById('view-container');
@@ -562,7 +565,7 @@ window._rejectFriend = function(friendUid) {
 
   window.FirestoreDB.rejectFriendRequest(myUid, friendUid).then(function() {
     if (typeof showNotification !== 'undefined') {
-      showNotification('Convite Recusado', 'O convite de amizade foi recusado.', 'info');
+      showNotification((window._t||function(k){return k;})('explore.notifInviteRejected'), (window._t||function(k){return k;})('explore.notifInviteRejectedMsg'), 'info');
     }
     var container = document.getElementById('view-container');
     if (container) renderExplore(container);
@@ -576,18 +579,18 @@ window._removeFriend = function(friendUid) {
 
   // Confirm before removing
   if (typeof showAlertDialog === 'function') {
-    showAlertDialog('Desfazer Amizade', 'Tem certeza que deseja desfazer esta amizade?', function() {
+    showAlertDialog((window._t||function(k){return k;})('explore.unfriendTitle'), (window._t||function(k){return k;})('explore.unfriendConfirm'), function() {
       // Update local state
       cu.friends = (cu.friends || []).filter(function(id) { return id !== friendUid; });
 
       window.FirestoreDB.removeFriend(myUid, friendUid).then(function() {
         if (typeof showNotification !== 'undefined') {
-          showNotification('Amizade Desfeita', 'A amizade foi removida.', 'info');
+          showNotification((window._t||function(k){return k;})('explore.notifUnfriended'), (window._t||function(k){return k;})('explore.notifUnfriendedMsg'), 'info');
         }
         var container = document.getElementById('view-container');
         if (container) renderExplore(container);
       });
-    }, { type: 'warning', confirmText: 'Sim, desfazer', cancelText: 'Cancelar' });
+    }, { type: 'warning', confirmText: (window._t||function(k){return k;})('explore.unfriendYes'), cancelText: (window._t||function(k){return k;})('explore.cancel') });
   } else {
     // Fallback without dialog
     cu.friends = (cu.friends || []).filter(function(id) { return id !== friendUid; });
