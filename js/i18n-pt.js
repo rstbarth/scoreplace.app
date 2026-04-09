@@ -97,6 +97,7 @@ window._translations['pt'] = {
   'monarch.advanceHelp': 'Os classificados avancam automaticamente para eliminatoria ate coroar o Rei/Rainha.',
   'monarch.classified1': '1 (Rei/Rainha)',
   'monarch.classified2': '2 (Top 2)',
+  'monarch.minParticipantsTitle': 'Minimo 4 Participantes',
   'monarch.minParticipants': 'O formato Rei/Rainha da Praia precisa de pelo menos 4 participantes.',
   'monarch.drawDone': 'Sorteio Realizado!',
   'monarch.groupsFormed': '{count} grupos formados para Rei/Rainha da Praia.',

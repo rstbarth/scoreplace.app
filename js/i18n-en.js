@@ -97,6 +97,7 @@ window._translations['en'] = {
   'monarch.advanceHelp': 'Qualified players automatically advance to knockout until a King/Queen is crowned.',
   'monarch.classified1': '1 (King/Queen)',
   'monarch.classified2': '2 (Top 2)',
+  'monarch.minParticipantsTitle': 'Minimum 4 Participants',
   'monarch.minParticipants': 'King/Queen of the Beach format requires at least 4 participants.',
   'monarch.drawDone': 'Draw Complete!',
   'monarch.groupsFormed': '{count} groups formed for King/Queen of the Beach.',
