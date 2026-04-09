@@ -247,6 +247,25 @@ window._translations['pt'] = {
   'poll.awaitingVote': 'Aguardando seu voto',
   'poll.result': 'Resultado da enquete',
 
+  // Create tournament form
+  'create.drawMode': 'Modo de Sorteio',
+  'create.drawModeSorteio': 'Sorteio',
+  'create.drawModeSorteioDesc': 'Sorteio padrao com chaveamento aleatorio.',
+  'create.drawModeMonarchDesc': 'Grupos de 4 com parceiros rotativos. Pontuacao individual. Top classificados avancam para eliminatoria.',
+  'create.descElimSimples': 'Eliminacao na primeira derrota.',
+  'create.descElimDupla': 'Eliminacao na segunda derrota (chave de perdedores).',
+  'create.descGrupos': 'Fase de grupos seguida de eliminatorias (estilo Copa do Mundo).',
+  'create.descSuico': 'Pontos corridos com emparelhamentos baseados em pontuacao.',
+  'create.descLiga': 'Temporada continua com classificacao por pontos.',
+  'create.gameType': 'Tipo de Jogo',
+  'create.gameSimples': 'Simples',
+  'create.gameDuplas': 'Duplas',
+  'create.gameTypeHint': 'Selecione um ou ambos. Se ambos, o torneio tera chaves paralelas.',
+  'create.enrollMode': 'Modo de Inscricao',
+  'create.enrollModeIndividualDesc': 'Jogadores se inscrevem individualmente.',
+  'create.enrollModeTimeDesc': 'Apenas times podem se inscrever.',
+  'create.enrollModeMistoDesc': 'Aceita inscricoes individuais e de times.',
+
   // Quick create
   'quickCreate.title': 'Novo Torneio',
   'quickCreate.sportLabel': 'Modalidade Esportiva',

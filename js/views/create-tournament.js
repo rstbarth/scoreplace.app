@@ -98,25 +98,34 @@ function setupCreateTournamentModal() {
 
               <!-- Formato -->
               <div class="form-group mb-3">
-                <label class="form-label">Formato do Torneio</label>
+                <label class="form-label">${_t('tournament.format')}</label>
                 <!-- Hidden select for backward compatibility -->
                 <select class="form-control" id="select-formato" onchange="window._onFormatoChange()" style="display:none;">
-                  <option value="elim_simples">Eliminatórias Simples — eliminação na primeira derrota</option>
-                  <option value="elim_dupla">Dupla Eliminatória — eliminação na segunda derrota</option>
-                  <option value="grupos_mata">Fase de Grupos + Eliminatórias — estilo Copa do Mundo</option>
-                  <option value="rei_rainha">Rei/Rainha da Praia — grupos de 4 com parceiros rotativos</option>
-                  <option value="suico">Suíço Clássico — pontos corridos com emparelhamentos por pontos</option>
-                  <option value="liga">Liga — temporada contínua com classificação por pontos</option>
+                  <option value="elim_simples">Eliminatórias Simples</option>
+                  <option value="elim_dupla">Dupla Eliminatória</option>
+                  <option value="grupos_mata">Fase de Grupos + Eliminatórias</option>
+                  <option value="suico">Suíço Clássico</option>
+                  <option value="liga">Liga</option>
                 </select>
                 <div id="formato-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <button type="button" class="formato-btn formato-btn-active" data-value="elim_simples" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;">Eliminatórias</button>
-                  <button type="button" class="formato-btn" data-value="elim_dupla" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Dupla Eliminatória</button>
-                  <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Grupos + Elim.</button>
-                  <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Suíço</button>
-                  <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Liga</button>
-                  <button type="button" class="formato-btn" data-value="rei_rainha" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Rei/Rainha</button>
+                  <button type="button" class="formato-btn formato-btn-active" data-value="elim_simples" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;">${_t('format.single')}</button>
+                  <button type="button" class="formato-btn" data-value="elim_dupla" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">${_t('format.double')}</button>
+                  <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">${_t('format.groupsShort')}</button>
+                  <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">${_t('format.swiss')}</button>
+                  <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">${_t('format.league')}</button>
                 </div>
-                <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">Eliminação na primeira derrota.</small>
+                <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">${_t('format.single')} — ${_t('create.descElimSimples')}</small>
+              </div>
+
+              <!-- Modo de Sorteio -->
+              <div class="form-group mb-3" id="draw-mode-container">
+                <label class="form-label">${_t('create.drawMode')}</label>
+                <input type="hidden" id="draw-mode" value="sorteio">
+                <div id="draw-mode-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" class="draw-mode-btn draw-mode-active" data-value="sorteio" onclick="window._selectDrawMode(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;">🎲 ${_t('create.drawModeSorteio')}</button>
+                  <button type="button" class="draw-mode-btn" data-value="rei_rainha" id="btn-draw-mode-monarch" onclick="window._selectDrawMode(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">👑 ${_t('format.monarchShort')}</button>
+                </div>
+                <small class="text-muted" style="display:block;margin-top:4px;" id="draw-mode-desc">${_t('create.drawModeSorteioDesc')}</small>
               </div>
 
               <!-- Rei/Rainha da Praia (logo abaixo do formato, visível só quando rei_rainha selecionado) -->
@@ -428,28 +437,38 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="gsm-advantageRule" value="false">
               </div>
 
-              <!-- Inscrição, Limite e Time -->
+              <!-- Inscrição e Limite -->
               <div class="d-flex gap-2 mb-3">
                 <div class="form-group full-width">
                   <label class="form-label">Máx. Participantes</label>
                   <input type="number" class="form-control" id="tourn-max-participants" min="2" placeholder="Sem limite" oninput="window._updateAutoCloseVisibility(); window._recalcDuration()">
                 </div>
                 <div class="form-group full-width">
-                  <label class="form-label">Tipo de Jogo</label>
+                  <label class="form-label">${_t('create.gameType')}</label>
                   <div id="game-type-buttons" style="display:flex;gap:8px;">
-                    <button type="button" id="btn-tipo-simples" class="game-type-btn" onclick="window._toggleGameType('simples')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">Simples</button>
-                    <button type="button" id="btn-tipo-duplas" class="game-type-btn game-type-active" onclick="window._toggleGameType('duplas')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">Duplas</button>
+                    <button type="button" id="btn-tipo-simples" class="game-type-btn" onclick="window._toggleGameType('simples')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('create.gameSimples')}</button>
+                    <button type="button" id="btn-tipo-duplas" class="game-type-btn game-type-active" onclick="window._toggleGameType('duplas')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">${_t('create.gameDuplas')}</button>
                   </div>
-                  <small class="text-muted" style="display:block;margin-top:4px;">Selecione um ou ambos. Se ambos, o torneio terá chaves paralelas.</small>
-                  <!-- Hidden fields for backward compat -->
-                  <select class="form-control" id="select-inscricao" style="display:none;">
-                    <option value="individual">Individual</option>
-                    <option value="time">Apenas Times</option>
-                    <option value="misto">Misto (Individual e Times)</option>
-                  </select>
+                  <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gameTypeHint')}</small>
                   <input type="hidden" id="tourn-team-size" value="2">
                   <input type="hidden" id="tourn-game-types" value="duplas">
                 </div>
+              </div>
+
+              <!-- Modo de Inscrição -->
+              <div class="form-group mb-3">
+                <label class="form-label">${_t('create.enrollMode')}</label>
+                <select class="form-control" id="select-inscricao" style="display:none;">
+                  <option value="individual">Individual</option>
+                  <option value="time">Apenas Times</option>
+                  <option value="misto">Misto (Individual e Times)</option>
+                </select>
+                <div id="enroll-mode-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" class="enroll-mode-btn enroll-mode-active" data-value="individual" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #a78bfa;background:rgba(167,139,250,0.15);color:#a78bfa;font-weight:600;text-align:center;">${_t('enroll.modeIndividual')}</button>
+                  <button type="button" class="enroll-mode-btn" data-value="time" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('enroll.modeTeam')}</button>
+                  <button type="button" class="enroll-mode-btn" data-value="misto" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('enroll.modeMixed')}</button>
+                </div>
+                <small class="text-muted" style="display:block;margin-top:4px;" id="enroll-mode-desc">${_t('create.enrollModeIndividualDesc')}</small>
               </div>
 
               <!-- Auto-close (apenas eliminatórias) -->
@@ -739,19 +758,24 @@ function setupCreateTournamentModal() {
     var teamSizeField = document.getElementById('tourn-team-size');
     var inscricaoField = document.getElementById('select-inscricao');
 
+    var enrollVal;
     if (simplesOn && duplasOn) {
       if (gameTypesField) gameTypesField.value = 'simples,duplas';
       if (teamSizeField) teamSizeField.value = '2';
-      if (inscricaoField) inscricaoField.value = 'misto';
+      enrollVal = 'misto';
     } else if (duplasOn) {
       if (gameTypesField) gameTypesField.value = 'duplas';
       if (teamSizeField) teamSizeField.value = '2';
-      if (inscricaoField) inscricaoField.value = 'time';
+      enrollVal = 'time';
     } else {
       if (gameTypesField) gameTypesField.value = 'simples';
       if (teamSizeField) teamSizeField.value = '1';
-      if (inscricaoField) inscricaoField.value = 'individual';
+      enrollVal = 'individual';
     }
+    if (inscricaoField) inscricaoField.value = enrollVal;
+    // Sync enrollment mode buttons
+    var emBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + enrollVal + '"]');
+    if (emBtn) window._selectEnrollMode(emBtn);
 
     // Update category preview to reflect game type change
     if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
@@ -759,12 +783,20 @@ function setupCreateTournamentModal() {
 
   // ── Formato Button Selection ──
   var _formatoDescs = {
-    'elim_simples': 'Eliminação na primeira derrota.',
-    'elim_dupla': 'Eliminação na segunda derrota (chave de perdedores).',
-    'grupos_mata': 'Fase de grupos seguida de eliminatórias (estilo Copa do Mundo).',
-    'suico': 'Pontos corridos com emparelhamentos baseados em pontuação.',
-    'liga': 'Temporada contínua com classificação por pontos.',
-    'rei_rainha': 'Grupos de 4 com parceiros rotativos. Pontuação individual. Quem vencer os 3 jogos é o Rei/Rainha.'
+    'elim_simples': _t('create.descElimSimples'),
+    'elim_dupla': _t('create.descElimDupla'),
+    'grupos_mata': _t('create.descGrupos'),
+    'suico': _t('create.descSuico'),
+    'liga': _t('create.descLiga')
+  };
+  var _drawModeDescs = {
+    'sorteio': _t('create.drawModeSorteioDesc'),
+    'rei_rainha': _t('create.drawModeMonarchDesc')
+  };
+  var _enrollModeDescs = {
+    'individual': _t('create.enrollModeIndividualDesc'),
+    'time': _t('create.enrollModeTimeDesc'),
+    'misto': _t('create.enrollModeMistoDesc')
   };
   window._selectFormato = function(btn) {
     var value = btn.getAttribute('data-value');
@@ -791,6 +823,62 @@ function setupCreateTournamentModal() {
     var descEl = document.getElementById('formato-desc');
     if (descEl) descEl.textContent = _formatoDescs[value] || '';
     window._onFormatoChange();
+  };
+
+  // ── Draw Mode Selection (Sorteio / Rei/Rainha) ──
+  window._selectDrawMode = function(btn) {
+    var value = btn.getAttribute('data-value');
+    var btns = document.querySelectorAll('#draw-mode-buttons .draw-mode-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('draw-mode-active');
+        b.style.border = '2px solid #34d399';
+        b.style.background = 'rgba(16,185,129,0.15)';
+        b.style.color = '#34d399';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('draw-mode-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '600';
+      }
+    });
+    var hidden = document.getElementById('draw-mode');
+    if (hidden) hidden.value = value;
+    var descEl = document.getElementById('draw-mode-desc');
+    if (descEl) descEl.textContent = _drawModeDescs[value] || '';
+    // Show/hide Rei/Rainha config and update dependent fields
+    var rrFields = document.getElementById('rei-rainha-fields');
+    if (rrFields) rrFields.style.display = value === 'rei_rainha' ? 'block' : 'none';
+    // Re-trigger format change to sync Liga round format toggle etc.
+    window._onFormatoChange();
+  };
+
+  // ── Enrollment Mode Selection ──
+  window._selectEnrollMode = function(btn) {
+    var value = btn.getAttribute('data-value');
+    var btns = document.querySelectorAll('#enroll-mode-buttons .enroll-mode-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('enroll-mode-active');
+        b.style.border = '2px solid #a78bfa';
+        b.style.background = 'rgba(167,139,250,0.15)';
+        b.style.color = '#a78bfa';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('enroll-mode-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '600';
+      }
+    });
+    // Sync hidden select
+    var sel = document.getElementById('select-inscricao');
+    if (sel) sel.value = value;
+    var descEl = document.getElementById('enroll-mode-desc');
+    if (descEl) descEl.textContent = _enrollModeDescs[value] || '';
   };
 
   // ── Result Entry Selection ──
@@ -921,7 +1009,7 @@ function setupCreateTournamentModal() {
     // Format label
     var formatMap = {
       liga: 'Liga', suico: 'Suíço', elim_simples: 'Eliminatórias',
-      elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.', rei_rainha: 'Rei/Rainha'
+      elim_dupla: 'Dupla Elim.', grupos_mata: 'Grupos + Elim.'
     };
     var formatLabel = formatMap[formatValue] || '';
 
@@ -1168,7 +1256,8 @@ function setupCreateTournamentModal() {
     const isSuico = fmt === 'suico';
     const isLiga = fmt === 'liga';
     const isGrupos = fmt === 'grupos_mata';
-    const isMonarch = fmt === 'rei_rainha';
+    const drawMode = document.getElementById('draw-mode').value;
+    const isMonarch = drawMode === 'rei_rainha';
 
     document.getElementById('suico-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('liga-fields').style.display = isLiga ? 'block' : 'none';
@@ -1176,6 +1265,30 @@ function setupCreateTournamentModal() {
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
     document.getElementById('rei-rainha-fields').style.display = isMonarch ? 'block' : 'none';
+
+    // Grupos + Elim. incompatível com Rei/Rainha: esconder botão e forçar Sorteio
+    var monarchDrawBtn = document.getElementById('btn-draw-mode-monarch');
+    if (monarchDrawBtn) {
+      if (isGrupos) {
+        monarchDrawBtn.style.display = 'none';
+        // Auto-select Sorteio if Rei/Rainha was active
+        if (drawMode === 'rei_rainha') {
+          var sorteioBtn = document.querySelector('#draw-mode-buttons .draw-mode-btn[data-value="sorteio"]');
+          if (sorteioBtn) window._selectDrawMode(sorteioBtn);
+        }
+      } else {
+        monarchDrawBtn.style.display = '';
+      }
+    }
+
+    // Sync Liga internal round format toggle with global draw mode
+    if (isLiga) {
+      var ligaRfVal = isMonarch ? 'rei_rainha' : 'standard';
+      var ligaRfHidden = document.getElementById('liga-round-format');
+      if (ligaRfHidden) ligaRfHidden.value = ligaRfVal;
+      var ligaRfBtn = document.querySelector('#liga-round-format-buttons .liga-rf-btn[data-value="' + ligaRfVal + '"]');
+      if (ligaRfBtn) window._selectLigaRoundFormat(ligaRfBtn);
+    }
 
     // Esconder estimativas de tempo para Liga e Suíço (não fazem sentido)
     var estimContainer = document.getElementById('time-estimates-container');
@@ -2277,23 +2390,45 @@ function setupCreateTournamentModal() {
     const sportOpt = Array.from(sportSelect.options).find(o => o.value === sportVal || o.value.includes(sportVal) || sportVal.includes(o.text.replace(/^[^\w]*/, '').trim()));
     sportSelect.value = sportOpt ? sportOpt.value : sportSelect.options[sportSelect.options.length - 1].value;
 
+    // Determine format value and draw mode from stored data
     let fmtValue = 'elim_simples';
+    var drawModeVal = t.drawMode || 'sorteio';
     if (t.format === 'Liga') fmtValue = 'liga';
     else if (t.format === 'Suíço Clássico') fmtValue = 'suico';
     else if (t.format === 'Ranking') fmtValue = 'liga'; // Ranking unificado com Liga
     else if (t.format === 'Eliminatórias Simples') fmtValue = 'elim_simples';
     else if (t.format === 'Dupla Eliminatória') fmtValue = 'elim_dupla';
     else if (t.format === 'Fase de Grupos + Eliminatórias') fmtValue = 'grupos_mata';
-    else if (t.format === 'Rei/Rainha da Praia') fmtValue = 'rei_rainha';
+    else if (t.format === 'Rei/Rainha da Praia') {
+      fmtValue = 'elim_simples'; // Rei/Rainha defaults to single elimination knockout
+      drawModeVal = 'rei_rainha';
+    }
+    // Liga with ligaRoundFormat rei_rainha
+    if (fmtValue === 'liga' && t.ligaRoundFormat === 'rei_rainha') {
+      drawModeVal = 'rei_rainha';
+    }
     document.getElementById('select-formato').value = fmtValue;
+    document.getElementById('draw-mode').value = drawModeVal;
     // Monarch config
-    if (fmtValue === 'rei_rainha') {
+    if (drawModeVal === 'rei_rainha') {
       var _mcEl = document.getElementById('monarch-classified');
       if (_mcEl) _mcEl.value = String(t.monarchClassified || 1);
       var _mcBtn = document.querySelector('#monarch-classified-buttons .monarch-cls-btn[data-value="' + (t.monarchClassified || 1) + '"]');
       if (_mcBtn) window._selectMonarchClassified(_mcBtn);
-      // monarchAdvanceToElim is always true (no checkbox)
     }
+    // Sync draw mode buttons
+    var dmBtns = document.querySelectorAll('#draw-mode-buttons .draw-mode-btn');
+    dmBtns.forEach(function(b) {
+      if (b.getAttribute('data-value') === drawModeVal) {
+        b.classList.add('draw-mode-active');
+        b.style.border = '2px solid #34d399'; b.style.background = 'rgba(16,185,129,0.15)'; b.style.color = '#34d399'; b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('draw-mode-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)'; b.style.background = 'rgba(255,255,255,0.06)'; b.style.color = 'var(--text-main)'; b.style.fontWeight = '600';
+      }
+    });
+    var dmDescEl = document.getElementById('draw-mode-desc');
+    if (dmDescEl && typeof _drawModeDescs !== 'undefined') dmDescEl.textContent = _drawModeDescs[drawModeVal] || '';
     // Sync formato buttons with loaded value
     var fmtBtns = document.querySelectorAll('#formato-buttons .formato-btn');
     fmtBtns.forEach(function(b) {
@@ -2329,7 +2464,11 @@ function setupCreateTournamentModal() {
     document.getElementById('tourn-start-time').value = startT;
     document.getElementById('tourn-end-date').value = endD;
     document.getElementById('tourn-end-time').value = endT;
-    document.getElementById('select-inscricao').value = t.enrollmentMode || 'individual';
+    var _enrollMode = t.enrollmentMode || 'individual';
+    document.getElementById('select-inscricao').value = _enrollMode;
+    // Sync enrollment mode buttons
+    var _emBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + _enrollMode + '"]');
+    if (_emBtn) window._selectEnrollMode(_emBtn);
     if (t.teamSize) document.getElementById('tourn-team-size').value = t.teamSize;
 
     // Restore game types (Simples/Duplas)
@@ -2559,15 +2698,21 @@ function setupCreateTournamentModal() {
         if (nomeDuplicado) { showAlertDialog('Nome Duplicado', 'Já existe um torneio com este nome. Escolha outro nome.', null, { type: 'warning' }); return; }
 
         const formatValue = document.getElementById('select-formato').value;
+        const drawModeValue = document.getElementById('draw-mode').value;
         const formatMap = {
           liga: 'Liga',
           suico: 'Suíço Clássico',
           elim_simples: 'Eliminatórias Simples',
           elim_dupla: 'Dupla Eliminatória',
-          grupos_mata: 'Fase de Grupos + Eliminatórias',
-          rei_rainha: 'Rei/Rainha da Praia'
+          grupos_mata: 'Fase de Grupos + Eliminatórias'
         };
-        const format = formatMap[formatValue] || 'Eliminatórias Simples';
+        // When draw mode is Rei/Rainha and format is NOT Liga, save as standalone Rei/Rainha format
+        var format;
+        if (drawModeValue === 'rei_rainha' && formatValue !== 'liga') {
+          format = 'Rei/Rainha da Praia';
+        } else {
+          format = formatMap[formatValue] || 'Eliminatórias Simples';
+        }
 
         // Captura TODOS os valores do formulário antes de qualquer outra operação
         const sportRaw = document.getElementById('select-sport').value || '';
@@ -2719,9 +2864,16 @@ function setupCreateTournamentModal() {
           tourData.gruposClassified = parseInt(document.getElementById('grupos-classified').value) || 2;
         }
 
-        if (formatValue === 'rei_rainha') {
+        if (drawModeValue === 'rei_rainha') {
           tourData.monarchClassified = parseInt(document.getElementById('monarch-classified').value) || 1;
           tourData.monarchAdvanceToElim = true; // always advance to elimination
+          tourData.drawMode = 'rei_rainha';
+          // For Liga, set ligaRoundFormat instead of changing the format
+          if (formatValue === 'liga') {
+            tourData.ligaRoundFormat = 'rei_rainha';
+          }
+        } else {
+          tourData.drawMode = 'sorteio';
         }
 
         // Tiebreakers (ordem configurada pelo organizador)
@@ -3166,8 +3318,12 @@ window._prefillFromTemplate = function(tpl) {
   }
 
   // Enrollment mode
-  var enrollSel = document.getElementById('enrollment-mode');
-  if (enrollSel && tpl.enrollmentMode) enrollSel.value = tpl.enrollmentMode;
+  var enrollSel = document.getElementById('select-inscricao');
+  if (enrollSel && tpl.enrollmentMode) {
+    enrollSel.value = tpl.enrollmentMode;
+    var _tplEmBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + tpl.enrollmentMode + '"]');
+    if (_tplEmBtn) window._selectEnrollMode(_tplEmBtn);
+  }
 
   // Max participants
   var maxP = document.getElementById('tourn-max-participants');

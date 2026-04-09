@@ -247,6 +247,25 @@ window._translations['en'] = {
   'poll.awaitingVote': 'Awaiting your vote',
   'poll.result': 'Poll result',
 
+  // Create tournament form
+  'create.drawMode': 'Draw Mode',
+  'create.drawModeSorteio': 'Standard Draw',
+  'create.drawModeSorteioDesc': 'Standard draw with random bracket seeding.',
+  'create.drawModeMonarchDesc': 'Groups of 4 with rotating partners. Individual scoring. Top players advance to knockout.',
+  'create.descElimSimples': 'Eliminated on first loss.',
+  'create.descElimDupla': 'Eliminated on second loss (losers bracket).',
+  'create.descGrupos': 'Group stage followed by knockout (World Cup style).',
+  'create.descSuico': 'Points-based with score-matched pairings.',
+  'create.descLiga': 'Continuous season with points standings.',
+  'create.gameType': 'Game Type',
+  'create.gameSimples': 'Singles',
+  'create.gameDuplas': 'Doubles',
+  'create.gameTypeHint': 'Select one or both. If both, the tournament will have parallel brackets.',
+  'create.enrollMode': 'Enrollment Mode',
+  'create.enrollModeIndividualDesc': 'Players enroll individually.',
+  'create.enrollModeTimeDesc': 'Only teams can enroll.',
+  'create.enrollModeMistoDesc': 'Accepts both individual and team enrollments.',
+
   // Quick create
   'quickCreate.title': 'New Tournament',
   'quickCreate.sportLabel': 'Sport',
