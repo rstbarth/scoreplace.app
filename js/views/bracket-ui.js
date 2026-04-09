@@ -593,23 +593,15 @@ window._saveResultInline = function (tId, matchId) {
     });
   }
 
-  // Remember next match to scroll to after re-render
-  var _scrollToMatchId = m.nextMatchId || null;
+  // Save scroll position before re-render so the page doesn't jump
+  var _savedScrollY = window.scrollY;
 
   renderBracket(document.getElementById('view-container'), tId);
 
-  // Auto-scroll to next match where the winner advances
-  if (_scrollToMatchId) {
-    setTimeout(function() {
-      var nextEl = document.getElementById('match-card-' + _scrollToMatchId) || document.querySelector('[data-match-id="' + _scrollToMatchId + '"]');
-      if (nextEl) {
-        nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        nextEl.style.transition = 'box-shadow 0.3s';
-        nextEl.style.boxShadow = '0 0 20px rgba(59,130,246,0.5)';
-        setTimeout(function() { nextEl.style.boxShadow = ''; }, 2000);
-      }
-    }, 300);
-  }
+  // Restore scroll position after re-render (keep user where they were)
+  setTimeout(function() {
+    window.scrollTo(0, _savedScrollY);
+  }, 0);
 };
 
 window._editResult = function (tId, matchId) {
@@ -660,7 +652,9 @@ window._editResult = function (tId, matchId) {
 
       window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
       window.AppStore.syncImmediate(tId);
+      var _savedScrollY = window.scrollY;
       renderBracket(document.getElementById('view-container'), tId);
+      setTimeout(function() { window.scrollTo(0, _savedScrollY); }, 0);
     },
     null,
     { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
@@ -1231,6 +1225,8 @@ window._advanceToElimination = function (tId) {
 window._advanceMonarchToElimination = function(tId) {
   var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
   if (!t || !t.groups) return;
+  // Idempotent: don't re-advance if already in elimination
+  if (t.currentStage === 'elimination' || (t.matches && t.matches.length > 0)) return;
 
   var classified = t.monarchClassified || 1;
   var qualifiedPlayers = [];

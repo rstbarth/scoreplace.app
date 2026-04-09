@@ -131,12 +131,7 @@ function setupCreateTournamentModal() {
                   </div>
                   <input type="hidden" id="monarch-classified" value="1">
                 </div>
-                <div>
-                  <label class="form-label d-flex align-center" style="gap:8px;cursor:pointer;margin:0;">
-                    <input type="checkbox" id="monarch-advance-elim" style="width:18px;height:18px;">
-                    <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Avançar para Eliminatória</span>
-                  </label>
-                </div>
+                <div style="font-size:0.75rem;color:#4ade80;font-weight:600;margin-top:4px;">✓ Os classificados avançam automaticamente para eliminatória até coroar o Rei/Rainha.</div>
               </div>
 
               <!-- Campos específicos: Fase de Grupos -->
@@ -215,6 +210,15 @@ function setupCreateTournamentModal() {
                     <input type="checkbox" id="liga-open-enrollment" checked style="width:18px;height:18px;">
                     <span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span>
                   </label>
+                </div>
+                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
+                  <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Formato de Rodada</p>
+                  <div style="display:flex;gap:8px;margin-bottom:0.75rem;" id="liga-round-format-buttons">
+                    <button type="button" class="liga-rf-btn liga-rf-active" data-value="standard" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;">Padrão</button>
+                    <button type="button" class="liga-rf-btn" data-value="rei_rainha" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">👑 Rei/Rainha</button>
+                  </div>
+                  <input type="hidden" id="liga-round-format" value="standard">
+                  <div id="liga-rf-desc" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Pareamento suíço: jogadores com pontuação similar se enfrentam.</div>
                 </div>
                 <div id="liga-draw-schedule" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
                   <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios</p>
@@ -1185,6 +1189,26 @@ function setupCreateTournamentModal() {
 
   // _onRankingManualChange mantida como alias para backward compat
   window._onRankingManualChange = function () {};
+
+  // Liga round format toggle (Padrão / Rei/Rainha)
+  window._selectLigaRoundFormat = function(btn) {
+    var val = btn.getAttribute('data-value');
+    document.getElementById('liga-round-format').value = val;
+    var btns = document.querySelectorAll('#liga-round-format-buttons .liga-rf-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === val) {
+        b.classList.add('liga-rf-active');
+        b.style.border = '2px solid #34d399'; b.style.background = 'rgba(16,185,129,0.15)'; b.style.color = '#34d399';
+      } else {
+        b.classList.remove('liga-rf-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)'; b.style.background = 'rgba(255,255,255,0.06)'; b.style.color = 'var(--text-main)';
+      }
+    });
+    var desc = document.getElementById('liga-rf-desc');
+    if (desc) desc.textContent = val === 'rei_rainha'
+      ? 'Grupos de 4 com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual acumulada.'
+      : 'Pareamento suíço: jogadores com pontuação similar se enfrentam.';
+  };
 
   // Toggle liga season custom duration
   window._onLigaSeasonChange = function () {
@@ -2268,8 +2292,7 @@ function setupCreateTournamentModal() {
       if (_mcEl) _mcEl.value = String(t.monarchClassified || 1);
       var _mcBtn = document.querySelector('#monarch-classified-buttons .monarch-cls-btn[data-value="' + (t.monarchClassified || 1) + '"]');
       if (_mcBtn) window._selectMonarchClassified(_mcBtn);
-      var _maEl = document.getElementById('monarch-advance-elim');
-      if (_maEl) _maEl.checked = t.monarchAdvanceToElim === true;
+      // monarchAdvanceToElim is always true (no checkbox)
     }
     // Sync formato buttons with loaded value
     var fmtBtns = document.querySelectorAll('#formato-buttons .formato-btn');
@@ -2467,6 +2490,13 @@ function setupCreateTournamentModal() {
     if (t.format === 'Liga' && t.drawFirstTime) document.getElementById('liga-first-draw-time').value = t.drawFirstTime;
     if (t.format === 'Liga' && t.drawIntervalDays) document.getElementById('liga-draw-interval').value = t.drawIntervalDays;
     if (t.format === 'Liga') document.getElementById('liga-manual-draw').checked = !!t.drawManual;
+    // Liga round format
+    if (t.ligaRoundFormat && t.ligaRoundFormat !== 'standard') {
+      var _rfEl = document.getElementById('liga-round-format');
+      if (_rfEl) _rfEl.value = t.ligaRoundFormat;
+      var _rfBtn = document.querySelector('#liga-round-format-buttons .liga-rf-btn[data-value="' + t.ligaRoundFormat + '"]');
+      if (_rfBtn) window._selectLigaRoundFormat(_rfBtn);
+    }
 
     // Elim settings
     // elimThirdPlace is always true — no toggle needed
@@ -2668,6 +2698,7 @@ function setupCreateTournamentModal() {
           tourData.drawFirstTime = document.getElementById('liga-first-draw-time').value || '19:00';
           tourData.drawIntervalDays = parseInt(document.getElementById('liga-draw-interval').value) || 7;
           tourData.drawManual = document.getElementById('liga-manual-draw').checked;
+          tourData.ligaRoundFormat = document.getElementById('liga-round-format').value || 'standard';
           // Limpeza de campos legados do formato Ranking (migrados para liga-*)
           tourData.rankingNewPlayerScore = null;
           tourData.rankingInactivity = null;
@@ -2690,7 +2721,7 @@ function setupCreateTournamentModal() {
 
         if (formatValue === 'rei_rainha') {
           tourData.monarchClassified = parseInt(document.getElementById('monarch-classified').value) || 1;
-          tourData.monarchAdvanceToElim = document.getElementById('monarch-advance-elim').checked;
+          tourData.monarchAdvanceToElim = true; // always advance to elimination
         }
 
         // Tiebreakers (ordem configurada pelo organizador)

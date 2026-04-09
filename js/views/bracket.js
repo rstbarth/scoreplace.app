@@ -1108,25 +1108,19 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     ? `<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;">BYE — Avança Direto</div>`
     : '';
 
-  const confirmBtn = showInputs
+
+  const headerConfirmBtn = showInputs
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
-        style="width:100%;margin-top:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:7px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
-        onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">
-        ✓ Confirmar Resultado
-      </button>`
+        style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ Confirmar</button>`
     : '';
 
-  const editBtn = isDecided && !isByeMatch && canEnterResult
+  const headerEditBtn = isDecided && !isByeMatch && canEnterResult
     ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
-        style="width:100%;margin-top:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:8px;padding:6px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;"
+        style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
         onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
-        title="Editar resultado">✏️ Editar Resultado</button>` : '';
-
-  const shareBtn = isDecided && !isByeMatch
-    ? `<button onclick="event.stopPropagation(); window._shareMatchResult('${_esc(tId)}','${_esc(m.id)}')"
-        style="background:transparent;border:none;color:var(--text-muted);font-size:0.72rem;cursor:pointer;padding:2px 4px;line-height:1;"
-        onmouseover="this.style.color='var(--text-bright)'" onmouseout="this.style.color='var(--text-muted)'"
-        title="Compartilhar resultado">📤 Compartilhar</button>` : '';
+        title="Editar resultado">✏️ Editar</button>`
+    : '';
 
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
 
@@ -1147,14 +1141,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${shareBtn}</div>
+        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${headerConfirmBtn}${headerEditBtn}</div>
       </div>
       ${p1Row}
       ${vsRow}
       ${p2Row}
       ${winnerBadge}
-      ${confirmBtn}
-      ${editBtn}
     </div>`;
 }
 
@@ -1219,17 +1211,18 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
     '</div>';
   });
 
-  // Advance button
-  if (allGroupsDone && t.monarchAdvanceToElim && isOrg) {
-    html += '<div style="text-align:center;margin-top:1.5rem;">' +
-      '<button class="btn btn-success btn-cta hover-lift" onclick="window._advanceMonarchToElimination(\'' + String(t.id).replace(/'/g, "\\'") + '\')">🏆 Avançar Classificados para Eliminatória</button>' +
-    '</div>';
-  } else if (allGroupsDone && !t.monarchAdvanceToElim) {
+  // Auto-advance to elimination when all groups are done
+  if (allGroupsDone) {
     html += '<div style="text-align:center;margin-top:1.5rem;padding:1rem;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;">' +
-      '<div style="font-size:1.5rem;">👑</div>' +
-      '<div style="font-weight:700;color:#fbbf24;font-size:1rem;">Torneio Finalizado!</div>' +
-      '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Veja os Reis/Rainhas de cada grupo acima.</div>' +
+      '<div style="font-size:1.2rem;font-weight:700;color:#fbbf24;">👑 Fase de grupos concluída!</div>' +
+      '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Avançando classificados para eliminatória...</div>' +
     '</div>';
+    // Trigger auto-advance after render
+    setTimeout(function() {
+      if (typeof window._advanceMonarchToElimination === 'function') {
+        window._advanceMonarchToElimination(String(t.id));
+      }
+    }, 600);
   }
 
   return html;
@@ -1435,11 +1428,13 @@ function renderStandings(t, isOrg, canEnterResult) {
     }
   }
 
+  const _isReiRainhaRound = currentRoundData.format === 'rei_rainha' && Array.isArray(currentRoundData.monarchGroups) && currentRoundData.monarchGroups.length > 0;
+
   const currentRoundHtml = `
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
-        <h3 class="card-title" style="margin:0;">Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— Encerrada ✓' : '— Em andamento'}</h3>
+        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— Encerrada ✓' : '— Em andamento'}</h3>
         ${isOrg && !isFinished && allComplete ? `
           <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
@@ -1447,9 +1442,42 @@ function renderStandings(t, isOrg, canEnterResult) {
           </button>` : ''}
         ${isFinished ? `<span style="color:#fbbf24;font-weight:700;">🏆 Torneio Encerrado!</span>` : ''}
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:16px;">
+      ${_isReiRainhaRound ? (() => {
+        return currentRoundData.monarchGroups.map(function(g) {
+          var gStandings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
+          var gDone = g.matches.length > 0 && g.matches.every(function(m) { return !!m.winner; });
+          var gRows = gStandings.map(function(s, si) {
+            var diff = s.pointsFor - s.pointsAgainst;
+            return '<tr style="border-bottom:1px solid var(--border-color);">' +
+              '<td style="padding:5px 8px;font-weight:700;color:' + (si === 0 ? '#fbbf24' : 'var(--text-muted)') + ';text-align:center;">' + (si === 0 ? '👑' : (si+1)+'º') + '</td>' +
+              '<td style="padding:5px 8px;font-weight:600;color:var(--text-bright);">' + window._safeHtml(s.name) + '</td>' +
+              '<td style="padding:5px 8px;text-align:center;color:#4ade80;font-weight:700;">' + s.wins + '</td>' +
+              '<td style="padding:5px 8px;text-align:center;color:#f87171;">' + s.losses + '</td>' +
+              '<td style="padding:5px 8px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';">' + (diff>=0?'+':'') + diff + '</td>' +
+            '</tr>';
+          }).join('');
+          var gTable = '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-bottom:0.75rem;">' +
+            '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">#</th>' +
+            '<th style="padding:5px 8px;color:var(--text-muted);font-size:0.65rem;">Jogador</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">V</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">D</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">Saldo</th>' +
+            '</tr></thead><tbody>' + gRows + '</tbody></table>';
+          var gCards = g.matches.map(function(m, mi) {
+            return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult && currentRoundData.status !== 'complete', t.id, mi + 1) + '</div>';
+          }).join('');
+          var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">Em andamento</span>';
+          return '<div style="background:rgba(251,191,36,0.03);border:1px solid rgba(251,191,36,0.15);border-left:3px solid ' + (gDone?'#4ade80':'#fbbf24') + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + '</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;">Jogadores: ' + g.players.map(function(n){return window._safeHtml(n);}).join(', ') + '</div>' +
+            gTable +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + gCards + '</div>' +
+          '</div>';
+        }).join('');
+      })() : `<div style="display:flex;flex-wrap:wrap;gap:16px;">
         ${(() => { const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0); return (currentRoundData.matches || []).map((m, idx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult && currentRoundData.status !== 'complete', t.id, prevMatches + idx + 1)}</div>`).join(''); })()}
-      </div>
+      </div>`}
     </div>`;
 
   const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
@@ -1499,8 +1527,9 @@ function renderStandings(t, isOrg, canEnterResult) {
       if (!rd || !rd.matches || rd.matches.length === 0) continue;
       var prevMatchOffset = rounds.slice(0, ri).reduce(function(sum, r) { return sum + (r.matches || []).length; }, 0);
       var rdComplete = (rd.matches || []).every(function(m) { return m.winner; });
+      var rdIsRR = rd.format === 'rei_rainha';
       prevRoundsInner += '<div style="margin-bottom: 12px;">' +
-        '<div style="font-weight: 700; font-size: 0.85rem; color: var(--text-bright); margin-bottom: 8px;">Rodada ' + (ri + 1) + (rdComplete ? ' — Encerrada ✓' : '') + '</div>' +
+        '<div style="font-weight: 700; font-size: 0.85rem; color: var(--text-bright); margin-bottom: 8px;">' + (rdIsRR ? '👑 ' : '') + 'Rodada ' + (ri + 1) + (rdComplete ? ' — Encerrada ✓' : '') + '</div>' +
         '<div style="display: flex; flex-wrap: wrap; gap: 12px;">';
       rd.matches.forEach(function(m, mi) {
         if (!m.p1 && !m.p2) return;

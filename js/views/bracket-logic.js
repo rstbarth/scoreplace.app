@@ -7,7 +7,7 @@ window._computeMonarchStandings = function(group) {
     stats[name] = { name: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, played: 0 };
   });
 
-  var matches = (group.rounds && group.rounds[0]) ? group.rounds[0].matches : [];
+  var matches = (group.rounds && group.rounds[0]) ? group.rounds[0].matches : (group.matches || []);
   matches.forEach(function(m) {
     if (!m.winner || !m.team1 || !m.team2) return;
     var s1 = parseInt(m.scoreP1) || 0;
@@ -100,6 +100,32 @@ function _computeStandings(t, category) {
         });
         if (scoreMap[m.p1]) { scoreMap[m.p1].setsWon += sw1; scoreMap[m.p1].setsLost += sw2; scoreMap[m.p1].gamesWon += gw1; scoreMap[m.p1].gamesLost += gw2; scoreMap[m.p1].tiebreaksWon += tb1; }
         if (scoreMap[m.p2]) { scoreMap[m.p2].setsWon += sw2; scoreMap[m.p2].setsLost += sw1; scoreMap[m.p2].gamesWon += gw2; scoreMap[m.p2].gamesLost += gw1; scoreMap[m.p2].tiebreaksWon += tb2; }
+      }
+
+      // Rei/Rainha (monarch) matches in Liga: individual stats from team matches
+      if (m.isMonarch && m.team1 && m.team2) {
+        var ms1 = parseInt(m.scoreP1) || 0;
+        var ms2 = parseInt(m.scoreP2) || 0;
+        var isDraw = m.winner === 'draw' || m.draw;
+        var team1Won = !isDraw && m.winner === m.p1;
+        var team2Won = !isDraw && m.winner === m.p2;
+        m.team1.forEach(function(name) {
+          _ensureEntry(name);
+          scoreMap[name].played++;
+          scoreMap[name].pointsDiff += (ms1 - ms2);
+          if (isDraw) { scoreMap[name].draws = (scoreMap[name].draws || 0) + 1; scoreMap[name].points += 1; }
+          else if (team1Won) { scoreMap[name].wins++; scoreMap[name].points += 3; }
+          else { scoreMap[name].losses++; }
+        });
+        m.team2.forEach(function(name) {
+          _ensureEntry(name);
+          scoreMap[name].played++;
+          scoreMap[name].pointsDiff += (ms2 - ms1);
+          if (isDraw) { scoreMap[name].draws = (scoreMap[name].draws || 0) + 1; scoreMap[name].points += 1; }
+          else if (team2Won) { scoreMap[name].wins++; scoreMap[name].points += 3; }
+          else { scoreMap[name].losses++; }
+        });
+        return;
       }
 
       // Handle draws — both players get 1 point each
@@ -555,19 +581,128 @@ function _doCloseRound(t, tId, roundIdx) {
 
 // ─── Swiss pairing ────────────────────────────────────────────────────────────
 function _generateNextRound(t) {
+  // Choose round generation strategy based on ligaRoundFormat
+  var useReiRainha = t.ligaRoundFormat === 'rei_rainha';
+  var genFn = useReiRainha ? _generateReiRainhaRoundForPlayers : _generateNextRoundForPlayers;
+
   var categories = (typeof window._sortCategoriesBySkillOrder === 'function')
     ? window._sortCategoriesBySkillOrder(t.combinedCategories || [], t.skillCategories)
     : (t.combinedCategories || []);
   if (categories.length === 0) {
-    // No categories — original behavior
-    _generateNextRoundForPlayers(t, null);
+    genFn(t, null);
   } else {
-    // Generate pairings per category
     categories.forEach(function(cat) {
-      _generateNextRoundForPlayers(t, cat);
+      genFn(t, cat);
     });
   }
 }
+
+// ─── Rei/Rainha round generation for Liga ────────────────────────────────────
+window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPlayers(t, category) {
+  var standings = _computeStandings(t, category);
+  var players = standings.map(function(s) { return s.name; });
+  if (players.length < 4) {
+    // Not enough for Rei/Rainha groups, fallback to standard pairing
+    _generateNextRoundForPlayers(t, category);
+    return;
+  }
+
+  var roundNum = (t.rounds || []).length + 1;
+  var ts = Date.now();
+  var catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
+  var catLabel = category && window._displayCategoryName ? ' (' + window._displayCategoryName(category) + ')' : (category ? ' (' + category + ')' : '');
+  var matchCounter = 0;
+
+  // Divide players into groups of 4 (by standings order — similar level)
+  var numGroups = Math.floor(players.length / 4);
+  var remainder = players.length % 4;
+  var groups = [];
+
+  for (var gi = 0; gi < numGroups; gi++) {
+    var gPlayers = players.slice(gi * 4, gi * 4 + 4);
+    var A = gPlayers[0], B = gPlayers[1], C = gPlayers[2], D = gPlayers[3];
+    var groupName = 'R' + roundNum + ' Grupo ' + String.fromCharCode(65 + gi);
+
+    // 3 matches with rotating partners: AB vs CD, AC vs BD, AD vs BC
+    var pairings = [
+      { t1: [A, B], t2: [C, D] },
+      { t1: [A, C], t2: [B, D] },
+      { t1: [A, D], t2: [B, C] }
+    ];
+
+    var matches = pairings.map(function(pair, mi) {
+      var mObj = {
+        id: 'match-rr-r' + roundNum + '-g' + gi + '-' + mi + catSuffix + '-' + ts,
+        round: roundNum, roundIndex: (t.rounds || []).length,
+        p1: pair.t1.join(' / '), p2: pair.t2.join(' / '),
+        team1: pair.t1, team2: pair.t2,
+        winner: null, scoreP1: null, scoreP2: null,
+        isMonarch: true, monarchGroup: gi,
+        label: groupName + ' • Jogo ' + (mi + 1) + catLabel
+      };
+      if (category) mObj.category = category;
+      return mObj;
+    });
+
+    groups.push({ name: groupName, players: gPlayers, matches: matches });
+  }
+
+  // Remainder players (< 4) get standard pairings
+  var remainderMatches = [];
+  if (remainder >= 2) {
+    var remPlayers = players.slice(numGroups * 4);
+    for (var ri = 0; ri < remPlayers.length; ri += 2) {
+      if (ri + 1 < remPlayers.length) {
+        var rObj = {
+          id: 'match-rr-r' + roundNum + '-rem-' + ri + catSuffix + '-' + ts,
+          round: roundNum, roundIndex: (t.rounds || []).length,
+          p1: remPlayers[ri], p2: remPlayers[ri + 1],
+          winner: null, label: 'R' + roundNum + ' • Extra' + catLabel
+        };
+        if (category) rObj.category = category;
+        remainderMatches.push(rObj);
+      } else {
+        // Odd remainder — BYE
+        var byeObj = {
+          id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
+          round: roundNum, roundIndex: (t.rounds || []).length,
+          p1: remPlayers[ri], p2: 'BYE', winner: remPlayers[ri], isBye: true,
+          label: 'R' + roundNum + ' • BYE' + catLabel
+        };
+        if (category) byeObj.category = category;
+        remainderMatches.push(byeObj);
+      }
+    }
+  } else if (remainder === 1) {
+    var byeObj2 = {
+      id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
+      round: roundNum, roundIndex: (t.rounds || []).length,
+      p1: players[players.length - 1], p2: 'BYE', winner: players[players.length - 1], isBye: true,
+      label: 'R' + roundNum + ' • BYE' + catLabel
+    };
+    if (category) byeObj2.category = category;
+    remainderMatches.push(byeObj2);
+  }
+
+  // Collect all matches for the round
+  var allMatches = [];
+  groups.forEach(function(g) { allMatches = allMatches.concat(g.matches); });
+  allMatches = allMatches.concat(remainderMatches);
+
+  if (!t.rounds) t.rounds = [];
+  if (t.rounds.length < roundNum) {
+    t.rounds.push({
+      round: roundNum, status: 'active', format: 'rei_rainha',
+      matches: allMatches, monarchGroups: groups
+    });
+  } else {
+    // Append matches for this category to existing round
+    t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(allMatches);
+    if (!t.rounds[roundNum - 1].monarchGroups) t.rounds[roundNum - 1].monarchGroups = [];
+    t.rounds[roundNum - 1].monarchGroups = t.rounds[roundNum - 1].monarchGroups.concat(groups);
+    t.rounds[roundNum - 1].format = 'rei_rainha';
+  }
+};
 
 function _generateNextRoundForPlayers(t, category) {
   const standings = _computeStandings(t, category);
