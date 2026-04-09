@@ -360,6 +360,13 @@ function renderDashboard(container) {
               <span data-fav-id="${t.id}" onclick="window._toggleFavorite('${t.id}', event)" title="${_isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.5rem;cursor:pointer;flex-shrink:0;color:${_isFav ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${_isFav ? '★' : '☆'}</span>
             </div>
 
+            ${t.venueName ? `
+            <!-- Local -->
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; opacity: 0.6; margin-top: -0.8rem;">
+               <span style="font-size: 1rem;">📍</span>
+               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window._safeHtml(t.venueName)}</span>
+            </div>
+            ` : ''}
 
             <!-- Below Name: Calendário + Data -->
             <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
@@ -395,6 +402,22 @@ function renderDashboard(container) {
                 '<span style="font-size:1.3rem;">' + _next.icon + '</span>' +
                 '<span style="font-size:0.85rem;font-weight:700;color:' + _next.color + ';">' + _next.label + '</span>' +
                 '<span data-countdown-target="' + _next.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _next.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
+              '</div>';
+            })()}
+
+            ${(() => {
+              if (!sorteioRealizado || isFinished) return '';
+              // Determine start time: startDate or first match/round creation
+              var _startTs = 0;
+              if (t.startDate) {
+                _startTs = new Date(t.startDate).getTime();
+              }
+              if (!_startTs || isNaN(_startTs) || _startTs > Date.now()) return '';
+              var _elapsedText = window._formatCountdown ? window._formatCountdown(Date.now() - _startTs) : '';
+              return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;">' +
+                '<span style="font-size:1.3rem;">⏱️</span>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:#10b981;">Em andamento</span>' +
+                '<span data-elapsed-since="' + _startTs + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:#10b981;font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _elapsedText + '</span>' +
               '</div>';
             })()}
 
