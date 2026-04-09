@@ -1014,6 +1014,7 @@ function renderTournaments(container, tournamentId = null) {
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
+                ${window.AppStore.isCreator(t) ? `<button class="btn hover-lift" style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.1));color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="event.stopPropagation(); window._openOrgPickerDialog('${t.id}')">👑 ${_t('org.organization')}</button>` : ''}
                 ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ ${_t('btn.delete')}</button>` : ''}
               </div>
             </div>` : ''}

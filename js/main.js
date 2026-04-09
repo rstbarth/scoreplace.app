@@ -242,6 +242,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Organização (compartilhar/transferir)</b> — Novo botão "👑 Organização" nas ferramentas do organizador. Picker de participantes para compartilhar (co-organizador) ou transferir organização. Transferência agora concede privilégios completos de criador. Notificações de convite com aceite/recusa.</p>' +
+        '<p><b>i18n completo</b> — Todas as strings hardcoded restantes em explore, notifications, rules, enrollment e organizer conectadas ao sistema _t(). ~35 novas chaves para host-transfer.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.7.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Foto do Organizador</b> — Foto/ícone de perfil do organizador agora aparece à esquerda do nome em todos os cards de organizador: seção ORGANIZAÇÃO, cabeçalho de detalhes do torneio e cards do dashboard. Fotos de organizadores e co-organizadores são pré-carregadas junto com as dos participantes.</p>' +
         '</div>' +

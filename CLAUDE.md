@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.8.3-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.8.5-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,19 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.8.5-alpha (Abril 2026)**
+- Sistema de Organização (compartilhar/transferir):
+  - Novo botão "👑 Organização" nas ferramentas do organizador (visível apenas para o criador).
+  - Participant picker overlay (`_openOrgPickerDialog`): lista participantes elegíveis para compartilhar ou transferir organização.
+  - Mostra status de convite pendente para participantes já convidados.
+  - Transferência agora atualiza `t.creatorEmail` além de `organizerEmail`, garantindo privilégios completos ao novo organizador.
+  - Todas as strings hardcoded em host-transfer.js conectadas ao sistema i18n (`_tH()`).
+- i18n: ~35 novas chaves `org.*` para host-transfer/co-host em pt e en (organização, compartilhar, transferir, convites, aceite/recusa, erros).
+- i18n wiring completo: explore.js, notifications-view.js, rules.js, tournaments-enrollment.js, tournaments-organizer.js — todas as strings hardcoded em português conectadas ao `_t()`.
+
+**v0.8.4-alpha (Abril 2026)**
+- i18n wiring para explore, notifications, rules, enrollment, organizer views.
 
 **v0.8.3-alpha (Abril 2026)**
 - Formulario de criacao reestruturado: formato do torneio separado em dois grupos de botoes excludentes.
