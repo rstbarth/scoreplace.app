@@ -328,21 +328,21 @@ function setupCreateTournamentModal() {
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Encerramento Inscrições</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-reg-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:80px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Início do Torneio</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-start-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
-                    <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:80px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Fim do Torneio</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-end-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:80px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
               </div>
@@ -1944,7 +1944,7 @@ function setupCreateTournamentModal() {
     const _descOption = (fmtKey, pCount) => {
       const matches = _calcMatchesFor(fmtKey, pCount);
       const time = _calcTimeFor(fmtKey, pCount);
-      let desc = '<strong>' + pCount + '</strong> participantes → <strong>' + matches + ' jogos</strong> (~' + _fmtMin(time) + ')';
+      let desc = '<strong>' + pCount + '</strong> inscritos → <strong>' + matches + ' jogos</strong> (~' + _fmtMin(time) + ')';
       if ((fmtKey === 'elim_simples' || fmtKey === 'elim_dupla') && !_isPow2(pCount) && pCount > 2) {
         const det = _elimDetail(pCount);
         desc += ' <span style="opacity:0.7;">[' + det.playInMatches + ' classificatória' + (det.playInMatches > 1 ? 's' : '') + ' + ' + det.mainMatches + ' chave principal]</span>';
@@ -1962,7 +1962,7 @@ function setupCreateTournamentModal() {
         const m = _calcMatchesFor(fmt, p);
         const t = _calcTimeFor(fmt, p);
         return '<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04);">' +
-          '<span><strong>' + p + '</strong> participantes</span>' +
+          '<span><strong>' + p + '</strong> inscritos</span>' +
           '<span style="opacity:0.7;">' + m + ' jogos · ' + _fmtMin(t) + '</span></div>';
       }).join('');
       return '<div style="margin-top:4px; font-size:0.75rem;">' +
@@ -1991,7 +1991,7 @@ function setupCreateTournamentModal() {
 
       // Play-in
       html += '<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.04);">' +
-        '<span>Classificatórias: <strong>' + excess + '</strong> jogos extras (' + (excess * 2) + ' participantes jogam), chave principal de ' + prev + '</span>' +
+        '<span>Classificatórias: <strong>' + excess + '</strong> jogos extras (' + (excess * 2) + ' inscritos jogam), chave principal de ' + prev + '</span>' +
         '<span style="opacity:0.7;">' + matchesPlayIn + ' jogos · ' + _fmtMin(timePlayIn) + '</span></div>';
 
       // BYEs
@@ -2117,7 +2117,7 @@ function setupCreateTournamentModal() {
             const bestPow = pows[pows.length - 1];
             suggestions.push(_sugCard('🔒', 'Limitar inscrições (potência de 2)',
               limBody,
-              'Aplicar ' + bestPow + ' participantes',
+              'Aplicar ' + bestPow + ' inscritos',
               'document.getElementById(\\\'tourn-max-participants\\\').value=' + bestPow + '; window._recalcDuration()'));
           }
           // Also show non-p2 max as option
