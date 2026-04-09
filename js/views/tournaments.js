@@ -1,13 +1,14 @@
 function renderTournaments(container, tournamentId = null) {
     if (!window.AppStore) return;
+    var _t = window._t || function(k) { return k; };
     let visible = window.AppStore.getVisibleTournaments() || [];
 
     window._handleSortearClick = function (tId, isAberto) {
         window._lastActiveTournamentId = tId;
         if (isAberto) {
             showConfirmDialog(
-                'Encerrar Inscrições',
-                'As inscrições ainda estão abertas. Deseja encerrar as inscrições prematuramente para realizar o sorteio?',
+                _t('org.closeRegConfirmTitle'),
+                _t('org.closeRegConfirmMsg'),
                 () => {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t) {
@@ -339,7 +340,7 @@ function renderTournaments(container, tournamentId = null) {
                 } else {
                     // Tournament deleted or doesn't exist — go to dashboard
                     if (typeof showNotification === 'function') {
-                        showNotification('Torneio não encontrado', 'Este torneio foi excluído ou não existe mais.', 'warning');
+                        showNotification(_t('tournament.notFound'), '', 'warning');
                     }
                     window.location.hash = '#dashboard';
                 }
@@ -371,7 +372,7 @@ function renderTournaments(container, tournamentId = null) {
     };
 
     const renderTournamentCard = (t, isOrg) => {
-        const publicText = t.isPublic ? 'Público' : 'Privado';
+        const publicText = t.isPublic ? _t('tournament.public') : _t('tournament.private');
 
         const formatDateBr = (dStr) => {
             if (!dStr) return '';
@@ -429,15 +430,15 @@ function renderTournaments(container, tournamentId = null) {
         const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
-        const statusText = isFinished ? '🏆 Encerrado' : (ligaAberta ? 'Liga Ativa — Inscrições Abertas' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas')));
+        const statusText = isFinished ? '🏆 ' + _t('status.finished') : (ligaAberta ? _t('tournament.leagueOpenEnroll') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed'))));
         const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
         const statusColor = isFinished ? '#fbbf24' : (isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
         const statusFontWeight = isAberto ? '700' : '600';
 
-        let enrollmentText = 'Misto (Individual e Times)';
-        if (t.enrollmentMode === 'individual') enrollmentText = 'Individual';
-        else if (t.enrollmentMode === 'time') enrollmentText = 'Apenas Times';
-        else if (t.enrollmentMode === 'misto') enrollmentText = 'Misto (Individual e Times)';
+        let enrollmentText = _t('enroll.modeMixed');
+        if (t.enrollmentMode === 'individual') enrollmentText = _t('enroll.modeIndividual');
+        else if (t.enrollmentMode === 'time') enrollmentText = _t('enroll.modeTeam');
+        else if (t.enrollmentMode === 'misto') enrollmentText = _t('enroll.modeMixed');
 
         const sortearOnClick = `event.stopPropagation(); window._handleSortearClick('${t.id}', ${isAberto})`;
 
@@ -508,7 +509,7 @@ function renderTournaments(container, tournamentId = null) {
             <div style="background: var(--bg-card); width: 90%; max-width: 450px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin: auto; animation: fadeIn 0.2s ease;">
                
                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                  <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-bright);">👥 Inscrição de Equipe</h3>
+                  <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-bright);">👥 ${_t('enroll.team')}</h3>
                   <button style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;" onclick="event.stopPropagation(); document.getElementById('team-enroll-modal-${t.id}').style.display='none'">&times;</button>
                </div>
                
@@ -531,8 +532,8 @@ function renderTournaments(container, tournamentId = null) {
                      </div>
 
                      <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1rem;">
-                        <button type="button" class="btn btn-outline hover-lift" onclick="event.stopPropagation(); document.getElementById('team-enroll-modal-${t.id}').style.display='none'">Cancelar</button>
-                        <button type="submit" class="btn btn-success hover-lift">Confirmar Inscrição da Equipe</button>
+                        <button type="button" class="btn btn-outline hover-lift" onclick="event.stopPropagation(); document.getElementById('team-enroll-modal-${t.id}').style.display='none'">${_t('btn.cancel')}</button>
+                        <button type="submit" class="btn btn-success hover-lift">${_t('enroll.teamConfirm')}</button>
                      </div>
                   </form>
                </div>
@@ -542,11 +543,11 @@ function renderTournaments(container, tournamentId = null) {
 
         // Botão inscrever/desinscrever — disponível em todos os contextos (detalhe e listagem)
         const enrollBtnHtml = (isParticipating && isAberto) ? `
-             <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>
+             <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>
           ` : (isAberto ? `
-             <button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ Inscrever-se</button>
+             <button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>
           ` : (isParticipating ? `
-             <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">Inscrito ✓</div>
+             <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
 
         // Ações Específicas da tela Explore
@@ -567,7 +568,7 @@ function renderTournaments(container, tournamentId = null) {
         const isSuicoFormat = t.format === 'Suíço Clássico';
         const isLigaFormat = window._isLigaFormat(t);
         const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
-        const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="btn ${t.status === 'closed' ? 'btn-success' : 'btn-danger'} hover-lift" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ Reabrir Inscrições' : '🛑 Encerrar Inscrições'}</button>` : '';
+        const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="btn ${t.status === 'closed' ? 'btn-success' : 'btn-danger'} hover-lift" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ ' + _t('org.reopenRegistration') : '🛑 ' + _t('org.closeRegistration')}</button>` : '';
 
         const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
         let sortearBtn = '';
@@ -890,15 +891,15 @@ function renderTournaments(container, tournamentId = null) {
               var _events = [];
               if (isAberto && t.registrationLimit) {
                 var _rd = new Date(t.registrationLimit).getTime();
-                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: 'Inscrições encerram', icon: '⏰', color: '#f59e0b' });
+                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: _t('event.enrollClose'), icon: '⏰', color: '#f59e0b' });
               }
               if (t.startDate) {
                 var _sd = new Date(t.startDate).getTime();
-                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: 'Início do torneio', icon: '🏁', color: '#10b981' });
+                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: _t('event.tournamentStart'), icon: '🏁', color: '#10b981' });
               }
               if (t.endDate) {
                 var _ed = new Date(t.endDate).getTime();
-                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: 'Fim do torneio', icon: '🏆', color: '#8b5cf6' });
+                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: _t('event.tournamentEnd'), icon: '🏆', color: '#8b5cf6' });
               }
               if (_events.length === 0) return '';
               _events.sort(function(a,b) { return a.ts - b.ts; });
@@ -998,22 +999,22 @@ function renderTournaments(container, tournamentId = null) {
 
             ${(tournamentId && isOrg) ? `
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.12);">
-              <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">Ferramentas do Organizador</div>
+              <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">${_t('org.tools')}</div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                ${hasDraw ? `<button class="btn btn-primary hover-lift" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 Ver Chaves</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ Editar</button>` : ''}
-                ${t.status !== 'closed' ? `<button class="btn btn-purple hover-lift" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 Comunicar</button>` : ''}
+                ${hasDraw ? `<button class="btn btn-primary hover-lift" onclick="window._lastActiveTournamentId='${t.id}';window.location.hash='#bracket/${t.id}'">🏆 ${_t('btn.viewBracket')}</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ ${_t('btn.edit')}</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="btn btn-purple hover-lift" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 ${_t('org.communicate')}</button>` : ''}
                 ${addParticipantBtns}
-                ${t.status !== 'closed' ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
-                ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>` : ''}
-                ${window.AppStore.currentUser ? `<button class="btn btn-tool-purple hover-lift" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 Clonar</button>` : ''}
+                ${t.status !== 'closed' ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 ${_t('org.addBot')}</button>` : ''}
+                ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 ${_t('btn.export')}</button>` : ''}
+                ${window.AppStore.currentUser ? `<button class="btn btn-tool-purple hover-lift" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 ${_t('btn.clone')}</button>` : ''}
                 ${isOrg ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window._saveAsTemplate('${t.id}')">💾 ${window._t ? window._t('btn.saveTemplate') : 'Salvar como Template'}</button>` : ''}
                 ${categoriasBtn}
                 ${toggleRegBtn}
                 ${sortearBtn}
                 ${sortearAberto}
-                ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 Encerrar Torneio</button>` : ''}
-                ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ Apagar</button>` : ''}
+                ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
+                ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ ${_t('btn.delete')}</button>` : ''}
               </div>
             </div>` : ''}
 
@@ -1024,7 +1025,7 @@ function renderTournaments(container, tournamentId = null) {
 
     let gridHtml = '';
     if (visible.length === 0) {
-        gridHtml = `<div class="card p-4 text-center" style="grid-column: 1/-1;"><p class="text-muted mt-3 mb-3">Nenhum torneio encontrado. Configure um novo torneio ou faça login para ver seus convites.</p></div>`;
+        gridHtml = `<div class="card p-4 text-center" style="grid-column: 1/-1;"><p class="text-muted mt-3 mb-3">${_t('tournament.noTournamentsMsg')}</p></div>`;
     } else {
         gridHtml = visible.map(t => {
             const isOrg = typeof window.AppStore.isOrganizer === 'function' ? window.AppStore.isOrganizer(t) : false;
@@ -1041,7 +1042,7 @@ function renderTournaments(container, tournamentId = null) {
     </div>
     <div class="d-flex justify-between align-center mb-4">
       <div>
-        <h2>Torneios e Ligas</h2>
+        <h2>${_t('tournament.title')}</h2>
         <p class="text-muted">Gerencie ou inscreva-se nos torneios disponíveis.</p>
       </div>
     </div>

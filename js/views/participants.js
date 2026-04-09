@@ -226,8 +226,9 @@ function renderParticipants(container, tournamentId) {
   const tId = tournamentId;
   const t = tId && window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
 
+  var _t = window._t || function(k) { return k; };
   if (!t) {
-    container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>Torneio não encontrado</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
+    container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>${_t('participants.notFound')}</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
     return;
   }
 
@@ -337,7 +338,7 @@ function renderParticipants(container, tournamentId) {
 
     const allIndividuals = [];
     parts.forEach((p, idx) => {
-      const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || 'Participante ' + (idx + 1));
+      const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || _t('participants.participant', {n: idx + 1}));
       if (pName.includes('/')) {
         const matchNum = nameToMatch[pName] || null;
         const matchDecided = !!nameToMatchDecided[pName];
@@ -420,7 +421,7 @@ function renderParticipants(container, tournamentId) {
 
       // Presente: sempre clicável (toggle on/off)
       const presentBtn = canAct
-        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}')" style="border:1px solid ${mc ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.2)'};background:${mc ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)'};color:#4ade80;${mc ? 'opacity:1;' : 'opacity:0.6;'}">Presente</button>`
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}')" style="border:1px solid ${mc ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.2)'};background:${mc ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)'};color:#4ade80;${mc ? 'opacity:1;' : 'opacity:0.6;'}">${_t('participants.present')}</button>`
         : '';
 
       // Ausente: standby/sem jogo → marca ausência confirmada (toggle); regular com jogo → declara ausência com W.O./substituição
@@ -429,7 +430,7 @@ function renderParticipants(container, tournamentId) {
         ? `window._markAbsent('${tId}', '${safeName}')`
         : `window._declareAbsent('${tId}', '${safeName}')`;
       const absentBtn = canAct && isOrg
-        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${absentAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">Ausente</button>`
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${absentAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">${_t('participants.absent')}</button>`
         : '';
       const woBadge = isWO ? `<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>` : '';
 
@@ -476,7 +477,7 @@ function renderParticipants(container, tournamentId) {
     gridStyle = 'display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:1rem;';
 
     cardsStr = parts.map((p, idx) => {
-      const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || 'Participante ' + (idx + 1));
+      const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || _t('participants.participant', {n: idx + 1}));
       const isTeam = pName.includes('/');
 
       const vipsMap = t.vips || {};
@@ -598,7 +599,7 @@ function renderParticipants(container, tournamentId) {
       </button>
     </div>
     <div class="mb-4">
-      <h2 style="margin:0;">Inscritos — ${t.name}</h2>
+      <h2 style="margin:0;">${_t('participants.title')} — ${t.name}</h2>
       <div class="d-flex gap-2 mt-1">
         <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
         <span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">${individualCount} participante${individualCount !== 1 ? 's' : ''}</span>

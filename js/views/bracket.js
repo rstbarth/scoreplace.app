@@ -2,11 +2,12 @@
 // ─── Bracket / Standings View ───────────────────────────────────────────────
 
 function renderBracket(container, tournamentId, isInline) {
+  var _t = window._t || function(k) { return k; };
   const tId = tournamentId || window._lastActiveTournamentId;
   const t = tId && window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
 
   if (!t) {
-    container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>Torneio não encontrado</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
+    container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>${_t('bracket.notFound')}</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
     return;
   }
   // Store for crown helper access in sub-functions
@@ -69,7 +70,7 @@ function renderBracket(container, tournamentId, isInline) {
       <div>
         <h2 style="margin:0;">${isLiga || isSuico ? _t('bracket.title.standings') + ' — ' : isGrupos ? _t('bracket.title.groups') + ' — ' : t.format === 'Rei/Rainha da Praia' ? '👑 ' + _t('bracket.title.monarch') + ' — ' : _t('bracket.title.bracket') + ' — '}${window._safeHtml(t.name)}</h2>
         <div class="d-flex gap-2 mt-1">
-          ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">Sorteio Realizado</span>` : `<span class="badge badge-warning">Aguardando Sorteio</span>`}
+          ${hasContent ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">${_t('bracket.drawDone')}</span>` : `<span class="badge badge-warning">${_t('bracket.waitingDraw')}</span>`}
           <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
           ${isGrupos && t.currentStage === 'groups' ? `<span class="badge badge-warning">${_t('stage.groups')}</span>` : ''}
           ${isGrupos && t.currentStage === 'elimination' ? `<span class="badge badge-success" style="background:rgba(16,185,129,0.2);color:#34d399;">${_t('stage.elimination')}</span>` : ''}
@@ -101,7 +102,7 @@ function renderBracket(container, tournamentId, isInline) {
         '<div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">' +
         '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 4px; transition: width 0.5s ease;"></div>' +
         '</div>' +
-        (_prog.pct === 100 && t.status !== 'finished' ? '<div style="margin-top: 6px; font-size: 0.75rem; color: #10b981; font-weight: 600;">✅ Todas as partidas concluídas!</div>' : '') +
+        (_prog.pct === 100 && t.status !== 'finished' ? '<div style="margin-top: 6px; font-size: 0.75rem; color: #10b981; font-weight: 600;">✅ ' + _t('bracket.allMatchesDone') + '</div>' : '') +
         '</div>';
     }
   }
@@ -518,7 +519,7 @@ function _ensureFutureRounds(t) {
     t.thirdPlaceMatch = {
       id: `match-3rd-${Date.now()}`,
       round: finalRound || 1,
-      label: '3º Lugar',
+      label: _t('bracket.thirdPlaceLabel'),
       p1: 'TBD', p2: 'TBD', winner: null
     };
   }
@@ -578,16 +579,16 @@ function renderSingleElimBracket(t, canEnterResult) {
 
   // Label by position from the end
   const getRoundLabel = (roundNum, roundIndex) => {
-    if (roundNum === 0) return 'Play-in (Repescagem)';
+    if (roundNum === 0) return 'Play-in';
     const fromEnd = expectedTotalRounds - roundIndex;
     // Adjust for play-in: if round 0 exists, roundIndex is shifted by 1
     const hasPlayin = activeRounds.indexOf(0) >= 0;
     const adjustedFromEnd = hasPlayin ? expectedTotalRounds - (roundIndex - 1) : fromEnd;
-    if (adjustedFromEnd === 1) return 'Final';
-    if (adjustedFromEnd === 2) return 'Semifinal';
-    if (adjustedFromEnd === 3) return 'Quartas de Final';
-    if (adjustedFromEnd === 4) return 'Oitavas de Final';
-    return `Rodada ${roundNum}`;
+    if (adjustedFromEnd === 1) return _t('bracket.final');
+    if (adjustedFromEnd === 2) return _t('bracket.semiFinal');
+    if (adjustedFromEnd === 3) return _t('bracket.quarterFinal');
+    if (adjustedFromEnd === 4) return _t('bracket.round', {n: roundNum});
+    return _t('bracket.round', {n: roundNum});
   };
 
   // Determine which rounds are complete (all matches have a winner)
@@ -711,7 +712,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
     const thirdPlaceCol = hasThirdPlace ? `
       <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,0.1);">
-        <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Disputa de 3º Lugar</div>
+        <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">' + _t('bracket.thirdPlace') + '</div>
         ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: null }), canEnterResult, t.id, thirdPlaceMatchNum)}
       </div>` : '';
 
@@ -750,7 +751,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
       const thirdPlaceCol = (isFinalRound && hasThirdPlace) ? `
         <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,0.1);">
-          <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Disputa de 3º Lugar</div>
+          <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">' + _t('bracket.thirdPlace') + '</div>
           ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: null }), canEnterResult, t.id, thirdPlaceMatchNum)}
         </div>` : '';
 
@@ -879,7 +880,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
       ${renderSection(lowerMatches, 'Chaveamento Inferior', '#f59e0b')}
       ${grandFinal.length ? `
         <div style="margin-top:1rem;padding-top:1.5rem;border-top:1px solid var(--border-color);">
-          <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">🏆 Grande Final</h4>
+          <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">🏆 ${_t('bracket.grandFinal')}</h4>
           <div style="max-width:280px;">${grandFinal.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
         </div>` : ''}
     </div>`;
@@ -1112,14 +1113,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const headerConfirmBtn = showInputs
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
-        onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ Confirmar</button>`
+        onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
   const headerEditBtn = isDecided && !isByeMatch && canEnterResult
     ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
         onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
-        title="Editar resultado">✏️ Editar</button>`
+        title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
     : '';
 
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
@@ -1197,7 +1198,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
       return renderMatchCard(m, canEnterResult, t.id, (gi * 3) + mi + 1);
     }).join('');
 
-    var statusBadge = groupDone ? '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">Concluído</span>' : '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">Em andamento</span>';
+    var statusBadge = groupDone ? '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">' + _t('bracket.complete') + '</span>' : '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">' + _t('bracket.ongoing') + '</span>';
 
     html += '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-left:4px solid ' + (groupDone ? '#4ade80' : '#fbbf24') + ';border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
@@ -1290,7 +1291,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 
     // Mostrar TODAS as rodadas do grupo (completas, ativa e pendentes)
     const allRoundsHtml = (g.rounds || []).map((r, ri) => {
-      const roundLabel = r.status === 'complete' ? `Rodada ${ri + 1} — Encerrada ✓` : r.status === 'active' ? `Rodada ${ri + 1} — Em andamento` : `Rodada ${ri + 1} — Pendente`;
+      const roundLabel = _t('bracket.round', {n: ri + 1}) + (r.status === 'complete' ? ' — ' + _t('bracket.complete') + ' ✓' : r.status === 'active' ? ' — ' + _t('bracket.ongoing') : '');
       const roundLabelColor = r.status === 'complete' ? '#4ade80' : r.status === 'active' ? '#fbbf24' : 'var(--text-muted)';
       const matchesInRound = (r.matches || []).map(m => {
         groupGlobalMatchNum++;
@@ -1434,7 +1435,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
-        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}Rodada ${currentRound}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— Encerrada ✓' : '— Em andamento'}</h3>
+        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}${_t('bracket.round', {n: currentRound})}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— ' + _t('bracket.complete') + ' ✓' : '— ' + _t('bracket.ongoing')}</h3>
         ${isOrg && !isFinished && allComplete ? `
           <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
@@ -1467,7 +1468,7 @@ function renderStandings(t, isOrg, canEnterResult) {
           var gCards = g.matches.map(function(m, mi) {
             return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult && currentRoundData.status !== 'complete', t.id, mi + 1) + '</div>';
           }).join('');
-          var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">Em andamento</span>';
+          var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">' + _t('bracket.ongoing') + '</span>';
           return '<div style="background:rgba(251,191,36,0.03);border:1px solid rgba(251,191,36,0.15);border-left:3px solid ' + (gDone?'#4ade80':'#fbbf24') + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;">Jogadores: ' + g.players.map(function(n){return window._safeHtml(n);}).join(', ') + '</div>' +
@@ -1529,7 +1530,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       var rdComplete = (rd.matches || []).every(function(m) { return m.winner; });
       var rdIsRR = rd.format === 'rei_rainha';
       prevRoundsInner += '<div style="margin-bottom: 12px;">' +
-        '<div style="font-weight: 700; font-size: 0.85rem; color: var(--text-bright); margin-bottom: 8px;">' + (rdIsRR ? '👑 ' : '') + 'Rodada ' + (ri + 1) + (rdComplete ? ' — Encerrada ✓' : '') + '</div>' +
+        '<div style="font-weight: 700; font-size: 0.85rem; color: var(--text-bright); margin-bottom: 8px;">' + (rdIsRR ? '👑 ' : '') + _t('bracket.round', {n: ri + 1}) + (rdComplete ? ' — ' + _t('bracket.complete') + ' ✓' : '') + '</div>' +
         '<div style="display: flex; flex-wrap: wrap; gap: 12px;">';
       rd.matches.forEach(function(m, mi) {
         if (!m.p1 && !m.p2) return;
@@ -1550,7 +1551,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     if (prevRoundsInner) {
       previousRoundsHtml = '<div class="card" style="margin-top: 1rem;">' +
         '<details>' +
-        '<summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-bright); padding: 4px 0; user-select: none;">📜 Rodadas Anteriores (' + (currentRound - 1) + ')</summary>' +
+        '<summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-bright); padding: 4px 0; user-select: none;">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</summary>' +
         '<div style="margin-top: 12px;">' + prevRoundsInner + '</div>' +
         '</details></div>';
     }

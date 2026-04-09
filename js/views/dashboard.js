@@ -24,14 +24,14 @@ window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
   // By format
   var formatCounts = {};
   organizados.forEach(function(tour) {
-    var f = tour.format || 'Outro';
+    var f = tour.format || t('common.other');
     formatCounts[f] = (formatCounts[f] || 0) + 1;
   });
 
   // By sport
   var sportCounts = {};
   organizados.forEach(function(tour) {
-    var s = tour.sport ? tour.sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : 'Outro';
+    var s = tour.sport ? tour.sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : t('common.other');
     sportCounts[s] = (sportCounts[s] || 0) + 1;
   });
 
@@ -178,7 +178,8 @@ function renderDashboard(container) {
   };
 
   const renderTournamentCard = (t, type) => {
-    const publicText = t.isPublic ? 'Público' : 'Privado';
+    var _t = window._t || function(k) { return k; };
+    const publicText = t.isPublic ? _t('tournament.public') : _t('tournament.private');
 
     const formatDateBr = (dStr) => {
       if (!dStr) return '';
@@ -233,15 +234,15 @@ function renderDashboard(container) {
     const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
     const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
     const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
-    const statusText = isFinished ? 'Encerrado' : (isAberto ? 'Inscrições Abertas' : (sorteioRealizado ? 'Em Andamento' : 'Inscrições Encerradas'));
+    const statusText = isFinished ? _t('status.finished') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed')));
     const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
     const statusColor = isFinished ? '#fbbf24' : (isAberto ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
     const statusFontWeight = isAberto ? '700' : '600';
 
-    let enrollmentText = 'Misto (Individual e Times)';
-    if (t.enrollmentMode === 'individual') enrollmentText = 'Individual';
-    else if (t.enrollmentMode === 'time') enrollmentText = 'Apenas Times';
-    else if (t.enrollmentMode === 'misto') enrollmentText = 'Misto (Individual e Times)';
+    let enrollmentText = _t('enroll.modeMixed');
+    if (t.enrollmentMode === 'individual') enrollmentText = _t('enroll.modeIndividual');
+    else if (t.enrollmentMode === 'time') enrollmentText = _t('enroll.modeTeam');
+    else if (t.enrollmentMode === 'misto') enrollmentText = _t('enroll.modeMixed');
 
     const isOrg = window.AppStore.currentUser && t.organizerEmail === window.AppStore.currentUser.email;
 
@@ -318,11 +319,11 @@ function renderDashboard(container) {
     const canEnroll = isAberto && !isFinished && (!hasDraw || ligaAberta);
     let enrollBtnHtml = '';
     if (isParticipating && canEnroll) {
-      enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 Desinscrever-se</button>`;
+      enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>`;
     } else if (!isParticipating && canEnroll) {
-      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._dashEnroll('${t.id}')">✅ Inscrever-se</button>`;
+      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._dashEnroll('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>`;
     } else if (isParticipating && !canEnroll) {
-      enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">Inscrito ✓</div>`;
+      enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
@@ -339,7 +340,7 @@ function renderDashboard(container) {
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: nowrap;">
                <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; flex-shrink: 0;">
                   <span style="font-size: 1.1rem;">${getSportIcon(t.sport)}</span>
-                  <span>${cleanSportName(t.sport) || 'Esporte'}</span>
+                  <span>${cleanSportName(t.sport) || _t('tournament.sport')}</span>
                </div>
                <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
                   <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
@@ -357,7 +358,7 @@ function renderDashboard(container) {
               <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1;">
                 ${window._safeHtml(t.name)}
               </h4>
-              <span data-fav-id="${t.id}" onclick="window._toggleFavorite('${t.id}', event)" title="${_isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.5rem;cursor:pointer;flex-shrink:0;color:${_isFav ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${_isFav ? '★' : '☆'}</span>
+              <span data-fav-id="${t.id}" onclick="window._toggleFavorite('${t.id}', event)" title="${_isFav ? _t('fav.remove') : _t('fav.add')}" style="font-size:1.5rem;cursor:pointer;flex-shrink:0;color:${_isFav ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${_isFav ? '★' : '☆'}</span>
             </div>
 
             ${t.venueName ? `
@@ -381,17 +382,17 @@ function renderDashboard(container) {
               // Registration deadline
               if (isAberto && t.registrationLimit) {
                 var _rd = new Date(t.registrationLimit).getTime();
-                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: 'Inscrições encerram', icon: '⏰', color: '#f59e0b' });
+                if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: _t('event.enrollClose'), icon: '⏰', color: '#f59e0b' });
               }
               // Start date
               if (t.startDate) {
                 var _sd = new Date(t.startDate).getTime();
-                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: 'Início do torneio', icon: '🏁', color: '#10b981' });
+                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: _t('event.tournamentStart'), icon: '🏁', color: '#10b981' });
               }
               // End date
               if (t.endDate) {
                 var _ed = new Date(t.endDate).getTime();
-                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: 'Fim do torneio', icon: '🏆', color: '#8b5cf6' });
+                if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: _t('event.tournamentEnd'), icon: '🏆', color: '#8b5cf6' });
               }
               if (_events.length === 0) return '';
               _events.sort(function(a,b) { return a.ts - b.ts; });
@@ -491,7 +492,7 @@ function renderDashboard(container) {
                   var _pUser = window.AppStore.currentUser;
                   var _pUserEmail = (_pUser && _pUser.email) ? _pUser.email : '';
                   var _pHasVoted = !!(_activePoll.votes && _activePoll.votes[_pUserEmail]);
-                  var _pStatusText = _pHasVoted ? '✅ Você já votou' : '⏳ Aguardando seu voto';
+                  var _pStatusText = _pHasVoted ? '✅ ' + _t('poll.voted') : '⏳ ' + _t('poll.awaitingVote');
                   _html += '<div onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + _activePoll.id + '\')" style="margin-top:10px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.08));border:2px solid rgba(99,102,241,0.4);border-radius:20px;padding:1rem 1.25rem;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.1);">';
                   _html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">';
                   _html += '<div style="display:flex;align-items:center;gap:12px;">';
@@ -504,7 +505,7 @@ function renderDashboard(container) {
                   _html += '<div style="font-size:1.4rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + _pTimeStr + '</div>';
                   _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">restante</div>';
                   _html += '</div></div>';
-                  _html += '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);opacity:0.7;">Inscrições suspensas durante a enquete.</div>';
+                  _html += '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);opacity:0.7;">' + _t('enroll.suspended') + '</div>';
                   _html += '</div>';
                 }
               }
@@ -549,7 +550,8 @@ function renderDashboard(container) {
   const locationsArr = Array.from(locationsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const formatsArr = Array.from(formatsSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  const userName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName) ? window.AppStore.currentUser.displayName.split(' ')[0] : 'Visitante';
+  var _t = window._t || function(k) { return k; };
+  const userName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName) ? window.AppStore.currentUser.displayName.split(' ')[0] : _t('common.guest');
 
   // Initialize filter state
   if (!window._dashFilter) window._dashFilter = 'todos';
@@ -659,7 +661,8 @@ function renderDashboard(container) {
 
     var maxShow = Math.min(pending.length, 5);
     var html = '<div style="margin-bottom:1.25rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px 16px;">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:1.1rem;">⚔️</span><span style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">Suas Próximas Partidas</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">' + pending.length + ' pendente' + (pending.length > 1 ? 's' : '') + '</span></div>';
+    var _t2 = window._t || function(k) { return k; };
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:1.1rem;">⚔️</span><span style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">' + _t2('dashboard.nextMatches') + '</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">' + pending.length + '</span></div>';
 
     for (var i = 0; i < maxShow; i++) {
       var p = pending[i];
@@ -734,20 +737,20 @@ function renderDashboard(container) {
     const visibleActive = activeList.slice(0, pageNum * PAGE_SIZE);
     filteredHtml = visibleActive.length > 0
       ? visibleActive.map(t => renderTournamentCard(t, '')).join('')
-      : '<div style="text-align:center;padding:1rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio ativo no momento.</div>';
+      : '<div style="text-align:center;padding:1rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
     if (activeList.length > visibleActive.length) {
-      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">Carregar mais (' + (activeList.length - visibleActive.length) + ' restantes)</button></div>';
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: activeList.length - visibleActive.length}) + '</button></div>';
     }
     if (finishedList.length > 0) {
-      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">🏆 Torneios Encerrados (' + finishedList.length + ')</summary><div class="cards-grid" style="margin-top:0.75rem;">' + finishedList.map(t => renderTournamentCard(t, '')).join('') + '</div></details></div>';
+      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">' + _t('dashboard.finishedSection', {count: finishedList.length}) + '</summary><div class="cards-grid" style="margin-top:0.75rem;">' + finishedList.map(t => renderTournamentCard(t, '')).join('') + '</div></details></div>';
     }
   } else {
     const visibleItems = filtered.slice(0, pageNum * PAGE_SIZE);
     filteredHtml = visibleItems.length > 0
       ? visibleItems.map(t => renderTournamentCard(t, '')).join('')
-      : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado para este filtro.</div>';
+      : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
     if (filtered.length > visibleItems.length) {
-      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">Carregar mais (' + (filtered.length - visibleItems.length) + ' restantes)</button></div>';
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: filtered.length - visibleItems.length}) + '</button></div>';
     }
   }
 
@@ -779,15 +782,15 @@ function renderDashboard(container) {
 
   // Build compact list view
   const _buildCompactList = function(items) {
-    if (!items || items.length === 0) return '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">Nenhum torneio encontrado.</div>';
+    if (!items || items.length === 0) return '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
     return '<div class="compact-list-container" style="display:flex;flex-direction:column;gap:2px;">' + items.map(function(t) {
       var isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
       var statusText = '', statusColor = '';
       var isFinished = t.status === 'finished' || t.status === 'closed';
       var hasDraw = (t.matches && t.matches.length) || (t.rounds && t.rounds.length) || (t.groups && t.groups.length);
-      if (isFinished) { statusText = 'Encerrado'; statusColor = '#94a3b8'; }
-      else if (hasDraw) { statusText = 'Em andamento'; statusColor = '#4ade80'; }
-      else { statusText = 'Inscrições abertas'; statusColor = '#60a5fa'; }
+      if (isFinished) { statusText = _t('status.finished'); statusColor = '#94a3b8'; }
+      else if (hasDraw) { statusText = _t('status.active'); statusColor = '#4ade80'; }
+      else { statusText = _t('status.open'); statusColor = '#60a5fa'; }
       var pCount = Array.isArray(t.participants) ? t.participants.length : 0;
       var prog = typeof window._getTournamentProgress === 'function' ? window._getTournamentProgress(t) : { pct: 0 };
       var dateStr = '';
@@ -844,27 +847,26 @@ function renderDashboard(container) {
     ">
 
       <div style="margin-bottom: 1rem; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
-        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">Olá, ${userName}</h2>
-        <p style="margin: 0.5rem 0 0 0; opacity: 0.85; font-size: 1.1rem;">Gerencie seus torneios e partidas esportivas</p>
+        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">${_t('dashboard.welcome', {name: userName})}</h2>
       </div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
         <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; width: min(75vw, 340px); min-height: 78px; font-size: 1.35rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
-          + Novo Torneio
+          ${_t('dashboard.newTournament')}
         </button>
         <div style="display: flex; gap: 10px; justify-content: center;">
-          <button id="btn-support-pix" class="btn hover-lift" title="Apoie o projeto" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showSupportModal()">💚 Apoie</button>
-          <button id="btn-upgrade-pro" class="btn hover-lift" title="Assinar Pro" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 Pro</button>
+          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showSupportModal()">💚 ${_t('common.support')}</button>
+          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
-        ${_fStyle('todos', '📋', allUnique.length, 'Todos')}
-        ${_fStyle('organizados', '🏆', organizadosCount, 'Meus Torneios')}
-        ${_fStyle('participando', '👤', participacoesCount, 'Participando')}
-        ${_fStyle('abertos', '🗓️', abertosParaVoce.length, 'Inscrições Disponíveis')}
-        ${favoritosCount > 0 ? _fStyle('favoritos', '⭐', favoritosCount, 'Favoritos') : ''}
-        ${encerradosCount > 0 ? _fStyle('encerrados', '🏆', encerradosCount, 'Encerrados') : ''}
+        ${_fStyle('todos', '📋', allUnique.length, _t('dashboard.filterAll'))}
+        ${_fStyle('organizados', '🏆', organizadosCount, _t('dashboard.filterOrganized'))}
+        ${_fStyle('participando', '👤', participacoesCount, _t('dashboard.filterParticipating'))}
+        ${_fStyle('abertos', '🗓️', abertosParaVoce.length, _t('dashboard.filterOpen'))}
+        ${favoritosCount > 0 ? _fStyle('favoritos', '⭐', favoritosCount, _t('dashboard.filterFavorites')) : ''}
+        ${encerradosCount > 0 ? _fStyle('encerrados', '🏆', encerradosCount, _t('dashboard.filterFinished')) : ''}
       </div>
     </div>
 
@@ -880,8 +882,8 @@ function renderDashboard(container) {
     <!-- View Toggle + Tournament Cards -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
       <div style="display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
-        <button class="btn btn-pill btn-sm" onclick="window._setDashView('cards')" style="background:${(window._dashView||'cards')==='cards'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${(window._dashView||'cards')==='cards'?'#a5b4fc':'var(--text-muted)'};border:none;" title="Visualização em cards">▦ Cards</button>
-        <button class="btn btn-pill btn-sm" onclick="window._setDashView('compact')" style="border-left:1px solid rgba(255,255,255,0.1);background:${window._dashView==='compact'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${window._dashView==='compact'?'#a5b4fc':'var(--text-muted)'};border-radius:0;" title="Visualização compacta">☰ Lista</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setDashView('cards')" style="background:${(window._dashView||'cards')==='cards'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${(window._dashView||'cards')==='cards'?'#a5b4fc':'var(--text-muted)'};border:none;" title="${_t('dashboard.cards')}">▦ ${_t('dashboard.cards')}</button>
+        <button class="btn btn-pill btn-sm" onclick="window._setDashView('compact')" style="border-left:1px solid rgba(255,255,255,0.1);background:${window._dashView==='compact'?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.04)'};color:${window._dashView==='compact'?'#a5b4fc':'var(--text-muted)'};border-radius:0;" title="${_t('dashboard.compact')}">☰ ${_t('dashboard.compact')}</button>
       </div>
     </div>
     <div class="dashboard-list" style="margin-bottom: 2rem;">

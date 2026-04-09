@@ -1,17 +1,18 @@
 // ── Bracket UI Handlers ──
+var _t = window._t || function(k) { return k; };
 window._substituteFromStandby = function (tId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
 
   const select = document.getElementById('standby-wo-select');
   if (!select || !select.value) {
-    showAlertDialog('Selecione o Ausente', 'Escolha quem não compareceu para realizar a substituição.', null, { type: 'warning' });
+    showAlertDialog(_t('result.selectAbsent'), '', null, { type: 'warning' });
     return;
   }
 
   const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
   if (standby.length === 0) {
-    showAlertDialog('Lista Vazia', 'Não há mais participantes na lista de espera.', null, { type: 'warning' });
+    showAlertDialog(_t('result.emptyList'), '', null, { type: 'warning' });
     return;
   }
 
@@ -49,7 +50,7 @@ window._substituteFromStandby = function (tId) {
         <div><strong style="color:#4ade80;">Substituto:</strong> ${window._safeHtml(replacementName)}</div>`;
     }
 
-    showConfirmDialog('Confirmar Substituição Individual',
+    showConfirmDialog(_t('result.confirmSub'),
       `<div style="text-align:left;line-height:1.8;">${confirmMsg}
         <div style="margin-top:8px;font-size:0.85rem;color:#94a3b8;">O jogador ausente será substituído dentro do time.</div>
       </div>`,
@@ -441,12 +442,12 @@ window._saveSetResult = function(tId, matchId) {
 
   if (!isGroupMatch && !isRoundMatch) {
     _advanceWinner(t, m);
-    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+    showNotification(_t('result.saved'), m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
   } else if (isRoundMatch) {
-    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+    showNotification(_t('result.saved'), m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
   } else {
     _checkGroupRoundComplete(t, m.group);
-    showNotification('Resultado Salvo', m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
+    showNotification(_t('result.saved'), m.winner + ' vence ' + p1Sets + '-' + p2Sets + '!', 'success');
   }
 
   if (!t.checkedIn) t.checkedIn = {};
@@ -507,7 +508,7 @@ window._saveResultInline = function (tId, matchId) {
   const s2 = s2El ? parseInt(s2El.value) : NaN;
 
   if (isNaN(s1) || isNaN(s2)) {
-    showAlertDialog('Placar Inválido', 'Preencha o placar dos dois times antes de confirmar.', null, { type: 'warning' });
+    showAlertDialog(_t('result.invalidScore'), _t('result.fillScore'), null, { type: 'warning' });
     return;
   }
   const isGroupMatch = m.group !== undefined;
@@ -519,7 +520,7 @@ window._saveResultInline = function (tId, matchId) {
   const allowDraw = isGroupMatch || isRoundMatch;
 
   if (s1 === s2 && !allowDraw) {
-    showAlertDialog('Empate não permitido', 'O torneio eliminatório não aceita empate. Corrija o placar.', null, { type: 'warning' });
+    showAlertDialog(_t('result.drawNotAllowed'), '', null, { type: 'warning' });
     return;
   }
 
@@ -538,14 +539,14 @@ window._saveResultInline = function (tId, matchId) {
   if (!isGroupMatch && !isRoundMatch) {
     // Eliminatórias — vencedor avança
     _advanceWinner(t, m);
-    showNotification('Resultado Salvo', `${m.winner} avança!`, 'success');
+    showNotification(_t('result.saved'), `${m.winner} avança!`, 'success');
   } else if (isRoundMatch) {
     // Liga/Suíço/Ranking — atualizar standings
-    showNotification('Resultado Salvo', `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+    showNotification(_t('result.saved'), `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
   } else {
     // Check if current group round is complete, activate next
     _checkGroupRoundComplete(t, m.group);
-    showNotification('Resultado Salvo', `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+    showNotification(_t('result.saved'), `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
   }
 
   // Auto check-in: marcar presença de todos os participantes deste jogo (e limpar ausência se existia)

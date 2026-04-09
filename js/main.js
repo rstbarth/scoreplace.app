@@ -5,10 +5,11 @@
 (function setupHelpModal() {
   if (document.getElementById('modal-help')) return;
 
+  var _t = window._t || function(k) { return k; };
   var helpSections = [
     {
       id: 'about',
-      title: 'Sobre o scoreplace.app',
+      title: _t('help.about'),
       icon: '🏆',
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
@@ -47,7 +48,7 @@
     },
     {
       id: 'primeiros-passos',
-      title: 'Primeiros Passos',
+      title: _t('help.firstSteps'),
       icon: '🚀',
       content: '<p><b>Bem-vindo ao scoreplace.app!</b> Aqui vai um guia rápido para começar:</p>' +
         '<p><b>1. Faça login</b> — Clique no botão de login no canto superior direito. Você pode criar uma conta com e-mail e senha ou entrar com sua rede social preferida (Google, Facebook ou Apple). Seu perfil é criado automaticamente.</p>' +
@@ -57,7 +58,7 @@
     },
     {
       id: 'dashboard',
-      title: 'Dashboard',
+      title: _t('help.dashboard'),
       icon: '📊',
       content: '<p>A <b>Dashboard</b> é sua página principal. Ela mostra um resumo dos seus torneios e permite filtrar de várias formas:</p>' +
         '<p><b>Cards de resumo</b> — No topo você vê cards clicáveis: "Meus Torneios" (que você organiza), "Participando" (que você está inscrito) e "Inscrições Abertas". Clique neles para filtrar os cards abaixo.</p>' +
@@ -66,7 +67,7 @@
     },
     {
       id: 'criar-torneio',
-      title: 'Criar um Torneio',
+      title: _t('help.createTournament'),
       icon: '➕',
       content: '<p>Existem duas formas de criar um torneio:</p>' +
         '<p><b>Criação rápida</b> — Clique em "+ Novo Torneio" na dashboard, escolha o esporte e clique em "Criar Torneio". Um torneio de eliminatórias simples é criado instantaneamente com nome automático.</p>' +
@@ -76,7 +77,7 @@
     },
     {
       id: 'formatos',
-      title: 'Formatos de Torneio',
+      title: _t('help.formats'),
       icon: '🎯',
       content: '<p>O scoreplace.app suporta <b>5 formatos</b> de torneio:</p>' +
         '<p><b>Eliminatórias Simples</b> — Perdeu, está fora. Ideal para torneios rápidos. Opcional: disputa de 3º lugar.</p>' +
@@ -87,7 +88,7 @@
     },
     {
       id: 'inscricao',
-      title: 'Inscrição em Torneios',
+      title: _t('help.enrollment'),
       icon: '✍️',
       content: '<p><b>Para se inscrever</b> — Abra o torneio e clique no botão "Inscrever-se". Se o torneio for por times, você precisará preencher os nomes dos integrantes da equipe.</p>' +
         '<p><b>Confirmação</b> — Após a inscrição, você será redirecionado para a página do torneio e verá seu nome destacado entre os inscritos.</p>' +
@@ -97,7 +98,7 @@
     },
     {
       id: 'sorteio',
-      title: 'Sorteio e Chaves',
+      title: _t('help.draw'),
       icon: '🎲',
       content: '<p><b>Antes do sorteio</b> — O organizador pode abrir a "Janela Pré-Sorteio" para organizar os participantes por categoria, mover entre grupos e definir a ordem de cabeças de chave.</p>' +
         '<p><b>Realizar o sorteio</b> — O organizador clica em "Sortear" para gerar as chaves oficiais. Em eliminatórias, os confrontos são definidos aleatoriamente. Em grupos, os participantes são distribuídos nos grupos.</p>' +
@@ -107,7 +108,7 @@
     },
     {
       id: 'checkin',
-      title: 'Check-in e Presença',
+      title: _t('help.checkin'),
       icon: '✅',
       content: '<p><b>Check-in</b> — Depois que o torneio é iniciado, o organizador pode fazer a chamada de presença na aba "Inscritos". Cada participante pode ser marcado como Presente, Ausente ou Pendente.</p>' +
         '<p><b>Indicadores nas chaves</b> — Nas chaves, cada jogador tem um ponto colorido: verde (presente), vermelho (ausente), cinza (pendente). A partida aparece verde quando ambos estão presentes.</p>' +
@@ -116,7 +117,7 @@
     },
     {
       id: 'resultados',
-      title: 'Resultados e Placar',
+      title: _t('help.results'),
       icon: '📝',
       content: '<p><b>Lançar resultado</b> — O organizador (ou os próprios jogadores, dependendo da configuração) pode clicar na partida para informar o placar.</p>' +
         '<p><b>Configurações de lançamento</b> — No formulário de criação, você define quem pode lançar resultados: apenas o organizador, pelos próprios jogadores (com aceite do adversário), ou por árbitro designado.</p>' +
@@ -124,7 +125,7 @@
     },
     {
       id: 'convidar',
-      title: 'Convidar Amigos',
+      title: _t('help.invite'),
       icon: '👥',
       content: '<p><b>Dentro do torneio</b> — Clique em "Convidar" para abrir o painel de convites. Você tem 5 opções:</p>' +
         '<p><b>Amigos na plataforma</b> — Selecione amigos que já têm conta no scoreplace.app. Eles recebem uma notificação direta.</p>' +
@@ -135,7 +136,7 @@
     },
     {
       id: 'perfil',
-      title: 'Seu Perfil',
+      title: _t('help.profile'),
       icon: '👤',
       content: '<p><b>Acessar</b> — Clique no seu avatar/nome no canto superior direito para abrir o perfil.</p>' +
         '<p><b>Informações pessoais</b> — Nome, gênero, data de nascimento, cidade, esportes preferidos (separados por vírgula) e categoria padrão.</p>' +
@@ -148,7 +149,7 @@
     },
     {
       id: 'notificacoes',
-      title: 'Notificações',
+      title: _t('help.notifications'),
       icon: '🔔',
       content: '<p>O scoreplace.app te mantém informado sobre tudo que acontece nos torneios em que você está inscrito:</p>' +
         '<p><b>Inscrição confirmada</b> — Ao se inscrever em um torneio, você recebe confirmação.</p>' +
@@ -161,7 +162,7 @@
     },
     {
       id: 'explorar',
-      title: 'Explorar e Comunidade',
+      title: _t('help.explore'),
       icon: '🌐',
       content: '<p><b>Aba Explorar</b> — Encontre outros jogadores e faça amizades na comunidade.</p>' +
         '<p><b>Pedidos de amizade</b> — No topo aparecem pedidos pendentes para aceitar ou recusar.</p>' +
@@ -171,7 +172,7 @@
     },
     {
       id: 'organizador',
-      title: 'Dicas para Organizadores',
+      title: _t('help.organizers'),
       icon: '🛠️',
       content: '<p><b>Visão de Organizador</b> — Use o botão "Organizador / Participante" no cabeçalho para alternar entre as perspectivas. Na visão de organizador, você vê todos os controles de gerenciamento.</p>' +
         '<p><b>Comunicar inscritos</b> — Na página do torneio, use o botão "Comunicar Inscritos" para enviar mensagens para todos os participantes. Escolha o nível de importância para respeitar as preferências de cada usuário.</p>' +
@@ -181,7 +182,7 @@
     },
     {
       id: 'categorias',
-      title: 'Categorias',
+      title: _t('help.categories'),
       icon: '🏷️',
       content: '<p>O organizador pode definir categorias para qualquer formato de torneio, permitindo que participantes de diferentes perfis disputem separadamente:</p>' +
         '<p><b>Categorias de gênero</b> — Botões de alternância: Feminino (♀), Masculino (♂), Misto Aleatório (⚥) e Misto Obrigatório (⚤). Não são excludentes — o organizador pode ativar quantos quiser.</p>' +
@@ -200,7 +201,7 @@
     },
     {
       id: 'local',
-      title: 'Local e Quadras',
+      title: _t('help.venue'),
       icon: '📍',
       content: '<p><b>Busca de local</b> — Ao criar um torneio, digite o nome do local e o sistema busca automaticamente no mapa com endereço completo e foto.</p>' +
         '<p><b>Acesso</b> — Defina o tipo de acesso: aberto ao público, apenas sócios, ou com convite.</p>' +
@@ -210,7 +211,7 @@
     },
     {
       id: 'desempate',
-      title: 'Critérios de Desempate',
+      title: _t('help.tiebreak'),
       icon: '⚖️',
       content: '<p>Em caso de empate na classificação, o scoreplace.app usa critérios configuráveis pelo organizador:</p>' +
         '<p><b>Confronto Direto</b> — Quem ganhou no confronto entre os empatados.</p>' +
@@ -223,7 +224,7 @@
     },
     {
       id: 'atalhos-teclado',
-      title: 'Atalhos de Teclado',
+      title: _t('help.shortcuts'),
       icon: '⌨️',
       content: '<div style="display:grid;grid-template-columns:80px 1fr;gap:8px 16px;font-size:0.85rem;">' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">Ctrl+K</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir busca rápida global</span>' +
@@ -238,7 +239,7 @@
     },
     {
       id: 'notas-versoes',
-      title: 'Notas das Versões',
+      title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.7.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
@@ -602,9 +603,9 @@
   const html = `
     <div class="modal-overlay" id="modal-quick-create">
       <div class="modal" style="max-width:420px; padding:2rem;">
-        <h2 style="margin:0 0 1.25rem; font-size:1.3rem; font-weight:700; color:var(--text-bright); text-align:center;">Novo Torneio</h2>
+        <h2 style="margin:0 0 1.25rem; font-size:1.3rem; font-weight:700; color:var(--text-bright); text-align:center;">${(window._t || function(k){return k;})('quickCreate.title')}</h2>
         <div class="form-group" style="margin-bottom:1.25rem;">
-          <label class="form-label">Modalidade Esportiva</label>
+          <label class="form-label">${(window._t || function(k){return k;})('quickCreate.sportLabel')}</label>
           <div id="qc-sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
             <button type="button" class="qc-sport-btn qc-sport-active" data-sport="🎾 Beach Tennis" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
             <button type="button" class="qc-sport-btn" data-sport="🥒 Pickleball" onclick="window._qcSelectSport(this)" style="padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🥒 Pickleball</button>
@@ -623,16 +624,16 @@
         <div id="qc-template-area" style="margin-bottom:10px;display:none;"></div>
         <div style="display:flex; flex-direction:column; gap:10px;">
           <button class="btn btn-primary btn-block" id="btn-quick-create">
-            🏆 Criar Torneio
+            🏆 ${(window._t || function(k){return k;})('quickCreate.create')}
           </button>
           <button class="btn btn-tool-amber btn-block" id="btn-quick-template" style="display:none;">
             💾 Usar Template
           </button>
           <button class="btn btn-secondary btn-block" id="btn-quick-advanced">
-            ⚙️ Detalhes Avançados
+            ⚙️ ${(window._t || function(k){return k;})('quickCreate.advanced')}
           </button>
           <button class="btn btn-secondary btn-block" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');">
-            Cancelar
+            ${(window._t || function(k){return k;})('btn.cancel')}
           </button>
         </div>
       </div>
