@@ -110,11 +110,11 @@ function setupCreateTournamentModal() {
                 </select>
                 <div id="formato-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="formato-btn formato-btn-active" data-value="elim_simples" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;">Eliminatórias</button>
-                  <button type="button" class="formato-btn" data-value="elim_dupla" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Dupla Eliminatória</button>
-                  <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Grupos + Elim.</button>
-                  <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Suíço</button>
-                  <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Liga</button>
-                  <button type="button" class="formato-btn" data-value="rei_rainha" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">Rei/Rainha</button>
+                  <button type="button" class="formato-btn" data-value="elim_dupla" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Dupla Eliminatória</button>
+                  <button type="button" class="formato-btn" data-value="grupos_mata" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Grupos + Elim.</button>
+                  <button type="button" class="formato-btn" data-value="suico" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Suíço</button>
+                  <button type="button" class="formato-btn" data-value="liga" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Liga</button>
+                  <button type="button" class="formato-btn" data-value="rei_rainha" onclick="window._selectFormato(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">Rei/Rainha</button>
                 </div>
                 <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">Eliminação na primeira derrota.</small>
               </div>
@@ -777,7 +777,7 @@ function setupCreateTournamentModal() {
         b.style.border = '2px solid rgba(255,255,255,0.18)';
         b.style.background = 'rgba(255,255,255,0.06)';
         b.style.color = 'var(--text-main)';
-        b.style.fontWeight = '500';
+        b.style.fontWeight = '600';
       }
     });
     // Sync hidden select
@@ -2971,11 +2971,11 @@ window._gsmUpdateSummary = function() {
     lines.push('Contagem: 15-30-40' + (advOn ? ' + vantagem' : ''));
     if (tbOn) {
       var _tbDraw = tbPts - tbMargin;
-      lines.push('Tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + '), prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem.');
+      lines.push('Tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
     }
     if (stbOn && sets > 1) {
       var _stbDraw = stbPts - 2;
-      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + '), prorroga até o vencedor ter 2 pontos de vantagem.');
+      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + ', prorroga até o vencedor ter 2 pontos de vantagem).');
     }
   }
 
@@ -3072,7 +3072,7 @@ window._updateGSMSummaryFromHidden = function() {
     }
     if (stbOn && s > 1) {
       var _stbDraw = parseInt(stbPts) - 2;
-      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + '), prorroga até o vencedor ter 2 pontos de vantagem.');
+      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + ', prorroga até o vencedor ter 2 pontos de vantagem).');
     }
   }
   summaryEl.innerHTML = lines.join('<br>');
