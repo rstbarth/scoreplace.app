@@ -85,6 +85,17 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
 
+              <!-- Público/Privado -->
+              <div class="form-group mb-2">
+                <label class="form-label" style="margin-bottom:6px;">Visibilidade</label>
+                <input type="hidden" id="tourn-public" value="true">
+                <div style="display:flex;gap:6px;">
+                  <button type="button" id="btn-vis-public" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;" onclick="window._setVisibility('public')">🌐 Público</button>
+                  <button type="button" id="btn-vis-private" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);" onclick="window._setVisibility('private')">🔒 Privado</button>
+                </div>
+                <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.</small>
+              </div>
+
               <!-- Formato -->
               <div class="form-group mb-3">
                 <label class="form-label">Formato do Torneio</label>
@@ -108,15 +119,24 @@ function setupCreateTournamentModal() {
                 <small class="text-muted" style="display:block;margin-top:4px;" id="formato-desc">Eliminação na primeira derrota.</small>
               </div>
 
-              <!-- Público/Privado -->
-              <div class="form-group mb-2">
-                <label class="form-label" style="margin-bottom:6px;">Visibilidade</label>
-                <input type="hidden" id="tourn-public" value="true">
-                <div style="display:flex;gap:6px;">
-                  <button type="button" id="btn-vis-public" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;" onclick="window._setVisibility('public')">🌐 Público</button>
-                  <button type="button" id="btn-vis-private" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);" onclick="window._setVisibility('private')">🔒 Privado</button>
+              <!-- Rei/Rainha da Praia (logo abaixo do formato, visível só quando rei_rainha selecionado) -->
+              <div id="rei-rainha-fields" style="display:none; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">👑 Rei/Rainha da Praia</p>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">Grupos de 4 jogadores com 3 partidas e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual.</div>
+                <div style="margin-bottom:0.75rem;">
+                  <label class="form-label" style="font-size:0.75rem;margin-bottom:6px;">Classificados por grupo</label>
+                  <div style="display:flex;gap:8px;" id="monarch-classified-buttons">
+                    <button type="button" class="monarch-cls-btn monarch-cls-active" data-value="1" onclick="window._selectMonarchClassified(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;text-align:center;">1 (Rei/Rainha)</button>
+                    <button type="button" class="monarch-cls-btn" data-value="2" onclick="window._selectMonarchClassified(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">2 (Rei + Vice)</button>
+                  </div>
+                  <input type="hidden" id="monarch-classified" value="1">
                 </div>
-                <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.</small>
+                <div>
+                  <label class="form-label d-flex align-center" style="gap:8px;cursor:pointer;margin:0;">
+                    <input type="checkbox" id="monarch-advance-elim" style="width:18px;height:18px;">
+                    <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Avançar para Eliminatória</span>
+                  </label>
+                </div>
               </div>
 
               <!-- Campos específicos: Fase de Grupos -->
@@ -463,34 +483,15 @@ function setupCreateTournamentModal() {
               </div>
 
               <!-- Lançamento de Resultados -->
-              <div class="form-group mb-3">
-                <label class="form-label">Quem pode lançar resultados</label>
-                <select class="form-control" id="select-result-entry">
-                  <option value="organizer">Apenas o Organizador</option>
-                  <option value="players">Pelos próprios jogadores (com aceitação do adversário)</option>
-                  <option value="referee">Árbitro designado pelo organizador</option>
-                </select>
-              </div>
-
-              <!-- Rei/Rainha da Praia -->
-              <div id="rei-rainha-fields" style="display:none; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">👑 Rei/Rainha da Praia</p>
-                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">Grupos de 4 jogadores com 3 partidas e parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual.</div>
-                <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                  <div class="form-group" style="margin:0;flex:1;min-width:140px;">
-                    <label class="form-label" style="font-size:0.75rem;">Classificados por grupo</label>
-                    <select id="monarch-classified" class="form-control" style="font-size:0.85rem;">
-                      <option value="1" selected>1 (Rei/Rainha)</option>
-                      <option value="2">2 (Rei + Vice)</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0;flex:1;min-width:160px;display:flex;align-items:flex-end;">
-                    <label class="form-label d-flex align-center" style="gap:8px;cursor:pointer;margin:0;">
-                      <input type="checkbox" id="monarch-advance-elim" style="width:18px;height:18px;">
-                      <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Avançar para Eliminatória</span>
-                    </label>
-                  </div>
+              <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #60a5fa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">📋 Lançamento de Resultados</p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;" id="result-entry-buttons">
+                  <button type="button" class="result-entry-btn result-entry-active" data-value="organizer" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">Organizador</button>
+                  <button type="button" class="result-entry-btn" data-value="players" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Jogadores</button>
+                  <button type="button" class="result-entry-btn" data-value="referee" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Árbitro</button>
                 </div>
+                <div id="result-entry-desc" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Apenas o organizador (e co-organizadores) podem lançar resultados das partidas.</div>
+                <input type="hidden" id="select-result-entry" value="organizer">
               </div>
 
               <!-- Classificação -->
@@ -786,6 +787,59 @@ function setupCreateTournamentModal() {
     var descEl = document.getElementById('formato-desc');
     if (descEl) descEl.textContent = _formatoDescs[value] || '';
     window._onFormatoChange();
+  };
+
+  // ── Result Entry Selection ──
+  var _resultEntryDescs = {
+    'organizer': 'Apenas o organizador (e co-organizadores) podem lançar resultados das partidas.',
+    'players': 'Os próprios jogadores lançam os resultados. O adversário precisa confirmar o placar.',
+    'referee': 'Um árbitro designado pelo organizador lança os resultados das partidas.'
+  };
+  window._selectResultEntry = function(btn) {
+    var value = btn.getAttribute('data-value');
+    var btns = document.querySelectorAll('#result-entry-buttons .result-entry-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('result-entry-active');
+        b.style.border = '2px solid #3b82f6';
+        b.style.background = 'rgba(59,130,246,0.15)';
+        b.style.color = '#60a5fa';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('result-entry-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '500';
+      }
+    });
+    var hidden = document.getElementById('select-result-entry');
+    if (hidden) hidden.value = value;
+    var descEl = document.getElementById('result-entry-desc');
+    if (descEl) descEl.textContent = _resultEntryDescs[value] || '';
+  };
+
+  // ── Monarch Classified Selection ──
+  window._selectMonarchClassified = function(btn) {
+    var value = btn.getAttribute('data-value');
+    var btns = document.querySelectorAll('#monarch-classified-buttons .monarch-cls-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === value) {
+        b.classList.add('monarch-cls-active');
+        b.style.border = '2px solid #fbbf24';
+        b.style.background = 'rgba(251,191,36,0.15)';
+        b.style.color = '#fbbf24';
+        b.style.fontWeight = '600';
+      } else {
+        b.classList.remove('monarch-cls-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'var(--text-main)';
+        b.style.fontWeight = '500';
+      }
+    });
+    var hidden = document.getElementById('monarch-classified');
+    if (hidden) hidden.value = value;
   };
 
   // ── Ranking Type Selection ──
@@ -2212,6 +2266,8 @@ function setupCreateTournamentModal() {
     if (fmtValue === 'rei_rainha') {
       var _mcEl = document.getElementById('monarch-classified');
       if (_mcEl) _mcEl.value = String(t.monarchClassified || 1);
+      var _mcBtn = document.querySelector('#monarch-classified-buttons .monarch-cls-btn[data-value="' + (t.monarchClassified || 1) + '"]');
+      if (_mcBtn) window._selectMonarchClassified(_mcBtn);
       var _maEl = document.getElementById('monarch-advance-elim');
       if (_maEl) _maEl.checked = t.monarchAdvanceToElim === true;
     }
@@ -2299,6 +2355,8 @@ function setupCreateTournamentModal() {
     document.getElementById('tourn-auto-close').checked = !!t.autoCloseOnFull;
     window._setVisibility(t.isPublic !== false ? 'public' : 'private');
     document.getElementById('select-result-entry').value = t.resultEntry || 'organizer';
+    var _reBtn = document.querySelector('#result-entry-buttons .result-entry-btn[data-value="' + (t.resultEntry || 'organizer') + '"]');
+    if (_reBtn) window._selectResultEntry(_reBtn);
 
     // Venue / Courts / Time
     document.getElementById('tourn-venue').value = t.venue || '';
