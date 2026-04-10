@@ -234,12 +234,30 @@
   window._cancelHostInvite = function(tId, inviteType) {
     var t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
     if (!t) return;
+    var user = window.AppStore.currentUser;
+    var targetUidOrEmail = null;
+    var targetName = '';
     if (inviteType === 'transfer' && t.pendingTransfer) {
+      targetUidOrEmail = t.pendingTransfer.targetUid || t.pendingTransfer.targetEmail;
+      targetName = t.pendingTransfer.targetName || '';
       t.pendingTransfer = null;
     } else if (inviteType === 'cohost' && Array.isArray(t.coHosts)) {
+      var pending = t.coHosts.filter(function(ch) { return ch.status === 'pending'; });
+      if (pending.length > 0) {
+        targetUidOrEmail = pending[0].uid || pending[0].email;
+        targetName = pending[0].displayName || '';
+      }
       t.coHosts = t.coHosts.filter(function(ch) { return ch.status !== 'pending'; });
     }
     window.FirestoreDB.saveTournament(t);
+    // Notify target that invite was cancelled
+    if (targetUidOrEmail) {
+      _notifyByEmail(targetUidOrEmail, {
+        type: 'cohost_removed', tournamentId: String(t.id), tournamentName: t.name,
+        message: (user ? user.displayName : '') + ' ' + _tH('org.cancelledInviteFor') + ' "' + t.name + '".',
+        level: 'important'
+      });
+    }
     if (typeof showNotification === 'function') showNotification(_tH('org.cancelled'), _tH('org.inviteCancelled'), 'info');
   };
 
@@ -311,12 +329,15 @@
       eligible.forEach(function(p) {
         var name = p.displayName || p.name || p.email;
         var email = p.email || '';
+        var pUid = p.uid || '';
         var isPending = pendingEmails.indexOf(email) !== -1;
         var safeEmail = email.replace(/'/g, "\\'");
+        var safeUid = pUid.replace(/'/g, "\\'");
+        var safeName = window._safeHtml(name).replace(/'/g, "\\'");
         var avatarSeed = encodeURIComponent(name);
         var avatarUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         listHtml += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:' + (isPending ? 'default' : 'pointer') + ';background:' + (isPending ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isPending ? 'rgba(251,191,36,0.3)' : 'var(--border-color)') + ';transition:background 0.2s;" ' +
-          (isPending ? '' : 'onmouseover="this.style.background=\'rgba(251,191,36,0.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'" onclick="document.getElementById(\'org-picker-overlay\').remove(); window._openHostTransferDialog({email:\'' + safeEmail + '\',displayName:\'' + window._safeHtml(name).replace(/'/g, "\\'") + '\'},\'' + String(tId).replace(/'/g, "\\'") + '\')"') + '>' +
+          (isPending ? '' : 'onmouseover="this.style.background=\'rgba(251,191,36,0.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'" onclick="document.getElementById(\'org-picker-overlay\').remove(); window._openHostTransferDialog({email:\'' + safeEmail + '\',uid:\'' + safeUid + '\',displayName:\'' + safeName + '\'},\'' + String(tId).replace(/'/g, "\\'") + '\')"') + '>' +
           '<img src="' + avatarUrl + '" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;">' +
           '<div style="flex:1;min-width:0;">' +
             '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
@@ -344,27 +365,39 @@
   // ─── Helper: send notification by uid or email lookup ─────────────────────
   function _notifyByEmail(uidOrEmail, data) {
     if (!uidOrEmail) return;
-    data.createdAt = new Date().toISOString();
-    data.read = false;
+    var cu = window.AppStore.currentUser || {};
+    var payload = {
+      type: data.type || 'info',
+      fromUid: cu.uid || cu.email || '',
+      fromName: cu.displayName || '',
+      fromPhoto: cu.photoURL || '',
+      tournamentId: data.tournamentId || '',
+      tournamentName: data.tournamentName || '',
+      message: data.message || '',
+      createdAt: new Date().toISOString(),
+      read: false
+    };
+    if (data.inviteType) payload.inviteType = data.inviteType;
+
+    function _sendDirect(uid) {
+      // Write directly to Firestore to guarantee delivery (host invites are critical)
+      if (window.FirestoreDB && window.FirestoreDB.addNotification) {
+        window.FirestoreDB.addNotification(uid, payload);
+      }
+    }
+
     // If it looks like a UID (no @), send directly
     if (uidOrEmail.indexOf('@') === -1) {
-      if (typeof window._sendUserNotification === 'function') {
-        window._sendUserNotification(uidOrEmail, data);
-      } else if (window.FirestoreDB && window.FirestoreDB.addNotification) {
-        window.FirestoreDB.addNotification(uidOrEmail, data);
-      }
+      _sendDirect(uidOrEmail);
       return;
     }
     // Lookup by email
     if (window.FirestoreDB && window.FirestoreDB.db) {
       window.FirestoreDB.db.collection('users').where('email', '==', uidOrEmail).limit(1).get().then(function(snap) {
         if (!snap.empty) {
-          var uid = snap.docs[0].id;
-          if (typeof window._sendUserNotification === 'function') {
-            window._sendUserNotification(uid, data);
-          } else {
-            window.FirestoreDB.addNotification(uid, data);
-          }
+          _sendDirect(snap.docs[0].id);
+        } else {
+          console.warn('Host-transfer notify: no user found for email', uidOrEmail);
         }
       }).catch(function(e) { console.warn('Notify lookup error:', e); });
     }

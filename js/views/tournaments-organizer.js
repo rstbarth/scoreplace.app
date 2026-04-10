@@ -83,7 +83,7 @@ window._sendUserNotification = async function(uid, notifData) {
         var cu = window.AppStore.currentUser || {};
         // Platform notification
         if (profile.notifyPlatform !== false) {
-            await window.FirestoreDB.addNotification(uid, {
+            var _notifPayload = {
                 type: notifData.type || 'info',
                 fromUid: cu.uid || cu.email || '',
                 fromName: cu.displayName || '',
@@ -93,7 +93,9 @@ window._sendUserNotification = async function(uid, notifData) {
                 message: notifData.message || '',
                 createdAt: new Date().toISOString(),
                 read: false
-            });
+            };
+            if (notifData.inviteType) _notifPayload.inviteType = notifData.inviteType;
+            await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
         // Email — collect for batch (returned)
         var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;

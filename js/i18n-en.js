@@ -535,6 +535,7 @@ window._translations['en'] = {
   'org.noEligible': 'No eligible participants found.',
   'org.pickParticipant': 'Select a participant to share or transfer the organization.',
   'org.pendingInvite': 'Pending invite',
+  'org.cancelledInviteFor': 'cancelled the organization invite for tournament',
 
   // Email templates
   'email.enrollment.subject': 'Enrollment confirmed — {tournamentName}',

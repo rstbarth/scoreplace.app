@@ -535,6 +535,7 @@ window._translations['pt'] = {
   'org.noEligible': 'Nenhum participante elegível encontrado.',
   'org.pickParticipant': 'Selecione um participante para compartilhar ou transferir a organização.',
   'org.pendingInvite': 'Convite pendente',
+  'org.cancelledInviteFor': 'cancelou o convite de organização do torneio',
 
   // Email templates
   'email.enrollment.subject': 'Inscricao confirmada — {tournamentName}',
