@@ -577,6 +577,11 @@ async function simulateLoginSuccess(user) {
     await window.AppStore.loadFromFirestore();
   }
 
+  // Start real-time listener for user notifications
+  if (window.AppStore.startNotificationsListener) {
+    window.AppStore.startNotificationsListener();
+  }
+
   // Check tournament reminders and nearby tournaments (delayed to let data load)
   setTimeout(function() {
     if (typeof window._checkTournamentReminders === 'function') {

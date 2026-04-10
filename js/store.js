@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.8-alpha';
+window.SCOREPLACE_VERSION = '0.8.9-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -557,6 +557,50 @@ window.AppStore = {
       this._realtimeUnsubscribe();
       this._realtimeUnsubscribe = null;
     }
+    if (this._notifUnsubscribe) {
+      this._notifUnsubscribe();
+      this._notifUnsubscribe = null;
+    }
+  },
+
+  // Real-time listener for user notifications — fires on new/updated notifications
+  startNotificationsListener() {
+    if (this._notifUnsubscribe) return; // Already listening
+    if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+    var cu = this.currentUser;
+    if (!cu || !cu.uid) return;
+
+    var isFirst = true;
+    this._notifUnsubscribe = window.FirestoreDB.db
+      .collection('users').doc(cu.uid).collection('notifications')
+      .orderBy('createdAt', 'desc').limit(20)
+      .onSnapshot(function(snap) {
+        // Skip the initial snapshot (already loaded via polling)
+        if (isFirst) { isFirst = false; return; }
+
+        // New notification arrived — update badge immediately
+        if (typeof window._updateNotificationBadge === 'function') {
+          window._updateNotificationBadge();
+        }
+
+        // Show toast for each new notification
+        snap.docChanges().forEach(function(change) {
+          if (change.type === 'added') {
+            var d = change.doc.data();
+            if (d && !d.read && d.message && typeof showNotification === 'function') {
+              showNotification('🔔 ' + (d.type === 'cohost_invite' ? 'Convite de Organização' : 'Notificação'), d.message, 'info');
+            }
+          }
+        });
+
+        // If user is on notifications page, refresh it
+        if (window.location.hash === '#notifications') {
+          var vc = document.getElementById('view-container');
+          if (vc && typeof renderNotifications === 'function') renderNotifications(vc);
+        }
+      }, function(err) {
+        console.warn('Notifications listener error:', err);
+      });
   },
 
   // Load all tournaments from Firestore (one-time, fallback)
