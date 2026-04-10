@@ -393,7 +393,10 @@ function _updateProgressiveClassification(t) {
   var fmt = t.format || '';
   if (fmt.indexOf('Elim') === -1 && fmt.indexOf('Fase') === -1) return;
 
-  if (!t.classification) t.classification = {};
+  // Always recompute from scratch — incremental updates cause position
+  // collisions because already-classified losers are skipped, making every
+  // new loser in a round land at posStart+0 instead of a unique offset.
+  t.classification = {};
 
   var allMatches = t.matches;
   var roundNums = {};
@@ -478,7 +481,6 @@ function _updateProgressiveClassification(t) {
         if (!m.winner || m.winner === 'draw' || m.isBye) return;
         var stats = _getLoserStats(m);
         if (!stats.loser || stats.loser === 'TBD' || stats.loser === 'BYE') return;
-        if (t.classification[stats.loser]) return; // already classified
         var history = _getPlayerHistory(stats.loser);
         losers.push({ name: stats.loser, stats: stats, history: history });
       });
