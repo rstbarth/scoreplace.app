@@ -465,13 +465,13 @@ function renderDashboard(container) {
                 var _prog = window._getTournamentProgress(t);
                 if (_prog.total > 0) {
                   var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
-                  _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;">';
+                  var _progBoxMargin = isOrg ? 'margin-right: 40px;' : '';
+                  _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;' + _progBoxMargin + '">';
                   _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">';
                   _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
                   _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
                   _html += '</div>';
-                  var _progBarWidth = isOrg ? 'calc(100% - 36px)' : '100%';
-                  _html += '<div style="width: ' + _progBarWidth + '; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
+                  _html += '<div style="width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
                   _html += '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 3px;"></div>';
                   _html += '</div></div>';
                 }

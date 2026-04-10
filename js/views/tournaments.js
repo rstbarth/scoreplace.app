@@ -1019,6 +1019,14 @@ function renderTournaments(container, tournamentId = null) {
             </div>` : ''}
 
           </div>
+          ${(tournamentId && window.AppStore.isCreator(t)) ? `<div id="crown-org-btn" style="position:absolute;bottom:12px;right:12px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:10;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
+            ondragover="event.preventDefault();event.dataTransfer.dropEffect='move';this.style.transform='scale(1.15)';"
+            ondragleave="this.style.transform='scale(1)';"
+            ondrop="this.style.transform='scale(1)';window._handleCrownDrop(event,'${t.id}')"
+            onclick="window._openOrgPickerDialog('${t.id}')" title="${_t('org.organization')}">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#78350f"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
+          </div>
+          <style>@keyframes crownGlow{0%,100%{box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3)}50%{box-shadow:0 4px 25px rgba(251,191,36,0.6),0 0 30px rgba(251,191,36,0.5)}}</style>` : ''}
         </div>
       `;
     };
@@ -1386,14 +1394,6 @@ function renderTournaments(container, tournamentId = null) {
                  <div style="${gridStyle}">
                     ${cardsStr}
                  </div>
-                 ${window.AppStore.isCreator(t) ? `<div id="crown-org-btn" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:100;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
-                   ondragover="event.preventDefault();event.dataTransfer.dropEffect='move';this.style.transform='scale(1.15)';"
-                   ondragleave="this.style.transform='scale(1)';"
-                   ondrop="this.style.transform='scale(1)';window._handleCrownDrop(event,'${t.id}')"
-                   onclick="window._openOrgPickerDialog('${t.id}')" title="${_t('org.organization')}">
-                   <svg width="28" height="28" viewBox="0 0 24 24" fill="#78350f"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
-                 </div>
-                 <style>@keyframes crownGlow{0%,100%{box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3)}50%{box-shadow:0 4px 25px rgba(251,191,36,0.6),0 0 30px rgba(251,191,36,0.5)}}</style>` : ''}
               </div>
           `;
         }
