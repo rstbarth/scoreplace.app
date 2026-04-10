@@ -963,11 +963,17 @@ window.handleDragStart = function (e, idx, tId) {
       window._participantDragData = t.participants[idx];
       window._participantDragTId = tId;
     }
+    // Show crown drop target while dragging
+    var crownBtn = document.getElementById('crown-org-btn');
+    if (crownBtn) crownBtn.style.display = 'flex';
 };
 
 window.handleDragEnd = function (e) {
     e.target.style.opacity = '1';
     window._participantDragData = null;
+    // Hide crown drop target
+    var crownBtn = document.getElementById('crown-org-btn');
+    if (crownBtn) crownBtn.style.display = 'none';
     // Restore original styles on all cards that might have been highlighted
     document.querySelectorAll('.participant-card').forEach(c => {
         if (c.dataset.originalBg) {
