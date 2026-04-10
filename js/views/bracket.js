@@ -712,7 +712,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
     const thirdPlaceCol = hasThirdPlace ? `
       <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,0.1);">
-        <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">' + _t('bracket.thirdPlace') + '</div>
+        <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${_t('bracket.thirdPlace')}</div>
         ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: null }), canEnterResult, t.id, thirdPlaceMatchNum)}
       </div>` : '';
 
@@ -751,7 +751,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
       const thirdPlaceCol = (isFinalRound && hasThirdPlace) ? `
         <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,0.1);">
-          <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">' + _t('bracket.thirdPlace') + '</div>
+          <div style="font-size:0.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${_t('bracket.thirdPlace')}</div>
           ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: null }), canEnterResult, t.id, thirdPlaceMatchNum)}
         </div>` : '';
 
