@@ -648,7 +648,7 @@ async function simulateLoginSuccess(user) {
           phoneInput.value = _formatPhoneDisplay(digits, phoneCountrySel ? phoneCountrySel.value : '55');
         }
 
-        // Toggle buttons: set state
+        // Toggle switches: set checked state
         var _hintsEnabled = !(window._hintSystem && window._hintSystem.isDisabled());
         var toggles = [
           { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
@@ -658,18 +658,8 @@ async function simulateLoginSuccess(user) {
           { id: 'profile-hints-enabled', val: _hintsEnabled }
         ];
         toggles.forEach(function(t) {
-          var btn = document.getElementById(t.id);
-          if (btn) {
-            btn.setAttribute('data-on', t.val ? '1' : '0');
-            var onStyle = { background: 'var(--primary-color)', color: '#fff', borderColor: 'var(--primary-color)' };
-            var offStyle = { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border-color)' };
-            Object.assign(btn.style, t.val ? onStyle : offStyle);
-            var dot = btn.querySelector('span');
-            if (dot) {
-              dot.style.background = t.val ? 'rgba(255,255,255,0.3)' : 'var(--border-color)';
-              dot.textContent = t.val ? '\u2713' : '';
-            }
-          }
+          var el = document.getElementById(t.id);
+          if (el) el.checked = t.val;
         });
 
         // CEPs de preferência
@@ -1619,12 +1609,12 @@ function setupProfileModal() {
               '</div>' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            // Social toggle + notification filters (same row)
+            // Social toggle + notification filters
             '<div style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social &amp; Comunicações</label>' +
               '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
-              '<div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: center;">' +
-                _toggleBtnHtml('profile-accept-friends', 'Aceitar convites', true, null, null, true) +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true }) : '') +
+              '<div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: 8px;">' +
                 '<button type="button" class="btn btn-micro" id="profile-filter-importantes" onclick="window._toggleNotifyFilter(\'importantes\')" style="background: transparent; color: rgba(251,191,36,0.5); border: 1px solid rgba(251,191,36,0.25);" title="Ativo: recebe só importantes e fundamentais. Desativado: recebe todas.">🟡 Só Importantes</button>' +
                 '<button type="button" class="btn btn-micro" id="profile-filter-fundamentais" onclick="window._toggleNotifyFilter(\'fundamentais\')" style="background: transparent; color: rgba(239,68,68,0.5); border: 1px solid rgba(239,68,68,0.25);" title="Ativo: recebe só fundamentais. Desativado: recebe todas.">🔴 Só Fundamentais</button>' +
               '</div>' +
@@ -1640,11 +1630,9 @@ function setupProfileModal() {
             // Notification toggles
             '<div style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Canais de Notificação</label>' +
-              '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">' +
-                _toggleBtnHtml('profile-notify-platform', 'Plataforma', true, null, '\uD83D\uDD14') +
-                _toggleBtnHtml('profile-notify-email', 'E-mail', true, '#e67e22', '\u2709\uFE0F') +
-                _toggleBtnHtml('profile-notify-whatsapp', 'WhatsApp', true, '#25D366', '\uD83D\uDCAC') +
-              '</div>' +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: 'Plataforma', icon: '🔔', checked: true }) : '') +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: 'E-mail', icon: '✉️', checked: true, color: '#e67e22' }) : '') +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: 'WhatsApp', icon: '💬', checked: true, color: '#25D366' }) : '') +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Theme
@@ -1659,11 +1647,7 @@ function setupProfileModal() {
             '</div>' +
             // Visual Hints toggle
             '<div style="margin-bottom: 1rem;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Dicas Visuais</label>' +
-                _toggleBtnHtml('profile-hints-enabled', 'Ativadas', true, '#fbbf24', '\uD83D\uDCA1') +
-              '</div>' +
-              '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.</span>' +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-hints-enabled', label: 'Dicas Visuais', icon: '💡', checked: true, color: '#fbbf24', desc: 'Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.' }) : '') +
             '</div>' +
             // Language selector — flag buttons
             '<div style="margin-bottom: 1rem;">' +
@@ -1754,15 +1738,15 @@ function setupProfileModal() {
       var phoneCountry = document.getElementById('profile-phone-country').value || '55';
       var sports = document.getElementById('profile-edit-sports').value.trim();
       var category = document.getElementById('profile-edit-category').value.trim();
-      // Toggle buttons: read data-on attribute
-      var acceptFriends = document.getElementById('profile-accept-friends').getAttribute('data-on') === '1';
-      var notifyPlatform = document.getElementById('profile-notify-platform').getAttribute('data-on') === '1';
-      var notifyEmail = document.getElementById('profile-notify-email').getAttribute('data-on') === '1';
-      var notifyWhatsApp = document.getElementById('profile-notify-whatsapp').getAttribute('data-on') === '1';
+      // Toggle switches: read checked state
+      var acceptFriends = document.getElementById('profile-accept-friends') ? document.getElementById('profile-accept-friends').checked : true;
+      var notifyPlatform = document.getElementById('profile-notify-platform') ? document.getElementById('profile-notify-platform').checked : true;
+      var notifyEmail = document.getElementById('profile-notify-email') ? document.getElementById('profile-notify-email').checked : true;
+      var notifyWhatsApp = document.getElementById('profile-notify-whatsapp') ? document.getElementById('profile-notify-whatsapp').checked : true;
       var notifyLevel = document.getElementById('profile-notify-level').value || 'todas';
       var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
       // Visual hints toggle
-      var hintsEnabled = document.getElementById('profile-hints-enabled').getAttribute('data-on') === '1';
+      var hintsEnabled = document.getElementById('profile-hints-enabled') ? document.getElementById('profile-hints-enabled').checked : true;
       if (window._hintSystem) {
         if (hintsEnabled) window._hintSystem.enable();
         else window._hintSystem.disable();

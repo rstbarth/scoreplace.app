@@ -1097,7 +1097,7 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
         var isNash = (opt.key === nashRec);
         var nashBadge = isNash ? '<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);margin-left:6px;vertical-align:middle;">⚖️ Nash</span>' : '';
         return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.03)\'">' +
-            '<input type="checkbox" checked value="' + opt.key + '" style="margin-top:3px;width:18px;height:18px;accent-color:#6366f1;cursor:pointer;">' +
+            '<label class="toggle-switch toggle-sm" style="margin-top:3px;--toggle-on-bg:#6366f1;--toggle-on-glow:rgba(99,102,241,0.3);--toggle-on-border:#6366f1;"><input type="checkbox" checked value="' + opt.key + '"><span class="toggle-slider"></span></label>' +
             '<div style="flex:1;">' +
             '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);">' + opt.icon + ' ' + opt.title + nashBadge + '</div>' +
             '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">' + opt.desc + '</div>' +
@@ -1901,13 +1901,15 @@ window._showReopenPanel = function (tId, info) {
                     </div>
                 </div>
 
-                <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1rem;" id="reopen-autoclose-label">
-                    <input type="checkbox" id="reopen-autoclose-cb" checked style="width:20px;height:20px;margin-top:2px;accent-color:#3b82f6;cursor:pointer;flex-shrink:0;" />
-                    <div>
-                        <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;">Encerrar automaticamente ao atingir ${info.hi} inscritos</div>
-                        <div style="color:#64748b;font-size:0.8rem;margin-top:4px;">As inscrições serão fechadas automaticamente quando o número de participantes alcançar ${info.hi}.</div>
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1rem;" id="reopen-autoclose-label">
+                    <div class="toggle-row" style="padding:0;">
+                        <div class="toggle-row-label"><div>
+                            <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;">Encerrar automaticamente ao atingir ${info.hi} inscritos</div>
+                            <div style="color:#64748b;font-size:0.8rem;margin-top:4px;">As inscrições serão fechadas automaticamente quando o número de participantes alcançar ${info.hi}.</div>
+                        </div></div>
+                        <label class="toggle-switch"><input type="checkbox" id="reopen-autoclose-cb" checked><span class="toggle-slider"></span></label>
                     </div>
-                </label>
+                </div>
             </div>
 
             <div style="padding:1.25rem 2.5rem 1.75rem;display:flex;gap:12px;justify-content:flex-end;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);border-radius:0 0 20px 20px;">

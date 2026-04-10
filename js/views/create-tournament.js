@@ -215,10 +215,10 @@ function setupCreateTournamentModal() {
                   <input type="number" class="form-control" id="liga-inactivity-x" min="1" value="3">
                 </div>
                 <div class="form-group mt-2">
-                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="liga-open-enrollment" checked style="width:18px;height:18px;">
-                    <span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span>
-                  </label>
+                  <div class="toggle-row">
+                    <div class="toggle-row-label"><span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span></div>
+                    <label class="toggle-switch"><input type="checkbox" id="liga-open-enrollment" checked><span class="toggle-slider"></span></label>
+                  </div>
                 </div>
                 <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
                   <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Formato de Rodada</p>
@@ -249,11 +249,10 @@ function setupCreateTournamentModal() {
                     </div>
                   </div>
                   <div class="form-group" style="margin:0;">
-                    <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                      <input type="checkbox" id="liga-manual-draw" style="width:18px;height:18px;">
-                      <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
-                    </label>
-                    <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o sorteio não ocorre automaticamente.</p>
+                    <div class="toggle-row">
+                      <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span><div class="toggle-desc">Quando ativado, o sorteio não ocorre automaticamente.</div></div></div>
+                      <label class="toggle-switch"><input type="checkbox" id="liga-manual-draw"><span class="toggle-slider"></span></label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -280,11 +279,10 @@ function setupCreateTournamentModal() {
                   </div>
                 </div>
                 <div class="form-group" style="margin:0;">
-                  <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="suico-manual-draw" style="width:18px;height:18px;">
-                    <span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span>
-                  </label>
-                  <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0 28px;">Quando marcado, o organizador decide quando gerar cada rodada.</p>
+                  <div class="toggle-row">
+                    <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span><div class="toggle-desc">Quando ativado, o organizador decide quando gerar cada rodada.</div></div></div>
+                    <label class="toggle-switch"><input type="checkbox" id="suico-manual-draw"><span class="toggle-slider"></span></label>
+                  </div>
                 </div>
               </div>
 
@@ -473,11 +471,10 @@ function setupCreateTournamentModal() {
 
               <!-- Auto-close (apenas eliminatórias) -->
               <div class="form-group mb-3" id="auto-close-container" style="display:none;">
-                <label class="form-label d-flex align-center" style="gap:10px; cursor:pointer;">
-                  <input type="checkbox" id="tourn-auto-close" style="width:18px;height:18px;">
-                  <span style="font-weight:bold;color:var(--text-color);">⚡ Encerrar inscrições automaticamente ao atingir o limite</span>
-                </label>
-                <small class="text-muted" style="display:block;margin-left:28px;">Disponível apenas quando o máximo for uma potência de 2 (4, 8, 16, 32...) e o formato for Eliminatórias.</small>
+                <div class="toggle-row">
+                  <div class="toggle-row-label"><span class="toggle-icon">⚡</span><div><span style="font-weight:bold;color:var(--text-color);">Encerrar inscrições ao atingir o limite</span><div class="toggle-desc">Disponível quando o máximo for potência de 2 e formato Eliminatórias.</div></div></div>
+                  <label class="toggle-switch"><input type="checkbox" id="tourn-auto-close"><span class="toggle-slider"></span></label>
+                </div>
               </div>
 
               <!-- Categorias do Torneio -->
@@ -3023,16 +3020,16 @@ window._openGSMConfig = function() {
         '</div>' +
 
         // Advantage rule (only for tennis counting)
-        '<div id="gsm-advantage-row" style="display:' + (counting === 'tennis' ? 'flex' : 'none') + ';align-items:center;gap:8px;">' +
-          '<input type="checkbox" id="gsm-cfg-advantage" ' + (advantage ? 'checked' : '') + ' onchange="window._gsmUpdateSummary()" style="width:18px;height:18px;">' +
-          '<label for="gsm-cfg-advantage" style="font-size:0.82rem;color:var(--text-main);cursor:pointer;">Regra de vantagem (Deuce/Advantage no 40-40)</label>' +
+        '<div id="gsm-advantage-row" class="toggle-row" style="display:' + (counting === 'tennis' ? 'flex' : 'none') + ';padding:6px 0;">' +
+          '<div class="toggle-row-label"><span style="font-size:0.82rem;">Regra de vantagem (Deuce/Advantage no 40-40)</span></div>' +
+          '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-advantage" ' + (advantage ? 'checked' : '') + ' onchange="window._gsmUpdateSummary()"><span class="toggle-slider"></span></label>' +
         '</div>' +
 
         // Tiebreak
         '<div style="border-top:1px solid var(--border-color);padding-top:1rem;">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-            '<input type="checkbox" id="gsm-cfg-tiebreak" ' + (tbEnabled ? 'checked' : '') + ' onchange="window._gsmToggleTiebreak()" style="width:18px;height:18px;">' +
-            '<label for="gsm-cfg-tiebreak" style="font-size:0.82rem;color:var(--text-main);font-weight:600;cursor:pointer;">Tie-break quando empatar no set</label>' +
+          '<div class="toggle-row" style="padding:6px 0;margin-bottom:8px;">' +
+            '<div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;">Tie-break quando empatar no set</span></div>' +
+            '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-tiebreak" ' + (tbEnabled ? 'checked' : '') + ' onchange="window._gsmToggleTiebreak()"><span class="toggle-slider"></span></label>' +
           '</div>' +
           '<div id="gsm-tb-details" style="display:' + (tbEnabled ? 'flex' : 'none') + ';gap:12px;flex-wrap:wrap;padding-left:26px;">' +
             '<div style="min-width:100px;">' +
@@ -3048,9 +3045,9 @@ window._openGSMConfig = function() {
 
         // Super tiebreak
         '<div id="gsm-super-tb-section" style="display:' + (parseInt(setsToWin) > 1 ? 'block' : 'none') + ';">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-            '<input type="checkbox" id="gsm-cfg-superTb" ' + (stb ? 'checked' : '') + ' onchange="window._gsmToggleSuperTb()" style="width:18px;height:18px;">' +
-            '<label for="gsm-cfg-superTb" style="font-size:0.82rem;color:var(--text-main);font-weight:600;cursor:pointer;">Super tie-break no set decisivo</label>' +
+          '<div class="toggle-row" style="padding:6px 0;margin-bottom:8px;">' +
+            '<div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;">Super tie-break no set decisivo</span></div>' +
+            '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-superTb" ' + (stb ? 'checked' : '') + ' onchange="window._gsmToggleSuperTb()"><span class="toggle-slider"></span></label>' +
           '</div>' +
           '<div id="gsm-stb-details" style="display:' + (stb ? 'flex' : 'none') + ';gap:12px;padding-left:26px;">' +
             '<div>' +
