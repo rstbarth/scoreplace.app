@@ -669,11 +669,11 @@ async function simulateLoginSuccess(user) {
         if (cepsEl) cepsEl.value = cu.preferredCeps || '';
         // Init map after modal is visible
         setTimeout(function() { window._initProfileMap(); }, 300);
+        // Setup search listeners immediately (lazy-loads places lib on first query)
+        setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
 
-        // Notify level filter
+        // Notify level filter — apply to independent toggles
         var notifyLevelVal = cu.notifyLevel || 'todas';
-        var nlHidden = document.getElementById('profile-notify-level');
-        if (nlHidden) nlHidden.value = notifyLevelVal;
         if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
 
         // Sync theme buttons with current theme
@@ -1578,10 +1578,12 @@ function setupProfileModal() {
             '<div style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social &amp; Comunicações</label>' +
               '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true }) : '') +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b', onchange: "window._toggleNotifyFilter('importantes')" }) : '') +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: "window._toggleNotifyFilter('fundamentais')" }) : '') +
-              '<input type="hidden" id="profile-notify-level" value="todas">' +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true, color: '#3b82f6' }) : '') +
+              '<div style="margin-top:6px;">' +
+                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Receber comunicações dos torneios:</div>' +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444' }) : '') +
+              '</div>' +
             '</div>' +
             // Locais de preferência (mapa)
             '<div class="form-group" style="margin-bottom: 1rem;">' +
@@ -1659,20 +1661,12 @@ function setupProfileModal() {
       }
     }
 
-    // Notification filter toggle — toggle switches, both off = "todas"
-    // Turning one on deactivates the other. Turning an active one off = back to "todas".
-    window._toggleNotifyFilter = function(level) {
-      var hidden = document.getElementById('profile-notify-level');
-      var current = hidden ? hidden.value : 'todas';
-      var newLevel = (current === level) ? 'todas' : level;
-      if (hidden) hidden.value = newLevel;
-      window._applyNotifyFilterUI(newLevel);
-    };
-
+    // Notification filter toggles — independent (not exclusive)
+    // Both off = 'todas', only imp = 'importantes', only fund = 'fundamentais', both on = 'fundamentais'
     window._applyNotifyFilterUI = function(level) {
       var impEl = document.getElementById('profile-filter-importantes');
       var funEl = document.getElementById('profile-filter-fundamentais');
-      if (impEl) impEl.checked = (level === 'importantes');
+      if (impEl) impEl.checked = (level === 'importantes' || level === 'fundamentais');
       if (funEl) funEl.checked = (level === 'fundamentais');
     };
 
@@ -1872,10 +1866,12 @@ function setupProfileModal() {
       }
     }
 
+    var _profileSearchSetup = false;
     function _setupProfileSearch() {
       var input = document.getElementById('profile-location-search');
       var sugBox = document.getElementById('profile-location-suggestions');
-      if (!input || !sugBox || !_profilePlacesLib) return;
+      if (!input || !sugBox || _profileSearchSetup) return;
+      _profileSearchSetup = true;
 
       var _debounce = null;
       input.addEventListener('input', function() {
@@ -1899,7 +1895,12 @@ function setupProfileModal() {
 
     async function _searchProfileLocation(query) {
       var sugBox = document.getElementById('profile-location-suggestions');
-      if (!sugBox || !_profilePlacesLib) return;
+      if (!sugBox) return;
+      // Lazy-load places lib if not yet available
+      if (!_profilePlacesLib && window.google && window.google.maps) {
+        try { _profilePlacesLib = await google.maps.importLibrary('places'); } catch(e) {}
+      }
+      if (!_profilePlacesLib) return;
 
       try {
         var request = {
@@ -2016,7 +2017,9 @@ function setupProfileModal() {
       var notifyPlatform = document.getElementById('profile-notify-platform') ? document.getElementById('profile-notify-platform').checked : true;
       var notifyEmail = document.getElementById('profile-notify-email') ? document.getElementById('profile-notify-email').checked : true;
       var notifyWhatsApp = document.getElementById('profile-notify-whatsapp') ? document.getElementById('profile-notify-whatsapp').checked : true;
-      var notifyLevel = document.getElementById('profile-notify-level').value || 'todas';
+      var _impChecked = document.getElementById('profile-filter-importantes') ? document.getElementById('profile-filter-importantes').checked : false;
+      var _funChecked = document.getElementById('profile-filter-fundamentais') ? document.getElementById('profile-filter-fundamentais').checked : false;
+      var notifyLevel = _funChecked ? 'fundamentais' : (_impChecked ? 'importantes' : 'todas');
       var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
       var preferredLocations = Array.isArray(window._profileLocations) ? window._profileLocations : [];
       // Visual hints toggle
