@@ -712,7 +712,8 @@ function renderSingleElimBracket(t, canEnterResult) {
 
     const thirdPlaceCol = hasThirdPlace ? `
       <div style="margin-top:1.5rem;">
-        ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: '3º lugar' }), canEnterResult, t.id, thirdPlaceMatchNum)}
+        <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;border-left:3px solid #f59e0b;padding-left:8px;">🥉 3º LUGAR</h4>
+        ${renderMatchCard(thirdPlaceMatch, canEnterResult, t.id, thirdPlaceMatchNum)}
       </div>` : '';
 
     const centerCol = `
@@ -750,7 +751,8 @@ function renderSingleElimBracket(t, canEnterResult) {
 
       const thirdPlaceCol = (isFinalRound && hasThirdPlace) ? `
         <div style="margin-top:1.5rem;">
-          ${renderMatchCard(Object.assign({}, thirdPlaceMatch, { label: '3º lugar' }), canEnterResult, t.id, thirdPlaceMatchNum)}
+          <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;border-left:3px solid #f59e0b;padding-left:8px;">🥉 3º LUGAR</h4>
+          ${renderMatchCard(thirdPlaceMatch, canEnterResult, t.id, thirdPlaceMatchNum)}
         </div>` : '';
 
       roundColumns.push(`
@@ -1122,8 +1124,6 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
-  const isThirdPlace = m.label === '3º lugar';
-  const labelColor = isThirdPlace ? '#f59e0b' : '#38bdf8';
 
   // Card border color based on check-in readiness
   let cardBorder = isDecided ? 'rgba(16,185,129,0.2)' : hasTBD ? 'rgba(255,255,255,0.05)' : 'var(--border-color)';
@@ -1138,12 +1138,10 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }
   }
 
-  const thirdPlaceLeftBar = isThirdPlace ? 'border-left:4px solid #f59e0b;' : '';
-
   return `
-    <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${thirdPlaceLeftBar}${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
+    <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
-        <span style="font-size:0.7rem;font-weight:700;color:${labelColor};text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
+        <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
         <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${headerConfirmBtn}${headerEditBtn}</div>
       </div>
       ${p1Row}
