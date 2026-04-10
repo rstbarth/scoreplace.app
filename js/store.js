@@ -827,6 +827,36 @@ window._nameWithCrown = function(name, tournament) {
   return safe;
 };
 
+// ─── Competitors helper: filter out non-competing organizers from participants ─
+// Returns an array of participants excluding the organizer/co-hosts who didn't
+// explicitly enroll (selfEnrolled flag). Works for both old and new tournaments.
+window._getCompetitors = function(t) {
+  if (!t || !t.participants) return [];
+  var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+  var orgEmail = (t.organizerEmail || '').toLowerCase();
+  var orgName = (t.organizerName || '').toLowerCase();
+  var coHostEmails = {};
+  if (Array.isArray(t.coHosts)) {
+    t.coHosts.forEach(function(ch) { if (ch.email) coHostEmails[ch.email.toLowerCase()] = true; });
+  }
+  return parts.filter(function(p) {
+    if (p && p.selfEnrolled) return true; // explicitly enrolled — always keep
+    var email = '', name = '';
+    if (typeof p === 'string') {
+      name = p.toLowerCase();
+    } else if (p) {
+      email = (p.email || '').toLowerCase();
+      name = (p.displayName || p.name || '').toLowerCase();
+    }
+    // Exclude organizer who didn't self-enroll
+    if (orgEmail && email && email === orgEmail) return false;
+    if (!email && orgName && name && name === orgName) return false;
+    // Exclude co-hosts who didn't self-enroll
+    if (email && coHostEmails[email]) return false;
+    return true;
+  });
+};
+
 // Global Helper para controle do botão ViewMode na Topbar
 window.updateViewModeVisibility = function() {
   var viewModeContainer = document.getElementById('view-mode-container');

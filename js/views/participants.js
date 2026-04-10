@@ -249,7 +249,7 @@ function renderParticipants(container, tournamentId) {
   }
 
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
-  const parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+  const parts = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : []);
 
   let individualCount = 0;
   parts.forEach(p => {

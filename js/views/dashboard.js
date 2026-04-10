@@ -296,7 +296,7 @@ function renderDashboard(container) {
     let individualCount = 0;
     let teamCount = 0;
     if (t.participants) {
-      const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+      const arr = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (Array.isArray(t.participants) ? t.participants : Object.values(t.participants));
       arr.forEach(p => {
         if (typeof p === 'object' && p !== null && Array.isArray(p.participants)) {
           teamCount++;
@@ -792,7 +792,7 @@ function renderDashboard(container) {
       if (isFinished) { statusText = _t('status.finished'); statusColor = '#94a3b8'; }
       else if (hasDraw) { statusText = _t('status.active'); statusColor = '#4ade80'; }
       else { statusText = _t('status.open'); statusColor = '#60a5fa'; }
-      var pCount = Array.isArray(t.participants) ? t.participants.length : 0;
+      var pCount = typeof window._getCompetitors === 'function' ? window._getCompetitors(t).length : (Array.isArray(t.participants) ? t.participants.length : 0);
       var prog = typeof window._getTournamentProgress === 'function' ? window._getTournamentProgress(t) : { pct: 0 };
       var dateStr = '';
       if (t.startDate) { try { dateStr = new Date(t.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); } catch(e) {} }

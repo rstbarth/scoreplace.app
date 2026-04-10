@@ -490,7 +490,7 @@ function renderTournaments(container, tournamentId = null) {
         let individualCount = 0;
         let teamCount = 0;
         if (t.participants) {
-            const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+            const arr = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (Array.isArray(t.participants) ? t.participants : Object.values(t.participants));
             arr.forEach(p => {
                 const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
                 if (pStr.includes('/')) {
@@ -1104,7 +1104,7 @@ function renderTournaments(container, tournamentId = null) {
     if (tournamentId && visible.length === 1) {
         const t = visible[0];
         const isOrg = typeof window.AppStore.isOrganizer === 'function' ? window.AppStore.isOrganizer(t) : false;
-        const parts = t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : [];
+        const parts = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (t.participants ? (Array.isArray(t.participants) ? t.participants : Object.values(t.participants)) : []);
 
         // Pre-load player photos for avatar display (async, updates DOM after load)
         if (typeof _preloadPlayerPhotos === 'function') {

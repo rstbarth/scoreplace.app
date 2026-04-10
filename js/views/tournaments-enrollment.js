@@ -74,7 +74,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
     }
 
     // Use atomic Firestore transaction to prevent race conditions
-    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '' };
+    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', selfEnrolled: true };
     if (user.gender) participantObj.gender = user.gender;
     if (catsArr) {
         participantObj.categories = catsArr;

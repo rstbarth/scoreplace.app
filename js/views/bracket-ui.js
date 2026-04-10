@@ -894,7 +894,7 @@ window._tvMode = function(tId) {
   hero += '<span>' + window._safeHtml(t.format || '') + '</span>';
   hero += '<span>•</span><span>' + window._safeHtml(t.sport || '') + '</span>';
   if (t.venue) hero += '<span>•</span><span>📍 ' + window._safeHtml(t.venue) + '</span>';
-  var partCount = Array.isArray(t.participants) ? t.participants.length : 0;
+  var partCount = typeof window._getCompetitors === 'function' ? window._getCompetitors(t).length : (Array.isArray(t.participants) ? t.participants.length : 0);
   hero += '<span>•</span><span>👤 ' + partCount + ' inscritos</span>';
   hero += '</div></div></div>';
 
