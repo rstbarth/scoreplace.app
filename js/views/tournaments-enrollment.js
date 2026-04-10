@@ -396,8 +396,8 @@ window.addTeamFunction = function (tId) {
 
 window.deleteTournamentFunction = function (tId) {
     // Only the original creator can delete
-    var _t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
-    if (_t && !window.AppStore.isCreator(_t)) {
+    var _tour = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
+    if (_tour && !window.AppStore.isCreator(_tour)) {
       showAlertDialog(_t('enroll.noPermission'), _t('enroll.onlyCreatorDelete'), null, { type: 'warning' });
       return;
     }
