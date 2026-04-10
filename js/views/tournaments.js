@@ -1057,9 +1057,9 @@ function renderTournaments(container, tournamentId = null) {
         var _t = visible[0];
         var _crownSvg = window._CROWN_SVG || '<svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
         var _isCreatorNow = window.AppStore.isCreator(_t);
-        var _parts = _t.participants ? (Array.isArray(_t.participants) ? _t.participants : Object.values(_t.participants)) : [];
+        var _competitors = typeof window._getCompetitors === 'function' ? window._getCompetitors(_t) : (_t.participants ? (Array.isArray(_t.participants) ? _t.participants : Object.values(_t.participants)) : []);
         var _enrolledEmails = {};
-        _parts.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
+        _competitors.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
 
         var _orgCards = '';
         // Helper: build organizer card with avatar + crown next to name
@@ -1090,8 +1090,8 @@ function renderTournaments(container, tournamentId = null) {
             _orgCards += _buildOrgCard(ch.displayName || ch.email, 'Co-organizador', _orgBgCohost, _isCreatorNow, ch.email);
           });
         }
-        if (_orgCards || _parts.length === 0) {
-          if (!_orgCards && _parts.length === 0) {
+        if (_orgCards || _competitors.length === 0) {
+          if (!_orgCards && _competitors.length === 0) {
             _orgCards = _buildOrgCard(_t.organizerName || _t.organizerEmail, 'Organizador', _orgBgPrimary, false, '');
           }
           _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
