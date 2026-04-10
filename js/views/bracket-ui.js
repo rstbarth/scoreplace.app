@@ -1,5 +1,16 @@
 // ── Bracket UI Handlers ──
 var _t = window._t || function(k) { return k; };
+
+// Helper: re-render bracket preserving scroll position (zero jump)
+function _rerenderBracket(tId) {
+  var _sx = window.scrollX;
+  var _sy = window.scrollY;
+  renderBracket(document.getElementById('view-container'), tId);
+  // Restore immediately, after microtask, and after paint to cover all layout timings
+  window.scrollTo(_sx, _sy);
+  requestAnimationFrame(function() { window.scrollTo(_sx, _sy); });
+}
+window._rerenderBracket = _rerenderBracket;
 window._substituteFromStandby = function (tId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
@@ -80,7 +91,7 @@ window._substituteFromStandby = function (tId) {
         window.AppStore.logAction(tId, `Substituição individual: ${absentPlayer} → ${replacementName} (time: ${newTeamName})`);
         window.AppStore.syncImmediate(tId);
         showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentPlayer}`, 'success');
-        renderBracket(document.getElementById('view-container'), tId);
+        _rerenderBracket(tId);
       }, null,
       { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' }
     );
@@ -140,7 +151,7 @@ window._substituteFromStandby = function (tId) {
         window.AppStore.logAction(tId, `Desclassificação: ${absentTeam} → ${replacementName}`);
         window.AppStore.syncImmediate(tId);
         showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentTeam}`, 'success');
-        renderBracket(document.getElementById('view-container'), tId);
+        _rerenderBracket(tId);
       }, null,
       { type: 'warning', confirmText: 'Desclassificar e Substituir', cancelText: 'Cancelar' }
     );
@@ -149,7 +160,7 @@ window._substituteFromStandby = function (tId) {
 
 window._toggleBracketMode = function (tId) {
   window._bracketMirrorMode = !window._bracketMirrorMode;
-  renderBracket(document.getElementById('view-container'), tId);
+  _rerenderBracket(tId);
 };
 
 window._setBracketZoom = function (tId, delta) {
@@ -213,7 +224,7 @@ window._toggleRoundVisibility = function (tId, roundNum) {
     // "Ocultar" — hide this round
     set.add(roundNum);
   }
-  renderBracket(document.getElementById('view-container'), tId);
+  _rerenderBracket(tId);
 };
 
 window._highlightWinner = function (matchId) {
@@ -492,7 +503,7 @@ window._saveSetResult = function(tId, matchId) {
     });
   }
 
-  renderBracket(document.getElementById('view-container'), tId);
+  _rerenderBracket(tId);
 };
 
 window._saveResultInline = function (tId, matchId) {
@@ -594,15 +605,7 @@ window._saveResultInline = function (tId, matchId) {
     });
   }
 
-  // Save scroll position before re-render so the page doesn't jump
-  var _savedScrollY = window.scrollY;
-
-  renderBracket(document.getElementById('view-container'), tId);
-
-  // Restore scroll position after re-render (keep user where they were)
-  setTimeout(function() {
-    window.scrollTo(0, _savedScrollY);
-  }, 0);
+  _rerenderBracket(tId);
 };
 
 window._editResult = function (tId, matchId) {
@@ -653,9 +656,7 @@ window._editResult = function (tId, matchId) {
 
       window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
       window.AppStore.syncImmediate(tId);
-      var _savedScrollY = window.scrollY;
-      renderBracket(document.getElementById('view-container'), tId);
-      setTimeout(function() { window.scrollTo(0, _savedScrollY); }, 0);
+      _rerenderBracket(tId);
     },
     null,
     { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
@@ -1219,7 +1220,7 @@ window._advanceToElimination = function (tId) {
   window.AppStore.syncImmediate(tId);
 
   showNotification('Fase Eliminatória', `${seeded.length} classificados avançaram para as eliminatórias!`, 'success');
-  renderBracket(document.getElementById('view-container'), tId);
+  _rerenderBracket(tId);
 };
 
 // ─── Advance Monarch to Elimination ──────────────────────────────────────────
@@ -1288,7 +1289,7 @@ window._advanceMonarchToElimination = function(tId) {
   t.elimThirdPlace = true;
   window.AppStore.syncImmediate(tId);
   showNotification('Fase Eliminatoria', seeded.length + ' classificados avancaram para as eliminatorias!', 'success');
-  renderBracket(document.getElementById('view-container'), tId);
+  _rerenderBracket(tId);
 };
 
 // _closeRound is in bracket-logic.js

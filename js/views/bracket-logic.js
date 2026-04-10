@@ -576,7 +576,11 @@ function _doCloseRound(t, tId, roundIdx) {
 
   window.AppStore.logAction(tId, `Rodada ${roundIdx + 1} encerrada`);
   window.AppStore.syncImmediate(tId);
-  renderBracket(document.getElementById('view-container'), tId);
+  if (typeof window._rerenderBracket === 'function') {
+    window._rerenderBracket(tId);
+  } else {
+    renderBracket(document.getElementById('view-container'), tId);
+  }
 }
 
 // ─── Swiss pairing ────────────────────────────────────────────────────────────

@@ -1579,10 +1579,8 @@ function setupProfileModal() {
               '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social &amp; Comunicações</label>' +
               '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
               (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true }) : '') +
-              '<div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: 8px;">' +
-                '<button type="button" class="btn btn-micro" id="profile-filter-importantes" onclick="window._toggleNotifyFilter(\'importantes\')" style="background: transparent; color: rgba(251,191,36,0.5); border: 1px solid rgba(251,191,36,0.25);" title="Ativo: recebe só importantes e fundamentais. Desativado: recebe todas.">🟡 Só Importantes</button>' +
-                '<button type="button" class="btn btn-micro" id="profile-filter-fundamentais" onclick="window._toggleNotifyFilter(\'fundamentais\')" style="background: transparent; color: rgba(239,68,68,0.5); border: 1px solid rgba(239,68,68,0.25);" title="Ativo: recebe só fundamentais. Desativado: recebe todas.">🔴 Só Fundamentais</button>' +
-              '</div>' +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b', onchange: "window._toggleNotifyFilter('importantes')" }) : '') +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: "window._toggleNotifyFilter('fundamentais')" }) : '') +
               '<input type="hidden" id="profile-notify-level" value="todas">' +
             '</div>' +
             // CEPs de preferência
@@ -1654,8 +1652,8 @@ function setupProfileModal() {
       }
     }
 
-    // Notification filter toggle — only two buttons, both off = "todas"
-    // Clicking one activates it and deactivates the other. Clicking an active one deactivates it (back to "todas").
+    // Notification filter toggle — toggle switches, both off = "todas"
+    // Turning one on deactivates the other. Turning an active one off = back to "todas".
     window._toggleNotifyFilter = function(level) {
       var hidden = document.getElementById('profile-notify-level');
       var current = hidden ? hidden.value : 'todas';
@@ -1665,23 +1663,10 @@ function setupProfileModal() {
     };
 
     window._applyNotifyFilterUI = function(level) {
-      var btnImp = document.getElementById('profile-filter-importantes');
-      var btnFun = document.getElementById('profile-filter-fundamentais');
-      // Reset both to inactive (dim)
-      if (btnImp) {
-        var isImp = (level === 'importantes');
-        btnImp.style.background = isImp ? 'rgba(251,191,36,0.2)' : 'transparent';
-        btnImp.style.border = isImp ? '2px solid rgba(251,191,36,0.7)' : '1px solid rgba(251,191,36,0.25)';
-        btnImp.style.color = isImp ? '#fbbf24' : 'rgba(251,191,36,0.5)';
-        btnImp.style.boxShadow = isImp ? '0 0 8px rgba(251,191,36,0.15)' : 'none';
-      }
-      if (btnFun) {
-        var isFun = (level === 'fundamentais');
-        btnFun.style.background = isFun ? 'rgba(239,68,68,0.2)' : 'transparent';
-        btnFun.style.border = isFun ? '2px solid rgba(239,68,68,0.7)' : '1px solid rgba(239,68,68,0.25)';
-        btnFun.style.color = isFun ? '#f87171' : 'rgba(239,68,68,0.5)';
-        btnFun.style.boxShadow = isFun ? '0 0 8px rgba(239,68,68,0.15)' : 'none';
-      }
+      var impEl = document.getElementById('profile-filter-importantes');
+      var funEl = document.getElementById('profile-filter-fundamentais');
+      if (impEl) impEl.checked = (level === 'importantes');
+      if (funEl) funEl.checked = (level === 'fundamentais');
     };
 
     window._selectAvatar = function(src) {
