@@ -677,7 +677,7 @@ function renderSingleElimBracket(t, canEnterResult) {
             <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">${label}${suffix ? ' ' + suffix : ''}</h4>
             ${hideBtn}
           </div>
-          <div style="margin-top:0.5rem;">${matchesHtml}</div>
+          <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:1.5rem;">${matchesHtml}</div>
         </div>`;
     };
 
@@ -761,7 +761,7 @@ function renderSingleElimBracket(t, canEnterResult) {
             <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">${label}</h4>
             ${hideBtn}
           </div>
-          <div style="margin-top:0.5rem;">
+          <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:1.5rem;">
             ${matchesHtml}
             ${thirdPlaceCol}
           </div>
