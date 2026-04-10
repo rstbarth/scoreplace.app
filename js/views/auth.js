@@ -676,12 +676,9 @@ async function simulateLoginSuccess(user) {
         if (nlHidden) nlHidden.value = notifyLevelVal;
         if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
 
-        // Sync theme selector with current theme
-        var themeSelector = document.getElementById('theme-selector');
-        if (themeSelector) {
-          var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-          themeSelector.value = curTheme;
-        }
+        // Sync theme buttons with current theme
+        var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
 
         if (typeof openModal === 'function') openModal('modal-profile');
 
@@ -1609,15 +1606,15 @@ function setupProfileModal() {
               (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: 'WhatsApp', icon: '💬', checked: true, color: '#25D366' }) : '') +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            // Theme
+            // Theme — exclusive buttons
             '<div class="form-group" style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Aparência</label>' +
-              '<select id="theme-selector" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.6rem; cursor: pointer; background: var(--bg-darker); border: 1px solid var(--border-color);">' +
-                '<option value="dark">\uD83C\uDF19 Noturno (Padrão)</option>' +
-                '<option value="light">\u2600\uFE0F Claro</option>' +
-                '<option value="sunset">\uD83C\uDF05 Pôr do Sol</option>' +
-                '<option value="ocean">\uD83C\uDF0A Oceano</option>' +
-              '</select>' +
+              '<div id="theme-btn-group" style="display:flex;gap:6px;flex-wrap:nowrap;">' +
+                '<button type="button" data-theme-val="dark" onclick="window._setProfileTheme(\'dark\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌙 Noturno</button>' +
+                '<button type="button" data-theme-val="light" onclick="window._setProfileTheme(\'light\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">☀️ Claro</button>' +
+                '<button type="button" data-theme-val="sunset" onclick="window._setProfileTheme(\'sunset\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌅 Pôr do Sol</button>' +
+                '<button type="button" data-theme-val="ocean" onclick="window._setProfileTheme(\'ocean\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌊 Oceano</button>' +
+              '</div>' +
             '</div>' +
             // Visual Hints toggle
             '<div style="margin-bottom: 1rem;">' +
@@ -1625,11 +1622,11 @@ function setupProfileModal() {
             '</div>' +
             // Language selector — flag buttons
             '<div style="margin-bottom: 1rem;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Idioma / Language</label>' +
-                '<div style="display:flex;gap:6px;" id="profile-lang-flags">' +
-                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'pt\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.6rem;background:none;border:2px solid ' + (window._lang === 'pt' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:4px 8px;cursor:pointer;opacity:' + (window._lang === 'pt' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'pt' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'pt' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="Português">🇧🇷</button>' +
-                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'en\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.6rem;background:none;border:2px solid ' + (window._lang === 'en' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:4px 8px;cursor:pointer;opacity:' + (window._lang === 'en' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'en' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'en' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="English">🇺🇸</button>' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0; flex-shrink: 0;">Idioma</label>' +
+                '<div style="display:flex;gap:6px;flex-shrink:0;" id="profile-lang-flags">' +
+                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'pt\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.4rem;background:none;border:2px solid ' + (window._lang === 'pt' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:3px 6px;cursor:pointer;opacity:' + (window._lang === 'pt' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'pt' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'pt' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="Português">🇧🇷</button>' +
+                  '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'en\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.4rem;background:none;border:2px solid ' + (window._lang === 'en' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:3px 6px;cursor:pointer;opacity:' + (window._lang === 'en' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'en' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'en' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="English">🇺🇸</button>' +
                 '</div>' +
               '</div>' +
             '</div>' +
@@ -1678,6 +1675,32 @@ function setupProfileModal() {
       var funEl = document.getElementById('profile-filter-fundamentais');
       if (impEl) impEl.checked = (level === 'importantes');
       if (funEl) funEl.checked = (level === 'fundamentais');
+    };
+
+    // ─── Profile Theme Buttons ──────────────────────────────────────────────
+    var _themeColors = { dark: '#6366f1', light: '#f59e0b', sunset: '#ef4444', ocean: '#0ea5e9' };
+
+    window._setProfileTheme = function(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('scoreplace_theme', theme); } catch(e) {}
+      if (typeof window._applyThemeIcon === 'function') window._applyThemeIcon(theme);
+      window._applyProfileThemeUI(theme);
+    };
+
+    window._applyProfileThemeUI = function(theme) {
+      var group = document.getElementById('theme-btn-group');
+      if (!group) return;
+      var btns = group.querySelectorAll('button[data-theme-val]');
+      btns.forEach(function(btn) {
+        var val = btn.getAttribute('data-theme-val');
+        var isActive = (val === theme);
+        var color = _themeColors[val] || '#6366f1';
+        btn.style.background = isActive ? color : 'transparent';
+        btn.style.color = isActive ? '#fff' : 'var(--text-muted)';
+        btn.style.border = isActive ? ('2px solid ' + color) : '1.5px solid var(--border-color)';
+        btn.style.boxShadow = isActive ? ('0 0 10px ' + color + '40') : 'none';
+        btn.style.fontWeight = isActive ? '700' : '500';
+      });
     };
 
     // ─── Profile Map: location picker ────────────────────────────────────────
