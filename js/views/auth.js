@@ -109,6 +109,14 @@ function handleGoogleLogin() {
       var user = result.user;
       showNotification('Login Realizado', 'Bem-vindo(a), ' + user.displayName + '!', 'success');
 
+      // Save auth provider to Firestore
+      if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
+      }
+
+      // Try linking pending credential from another provider
+      _tryLinkPendingCredential(result);
+
       // Tenta buscar o gênero do Google via People API
       var credential = result.credential;
       if (credential && credential.accessToken) {
@@ -122,10 +130,75 @@ function handleGoogleLogin() {
         showNotification('Popup Bloqueado', 'Permita popups para este site nas configurações do navegador.', 'error');
       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         // User cancelled, no need for error
+      } else if (_handleAccountLinking(error, 'Google')) {
+        // handled
       } else {
         showNotification('Erro no Auth', 'Não foi possível realizar o login com Google.', 'error');
       }
     });
+}
+
+// ─── Account linking helper ─────────────────────────────────────────────────
+// When user tries to sign in with a provider but already has an account with
+// the same email via a different provider, Firebase throws
+// auth/account-exists-with-different-credential. This helper detects the
+// existing provider and guides the user to link accounts.
+function _handleAccountLinking(error, providerName) {
+  if (error.code !== 'auth/account-exists-with-different-credential') return false;
+  var email = error.customData ? error.customData.email : (error.email || '');
+  var pendingCred = error.credential || null;
+  if (!email) {
+    showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente outro método de login.', 'warning');
+    return true;
+  }
+
+  // Fetch which providers are linked to this email
+  firebase.auth().fetchSignInMethodsForEmail(email).then(function(methods) {
+    if (!methods || methods.length === 0) {
+      showNotification('Erro', 'Não foi possível identificar o método de login existente.', 'error');
+      return;
+    }
+    var existingProvider = methods[0]; // e.g. 'google.com', 'password', 'apple.com', 'facebook.com'
+    var providerNames = {
+      'google.com': 'Google',
+      'password': 'E-mail e Senha',
+      'apple.com': 'Apple',
+      'facebook.com': 'Facebook'
+    };
+    var existingName = providerNames[existingProvider] || existingProvider;
+
+    // Save pending credential so we can link after successful sign-in
+    if (pendingCred) {
+      window._pendingLinkCredential = pendingCred;
+      window._pendingLinkEmail = email;
+    }
+
+    showNotification(
+      'Conta Já Existe',
+      'O e-mail ' + email + ' já está cadastrado via ' + existingName + '. Faça login com ' + existingName + ' para vincular sua conta ' + providerName + ' automaticamente.',
+      'info'
+    );
+  }).catch(function(err) {
+    console.warn('fetchSignInMethodsForEmail error:', err);
+    showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente outro método de login.', 'warning');
+  });
+  return true;
+}
+
+// After a successful sign-in, check if there's a pending credential to link
+function _tryLinkPendingCredential(result) {
+  if (!window._pendingLinkCredential) return;
+  var user = result.user;
+  if (!user) return;
+  var cred = window._pendingLinkCredential;
+  window._pendingLinkCredential = null;
+  window._pendingLinkEmail = null;
+  user.linkWithCredential(cred).then(function() {
+    showNotification('Conta Vinculada', 'Seu método de login adicional foi vinculado com sucesso!', 'success');
+  }).catch(function(err) {
+    console.warn('Account link error:', err);
+    // Not critical — user is already logged in
+  });
 }
 
 // ─── Apple Login ─────────────────────────────────────────────────────────────
@@ -142,7 +215,38 @@ function handleAppleLogin() {
   firebase.auth().signInWithPopup(appleProvider)
     .then(function(result) {
       var user = result.user;
-      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+      // Apple only provides displayName on first sign-in. Save it immediately.
+      var appleName = '';
+      if (result.additionalUserInfo && result.additionalUserInfo.profile) {
+        var p = result.additionalUserInfo.profile;
+        if (p.name) {
+          var parts = [];
+          if (p.name.firstName) parts.push(p.name.firstName);
+          if (p.name.lastName) parts.push(p.name.lastName);
+          if (parts.length > 0) appleName = parts.join(' ');
+        }
+      }
+      if (!appleName && user.displayName) appleName = user.displayName;
+
+      // Persist Apple name to Firebase Auth profile + Firestore
+      if (appleName && !user.displayName) {
+        user.updateProfile({ displayName: appleName }).catch(function(e) {
+          console.warn('Apple profile update error:', e);
+        });
+      }
+      if (appleName && window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        window.FirestoreDB.saveUserProfile(user.uid, {
+          displayName: appleName,
+          email: user.email || '',
+          authProvider: 'apple.com',
+          updatedAt: new Date().toISOString()
+        }).catch(function(e) { console.warn('Apple Firestore save error:', e); });
+      }
+
+      _tryLinkPendingCredential(result);
+      showNotification('Login Realizado', 'Bem-vindo(a)' + (appleName ? ', ' + appleName : '') + '!', 'success');
+      var modal = document.getElementById('modal-login');
+      if (modal) modal.classList.remove('active');
     })
     .catch(function(error) {
       console.error('Apple auth error:', error);
@@ -150,10 +254,12 @@ function handleAppleLogin() {
         showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         // cancelled
+      } else if (_handleAccountLinking(error, 'Apple')) {
+        // handled
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Configurado', 'Login com Apple ainda não foi habilitado no Firebase Console.', 'warning');
+        showNotification('Não Configurado', 'Login com Apple ainda não foi habilitado. Contate o suporte: scoreplace.app@gmail.com', 'warning');
       } else {
-        showNotification('Erro', 'Não foi possível realizar o login com Apple.', 'error');
+        showNotification('Erro', 'Não foi possível realizar o login com Apple: ' + (error.message || ''), 'error');
       }
     });
 }
@@ -172,7 +278,25 @@ function handleFacebookLogin() {
   firebase.auth().signInWithPopup(fbProvider)
     .then(function(result) {
       var user = result.user;
+      // Save Facebook photo (higher quality) and provider info
+      var fbPhotoUrl = user.photoURL || '';
+      if (fbPhotoUrl && fbPhotoUrl.indexOf('graph.facebook.com') !== -1 && fbPhotoUrl.indexOf('type=large') === -1) {
+        fbPhotoUrl = fbPhotoUrl.replace(/\?.*$/, '') + '?type=large';
+      }
+      if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        var fbData = { authProvider: 'facebook.com', updatedAt: new Date().toISOString() };
+        if (user.displayName) fbData.displayName = user.displayName;
+        if (user.email) fbData.email = user.email;
+        if (fbPhotoUrl) fbData.photoURL = fbPhotoUrl;
+        window.FirestoreDB.saveUserProfile(user.uid, fbData).catch(function(e) {
+          console.warn('Facebook Firestore save error:', e);
+        });
+      }
+
+      _tryLinkPendingCredential(result);
       showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+      var modal = document.getElementById('modal-login');
+      if (modal) modal.classList.remove('active');
     })
     .catch(function(error) {
       console.error('Facebook auth error:', error);
@@ -180,12 +304,12 @@ function handleFacebookLogin() {
         showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         // cancelled
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-        showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente entrar com Google ou e-mail.', 'warning');
+      } else if (_handleAccountLinking(error, 'Facebook')) {
+        // handled
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Configurado', 'Login com Facebook ainda não foi habilitado no Firebase Console.', 'warning');
+        showNotification('Não Configurado', 'Login com Facebook ainda não foi habilitado. Contate o suporte: scoreplace.app@gmail.com', 'warning');
       } else {
-        showNotification('Erro', 'Não foi possível realizar o login com Facebook.', 'error');
+        showNotification('Erro', 'Não foi possível realizar o login com Facebook: ' + (error.message || ''), 'error');
       }
     });
 }
@@ -203,6 +327,11 @@ function handleEmailLogin() {
   firebase.auth().signInWithEmailAndPassword(email, password)
     .then(function(result) {
       var user = result.user;
+      // Track auth provider
+      if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'password', updatedAt: new Date().toISOString() }).catch(function() {});
+      }
+      _tryLinkPendingCredential(result);
       showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
       var modal = document.getElementById('modal-login');
       if (modal) modal.classList.remove('active');
@@ -215,6 +344,8 @@ function handleEmailLogin() {
         showNotification('Senha Incorreta', 'A senha está incorreta. Tente novamente ou redefina sua senha.', 'error');
       } else if (error.code === 'auth/too-many-requests') {
         showNotification('Muitas Tentativas', 'Muitas tentativas de login. Aguarde alguns minutos.', 'warning');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Disponível', 'Login por e-mail/senha não está habilitado. Tente Google, Apple ou Facebook.', 'warning');
       } else {
         showNotification('Erro no Login', error.message || 'Não foi possível entrar.', 'error');
       }
@@ -243,9 +374,25 @@ function handleEmailRegister() {
       var user = result.user;
       // Update profile with display name FIRST, then let onAuthStateChanged handle login
       return user.updateProfile({ displayName: name }).then(function() {
+        // Send email verification
+        user.sendEmailVerification().then(function() {
+          showNotification('Verifique seu E-mail', 'Um e-mail de verificação foi enviado para ' + email + '. Confira sua caixa de entrada (e spam).', 'info');
+        }).catch(function(e) {
+          console.warn('Email verification send error:', e);
+        });
         showNotification('Conta Criada!', 'Bem-vindo(a), ' + name + '!', 'success');
         var modal = document.getElementById('modal-login');
         if (modal) modal.classList.remove('active');
+        // Save auth provider to Firestore
+        if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+          window.FirestoreDB.saveUserProfile(user.uid, {
+            authProvider: 'password',
+            displayName: name,
+            email: email,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }).catch(function() {});
+        }
         // Clear flag and trigger login flow via simulateLoginSuccess (onAuthStateChanged may have fired before updateProfile)
         window._pendingProfileUpdate = false;
         return simulateLoginSuccess({
@@ -257,13 +404,16 @@ function handleEmailRegister() {
       });
     })
     .catch(function(error) {
+      window._pendingProfileUpdate = false;
       console.error('Email register error:', error);
       if (error.code === 'auth/email-already-in-use') {
-        showNotification('E-mail em Uso', 'Já existe uma conta com este e-mail. Tente fazer login.', 'error');
+        showNotification('E-mail em Uso', 'Já existe uma conta com este e-mail. Tente fazer login ou use "Esqueci a senha".', 'error');
       } else if (error.code === 'auth/invalid-email') {
         showNotification('E-mail Inválido', 'O formato do e-mail está incorreto.', 'error');
       } else if (error.code === 'auth/weak-password') {
         showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Disponível', 'O cadastro por e-mail/senha não está habilitado. Tente Google, Apple ou Facebook.', 'warning');
       } else {
         showNotification('Erro no Registro', error.message || 'Não foi possível criar a conta.', 'error');
       }
@@ -280,13 +430,22 @@ function handlePasswordReset() {
     return;
   }
 
-  firebase.auth().sendPasswordResetEmail(email)
+  showNotification('Enviando...', 'Enviando e-mail de redefinição de senha...', 'info');
+  firebase.auth().sendPasswordResetEmail(email, {
+    url: 'https://scoreplace.app/#dashboard',
+    handleCodeInApp: false
+  })
     .then(function() {
-      showNotification('E-mail Enviado', 'Verifique sua caixa de entrada para redefinir a senha.', 'success');
+      showNotification('E-mail Enviado ✉️', 'Um e-mail de redefinição de senha foi enviado para ' + email + '. Verifique sua caixa de entrada e a pasta de spam.', 'success');
     })
     .catch(function(error) {
-      if (error.code === 'auth/user-not-found') {
-        showNotification('E-mail Não Encontrado', 'Não existe conta com este e-mail.', 'error');
+      console.error('Password reset error:', error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+        showNotification('E-mail Não Encontrado', 'Não existe conta cadastrada com este e-mail. Crie uma conta nova.', 'error');
+      } else if (error.code === 'auth/too-many-requests') {
+        showNotification('Muitas Tentativas', 'Aguarde alguns minutos antes de solicitar novamente.', 'warning');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Disponível', 'Redefinição de senha por e-mail não está habilitada. Contate o suporte: scoreplace.app@gmail.com', 'warning');
       } else {
         showNotification('Erro', error.message || 'Não foi possível enviar o e-mail de redefinição.', 'error');
       }
@@ -544,7 +703,7 @@ async function simulateLoginSuccess(user) {
     }
   }
 
-  // Auto-save basic Google data to Firestore if profile is missing or has no displayName
+  // Auto-save basic profile data to Firestore if profile is missing fields
   if (window.FirestoreDB && window.FirestoreDB.db && uid) {
     var needsSave = false;
     var basicData = {};
@@ -557,10 +716,24 @@ async function simulateLoginSuccess(user) {
     if (!existingProfile || !existingProfile.photoURL) {
       if (user.photoURL) { basicData.photoURL = user.photoURL; needsSave = true; }
     }
+    // Detect auth provider from Firebase Auth user
+    if (!existingProfile || !existingProfile.authProvider) {
+      try {
+        var fbUser = firebase.auth().currentUser;
+        if (fbUser && fbUser.providerData && fbUser.providerData.length > 0) {
+          basicData.authProvider = fbUser.providerData[0].providerId;
+          needsSave = true;
+        }
+      } catch(e) {}
+    }
+    if (!existingProfile || !existingProfile.createdAt) {
+      basicData.createdAt = new Date().toISOString();
+      needsSave = true;
+    }
     if (needsSave) {
       basicData.updatedAt = new Date().toISOString();
       window.FirestoreDB.saveUserProfile(uid, basicData).catch(function(err) {
-        console.warn('Erro ao salvar dados básicos do Google:', err);
+        console.warn('Erro ao salvar dados básicos do perfil:', err);
       });
     }
   }
