@@ -470,7 +470,8 @@ function renderDashboard(container) {
                   _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
                   _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
                   _html += '</div>';
-                  _html += '<div style="width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
+                  var _progBarWidth = isOrg ? 'calc(100% - 36px)' : '100%';
+                  _html += '<div style="width: ' + _progBarWidth + '; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
                   _html += '<div style="width: ' + _prog.pct + '%; height: 100%; background: ' + _barColor + '; border-radius: 3px;"></div>';
                   _html += '</div></div>';
                 }
