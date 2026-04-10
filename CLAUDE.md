@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.8.5-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.8.6-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -17,6 +17,15 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+**v0.8.6-alpha (Abril 2026)**
+- Auditoria de segurança e correções críticas:
+  - CRITICAL: `uid` do usuário agora salvo no objeto participante ao se inscrever (corrige notificações de co-organização que não chegavam ao destinatário).
+  - CRITICAL: Campo `level` adicionado ao payload de `_notifyByEmail` em host-transfer.js.
+  - HIGH: Escaping de backslash adicionado antes do escaping de aspas em onclick handlers (host-transfer.js, tournaments.js) — previne XSS via nomes com backslash.
+  - MEDIUM: Nomes de jogadores em atributos `data-player-name` agora sanitizados com `_safeHtml()` (tournaments.js, bracket.js).
+  - Toggle switch adotado em todo o app: checkboxes e pill-buttons substituídos por componente `.toggle-switch` consistente em perfil, criação de torneio, check-in, enquetes e sorteio.
+  - Dead code removido: `_toggleBtnHtml()` e `_toggleProfileBtn()` em auth.js.
 
 **v0.8.5-alpha (Abril 2026)**
 - Sistema de Organização (compartilhar/transferir):

@@ -74,7 +74,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
     }
 
     // Use atomic Firestore transaction to prevent race conditions
-    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName };
+    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '' };
     if (user.gender) participantObj.gender = user.gender;
     if (catsArr) {
         participantObj.categories = catsArr;
@@ -192,7 +192,7 @@ window.submitTeamEnroll = function (tId) {
     }
 
     const teamString = teamNames.join(' / ');
-    const participantObj = { name: teamString, email: user.email, displayName: teamString };
+    const participantObj = { name: teamString, email: user.email, displayName: teamString, uid: user.uid || '' };
     // Registrar origem da equipe via extraUpdates
     var _teamOrigins = t.teamOrigins || {};
     _teamOrigins[teamString] = 'inscrita';

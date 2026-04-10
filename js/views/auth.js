@@ -1230,41 +1230,6 @@ function _setupPhoneMask(inputEl, countryCode) {
   });
 }
 
-// Toggle button helper — replaces checkboxes with friendly pill toggles
-// Optional customColor (hex) for on-state, optional icon (emoji/symbol)
-function _toggleBtnHtml(id, label, checked, customColor, icon, autoWidth) {
-  var onBg = customColor || 'var(--primary-color)';
-  var onBorder = customColor || 'var(--primary-color)';
-  var onStyle = 'background: ' + onBg + '; color: #fff; border-color: ' + onBorder + ';';
-  var offStyle = 'background: transparent; color: var(--text-muted); border-color: var(--border-color);';
-  var iconHtml = icon ? '<span style="font-size: 0.95rem; flex-shrink: 0;">' + icon + '</span>' : '';
-  var widthStyle = autoWidth ? 'width: auto; padding: 8px 20px;' : 'width: 100%; padding: 8px 6px;';
-  return '<button type="button" id="' + id + '" data-on="' + (checked ? '1' : '0') + '" ' +
-    'data-color="' + (customColor || '') + '" ' +
-    'style="display: flex; align-items: center; justify-content: center; gap: 6px; ' + widthStyle + ' border-radius: 10px; border: 1.5px solid; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; box-sizing: border-box; ' +
-    (checked ? onStyle : offStyle) + '" ' +
-    'onclick="_toggleProfileBtn(this)">' +
-    iconHtml +
-    '<span>' + label + '</span>' +
-  '</button>';
-}
-
-window._toggleProfileBtn = function(btn) {
-  var isOn = btn.getAttribute('data-on') === '1';
-  var customColor = btn.getAttribute('data-color') || '';
-  var onBg = customColor || 'var(--primary-color)';
-  var onBorder = customColor || 'var(--primary-color)';
-  var onStyle = { background: onBg, color: '#fff', borderColor: onBorder };
-  var offStyle = { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border-color)' };
-  if (isOn) {
-    btn.setAttribute('data-on', '0');
-    Object.assign(btn.style, offStyle);
-  } else {
-    btn.setAttribute('data-on', '1');
-    Object.assign(btn.style, onStyle);
-  }
-};
-
 // === Player Stats Calculator ===
 function _populatePlayerStats() {
   var el = document.getElementById('profile-stats-content');

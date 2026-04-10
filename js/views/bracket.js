@@ -1000,7 +1000,7 @@ function _teamAvatarHtml(teamName) {
     const size = members.length > 1 ? '20px' : '24px';
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
-      `<img src="${photoSrc}" ${onerror} data-player-name="${name}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
+      `<img src="${photoSrc}" ${onerror} data-player-name="${window._safeHtml(name)}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
       `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:2px;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(name, window._currentBracketTournament) : window._safeHtml(name)}</span>` +
     `</div>`;
   });

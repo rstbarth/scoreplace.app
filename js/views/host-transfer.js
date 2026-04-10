@@ -331,9 +331,9 @@
         var email = p.email || '';
         var pUid = p.uid || '';
         var isPending = pendingEmails.indexOf(email) !== -1;
-        var safeEmail = email.replace(/'/g, "\\'");
-        var safeUid = pUid.replace(/'/g, "\\'");
-        var safeName = window._safeHtml(name).replace(/'/g, "\\'");
+        var safeEmail = email.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var safeUid = pUid.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var safeName = window._safeHtml(name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         var avatarSeed = encodeURIComponent(name);
         var avatarUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         listHtml += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:' + (isPending ? 'default' : 'pointer') + ';background:' + (isPending ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isPending ? 'rgba(251,191,36,0.3)' : 'var(--border-color)') + ';transition:background 0.2s;" ' +
@@ -374,6 +374,7 @@
       tournamentId: data.tournamentId || '',
       tournamentName: data.tournamentName || '',
       message: data.message || '',
+      level: data.level || 'all',
       createdAt: new Date().toISOString(),
       read: false
     };
