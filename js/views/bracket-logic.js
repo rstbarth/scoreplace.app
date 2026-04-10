@@ -383,9 +383,11 @@ function _advanceWinner(t, completedMatch) {
 }
 
 // ─── Progressive classification for elimination formats ─────────────────────
-// Assigns finalPosition to eliminated players whose rank cannot change anymore.
-// In single elimination: losing in round R with N total rounds gives position
-// based on the round where they were eliminated.
+// Assigns unique finalPosition to eliminated players using tiebreaker criteria.
+// Players eliminated in the same round are ranked individually by:
+//   1. Score in the losing match (closer score = higher rank)
+//   2. Scores from previous rounds (accumulated)
+//   3. Alphabetical as ultimate tiebreaker
 function _updateProgressiveClassification(t) {
   if (!t.matches || t.matches.length === 0) return;
   var fmt = t.format || '';
@@ -404,34 +406,110 @@ function _updateProgressiveClassification(t) {
   var totalRounds = rounds.length;
   if (totalRounds < 1) return;
 
-  // Position mapping: final round loser = 2nd, semifinal losers = 3rd-4th, etc.
-  // Round index from end: 0=final, 1=semi, 2=quarter, etc.
+  // Helper: get loser's score and winner's score from a match
+  function _getLoserStats(m) {
+    var loser = m.winner === m.p1 ? m.p2 : m.p1;
+    var loserScore = m.winner === m.p1 ? (parseInt(m.score2) || 0) : (parseInt(m.score1) || 0);
+    var winnerScore = m.winner === m.p1 ? (parseInt(m.score1) || 0) : (parseInt(m.score2) || 0);
+    // For GSM: use sets won as primary, then games diff
+    var setsWon = 0, setsDiff = 0, gamesDiff = 0;
+    if (m.sets && Array.isArray(m.sets)) {
+      var lIdx = m.winner === m.p1 ? 1 : 0; // loser index (0=p1, 1=p2)
+      m.sets.forEach(function(s) {
+        var lg = lIdx === 0 ? (s.gamesP1 || 0) : (s.gamesP2 || 0);
+        var wg = lIdx === 0 ? (s.gamesP2 || 0) : (s.gamesP1 || 0);
+        if (lg > wg) setsWon++;
+        gamesDiff += (lg - wg);
+      });
+      setsDiff = (m.winner === m.p1 ? (m.setsWonP2 || 0) - (m.setsWonP1 || 0) : (m.setsWonP1 || 0) - (m.setsWonP2 || 0));
+    }
+    return {
+      loser: loser,
+      loserScore: loserScore,
+      winnerScore: winnerScore,
+      scoreDiff: loserScore - winnerScore, // higher (closer to 0) = better fight
+      setsWon: setsWon,
+      setsDiff: setsDiff,
+      gamesDiff: gamesDiff
+    };
+  }
+
+  // Helper: accumulated scores for a player across all their matches
+  function _getPlayerHistory(playerName) {
+    var totalScored = 0, totalConceded = 0, matchesWon = 0;
+    allMatches.forEach(function(m) {
+      if (!m.winner || m.isBye) return;
+      if (m.p1 !== playerName && m.p2 !== playerName) return;
+      var isP1 = m.p1 === playerName;
+      var scored = parseInt(isP1 ? m.score1 : m.score2) || 0;
+      var conceded = parseInt(isP1 ? m.score2 : m.score1) || 0;
+      totalScored += scored;
+      totalConceded += conceded;
+      if (m.winner === playerName) matchesWon++;
+    });
+    return { scored: totalScored, conceded: totalConceded, diff: totalScored - totalConceded, wins: matchesWon };
+  }
+
+  // Collect losers per round-group (same position block)
+  var positionGroups = []; // [{posStart, losers: [{name, stats, history}]}]
+
   rounds.forEach(function(roundNum, idx) {
     var roundFromEnd = totalRounds - 1 - idx;
     var matchesInRound = allMatches.filter(function(m) {
       return m.round === roundNum && m.bracket !== 'lower' && m.bracket !== 'grand';
     });
 
-    matchesInRound.forEach(function(m) {
-      if (!m.winner || m.winner === 'draw' || m.isBye) return;
-      var loser = m.winner === m.p1 ? m.p2 : m.p1;
-      if (!loser || loser === 'TBD' || loser === 'BYE') return;
-      // Don't override if already classified (e.g. 3rd place match result)
-      if (t.classification[loser]) return;
-
-      if (roundFromEnd === 0) {
-        // Final: winner = 1st, loser = 2nd
+    if (roundFromEnd === 0) {
+      // Final: definitive 1st and 2nd
+      matchesInRound.forEach(function(m) {
+        if (!m.winner || m.winner === 'draw' || m.isBye) return;
+        var loser = m.winner === m.p1 ? m.p2 : m.p1;
+        if (!loser || loser === 'TBD' || loser === 'BYE') return;
         t.classification[m.winner] = 1;
         t.classification[loser] = 2;
-      } else if (roundFromEnd === 1) {
-        // Semi: losers get 3rd-4th (resolved by 3rd place match if enabled)
-        // Wait for 3rd place match result to determine 3rd vs 4th
-      } else {
-        // Earlier rounds: position = 2^(roundFromEnd) + 1 through 2^(roundFromEnd+1)
-        // e.g. quarterfinal losers = 5th-8th
-        var posStart = Math.pow(2, roundFromEnd) + 1;
-        t.classification[loser] = posStart;
+      });
+    } else if (roundFromEnd === 1) {
+      // Semi: wait for 3rd place match
+    } else {
+      // Collect all losers in this round for tiebreaking
+      var posStart = Math.pow(2, roundFromEnd) + 1;
+      var losers = [];
+      matchesInRound.forEach(function(m) {
+        if (!m.winner || m.winner === 'draw' || m.isBye) return;
+        var stats = _getLoserStats(m);
+        if (!stats.loser || stats.loser === 'TBD' || stats.loser === 'BYE') return;
+        if (t.classification[stats.loser]) return; // already classified
+        var history = _getPlayerHistory(stats.loser);
+        losers.push({ name: stats.loser, stats: stats, history: history });
+      });
+
+      if (losers.length > 0) {
+        positionGroups.push({ posStart: posStart, losers: losers });
       }
+    }
+  });
+
+  // Sort losers within each group and assign unique positions
+  positionGroups.forEach(function(group) {
+    group.losers.sort(function(a, b) {
+      // 1. Higher loser score = closer match = better rank
+      if (a.stats.scoreDiff !== b.stats.scoreDiff) return b.stats.scoreDiff - a.stats.scoreDiff;
+      // 2. More sets won (GSM)
+      if (a.stats.setsWon !== b.stats.setsWon) return b.stats.setsWon - a.stats.setsWon;
+      // 3. Better game diff (GSM)
+      if (a.stats.gamesDiff !== b.stats.gamesDiff) return b.stats.gamesDiff - a.stats.gamesDiff;
+      // 4. More total points scored across tournament
+      if (a.history.scored !== b.history.scored) return b.history.scored - a.history.scored;
+      // 5. Better point differential across tournament
+      if (a.history.diff !== b.history.diff) return b.history.diff - a.history.diff;
+      // 6. More matches won across tournament
+      if (a.history.wins !== b.history.wins) return b.history.wins - a.history.wins;
+      // 7. Alphabetical
+      return a.name.localeCompare(b.name);
+    });
+
+    group.losers.forEach(function(entry, idx) {
+      t.classification[entry.name] = group.posStart + idx;
     });
   });
 

@@ -5,10 +5,24 @@ var _t = window._t || function(k) { return k; };
 function _rerenderBracket(tId) {
   var _sx = window.scrollX;
   var _sy = window.scrollY;
+
+  // Suppress Firestore onSnapshot soft-refresh that fires after syncImmediate —
+  // it would re-render the view again and potentially reset scroll position.
+  window._suppressSoftRefresh = true;
+  clearTimeout(window._pendingSoftRefresh);
+
   renderBracket(document.getElementById('view-container'), tId);
-  // Restore immediately, after microtask, and after paint to cover all layout timings
+
+  // Restore scroll immediately, after layout, and after paint
   window.scrollTo(_sx, _sy);
-  requestAnimationFrame(function() { window.scrollTo(_sx, _sy); });
+  requestAnimationFrame(function() {
+    window.scrollTo(_sx, _sy);
+    requestAnimationFrame(function() {
+      window.scrollTo(_sx, _sy);
+      // Re-enable soft refresh after render cycle is fully complete
+      setTimeout(function() { window._suppressSoftRefresh = false; }, 2000);
+    });
+  });
 }
 window._rerenderBracket = _rerenderBracket;
 window._substituteFromStandby = function (tId) {

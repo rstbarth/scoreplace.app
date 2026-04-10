@@ -35,6 +35,9 @@ setInterval(function() {
 // Called by real-time Firestore listener when remote data changes.
 // Preserves: scroll position, open modals, focus state, form inputs.
 window._softRefreshView = function() {
+  // 0. If bracket just re-rendered locally, skip to avoid double-render + scroll jump
+  if (window._suppressSoftRefresh) return;
+
   // 1. If any modal is open, skip re-render entirely — data is already updated
   //    in AppStore.tournaments, views will pick it up when modal closes or user navigates.
   var openModal = document.querySelector('.modal-overlay.active') ||
