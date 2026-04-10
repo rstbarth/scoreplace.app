@@ -364,12 +364,12 @@
 
   // ─── Helper: send notification by uid or email lookup ─────────────────────
   function _notifyByEmail(uidOrEmail, data) {
-    if (!uidOrEmail) return;
+    if (!uidOrEmail) { console.warn('[host-transfer] _notifyByEmail: no uidOrEmail'); return; }
     var cu = window.AppStore.currentUser || {};
     var payload = {
       type: data.type || 'info',
-      fromUid: cu.uid || cu.email || '',
-      fromName: cu.displayName || '',
+      fromUid: data.fromUid || cu.uid || cu.email || '',
+      fromName: data.fromName || cu.displayName || '',
       fromPhoto: cu.photoURL || '',
       tournamentId: data.tournamentId || '',
       tournamentName: data.tournamentName || '',
@@ -380,9 +380,15 @@
     if (data.inviteType) payload.inviteType = data.inviteType;
 
     function _sendDirect(uid) {
-      // Write directly to Firestore to guarantee delivery (host invites are critical)
+      console.log('[host-transfer] Sending notification to uid:', uid, 'type:', payload.type);
       if (window.FirestoreDB && window.FirestoreDB.addNotification) {
-        window.FirestoreDB.addNotification(uid, payload);
+        window.FirestoreDB.addNotification(uid, payload).then(function() {
+          console.log('[host-transfer] Notification written successfully for uid:', uid);
+        }).catch(function(e) {
+          console.error('[host-transfer] addNotification FAILED for uid:', uid, e);
+        });
+      } else {
+        console.warn('[host-transfer] FirestoreDB.addNotification not available');
       }
     }
 
@@ -391,15 +397,18 @@
       _sendDirect(uidOrEmail);
       return;
     }
-    // Lookup by email
+    // Lookup by email to get uid
+    console.log('[host-transfer] Looking up uid for email:', uidOrEmail);
     if (window.FirestoreDB && window.FirestoreDB.db) {
       window.FirestoreDB.db.collection('users').where('email', '==', uidOrEmail).limit(1).get().then(function(snap) {
         if (!snap.empty) {
           _sendDirect(snap.docs[0].id);
         } else {
-          console.warn('Host-transfer notify: no user found for email', uidOrEmail);
+          console.warn('[host-transfer] No user found for email:', uidOrEmail);
         }
-      }).catch(function(e) { console.warn('Notify lookup error:', e); });
+      }).catch(function(e) { console.error('[host-transfer] Email lookup FAILED:', e); });
+    } else {
+      console.warn('[host-transfer] FirestoreDB.db not available');
     }
   }
 })();

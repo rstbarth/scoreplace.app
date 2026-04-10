@@ -1014,7 +1014,6 @@ function renderTournaments(container, tournamentId = null) {
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
-                ${window.AppStore.isCreator(t) ? `<button class="btn hover-lift" style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.1));color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="event.stopPropagation(); window._openOrgPickerDialog('${t.id}')">👑 ${_t('org.organization')}</button>` : ''}
                 ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ ${_t('btn.delete')}</button>` : ''}
               </div>
             </div>` : ''}
@@ -1387,13 +1386,11 @@ function renderTournaments(container, tournamentId = null) {
                  <div style="${gridStyle}">
                     ${cardsStr}
                  </div>
-                 ${isOrg ? `<div id="crown-drop-target" style="display:none;position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4);z-index:100;cursor:pointer;align-items:center;justify-content:center;transition:transform 0.2s;"
-                   ondragover="event.preventDefault();event.dataTransfer.dropEffect='copy';"
-                   ondragenter="this.style.transform='scale(1.2)';this.style.boxShadow='0 6px 30px rgba(251,191,36,0.7)';"
-                   ondragleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(251,191,36,0.4)';"
-                   ondrop="window._handleCrownDrop(event, '${t.id}')" title="Arraste um participante aqui para tornar organizador">
+                 ${window.AppStore.isCreator(t) ? `<div id="crown-org-btn" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:100;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
+                   onclick="window._openOrgPickerDialog('${t.id}')" title="${_t('org.organization')}">
                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#78350f"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
-                 </div>` : ''}
+                 </div>
+                 <style>@keyframes crownGlow{0%,100%{box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3)}50%{box-shadow:0 4px 25px rgba(251,191,36,0.6),0 0 30px rgba(251,191,36,0.5)}}</style>` : ''}
               </div>
           `;
         }
