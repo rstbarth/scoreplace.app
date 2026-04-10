@@ -1594,11 +1594,11 @@ function setupProfileModal() {
             '<div class="form-group" style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Locais de preferência para jogar</label>' +
               '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">Adicione locais onde costuma jogar. Você será notificado de torneios próximos.</p>' +
-              '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
-                '<input type="text" id="profile-location-search" class="form-control" placeholder="Buscar endereço, local ou CEP..." style="flex:1;box-sizing:border-box;font-size:0.8rem;">' +
+              '<div style="position:relative;display:flex;gap:6px;margin-bottom:8px;">' +
+                '<input type="text" id="profile-location-search" class="form-control" placeholder="Buscar endereço, local ou CEP..." style="flex:1;box-sizing:border-box;font-size:0.8rem;" autocomplete="off">' +
                 '<button type="button" id="profile-locate-btn" onclick="window._profileLocateMe()" class="btn btn-sm" style="background:var(--primary-color);color:#fff;border:none;white-space:nowrap;font-size:0.75rem;padding:6px 10px;" title="Usar minha localização">📍</button>' +
+                '<div id="profile-location-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:240px;overflow-y:auto;margin-top:4px;"></div>' +
               '</div>' +
-              '<div id="profile-location-suggestions" style="display:none;position:relative;z-index:10;"></div>' +
               '<div id="profile-map-container" style="width:100%;height:200px;border-radius:10px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:8px;background:#1a1a2e;"></div>' +
               '<div id="profile-locations-list" style="display:flex;flex-direction:column;gap:4px;"></div>' +
               '<input type="hidden" id="profile-edit-ceps" value="">' +
@@ -1878,22 +1878,34 @@ function setupProfileModal() {
       if (!input || !sugBox || _profileSearchSetup) return;
       _profileSearchSetup = true;
 
+      // Proactively load Places library
+      if (typeof google !== 'undefined' && google.maps && google.maps.importLibrary) {
+        google.maps.importLibrary('places').then(function() {
+          _profilePlacesLib = true;
+        }).catch(function() {});
+      }
+
       var _debounce = null;
       input.addEventListener('input', function() {
         clearTimeout(_debounce);
         var query = input.value.trim();
         if (query.length < 3) { sugBox.style.display = 'none'; return; }
-        _debounce = setTimeout(function() { _searchProfileLocation(query); }, 250);
+        _debounce = setTimeout(function() { _searchProfileLocation(query); }, 300);
       });
 
       input.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') { sugBox.style.display = 'none'; }
       });
 
-      // Close suggestions on outside click
-      document.addEventListener('click', function(e) {
-        if (!sugBox.contains(e.target) && e.target !== input) {
-          sugBox.style.display = 'none';
+      // Close on blur (with delay so mousedown click registers first)
+      input.addEventListener('blur', function() {
+        setTimeout(function() { sugBox.style.display = 'none'; }, 200);
+      });
+
+      // Reopen on focus if there are results
+      input.addEventListener('focus', function() {
+        if (input.value.trim().length >= 3 && sugBox.children.length > 0) {
+          sugBox.style.display = 'block';
         }
       });
     }
@@ -1903,9 +1915,13 @@ function setupProfileModal() {
       if (!sugBox) return;
       // Lazy-load places lib if not yet available
       if (!_profilePlacesLib && window.google && window.google.maps) {
-        try { _profilePlacesLib = await google.maps.importLibrary('places'); } catch(e) {}
+        try { await google.maps.importLibrary('places'); _profilePlacesLib = true; } catch(e) {}
       }
-      if (!_profilePlacesLib) return;
+      if (!_profilePlacesLib) {
+        sugBox.innerHTML = '<div style="padding:10px 14px;color:#94a3b8;font-size:0.8rem;">Carregando API do Google...</div>';
+        sugBox.style.display = 'block';
+        return;
+      }
 
       try {
         var request = {
@@ -1916,34 +1932,40 @@ function setupProfileModal() {
         };
         var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
         var suggestions = result.suggestions || [];
-        if (suggestions.length === 0) { sugBox.style.display = 'none'; return; }
+        if (suggestions.length === 0) {
+          sugBox.innerHTML = '<div style="padding:10px 14px;color:#94a3b8;font-size:0.8rem;">Nenhum resultado encontrado</div>';
+          sugBox.style.display = 'block';
+          return;
+        }
 
-        sugBox.innerHTML = suggestions.slice(0, 5).map(function(s, i) {
+        sugBox.innerHTML = '';
+        suggestions.slice(0, 5).forEach(function(s, i) {
           var pred = s.placePrediction;
-          if (!pred) return '';
+          if (!pred) return;
           var main = pred.mainText ? pred.mainText.text : '';
           var secondary = pred.secondaryText ? pred.secondaryText.text : '';
-          return '<div data-idx="' + i + '" style="padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border-color);font-size:0.78rem;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(99,102,241,0.12)\'" onmouseout="this.style.background=\'transparent\'">' +
-            '<div style="font-weight:600;color:var(--text-bright);">' + window._safeHtml(main) + '</div>' +
-            (secondary ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">' + window._safeHtml(secondary) + '</div>' : '') +
-          '</div>';
-        }).join('');
 
-        sugBox.style.cssText = 'display:block;position:absolute;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:240px;overflow-y:auto;z-index:10;';
+          var item = document.createElement('div');
+          item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);transition:background 0.15s;';
+          item.innerHTML = '<div style="color:var(--text-bright);font-size:0.85rem;font-weight:500;">📍 ' + window._safeHtml(main) + '</div>' +
+            (secondary ? '<div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">' + window._safeHtml(secondary) + '</div>' : '');
 
-        // Bind click handlers
-        sugBox.querySelectorAll('[data-idx]').forEach(function(el) {
-          el.addEventListener('click', function() {
-            var idx = parseInt(el.getAttribute('data-idx'));
-            var pred = suggestions[idx] && suggestions[idx].placePrediction;
-            if (!pred) return;
+          item.addEventListener('mouseenter', function() { item.style.background = 'rgba(129,140,248,0.15)'; });
+          item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+          item.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // Prevent blur from hiding suggestions
             _selectProfileSuggestion(pred);
             sugBox.style.display = 'none';
           });
+
+          sugBox.appendChild(item);
         });
+
+        sugBox.style.display = 'block';
       } catch (e) {
         console.warn('[profile-map] search error:', e);
-        sugBox.style.display = 'none';
+        sugBox.innerHTML = '<div style="padding:10px 14px;color:#f87171;font-size:0.8rem;">Erro: ' + window._safeHtml(e.message || 'API indisponível') + '</div>';
+        sugBox.style.display = 'block';
       }
     }
 
