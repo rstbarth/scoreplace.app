@@ -229,16 +229,16 @@
     font-size: 0.95rem;
   }
 
-  input[type="checkbox"],
-  input[type="radio"] {
+  input[type="checkbox"]:not(.toggle-switch input),
+  input[type="radio"]:not(.toggle-switch input) {
     min-width: 22px;
     min-height: 22px;
     width: 22px;
     height: 22px;
   }
-  /* Touch target via label instead */
-  label:has(input[type="checkbox"]),
-  label:has(input[type="radio"]) {
+  /* Touch target via label instead — exclude toggle switches */
+  label:has(input[type="checkbox"]):not(.toggle-switch),
+  label:has(input[type="radio"]):not(.toggle-switch) {
     min-height: 44px;
     display: flex;
     align-items: center;

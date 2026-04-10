@@ -1499,9 +1499,8 @@ function setupProfileModal() {
         '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">' +
           '<h2 class="card-title" style="margin:0;font-size:1.1rem;">Meu Perfil</h2>' +
           '<div style="display:flex;gap:8px;align-items:center;">' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">Salvar</button>' +
             '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">Cancelar</button>' +
-            '<button class="modal-close" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')" style="margin-left:4px;">&times;</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">Salvar</button>' +
           '</div>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
