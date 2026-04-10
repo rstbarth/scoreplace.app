@@ -605,6 +605,7 @@ window.AppStore = {
         if (profile.notifyWhatsApp !== undefined) this.currentUser.notifyWhatsApp = profile.notifyWhatsApp;
         if (profile.notifyLevel) this.currentUser.notifyLevel = profile.notifyLevel;
         if (profile.preferredCeps !== undefined) this.currentUser.preferredCeps = profile.preferredCeps;
+        if (Array.isArray(profile.preferredLocations)) this.currentUser.preferredLocations = profile.preferredLocations;
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
@@ -647,6 +648,7 @@ window.AppStore = {
       notifyWhatsApp: user.notifyWhatsApp !== false,
       notifyLevel: user.notifyLevel || 'todas',
       preferredCeps: user.preferredCeps || '',
+      preferredLocations: user.preferredLocations || [],
       friends: user.friends || [],
       friendRequestsSent: user.friendRequestsSent || [],
       friendRequestsReceived: user.friendRequestsReceived || [],

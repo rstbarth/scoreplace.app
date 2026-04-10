@@ -662,9 +662,13 @@ async function simulateLoginSuccess(user) {
           if (el) el.checked = t.val;
         });
 
-        // CEPs de preferência
+        // Locais de preferência (mapa)
+        window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
+        // Backward compat: also keep CEPs hidden field
         var cepsEl = document.getElementById('profile-edit-ceps');
         if (cepsEl) cepsEl.value = cu.preferredCeps || '';
+        // Init map after modal is visible
+        setTimeout(function() { window._initProfileMap(); }, 300);
 
         // Notify level filter
         var notifyLevelVal = cu.notifyLevel || 'todas';
@@ -1583,11 +1587,18 @@ function setupProfileModal() {
               (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: "window._toggleNotifyFilter('fundamentais')" }) : '') +
               '<input type="hidden" id="profile-notify-level" value="todas">' +
             '</div>' +
-            // CEPs de preferência
+            // Locais de preferência (mapa)
             '<div class="form-group" style="margin-bottom: 1rem;">' +
-              '<label class="form-label" for="profile-edit-ceps" style="font-size: 0.8rem; font-weight: 600;">CEP(s) de preferência para jogar</label>' +
-              '<input type="text" id="profile-edit-ceps" class="form-control" placeholder="01310-100, 04538-132" style="width: 100%; box-sizing: border-box;">' +
-              '<span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">Separe os CEPs por vírgula. Você será notificado de torneios próximos.</span>' +
+              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Locais de preferência para jogar</label>' +
+              '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">Adicione locais onde costuma jogar. Você será notificado de torneios próximos.</p>' +
+              '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+                '<input type="text" id="profile-location-search" class="form-control" placeholder="Buscar endereço, local ou CEP..." style="flex:1;box-sizing:border-box;font-size:0.8rem;">' +
+                '<button type="button" id="profile-locate-btn" onclick="window._profileLocateMe()" class="btn btn-sm" style="background:var(--primary-color);color:#fff;border:none;white-space:nowrap;font-size:0.75rem;padding:6px 10px;" title="Usar minha localização">📍</button>' +
+              '</div>' +
+              '<div id="profile-location-suggestions" style="display:none;position:relative;z-index:10;"></div>' +
+              '<div id="profile-map-container" style="width:100%;height:200px;border-radius:10px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:8px;background:#1a1a2e;"></div>' +
+              '<div id="profile-locations-list" style="display:flex;flex-direction:column;gap:4px;"></div>' +
+              '<input type="hidden" id="profile-edit-ceps" value="">' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Notification toggles
@@ -1669,6 +1680,296 @@ function setupProfileModal() {
       if (funEl) funEl.checked = (level === 'fundamentais');
     };
 
+    // ─── Profile Map: location picker ────────────────────────────────────────
+    window._profileLocations = window._profileLocations || [];
+    var _profileMap = null;
+    var _profileMarkers = [];
+    var _profilePlacesLib = null;
+
+    window._initProfileMap = async function() {
+      var container = document.getElementById('profile-map-container');
+      if (!container || !window.google || !window.google.maps) return;
+      try {
+        var { Map } = await google.maps.importLibrary('maps');
+        var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+        _profilePlacesLib = await google.maps.importLibrary('places');
+
+        // Default center: São Paulo or first saved location
+        var locs = window._profileLocations || [];
+        var center = locs.length > 0
+          ? { lat: locs[0].lat, lng: locs[0].lng }
+          : { lat: -23.55, lng: -46.63 };
+        var zoom = locs.length > 0 ? 12 : 10;
+
+        _profileMap = new Map(container, {
+          center: center,
+          zoom: zoom,
+          mapId: 'scoreplace-profile-map',
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+          clickableIcons: false,
+          colorScheme: 'DARK'
+        });
+
+        // Click on map to add pin
+        _profileMap.addListener('click', function(e) {
+          if (!e.latLng) return;
+          var lat = e.latLng.lat();
+          var lng = e.latLng.lng();
+          // Reverse geocode to get label
+          _reverseGeocode(lat, lng, function(label) {
+            _addProfileLocation({ lat: lat, lng: lng, label: label || (lat.toFixed(4) + ', ' + lng.toFixed(4)) });
+          });
+        });
+
+        // Render existing pins
+        _renderProfileMarkers();
+        _renderProfileLocationsList();
+
+        // Setup search
+        _setupProfileSearch();
+      } catch (e) {
+        console.warn('[profile-map] init error:', e);
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+      }
+    };
+
+    function _reverseGeocode(lat, lng, callback) {
+      if (!window.google || !window.google.maps) { callback(null); return; }
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+        if (status === 'OK' && results && results[0]) {
+          // Try to get a short label: neighborhood, sublocality, or formatted
+          var comps = results[0].address_components || [];
+          var neighborhood = '', city = '', short = '';
+          comps.forEach(function(c) {
+            if (c.types.indexOf('sublocality_level_1') !== -1 || c.types.indexOf('neighborhood') !== -1) neighborhood = c.long_name;
+            if (c.types.indexOf('administrative_area_level_2') !== -1 || c.types.indexOf('locality') !== -1) city = c.long_name;
+            if (c.types.indexOf('postal_code') !== -1) short = c.long_name;
+          });
+          var label = neighborhood ? (neighborhood + (city ? ', ' + city : '')) : (results[0].formatted_address || '');
+          if (label.length > 60) label = label.substring(0, 57) + '...';
+          callback(label);
+        } else {
+          callback(null);
+        }
+      });
+    }
+
+    function _addProfileLocation(loc) {
+      if (!loc || !loc.lat || !loc.lng) return;
+      // Max 5 locations
+      var locs = window._profileLocations || [];
+      if (locs.length >= 5) {
+        if (typeof showNotification === 'function') showNotification('Limite', 'Máximo de 5 locais permitidos.', 'warning');
+        return;
+      }
+      // Avoid duplicates (within ~200m)
+      var isDup = locs.some(function(l) {
+        return Math.abs(l.lat - loc.lat) < 0.002 && Math.abs(l.lng - loc.lng) < 0.002;
+      });
+      if (isDup) {
+        if (typeof showNotification === 'function') showNotification('Local', 'Este local já foi adicionado.', 'info');
+        return;
+      }
+      locs.push({ lat: loc.lat, lng: loc.lng, label: loc.label || '' });
+      window._profileLocations = locs;
+      _renderProfileMarkers();
+      _renderProfileLocationsList();
+      _syncCepsFromLocations();
+    }
+
+    window._removeProfileLocation = function(idx) {
+      var locs = window._profileLocations || [];
+      if (idx >= 0 && idx < locs.length) {
+        locs.splice(idx, 1);
+        window._profileLocations = locs;
+        _renderProfileMarkers();
+        _renderProfileLocationsList();
+        _syncCepsFromLocations();
+      }
+    };
+
+    function _renderProfileMarkers() {
+      // Clear existing markers
+      _profileMarkers.forEach(function(m) { m.map = null; });
+      _profileMarkers = [];
+      if (!_profileMap) return;
+
+      var locs = window._profileLocations || [];
+      var bounds = new google.maps.LatLngBounds();
+
+      locs.forEach(function(loc, idx) {
+        var pin = document.createElement('div');
+        pin.style.cssText = 'width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;cursor:pointer;';
+        pin.textContent = String(idx + 1);
+
+        var marker = new google.maps.marker.AdvancedMarkerElement({
+          map: _profileMap,
+          position: { lat: loc.lat, lng: loc.lng },
+          content: pin,
+          title: loc.label || ''
+        });
+        _profileMarkers.push(marker);
+        bounds.extend({ lat: loc.lat, lng: loc.lng });
+      });
+
+      if (locs.length > 1) {
+        _profileMap.fitBounds(bounds, { top: 20, right: 20, bottom: 20, left: 20 });
+      } else if (locs.length === 1) {
+        _profileMap.setCenter({ lat: locs[0].lat, lng: locs[0].lng });
+        _profileMap.setZoom(13);
+      }
+    }
+
+    function _renderProfileLocationsList() {
+      var listEl = document.getElementById('profile-locations-list');
+      if (!listEl) return;
+      var locs = window._profileLocations || [];
+      if (locs.length === 0) {
+        listEl.innerHTML = '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:6px;">Nenhum local adicionado. Clique no mapa, busque ou use 📍.</div>';
+        return;
+      }
+      listEl.innerHTML = locs.map(function(loc, idx) {
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;">' +
+          '<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (idx + 1) + '</span>' +
+          '<span style="flex:1;font-size:0.72rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + window._safeHtml(loc.label) + '">' + window._safeHtml(loc.label) + '</span>' +
+          '<button type="button" onclick="window._removeProfileLocation(' + idx + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1;" title="Remover">&times;</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    function _syncCepsFromLocations() {
+      // Keep hidden CEP field updated for backward compat
+      // (not critical — distance matching is the primary method now)
+      var cepsEl = document.getElementById('profile-edit-ceps');
+      if (cepsEl) {
+        var labels = (window._profileLocations || []).map(function(l) { return l.label || ''; });
+        cepsEl.value = labels.join(', ');
+      }
+    }
+
+    function _setupProfileSearch() {
+      var input = document.getElementById('profile-location-search');
+      var sugBox = document.getElementById('profile-location-suggestions');
+      if (!input || !sugBox || !_profilePlacesLib) return;
+
+      var _debounce = null;
+      input.addEventListener('input', function() {
+        clearTimeout(_debounce);
+        var query = input.value.trim();
+        if (query.length < 3) { sugBox.style.display = 'none'; return; }
+        _debounce = setTimeout(function() { _searchProfileLocation(query); }, 250);
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { sugBox.style.display = 'none'; }
+      });
+
+      // Close suggestions on outside click
+      document.addEventListener('click', function(e) {
+        if (!sugBox.contains(e.target) && e.target !== input) {
+          sugBox.style.display = 'none';
+        }
+      });
+    }
+
+    async function _searchProfileLocation(query) {
+      var sugBox = document.getElementById('profile-location-suggestions');
+      if (!sugBox || !_profilePlacesLib) return;
+
+      try {
+        var request = {
+          input: query,
+          includedRegionCodes: ['br'],
+          includedPrimaryTypes: ['establishment', 'geocode'],
+          language: 'pt-BR'
+        };
+        var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        var suggestions = result.suggestions || [];
+        if (suggestions.length === 0) { sugBox.style.display = 'none'; return; }
+
+        sugBox.innerHTML = suggestions.slice(0, 5).map(function(s, i) {
+          var pred = s.placePrediction;
+          if (!pred) return '';
+          var main = pred.mainText ? pred.mainText.text : '';
+          var secondary = pred.secondaryText ? pred.secondaryText.text : '';
+          return '<div data-idx="' + i + '" style="padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border-color);font-size:0.78rem;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(99,102,241,0.12)\'" onmouseout="this.style.background=\'transparent\'">' +
+            '<div style="font-weight:600;color:var(--text-bright);">' + window._safeHtml(main) + '</div>' +
+            (secondary ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">' + window._safeHtml(secondary) + '</div>' : '') +
+          '</div>';
+        }).join('');
+
+        sugBox.style.cssText = 'display:block;position:absolute;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:240px;overflow-y:auto;z-index:10;';
+
+        // Bind click handlers
+        sugBox.querySelectorAll('[data-idx]').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var idx = parseInt(el.getAttribute('data-idx'));
+            var pred = suggestions[idx] && suggestions[idx].placePrediction;
+            if (!pred) return;
+            _selectProfileSuggestion(pred);
+            sugBox.style.display = 'none';
+          });
+        });
+      } catch (e) {
+        console.warn('[profile-map] search error:', e);
+        sugBox.style.display = 'none';
+      }
+    }
+
+    async function _selectProfileSuggestion(prediction) {
+      try {
+        var place = prediction.toPlace();
+        await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+        var lat = place.location.lat();
+        var lng = place.location.lng();
+        var label = (place.displayName || '') + (place.formattedAddress ? ' — ' + place.formattedAddress : '');
+        if (label.length > 60) label = label.substring(0, 57) + '...';
+        _addProfileLocation({ lat: lat, lng: lng, label: label });
+        // Clear search
+        var input = document.getElementById('profile-location-search');
+        if (input) input.value = '';
+        // Pan map
+        if (_profileMap) {
+          _profileMap.panTo({ lat: lat, lng: lng });
+          _profileMap.setZoom(14);
+        }
+      } catch (e) {
+        console.warn('[profile-map] select error:', e);
+      }
+    }
+
+    window._profileLocateMe = function() {
+      if (!navigator.geolocation) {
+        if (typeof showNotification === 'function') showNotification('Geolocalização', 'Seu navegador não suporta geolocalização.', 'warning');
+        return;
+      }
+      var btn = document.getElementById('profile-locate-btn');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (btn) { btn.disabled = false; btn.textContent = '📍'; }
+          _reverseGeocode(lat, lng, function(label) {
+            _addProfileLocation({ lat: lat, lng: lng, label: label || 'Minha localização' });
+            if (_profileMap) {
+              _profileMap.panTo({ lat: lat, lng: lng });
+              _profileMap.setZoom(14);
+            }
+          });
+        },
+        function(err) {
+          if (btn) { btn.disabled = false; btn.textContent = '📍'; }
+          if (typeof showNotification === 'function') showNotification('Geolocalização', 'Não foi possível obter sua localização. Verifique as permissões do navegador.', 'warning');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+    // ─── End Profile Map ──────────────────────────────────────────────────────
+
     window._selectAvatar = function(src) {
       document.getElementById('profile-avatar').src = src;
       document.getElementById('avatar-picker').style.display = 'none';
@@ -1695,6 +1996,7 @@ function setupProfileModal() {
       var notifyWhatsApp = document.getElementById('profile-notify-whatsapp') ? document.getElementById('profile-notify-whatsapp').checked : true;
       var notifyLevel = document.getElementById('profile-notify-level').value || 'todas';
       var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
+      var preferredLocations = Array.isArray(window._profileLocations) ? window._profileLocations : [];
       // Visual hints toggle
       var hintsEnabled = document.getElementById('profile-hints-enabled') ? document.getElementById('profile-hints-enabled').checked : true;
       if (window._hintSystem) {
@@ -1719,6 +2021,7 @@ function setupProfileModal() {
       window.AppStore.currentUser.notifyWhatsApp = notifyWhatsApp;
       window.AppStore.currentUser.notifyLevel = notifyLevel;
       window.AppStore.currentUser.preferredCeps = preferredCeps;
+      window.AppStore.currentUser.preferredLocations = preferredLocations;
 
       // Calcula idade se tem data de nascimento
       if (birthDate) {

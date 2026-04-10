@@ -224,26 +224,57 @@ window._checkTournamentReminders = async function() {
  * Check for new tournaments near user's preferred CEPs.
  * Called on app load when new tournaments exist.
  */
+// Haversine distance in km between two lat/lng points
+function _haversineKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 window._checkNearbyTournaments = async function() {
     if (!window.AppStore || !window.AppStore.currentUser || !window.FirestoreDB) return;
     var cu = window.AppStore.currentUser;
-    var userCeps = (cu.preferredCeps || '').split(',').map(function(c) { return c.trim().replace(/\D/g, ''); }).filter(function(c) { return c.length >= 5; });
-    if (userCeps.length === 0) return;
 
+    // Location-based matching (primary) + legacy CEP matching (fallback)
+    var userLocs = Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [];
+    var userCeps = (cu.preferredCeps || '').split(',').map(function(c) { return c.trim().replace(/\D/g, ''); }).filter(function(c) { return c.length >= 5; });
+    if (userLocs.length === 0 && userCeps.length === 0) return;
+
+    var NEARBY_RADIUS_KM = 15; // notify if tournament is within 15km
     var tournaments = window.AppStore.tournaments || [];
     var uid = cu.uid || cu.email;
 
     for (var i = 0; i < tournaments.length; i++) {
         var t = tournaments[i];
         if (t.status === 'finished' || t.status === 'closed') continue;
-        if (!t.venueAddress && !t.venue) continue;
+        if (!t.venueAddress && !t.venue && !t.venueLat) continue;
         // Check if already notified
         var nKey = '_notifNearby_' + t.id + '_' + uid;
         try { if (localStorage.getItem(nKey)) continue; } catch(e) {}
 
-        // Simple CEP match: check if tournament venue address contains any user CEP
-        var venueText = ((t.venueAddress || '') + ' ' + (t.venue || '')).replace(/\D/g, ' ');
-        var matched = userCeps.some(function(cep) { return venueText.indexOf(cep) !== -1; });
+        var matched = false;
+
+        // 1) Distance-based matching (preferred)
+        if (t.venueLat && t.venueLon && userLocs.length > 0) {
+            var tLat = parseFloat(t.venueLat);
+            var tLng = parseFloat(t.venueLon);
+            if (!isNaN(tLat) && !isNaN(tLng)) {
+                matched = userLocs.some(function(loc) {
+                    return _haversineKm(loc.lat, loc.lng, tLat, tLng) <= NEARBY_RADIUS_KM;
+                });
+            }
+        }
+
+        // 2) Legacy CEP text matching (fallback)
+        if (!matched && userCeps.length > 0 && (t.venueAddress || t.venue)) {
+            var venueText = ((t.venueAddress || '') + ' ' + (t.venue || '')).replace(/\D/g, ' ');
+            matched = userCeps.some(function(cep) { return venueText.indexOf(cep) !== -1; });
+        }
+
         // Also check if tournament sport matches user preferred sports
         var userSports = (cu.preferredSports || '').toLowerCase();
         var sportMatch = !userSports || (t.sport && userSports.indexOf(t.sport.toLowerCase()) !== -1);
