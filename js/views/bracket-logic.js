@@ -412,8 +412,8 @@ function _updateProgressiveClassification(t) {
   // Helper: get loser's score and winner's score from a match
   function _getLoserStats(m) {
     var loser = m.winner === m.p1 ? m.p2 : m.p1;
-    var loserScore = m.winner === m.p1 ? (parseInt(m.score2) || 0) : (parseInt(m.score1) || 0);
-    var winnerScore = m.winner === m.p1 ? (parseInt(m.score1) || 0) : (parseInt(m.score2) || 0);
+    var loserScore = m.winner === m.p1 ? (parseInt(m.scoreP2) || 0) : (parseInt(m.scoreP1) || 0);
+    var winnerScore = m.winner === m.p1 ? (parseInt(m.scoreP1) || 0) : (parseInt(m.scoreP2) || 0);
     // For GSM: use sets won as primary, then games diff
     var setsWon = 0, setsDiff = 0, gamesDiff = 0;
     if (m.sets && Array.isArray(m.sets)) {
@@ -444,8 +444,8 @@ function _updateProgressiveClassification(t) {
       if (!m.winner || m.isBye) return;
       if (m.p1 !== playerName && m.p2 !== playerName) return;
       var isP1 = m.p1 === playerName;
-      var scored = parseInt(isP1 ? m.score1 : m.score2) || 0;
-      var conceded = parseInt(isP1 ? m.score2 : m.score1) || 0;
+      var scored = parseInt(isP1 ? m.scoreP1 : m.scoreP2) || 0;
+      var conceded = parseInt(isP1 ? m.scoreP2 : m.scoreP1) || 0;
       totalScored += scored;
       totalConceded += conceded;
       if (m.winner === playerName) matchesWon++;
