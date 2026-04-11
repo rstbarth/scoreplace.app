@@ -899,6 +899,10 @@ async function simulateLoginSuccess(user) {
 
   // Check tournament reminders and nearby tournaments (delayed to let data load)
   setTimeout(function() {
+    // Auto-detect and fix stale participant names in tournaments
+    // (handles cases where user changed name before propagation code existed)
+    if (typeof window._autoFixStaleNames === 'function') window._autoFixStaleNames();
+
     if (typeof window._checkTournamentReminders === 'function') {
       window._checkTournamentReminders().catch(function(e) { console.warn('Reminder check error:', e); });
     }
@@ -2377,8 +2381,42 @@ function setupProfileModal() {
       }
     };
 
+    // ─── Auto-detect stale names on login ──────────────────────────────────────
+    // Finds tournaments where the user's participant entry has an outdated name
+    // and triggers propagation to fix it (handles pre-deploy name changes)
+    window._autoFixStaleNames = function() {
+      if (!window.AppStore || !window.AppStore.currentUser) return;
+      if (!Array.isArray(window.AppStore.tournaments)) return;
+      var user = window.AppStore.currentUser;
+      var currentName = user.displayName;
+      if (!currentName) return;
+      var uid = user.uid;
+      var email = user.email;
+
+      // Find any stale name in tournaments where this user participates
+      var staleName = null;
+      window.AppStore.tournaments.some(function(t) {
+        var parts = Array.isArray(t.participants) ? t.participants : [];
+        return parts.some(function(p) {
+          if (typeof p !== 'object' || p === null) return false;
+          var isUser = (uid && p.uid === uid) || (email && p.email === email);
+          if (!isUser) return false;
+          var pName = p.displayName || p.name || '';
+          if (pName && pName !== currentName) {
+            staleName = pName;
+            return true; // found a stale name, stop searching
+          }
+          return false;
+        });
+      });
+
+      if (staleName) {
+        window._propagateNameChange(staleName, currentName);
+      }
+    };
+
     // ─── Propagate displayName change across all tournaments ─────────────────
-    function _propagateNameChange(oldName, newName) {
+    window._propagateNameChange = function _propagateNameChange(oldName, newName) {
       if (!oldName || !newName || oldName === newName) return;
       if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
 
