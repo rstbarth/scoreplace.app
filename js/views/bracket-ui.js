@@ -2,25 +2,46 @@
 var _t = window._t || function(k) { return k; };
 
 // Helper: re-render bracket preserving scroll position (zero jump)
-function _rerenderBracket(tId) {
-  var _sx = window.scrollX;
-  var _sy = window.scrollY;
+function _rerenderBracket(tId, focusMatchId) {
+  var _sx = window.scrollX || window.pageXOffset || 0;
+  var _sy = window.scrollY || window.pageYOffset || 0;
+
+  // Also save bracket horizontal scroll
+  var bracketWrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
+  var _bsx = bracketWrapper ? bracketWrapper.scrollLeft : 0;
 
   // Suppress Firestore onSnapshot soft-refresh that fires after syncImmediate —
   // it would re-render the view again and potentially reset scroll position.
   window._suppressSoftRefresh = true;
   clearTimeout(window._pendingSoftRefresh);
 
-  renderBracket(document.getElementById('view-container'), tId);
+  var container = document.getElementById('view-container');
+
+  // Lock the container height to prevent layout shift during re-render
+  var prevHeight = container ? container.offsetHeight : 0;
+  if (container && prevHeight > 0) {
+    container.style.minHeight = prevHeight + 'px';
+  }
+
+  renderBracket(container, tId);
 
   // Restore scroll immediately, after layout, and after paint
-  window.scrollTo(_sx, _sy);
-  requestAnimationFrame(function() {
+  function _restore() {
     window.scrollTo(_sx, _sy);
+    // Restore bracket horizontal scroll
+    var newWrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
+    if (newWrapper) newWrapper.scrollLeft = _bsx;
+  }
+
+  _restore();
+  requestAnimationFrame(function() {
+    _restore();
     requestAnimationFrame(function() {
-      window.scrollTo(_sx, _sy);
+      _restore();
+      // Release min-height lock after render is stable
+      if (container) container.style.minHeight = '';
       // Re-enable soft refresh after render cycle is fully complete
-      setTimeout(function() { window._suppressSoftRefresh = false; }, 2000);
+      setTimeout(function() { window._suppressSoftRefresh = false; }, 3000);
     });
   });
 }
