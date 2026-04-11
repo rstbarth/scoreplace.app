@@ -42,15 +42,25 @@ function initRouter() {
 
     // --- For non-logged-in users visiting a tournament, auto-enroll after login ---
     const isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
+    // Check if Firebase Auth is still resolving — if so, don't open login modal yet
+    var _hasAuthCache = false;
+    try { _hasAuthCache = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
+    var _authResolved = !!window._authStateResolved;
     if (!isLoggedIn && view === 'tournaments' && cleanParam) {
       window._pendingInviteHash = hash;
       // Auto-save pending enrollment so login → auto-enroll → tournament details
       window._pendingEnrollTournamentId = cleanParam;
       try { sessionStorage.setItem('_pendingEnrollTournamentId', cleanParam); } catch(e) {}
-      // Open login modal after brief delay (let page render first)
-      setTimeout(function() {
-        if (typeof openModal === 'function') openModal('modal-login');
-      }, 600);
+      // Only open login modal if we're certain the user is NOT logged in
+      // (auth has resolved AND there's no cached session)
+      if (_authResolved && !_hasAuthCache) {
+        setTimeout(function() {
+          // Double-check: user may have logged in during the timeout
+          if (!window.AppStore || !window.AppStore.currentUser) {
+            if (typeof openModal === 'function') openModal('modal-login');
+          }
+        }, 600);
+      }
     }
 
     links.forEach(l => {
@@ -79,9 +89,17 @@ function initRouter() {
     }
 
     // Landing page gate: non-logged users on dashboard see landing page
+    // Skip landing if Firebase Auth hasn't resolved yet but we have a cached session
     var _isLoggedInNow = !!(window.AppStore && window.AppStore.currentUser);
-    if (!_isLoggedInNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+    var _hasAuthCacheNow = false;
+    try { _hasAuthCacheNow = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
+    if (!_isLoggedInNow && !_hasAuthCacheNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
       renderLanding(viewContainer);
+      return;
+    }
+    // If auth hasn't resolved yet but we have cache, show a loading state briefly
+    if (!_isLoggedInNow && _hasAuthCacheNow && (view === '' || view === 'dashboard')) {
+      viewContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;"><div style="text-align:center;"><div style="font-size:2rem;margin-bottom:1rem;">⏳</div><p style="color:var(--text-muted);font-size:0.9rem;">Carregando...</p></div></div>';
       return;
     }
 

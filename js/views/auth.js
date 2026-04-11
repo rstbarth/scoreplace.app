@@ -35,12 +35,20 @@ try {
 // Listen for auth state changes to auto-login returning users
 if (firebase && firebase.auth) {
   firebase.auth().onAuthStateChanged(async function(user) {
+    window._authStateResolved = true;
     if (user) {
       // Skip if email registration is still updating displayName profile
       if (window._pendingProfileUpdate) {
         // Skipping — pending profile update (email register)
         return;
       }
+      // Cache login state for instant restore on next page load
+      try {
+        localStorage.setItem('scoreplace_authCache', JSON.stringify({
+          uid: user.uid, email: user.email,
+          displayName: user.displayName, photoURL: user.photoURL
+        }));
+      } catch(e) {}
       // User is signed in — load data from Firestore and update UI
       await simulateLoginSuccess({
         uid: user.uid,
@@ -49,6 +57,8 @@ if (firebase && firebase.auth) {
         photoURL: user.photoURL
       });
     } else {
+      // Clear cached login state
+      try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
       // User is signed out — stop previous listener, load public tournaments
       if (window.AppStore) {
         window.AppStore.currentUser = null;
@@ -2367,8 +2377,159 @@ function setupProfileModal() {
       }
     };
 
+    // ─── Propagate displayName change across all tournaments ─────────────────
+    function _propagateNameChange(oldName, newName) {
+      if (!oldName || !newName || oldName === newName) return;
+      if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
+
+      var user = window.AppStore.currentUser;
+      var userUid = user ? user.uid : null;
+      var userEmail = user ? user.email : null;
+      var modifiedTournaments = [];
+
+      window.AppStore.tournaments.forEach(function(t) {
+        var changed = false;
+
+        // 1. Update participants array
+        var parts = Array.isArray(t.participants) ? t.participants : [];
+        parts.forEach(function(p) {
+          if (typeof p === 'object' && p !== null) {
+            var isUser = (userUid && p.uid === userUid) || (userEmail && p.email === userEmail) || p.displayName === oldName || p.name === oldName;
+            if (isUser) {
+              if (p.displayName === oldName) { p.displayName = newName; changed = true; }
+              if (p.name === oldName) { p.name = newName; changed = true; }
+            }
+          }
+        });
+
+        // Helper: replace name in a match object
+        function _updateMatch(m) {
+          if (!m) return;
+          if (m.p1 === oldName) { m.p1 = newName; changed = true; }
+          if (m.p2 === oldName) { m.p2 = newName; changed = true; }
+          if (m.winner === oldName) { m.winner = newName; changed = true; }
+          // Team arrays (Monarch format)
+          if (Array.isArray(m.team1)) {
+            var i1 = m.team1.indexOf(oldName);
+            if (i1 !== -1) { m.team1[i1] = newName; changed = true; }
+          }
+          if (Array.isArray(m.team2)) {
+            var i2 = m.team2.indexOf(oldName);
+            if (i2 !== -1) { m.team2[i2] = newName; changed = true; }
+          }
+          // Team string with slash (e.g. "Alice / Bob")
+          if (m.p1 && m.p1.indexOf(oldName) !== -1 && m.p1.indexOf(' / ') !== -1) {
+            var newP1 = m.p1.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+            if (newP1 !== m.p1) { m.p1 = newP1; changed = true; }
+          }
+          if (m.p2 && m.p2.indexOf(oldName) !== -1 && m.p2.indexOf(' / ') !== -1) {
+            var newP2 = m.p2.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+            if (newP2 !== m.p2) { m.p2 = newP2; changed = true; }
+          }
+          if (m.winner && m.winner.indexOf(oldName) !== -1 && m.winner.indexOf(' / ') !== -1) {
+            var newW = m.winner.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+            if (newW !== m.winner) { m.winner = newW; changed = true; }
+          }
+        }
+
+        // 2. Update matches (elimination)
+        if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
+
+        // 3. Third place match
+        _updateMatch(t.thirdPlaceMatch);
+
+        // 4. Rounds (Swiss/Liga)
+        if (Array.isArray(t.rounds)) {
+          t.rounds.forEach(function(r) {
+            if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch);
+          });
+        }
+
+        // 5. Groups
+        if (Array.isArray(t.groups)) {
+          t.groups.forEach(function(g) {
+            if (!g) return;
+            if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
+            if (Array.isArray(g.rounds)) {
+              g.rounds.forEach(function(gr) {
+                if (Array.isArray(gr)) gr.forEach(_updateMatch);
+                else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch);
+              });
+            }
+            // Group player arrays (Monarch)
+            if (Array.isArray(g.players)) {
+              var pi = g.players.indexOf(oldName);
+              if (pi !== -1) { g.players[pi] = newName; changed = true; }
+            }
+          });
+        }
+
+        // 6. Rodadas (Liga legacy)
+        if (Array.isArray(t.rodadas)) {
+          t.rodadas.forEach(function(r) {
+            if (Array.isArray(r)) r.forEach(_updateMatch);
+            else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch);
+          });
+        }
+
+        // 7. Classification (name as key)
+        if (t.classification && t.classification[oldName] !== undefined) {
+          t.classification[newName] = t.classification[oldName];
+          delete t.classification[oldName];
+          changed = true;
+        }
+
+        // 8. Check-in, absent, VIP (name as key)
+        ['checkedIn', 'absent', 'vips'].forEach(function(field) {
+          if (t[field] && t[field][oldName] !== undefined) {
+            t[field][newName] = t[field][oldName];
+            delete t[field][oldName];
+            changed = true;
+          }
+        });
+
+        // 9. Standings
+        if (Array.isArray(t.standings)) {
+          t.standings.forEach(function(s) {
+            if (s.name === oldName) { s.name = newName; changed = true; }
+            if (s.player === oldName) { s.player = newName; changed = true; }
+          });
+        }
+
+        // 10. sorteioRealizado array (drawn participants)
+        if (Array.isArray(t.sorteioRealizado)) {
+          t.sorteioRealizado.forEach(function(item, idx) {
+            if (typeof item === 'string' && item === oldName) { t.sorteioRealizado[idx] = newName; changed = true; }
+            else if (typeof item === 'object' && item !== null) {
+              if (item.name === oldName) { item.name = newName; changed = true; }
+              if (item.displayName === oldName) { item.displayName = newName; changed = true; }
+            }
+          });
+        }
+
+        // 11. Organizer name
+        if (t.organizerName === oldName) { t.organizerName = newName; changed = true; }
+
+        if (changed) modifiedTournaments.push(t);
+      });
+
+      // Save all modified tournaments to Firestore
+      if (modifiedTournaments.length > 0 && window.FirestoreDB && window.FirestoreDB.saveTournament) {
+        modifiedTournaments.forEach(function(t) {
+          t.updatedAt = new Date().toISOString();
+          window.FirestoreDB.saveTournament(t).catch(function(err) {
+            console.warn('Erro ao propagar nome para torneio ' + t.id + ':', err);
+          });
+        });
+        if (typeof showNotification !== 'undefined') {
+          showNotification('Nome Atualizado', 'Seu nome foi atualizado em ' + modifiedTournaments.length + ' torneio(s).', 'info');
+        }
+      }
+    }
+
     window.saveUserProfile = async function() {
       if (!window.AppStore.currentUser) return;
+      var _oldDisplayName = window.AppStore.currentUser.displayName || '';
       var name = document.getElementById('profile-edit-name').value.trim();
       var gender = document.getElementById('profile-edit-gender').value;
       var birthDate = document.getElementById('profile-edit-birthdate').value;
@@ -2428,6 +2589,17 @@ function setupProfileModal() {
       // Save profile to Firestore
       if (window.AppStore.saveUserProfileToFirestore) {
         await window.AppStore.saveUserProfileToFirestore();
+      }
+
+      // Propagate name change to all tournaments if displayName changed
+      if (name && _oldDisplayName && name !== _oldDisplayName) {
+        _propagateNameChange(_oldDisplayName, name);
+        // Update auth cache with new name
+        try {
+          var _ac = JSON.parse(localStorage.getItem('scoreplace_authCache') || '{}');
+          _ac.displayName = name;
+          localStorage.setItem('scoreplace_authCache', JSON.stringify(_ac));
+        } catch(e) {}
       }
 
       // Update header UI with new name and photo
