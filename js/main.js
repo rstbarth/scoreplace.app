@@ -277,9 +277,13 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.49-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Modo de Inscricao com toggles</b> — "Individual" e "Times Montados" agora sao toggles independentes. Ambos ligados = aceita os dois tipos. Pelo menos um deve estar ativo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.48-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Mesclar participantes com suporte mobile</b> — Touch drag-and-drop (long press + arrastar) na lista de inscritos para mesclar duplicatas no celular. Dica visual exibida para o organizador apos sorteio.</p>' +
-        '<p><b>Lista de inscritos sempre visivel</b> — Inscritos Confirmados agora exibido mesmo apos o sorteio, permitindo chamada e merge a qualquer momento.</p>' +
+        '<p><b>Mesclar participantes com suporte mobile</b> — Touch drag-and-drop (long press) na lista de inscritos para mesclar duplicatas.</p>' +
+        '<p><b>Lista de inscritos sempre visivel</b> — Inscritos Confirmados exibido mesmo apos o sorteio.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

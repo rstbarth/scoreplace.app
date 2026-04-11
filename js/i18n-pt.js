@@ -262,9 +262,9 @@ window._translations['pt'] = {
   'create.gameDuplas': 'Duplas',
   'create.gameTypeHint': 'Selecione um ou ambos. Se ambos, o torneio tera chaves paralelas.',
   'create.enrollMode': 'Modo de Inscrição',
-  'create.enrollModeIndividualDesc': 'Jogadores se inscrevem individualmente.',
-  'create.enrollModeTimeDesc': 'Apenas times podem se inscrever.',
-  'create.enrollModeMistoDesc': 'Aceita inscrições individuais e de times.',
+  'create.enrollModeIndividualDesc': 'Apenas inscricoes individuais. O sorteio forma as duplas.',
+  'create.enrollModeTimeDesc': 'Apenas inscricoes de times ja formados.',
+  'create.enrollModeMistoDesc': 'Aceita inscricoes individuais e de times ja formados.',
 
   // Quick create
   'quickCreate.title': 'Novo Torneio',

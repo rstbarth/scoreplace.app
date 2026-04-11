@@ -453,20 +453,21 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
 
-              <!-- Modo de Inscrição -->
+              <!-- Modo de Inscrição (toggles não-excludentes) -->
               <div class="form-group mb-3">
                 <label class="form-label">${_t('create.enrollMode')}</label>
-                <select class="form-control" id="select-inscricao" style="display:none;">
-                  <option value="individual">Individual</option>
-                  <option value="time">Apenas Times</option>
-                  <option value="misto">Misto (Individual e Times)</option>
-                </select>
-                <div id="enroll-mode-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <button type="button" class="enroll-mode-btn enroll-mode-active" data-value="individual" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #a78bfa;background:rgba(167,139,250,0.15);color:#a78bfa;font-weight:600;text-align:center;">${_t('enroll.modeIndividual')}</button>
-                  <button type="button" class="enroll-mode-btn" data-value="time" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('enroll.modeTeam')}</button>
-                  <button type="button" class="enroll-mode-btn" data-value="misto" onclick="window._selectEnrollMode(this)" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('enroll.modeMixed')}</button>
+                <input type="hidden" id="select-inscricao" value="individual">
+                <div id="enroll-mode-buttons" style="display:flex;flex-direction:column;gap:8px;">
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Individual</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores se inscrevem sozinhos. O sorteio forma as duplas/times.</div></div></div>
+                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-individual" checked onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Times Montados</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores se inscrevem ja com parceiro(s) definido(s).</div></div></div>
+                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-team" onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
+                  </div>
                 </div>
-                <small class="text-muted" style="display:block;margin-top:4px;" id="enroll-mode-desc">${_t('create.enrollModeIndividualDesc')}</small>
+                <small class="text-muted" style="display:block;margin-top:6px;" id="enroll-mode-desc">${_t('create.enrollModeIndividualDesc')}</small>
               </div>
 
               <!-- Auto-close (apenas eliminatórias) -->
@@ -770,9 +771,8 @@ function setupCreateTournamentModal() {
       enrollVal = 'individual';
     }
     if (inscricaoField) inscricaoField.value = enrollVal;
-    // Sync enrollment mode buttons
-    var emBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + enrollVal + '"]');
-    if (emBtn) window._selectEnrollMode(emBtn);
+    // Sync enrollment mode toggles
+    window._selectEnrollMode(enrollVal);
 
     // Update category preview to reflect game type change
     if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
@@ -852,30 +852,40 @@ function setupCreateTournamentModal() {
     window._onFormatoChange();
   };
 
-  // ── Enrollment Mode Selection ──
-  window._selectEnrollMode = function(btn) {
-    var value = btn.getAttribute('data-value');
-    var btns = document.querySelectorAll('#enroll-mode-buttons .enroll-mode-btn');
-    btns.forEach(function(b) {
-      if (b.getAttribute('data-value') === value) {
-        b.classList.add('enroll-mode-active');
-        b.style.border = '2px solid #a78bfa';
-        b.style.background = 'rgba(167,139,250,0.15)';
-        b.style.color = '#a78bfa';
-        b.style.fontWeight = '600';
-      } else {
-        b.classList.remove('enroll-mode-active');
-        b.style.border = '2px solid rgba(255,255,255,0.18)';
-        b.style.background = 'rgba(255,255,255,0.06)';
-        b.style.color = 'var(--text-main)';
-        b.style.fontWeight = '600';
-      }
-    });
-    // Sync hidden select
+  // ── Enrollment Mode Toggles (non-exclusive) ──
+  window._syncEnrollToggles = function() {
+    var indiv = document.getElementById('enroll-toggle-individual');
+    var team = document.getElementById('enroll-toggle-team');
+    if (!indiv || !team) return;
+    var iOn = indiv.checked;
+    var tOn = team.checked;
+    // Prevent both off — re-enable the one just toggled off
+    if (!iOn && !tOn) {
+      // Figure out which was just unchecked and re-check it
+      indiv.checked = true;
+      iOn = true;
+    }
+    var value = 'individual';
+    if (iOn && tOn) value = 'misto';
+    else if (tOn) value = 'time';
+    else value = 'individual';
     var sel = document.getElementById('select-inscricao');
     if (sel) sel.value = value;
     var descEl = document.getElementById('enroll-mode-desc');
     if (descEl) descEl.textContent = _enrollModeDescs[value] || '';
+  };
+  // Legacy compat: _selectEnrollMode still works for game-type sync
+  window._selectEnrollMode = function(btn) {
+    if (!btn) return;
+    var value = btn.getAttribute ? btn.getAttribute('data-value') : btn;
+    if (typeof value !== 'string') return;
+    var indiv = document.getElementById('enroll-toggle-individual');
+    var team = document.getElementById('enroll-toggle-team');
+    if (!indiv || !team) return;
+    if (value === 'individual') { indiv.checked = true; team.checked = false; }
+    else if (value === 'time') { indiv.checked = false; team.checked = true; }
+    else if (value === 'misto') { indiv.checked = true; team.checked = true; }
+    window._syncEnrollToggles();
   };
 
   // ── Result Entry Selection ──
@@ -2574,9 +2584,14 @@ function setupCreateTournamentModal() {
     document.getElementById('tourn-end-time').value = endT;
     var _enrollMode = t.enrollmentMode || 'individual';
     document.getElementById('select-inscricao').value = _enrollMode;
-    // Sync enrollment mode buttons
-    var _emBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + _enrollMode + '"]');
-    if (_emBtn) window._selectEnrollMode(_emBtn);
+    // Sync enrollment mode toggles
+    var _indivTgl = document.getElementById('enroll-toggle-individual');
+    var _teamTgl = document.getElementById('enroll-toggle-team');
+    if (_indivTgl && _teamTgl) {
+      _indivTgl.checked = (_enrollMode === 'individual' || _enrollMode === 'misto');
+      _teamTgl.checked = (_enrollMode === 'time' || _enrollMode === 'misto');
+      window._syncEnrollToggles();
+    }
     if (t.teamSize) document.getElementById('tourn-team-size').value = t.teamSize;
 
     // Restore game types (Simples/Duplas)
@@ -3541,8 +3556,7 @@ window._prefillFromTemplate = function(tpl) {
   var enrollSel = document.getElementById('select-inscricao');
   if (enrollSel && tpl.enrollmentMode) {
     enrollSel.value = tpl.enrollmentMode;
-    var _tplEmBtn = document.querySelector('#enroll-mode-buttons .enroll-mode-btn[data-value="' + tpl.enrollmentMode + '"]');
-    if (_tplEmBtn) window._selectEnrollMode(_tplEmBtn);
+    window._selectEnrollMode(tpl.enrollmentMode);
   }
 
   // Max participants

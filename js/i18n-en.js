@@ -262,9 +262,9 @@ window._translations['en'] = {
   'create.gameDuplas': 'Doubles',
   'create.gameTypeHint': 'Select one or both. If both, the tournament will have parallel brackets.',
   'create.enrollMode': 'Enrollment Mode',
-  'create.enrollModeIndividualDesc': 'Players enroll individually.',
-  'create.enrollModeTimeDesc': 'Only teams can enroll.',
-  'create.enrollModeMistoDesc': 'Accepts both individual and team enrollments.',
+  'create.enrollModeIndividualDesc': 'Individual enrollment only. Draw forms the teams.',
+  'create.enrollModeTimeDesc': 'Pre-formed team enrollment only.',
+  'create.enrollModeMistoDesc': 'Accepts both individual and pre-formed team enrollments.',
 
   // Quick create
   'quickCreate.title': 'New Tournament',
