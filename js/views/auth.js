@@ -2384,34 +2384,66 @@ function setupProfileModal() {
     // ─── Auto-detect stale names on login ──────────────────────────────────────
     // Finds tournaments where the user's participant entry has an outdated name
     // and triggers propagation to fix it (handles pre-deploy name changes)
-    window._autoFixStaleNames = function() {
-      if (!window.AppStore || !window.AppStore.currentUser) return;
-      if (!Array.isArray(window.AppStore.tournaments)) return;
-      var user = window.AppStore.currentUser;
-      var currentName = user.displayName;
-      if (!currentName) return;
-      var uid = user.uid;
-      var email = user.email;
+    // Scans ALL tournaments for participants with UIDs, batch-fetches their
+    // current Firestore profiles, and propagates any name changes found.
+    // Runs on any user's login so name updates are visible to everyone.
+    window._autoFixStaleNames = async function() {
+      if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
+      if (!window.FirestoreDB || !window.FirestoreDB.db) return;
 
-      // Find any stale name in tournaments where this user participates
-      var staleName = null;
-      window.AppStore.tournaments.some(function(t) {
+      // 1. Collect all unique participant UIDs and their stored names
+      var uidMap = {}; // uid → { storedName, email }
+      window.AppStore.tournaments.forEach(function(t) {
         var parts = Array.isArray(t.participants) ? t.participants : [];
-        return parts.some(function(p) {
-          if (typeof p !== 'object' || p === null) return false;
-          var isUser = (uid && p.uid === uid) || (email && p.email === email);
-          if (!isUser) return false;
+        parts.forEach(function(p) {
+          if (typeof p !== 'object' || p === null || !p.uid) return;
           var pName = p.displayName || p.name || '';
-          if (pName && pName !== currentName) {
-            staleName = pName;
-            return true; // found a stale name, stop searching
+          if (!pName) return;
+          // Keep the first name we find per UID (they should all be the same)
+          if (!uidMap[p.uid]) {
+            uidMap[p.uid] = { storedName: pName, email: p.email || '' };
           }
-          return false;
         });
       });
 
-      if (staleName) {
-        window._propagateNameChange(staleName, currentName);
+      var uids = Object.keys(uidMap);
+      if (uids.length === 0) return;
+
+      // 2. Batch-fetch user profiles from Firestore (in batches of 10 for Firestore 'in' limit)
+      var profileMap = {}; // uid → currentDisplayName
+      try {
+        for (var i = 0; i < uids.length; i += 10) {
+          var batch = uids.slice(i, i + 10);
+          var snap = await window.FirestoreDB.db.collection('users')
+            .where(firebase.firestore.FieldPath.documentId(), 'in', batch).get();
+          snap.forEach(function(doc) {
+            var data = doc.data();
+            if (data.displayName) profileMap[doc.id] = data.displayName;
+          });
+        }
+      } catch(e) {
+        console.warn('_autoFixStaleNames: error fetching profiles:', e);
+        return;
+      }
+
+      // 3. Find mismatches and propagate
+      var fixes = []; // [{ oldName, newName }]
+      uids.forEach(function(uid) {
+        var stored = uidMap[uid].storedName;
+        var current = profileMap[uid];
+        if (current && stored && current !== stored) {
+          // Avoid duplicate propagations for same old→new pair
+          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
+          if (!alreadyQueued) {
+            fixes.push({ oldName: stored, newName: current });
+          }
+        }
+      });
+
+      if (fixes.length > 0) {
+        fixes.forEach(function(f) {
+          window._propagateNameChange(f.oldName, f.newName);
+        });
       }
     };
 
