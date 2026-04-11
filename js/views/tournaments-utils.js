@@ -4,6 +4,37 @@ window._isLigaFormat = window._isLigaFormat || function(t) {
     return t && (t.format === 'Liga' || t.format === 'Ranking');
 };
 
+// ── Deduplicação de participantes por uid/email ──────────────────────────────
+// Remove duplicatas causadas por troca de nome no perfil.
+// Mantém a entrada mais recente (última no array = nome atualizado).
+// Retorna número de duplicatas removidas.
+window._deduplicateParticipants = function(t) {
+    if (!t || !Array.isArray(t.participants)) return 0;
+    var seen = {};
+    var deduped = [];
+    var removedCount = 0;
+    t.participants.forEach(function(p) {
+        if (typeof p === 'string') { deduped.push(p); return; }
+        if (!p || typeof p !== 'object') return;
+        var key = p.uid ? ('uid:' + p.uid) : (p.email ? ('email:' + p.email) : null);
+        if (key && seen[key]) {
+            // Duplicate — replace previous entry with this one (latest name)
+            removedCount++;
+            var prevIdx = deduped.indexOf(seen[key]);
+            if (prevIdx !== -1) deduped[prevIdx] = p;
+            seen[key] = p;
+        } else {
+            if (key) seen[key] = p;
+            deduped.push(p);
+        }
+    });
+    if (removedCount > 0) {
+        t.participants = deduped;
+        console.log('[Dedup] Removed ' + removedCount + ' duplicate participant(s) from tournament ' + (t.name || t.id));
+    }
+    return removedCount;
+};
+
 window._getTournamentProgress = function(t) {
     if (!t) return { total: 0, completed: 0, pct: 0 };
     var allMatches = [];

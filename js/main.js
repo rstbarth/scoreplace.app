@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Deduplicação de participantes</b> — Quando um participante troca o nome no perfil, o sistema agora detecta e remove automaticamente a entrada duplicada (nome antigo + nome novo), mantendo apenas o nome atual. Limpeza executada ao visualizar o torneio e antes do sorteio.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Inscrições bloqueadas quando encerradas</b> — Quando o organizador encerra as inscrições, ninguém mais pode se inscrever por nenhum caminho: link de convite, dashboard, +Participante, +Time. Validação adicionada em 5 pontos do código incluindo a transação do banco de dados.</p>' +
         '</div>' +

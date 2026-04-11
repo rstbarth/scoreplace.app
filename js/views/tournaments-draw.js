@@ -133,6 +133,15 @@ window.generateDrawFunction = function (tId) {
     // Store active tournament ID for views that need it
     window._lastActiveTournamentId = tId;
 
+    // ── Deduplicação de participantes (previne duplicatas por troca de nome) ────
+    if (typeof window._deduplicateParticipants === 'function') {
+        var _dupCount = window._deduplicateParticipants(t);
+        if (_dupCount > 0) {
+            window.FirestoreDB.saveTournament(t);
+            showNotification('Duplicatas Removidas', _dupCount + ' participante(s) duplicado(s) foram mesclados automaticamente.', 'info');
+        }
+    }
+
     // ── Verificação de times incompletos (antes da potência de 2) ────
     const _teamSize = parseInt(t.teamSize) || 1;
     if (_teamSize > 1 && !t.incompleteTeamResolved) {

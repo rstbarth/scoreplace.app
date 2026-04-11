@@ -1060,6 +1060,14 @@ function renderTournaments(container, tournamentId = null) {
     let participantsHtml = '';
     var _organizersHtml = '';
 
+    // ── Deduplicação de participantes (previne nome antigo + nome novo duplicados) ──
+    if (tournamentId && visible.length === 1 && typeof window._deduplicateParticipants === 'function') {
+        var _ddCount = window._deduplicateParticipants(visible[0]);
+        if (_ddCount > 0 && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+            window.FirestoreDB.saveTournament(visible[0]).catch(function() {});
+        }
+    }
+
     // Build organizers section — always shown in detail view regardless of participants
     if (tournamentId && visible.length === 1) {
       (function() {
