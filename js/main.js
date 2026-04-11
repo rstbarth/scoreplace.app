@@ -277,8 +277,9 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.29-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Coroa do organizador</b> — Ícone de coroa (👑) agora aparece corretamente ao lado direito do nome do organizador nos cards de participantes, em vez de abaixo do avatar. Funciona tanto para participantes individuais quanto para membros de equipes.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Manual corrigido</b> — Texto das notas de versão no manual não vaza mais como texto sem formatação. Aspas duplas no conteúdo quebravam o atributo de busca do HTML, fazendo o texto aparecer como bloco ilegível abaixo das seções do manual.</p>' +
+        '<p><b>Coroa do organizador</b> — Ícone de coroa agora aparece corretamente ao lado direito do nome do organizador nos cards de participantes, em vez de abaixo do avatar.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.28-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
@@ -622,7 +623,7 @@
   var sectionsHtml = tocHtml;
   for (var i = 0; i < helpSections.length; i++) {
     var s = helpSections[i];
-    sectionsHtml += '<div class="help-section" data-help-id="' + s.id + '" data-search="' + (s.title + ' ' + s.content).replace(/<[^>]+>/g, '').toLowerCase() + '" style="margin-bottom: 1rem;">' +
+    sectionsHtml += '<div class="help-section" data-help-id="' + s.id + '" data-search="' + (s.title + ' ' + s.content).replace(/<[^>]+>/g, '').toLowerCase().replace(/"/g, '&quot;') + '" style="margin-bottom: 1rem;">' +
       '<div onclick="this.parentElement.classList.toggle(\'open\')" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.12); border-radius:10px; cursor:pointer; transition:all 0.2s; user-select:none;" onmouseover="this.style.background=\'rgba(99,102,241,0.12)\'" onmouseout="this.style.background=\'rgba(99,102,241,0.06)\'">' +
         '<span style="font-size:1.2rem; flex-shrink:0;">' + s.icon + '</span>' +
         '<span style="font-size:0.85rem; font-weight:600; color:var(--text-bright); flex:1;">' + s.title + '</span>' +
