@@ -1087,7 +1087,6 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   // Inline score inputs (only when match is active, both players known, and result can be entered)
   const showInputs = !isDecided && !isByeMatch && !hasTBD && canEnterResult;
-  const showSetBtn = showInputs && useSets;
 
   // Check-in dot indicator
   const ciDot = (status) => {
@@ -1101,7 +1100,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      ${showInputs && !showSetBtn
+      ${showInputs
         ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1112,7 +1111,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      ${showInputs && !showSetBtn
+      ${showInputs
         ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1145,23 +1144,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
 
-  const headerConfirmBtn = showSetBtn
-    ? `<button onclick="window._openSetScoring('${_esc(tId)}','${_esc(m.id)}')"
-        style="background:${useFixedSet ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)'};border:1px solid ${useFixedSet ? 'rgba(245,158,11,0.3)' : 'rgba(139,92,246,0.3)'};color:${useFixedSet ? '#fbbf24' : '#a78bfa'};border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
-        onmouseover="this.style.background='${useFixedSet ? 'rgba(245,158,11,0.3)' : 'rgba(139,92,246,0.3)'}'" onmouseout="this.style.background='${useFixedSet ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)'}'">${useFixedSet ? '⚡ Set Fixo' : '🎾 Sets'}</button>`
-    : showInputs
+  const headerConfirmBtn = showInputs
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
   const headerEditBtn = isDecided && !isByeMatch && canEnterResult
-    ? useSets
-      ? `<button onclick="window._openSetScoring('${_esc(tId)}','${_esc(m.id)}')"
-          style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
-          onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
-          title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
-      : `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
+    ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
           style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
           onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
           title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`

@@ -707,8 +707,32 @@ window._saveResultInline = function (tId, matchId) {
     return;
   }
 
-  m.scoreP1 = s1;
-  m.scoreP2 = s2;
+  // GSM scoring compatibility: store inline scores as sets data when tournament uses GSM
+  const useSets = t.scoring && t.scoring.type === 'sets';
+  const isFixedSet = useSets && t.scoring.fixedSet;
+
+  if (useSets) {
+    // Store as a single set for GSM compatibility
+    var setData = { gamesP1: s1, gamesP2: s2 };
+    if (isFixedSet) setData.fixedSet = true;
+    m.sets = [setData];
+    m.setsWonP1 = s1 > s2 ? 1 : (s2 > s1 ? 0 : 0);
+    m.setsWonP2 = s2 > s1 ? 1 : (s1 > s2 ? 0 : 0);
+    if (isFixedSet) {
+      m.fixedSet = true;
+      m.scoreP1 = s1;
+      m.scoreP2 = s2;
+    } else {
+      // For standard sets, the inline score IS the sets won count
+      m.scoreP1 = s1;
+      m.scoreP2 = s2;
+    }
+    m.totalGamesP1 = s1;
+    m.totalGamesP2 = s2;
+  } else {
+    m.scoreP1 = s1;
+    m.scoreP2 = s2;
+  }
 
   if (s1 === s2 && allowDraw) {
     // Empate — ambos ganham 1 ponto (tratado na standings)
