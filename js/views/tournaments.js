@@ -1060,6 +1060,11 @@ function renderTournaments(container, tournamentId = null) {
     let participantsHtml = '';
     var _organizersHtml = '';
 
+    // ── Auto-fix stale names when viewing tournament details ──
+    if (tournamentId && visible.length === 1 && typeof window._autoFixStaleNames === 'function') {
+        window._autoFixStaleNames(visible[0].id).catch(function(e) { console.warn('Auto-fix stale names error:', e); });
+    }
+
     // ── Deduplicação de participantes (previne nome antigo + nome novo duplicados) ──
     if (tournamentId && visible.length === 1 && typeof window._deduplicateParticipants === 'function') {
         var _ddCount = window._deduplicateParticipants(visible[0]);

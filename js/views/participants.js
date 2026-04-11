@@ -130,13 +130,25 @@ window._editParticipantName = function(tId, oldName) {
     if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
     // Update checkedIn, absent, vips, standings, classification, sorteioRealizado
     ['checkedIn', 'absent', 'vips'].forEach(function(field) {
-      if (t[field] && t[field][oldName] !== undefined) { t[field][newName] = t[field][oldName]; delete t[field][oldName]; }
+      if (!t[field]) return;
+      if (t[field][oldName] !== undefined) { t[field][newName] = t[field][oldName]; delete t[field][oldName]; }
+      Object.keys(t[field]).forEach(function(k) {
+        if (k.indexOf(oldName) !== -1 && k.indexOf(' / ') !== -1) {
+          var newKey = k.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+          if (newKey !== k) { t[field][newKey] = t[field][k]; delete t[field][k]; }
+        }
+      });
     });
     if (t.classification && t.classification[oldName] !== undefined) { t.classification[newName] = t.classification[oldName]; delete t.classification[oldName]; }
     if (Array.isArray(t.standings)) t.standings.forEach(function(s) { if (s.name === oldName) s.name = newName; if (s.player === oldName) s.player = newName; });
     if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item, idx2) {
-      if (typeof item === 'string' && item === oldName) t.sorteioRealizado[idx2] = newName;
-      else if (typeof item === 'object' && item) { if (item.name === oldName) item.name = newName; if (item.displayName === oldName) item.displayName = newName; }
+      if (typeof item === 'string') {
+        if (item === oldName) t.sorteioRealizado[idx2] = newName;
+        else if (item.indexOf(oldName) !== -1 && item.indexOf(' / ') !== -1) {
+          var newSR = item.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+          if (newSR !== item) t.sorteioRealizado[idx2] = newSR;
+        }
+      } else if (typeof item === 'object' && item) { if (item.name === oldName) item.name = newName; if (item.displayName === oldName) item.displayName = newName; }
     });
 
     window.FirestoreDB.saveTournament(t);

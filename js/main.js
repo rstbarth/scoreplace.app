@@ -277,6 +277,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Correção completa de troca de nome</b> — Quando um participante muda o nome no perfil (ex: "C M" → "Ciça Mange"), o sistema agora atualiza corretamente em TODAS as estruturas: partidas, chaveamento, sorteio, check-in, classificação e equipes. Nomes antigos em strings de time ("C M / Ana" → "Ciça Mange / Ana") são propagados inclusive em sorteioRealizado, checkedIn, absent e vips.</p>' +
+        '<p><b>Auto-correção ao abrir torneio</b> — Ao visualizar os detalhes de um torneio, o sistema agora verifica automaticamente se há nomes desatualizados comparando com os perfis no Firestore. Se detectar discrepâncias (ex: nome no perfil diferente do nome no sorteio), corrige automaticamente.</p>' +
+        '<p><b>Detecção de nomes obsoletos em partidas</b> — Além de verificar participantes, o auto-fix agora escaneia p1/p2 das partidas, grupos e rodadas para encontrar nomes que não correspondem mais ao perfil atual do jogador.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Ordenação de inscritos</b> — Botões A-Z e 🕐 no cabeçalho "Inscritos Confirmados" permitem alternar entre ordem alfabética e ordem cronológica de inscrição. Funciona tanto no modo normal quanto no modo check-in.</p>' +
         '<p><b>Lista de inscritos sem duplicatas</b> — Participantes que aparecem tanto como individual quanto em time agora são exibidos uma única vez (com parceiro e adversário). Deduplicação também remove entradas de nomes antigos que já existem dentro de equipes.</p>' +
