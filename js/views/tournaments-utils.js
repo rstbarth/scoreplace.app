@@ -4,6 +4,163 @@ window._isLigaFormat = window._isLigaFormat || function(t) {
     return t && (t.format === 'Liga' || t.format === 'Ranking');
 };
 
+// ── Merge Drag-and-Drop: mesclar dois participantes (organizer, após sorteio) ─
+// Dragging participant A onto participant B → replaces A's name with B's name
+// in all match/draw data, then removes the duplicate participant entry.
+window._mergeDragData = null;
+
+window._mergeDragStart = function(e, name, tId) {
+    window._mergeDragData = { name: name, tId: tId };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', name); } catch(ex) {}
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) {
+        card.style.opacity = '0.4';
+        card.style.boxShadow = '0 0 15px rgba(251,191,36,0.4)';
+    }
+};
+
+window._mergeDragEnd = function(e) {
+    window._mergeDragData = null;
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) {
+        card.style.opacity = '1';
+        card.style.boxShadow = '';
+    }
+    // Reset all cards
+    document.querySelectorAll('.participant-card, [draggable="true"]').forEach(function(el) {
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        el.style.opacity = '1';
+    });
+};
+
+window._mergeDragEnter = function(e) {
+    e.preventDefault();
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) {
+        card.style.outline = '2px dashed #fbbf24';
+        card.style.outlineOffset = '-2px';
+    }
+};
+
+window._mergeDragLeave = function(e) {
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) {
+        card.style.outline = '';
+        card.style.outlineOffset = '';
+    }
+};
+
+window._mergeDrop = function(e, targetName, tId) {
+    e.preventDefault();
+    e.stopPropagation();
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) { card.style.outline = ''; card.style.outlineOffset = ''; }
+
+    if (!window._mergeDragData) return;
+    var sourceName = window._mergeDragData.name;
+    window._mergeDragData = null;
+
+    // Unescape names
+    sourceName = sourceName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+    targetName = targetName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+
+    if (sourceName === targetName) return;
+    if (!tId) return;
+
+    var t = null;
+    if (window.AppStore && Array.isArray(window.AppStore.tournaments)) {
+        t = window.AppStore.tournaments.find(function(x) { return x.id === tId; });
+    }
+    if (!t) return;
+
+    // Determine which name is "in the draw" (exists in matches) vs the "phantom" (only in participants)
+    var _nameInDraw = function(nm) {
+        var found = false;
+        var _check = function(m) {
+            if (!m) return;
+            if (m.p1 && m.p1.indexOf(nm) !== -1) found = true;
+            if (m.p2 && m.p2.indexOf(nm) !== -1) found = true;
+            if (m.winner && m.winner.indexOf(nm) !== -1) found = true;
+        };
+        if (Array.isArray(t.matches)) t.matches.forEach(_check);
+        if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_check); });
+        if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+            if (!g) return;
+            if (Array.isArray(g.matches)) g.matches.forEach(_check);
+            if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_check); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_check); });
+        });
+        return found;
+    };
+
+    var sourceInDraw = _nameInDraw(sourceName);
+    var targetInDraw = _nameInDraw(targetName);
+
+    // The name in the draw is the "old" name, the other is the "new" name
+    // If both are in draw, the drop target is the one to keep
+    var oldName, newName;
+    if (sourceInDraw && !targetInDraw) {
+        oldName = sourceName; newName = targetName;
+    } else if (!sourceInDraw && targetInDraw) {
+        oldName = targetName; newName = sourceName;
+    } else {
+        // Both or neither in draw — the DROP TARGET name is kept (dragged is replaced)
+        oldName = sourceName; newName = targetName;
+    }
+
+    var msg = 'Mesclar participantes?\n\n"' + oldName + '" será substituído por "' + newName + '" em todas as partidas, times e classificações.\n\nEsta ação não pode ser desfeita.';
+
+    if (typeof showConfirmDialog === 'function') {
+        showConfirmDialog('🔗 Mesclar Participantes', msg, function() {
+            // Execute merge
+            if (typeof window._propagateNameChange === 'function') {
+                window._propagateNameChange(oldName, newName);
+            }
+            // Remove the phantom duplicate from participants
+            var parts = Array.isArray(t.participants) ? t.participants : [];
+            // After propagation, both entries now have newName — remove the standalone duplicate
+            // Keep the one that's in a team string, remove the standalone object
+            var _removeIdx = -1;
+            for (var i = parts.length - 1; i >= 0; i--) {
+                var pi = parts[i];
+                if (typeof pi === 'object' && pi) {
+                    var nm = pi.displayName || pi.name || '';
+                    if (nm === newName) {
+                        // Check if this name also exists in a team string
+                        var inTeam = parts.some(function(p2) {
+                            return typeof p2 === 'string' && p2.indexOf(newName) !== -1 && p2.indexOf(' / ') !== -1;
+                        });
+                        if (inTeam) { _removeIdx = i; break; }
+                    }
+                }
+            }
+            if (_removeIdx !== -1) {
+                parts.splice(_removeIdx, 1);
+                console.log('[MergeDrop] Removed duplicate object at index ' + _removeIdx);
+            }
+
+            // Save and refresh
+            t.updatedAt = new Date().toISOString();
+            if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+                window.FirestoreDB.saveTournament(t).catch(function(e) { console.warn('[MergeDrop] Save error:', e); });
+            }
+            window.AppStore.logAction(tId, 'Participantes mesclados: "' + oldName + '" → "' + newName + '"');
+            if (typeof showNotification === 'function') {
+                showNotification('Participantes Mesclados', '"' + oldName + '" → "' + newName + '"', 'success');
+            }
+            // Re-render
+            setTimeout(function() {
+                if (typeof window._softRefreshView === 'function') window._softRefreshView();
+                else if (typeof renderTournaments === 'function') {
+                    var c = document.getElementById('view-container');
+                    if (c) renderTournaments(c, tId);
+                }
+            }, 300);
+        });
+    }
+};
+
 // ── Deduplicação de participantes por uid/email ──────────────────────────────
 // Remove duplicatas causadas por troca de nome no perfil.
 // Mantém a entrada mais recente (última no array = nome atualizado).

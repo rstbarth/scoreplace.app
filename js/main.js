@@ -277,9 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Correção automática de nome por iniciais</b> — Quando um participante troca o nome no perfil (ex: "C M" → "Ciça Mange"), o sistema agora detecta que "C M" nas partidas são as iniciais de "Ciça Mange" nos inscritos. Corrige automaticamente o nome antigo em todas as partidas, times e sorteio, e remove a duplicata ao abrir o torneio.</p>' +
-        '<p><b>Histórico de nomes no perfil</b> — Ao trocar o nome, o sistema salva os nomes anteriores (previousDisplayNames) no Firestore. Futuras trocas de nome serão corrigidas automaticamente em todos os torneios mesmo sem heurística de iniciais.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Mesclar participantes por arrastar e soltar</b> — O organizador pode arrastar um participante sobre outro na lista de inscritos para mesclá-los. O sistema substitui o nome arrastado pelo nome alvo em todas as partidas, times e classificações, e remove a duplicata. Funciona tanto no modo normal quanto no modo check-in, mesmo com o torneio em andamento.</p>' +
+        '<p><b>Detecção automática por iniciais</b> — Ao abrir o torneio, detecta que "C M" nas partidas são as iniciais de "Ciça Mange" nos inscritos e corrige automaticamente.</p>' +
+        '<p><b>Histórico de nomes no perfil</b> — Ao trocar o nome, o sistema salva os nomes anteriores para futuras correções automáticas.</p>' +
         '<p><b>Propagação em team strings</b> — sorteioRealizado, checkedIn, absent e vips com chaves de time agora são atualizados corretamente quando um nome muda.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
