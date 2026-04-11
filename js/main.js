@@ -277,8 +277,9 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Correção definitiva de troca de nome</b> — Nova função detecta nomes que aparecem nas partidas/sorteio mas NÃO nos participantes (ex: "C M" no sorteio, "Ciça Mange" nos inscritos). O sistema identifica automaticamente que são a mesma pessoa e corrige todas as referências ao abrir o torneio. Funciona mesmo quando a propagação original falhou.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Correção automática de nome por iniciais</b> — Quando um participante troca o nome no perfil (ex: "C M" → "Ciça Mange"), o sistema agora detecta que "C M" nas partidas são as iniciais de "Ciça Mange" nos inscritos. Corrige automaticamente o nome antigo em todas as partidas, times e sorteio, e remove a duplicata ao abrir o torneio.</p>' +
+        '<p><b>Histórico de nomes no perfil</b> — Ao trocar o nome, o sistema salva os nomes anteriores (previousDisplayNames) no Firestore. Futuras trocas de nome serão corrigidas automaticamente em todos os torneios mesmo sem heurística de iniciais.</p>' +
         '<p><b>Propagação em team strings</b> — sorteioRealizado, checkedIn, absent e vips com chaves de time agora são atualizados corretamente quando um nome muda.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +

@@ -1974,8 +1974,8 @@ window._autoFixStaleNames = async function(forceTournamentId) {
       snap.forEach(function(doc) {
         var data = doc.data();
         if (data.displayName) {
-          profileMap[doc.id] = { displayName: data.displayName, email: data.email || '' };
-          if (data.email) emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
+          profileMap[doc.id] = { displayName: data.displayName, email: data.email || '', previousDisplayNames: Array.isArray(data.previousDisplayNames) ? data.previousDisplayNames : [] };
+          if (data.email) emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id, previousDisplayNames: Array.isArray(data.previousDisplayNames) ? data.previousDisplayNames : [] };
         }
       });
     }
@@ -1987,7 +1987,7 @@ window._autoFixStaleNames = async function(forceTournamentId) {
       esnap.forEach(function(doc) {
         var data = doc.data();
         if (data.displayName && data.email) {
-          emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
+          emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id, previousDisplayNames: Array.isArray(data.previousDisplayNames) ? data.previousDisplayNames : [] };
         }
       });
     }
@@ -2073,6 +2073,65 @@ window._autoFixStaleNames = async function(forceTournamentId) {
       else if (typeof item === 'object' && item) { _checkStaleInStr(item.name); _checkStaleInStr(item.displayName); }
     });
   });
+
+  // Also check previousDisplayNames: scan ALL tournament strings for old names
+  // This catches the case where participant object is already updated but team strings have old name
+  var _prevNameMap = {}; // oldName → { newName, uid, email }
+  Object.keys(profileMap).forEach(function(uid) {
+    var p = profileMap[uid];
+    if (p.previousDisplayNames && p.previousDisplayNames.length > 0) {
+      p.previousDisplayNames.forEach(function(oldN) {
+        _prevNameMap[oldN] = { newName: p.displayName, uid: uid, email: p.email };
+      });
+    }
+  });
+  Object.keys(emailProfileMap).forEach(function(email) {
+    var p = emailProfileMap[email];
+    if (p.previousDisplayNames && p.previousDisplayNames.length > 0) {
+      p.previousDisplayNames.forEach(function(oldN) {
+        if (!_prevNameMap[oldN]) _prevNameMap[oldN] = { newName: p.displayName, uid: p.uid, email: email };
+      });
+    }
+  });
+
+  if (Object.keys(_prevNameMap).length > 0) {
+    console.log('[AutoFixNames] Previous display names found:', Object.keys(_prevNameMap));
+    // Scan ALL tournament data for these old names
+    tournamentsToScan.forEach(function(t) {
+      var parts = Array.isArray(t.participants) ? t.participants : [];
+      var _allStrings = [];
+      // Collect all string data to search
+      parts.forEach(function(p) { if (typeof p === 'string') _allStrings.push(p); });
+      var _collectFromMatch = function(m) {
+        if (!m) return;
+        if (m.p1) _allStrings.push(m.p1);
+        if (m.p2) _allStrings.push(m.p2);
+        if (m.winner) _allStrings.push(m.winner);
+      };
+      if (Array.isArray(t.matches)) t.matches.forEach(_collectFromMatch);
+      if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_collectFromMatch); });
+      if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_collectFromMatch);
+        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_collectFromMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_collectFromMatch); });
+        if (Array.isArray(g.players)) g.players.forEach(function(pl) { _allStrings.push(pl); });
+      });
+      if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item) {
+        if (typeof item === 'string') _allStrings.push(item);
+        else if (typeof item === 'object' && item) { if (item.name) _allStrings.push(item.name); if (item.displayName) _allStrings.push(item.displayName); }
+      });
+
+      // Check each string for old names
+      _allStrings.forEach(function(str) {
+        Object.keys(_prevNameMap).forEach(function(oldName) {
+          if (str === oldName || (str.indexOf(oldName) !== -1 && str.indexOf(' / ') !== -1)) {
+            var info = _prevNameMap[oldName];
+            _addFix(oldName, info.newName, info.uid, info.email);
+          }
+        });
+      });
+    });
+  }
 
   if (fixes.length > 0) {
     console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
@@ -2863,6 +2922,21 @@ function setupProfileModal() {
 
       // Propagate name change to all tournaments if displayName changed
       if (name && _oldDisplayName && name !== _oldDisplayName) {
+        // Save previousDisplayName to Firestore for future auto-fix of orphaned names
+        try {
+          var user = window.AppStore.currentUser;
+          if (user && user.uid && window.FirestoreDB && window.FirestoreDB.db) {
+            var _prevNames = Array.isArray(user.previousDisplayNames) ? user.previousDisplayNames.slice() : [];
+            if (_prevNames.indexOf(_oldDisplayName) === -1) _prevNames.push(_oldDisplayName);
+            // Keep last 5
+            if (_prevNames.length > 5) _prevNames = _prevNames.slice(_prevNames.length - 5);
+            window.FirestoreDB.db.collection('users').doc(user.uid).update({
+              previousDisplayNames: _prevNames
+            }).catch(function(e) { console.warn('[Profile] Failed to save previousDisplayNames:', e); });
+            window.AppStore.currentUser.previousDisplayNames = _prevNames;
+          }
+        } catch(e) { console.warn('[Profile] previousDisplayNames error:', e); }
+
         _propagateNameChange(_oldDisplayName, name);
         // Update auth cache with new name
         try {
