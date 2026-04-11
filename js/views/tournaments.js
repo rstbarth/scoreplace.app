@@ -437,6 +437,15 @@ function renderTournaments(container, tournamentId = null) {
         const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
+
+        // Auto-close: if deadline passed but status hasn't been updated yet, close it now
+        if (!isAberto && !isFinished && !sorteioRealizado && t.status !== 'closed' && t.registrationLimit && new Date(t.registrationLimit) < new Date()) {
+          t.status = 'closed';
+          if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+            window.FirestoreDB.saveTournament({ id: t.id, status: 'closed' }).catch(function() {});
+          }
+        }
+
         const statusText = isFinished ? '🏆 ' + _t('status.finished') : (ligaAberta ? _t('tournament.leagueOpenEnroll') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed'))));
         const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
         const statusColor = isFinished ? '#fbbf24' : (isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));

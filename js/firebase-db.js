@@ -74,8 +74,14 @@ window.FirestoreDB = {
       var _sorteioRealizado = (Array.isArray(data.matches) && data.matches.length > 0) ||
                               (Array.isArray(data.rounds) && data.rounds.length > 0) ||
                               (Array.isArray(data.groups) && data.groups.length > 0);
-      var _inscricoesAbertas = (data.status !== 'closed' && data.status !== 'finished' && !_sorteioRealizado) || _ligaOpen;
+      // Also check registration deadline
+      var _deadlinePassed = data.registrationLimit && new Date(data.registrationLimit) < new Date();
+      var _inscricoesAbertas = (data.status !== 'closed' && data.status !== 'finished' && !_sorteioRealizado && !_deadlinePassed) || _ligaOpen;
       if (!_inscricoesAbertas) {
+        // Auto-close if deadline just passed (persist the status change)
+        if (_deadlinePassed && data.status !== 'closed') {
+          transaction.update(docRef, { status: 'closed' });
+        }
         return { alreadyEnrolled: false, enrollmentClosed: true, participants: participants };
       }
 
@@ -103,7 +109,8 @@ window.FirestoreDB = {
       }
 
       // Auto-close check
-      if (data.autoCloseOnFull && data.maxParticipants && participants.length >= parseInt(data.maxParticipants)) {
+      // Auto-close when maxParticipants is reached (always, no flag needed)
+      if (data.maxParticipants && participants.length >= parseInt(data.maxParticipants)) {
         updateData.status = 'closed';
       }
 

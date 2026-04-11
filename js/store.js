@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.57-alpha';
+window.SCOREPLACE_VERSION = '0.8.58-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -342,6 +342,36 @@ window._safeHtml = function(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 };
 
+// Auto-close tournaments whose registration deadline has passed
+// Runs once on app load — checks all tournaments and closes expired ones
+window._autoCloseExpiredEnrollments = function() {
+  if (!window.AppStore || !window.AppStore.tournaments) return;
+  var now = new Date();
+  window.AppStore.tournaments.forEach(function(t) {
+    if (!t.registrationLimit) return;
+    if (t.status === 'closed' || t.status === 'finished') return;
+    // Skip if draw already done
+    var hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                  (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                  (Array.isArray(t.groups) && t.groups.length > 0);
+    if (hasDraw) return;
+    // Skip Liga with open enrollment
+    var isLiga = t.format && (t.format === 'Liga' || t.format === 'Ranking');
+    if (isLiga && t.ligaOpenEnrollment) return;
+    // Check if deadline passed
+    if (new Date(t.registrationLimit) < now) {
+      t.status = 'closed';
+      // Only the organizer should persist this to avoid permission issues
+      var cu = window.AppStore.currentUser;
+      if (cu && (t.organizerEmail === cu.email || (Array.isArray(t.coHosts) && t.coHosts.some(function(ch) { return ch.email === cu.email && ch.status === 'active'; })))) {
+        if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+          window.FirestoreDB.saveTournament({ id: t.id, status: 'closed' }).catch(function() {});
+        }
+      }
+    }
+  });
+};
+
 // ─── Temas: dark → light → sunset → ocean ──────────────────────────────────
 window._themeOrder = ['dark', 'light', 'sunset', 'ocean'];
 window._themeIcons = { dark: '🌙', light: '☀️', sunset: '🌅', ocean: '🌊' };
@@ -543,6 +573,8 @@ window.AppStore = {
           if (typeof window._autoFixStaleNames === 'function') {
             window._autoFixStaleNames().catch(function(e) { console.warn('Auto-fix stale names error:', e); });
           }
+          // Auto-close tournaments whose registration deadline has passed
+          window._autoCloseExpiredEnrollments();
           return;
         }
 
