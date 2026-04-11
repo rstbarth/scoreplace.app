@@ -443,13 +443,19 @@ function setupCreateTournamentModal() {
                 </div>
                 <div class="form-group full-width">
                   <label class="form-label">${_t('create.gameType')}</label>
-                  <div id="game-type-buttons" style="display:flex;gap:8px;">
-                    <button type="button" id="btn-tipo-simples" class="game-type-btn" onclick="window._toggleGameType('simples')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">${_t('create.gameSimples')}</button>
-                    <button type="button" id="btn-tipo-duplas" class="game-type-btn game-type-active" onclick="window._toggleGameType('duplas')" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">${_t('create.gameDuplas')}</button>
-                  </div>
-                  <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gameTypeHint')}</small>
                   <input type="hidden" id="tourn-team-size" value="2">
                   <input type="hidden" id="tourn-game-types" value="duplas">
+                  <div id="game-type-buttons" style="display:flex;flex-direction:column;gap:8px;">
+                    <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏸</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameSimples')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">1 jogador por lado da quadra.</div></div></div>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                    </div>
+                    <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameDuplas')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">2 jogadores por lado (duplas).</div></div></div>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                    </div>
+                  </div>
+                  <small class="text-muted" style="display:block;margin-top:6px;" id="game-type-desc">${_t('create.gameTypeHint')}</small>
                 </div>
               </div>
 
@@ -712,56 +718,24 @@ function setupCreateTournamentModal() {
   };
 
   // ── Game Type (Simples/Duplas) Toggle ──
-  window._toggleGameType = function(type) {
-    var btnS = document.getElementById('btn-tipo-simples');
-    var btnD = document.getElementById('btn-tipo-duplas');
-    if (!btnS || !btnD) return;
+  window._syncGameTypeToggles = function() {
+    var tgS = document.getElementById('game-toggle-simples');
+    var tgD = document.getElementById('game-toggle-duplas');
+    if (!tgS || !tgD) return;
+    var sOn = tgS.checked;
+    var dOn = tgD.checked;
+    // Prevent both off
+    if (!sOn && !dOn) { tgD.checked = true; dOn = true; }
 
-    // Toggle the clicked button
-    if (type === 'simples') {
-      var isActive = btnS.classList.contains('game-type-active');
-      if (isActive) {
-        // Can't deselect if it's the only one selected
-        if (!btnD.classList.contains('game-type-active')) return;
-        btnS.classList.remove('game-type-active');
-        btnS.style.border = '2px solid rgba(255,255,255,0.18)';
-        btnS.style.background = 'rgba(255,255,255,0.06)';
-        btnS.style.color = 'var(--text-main)';
-      } else {
-        btnS.classList.add('game-type-active');
-        btnS.style.border = '2px solid #3b82f6';
-        btnS.style.background = 'rgba(59,130,246,0.15)';
-        btnS.style.color = '#60a5fa';
-      }
-    } else {
-      var isActiveD = btnD.classList.contains('game-type-active');
-      if (isActiveD) {
-        if (!btnS.classList.contains('game-type-active')) return;
-        btnD.classList.remove('game-type-active');
-        btnD.style.border = '2px solid rgba(255,255,255,0.18)';
-        btnD.style.background = 'rgba(255,255,255,0.06)';
-        btnD.style.color = 'var(--text-main)';
-      } else {
-        btnD.classList.add('game-type-active');
-        btnD.style.border = '2px solid #3b82f6';
-        btnD.style.background = 'rgba(59,130,246,0.15)';
-        btnD.style.color = '#60a5fa';
-      }
-    }
-
-    // Update hidden fields
-    var simplesOn = btnS.classList.contains('game-type-active');
-    var duplasOn = btnD.classList.contains('game-type-active');
     var gameTypesField = document.getElementById('tourn-game-types');
     var teamSizeField = document.getElementById('tourn-team-size');
-    var inscricaoField = document.getElementById('select-inscricao');
 
     var enrollVal;
-    if (simplesOn && duplasOn) {
+    if (sOn && dOn) {
       if (gameTypesField) gameTypesField.value = 'simples,duplas';
       if (teamSizeField) teamSizeField.value = '2';
       enrollVal = 'misto';
-    } else if (duplasOn) {
+    } else if (dOn) {
       if (gameTypesField) gameTypesField.value = 'duplas';
       if (teamSizeField) teamSizeField.value = '2';
       enrollVal = 'time';
@@ -770,12 +744,29 @@ function setupCreateTournamentModal() {
       if (teamSizeField) teamSizeField.value = '1';
       enrollVal = 'individual';
     }
+    var inscricaoField = document.getElementById('select-inscricao');
     if (inscricaoField) inscricaoField.value = enrollVal;
-    // Sync enrollment mode toggles
     window._selectEnrollMode(enrollVal);
 
-    // Update category preview to reflect game type change
+    // Update description
+    var descEl = document.getElementById('game-type-desc');
+    if (descEl) {
+      if (sOn && dOn) descEl.textContent = 'Chaves paralelas de simples e duplas no mesmo torneio.';
+      else if (sOn) descEl.textContent = 'Apenas partidas de simples (1v1).';
+      else descEl.textContent = 'Apenas partidas de duplas (2v2).';
+    }
+
     if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
+  };
+  // Legacy compat
+  window._toggleGameType = function(type) {
+    var tgS = document.getElementById('game-toggle-simples');
+    var tgD = document.getElementById('game-toggle-duplas');
+    if (!tgS || !tgD) return;
+    if (type === 'simples') { tgS.checked = true; tgD.checked = false; }
+    else if (type === 'duplas') { tgS.checked = false; tgD.checked = true; }
+    else if (type === 'ambos') { tgS.checked = true; tgD.checked = true; }
+    window._syncGameTypeToggles();
   };
 
   // ── Formato Button Selection ──
@@ -1227,34 +1218,8 @@ function setupCreateTournamentModal() {
       teamSizeEl.value = defaultSize;
     }
 
-    // Set default game type based on sport
-    var btnS = document.getElementById('btn-tipo-simples');
-    var btnD = document.getElementById('btn-tipo-duplas');
-    if (btnS && btnD) {
-      if (defaultSize === 1) {
-        // Solo sport: default Simples on, Duplas off
-        btnS.classList.add('game-type-active');
-        btnS.style.border = '2px solid #3b82f6';
-        btnS.style.background = 'rgba(59,130,246,0.15)';
-        btnS.style.color = '#60a5fa';
-        btnD.classList.remove('game-type-active');
-        btnD.style.border = '2px solid rgba(255,255,255,0.18)';
-        btnD.style.background = 'rgba(255,255,255,0.06)';
-        btnD.style.color = 'var(--text-main)';
-      } else {
-        // Doubles sport: default Duplas on, Simples off
-        btnD.classList.add('game-type-active');
-        btnD.style.border = '2px solid #3b82f6';
-        btnD.style.background = 'rgba(59,130,246,0.15)';
-        btnD.style.color = '#60a5fa';
-        btnS.classList.remove('game-type-active');
-        btnS.style.border = '2px solid rgba(255,255,255,0.18)';
-        btnS.style.background = 'rgba(255,255,255,0.06)';
-        btnS.style.color = 'var(--text-main)';
-      }
-      // Update hidden fields
-      window._toggleGameType(defaultSize === 1 ? 'simples' : 'duplas');
-    }
+    // Set default game type based on sport via toggles
+    window._toggleGameType(defaultSize === 1 ? 'simples' : 'duplas');
   };
 
   window._onFormatoChange = function () {
@@ -2594,11 +2559,11 @@ function setupCreateTournamentModal() {
     }
     if (t.teamSize) document.getElementById('tourn-team-size').value = t.teamSize;
 
-    // Restore game types (Simples/Duplas)
+    // Restore game types (Simples/Duplas) via toggles
     var _gt = t.gameTypes || '';
-    var _btnS = document.getElementById('btn-tipo-simples');
-    var _btnD = document.getElementById('btn-tipo-duplas');
-    if (_btnS && _btnD) {
+    var _tgS = document.getElementById('game-toggle-simples');
+    var _tgD = document.getElementById('game-toggle-duplas');
+    if (_tgS && _tgD) {
       var hasSim = _gt.indexOf('simples') !== -1;
       var hasDup = _gt.indexOf('duplas') !== -1;
       // Fallback from legacy teamSize
@@ -2606,12 +2571,9 @@ function setupCreateTournamentModal() {
         hasDup = parseInt(t.teamSize) >= 2;
         hasSim = parseInt(t.teamSize) <= 1;
       }
-      if (hasSim) { _btnS.classList.add('game-type-active'); _btnS.style.border='2px solid #3b82f6'; _btnS.style.background='rgba(59,130,246,0.15)'; _btnS.style.color='#60a5fa'; }
-      else { _btnS.classList.remove('game-type-active'); _btnS.style.border='2px solid rgba(255,255,255,0.18)'; _btnS.style.background='rgba(255,255,255,0.06)'; _btnS.style.color='var(--text-main)'; }
-      if (hasDup) { _btnD.classList.add('game-type-active'); _btnD.style.border='2px solid #3b82f6'; _btnD.style.background='rgba(59,130,246,0.15)'; _btnD.style.color='#60a5fa'; }
-      else { _btnD.classList.remove('game-type-active'); _btnD.style.border='2px solid rgba(255,255,255,0.18)'; _btnD.style.background='rgba(255,255,255,0.06)'; _btnD.style.color='var(--text-main)'; }
-      var gtField = document.getElementById('tourn-game-types');
-      if (gtField) gtField.value = _gt || (hasSim && hasDup ? 'simples,duplas' : hasDup ? 'duplas' : 'simples');
+      _tgS.checked = hasSim;
+      _tgD.checked = hasDup;
+      window._syncGameTypeToggles();
     }
 
     // Restore sport button

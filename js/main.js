@@ -277,8 +277,9 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.49-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Modo de Inscricao com toggles</b> — "Individual" e "Times Montados" agora sao toggles independentes. Ambos ligados = aceita os dois tipos. Pelo menos um deve estar ativo.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Tipo de Jogo com toggles</b> — "Simples" e "Duplas" agora sao toggles independentes com icones e descricoes. Ambos ligados = chaves paralelas. Sincroniza automaticamente com Modo de Inscricao.</p>' +
+        '<p><b>Modo de Inscricao com toggles</b> — "Individual" e "Times Montados" como toggles independentes. Ambos ligados = aceita os dois tipos.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.48-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
