@@ -127,23 +127,14 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                 });
             }
 
-            // Auto-amizade: via ref no link OU com o organizador do torneio
+            // Auto-amizade: apenas com quem convidou (ref no link)
             try {
                 var _refUid = null;
                 var _h = window.location.hash || '';
                 var _rm2 = _h.match(/[?&]ref=([^&]+)/);
                 if (_rm2) _refUid = decodeURIComponent(_rm2[1]);
                 if (!_refUid) _refUid = sessionStorage.getItem('_inviteRefUid');
-                if (!_refUid && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
-                    window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                        if (!snap.empty) {
-                            var orgUid = snap.docs[0].id;
-                            if (typeof _autoFriendOnInvite === 'function') {
-                                _autoFriendOnInvite(orgUid, window.AppStore.currentUser);
-                            }
-                        }
-                    }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
-                } else if (_refUid && typeof _autoFriendOnInvite === 'function') {
+                if (_refUid && typeof _autoFriendOnInvite === 'function') {
                     _autoFriendOnInvite(_refUid, user);
                     try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
                 }
@@ -242,22 +233,14 @@ window.submitTeamEnroll = function (tId) {
                 });
             }
 
-            // Auto-amizade: com quem convidou (ref) ou com o organizador
+            // Auto-amizade: apenas com quem convidou (ref no link)
             try {
                 var _refUid3 = null;
                 var _h3 = window.location.hash || '';
                 var _rm3 = _h3.match(/[?&]ref=([^&]+)/);
                 if (_rm3) _refUid3 = decodeURIComponent(_rm3[1]);
                 if (!_refUid3) _refUid3 = sessionStorage.getItem('_inviteRefUid');
-                if (!_refUid3 && t.organizerEmail && window.FirestoreDB && window.FirestoreDB.db) {
-                    window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                        if (!snap.empty) {
-                            if (typeof _autoFriendOnInvite === 'function') {
-                                _autoFriendOnInvite(snap.docs[0].id, window.AppStore.currentUser);
-                            }
-                        }
-                    }).catch(function(e2) { console.warn('Auto-friend org lookup error:', e2); });
-                } else if (_refUid3 && typeof _autoFriendOnInvite === 'function') {
+                if (_refUid3 && typeof _autoFriendOnInvite === 'function') {
                     _autoFriendOnInvite(_refUid3, user);
                     try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
                 }
