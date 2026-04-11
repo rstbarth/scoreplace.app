@@ -1186,13 +1186,14 @@ function renderTournaments(container, tournamentId = null) {
         });
 
         if (parts.length > 0) {
-            // Sort preference: 'alpha' = A-Z, 'chrono' = enrollment order (default)
+            // Sort preference: 'alpha_asc' = A→Z, 'alpha_desc' = Z→A, 'chrono' = enrollment order (default)
             var _enrollSort = window._enrollSortMode || 'chrono';
-            if (_enrollSort === 'alpha') {
+            if (_enrollSort === 'alpha_asc' || _enrollSort === 'alpha_desc') {
+                var _alphaDir = (_enrollSort === 'alpha_desc') ? -1 : 1;
                 parts.sort(function(a, b) {
                     var nA = (typeof a === 'string' ? a : (a.displayName || a.name || '')).toLowerCase();
                     var nB = (typeof b === 'string' ? b : (b.displayName || b.name || '')).toLowerCase();
-                    return nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
+                    return _alphaDir * nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
                 });
             }
             // (chrono = original array order = enrollment order, no sort needed)
@@ -1250,7 +1251,8 @@ function renderTournaments(container, tournamentId = null) {
                 allIndividuals.sort((a, b) => {
                     const ac = !!checkedIn[a.name], bc = !!checkedIn[b.name];
                     if (ac !== bc) return ac ? 1 : -1; // unchecked first
-                    if (_enrollSort === 'alpha') return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+                    if (_enrollSort === 'alpha_asc') return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+                    if (_enrollSort === 'alpha_desc') return b.name.localeCompare(a.name, 'pt-BR', { sensitivity: 'base' });
                     return 0; // chrono = original order
                 });
 
@@ -1299,10 +1301,10 @@ function renderTournaments(container, tournamentId = null) {
                   var aIsOrg = _orgEmails[aEmail] ? 0 : 1;
                   var bIsOrg = _orgEmails[bEmail] ? 0 : 1;
                   if (aIsOrg !== bIsOrg) return aIsOrg - bIsOrg; // organizers first
-                  if (_enrollSort === 'alpha') {
+                  if (_enrollSort === 'alpha_asc' || _enrollSort === 'alpha_desc') {
                     var nA = (typeof a === 'string' ? a : (a.displayName || a.name || '')).toLowerCase();
                     var nB = (typeof b === 'string' ? b : (b.displayName || b.name || '')).toLowerCase();
-                    return nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
+                    return (_enrollSort === 'alpha_desc' ? -1 : 1) * nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
                   }
                   return 0; // chrono = original order
                 });
@@ -1444,10 +1446,14 @@ function renderTournaments(container, tournamentId = null) {
                 ? 'display:flex;flex-direction:column;gap:6px;'
                 : 'display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:1rem;';
 
-            var _sortAlphaActive = _enrollSort === 'alpha';
-            var _sortChronoActive = _enrollSort === 'chrono';
+            var _sortAlphaAsc = _enrollSort === 'alpha_asc';
+            var _sortAlphaDesc = _enrollSort === 'alpha_desc';
+            var _sortAlphaActive = _sortAlphaAsc || _sortAlphaDesc;
+            var _sortChronoActive = _enrollSort === 'chrono' || !_enrollSort;
+            var _alphaLabel = _sortAlphaDesc ? 'Z-A ↑' : 'A-Z ↓';
+            var _alphaNextMode = _sortAlphaAsc ? 'alpha_desc' : 'alpha_asc';
             var _sortBtns = `<div style="display:inline-flex;gap:2px;margin-left:auto;">
-              <button onclick="var _sy=window.scrollY;window._enrollSortMode='alpha';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="Ordenar A-Z" style="padding:3px 10px;border-radius:8px 0 0 8px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortAlphaActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortAlphaActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortAlphaActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">A-Z</button>
+              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_alphaNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortAlphaDesc ? 'Ordenar Z-A' : 'Ordenar A-Z'}" style="padding:3px 10px;border-radius:8px 0 0 8px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortAlphaActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortAlphaActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortAlphaActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_alphaLabel}</button>
               <button onclick="var _sy=window.scrollY;window._enrollSortMode='chrono';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="Ordem de inscrição" style="padding:3px 10px;border-radius:0 8px 8px 0;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortChronoActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortChronoActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortChronoActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">🕐</button>
             </div>`;
 
