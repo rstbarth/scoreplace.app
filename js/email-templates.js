@@ -57,8 +57,8 @@
     switch (type) {
       case 'enrollment':
         return _wrap(_body(
-          'Inscricao Confirmada!',
-          (data.playerName || 'Voce') + ' foi inscrito(a) no torneio <b>' + name + '</b>. Acompanhe o torneio pelo link abaixo.',
+          'Inscrição Confirmada!',
+          (data.playerName || 'Você') + ' foi inscrito(a) no torneio <b>' + name + '</b>. Acompanhe o torneio pelo link abaixo.',
           'Ver Torneio', url
         ));
 

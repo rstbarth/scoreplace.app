@@ -832,17 +832,17 @@ function renderTournaments(container, tournamentId = null) {
         var _cardTextColor = (_isLight && !venuePhotoBg) ? '#1f2937' : 'white';
 
         return `
-        <div class="card mb-3" style="position:relative;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
+        <div class="card mb-3" style="position:relative;overflow-x:hidden;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
           ${isOrg ? '<div style="position:absolute;bottom:6px;right:8px;opacity:0.9;pointer-events:none;" title="Organizador"><svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : ''}
           <div class="card-body p-4">
             
             <!-- Top Row: Icon/Modality | Status (same line on mobile) -->
-            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: nowrap;">
-               <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: wrap; gap: 4px;">
+               <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; min-width: 0;">
                   <span style="font-size: 1.1rem;">${getSportIcon(t.sport)}</span>
                   <span>${cleanSportName(t.sport) || 'Esporte'}</span>
                </div>
-               <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap; flex-shrink: 0;">
+               <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
                   ${statusText}
                </div>
             </div>
@@ -854,7 +854,7 @@ function renderTournaments(container, tournamentId = null) {
             <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
               ${t.logoData ? `<img src="${t.logoData}" alt="Logo" style="width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">` : ''}
-              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1;">
+              <h4 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: white; line-height: 1.2; text-align: left; flex: 1; min-width: 0; overflow-wrap: break-word;">
                 ${window._safeHtml(t.name)}
               </h4>
               ${tournamentId ? `<span data-fav-id="${t.id}" onclick="event.stopPropagation(); window._toggleFavorite('${t.id}', event)" title="${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" style="font-size:1.8rem;cursor:pointer;flex-shrink:0;color:${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '#fbbf24' : 'rgba(255,255,255,0.4)'};transition:color 0.2s;line-height:1;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${(typeof window._isFavorite === 'function' && window._isFavorite(t.id)) ? '★' : '☆'}</span>` : ''}
@@ -883,7 +883,8 @@ function renderTournaments(container, tournamentId = null) {
                  ${t.venueAddress ? '<span style="font-size:0.75rem; font-weight:400; opacity:0.7;">' + window._safeHtml(t.venueAddress) + '</span>' : ''}
                </span>
                ${t.venueLat && t.venueLon ? '<a href="' + (t.venuePlaceId ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.venue) + '&query_place_id=' + t.venuePlaceId : 'https://www.google.com/maps/search/?api=1&query=' + t.venueLat + ',' + t.venueLon) + '" target="_blank" title="Ver no mapa" style="color:#818cf8; text-decoration:none; font-size:1rem; flex-shrink:0;">🗺️</a>' : ''}
-            </div>` : ''}
+            </div>
+            ${tournamentId && t.venueLat && t.venueLon ? '<div id="tournament-venue-map" data-lat="' + t.venueLat + '" data-lng="' + t.venueLon + '" data-venue="' + window._safeHtml(t.venue || '') + '" style="width:100%;height:180px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-top:8px;background:#1a1a2e;"></div>' : ''}` : ''}
 
             ${(() => {
               if (isFinished) return '';
@@ -1517,6 +1518,14 @@ function renderTournaments(container, tournamentId = null) {
     // Build activity log
     if (tournamentId && typeof window._buildActivityLog === 'function') {
         window._buildActivityLog(tournamentId);
+    }
+
+    // Init venue map if lat/lng available
+    if (tournamentId) {
+        var _mapEl = document.getElementById('tournament-venue-map');
+        if (_mapEl) {
+            window._initTournamentVenueMap(_mapEl);
+        }
     }
 
     // Auto-scroll to Edit button after Quick Create (item 5)

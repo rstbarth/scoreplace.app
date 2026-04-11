@@ -298,19 +298,12 @@ function setupCreateTournamentModal() {
                       <div id="venue-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; margin-top:4px; max-height:220px; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
                     </div>
                     <div id="venue-osm-info" style="display:none; margin-top:5px; font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:5px;"></div>
-                    <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-                      <button type="button" id="btn-access-public" onclick="window._toggleVenueAccess('public')"
-                        style="padding:6px 14px; border-radius:8px; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.15s; white-space:nowrap; display:flex; align-items:center; gap:5px;">
-                        🌐 Aberto ao público
-                      </button>
-                      <button type="button" id="btn-access-members" onclick="window._toggleVenueAccess('members')"
-                        style="padding:6px 14px; border-radius:8px; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.15s; white-space:nowrap; display:flex; align-items:center; gap:5px;">
-                        🏅 Apenas sócios
-                      </button>
-                      <button type="button" id="btn-access-invite" onclick="window._toggleVenueAccess('invite')"
-                        style="padding:6px 14px; border-radius:8px; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.15s; white-space:nowrap; display:flex; align-items:center; gap:5px;">
-                        ✉️ Com convite
-                      </button>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                      <label class="toggle-switch" style="margin:0;">
+                        <input type="checkbox" id="toggle-venue-restricted" onchange="window._onVenueAccessToggle()">
+                        <span class="toggle-slider"></span>
+                      </label>
+                      <span id="venue-access-label" style="font-size:0.82rem; color:var(--text-main);">🌐 Aberto ao público</span>
                     </div>
                     <input type="hidden" id="tourn-venue-access" value="">
                     <input type="hidden" id="tourn-venue-lat" value="">
@@ -1472,35 +1465,30 @@ function setupCreateTournamentModal() {
     regBox.style.display = (isLiga && openEnroll && openEnroll.checked) ? 'none' : '';
   };
 
-  window._toggleVenueAccess = function (key) {
+  window._onVenueAccessToggle = function () {
+    const toggle = document.getElementById('toggle-venue-restricted');
     const hiddenEl = document.getElementById('tourn-venue-access');
-    if (!hiddenEl) return;
-    const current = hiddenEl.value ? hiddenEl.value.split(',') : [];
-    // 'public' and 'members' are mutually exclusive
-    let next;
-    if (key === 'public' || key === 'members') {
-      const isActive = current.includes(key);
-      // Remove both exclusive options, then toggle the clicked one
-      next = current.filter(v => v !== 'public' && v !== 'members');
-      if (!isActive) next.push(key);
+    const label = document.getElementById('venue-access-label');
+    if (!toggle || !hiddenEl) return;
+    if (toggle.checked) {
+      hiddenEl.value = 'members';
+      if (label) label.textContent = '🔒 Acesso restrito';
     } else {
-      // 'invite' is free toggle
-      next = current.includes(key) ? current.filter(v => v !== key) : [...current, key];
+      hiddenEl.value = 'public';
+      if (label) label.textContent = '🌐 Aberto ao público';
     }
-    hiddenEl.value = next.join(',');
-    window._applyVenueAccessUI(next);
   };
 
   window._applyVenueAccessUI = function (values) {
-    const baseStyle = 'padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; display:flex; align-items:center; gap:5px;';
-    const on  = baseStyle + 'border:2px solid #6366f1; background:rgba(99,102,241,0.22); color:#c7d2fe; font-weight:700; box-shadow:0 0 0 1px rgba(99,102,241,0.3);';
-    const off = baseStyle + 'border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500; box-shadow:none;';
-    const pub = document.getElementById('btn-access-public');
-    const mem = document.getElementById('btn-access-members');
-    const inv = document.getElementById('btn-access-invite');
-    if (pub) pub.style.cssText = values.includes('public')  ? on : off;
-    if (mem) mem.style.cssText = values.includes('members') ? on : off;
-    if (inv) inv.style.cssText = values.includes('invite')  ? on : off;
+    const toggle = document.getElementById('toggle-venue-restricted');
+    const label = document.getElementById('venue-access-label');
+    const hiddenEl = document.getElementById('tourn-venue-access');
+    if (!toggle) return;
+    // Restricted = anything other than 'public' only (members, invite, or combo)
+    var isRestricted = values.length > 0 && !(values.length === 1 && values[0] === 'public');
+    toggle.checked = isRestricted;
+    if (hiddenEl) hiddenEl.value = isRestricted ? 'members' : 'public';
+    if (label) label.textContent = isRestricted ? '🔒 Acesso restrito' : '🌐 Aberto ao público';
   };
 
   // --- Google Places venue search (programmatic — no Google UI elements injected) ---
@@ -1721,8 +1709,8 @@ function setupCreateTournamentModal() {
       if (accessEl) accessEl.value = suggested.join(',');
       window._applyVenueAccessUI(suggested);
       if (typeof showNotification === 'function') {
-        var labels = { public: 'Aberto ao público', members: 'Apenas sócios', invite: 'Com convite' };
-        showNotification('Local encontrado', 'Acesso sugerido: ' + suggested.map(function (s) { return labels[s] || s; }).join(' + '), 'success');
+        var accessLabel = suggested.includes('members') ? 'Acesso restrito' : 'Aberto ao público';
+        showNotification('Local encontrado', 'Acesso sugerido: ' + accessLabel, 'success');
       }
 
       window._checkWeather();

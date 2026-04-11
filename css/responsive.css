@@ -32,6 +32,20 @@
   .stat-card .stat-number {
     font-size: 1.75rem;
   }
+
+  .stat-box {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .info-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .card {
+    overflow-x: hidden;
+  }
 }
 
 /* Modal - Full-screen on mobile */

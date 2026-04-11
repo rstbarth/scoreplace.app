@@ -288,7 +288,7 @@ window.generateDrawFunction = function (tId) {
 
         // Remainder players join last group (5-player group with more rotations) or show warning
         if (remainder > 0) {
-            showNotification('Aviso', remainder + ' jogador(es) nao formam grupo de 4. Recomendamos ajustar para multiplos de 4.', 'warning');
+            showNotification('Aviso', remainder + ' jogador(es) não formam grupo de 4. Recomendamos ajustar para múltiplos de 4.', 'warning');
         }
 
         t.groups = groups;

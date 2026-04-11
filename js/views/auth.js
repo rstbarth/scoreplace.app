@@ -901,7 +901,9 @@ async function simulateLoginSuccess(user) {
   setTimeout(function() {
     // Auto-detect and fix stale participant names in tournaments
     // (handles cases where user changed name before propagation code existed)
-    if (typeof window._autoFixStaleNames === 'function') window._autoFixStaleNames();
+    if (typeof window._autoFixStaleNames === 'function') {
+      window._autoFixStaleNames().catch(function(e) { console.warn('Auto-fix stale names error:', e); });
+    }
 
     if (typeof window._checkTournamentReminders === 'function') {
       window._checkTournamentReminders().catch(function(e) { console.warn('Reminder check error:', e); });
@@ -2393,32 +2395,56 @@ function setupProfileModal() {
 
       // 1. Collect all unique participant UIDs and their stored names
       var uidMap = {}; // uid → { storedName, email }
+      // Also collect email→name for participants without UIDs
+      var emailMap = {}; // email → storedName
       window.AppStore.tournaments.forEach(function(t) {
         var parts = Array.isArray(t.participants) ? t.participants : [];
         parts.forEach(function(p) {
-          if (typeof p !== 'object' || p === null || !p.uid) return;
+          if (typeof p !== 'object' || p === null) return;
           var pName = p.displayName || p.name || '';
           if (!pName) return;
-          // Keep the first name we find per UID (they should all be the same)
-          if (!uidMap[p.uid]) {
-            uidMap[p.uid] = { storedName: pName, email: p.email || '' };
+          if (p.uid) {
+            if (!uidMap[p.uid]) {
+              uidMap[p.uid] = { storedName: pName, email: p.email || '' };
+            }
+          } else if (p.email) {
+            // Track email-based participants for later matching
+            if (!emailMap[p.email]) emailMap[p.email] = pName;
           }
         });
       });
 
       var uids = Object.keys(uidMap);
-      if (uids.length === 0) return;
+      var emails = Object.keys(emailMap);
+      if (uids.length === 0 && emails.length === 0) return;
 
       // 2. Batch-fetch user profiles from Firestore (in batches of 10 for Firestore 'in' limit)
       var profileMap = {}; // uid → currentDisplayName
+      var emailProfileMap = {}; // email → currentDisplayName
       try {
+        // Fetch by UID
         for (var i = 0; i < uids.length; i += 10) {
           var batch = uids.slice(i, i + 10);
           var snap = await window.FirestoreDB.db.collection('users')
             .where(firebase.firestore.FieldPath.documentId(), 'in', batch).get();
           snap.forEach(function(doc) {
             var data = doc.data();
-            if (data.displayName) profileMap[doc.id] = data.displayName;
+            if (data.displayName) {
+              profileMap[doc.id] = data.displayName;
+              if (data.email) emailProfileMap[data.email] = data.displayName;
+            }
+          });
+        }
+        // Fetch by email for participants without UIDs
+        for (var j = 0; j < emails.length; j += 10) {
+          var emailBatch = emails.slice(j, j + 10);
+          var esnap = await window.FirestoreDB.db.collection('users')
+            .where('email', 'in', emailBatch).get();
+          esnap.forEach(function(doc) {
+            var data = doc.data();
+            if (data.displayName && data.email) {
+              emailProfileMap[data.email] = data.displayName;
+            }
           });
         }
       } catch(e) {
@@ -2432,7 +2458,17 @@ function setupProfileModal() {
         var stored = uidMap[uid].storedName;
         var current = profileMap[uid];
         if (current && stored && current !== stored) {
-          // Avoid duplicate propagations for same old→new pair
+          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
+          if (!alreadyQueued) {
+            fixes.push({ oldName: stored, newName: current });
+          }
+        }
+      });
+      // Also check email-based mismatches
+      emails.forEach(function(email) {
+        var stored = emailMap[email];
+        var current = emailProfileMap[email];
+        if (current && stored && current !== stored) {
           var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
           if (!alreadyQueued) {
             fixes.push({ oldName: stored, newName: current });

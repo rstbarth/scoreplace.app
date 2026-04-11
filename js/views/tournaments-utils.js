@@ -97,3 +97,45 @@ window._notifLevelAllowed = function(userLevel, notifLevel) {
     if (userLevel === 'fundamentais') return notifLevel === 'fundamental';
     return true;
 };
+
+// ── Tournament Venue Map (detail page) ──
+window._initTournamentVenueMap = async function(el) {
+    if (!el || !window.google || !window.google.maps) {
+        if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+        return;
+    }
+    var lat = parseFloat(el.getAttribute('data-lat'));
+    var lng = parseFloat(el.getAttribute('data-lng'));
+    var venueName = el.getAttribute('data-venue') || '';
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    try {
+        var { Map } = await google.maps.importLibrary('maps');
+        var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+        var map = new Map(el, {
+            center: { lat: lat, lng: lng },
+            zoom: 15,
+            mapId: 'scoreplace-venue-map',
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: 'cooperative',
+            clickableIcons: false,
+            colorScheme: 'DARK'
+        });
+
+        var pin = document.createElement('div');
+        pin.style.cssText = 'width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;';
+        pin.textContent = '📍';
+
+        new AdvancedMarkerElement({
+            map: map,
+            position: { lat: lat, lng: lng },
+            content: pin,
+            title: venueName
+        });
+    } catch (e) {
+        console.warn('[venue-map] init error:', e);
+        el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+    }
+};

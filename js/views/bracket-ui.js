@@ -1460,7 +1460,7 @@ window._advanceMonarchToElimination = function(tId) {
 
   t.elimThirdPlace = true;
   window.AppStore.syncImmediate(tId);
-  showNotification('Fase Eliminatoria', seeded.length + ' classificados avancaram para as eliminatorias!', 'success');
+  showNotification('Fase Eliminatória', seeded.length + ' classificados avançaram para as eliminatórias!', 'success');
   _rerenderBracket(tId);
 };
 
