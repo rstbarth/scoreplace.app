@@ -3002,7 +3002,7 @@ window._openGSMConfig = function() {
         '<div class="toggle-row" style="padding:4px 0;margin-bottom:6px;">' +
           '<div class="toggle-row-label">' +
             '<span style="font-size:0.85rem;font-weight:700;">⚡ Set Fixo</span>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Disputa de N games fixos. Ganha quem vencer mais. Empate vai pro tie-break.</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Disputa de N games fixos. Ganha quem vencer mais. Se empatar, decide no tie-break — ou desative para permitir empates.</div>' +
           '</div>' +
           '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-fixedSet" ' + (fixedSet ? 'checked' : '') + ' onchange="window._gsmToggleFixedSet()"><span class="toggle-slider"></span></label>' +
         '</div>' +
@@ -3012,7 +3012,7 @@ window._openGSMConfig = function() {
             '<input type="number" id="gsm-cfg-fixedSetGames" class="form-control" min="2" max="20" value="' + fixedSetGames + '" style="font-size:0.85rem;width:80px;" oninput="window._gsmUpdateSummary()">' +
           '</div>' +
           '<div style="font-size:0.75rem;color:#f59e0b;line-height:1.4;flex:1;">' +
-            'Ex: Set Fixo de 6 → resultados possíveis: 6-0, 5-1, 4-2. Se 3-3, tie-break.' +
+            'Ex: Set Fixo de 6 → resultados possíveis: 6-0, 5-1, 4-2. Se 3-3, tie-break ou empate.' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -3133,15 +3133,20 @@ window._gsmSetCounting = function(ct) {
 window._gsmToggleFixedSet = function() {
   var checked = document.getElementById('gsm-cfg-fixedSet').checked;
   document.getElementById('gsm-fixed-set-details').style.display = checked ? 'flex' : 'none';
-  // When fixed set is ON, force setsToWin=1, hide sets config, enable tiebreak auto
+  // When fixed set is ON, force setsToWin=1, hide sets/games selectors and advantage row, but keep tiebreak visible
   var setsConfig = document.getElementById('gsm-sets-config');
-  if (setsConfig) setsConfig.style.display = checked ? 'none' : 'flex';
+  if (setsConfig) {
+    // Hide sets/games row and advantage, but keep tiebreak and super-tb visible
+    var setsGamesRow = setsConfig.querySelector(':scope > div:first-child');
+    if (setsGamesRow) setsGamesRow.style.display = checked ? 'none' : 'flex';
+    var advRow = document.getElementById('gsm-advantage-row');
+    if (advRow) advRow.style.display = checked ? 'none' : (document.getElementById('gsm-countingType').value === 'tennis' ? 'flex' : 'none');
+    var stbSection = document.getElementById('gsm-super-tb-section');
+    if (stbSection) stbSection.style.display = checked ? 'none' : (parseInt(document.getElementById('gsm-cfg-setsToWin').value) > 1 ? 'block' : 'none');
+  }
   if (checked) {
     var setsEl = document.getElementById('gsm-cfg-setsToWin');
     if (setsEl) setsEl.value = '1';
-    // Auto-enable tiebreak for fixed set (needed for ties)
-    var tbEl = document.getElementById('gsm-cfg-tiebreak');
-    if (tbEl) { tbEl.checked = true; window._gsmToggleTiebreak(); }
   }
   window._gsmUpdateSummary();
 };
@@ -3192,10 +3197,16 @@ window._gsmUpdateSummary = function() {
     var isEven = fsGames % 2 === 0;
     lines.push('<strong>⚡ Set Fixo de ' + fsGames + ' games</strong>');
     lines.push('Disputa de ' + fsGames + ' games fixos. Ganha quem vencer mais.');
-    if (isEven) {
+    if (isEven && tbOn) {
       lines.push('Empate ' + half + '-' + half + ': tie-break de ' + tbPts + ' pontos (diferença mín. ' + tbMargin + ').');
+    } else if (isEven && !tbOn) {
+      lines.push('Empate ' + half + '-' + half + ' possível (sem tie-break).');
     }
-    lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2' + (isEven ? ', ..., ' + half + '-' + half + ' (TB)' : '') + '.');
+    if (isEven && tbOn) {
+      lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2, ..., ' + half + '-' + half + ' (TB).');
+    } else {
+      lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2' + (isEven ? ', ..., ' + half + '-' + half : '') + '.');
+    }
   } else if (counting === 'numeric') {
     lines.push('<strong>' + sets + ' pontos</strong> para vencer');
     lines.push(games + ' tempos de ' + games + ' minutos (contagem numérica)');
