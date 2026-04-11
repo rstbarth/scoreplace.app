@@ -1,5 +1,12 @@
 function renderTournaments(container, tournamentId = null) {
     if (!window.AppStore) return;
+    // Clear one-time check flags for OTHER tournaments (keep current)
+    if (tournamentId) {
+        var _curKey = '_tournChecks_' + tournamentId;
+        Object.keys(window).forEach(function(k) {
+            if (k.indexOf('_tournChecks_') === 0 && k !== _curKey) delete window[k];
+        });
+    }
     var _t = window._t || function(k) { return k; };
     let visible = window.AppStore.getVisibleTournaments() || [];
 
@@ -1068,26 +1075,32 @@ function renderTournaments(container, tournamentId = null) {
     let participantsHtml = '';
     var _organizersHtml = '';
 
-    // ── Fix orphaned match names (name in draw/matches but not in participants) ──
-    if (tournamentId && visible.length === 1 && typeof window._fixOrphanedMatchNames === 'function') {
-        var _orphanFixes = window._fixOrphanedMatchNames(visible[0]);
-        if (_orphanFixes > 0) {
-            // Re-render after fix — _propagateNameChange already saved to Firestore
-            setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 600);
-            return; // will re-render with fixed names
+    // ── One-time checks per tournament view (run once, not on every re-render from sort/scroll) ──
+    var _checksKey = tournamentId ? ('_tournChecks_' + tournamentId) : null;
+    var _checksRan = _checksKey && window[_checksKey];
+    if (tournamentId && visible.length === 1 && !_checksRan) {
+        if (_checksKey) window[_checksKey] = true;
+
+        // Fix orphaned match names
+        if (typeof window._fixOrphanedMatchNames === 'function') {
+            var _orphanFixes = window._fixOrphanedMatchNames(visible[0]);
+            if (_orphanFixes > 0) {
+                setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 600);
+                return;
+            }
         }
-    }
 
-    // ── Auto-fix stale names when viewing tournament details (async Firestore check) ──
-    if (tournamentId && visible.length === 1 && typeof window._autoFixStaleNames === 'function') {
-        window._autoFixStaleNames(visible[0].id).catch(function(e) { console.warn('Auto-fix stale names error:', e); });
-    }
+        // Auto-fix stale names (async Firestore check)
+        if (typeof window._autoFixStaleNames === 'function') {
+            window._autoFixStaleNames(visible[0].id).catch(function(e) { console.warn('Auto-fix stale names error:', e); });
+        }
 
-    // ── Deduplicação de participantes (previne nome antigo + nome novo duplicados) ──
-    if (tournamentId && visible.length === 1 && typeof window._deduplicateParticipants === 'function') {
-        var _ddCount = window._deduplicateParticipants(visible[0]);
-        if (_ddCount > 0 && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
-            window.FirestoreDB.saveTournament(visible[0]).catch(function() {});
+        // Deduplicação de participantes
+        if (typeof window._deduplicateParticipants === 'function') {
+            var _ddCount = window._deduplicateParticipants(visible[0]);
+            if (_ddCount > 0 && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+                window.FirestoreDB.saveTournament(visible[0]).catch(function() {});
+            }
         }
     }
 
@@ -1549,13 +1562,12 @@ function renderTournaments(container, tournamentId = null) {
       }
     }
 
-    // Check category notifications for current user on this tournament
-    if (tournamentId) {
+    // Check category/poll notifications (only once per tournament view, not on re-render)
+    if (tournamentId && !_checksRan) {
         var _nt = window.AppStore.tournaments.find(function(x) { return String(x.id) === String(tournamentId); });
         if (_nt && window._checkCategoryNotifications) {
             window._checkCategoryNotifications(_nt);
         }
-        // Check poll notifications
         if (_nt && window._checkPollNotifications) {
             window._checkPollNotifications(_nt);
         }
