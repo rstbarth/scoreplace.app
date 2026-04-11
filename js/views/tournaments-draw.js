@@ -648,8 +648,28 @@ window.generateDrawFunction = function (tId) {
                         }
                         repSlotIdx++;
                     }
-                    // If odd losers, the last repechage match gets only 1 player (BYE in rep)
-                    // The last R1 loser that doesn't pair gets a direct pass in repechage
+                    // If odd losers, create a BYE match in repechage for the unpaired loser
+                    if (repOddBye && repSlotIdx < r1MatchIds.length) {
+                        var repByeM1 = {
+                            id: 'match-rep-bye-1-' + timestamp + '-' + _matchCounter,
+                            round: -1,
+                            bracket: isDupla ? 'upper' : undefined,
+                            p1: 'TBD', p2: 'BYE (Avança Direto)',
+                            winner: null, isBye: true,
+                            isRepechage: true,
+                            repRound: 1
+                        };
+                        if (catName) repByeM1.category = catName;
+                        matches.push(repByeM1);
+                        prevRoundMatchIds.push(repByeM1.id);
+                        _matchCounter++;
+                        // Link the unpaired R1 match's loser to this BYE
+                        var unlinkedR1M = matches.find(function(m) { return m.id === r1MatchIds[repSlotIdx]; });
+                        if (unlinkedR1M) {
+                            unlinkedR1M.loserMatchId = repByeM1.id;
+                            unlinkedR1M.loserSlot = 'p1';
+                        }
+                    }
                     var repSurvivors = repR1Count + (repOddBye ? 1 : 0);
 
                     // Continue repechage rounds until we reach spotsFromRepechage
@@ -686,6 +706,28 @@ window.generateDrawFunction = function (tId) {
                                 prevRepM.nextSlot = tgtSlot2;
                             }
                             prevRepSlot++;
+                        }
+                        // Handle odd-bye in this repechage round: create BYE match for unlinked survivor
+                        if (nextRepOdd && prevRepSlot < prevRoundMatchIds.length) {
+                            var oddByeM = {
+                                id: 'match-rep-bye-' + repRoundNum + '-' + timestamp + '-' + _matchCounter,
+                                round: -repRoundNum,
+                                bracket: isDupla ? 'upper' : undefined,
+                                p1: 'TBD', p2: 'BYE (Avança Direto)',
+                                winner: null, isBye: true,
+                                isRepechage: true,
+                                repRound: repRoundNum
+                            };
+                            if (catName) oddByeM.category = catName;
+                            matches.push(oddByeM);
+                            nextRepMatches.push(oddByeM);
+                            _matchCounter++;
+                            // Link the unlinked prev-round match winner to this BYE
+                            var unlinkedPrevM = matches.find(function(m) { return m.id === prevRoundMatchIds[prevRepSlot]; });
+                            if (unlinkedPrevM) {
+                                unlinkedPrevM.nextMatchId = oddByeM.id;
+                                unlinkedPrevM.nextSlot = 'p1';
+                            }
                         }
                         prevRoundMatchIds = nextRepMatches.map(function(m) { return m.id; });
                         repSurvivors = nextRepCount + (nextRepOdd ? 1 : 0);

@@ -334,7 +334,27 @@ function _findMatch(t, matchId) {
   return null;
 }
 
-// ─── Advance winner to next round ────────────────────────────────────────────
+// ─── Auto-resolve BYE match when a real player is placed ─────────────────────
+function _autoResolveBye(t, match) {
+  if (!match || match.winner) return; // already resolved
+  var byeLabel = 'BYE (Avança Direto)';
+  var p1Real = match.p1 && match.p1 !== 'TBD' && match.p1 !== byeLabel;
+  var p2Real = match.p2 && match.p2 !== 'TBD' && match.p2 !== byeLabel;
+  var p1Bye = match.p1 === byeLabel;
+  var p2Bye = match.p2 === byeLabel;
+  // One real player + one BYE → auto-resolve
+  if (p1Real && p2Bye) {
+    match.winner = match.p1;
+    match.isBye = true;
+    _advanceWinner(t, match);
+  } else if (p2Real && p1Bye) {
+    match.winner = match.p2;
+    match.isBye = true;
+    _advanceWinner(t, match);
+  }
+}
+
+// ─── Advance winner to next round ────────────────────────��───────────────────
 function _advanceWinner(t, completedMatch) {
   const winner = completedMatch.winner;
   const loser = winner === completedMatch.p1 ? completedMatch.p2 : completedMatch.p1;
@@ -353,6 +373,8 @@ function _advanceWinner(t, completedMatch) {
         if (!next.p1 || next.p1 === 'TBD') next.p1 = winner;
         else if (!next.p2 || next.p2 === 'TBD') next.p2 = winner;
       }
+      // Auto-resolve BYE matches: if one slot is filled and the other is BYE
+      _autoResolveBye(t, next);
     }
   }
 
@@ -368,6 +390,8 @@ function _advanceWinner(t, completedMatch) {
         if (!loserMatch.p1 || loserMatch.p1 === 'TBD') loserMatch.p1 = loser;
         else if (!loserMatch.p2 || loserMatch.p2 === 'TBD') loserMatch.p2 = loser;
       }
+      // Auto-resolve BYE matches in repechage
+      _autoResolveBye(t, loserMatch);
     }
   }
 

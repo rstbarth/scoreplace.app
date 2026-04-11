@@ -752,7 +752,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       if (hiddenSet.has(roundNum)) return; // Skip hidden rounds
 
       const label = getRoundLabel(roundNum, idx);
-      const isFinalRound = (expectedTotalRounds - idx) === 1;
+      const isFinalRound = (mainRoundCount - positiveRounds.indexOf(roundNum)) === 1;
       const complete = isRoundComplete(roundNum);
 
       // "Ocultar" button — only for completed rounds that are not the final
