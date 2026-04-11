@@ -1221,7 +1221,7 @@ function setupLoginModal() {
           '<div style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️ Link Magico por E-mail</div>' +
             '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
-              '<div style="display:flex;gap:8px;">' +
+              '<div style="display:flex;gap:8px;align-items:center;">' +
                 '<input type="email" id="login-email-link" class="form-control" placeholder="seu@email.com" required style="flex:1;font-size:0.85rem;">' +
                 '<button type="submit" class="btn btn-primary" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Enviar</button>' +
               '</div>' +
@@ -1278,11 +1278,13 @@ function setupLoginModal() {
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">🔑 E-mail e Senha</div>' +
             '<div id="email-login-mode" style="display:block;">' +
               '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
-                '<div class="form-group" style="margin-bottom:6px;">' +
+                '<div style="margin-bottom:6px;">' +
                   '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
                 '</div>' +
-                '<div style="display:flex;gap:8px;align-items:center;">' +
-                  '<input type="password" id="login-password" class="form-control" placeholder="Senha" required minlength="6" style="flex:1;font-size:0.85rem;">' +
+                '<div style="margin-bottom:6px;">' +
+                  '<input type="password" id="login-password" class="form-control" placeholder="Senha" required minlength="6" style="font-size:0.85rem;">' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">' +
                   '<button type="submit" class="btn btn-secondary" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Entrar</button>' +
                 '</div>' +
               '</form>' +
@@ -1294,15 +1296,17 @@ function setupLoginModal() {
             '</div>' +
             '<div id="email-register-mode" style="display:none;">' +
               '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
-                '<div class="form-group" style="margin-bottom:6px;">' +
+                '<div style="margin-bottom:6px;">' +
                   '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required style="font-size:0.85rem;">' +
                 '</div>' +
-                '<div class="form-group" style="margin-bottom:6px;">' +
+                '<div style="margin-bottom:6px;">' +
                   '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
                 '</div>' +
-                '<div style="display:flex;gap:8px;align-items:center;">' +
-                  '<input type="password" id="register-password" class="form-control" placeholder="Senha (min. 6)" required minlength="6" style="flex:1;font-size:0.85rem;">' +
-                  '<button type="submit" class="btn btn-primary" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Criar</button>' +
+                '<div style="margin-bottom:6px;">' +
+                  '<input type="password" id="register-password" class="form-control" placeholder="Senha (min. 6)" required minlength="6" style="font-size:0.85rem;">' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">' +
+                  '<button type="submit" class="btn btn-primary" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Criar Conta</button>' +
                 '</div>' +
               '</form>' +
               '<div style="text-align:center;margin-top:6px;">' +
