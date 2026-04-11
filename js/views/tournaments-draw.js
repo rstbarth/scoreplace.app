@@ -133,7 +133,8 @@ window.generateDrawFunction = function (tId) {
     // Store active tournament ID for views that need it
     window._lastActiveTournamentId = tId;
 
-    // ── Deduplicação de participantes (previne duplicatas por troca de nome) ────
+    // ── Fix orphaned names + Deduplicação de participantes ────
+    if (typeof window._fixOrphanedMatchNames === 'function') window._fixOrphanedMatchNames(t);
     if (typeof window._deduplicateParticipants === 'function') {
         var _dupCount = window._deduplicateParticipants(t);
         if (_dupCount > 0) {

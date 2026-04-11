@@ -1060,7 +1060,17 @@ function renderTournaments(container, tournamentId = null) {
     let participantsHtml = '';
     var _organizersHtml = '';
 
-    // ── Auto-fix stale names when viewing tournament details ──
+    // ── Fix orphaned match names (name in draw/matches but not in participants) ──
+    if (tournamentId && visible.length === 1 && typeof window._fixOrphanedMatchNames === 'function') {
+        var _orphanFixes = window._fixOrphanedMatchNames(visible[0]);
+        if (_orphanFixes > 0) {
+            // Re-render after fix — _propagateNameChange already saved to Firestore
+            setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 600);
+            return; // will re-render with fixed names
+        }
+    }
+
+    // ── Auto-fix stale names when viewing tournament details (async Firestore check) ──
     if (tournamentId && visible.length === 1 && typeof window._autoFixStaleNames === 'function') {
         window._autoFixStaleNames(visible[0].id).catch(function(e) { console.warn('Auto-fix stale names error:', e); });
     }

@@ -67,6 +67,156 @@ window._deduplicateParticipants = function(t) {
     return removedCount;
 };
 
+// ── Fix orphaned match names ─────────────────────────────────────────────────
+// Detects names in match data (p1/p2/teams/groups/sorteio) that don't match
+// any current participant. Pairs them with participants that exist in the
+// participant list but NOT in any match data. This fixes the scenario where
+// a user changed their display name and the participant object was updated
+// but the match/draw strings were not.
+// Returns number of fixes applied.
+window._fixOrphanedMatchNames = function(t) {
+    if (!t) return 0;
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    if (parts.length === 0) return 0;
+
+    // 1. Collect all current participant names (individual, not teams)
+    var participantNames = {};
+    parts.forEach(function(p) {
+        var name = typeof p === 'string' ? p : (p ? (p.displayName || p.name || '') : '');
+        if (!name) return;
+        if (name.indexOf(' / ') !== -1) {
+            name.split(' / ').forEach(function(n) { var nm = n.trim(); if (nm) participantNames[nm] = true; });
+        } else {
+            participantNames[name] = true;
+        }
+    });
+
+    // 2. Collect all unique names from match data
+    var matchNames = {};
+    var _extractNames = function(str) {
+        if (!str || typeof str !== 'string') return;
+        if (str === 'BYE' || str === 'TBD' || str === 'draw') return;
+        if (str.indexOf(' / ') !== -1) {
+            str.split(' / ').forEach(function(n) { var nm = n.trim(); if (nm && nm !== 'BYE' && nm !== 'TBD') matchNames[nm] = true; });
+        } else {
+            matchNames[str] = true;
+        }
+    };
+    var _scanMatch = function(m) {
+        if (!m) return;
+        _extractNames(m.p1); _extractNames(m.p2); _extractNames(m.winner);
+        if (Array.isArray(m.team1)) m.team1.forEach(function(n) { if (n) matchNames[n] = true; });
+        if (Array.isArray(m.team2)) m.team2.forEach(function(n) { if (n) matchNames[n] = true; });
+    };
+    if (Array.isArray(t.matches)) t.matches.forEach(_scanMatch);
+    if (t.thirdPlaceMatch) _scanMatch(t.thirdPlaceMatch);
+    if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) {
+        if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatch);
+    });
+    if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_scanMatch);
+        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) {
+            if (Array.isArray(gr)) gr.forEach(_scanMatch);
+            else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_scanMatch);
+        });
+        if (Array.isArray(g.players)) g.players.forEach(function(pl) { if (pl) matchNames[pl] = true; });
+    });
+    if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) {
+        if (Array.isArray(r)) r.forEach(_scanMatch);
+        else if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatch);
+    });
+    if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item) {
+        if (typeof item === 'string') _extractNames(item);
+        else if (typeof item === 'object' && item) { _extractNames(item.name); _extractNames(item.displayName); }
+    });
+
+    // 3. Find orphans (in matches but NOT in participants) and unmatched (in participants but NOT in matches)
+    var orphans = [];
+    var unmatched = [];
+    Object.keys(matchNames).forEach(function(name) {
+        if (!participantNames[name]) orphans.push(name);
+    });
+    Object.keys(participantNames).forEach(function(name) {
+        if (!matchNames[name]) unmatched.push(name);
+    });
+
+    if (orphans.length === 0 || unmatched.length === 0) return 0;
+    console.log('[FixOrphans] Orphan match names:', orphans, 'Unmatched participants:', unmatched);
+
+    // 4. Try to pair orphans with unmatched participants
+    var fixes = [];
+
+    // Strategy A: if exactly 1 orphan and 1 unmatched, they're the same person
+    if (orphans.length === 1 && unmatched.length === 1) {
+        fixes.push({ oldName: orphans[0], newName: unmatched[0] });
+    } else {
+        // Strategy B: for each orphan, try to match by uid/email from participant objects
+        // Build uid→name and email→name from current participants
+        var uidToName = {};
+        var emailToName = {};
+        parts.forEach(function(p) {
+            if (typeof p !== 'object' || !p) return;
+            var nm = p.displayName || p.name || '';
+            if (!nm) return;
+            if (p.uid) uidToName[p.uid] = nm;
+            if (p.email) emailToName[p.email] = nm;
+        });
+
+        // Check sorteioRealizado objects — they might have uid/email linking old name to participant
+        if (Array.isArray(t.sorteioRealizado)) {
+            t.sorteioRealizado.forEach(function(item) {
+                if (typeof item !== 'object' || !item) return;
+                var sName = item.displayName || item.name || '';
+                if (!sName || participantNames[sName]) return; // not an orphan
+                // This is an orphan with uid/email — match to current participant
+                var currentName = (item.uid && uidToName[item.uid]) || (item.email && emailToName[item.email]);
+                if (currentName && currentName !== sName) {
+                    if (!fixes.some(function(f) { return f.oldName === sName; })) {
+                        fixes.push({ oldName: sName, newName: currentName });
+                    }
+                }
+            });
+        }
+
+        // For remaining orphans without uid match, try matching by count
+        // If we still have exactly 1 unmatched orphan and 1 unmatched participant after Strategy B, pair them
+        var fixedOrphans = {};
+        fixes.forEach(function(f) { fixedOrphans[f.oldName] = true; });
+        var remainingOrphans = orphans.filter(function(o) { return !fixedOrphans[o]; });
+        var fixedNewNames = {};
+        fixes.forEach(function(f) { fixedNewNames[f.newName] = true; });
+        var remainingUnmatched = unmatched.filter(function(u) { return !fixedNewNames[u]; });
+        if (remainingOrphans.length === 1 && remainingUnmatched.length === 1) {
+            fixes.push({ oldName: remainingOrphans[0], newName: remainingUnmatched[0] });
+        }
+    }
+
+    if (fixes.length === 0) return 0;
+
+    // 5. Apply fixes using _propagateNameChange
+    console.log('[FixOrphans] Applying ' + fixes.length + ' fix(es):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
+    var fixCount = 0;
+    fixes.forEach(function(f) {
+        if (typeof window._propagateNameChange === 'function') {
+            // Find uid/email for the new name from participant objects
+            var uid = null, email = null;
+            parts.forEach(function(p) {
+                if (typeof p !== 'object' || !p) return;
+                var nm = p.displayName || p.name || '';
+                if (nm === f.newName) { uid = p.uid || null; email = p.email || null; }
+            });
+            window._propagateNameChange(f.oldName, f.newName, uid, email);
+            fixCount++;
+        }
+    });
+
+    if (fixCount > 0 && typeof showNotification === 'function') {
+        showNotification('Nomes Corrigidos', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }).join(', '), 'info');
+    }
+    return fixCount;
+};
+
 window._getTournamentProgress = function(t) {
     if (!t) return { total: 0, completed: 0, pct: 0 };
     var allMatches = [];

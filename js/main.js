@@ -277,10 +277,9 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Correção completa de troca de nome</b> — Quando um participante muda o nome no perfil (ex: "C M" → "Ciça Mange"), o sistema agora atualiza corretamente em TODAS as estruturas: partidas, chaveamento, sorteio, check-in, classificação e equipes. Nomes antigos em strings de time ("C M / Ana" → "Ciça Mange / Ana") são propagados inclusive em sorteioRealizado, checkedIn, absent e vips.</p>' +
-        '<p><b>Auto-correção ao abrir torneio</b> — Ao visualizar os detalhes de um torneio, o sistema agora verifica automaticamente se há nomes desatualizados comparando com os perfis no Firestore. Se detectar discrepâncias (ex: nome no perfil diferente do nome no sorteio), corrige automaticamente.</p>' +
-        '<p><b>Detecção de nomes obsoletos em partidas</b> — Além de verificar participantes, o auto-fix agora escaneia p1/p2 das partidas, grupos e rodadas para encontrar nomes que não correspondem mais ao perfil atual do jogador.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Correção definitiva de troca de nome</b> — Nova função detecta nomes que aparecem nas partidas/sorteio mas NÃO nos participantes (ex: "C M" no sorteio, "Ciça Mange" nos inscritos). O sistema identifica automaticamente que são a mesma pessoa e corrige todas as referências ao abrir o torneio. Funciona mesmo quando a propagação original falhou.</p>' +
+        '<p><b>Propagação em team strings</b> — sorteioRealizado, checkedIn, absent e vips com chaves de time agora são atualizados corretamente quando um nome muda.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
