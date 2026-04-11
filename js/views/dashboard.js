@@ -262,10 +262,18 @@ function renderDashboard(container) {
     if (t.participants && window.AppStore.currentUser) {
       const user = window.AppStore.currentUser;
       const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-      isParticipating = arr.some(p => {
-        if (typeof p === 'string') return p === user.email || p === user.displayName;
-        return (p.email && p.email === user.email) || (p.uid && user.uid && p.uid === user.uid) || (p.displayName && p.displayName === user.displayName);
-      });
+      if (arr.length > 0) {
+        isParticipating = arr.some(p => {
+          if (typeof p === 'string') {
+            if (p.indexOf(' / ') !== -1) return false;
+            return p === user.email || p === user.displayName;
+          }
+          if (p.uid && user.uid && p.uid === user.uid) return true;
+          if (p.email && p.email === user.email) return true;
+          if (p.displayName && p.displayName === user.displayName) return true;
+          return false;
+        });
+      }
     }
 
     // Card gradients adaptam ao tema via CSS variables

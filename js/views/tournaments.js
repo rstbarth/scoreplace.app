@@ -446,12 +446,20 @@ function renderTournaments(container, tournamentId = null) {
         if (t.participants && window.AppStore.currentUser) {
             const user = window.AppStore.currentUser;
             const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-            isParticipating = arr.some(p => {
-                if (typeof p === 'string') return p === user.email || p === user.displayName;
-                return (p.email && p.email === user.email) ||
-                       (p.displayName && p.displayName === user.displayName) ||
-                       (p.uid && user.uid && p.uid === user.uid);
-            });
+            if (arr.length > 0) {
+                isParticipating = arr.some(p => {
+                    if (typeof p === 'string') {
+                        // Exact match only — skip team strings (contain " / ")
+                        if (p.indexOf(' / ') !== -1) return false;
+                        return p === user.email || p === user.displayName;
+                    }
+                    // For objects: prioritize uid match, then exact email, then exact displayName
+                    if (p.uid && user.uid && p.uid === user.uid) return true;
+                    if (p.email && p.email === user.email) return true;
+                    if (p.displayName && p.displayName === user.displayName) return true;
+                    return false;
+                });
+            }
         }
 
         // Card gradients adaptam ao tema — consistentes com dashboard.js
