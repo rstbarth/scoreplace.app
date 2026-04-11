@@ -430,6 +430,8 @@ function _setupFixedScrollbar(container) {
 // ─── Auto-reparação: gera rodadas futuras para torneios antigos ──────────────
 function _ensureFutureRounds(t) {
   if (!t.matches || !t.matches.length) return;
+  // Repechage tournaments already have all rounds built — skip
+  if (t.hasRepechage) return;
   const isDupla = t.format === 'Dupla Eliminatória';
 
   // Filtrar apenas matches do bracket principal (upper ou sem bracket)

@@ -881,6 +881,8 @@ window.generateDrawFunction = function (tId) {
 // Suporta categorias: cada categoria tem seu próprio chaveamento independente
 window._buildNextMatchLinks = function (t) {
     if (!t.matches || !t.matches.length) return;
+    // Repechage tournaments already have all rounds + links built — skip
+    if (t.hasRepechage) return;
 
     // Agrupar matches R1 por categoria
     var _catSet = {};
