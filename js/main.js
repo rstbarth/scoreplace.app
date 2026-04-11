@@ -277,11 +277,15 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.48-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Mesclar participantes com suporte mobile</b> — Touch drag-and-drop (long press + arrastar) na lista de inscritos para mesclar duplicatas no celular. Dica visual exibida para o organizador apos sorteio.</p>' +
+        '<p><b>Lista de inscritos sempre visivel</b> — Inscritos Confirmados agora exibido mesmo apos o sorteio, permitindo chamada e merge a qualquer momento.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Mesclar participantes por arrastar e soltar</b> — O organizador pode arrastar um participante sobre outro na lista de inscritos para mesclá-los. O sistema substitui o nome arrastado pelo nome alvo em todas as partidas, times e classificações, e remove a duplicata. Funciona tanto no modo normal quanto no modo check-in, mesmo com o torneio em andamento.</p>' +
-        '<p><b>Detecção automática por iniciais</b> — Ao abrir o torneio, detecta que "C M" nas partidas são as iniciais de "Ciça Mange" nos inscritos e corrige automaticamente.</p>' +
-        '<p><b>Histórico de nomes no perfil</b> — Ao trocar o nome, o sistema salva os nomes anteriores para futuras correções automáticas.</p>' +
-        '<p><b>Propagação em team strings</b> — sorteioRealizado, checkedIn, absent e vips com chaves de time agora são atualizados corretamente quando um nome muda.</p>' +
+        '<p><b>Mesclar participantes por arrastar e soltar</b> — O organizador pode arrastar um participante sobre outro na lista de inscritos para mescla-los.</p>' +
+        '<p><b>Deteccao automatica por iniciais</b> — Detecta que "C M" sao as iniciais de "Cica Mange" e corrige automaticamente.</p>' +
+        '<p><b>Historico de nomes no perfil e propagacao em team strings.</b></p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

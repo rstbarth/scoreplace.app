@@ -4,68 +4,14 @@ window._isLigaFormat = window._isLigaFormat || function(t) {
     return t && (t.format === 'Liga' || t.format === 'Ranking');
 };
 
-// ── Merge Drag-and-Drop: mesclar dois participantes (organizer, após sorteio) ─
-// Dragging participant A onto participant B → replaces A's name with B's name
-// in all match/draw data, then removes the duplicate participant entry.
+// ── Merge Participants: mesclar dois participantes (organizer, após sorteio) ──
+// Supports both desktop drag-and-drop AND mobile touch drag.
+// Core logic in _executeMerge(); drag/touch just determine source+target names.
+
 window._mergeDragData = null;
 
-window._mergeDragStart = function(e, name, tId) {
-    window._mergeDragData = { name: name, tId: tId };
-    e.dataTransfer.effectAllowed = 'move';
-    try { e.dataTransfer.setData('text/plain', name); } catch(ex) {}
-    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
-    if (card) {
-        card.style.opacity = '0.4';
-        card.style.boxShadow = '0 0 15px rgba(251,191,36,0.4)';
-    }
-};
-
-window._mergeDragEnd = function(e) {
-    window._mergeDragData = null;
-    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
-    if (card) {
-        card.style.opacity = '1';
-        card.style.boxShadow = '';
-    }
-    // Reset all cards
-    document.querySelectorAll('.participant-card, [draggable="true"]').forEach(function(el) {
-        el.style.outline = '';
-        el.style.outlineOffset = '';
-        el.style.opacity = '1';
-    });
-};
-
-window._mergeDragEnter = function(e) {
-    e.preventDefault();
-    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
-    if (card) {
-        card.style.outline = '2px dashed #fbbf24';
-        card.style.outlineOffset = '-2px';
-    }
-};
-
-window._mergeDragLeave = function(e) {
-    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
-    if (card) {
-        card.style.outline = '';
-        card.style.outlineOffset = '';
-    }
-};
-
-window._mergeDrop = function(e, targetName, tId) {
-    e.preventDefault();
-    e.stopPropagation();
-    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
-    if (card) { card.style.outline = ''; card.style.outlineOffset = ''; }
-
-    if (!window._mergeDragData) return;
-    var sourceName = window._mergeDragData.name;
-    window._mergeDragData = null;
-
-    // Unescape names
-    sourceName = sourceName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
-    targetName = targetName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
-
+// ── Core merge logic (reusable) ──
+window._executeMerge = function(sourceName, targetName, tId) {
     if (sourceName === targetName) return;
     if (!tId) return;
 
@@ -75,7 +21,7 @@ window._mergeDrop = function(e, targetName, tId) {
     }
     if (!t) return;
 
-    // Determine which name is "in the draw" (exists in matches) vs the "phantom" (only in participants)
+    // Determine which name is "in the draw" (exists in matches) vs the "phantom"
     var _nameInDraw = function(nm) {
         var found = false;
         var _check = function(m) {
@@ -97,37 +43,30 @@ window._mergeDrop = function(e, targetName, tId) {
     var sourceInDraw = _nameInDraw(sourceName);
     var targetInDraw = _nameInDraw(targetName);
 
-    // The name in the draw is the "old" name, the other is the "new" name
-    // If both are in draw, the drop target is the one to keep
     var oldName, newName;
     if (sourceInDraw && !targetInDraw) {
         oldName = sourceName; newName = targetName;
     } else if (!sourceInDraw && targetInDraw) {
         oldName = targetName; newName = sourceName;
     } else {
-        // Both or neither in draw — the DROP TARGET name is kept (dragged is replaced)
         oldName = sourceName; newName = targetName;
     }
 
-    var msg = 'Mesclar participantes?\n\n"' + oldName + '" será substituído por "' + newName + '" em todas as partidas, times e classificações.\n\nEsta ação não pode ser desfeita.';
+    var msg = 'Mesclar participantes?\n\n"' + oldName + '" sera substituido por "' + newName + '" em todas as partidas, times e classificacoes.\n\nEsta acao nao pode ser desfeita.';
 
     if (typeof showConfirmDialog === 'function') {
         showConfirmDialog('🔗 Mesclar Participantes', msg, function() {
-            // Execute merge
             if (typeof window._propagateNameChange === 'function') {
                 window._propagateNameChange(oldName, newName);
             }
-            // Remove the phantom duplicate from participants
+            // Remove phantom duplicate from participants
             var parts = Array.isArray(t.participants) ? t.participants : [];
-            // After propagation, both entries now have newName — remove the standalone duplicate
-            // Keep the one that's in a team string, remove the standalone object
             var _removeIdx = -1;
             for (var i = parts.length - 1; i >= 0; i--) {
                 var pi = parts[i];
                 if (typeof pi === 'object' && pi) {
                     var nm = pi.displayName || pi.name || '';
                     if (nm === newName) {
-                        // Check if this name also exists in a team string
                         var inTeam = parts.some(function(p2) {
                             return typeof p2 === 'string' && p2.indexOf(newName) !== -1 && p2.indexOf(' / ') !== -1;
                         });
@@ -137,19 +76,17 @@ window._mergeDrop = function(e, targetName, tId) {
             }
             if (_removeIdx !== -1) {
                 parts.splice(_removeIdx, 1);
-                console.log('[MergeDrop] Removed duplicate object at index ' + _removeIdx);
+                console.log('[Merge] Removed duplicate at index ' + _removeIdx);
             }
 
-            // Save and refresh
             t.updatedAt = new Date().toISOString();
             if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
-                window.FirestoreDB.saveTournament(t).catch(function(e) { console.warn('[MergeDrop] Save error:', e); });
+                window.FirestoreDB.saveTournament(t).catch(function(e) { console.warn('[Merge] Save error:', e); });
             }
-            window.AppStore.logAction(tId, 'Participantes mesclados: "' + oldName + '" → "' + newName + '"');
+            window.AppStore.logAction(tId, 'Participantes mesclados: "' + oldName + '" -> "' + newName + '"');
             if (typeof showNotification === 'function') {
-                showNotification('Participantes Mesclados', '"' + oldName + '" → "' + newName + '"', 'success');
+                showNotification('Participantes Mesclados', '"' + oldName + '" -> "' + newName + '"', 'success');
             }
-            // Re-render
             setTimeout(function() {
                 if (typeof window._softRefreshView === 'function') window._softRefreshView();
                 else if (typeof renderTournaments === 'function') {
@@ -159,6 +96,177 @@ window._mergeDrop = function(e, targetName, tId) {
             }, 300);
         });
     }
+};
+
+// ── Desktop HTML5 Drag-and-Drop handlers ──
+window._mergeDragStart = function(e, name, tId) {
+    window._mergeDragData = { name: name, tId: tId };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', name); } catch(ex) {}
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) {
+        card.style.opacity = '0.4';
+        card.style.boxShadow = '0 0 15px rgba(251,191,36,0.4)';
+    }
+};
+
+window._mergeDragEnd = function(e) {
+    window._mergeDragData = null;
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) { card.style.opacity = '1'; card.style.boxShadow = ''; }
+    document.querySelectorAll('.participant-card, [draggable="true"]').forEach(function(el) {
+        el.style.outline = ''; el.style.outlineOffset = ''; el.style.opacity = '1';
+    });
+};
+
+window._mergeDragEnter = function(e) {
+    e.preventDefault();
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) { card.style.outline = '2px dashed #fbbf24'; card.style.outlineOffset = '-2px'; }
+};
+
+window._mergeDragLeave = function(e) {
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) { card.style.outline = ''; card.style.outlineOffset = ''; }
+};
+
+window._mergeDrop = function(e, targetName, tId) {
+    e.preventDefault();
+    e.stopPropagation();
+    var card = e.target.closest('.participant-card') || e.target.closest('[draggable]');
+    if (card) { card.style.outline = ''; card.style.outlineOffset = ''; }
+    if (!window._mergeDragData) return;
+    var sourceName = window._mergeDragData.name;
+    window._mergeDragData = null;
+    sourceName = sourceName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+    targetName = targetName.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+    window._executeMerge(sourceName, targetName, tId);
+};
+
+// ── Touch Drag-and-Drop for Mobile ──
+// Called after rendering participant list. Attaches touch handlers to the container.
+window._mergeTouchState = null;
+
+window._initMergeTouchDrag = function(tId) {
+    // Find the participant grid container
+    var containers = document.querySelectorAll('[data-merge-container]');
+    containers.forEach(function(container) {
+        // Remove old listeners if any (via flag)
+        if (container._mergeTouchBound) return;
+        container._mergeTouchBound = true;
+
+        var _touchClone = null;
+        var _touchSourceCard = null;
+        var _touchSourceName = null;
+        var _longPressTimer = null;
+        var _isDragging = false;
+
+        function _getCardName(card) {
+            if (!card) return null;
+            return card.getAttribute('data-participant-name') || card.getAttribute('data-merge-name') || null;
+        }
+
+        function _findCardAt(x, y) {
+            // Hide clone temporarily to get element underneath
+            if (_touchClone) _touchClone.style.display = 'none';
+            var el = document.elementFromPoint(x, y);
+            if (_touchClone) _touchClone.style.display = '';
+            if (!el) return null;
+            return el.closest('[data-merge-name]') || el.closest('.participant-card');
+        }
+
+        function _resetAll() {
+            if (_touchClone && _touchClone.parentElement) _touchClone.remove();
+            if (_touchSourceCard) { _touchSourceCard.style.opacity = '1'; _touchSourceCard.style.boxShadow = ''; }
+            container.querySelectorAll('[data-merge-name],.participant-card').forEach(function(c) {
+                c.style.outline = ''; c.style.outlineOffset = '';
+            });
+            _touchClone = null;
+            _touchSourceCard = null;
+            _touchSourceName = null;
+            _isDragging = false;
+            if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+        }
+
+        container.addEventListener('touchstart', function(e) {
+            var card = e.target.closest('[data-merge-name]') || e.target.closest('.participant-card');
+            if (!card) return;
+            var name = _getCardName(card);
+            if (!name) return;
+
+            // Long-press to initiate merge drag (500ms)
+            _longPressTimer = setTimeout(function() {
+                _isDragging = true;
+                _touchSourceCard = card;
+                _touchSourceName = name;
+
+                // Visual feedback on source
+                card.style.opacity = '0.4';
+                card.style.boxShadow = '0 0 15px rgba(251,191,36,0.4)';
+
+                // Create floating clone
+                var rect = card.getBoundingClientRect();
+                _touchClone = card.cloneNode(true);
+                _touchClone.style.position = 'fixed';
+                _touchClone.style.left = rect.left + 'px';
+                _touchClone.style.top = rect.top + 'px';
+                _touchClone.style.width = rect.width + 'px';
+                _touchClone.style.opacity = '0.85';
+                _touchClone.style.zIndex = '99999';
+                _touchClone.style.pointerEvents = 'none';
+                _touchClone.style.boxShadow = '0 8px 32px rgba(251,191,36,0.3)';
+                _touchClone.style.border = '2px solid #fbbf24';
+                _touchClone.style.borderRadius = '12px';
+                _touchClone.style.transform = 'scale(1.05)';
+                document.body.appendChild(_touchClone);
+
+                // Vibrate if supported
+                if (navigator.vibrate) navigator.vibrate(50);
+            }, 500);
+        }, { passive: true });
+
+        container.addEventListener('touchmove', function(e) {
+            if (!_isDragging || !_touchClone) {
+                // If moved before long-press, cancel it (user is scrolling)
+                if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+                return;
+            }
+            e.preventDefault(); // Prevent scroll while dragging
+
+            var touch = e.touches[0];
+            _touchClone.style.left = (touch.clientX - _touchClone.offsetWidth / 2) + 'px';
+            _touchClone.style.top = (touch.clientY - _touchClone.offsetHeight / 2) + 'px';
+
+            // Highlight drop target
+            var targetCard = _findCardAt(touch.clientX, touch.clientY);
+            container.querySelectorAll('[data-merge-name],.participant-card').forEach(function(c) {
+                c.style.outline = ''; c.style.outlineOffset = '';
+            });
+            if (targetCard && targetCard !== _touchSourceCard) {
+                targetCard.style.outline = '2px dashed #fbbf24';
+                targetCard.style.outlineOffset = '-2px';
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', function(e) {
+            if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+            if (!_isDragging || !_touchSourceName) { _resetAll(); return; }
+
+            var touch = e.changedTouches[0];
+            var targetCard = _findCardAt(touch.clientX, touch.clientY);
+            var targetName = targetCard ? _getCardName(targetCard) : null;
+
+            _resetAll();
+
+            if (targetName && targetName !== _touchSourceName) {
+                window._executeMerge(_touchSourceName, targetName, tId);
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchcancel', function() {
+            _resetAll();
+        }, { passive: true });
+    });
 };
 
 // ── Deduplicação de participantes por uid/email ──────────────────────────────
