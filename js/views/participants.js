@@ -58,6 +58,106 @@ window._resetCheckIn = function (tId) {
   if (typeof showNotification === 'function') showNotification('Chamada Reiniciada', 'Todos os check-ins e ausências foram removidos.', 'info');
 };
 
+// ── Inline name editing for organizers ──
+window._editParticipantName = function(tId, oldName) {
+  var span = event.target;
+  if (span.getAttribute('contenteditable') === 'true') return; // already editing
+  span.setAttribute('contenteditable', 'true');
+  span.style.background = 'rgba(255,255,255,0.1)';
+  span.style.borderRadius = '4px';
+  span.style.padding = '1px 4px';
+  span.style.outline = '1px solid rgba(99,102,241,0.5)';
+  span.style.minWidth = '60px';
+  span.focus();
+  // Select all text
+  var range = document.createRange();
+  range.selectNodeContents(span);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  var _save = function() {
+    span.setAttribute('contenteditable', 'false');
+    span.style.background = '';
+    span.style.padding = '';
+    span.style.outline = '';
+    var newName = span.textContent.trim();
+    if (!newName || newName === oldName) {
+      span.textContent = oldName; // revert
+      return;
+    }
+    var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+    if (!t) return;
+    // Update in participants array
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    parts.forEach(function(p, idx) {
+      if (typeof p === 'string') {
+        if (p === oldName) parts[idx] = newName;
+        else if (p.indexOf(' / ') !== -1) {
+          var updated = p.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+          if (updated !== p) parts[idx] = updated;
+        }
+      } else if (p && typeof p === 'object') {
+        if (p.displayName === oldName) p.displayName = newName;
+        if (p.name === oldName) p.name = newName;
+      }
+    });
+    // Update in matches, rounds, groups
+    var _updateMatch = function(m) {
+      if (!m) return;
+      if (m.p1 === oldName) m.p1 = newName;
+      if (m.p2 === oldName) m.p2 = newName;
+      if (m.winner === oldName) m.winner = newName;
+      // Team names with " / "
+      ['p1', 'p2', 'winner'].forEach(function(field) {
+        if (m[field] && m[field].indexOf(oldName) !== -1 && m[field].indexOf(' / ') !== -1) {
+          var upd = m[field].split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+          if (upd !== m[field]) m[field] = upd;
+        }
+      });
+      if (Array.isArray(m.team1)) { var i1 = m.team1.indexOf(oldName); if (i1 !== -1) m.team1[i1] = newName; }
+      if (Array.isArray(m.team2)) { var i2 = m.team2.indexOf(oldName); if (i2 !== -1) m.team2[i2] = newName; }
+    };
+    if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
+    if (t.thirdPlaceMatch) _updateMatch(t.thirdPlaceMatch);
+    if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
+    if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+      if (!g) return;
+      if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
+      if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); });
+      if (Array.isArray(g.players)) { var pi = g.players.indexOf(oldName); if (pi !== -1) g.players[pi] = newName; }
+    });
+    if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
+    // Update checkedIn, absent, vips, standings, classification, sorteioRealizado
+    ['checkedIn', 'absent', 'vips'].forEach(function(field) {
+      if (t[field] && t[field][oldName] !== undefined) { t[field][newName] = t[field][oldName]; delete t[field][oldName]; }
+    });
+    if (t.classification && t.classification[oldName] !== undefined) { t.classification[newName] = t.classification[oldName]; delete t.classification[oldName]; }
+    if (Array.isArray(t.standings)) t.standings.forEach(function(s) { if (s.name === oldName) s.name = newName; if (s.player === oldName) s.player = newName; });
+    if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item, idx2) {
+      if (typeof item === 'string' && item === oldName) t.sorteioRealizado[idx2] = newName;
+      else if (typeof item === 'object' && item) { if (item.name === oldName) item.name = newName; if (item.displayName === oldName) item.displayName = newName; }
+    });
+
+    window.FirestoreDB.saveTournament(t);
+    window.AppStore.logAction(tId, 'Nome editado: "' + oldName + '" → "' + newName + '"');
+    if (typeof showNotification === 'function') showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '"', 'success');
+    _reRenderParticipants();
+  };
+
+  span.addEventListener('blur', _save, { once: true });
+  span.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      span.blur();
+    }
+    if (e.key === 'Escape') {
+      span.textContent = oldName;
+      span.blur();
+    }
+  });
+};
+
 window._startTournament = function (tId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
@@ -366,10 +466,35 @@ function renderParticipants(container, tournamentId) {
       }
     });
 
-    // Sort: alphabetical
-    allIndividuals.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+    // ── Deduplicate by name: if same person appears as individual AND in a team, keep team version ──
+    const _seenNames = {};
+    const _dedupedIndividuals = [];
+    allIndividuals.forEach(ind => {
+      const key = ind.name.toLowerCase().trim();
+      if (_seenNames[key]) {
+        // Duplicate — keep the one with more info (team > solo, matchNum > null)
+        const prev = _seenNames[key];
+        if (!prev.teamName && ind.teamName) {
+          // Replace: new one has team info
+          const prevIdx = _dedupedIndividuals.indexOf(prev);
+          if (prevIdx !== -1) _dedupedIndividuals[prevIdx] = ind;
+          _seenNames[key] = ind;
+        } else if (!prev.matchNum && ind.matchNum) {
+          const prevIdx = _dedupedIndividuals.indexOf(prev);
+          if (prevIdx !== -1) _dedupedIndividuals[prevIdx] = ind;
+          _seenNames[key] = ind;
+        }
+        // else keep previous (already has team/match info)
+      } else {
+        _seenNames[key] = ind;
+        _dedupedIndividuals.push(ind);
+      }
+    });
 
-    cardsStr = allIndividuals.map((ind) => {
+    // Sort: alphabetical
+    _dedupedIndividuals.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+
+    cardsStr = _dedupedIndividuals.map((ind) => {
       const mc = !!checkedIn[ind.name];
       const isAbsent = !!absent[ind.name];
       const isPending = !mc && !isAbsent;
@@ -461,7 +586,7 @@ function renderParticipants(container, tournamentId) {
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;">
             <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};" />
             <div style="flex:1;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}">${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>
                 ${infoLine}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
@@ -494,20 +619,25 @@ function renderParticipants(container, tournamentId) {
       let pNameHtml = '';
       if (isTeam) {
         pNameHtml = pName.split('/').map((n, i) => {
-          const _mSeed = encodeURIComponent(n.trim());
-          const _mCached = (window._playerPhotoCache && window._playerPhotoCache[n.trim().toLowerCase()] && window._playerPhotoCache[n.trim().toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[n.trim().toLowerCase()] : '';
+          const _nm = n.trim();
+          const _nmSafe = _nm.replace(/'/g, "\\'");
+          const _mSeed = encodeURIComponent(_nm);
+          const _mCached = (window._playerPhotoCache && window._playerPhotoCache[_nm.toLowerCase()] && window._playerPhotoCache[_nm.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[_nm.toLowerCase()] : '';
           const _mInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _mSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
           const _mPhoto = _mCached || _mInitials;
           const _mErr = `onerror="this.onerror=null;this.src='${_mInitials}'"`;
-          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${n.trim()}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" title="${n.trim()}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${n.trim().replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${n.trim()}</span></div>`;
+          const _editAttr = isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${t.id}','${_nmSafe}')" title="Clique para editar" style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;"` : `style="font-weight:${i === 0 ? '700' : '500'};font-size:${i === 0 ? '0.95rem' : '0.85rem'};color:${i === 0 ? 'var(--text-bright)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${_nmSafe}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="${_nm}"`;
+          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${_nm}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span ${_editAttr}>${_nm}</span></div>`;
         }).join('');
       } else {
+        const _pSafe = pName.replace(/'/g, "\\'");
         const _pSeedN = encodeURIComponent(pName);
         const _pCachedN = (window._playerPhotoCache && window._playerPhotoCache[pName.toLowerCase()] && window._playerPhotoCache[pName.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[pName.toLowerCase()] : '';
         const _pInitialsN = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeedN + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
         const _pPhotoN = _pCachedN || _pInitialsN;
         const _pErrN = `onerror="this.onerror=null;this.src='${_pInitialsN}'"`;
-        pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhotoN}" ${_pErrN} data-player-name="${pName}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer;" title="${pName}" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${pName.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${pName}</span></div>`;
+        const _editAttrN = isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${t.id}','${_pSafe}')" title="Clique para editar" style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:text;"` : `style="font-weight:600;font-size:0.95rem;color:var(--text-bright);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${_pSafe}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="${pName}"`;
+        pNameHtml = `<div style="display:flex;align-items:center;gap:8px;overflow:hidden;"><img src="${_pPhotoN}" ${_pErrN} data-player-name="${pName}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"><span ${_editAttrN}>${pName}</span></div>`;
       }
 
       const vips = t.vips || {};

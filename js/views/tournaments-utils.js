@@ -13,12 +13,43 @@ window._deduplicateParticipants = function(t) {
     var seen = {};
     var deduped = [];
     var removedCount = 0;
+
+    // Pass 1: collect all names that are part of teams (strings with " / ")
+    var teamMembers = {};
     t.participants.forEach(function(p) {
-        if (typeof p === 'string') { deduped.push(p); return; }
-        if (!p || typeof p !== 'object') return;
+        var name = typeof p === 'string' ? p : (p ? (p.displayName || p.name || '') : '');
+        if (name.indexOf(' / ') !== -1) {
+            name.split(' / ').forEach(function(n) {
+                var nm = n.trim().toLowerCase();
+                if (nm) teamMembers[nm] = name; // track which team they belong to
+            });
+        }
+    });
+
+    // Pass 2: deduplicate by uid/email AND by name-in-team
+    t.participants.forEach(function(p) {
+        if (!p) return;
+        if (typeof p === 'string') {
+            // Check if this individual name is already part of a team entry
+            if (p.indexOf(' / ') === -1 && teamMembers[p.trim().toLowerCase()]) {
+                removedCount++;
+                return; // skip — already represented inside a team
+            }
+            deduped.push(p);
+            return;
+        }
+        if (typeof p !== 'object') return;
+        var pName = (p.displayName || p.name || '').trim();
+
+        // Check if this individual is already inside a team string
+        if (pName && pName.indexOf(' / ') === -1 && teamMembers[pName.toLowerCase()]) {
+            removedCount++;
+            return; // skip — already represented inside a team
+        }
+
+        // Deduplicate by uid/email
         var key = p.uid ? ('uid:' + p.uid) : (p.email ? ('email:' + p.email) : null);
         if (key && seen[key]) {
-            // Duplicate — replace previous entry with this one (latest name)
             removedCount++;
             var prevIdx = deduped.indexOf(seen[key]);
             if (prevIdx !== -1) deduped[prevIdx] = p;
@@ -28,6 +59,7 @@ window._deduplicateParticipants = function(t) {
             deduped.push(p);
         }
     });
+
     if (removedCount > 0) {
         t.participants = deduped;
         console.log('[Dedup] Removed ' + removedCount + ' duplicate participant(s) from tournament ' + (t.name || t.id));

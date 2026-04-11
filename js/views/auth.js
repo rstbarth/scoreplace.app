@@ -2007,6 +2007,11 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
     parts.forEach(function(p, idx) {
       if (typeof p === 'string') {
         if (p === oldName) { parts[idx] = newName; changed = true; }
+        // Handle team strings: "OldName / Partner" → "NewName / Partner"
+        else if (p.indexOf(oldName) !== -1 && p.indexOf(' / ') !== -1) {
+          var newTeam = p.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+          if (newTeam !== p) { parts[idx] = newTeam; changed = true; }
+        }
         return;
       }
       if (typeof p === 'object' && p !== null) {
