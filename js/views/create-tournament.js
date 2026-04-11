@@ -300,12 +300,15 @@ function setupCreateTournamentModal() {
                     </div>
                     <div id="venue-create-map" style="display:none;width:100%;height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:8px;background:#1a1a2e;"></div>
                     <div id="venue-osm-info" style="display:none; margin-top:5px; font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:5px;"></div>
-                    <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
-                      <label class="toggle-switch" style="margin:0;">
-                        <input type="checkbox" id="toggle-venue-restricted" onchange="window._onVenueAccessToggle()">
-                        <span class="toggle-slider"></span>
-                      </label>
-                      <span id="venue-access-label" style="font-size:0.82rem; color:var(--text-main);">🌐 Aberto ao público</span>
+                    <div style="margin-top:8px;">
+                      <div style="display:flex; align-items:center; gap:10px;">
+                        <label class="toggle-switch" style="margin:0;">
+                          <input type="checkbox" id="toggle-venue-public" checked onchange="window._onVenueAccessToggle()">
+                          <span class="toggle-slider"></span>
+                        </label>
+                        <span id="venue-access-label" style="font-size:0.82rem; font-weight:600; color:var(--text-bright);">🌐 Aberto ao Público</span>
+                      </div>
+                      <div id="venue-access-desc" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; margin-left:52px;">Qualquer pessoa pode se inscrever e acompanhar o torneio.</div>
                     </div>
                     <input type="hidden" id="tourn-venue-access" value="">
                     <input type="hidden" id="tourn-venue-lat" value="">
@@ -1468,29 +1471,33 @@ function setupCreateTournamentModal() {
   };
 
   window._onVenueAccessToggle = function () {
-    const toggle = document.getElementById('toggle-venue-restricted');
-    const hiddenEl = document.getElementById('tourn-venue-access');
-    const label = document.getElementById('venue-access-label');
+    var toggle = document.getElementById('toggle-venue-public');
+    var hiddenEl = document.getElementById('tourn-venue-access');
+    var label = document.getElementById('venue-access-label');
+    var desc = document.getElementById('venue-access-desc');
     if (!toggle || !hiddenEl) return;
     if (toggle.checked) {
-      hiddenEl.value = 'members';
-      if (label) label.textContent = '🔒 Acesso restrito';
-    } else {
       hiddenEl.value = 'public';
-      if (label) label.textContent = '🌐 Aberto ao público';
+      if (label) label.innerHTML = '🌐 Aberto ao Público';
+      if (desc) desc.textContent = 'Qualquer pessoa pode se inscrever e acompanhar o torneio.';
+    } else {
+      hiddenEl.value = 'members';
+      if (label) label.innerHTML = '🔒 Acesso Restrito';
+      if (desc) desc.textContent = 'Apenas convidados pelo organizador podem participar.';
     }
   };
 
   window._applyVenueAccessUI = function (values) {
-    const toggle = document.getElementById('toggle-venue-restricted');
-    const label = document.getElementById('venue-access-label');
-    const hiddenEl = document.getElementById('tourn-venue-access');
+    var toggle = document.getElementById('toggle-venue-public');
+    var label = document.getElementById('venue-access-label');
+    var desc = document.getElementById('venue-access-desc');
+    var hiddenEl = document.getElementById('tourn-venue-access');
     if (!toggle) return;
-    // Restricted = anything other than 'public' only (members, invite, or combo)
-    var isRestricted = values.length > 0 && !(values.length === 1 && values[0] === 'public');
-    toggle.checked = isRestricted;
-    if (hiddenEl) hiddenEl.value = isRestricted ? 'members' : 'public';
-    if (label) label.textContent = isRestricted ? '🔒 Acesso restrito' : '🌐 Aberto ao público';
+    var isPublic = values.length === 0 || (values.length === 1 && values[0] === 'public');
+    toggle.checked = isPublic;
+    if (hiddenEl) hiddenEl.value = isPublic ? 'public' : 'members';
+    if (label) label.innerHTML = isPublic ? '🌐 Aberto ao Público' : '🔒 Acesso Restrito';
+    if (desc) desc.textContent = isPublic ? 'Qualquer pessoa pode se inscrever e acompanhar o torneio.' : 'Apenas convidados pelo organizador podem participar.';
   };
 
   // --- Google Places venue search (programmatic — no Google UI elements injected) ---
@@ -1727,6 +1734,27 @@ function setupCreateTournamentModal() {
         showNotification('Erro', 'Não foi possível obter detalhes do local: ' + (err.message || ''), 'error');
       }
     }
+  };
+
+  // Auto-show map with user location when form opens (if no venue set)
+  window._autoShowVenueMap = function() {
+    var latEl = document.getElementById('tourn-venue-lat');
+    var lonEl = document.getElementById('tourn-venue-lon');
+    // If venue already has coordinates, show that map
+    if (latEl && latEl.value && lonEl && lonEl.value) {
+      window._initVenueCreateMap(parseFloat(latEl.value), parseFloat(lonEl.value), '');
+      return;
+    }
+    // Otherwise try user geolocation silently
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      window._initVenueCreateMap(lat, lng, '');
+    }, function() {
+      // Geolocation denied/failed — show default Brazil center
+      window._initVenueCreateMap(-15.78, -47.93, '');
+    }, { enableHighAccuracy: false, timeout: 5000 });
   };
 
   // ── Venue map in create/edit modal ──
@@ -2761,6 +2789,7 @@ function setupCreateTournamentModal() {
     setTimeout(function() {
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
     }, 100);
   };
 

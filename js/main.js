@@ -863,6 +863,7 @@
     setTimeout(function() {
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
     }, 100);
   });
 
@@ -935,6 +936,7 @@
     setTimeout(function() {
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
     }, 100);
   };
 
