@@ -616,16 +616,8 @@
     }
   ];
 
-  // Build TOC (index) HTML
-  var tocHtml = '<div id="help-toc" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.2rem;padding:10px 12px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08);border-radius:10px;">';
-  for (var ti = 0; ti < helpSections.length; ti++) {
-    var ts = helpSections[ti];
-    tocHtml += '<a onclick="window._helpScrollTo(\'' + ts.id + '\')" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;padding:3px 8px;border-radius:6px;background:rgba(99,102,241,0.08);transition:all 0.15s;text-decoration:none;white-space:nowrap;" onmouseover="this.style.background=\'rgba(99,102,241,0.2)\';this.style.color=\'var(--text-bright)\'" onmouseout="this.style.background=\'rgba(99,102,241,0.08)\';this.style.color=\'var(--text-muted)\'">' + ts.icon + ' ' + ts.title + '</a>';
-  }
-  tocHtml += '</div>';
-
   // Build sections HTML
-  var sectionsHtml = tocHtml;
+  var sectionsHtml = '';
   for (var i = 0; i < helpSections.length; i++) {
     var s = helpSections[i];
     sectionsHtml += '<div class="help-section" data-help-id="' + s.id + '" data-search="' + (s.title + ' ' + s.content).replace(/<[^>]+>/g, '').toLowerCase().replace(/"/g, '&quot;') + '" style="margin-bottom: 1rem;">' +
