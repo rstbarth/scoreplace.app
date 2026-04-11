@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.18-alpha';
+window.SCOREPLACE_VERSION = '0.8.19-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -538,6 +538,10 @@ window.AppStore = {
         if (isFirstSnapshot) {
           isFirstSnapshot = false;
           if (typeof initRouter === 'function') initRouter();
+          // Auto-fix stale names after tournaments are loaded
+          if (store.currentUser && typeof window._autoFixStaleNames === 'function') {
+            window._autoFixStaleNames().catch(function(e) { console.warn('Auto-fix stale names error:', e); });
+          }
           return;
         }
 

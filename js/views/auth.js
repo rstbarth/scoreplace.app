@@ -2386,6 +2386,11 @@ function setupProfileModal() {
     window._autoFixStaleNames = async function() {
       if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
       if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+      if (window.AppStore.tournaments.length === 0) return;
+      // Debounce: don't run if already ran recently (within 30s)
+      var now = Date.now();
+      if (window._autoFixStaleNames._lastRun && (now - window._autoFixStaleNames._lastRun) < 30000) return;
+      window._autoFixStaleNames._lastRun = now;
 
       // 1. Collect all unique participant UIDs and their stored names
       var uidMap = {}; // uid → { storedName, email }
@@ -2447,14 +2452,14 @@ function setupProfileModal() {
       }
 
       // 3. Find mismatches and propagate
-      var fixes = []; // [{ oldName, newName }]
+      var fixes = []; // [{ oldName, newName, uid, email }]
       uids.forEach(function(uid) {
         var stored = uidMap[uid].storedName;
         var current = profileMap[uid];
         if (current && stored && current !== stored) {
           var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
           if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: current });
+            fixes.push({ oldName: stored, newName: current, uid: uid, email: uidMap[uid].email });
           }
         }
       });
@@ -2465,26 +2470,29 @@ function setupProfileModal() {
         if (current && stored && current !== stored) {
           var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
           if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: current });
+            fixes.push({ oldName: stored, newName: current, uid: null, email: email });
           }
         }
       });
 
       if (fixes.length > 0) {
+        console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return f.oldName + ' → ' + f.newName; }));
         fixes.forEach(function(f) {
-          window._propagateNameChange(f.oldName, f.newName);
+          window._propagateNameChange(f.oldName, f.newName, f.uid, f.email);
         });
       }
     };
 
     // ─── Propagate displayName change across all tournaments ─────────────────
-    window._propagateNameChange = function _propagateNameChange(oldName, newName) {
+    // targetUid/targetEmail: optional — UID/email of the person whose name changed (for robust matching)
+    window._propagateNameChange = function _propagateNameChange(oldName, newName, targetUid, targetEmail) {
       if (!oldName || !newName || oldName === newName) return;
       if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
 
+      // If no target specified, assume current user (self-rename)
       var user = window.AppStore.currentUser;
-      var userUid = user ? user.uid : null;
-      var userEmail = user ? user.email : null;
+      var matchUid = targetUid || (user ? user.uid : null);
+      var matchEmail = targetEmail || (user ? user.email : null);
       var modifiedTournaments = [];
 
       window.AppStore.tournaments.forEach(function(t) {
@@ -2494,7 +2502,7 @@ function setupProfileModal() {
         var parts = Array.isArray(t.participants) ? t.participants : [];
         parts.forEach(function(p) {
           if (typeof p === 'object' && p !== null) {
-            var isUser = (userUid && p.uid === userUid) || (userEmail && p.email === userEmail) || p.displayName === oldName || p.name === oldName;
+            var isUser = (matchUid && p.uid === matchUid) || (matchEmail && p.email === matchEmail) || p.displayName === oldName || p.name === oldName;
             if (isUser) {
               if (p.displayName === oldName) { p.displayName = newName; changed = true; }
               if (p.name === oldName) { p.name = newName; changed = true; }
