@@ -472,7 +472,21 @@ function _updateProgressiveClassification(t) {
         t.classification[loser] = 2;
       });
     } else if (roundFromEnd === 1) {
-      // Semi: wait for 3rd place match
+      // Semi: if 3rd place match exists, positions 3 & 4 are handled below.
+      // If not, rank semi-losers individually as 3rd/4th using tiebreakers.
+      if (!t.thirdPlaceMatch || !t.thirdPlaceMatch.winner) {
+        var semiLosers = [];
+        matchesInRound.forEach(function(m) {
+          if (!m.winner || m.winner === 'draw' || m.isBye) return;
+          var stats = _getLoserStats(m);
+          if (!stats.loser || stats.loser === 'TBD' || stats.loser === 'BYE') return;
+          var history = _getPlayerHistory(stats.loser);
+          semiLosers.push({ name: stats.loser, stats: stats, history: history });
+        });
+        if (semiLosers.length > 0) {
+          positionGroups.push({ posStart: 3, losers: semiLosers });
+        }
+      }
     } else {
       // Collect all losers in this round for tiebreaking
       var posStart = Math.pow(2, roundFromEnd) + 1;

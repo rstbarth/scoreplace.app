@@ -553,6 +553,11 @@ function renderSingleElimBracket(t, canEnterResult) {
   // ── Auto-reparação: gera rodadas futuras se não existirem ──
   _ensureFutureRounds(t);
 
+  // ── Always recompute progressive classification from current match data ──
+  if (typeof _updateProgressiveClassification === 'function') {
+    _updateProgressiveClassification(t);
+  }
+
   const allMatches = t.matches || [];
 
   const roundsMap = {};
