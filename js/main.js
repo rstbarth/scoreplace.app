@@ -277,7 +277,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.42-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Ordenação de inscritos</b> — Botões A-Z e 🕐 no cabeçalho "Inscritos Confirmados" permitem alternar entre ordem alfabética e ordem cronológica de inscrição. Funciona tanto no modo normal quanto no modo check-in.</p>' +
         '<p><b>Lista de inscritos sem duplicatas</b> — Participantes que aparecem tanto como individual quanto em time agora são exibidos uma única vez (com parceiro e adversário). Deduplicação também remove entradas de nomes antigos que já existem dentro de equipes.</p>' +
         '<p><b>Edição inline de nomes</b> — Organizadores podem clicar diretamente no nome de qualquer participante para editá-lo. Enter ou Tab confirma, Escape cancela. A alteração é propagada em todos os dados do torneio (partidas, classificação, check-in).</p>' +
         '<p><b>Propagação de nomes em times</b> — Troca de nome no perfil agora atualiza corretamente nomes dentro de equipes (ex: "C M / Ana" → "Ciça / Ana").</p>' +
