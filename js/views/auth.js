@@ -2391,10 +2391,10 @@ function setupProfileModal() {
       var now = Date.now();
       if (window._autoFixStaleNames._lastRun && (now - window._autoFixStaleNames._lastRun) < 30000) return;
       window._autoFixStaleNames._lastRun = now;
+      console.log('[AutoFixNames] Scanning ' + window.AppStore.tournaments.length + ' tournaments...');
 
-      // 1. Collect all unique participant UIDs and their stored names
+      // 1. Collect all unique participant UIDs and emails with their stored names
       var uidMap = {}; // uid → { storedName, email }
-      // Also collect email→name for participants without UIDs
       var emailMap = {}; // email → storedName
       window.AppStore.tournaments.forEach(function(t) {
         var parts = Array.isArray(t.participants) ? t.participants : [];
@@ -2402,12 +2402,15 @@ function setupProfileModal() {
           if (typeof p !== 'object' || p === null) return;
           var pName = p.displayName || p.name || '';
           if (!pName) return;
-          if (p.uid) {
-            if (!uidMap[p.uid]) {
-              uidMap[p.uid] = { storedName: pName, email: p.email || '' };
+          // uid can be empty string from old enrollments — treat as missing
+          var pUid = p.uid && p.uid.length > 0 ? p.uid : null;
+          if (pUid) {
+            if (!uidMap[pUid]) {
+              uidMap[pUid] = { storedName: pName, email: p.email || '' };
             }
-          } else if (p.email) {
-            // Track email-based participants for later matching
+          }
+          // Always also track by email (even if uid exists) for broader matching
+          if (p.email) {
             if (!emailMap[p.email]) emailMap[p.email] = pName;
           }
         });
@@ -2415,13 +2418,13 @@ function setupProfileModal() {
 
       var uids = Object.keys(uidMap);
       var emails = Object.keys(emailMap);
+      console.log('[AutoFixNames] Found ' + uids.length + ' UIDs and ' + emails.length + ' emails to check');
       if (uids.length === 0 && emails.length === 0) return;
 
-      // 2. Batch-fetch user profiles from Firestore (in batches of 10 for Firestore 'in' limit)
-      var profileMap = {}; // uid → currentDisplayName
-      var emailProfileMap = {}; // email → currentDisplayName
+      // 2. Batch-fetch user profiles from Firestore
+      var profileMap = {}; // uid → { displayName, email }
+      var emailProfileMap = {}; // email → { displayName, uid }
       try {
-        // Fetch by UID
         for (var i = 0; i < uids.length; i += 10) {
           var batch = uids.slice(i, i + 10);
           var snap = await window.FirestoreDB.db.collection('users')
@@ -2429,57 +2432,61 @@ function setupProfileModal() {
           snap.forEach(function(doc) {
             var data = doc.data();
             if (data.displayName) {
-              profileMap[doc.id] = data.displayName;
-              if (data.email) emailProfileMap[data.email] = data.displayName;
+              profileMap[doc.id] = { displayName: data.displayName, email: data.email || '' };
+              if (data.email) emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
             }
           });
         }
-        // Fetch by email for participants without UIDs
-        for (var j = 0; j < emails.length; j += 10) {
-          var emailBatch = emails.slice(j, j + 10);
+        // Also fetch by email (catches participants without UID or with different UID)
+        var emailsToFetch = emails.filter(function(e) { return !emailProfileMap[e]; });
+        for (var j = 0; j < emailsToFetch.length; j += 10) {
+          var emailBatch = emailsToFetch.slice(j, j + 10);
           var esnap = await window.FirestoreDB.db.collection('users')
             .where('email', 'in', emailBatch).get();
           esnap.forEach(function(doc) {
             var data = doc.data();
             if (data.displayName && data.email) {
-              emailProfileMap[data.email] = data.displayName;
+              emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
             }
           });
         }
       } catch(e) {
-        console.warn('_autoFixStaleNames: error fetching profiles:', e);
+        console.warn('[AutoFixNames] Error fetching profiles:', e);
         return;
       }
 
-      // 3. Find mismatches and propagate
+      // 3. Find mismatches
       var fixes = []; // [{ oldName, newName, uid, email }]
       uids.forEach(function(uid) {
         var stored = uidMap[uid].storedName;
-        var current = profileMap[uid];
-        if (current && stored && current !== stored) {
-          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
+        var profile = profileMap[uid];
+        if (profile && stored && profile.displayName !== stored) {
+          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; });
           if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: current, uid: uid, email: uidMap[uid].email });
+            fixes.push({ oldName: stored, newName: profile.displayName, uid: uid, email: uidMap[uid].email || profile.email });
           }
         }
       });
-      // Also check email-based mismatches
       emails.forEach(function(email) {
         var stored = emailMap[email];
-        var current = emailProfileMap[email];
-        if (current && stored && current !== stored) {
-          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === current; });
+        var profile = emailProfileMap[email];
+        if (profile && stored && profile.displayName !== stored) {
+          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; });
           if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: current, uid: null, email: email });
+            fixes.push({ oldName: stored, newName: profile.displayName, uid: profile.uid || null, email: email });
           }
         }
       });
 
       if (fixes.length > 0) {
-        console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return f.oldName + ' → ' + f.newName; }));
+        console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
         fixes.forEach(function(f) {
           window._propagateNameChange(f.oldName, f.newName, f.uid, f.email);
         });
+        // Re-render UI after all fixes applied
+        setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 500);
+      } else {
+        console.log('[AutoFixNames] All names up to date');
       }
     };
 
@@ -2488,6 +2495,7 @@ function setupProfileModal() {
     window._propagateNameChange = function _propagateNameChange(oldName, newName, targetUid, targetEmail) {
       if (!oldName || !newName || oldName === newName) return;
       if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
+      console.log('[PropageName] "' + oldName + '" → "' + newName + '" (uid=' + (targetUid || 'none') + ', email=' + (targetEmail || 'none') + ')');
 
       // If no target specified, assume current user (self-rename)
       var user = window.AppStore.currentUser;
@@ -2500,12 +2508,20 @@ function setupProfileModal() {
 
         // 1. Update participants array
         var parts = Array.isArray(t.participants) ? t.participants : [];
-        parts.forEach(function(p) {
+        parts.forEach(function(p, idx) {
+          if (typeof p === 'string') {
+            // String participant — match by exact name
+            if (p === oldName) { parts[idx] = newName; changed = true; }
+            return;
+          }
           if (typeof p === 'object' && p !== null) {
             var isUser = (matchUid && p.uid === matchUid) || (matchEmail && p.email === matchEmail) || p.displayName === oldName || p.name === oldName;
             if (isUser) {
               if (p.displayName === oldName) { p.displayName = newName; changed = true; }
               if (p.name === oldName) { p.name = newName; changed = true; }
+              // Also backfill uid/email if missing (so future lookups work)
+              if (matchUid && !p.uid) { p.uid = matchUid; changed = true; }
+              if (matchEmail && !p.email) { p.email = matchEmail; changed = true; }
             }
           }
         });
@@ -2623,15 +2639,23 @@ function setupProfileModal() {
 
       // Save all modified tournaments to Firestore
       if (modifiedTournaments.length > 0 && window.FirestoreDB && window.FirestoreDB.saveTournament) {
-        modifiedTournaments.forEach(function(t) {
+        console.log('[PropageName] Saving ' + modifiedTournaments.length + ' tournament(s) to Firestore');
+        var savePromises = modifiedTournaments.map(function(t) {
           t.updatedAt = new Date().toISOString();
-          window.FirestoreDB.saveTournament(t).catch(function(err) {
-            console.warn('Erro ao propagar nome para torneio ' + t.id + ':', err);
+          return window.FirestoreDB.saveTournament(t).catch(function(err) {
+            console.warn('[PropageName] Save error for tournament ' + t.id + ':', err);
           });
         });
+        // Wait for all saves, then refresh UI
+        Promise.all(savePromises).then(function() {
+          console.log('[PropageName] All saves complete, refreshing UI');
+          if (typeof window._softRefreshView === 'function') window._softRefreshView();
+        });
         if (typeof showNotification !== 'undefined') {
-          showNotification('Nome Atualizado', 'Seu nome foi atualizado em ' + modifiedTournaments.length + ' torneio(s).', 'info');
+          showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '" em ' + modifiedTournaments.length + ' torneio(s).', 'info');
         }
+      } else {
+        console.log('[PropageName] No tournaments needed updating');
       }
     }
 
