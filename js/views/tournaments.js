@@ -1257,8 +1257,11 @@ function renderTournaments(container, tournamentId = null) {
                   return aIsOrg - bIsOrg;
                 });
 
-                cardsStr = _sortedParts.map((p, idx) => {
-                    const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || 'Participante ' + (idx + 1));
+                cardsStr = _sortedParts.map((p, sortedIdx) => {
+                    // Use original index in parts array for drag operations
+                    var idx = parts.indexOf(p);
+                    if (idx === -1) idx = sortedIdx;
+                    const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || 'Participante ' + (sortedIdx + 1));
                     const isTeam = pName.includes('/');
                     const isVip = !!_vipMap[pName];
                     const safeP = pName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -1339,7 +1342,7 @@ function renderTournaments(container, tournamentId = null) {
                         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
                     }
 
-                    const bgNum = isVip ? '⭐' : idx + 1;
+                    const bgNum = isVip ? '⭐' : sortedIdx + 1;
 
                     // Bottom row: type label on left, action buttons on right (same line)
                     var bottomRow = '';
