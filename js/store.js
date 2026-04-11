@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.51-alpha';
+window.SCOREPLACE_VERSION = '0.8.52-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second

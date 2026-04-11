@@ -339,6 +339,11 @@ window._deduplicateParticipants = function(t) {
 // Returns number of fixes applied.
 window._fixOrphanedMatchNames = function(t) {
     if (!t) return 0;
+    // Only run AFTER draw — before draw, no one has matches and that's normal
+    var hasMatches = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                     (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                     (Array.isArray(t.groups) && t.groups.length > 0);
+    if (!hasMatches) return 0;
     var parts = Array.isArray(t.participants) ? t.participants : [];
     if (parts.length === 0) return 0;
 
