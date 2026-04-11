@@ -1841,6 +1841,192 @@ function _populatePlayerStats() {
   el.innerHTML = html;
 }
 
+// ─── Auto-detect & fix stale participant names ─────────────────────────────���
+// Defined at module level so available immediately on script load (not inside setupProfileModal).
+window._autoFixStaleNames = async function() {
+  if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
+  if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+  if (window.AppStore.tournaments.length === 0) return;
+  var now = Date.now();
+  if (window._autoFixStaleNames._lastRun && (now - window._autoFixStaleNames._lastRun) < 30000) return;
+  window._autoFixStaleNames._lastRun = now;
+  console.log('[AutoFixNames] Scanning ' + window.AppStore.tournaments.length + ' tournaments...');
+
+  var uidMap = {};
+  var emailMap = {};
+  window.AppStore.tournaments.forEach(function(t) {
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    parts.forEach(function(p) {
+      if (typeof p !== 'object' || p === null) return;
+      var pName = p.displayName || p.name || '';
+      if (!pName) return;
+      var pUid = p.uid && p.uid.length > 0 ? p.uid : null;
+      if (pUid && !uidMap[pUid]) {
+        uidMap[pUid] = { storedName: pName, email: p.email || '' };
+      }
+      if (p.email && !emailMap[p.email]) {
+        emailMap[p.email] = pName;
+      }
+    });
+  });
+
+  var uids = Object.keys(uidMap);
+  var emails = Object.keys(emailMap);
+  console.log('[AutoFixNames] Found ' + uids.length + ' UIDs and ' + emails.length + ' emails to check');
+  if (uids.length === 0 && emails.length === 0) return;
+
+  var profileMap = {};
+  var emailProfileMap = {};
+  try {
+    for (var i = 0; i < uids.length; i += 10) {
+      var batch = uids.slice(i, i + 10);
+      var snap = await window.FirestoreDB.db.collection('users')
+        .where(firebase.firestore.FieldPath.documentId(), 'in', batch).get();
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        if (data.displayName) {
+          profileMap[doc.id] = { displayName: data.displayName, email: data.email || '' };
+          if (data.email) emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
+        }
+      });
+    }
+    var emailsToFetch = emails.filter(function(e) { return !emailProfileMap[e]; });
+    for (var j = 0; j < emailsToFetch.length; j += 10) {
+      var emailBatch = emailsToFetch.slice(j, j + 10);
+      var esnap = await window.FirestoreDB.db.collection('users')
+        .where('email', 'in', emailBatch).get();
+      esnap.forEach(function(doc) {
+        var data = doc.data();
+        if (data.displayName && data.email) {
+          emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
+        }
+      });
+    }
+  } catch(e) {
+    console.warn('[AutoFixNames] Error fetching profiles:', e);
+    return;
+  }
+
+  var fixes = [];
+  uids.forEach(function(uid) {
+    var stored = uidMap[uid].storedName;
+    var profile = profileMap[uid];
+    if (profile && stored && profile.displayName !== stored) {
+      if (!fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; })) {
+        fixes.push({ oldName: stored, newName: profile.displayName, uid: uid, email: uidMap[uid].email || profile.email });
+      }
+    }
+  });
+  emails.forEach(function(email) {
+    var stored = emailMap[email];
+    var profile = emailProfileMap[email];
+    if (profile && stored && profile.displayName !== stored) {
+      if (!fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; })) {
+        fixes.push({ oldName: stored, newName: profile.displayName, uid: profile.uid || null, email: email });
+      }
+    }
+  });
+
+  if (fixes.length > 0) {
+    console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
+    fixes.forEach(function(f) {
+      window._propagateNameChange(f.oldName, f.newName, f.uid, f.email);
+    });
+    setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 500);
+  } else {
+    console.log('[AutoFixNames] All names up to date');
+  }
+};
+
+// ─── Propagate displayName change across all tournaments ─────────────────
+window._propagateNameChange = function _propagateNameChange(oldName, newName, targetUid, targetEmail) {
+  if (!oldName || !newName || oldName === newName) return;
+  if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
+  console.log('[PropageName] "' + oldName + '" → "' + newName + '" (uid=' + (targetUid || 'none') + ', email=' + (targetEmail || 'none') + ')');
+
+  var user = window.AppStore.currentUser;
+  var matchUid = targetUid || (user ? user.uid : null);
+  var matchEmail = targetEmail || (user ? user.email : null);
+  var modifiedTournaments = [];
+
+  window.AppStore.tournaments.forEach(function(t) {
+    var changed = false;
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    parts.forEach(function(p, idx) {
+      if (typeof p === 'string') {
+        if (p === oldName) { parts[idx] = newName; changed = true; }
+        return;
+      }
+      if (typeof p === 'object' && p !== null) {
+        var isUser = (matchUid && p.uid === matchUid) || (matchEmail && p.email === matchEmail) || p.displayName === oldName || p.name === oldName;
+        if (isUser) {
+          if (p.displayName === oldName) { p.displayName = newName; changed = true; }
+          if (p.name === oldName) { p.name = newName; changed = true; }
+          if (matchUid && !p.uid) { p.uid = matchUid; changed = true; }
+          if (matchEmail && !p.email) { p.email = matchEmail; changed = true; }
+        }
+      }
+    });
+
+    function _updateMatch(m) {
+      if (!m) return;
+      if (m.p1 === oldName) { m.p1 = newName; changed = true; }
+      if (m.p2 === oldName) { m.p2 = newName; changed = true; }
+      if (m.winner === oldName) { m.winner = newName; changed = true; }
+      if (Array.isArray(m.team1)) { var i1 = m.team1.indexOf(oldName); if (i1 !== -1) { m.team1[i1] = newName; changed = true; } }
+      if (Array.isArray(m.team2)) { var i2 = m.team2.indexOf(oldName); if (i2 !== -1) { m.team2[i2] = newName; changed = true; } }
+      if (m.p1 && m.p1.indexOf(oldName) !== -1 && m.p1.indexOf(' / ') !== -1) {
+        var newP1 = m.p1.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+        if (newP1 !== m.p1) { m.p1 = newP1; changed = true; }
+      }
+      if (m.p2 && m.p2.indexOf(oldName) !== -1 && m.p2.indexOf(' / ') !== -1) {
+        var newP2 = m.p2.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+        if (newP2 !== m.p2) { m.p2 = newP2; changed = true; }
+      }
+      if (m.winner && m.winner.indexOf(oldName) !== -1 && m.winner.indexOf(' / ') !== -1) {
+        var newW = m.winner.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
+        if (newW !== m.winner) { m.winner = newW; changed = true; }
+      }
+    }
+
+    if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
+    _updateMatch(t.thirdPlaceMatch);
+    if (Array.isArray(t.rounds)) { t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
+    if (Array.isArray(t.groups)) {
+      t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
+        if (Array.isArray(g.rounds)) { g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); }); }
+        if (Array.isArray(g.players)) { var pi = g.players.indexOf(oldName); if (pi !== -1) { g.players[pi] = newName; changed = true; } }
+      });
+    }
+    if (Array.isArray(t.rodadas)) { t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
+    if (t.classification && t.classification[oldName] !== undefined) { t.classification[newName] = t.classification[oldName]; delete t.classification[oldName]; changed = true; }
+    ['checkedIn', 'absent', 'vips'].forEach(function(field) { if (t[field] && t[field][oldName] !== undefined) { t[field][newName] = t[field][oldName]; delete t[field][oldName]; changed = true; } });
+    if (Array.isArray(t.standings)) { t.standings.forEach(function(s) { if (s.name === oldName) { s.name = newName; changed = true; } if (s.player === oldName) { s.player = newName; changed = true; } }); }
+    if (Array.isArray(t.sorteioRealizado)) { t.sorteioRealizado.forEach(function(item, idx) { if (typeof item === 'string' && item === oldName) { t.sorteioRealizado[idx] = newName; changed = true; } else if (typeof item === 'object' && item !== null) { if (item.name === oldName) { item.name = newName; changed = true; } if (item.displayName === oldName) { item.displayName = newName; changed = true; } } }); }
+    if (t.organizerName === oldName) { t.organizerName = newName; changed = true; }
+    if (changed) modifiedTournaments.push(t);
+  });
+
+  if (modifiedTournaments.length > 0 && window.FirestoreDB && window.FirestoreDB.saveTournament) {
+    console.log('[PropageName] Saving ' + modifiedTournaments.length + ' tournament(s) to Firestore');
+    var savePromises = modifiedTournaments.map(function(t) {
+      t.updatedAt = new Date().toISOString();
+      return window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('[PropageName] Save error for ' + t.id + ':', err); });
+    });
+    Promise.all(savePromises).then(function() {
+      console.log('[PropageName] All saves complete, refreshing UI');
+      if (typeof window._softRefreshView === 'function') window._softRefreshView();
+    });
+    if (typeof showNotification !== 'undefined') {
+      showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '" em ' + modifiedTournaments.length + ' torneio(s).', 'info');
+    }
+  } else {
+    console.log('[PropageName] No tournaments needed updating');
+  }
+};
+
 function setupProfileModal() {
   if (!document.getElementById('modal-profile')) {
     // Country select options
@@ -2376,288 +2562,6 @@ function setupProfileModal() {
         window.AppStore.currentUser.photoURL = src;
       }
     };
-
-    // ─── Auto-detect stale names on login ──────────────────────────────────────
-    // Finds tournaments where the user's participant entry has an outdated name
-    // and triggers propagation to fix it (handles pre-deploy name changes)
-    // Scans ALL tournaments for participants with UIDs, batch-fetches their
-    // current Firestore profiles, and propagates any name changes found.
-    // Runs on any user's login so name updates are visible to everyone.
-    window._autoFixStaleNames = async function() {
-      if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
-      if (!window.FirestoreDB || !window.FirestoreDB.db) return;
-      if (window.AppStore.tournaments.length === 0) return;
-      // Debounce: don't run if already ran recently (within 30s)
-      var now = Date.now();
-      if (window._autoFixStaleNames._lastRun && (now - window._autoFixStaleNames._lastRun) < 30000) return;
-      window._autoFixStaleNames._lastRun = now;
-      console.log('[AutoFixNames] Scanning ' + window.AppStore.tournaments.length + ' tournaments...');
-
-      // 1. Collect all unique participant UIDs and emails with their stored names
-      var uidMap = {}; // uid → { storedName, email }
-      var emailMap = {}; // email → storedName
-      window.AppStore.tournaments.forEach(function(t) {
-        var parts = Array.isArray(t.participants) ? t.participants : [];
-        parts.forEach(function(p) {
-          if (typeof p !== 'object' || p === null) return;
-          var pName = p.displayName || p.name || '';
-          if (!pName) return;
-          // uid can be empty string from old enrollments — treat as missing
-          var pUid = p.uid && p.uid.length > 0 ? p.uid : null;
-          if (pUid) {
-            if (!uidMap[pUid]) {
-              uidMap[pUid] = { storedName: pName, email: p.email || '' };
-            }
-          }
-          // Always also track by email (even if uid exists) for broader matching
-          if (p.email) {
-            if (!emailMap[p.email]) emailMap[p.email] = pName;
-          }
-        });
-      });
-
-      var uids = Object.keys(uidMap);
-      var emails = Object.keys(emailMap);
-      console.log('[AutoFixNames] Found ' + uids.length + ' UIDs and ' + emails.length + ' emails to check');
-      if (uids.length === 0 && emails.length === 0) return;
-
-      // 2. Batch-fetch user profiles from Firestore
-      var profileMap = {}; // uid → { displayName, email }
-      var emailProfileMap = {}; // email → { displayName, uid }
-      try {
-        for (var i = 0; i < uids.length; i += 10) {
-          var batch = uids.slice(i, i + 10);
-          var snap = await window.FirestoreDB.db.collection('users')
-            .where(firebase.firestore.FieldPath.documentId(), 'in', batch).get();
-          snap.forEach(function(doc) {
-            var data = doc.data();
-            if (data.displayName) {
-              profileMap[doc.id] = { displayName: data.displayName, email: data.email || '' };
-              if (data.email) emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
-            }
-          });
-        }
-        // Also fetch by email (catches participants without UID or with different UID)
-        var emailsToFetch = emails.filter(function(e) { return !emailProfileMap[e]; });
-        for (var j = 0; j < emailsToFetch.length; j += 10) {
-          var emailBatch = emailsToFetch.slice(j, j + 10);
-          var esnap = await window.FirestoreDB.db.collection('users')
-            .where('email', 'in', emailBatch).get();
-          esnap.forEach(function(doc) {
-            var data = doc.data();
-            if (data.displayName && data.email) {
-              emailProfileMap[data.email] = { displayName: data.displayName, uid: doc.id };
-            }
-          });
-        }
-      } catch(e) {
-        console.warn('[AutoFixNames] Error fetching profiles:', e);
-        return;
-      }
-
-      // 3. Find mismatches
-      var fixes = []; // [{ oldName, newName, uid, email }]
-      uids.forEach(function(uid) {
-        var stored = uidMap[uid].storedName;
-        var profile = profileMap[uid];
-        if (profile && stored && profile.displayName !== stored) {
-          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; });
-          if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: profile.displayName, uid: uid, email: uidMap[uid].email || profile.email });
-          }
-        }
-      });
-      emails.forEach(function(email) {
-        var stored = emailMap[email];
-        var profile = emailProfileMap[email];
-        if (profile && stored && profile.displayName !== stored) {
-          var alreadyQueued = fixes.some(function(f) { return f.oldName === stored && f.newName === profile.displayName; });
-          if (!alreadyQueued) {
-            fixes.push({ oldName: stored, newName: profile.displayName, uid: profile.uid || null, email: email });
-          }
-        }
-      });
-
-      if (fixes.length > 0) {
-        console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
-        fixes.forEach(function(f) {
-          window._propagateNameChange(f.oldName, f.newName, f.uid, f.email);
-        });
-        // Re-render UI after all fixes applied
-        setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 500);
-      } else {
-        console.log('[AutoFixNames] All names up to date');
-      }
-    };
-
-    // ─── Propagate displayName change across all tournaments ─────────────────
-    // targetUid/targetEmail: optional — UID/email of the person whose name changed (for robust matching)
-    window._propagateNameChange = function _propagateNameChange(oldName, newName, targetUid, targetEmail) {
-      if (!oldName || !newName || oldName === newName) return;
-      if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
-      console.log('[PropageName] "' + oldName + '" → "' + newName + '" (uid=' + (targetUid || 'none') + ', email=' + (targetEmail || 'none') + ')');
-
-      // If no target specified, assume current user (self-rename)
-      var user = window.AppStore.currentUser;
-      var matchUid = targetUid || (user ? user.uid : null);
-      var matchEmail = targetEmail || (user ? user.email : null);
-      var modifiedTournaments = [];
-
-      window.AppStore.tournaments.forEach(function(t) {
-        var changed = false;
-
-        // 1. Update participants array
-        var parts = Array.isArray(t.participants) ? t.participants : [];
-        parts.forEach(function(p, idx) {
-          if (typeof p === 'string') {
-            // String participant — match by exact name
-            if (p === oldName) { parts[idx] = newName; changed = true; }
-            return;
-          }
-          if (typeof p === 'object' && p !== null) {
-            var isUser = (matchUid && p.uid === matchUid) || (matchEmail && p.email === matchEmail) || p.displayName === oldName || p.name === oldName;
-            if (isUser) {
-              if (p.displayName === oldName) { p.displayName = newName; changed = true; }
-              if (p.name === oldName) { p.name = newName; changed = true; }
-              // Also backfill uid/email if missing (so future lookups work)
-              if (matchUid && !p.uid) { p.uid = matchUid; changed = true; }
-              if (matchEmail && !p.email) { p.email = matchEmail; changed = true; }
-            }
-          }
-        });
-
-        // Helper: replace name in a match object
-        function _updateMatch(m) {
-          if (!m) return;
-          if (m.p1 === oldName) { m.p1 = newName; changed = true; }
-          if (m.p2 === oldName) { m.p2 = newName; changed = true; }
-          if (m.winner === oldName) { m.winner = newName; changed = true; }
-          // Team arrays (Monarch format)
-          if (Array.isArray(m.team1)) {
-            var i1 = m.team1.indexOf(oldName);
-            if (i1 !== -1) { m.team1[i1] = newName; changed = true; }
-          }
-          if (Array.isArray(m.team2)) {
-            var i2 = m.team2.indexOf(oldName);
-            if (i2 !== -1) { m.team2[i2] = newName; changed = true; }
-          }
-          // Team string with slash (e.g. "Alice / Bob")
-          if (m.p1 && m.p1.indexOf(oldName) !== -1 && m.p1.indexOf(' / ') !== -1) {
-            var newP1 = m.p1.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
-            if (newP1 !== m.p1) { m.p1 = newP1; changed = true; }
-          }
-          if (m.p2 && m.p2.indexOf(oldName) !== -1 && m.p2.indexOf(' / ') !== -1) {
-            var newP2 = m.p2.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
-            if (newP2 !== m.p2) { m.p2 = newP2; changed = true; }
-          }
-          if (m.winner && m.winner.indexOf(oldName) !== -1 && m.winner.indexOf(' / ') !== -1) {
-            var newW = m.winner.split(' / ').map(function(n) { return n.trim() === oldName ? newName : n.trim(); }).join(' / ');
-            if (newW !== m.winner) { m.winner = newW; changed = true; }
-          }
-        }
-
-        // 2. Update matches (elimination)
-        if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
-
-        // 3. Third place match
-        _updateMatch(t.thirdPlaceMatch);
-
-        // 4. Rounds (Swiss/Liga)
-        if (Array.isArray(t.rounds)) {
-          t.rounds.forEach(function(r) {
-            if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch);
-          });
-        }
-
-        // 5. Groups
-        if (Array.isArray(t.groups)) {
-          t.groups.forEach(function(g) {
-            if (!g) return;
-            if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
-            if (Array.isArray(g.rounds)) {
-              g.rounds.forEach(function(gr) {
-                if (Array.isArray(gr)) gr.forEach(_updateMatch);
-                else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch);
-              });
-            }
-            // Group player arrays (Monarch)
-            if (Array.isArray(g.players)) {
-              var pi = g.players.indexOf(oldName);
-              if (pi !== -1) { g.players[pi] = newName; changed = true; }
-            }
-          });
-        }
-
-        // 6. Rodadas (Liga legacy)
-        if (Array.isArray(t.rodadas)) {
-          t.rodadas.forEach(function(r) {
-            if (Array.isArray(r)) r.forEach(_updateMatch);
-            else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch);
-          });
-        }
-
-        // 7. Classification (name as key)
-        if (t.classification && t.classification[oldName] !== undefined) {
-          t.classification[newName] = t.classification[oldName];
-          delete t.classification[oldName];
-          changed = true;
-        }
-
-        // 8. Check-in, absent, VIP (name as key)
-        ['checkedIn', 'absent', 'vips'].forEach(function(field) {
-          if (t[field] && t[field][oldName] !== undefined) {
-            t[field][newName] = t[field][oldName];
-            delete t[field][oldName];
-            changed = true;
-          }
-        });
-
-        // 9. Standings
-        if (Array.isArray(t.standings)) {
-          t.standings.forEach(function(s) {
-            if (s.name === oldName) { s.name = newName; changed = true; }
-            if (s.player === oldName) { s.player = newName; changed = true; }
-          });
-        }
-
-        // 10. sorteioRealizado array (drawn participants)
-        if (Array.isArray(t.sorteioRealizado)) {
-          t.sorteioRealizado.forEach(function(item, idx) {
-            if (typeof item === 'string' && item === oldName) { t.sorteioRealizado[idx] = newName; changed = true; }
-            else if (typeof item === 'object' && item !== null) {
-              if (item.name === oldName) { item.name = newName; changed = true; }
-              if (item.displayName === oldName) { item.displayName = newName; changed = true; }
-            }
-          });
-        }
-
-        // 11. Organizer name
-        if (t.organizerName === oldName) { t.organizerName = newName; changed = true; }
-
-        if (changed) modifiedTournaments.push(t);
-      });
-
-      // Save all modified tournaments to Firestore
-      if (modifiedTournaments.length > 0 && window.FirestoreDB && window.FirestoreDB.saveTournament) {
-        console.log('[PropageName] Saving ' + modifiedTournaments.length + ' tournament(s) to Firestore');
-        var savePromises = modifiedTournaments.map(function(t) {
-          t.updatedAt = new Date().toISOString();
-          return window.FirestoreDB.saveTournament(t).catch(function(err) {
-            console.warn('[PropageName] Save error for tournament ' + t.id + ':', err);
-          });
-        });
-        // Wait for all saves, then refresh UI
-        Promise.all(savePromises).then(function() {
-          console.log('[PropageName] All saves complete, refreshing UI');
-          if (typeof window._softRefreshView === 'function') window._softRefreshView();
-        });
-        if (typeof showNotification !== 'undefined') {
-          showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '" em ' + modifiedTournaments.length + ' torneio(s).', 'info');
-        }
-      } else {
-        console.log('[PropageName] No tournaments needed updating');
-      }
-    }
 
     window.saveUserProfile = async function() {
       if (!window.AppStore.currentUser) return;
