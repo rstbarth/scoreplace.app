@@ -38,40 +38,38 @@ window._softRefreshView = function() {
   // 0. If bracket just re-rendered locally, skip to avoid double-render + scroll jump
   if (window._suppressSoftRefresh) return;
 
-  // 1. If any modal is open, skip re-render entirely — data is already updated
-  //    in AppStore.tournaments, views will pick it up when modal closes or user navigates.
+  // 1. If any modal is open or user is typing, defer — retry in 500ms
   var openModal = document.querySelector('.modal-overlay.active') ||
                   document.getElementById('qr-modal-overlay') ||
                   document.getElementById('player-stats-overlay') ||
                   document.querySelector('.tv-overlay');
-  if (openModal) return;
-
-  // 2. If user is typing in a form input, skip re-render to avoid losing focus/data
   var active = document.activeElement;
-  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) {
+  var isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
+  if (openModal || isTyping) {
+    clearTimeout(window._pendingSoftRefresh);
+    window._pendingSoftRefresh = setTimeout(function() { window._softRefreshView(); }, 500);
     return;
   }
 
-  // 3. Debounce: don't re-render more than once per 2 seconds
+  // 2. Debounce: don't re-render more than once per 800ms
   var now = Date.now();
-  if (window._lastSoftRefresh && (now - window._lastSoftRefresh) < 2000) {
-    // Schedule a delayed refresh instead
+  if (window._lastSoftRefresh && (now - window._lastSoftRefresh) < 800) {
     clearTimeout(window._pendingSoftRefresh);
-    window._pendingSoftRefresh = setTimeout(function() { window._softRefreshView(); }, 2000);
+    window._pendingSoftRefresh = setTimeout(function() { window._softRefreshView(); }, 800);
     return;
   }
   window._lastSoftRefresh = now;
 
-  // 4. Save scroll position
+  // 3. Save scroll position
   var scrollY = window.scrollY || window.pageYOffset || 0;
 
-  // 5. Set soft-refresh flag so router skips scroll-to-top and fade animation
+  // 4. Set soft-refresh flag so router skips scroll-to-top and fade animation
   window._isSoftRefresh = true;
 
-  // 6. Re-render current view via router
+  // 5. Re-render current view via router
   if (typeof initRouter === 'function') initRouter();
 
-  // 7. Restore scroll position after render
+  // 6. Restore scroll position after render
   requestAnimationFrame(function() {
     window.scrollTo({ top: scrollY, behavior: 'instant' });
     window._isSoftRefresh = false;
