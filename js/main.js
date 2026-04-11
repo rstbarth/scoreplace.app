@@ -50,11 +50,46 @@
       id: 'primeiros-passos',
       title: _t('help.firstSteps'),
       icon: '🚀',
-      content: '<p><b>Bem-vindo ao scoreplace.app!</b> Aqui vai um guia rápido para começar:</p>' +
-        '<p><b>1. Faça login</b> — Clique no botão de login no canto superior direito. Você pode criar uma conta com e-mail e senha ou entrar com sua rede social preferida (Google, Facebook ou Apple). Seu perfil é criado automaticamente.</p>' +
-        '<p><b>2. Complete seu perfil</b> — Clique no seu avatar (canto superior direito) para abrir o perfil. Preencha seu nome, cidade, esportes preferidos e telefone para receber notificações por WhatsApp.</p>' +
-        '<p><b>3. Crie ou participe de um torneio</b> — Na dashboard, clique em "+ Novo Torneio" para criar, ou navegue pelos torneios públicos e clique em "Inscrever-se".</p>' +
-        '<p><b>4. Convide amigos</b> — Dentro de um torneio, use o botão "Convidar" para enviar convites por WhatsApp, e-mail ou link direto.</p>'
+      content: '<p><b>Bem-vindo ao scoreplace.app!</b> Siga os passos abaixo para começar:</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 1: Fazer Login</div>' +
+          '<p>Clique no botão <b>"Entrar"</b> no canto superior direito da tela.</p>' +
+          '<p style="font-weight:600;color:#34d399;margin-top:8px;">Forma mais rápida: Google</p>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Clique no botão <b>"Entrar com Google"</b> (botão branco grande no topo)</li>' +
+            '<li>Uma janela do Google vai abrir. <b>Escolha sua conta</b> Google (ou digite seu e-mail Google)</li>' +
+            '<li>O Google pode perguntar: <b>"Continuar para scoreplace.app?"</b> — clique em <b>"Continuar"</b></li>' +
+            '<li>Se pedir permissões, clique em <b>"Permitir"</b> — usamos apenas para identificar você</li>' +
+            '<li>Pronto! Você já está logado. Seu nome e foto aparecem no canto superior direito</li>' +
+          '</ol>' +
+          '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">Outras opções: Link Mágico (recebe um link por e-mail, sem senha), SMS (código no celular), ou E-mail e Senha tradicional.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 2: Completar o Perfil</div>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Clique no seu <b>avatar</b> (foto ou iniciais) no canto superior direito</li>' +
+            '<li>Preencha: <b>nome</b>, <b>gênero</b>, <b>cidade</b>, <b>esportes preferidos</b></li>' +
+            '<li>Adicione seu <b>telefone</b> para receber notificações por WhatsApp</li>' +
+            '<li>Marque seus <b>locais de preferência</b> no mapa para ser notificado de torneios próximos</li>' +
+            '<li>Clique em <b>"Salvar"</b></li>' +
+          '</ol>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 3: Criar ou Participar de um Torneio</div>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li><b>Criar:</b> Na dashboard, clique em <b>"+ Novo Torneio"</b>, escolha o esporte e clique em "Criar Torneio"</li>' +
+            '<li><b>Participar:</b> Navegue pelos torneios públicos em <b>"Explorar"</b> e clique em <b>"Inscrever-se"</b></li>' +
+            '<li><b>Convite:</b> Se recebeu um link de convite, clique nele, faça login e você será inscrito automaticamente</li>' +
+          '</ol>' +
+        '</div>' +
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 4: Convidar Amigos</div>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Dentro de um torneio, clique em <b>"Convidar"</b></li>' +
+            '<li>Compartilhe via <b>WhatsApp</b>, <b>e-mail</b>, <b>QR Code</b> ou <b>link direto</b></li>' +
+            '<li>Quem clicar no link e fizer login será inscrito automaticamente</li>' +
+          '</ol>' +
+        '</div>'
     },
     {
       id: 'dashboard',
@@ -242,6 +277,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.27-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Login redesenhado</b> — Tela de login sem abas: Google como botão principal no topo, demais opções (Link Mágico, SMS, E-mail/Senha) como seções expansíveis abaixo. Mais intuitivo e acessível.</p>' +
+        '<p><b>Manual passo a passo</b> — Seção "Primeiros Passos" reescrita com guia detalhado em 4 passos coloridos, incluindo passo a passo do login com Google (Continuar, Permitir). Índice clicável no topo do manual.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Mapa no Local do Torneio</b> — Ao criar ou editar torneio, o campo de local agora exibe mapa interativo com pin ao selecionar o local. Botão de geolocalização (📍) permite usar sua posição atual. Mesmo padrão visual do mapa de preferências do perfil.</p>' +
         '<p><b>Comunicações do Perfil</b> — Novo toggle "Todas" (verde) nas preferências de comunicação. Ativar "Todas" liga automaticamente Importantes e Fundamentais. Desativar "Fundamentais" exibe aviso de que nenhuma comunicação será recebida, com confirmação obrigatória.</p>' +

@@ -607,6 +607,23 @@ function switchLoginTab(tabId) {
   if (tabId !== 'phone') _resetPhoneLoginUI();
 }
 
+// Toggle expandable login sections (accordion-style)
+window._toggleLoginSection = function(sectionId) {
+  var sections = ['emaillink', 'phone', 'email'];
+  sections.forEach(function(s) {
+    var panel = document.getElementById('login-panel-' + s);
+    if (panel) {
+      if (s === sectionId) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+  });
+  // Reset phone UI when collapsing
+  if (sectionId !== 'phone') _resetPhoneLoginUI();
+};
+
 // Busca dados demográficos do Google via People API e salva no Firestore
 function _fetchGoogleDemographics(accessToken, uid) {
   fetch('https://people.googleapis.com/v1/people/me?personFields=genders,birthdays,ageRanges,locales,addresses,phoneNumbers', {
@@ -1193,120 +1210,127 @@ async function simulateLoginSuccess(user) {
 function setupLoginModal() {
   if (!document.getElementById('modal-login')) {
     var modalHtml = '<div class="modal-overlay" id="modal-login">' +
-      '<div class="modal" style="max-width: 400px;">' +
+      '<div class="modal" style="max-width: 420px;">' +
         '<div class="modal-header">' +
-          '<h2 class="card-title">Acessar scoreplace.app</h2>' +
+          '<h2 class="card-title">Entrar no scoreplace.app</h2>' +
           '<button class="modal-close" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')">&times;</button>' +
         '</div>' +
         '<div class="modal-body">' +
-          '<p class="text-muted mb-4">Acesse sua conta para organizar ou participar de campeonatos.</p>' +
 
-          // --- Login method tabs ---
-          '<div id="login-tabs" style="display:flex;gap:0;margin-bottom:1.2rem;border:1px solid var(--border-color);border-radius:10px;overflow:hidden;">' +
-            '<button type="button" class="login-tab active" onclick="switchLoginTab(\'social\')" id="tab-social" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--primary-color);color:#fff;transition:all 0.2s;">Google</button>' +
-            '<button type="button" class="login-tab" onclick="switchLoginTab(\'email\')" id="tab-email" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">E-mail</button>' +
-            '<button type="button" class="login-tab" onclick="switchLoginTab(\'emaillink\')" id="tab-emaillink" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">Link Mágico</button>' +
-            '<button type="button" class="login-tab" onclick="switchLoginTab(\'phone\')" id="tab-phone" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">Celular</button>' +
+          // --- Google: primary CTA ---
+          '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;padding:14px 16px;font-size:0.9rem;font-weight:600;margin-bottom:8px;">' +
+            '<svg width="20" height="20" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
+            'Entrar com Google' +
+          '</button>' +
+          '<p style="color:var(--text-muted);font-size:0.72rem;text-align:center;margin:0 0 6px;">Forma mais rápida. Basta escolher sua conta Google.</p>' +
+
+          // --- Divider ---
+          '<div style="display:flex;align-items:center;gap:12px;margin:16px 0;">' +
+            '<div style="flex:1;height:1px;background:var(--border-color);"></div>' +
+            '<span style="color:var(--text-muted);font-size:0.75rem;font-weight:500;">ou entre com</span>' +
+            '<div style="flex:1;height:1px;background:var(--border-color);"></div>' +
           '</div>' +
 
-          // --- Tab: Social (Google) ---
-          '<div id="login-panel-social" style="display:block;">' +
-            '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;margin-bottom:12px;">' +
-              '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
-              'Entrar com Google' +
-            '</button>' +
-            '<p style="color:var(--text-muted);font-size:0.75rem;text-align:center;">Rápido e seguro. Sua conta Google é usada apenas para autenticação.</p>' +
-          '</div>' +
+          // --- Alternative methods: all visible as buttons ---
+          '<div style="display:flex;flex-direction:column;gap:8px;">' +
 
-          // --- Tab: Email/password ---
-          '<div id="login-panel-email" style="display:none;">' +
-            '<div id="email-login-mode" style="display:block;">' +
-              '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
-                '<div class="form-group">' +
-                  '<label class="form-label">E-mail</label>' +
-                  '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>' +
-                '</div>' +
-                '<div class="form-group mb-4">' +
-                  '<label class="form-label">Senha</label>' +
-                  '<input type="password" id="login-password" class="form-control" placeholder="••••••••" required minlength="6">' +
-                '</div>' +
-                '<button type="submit" class="btn btn-secondary btn-block">Entrar</button>' +
-              '</form>' +
-              '<div style="text-align:center;margin-top:12px;">' +
-                '<span style="color:var(--text-muted);font-size:0.8rem;">Não tem conta? </span>' +
-                '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'register\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Criar conta</a>' +
-                '<span style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">|</span>' +
-                '<a href="#" onclick="event.preventDefault();handlePasswordReset()" style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">Esqueci a senha</a>' +
+            // Email Link (passwordless) — expandable
+            '<div id="login-section-emaillink">' +
+              '<button type="button" class="btn btn-block" onclick="window._toggleLoginSection(\'emaillink\')" style="background:rgba(99,102,241,0.1);color:var(--text-bright);border:1px solid rgba(99,102,241,0.2);font-size:0.82rem;font-weight:600;padding:10px 16px;text-align:left;">' +
+                '<span style="margin-right:8px;">✉️</span> Link Mágico por E-mail <span style="float:right;font-size:0.7rem;color:var(--text-muted);">sem senha</span>' +
+              '</button>' +
+              '<div id="login-panel-emaillink" style="display:none;padding:12px 0 4px;">' +
+                '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
+                  '<div class="form-group" style="margin-bottom:8px;">' +
+                    '<input type="email" id="login-email-link" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
+                  '</div>' +
+                  '<button type="submit" class="btn btn-primary btn-block" style="font-size:0.82rem;">Enviar Link de Acesso</button>' +
+                '</form>' +
+                '<p style="color:var(--text-muted);font-size:0.7rem;text-align:center;margin:8px 0 0;">Você recebe um link no e-mail. Clique nele para entrar.</p>' +
               '</div>' +
             '</div>' +
-            '<div id="email-register-mode" style="display:none;">' +
-              '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Nome</label>' +
-                  '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label">E-mail</label>' +
-                  '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required>' +
-                '</div>' +
-                '<div class="form-group mb-4">' +
-                  '<label class="form-label">Senha (mínimo 6 caracteres)</label>' +
-                  '<input type="password" id="register-password" class="form-control" placeholder="••••••••" required minlength="6">' +
-                '</div>' +
-                '<button type="submit" class="btn btn-primary btn-block">Criar Conta</button>' +
-              '</form>' +
-              '<div style="text-align:center;margin-top:12px;">' +
-                '<span style="color:var(--text-muted);font-size:0.8rem;">Já tem conta? </span>' +
-                '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'login\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Entrar</a>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
 
-          // --- Tab: Email Link (Passwordless) ---
-          '<div id="login-panel-emaillink" style="display:none;">' +
-            '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Sem senha! Digite seu e-mail e receba um link mágico de acesso.</p>' +
-            '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
-              '<div class="form-group">' +
-                '<label class="form-label">E-mail</label>' +
-                '<input type="email" id="login-email-link" class="form-control" placeholder="seu@email.com" required>' +
-              '</div>' +
-              '<button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">✉️ Enviar Link de Acesso</button>' +
-            '</form>' +
-            '<p style="color:var(--text-muted);font-size:0.72rem;text-align:center;margin-top:10px;">Você receberá um e-mail com um link. Clique nele para entrar automaticamente.</p>' +
-          '</div>' +
-
-          // --- Tab: Phone/SMS ---
-          '<div id="login-panel-phone" style="display:none;">' +
-            '<div id="phone-step-number" style="display:block;">' +
-              '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Digite seu celular com DDD. Enviaremos um código por SMS.</p>' +
-              '<form onsubmit="event.preventDefault(); handlePhoneLogin();">' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Celular</label>' +
-                  '<div style="display:flex;gap:8px;align-items:center;">' +
-                    '<span style="color:var(--text-muted);font-size:0.85rem;white-space:nowrap;">🇧🇷 +55</span>' +
-                    '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" required style="flex:1;">' +
+            // Phone/SMS — expandable
+            '<div id="login-section-phone">' +
+              '<button type="button" class="btn btn-block" onclick="window._toggleLoginSection(\'phone\')" style="background:rgba(34,197,94,0.1);color:var(--text-bright);border:1px solid rgba(34,197,94,0.2);font-size:0.82rem;font-weight:600;padding:10px 16px;text-align:left;">' +
+                '<span style="margin-right:8px;">📱</span> SMS para Celular <span style="float:right;font-size:0.7rem;color:var(--text-muted);">código por SMS</span>' +
+              '</button>' +
+              '<div id="login-panel-phone" style="display:none;padding:12px 0 4px;">' +
+                '<div id="phone-step-number" style="display:block;">' +
+                  '<form onsubmit="event.preventDefault(); handlePhoneLogin();">' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<div style="display:flex;gap:8px;align-items:center;">' +
+                        '<span style="color:var(--text-muted);font-size:0.85rem;white-space:nowrap;">🇧🇷 +55</span>' +
+                        '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" required style="flex:1;font-size:0.85rem;">' +
+                      '</div>' +
+                    '</div>' +
+                    '<button type="submit" class="btn btn-success btn-block" style="font-size:0.82rem;">Enviar Código SMS</button>' +
+                  '</form>' +
+                '</div>' +
+                '<div id="phone-step-code" style="display:none;">' +
+                  '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:8px;">Digite o código de 6 dígitos recebido por SMS:</p>' +
+                  '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-weight:700;">' +
+                    '</div>' +
+                    '<button type="submit" class="btn btn-success btn-block" style="font-size:0.82rem;">Verificar Código</button>' +
+                  '</form>' +
+                  '<div style="text-align:center;margin-top:8px;">' +
+                    '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.75rem;">Reenviar</a>' +
+                    '<span style="color:var(--text-muted);font-size:0.75rem;margin:0 6px;">|</span>' +
+                    '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.75rem;">Voltar</a>' +
                   '</div>' +
                 '</div>' +
-                '<button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">📱 Enviar Código SMS</button>' +
-              '</form>' +
-            '</div>' +
-            '<div id="phone-step-code" style="display:none;">' +
-              '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Digite o código de 6 dígitos que você recebeu por SMS.</p>' +
-              '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Código de Verificação</label>' +
-                  '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-weight:700;">' +
-                '</div>' +
-                '<button type="submit" class="btn btn-success btn-block" style="margin-top:8px;">✓ Verificar Código</button>' +
-              '</form>' +
-              '<div style="text-align:center;margin-top:10px;">' +
-                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.78rem;">Reenviar código</a>' +
-                '<span style="color:var(--text-muted);font-size:0.78rem;margin:0 8px;">|</span>' +
-                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.78rem;">Voltar</a>' +
+                '<div id="recaptcha-container"></div>' +
               '</div>' +
             '</div>' +
-            '<div id="recaptcha-container"></div>' +
+
+            // Email/Password — expandable
+            '<div id="login-section-email">' +
+              '<button type="button" class="btn btn-block" onclick="window._toggleLoginSection(\'email\')" style="background:rgba(245,158,11,0.1);color:var(--text-bright);border:1px solid rgba(245,158,11,0.2);font-size:0.82rem;font-weight:600;padding:10px 16px;text-align:left;">' +
+                '<span style="margin-right:8px;">🔑</span> E-mail e Senha' +
+              '</button>' +
+              '<div id="login-panel-email" style="display:none;padding:12px 0 4px;">' +
+                '<div id="email-login-mode" style="display:block;">' +
+                  '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
+                    '</div>' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="password" id="login-password" class="form-control" placeholder="Senha" required minlength="6" style="font-size:0.85rem;">' +
+                    '</div>' +
+                    '<button type="submit" class="btn btn-secondary btn-block" style="font-size:0.82rem;">Entrar</button>' +
+                  '</form>' +
+                  '<div style="text-align:center;margin-top:8px;font-size:0.78rem;">' +
+                    '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'register\')" style="color:var(--primary-color);font-weight:600;">Criar conta</a>' +
+                    '<span style="color:var(--text-muted);margin:0 8px;">|</span>' +
+                    '<a href="#" onclick="event.preventDefault();handlePasswordReset()" style="color:var(--text-muted);">Esqueci a senha</a>' +
+                  '</div>' +
+                '</div>' +
+                '<div id="email-register-mode" style="display:none;">' +
+                  '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required style="font-size:0.85rem;">' +
+                    '</div>' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
+                    '</div>' +
+                    '<div class="form-group" style="margin-bottom:8px;">' +
+                      '<input type="password" id="register-password" class="form-control" placeholder="Senha (mín. 6 caracteres)" required minlength="6" style="font-size:0.85rem;">' +
+                    '</div>' +
+                    '<button type="submit" class="btn btn-primary btn-block" style="font-size:0.82rem;">Criar Conta</button>' +
+                  '</form>' +
+                  '<div style="text-align:center;margin-top:8px;">' +
+                    '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'login\')" style="color:var(--primary-color);font-size:0.78rem;font-weight:600;">Ja tem conta? Entrar</a>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+
           '</div>' +
+
+          // Hidden tabs container for backward compat with switchLoginTab
+          '<div id="login-tabs" style="display:none;"></div>' +
 
         '</div>' +
       '</div>' +
