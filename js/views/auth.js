@@ -158,12 +158,12 @@ function _handleAccountLinking(error, providerName) {
       showNotification('Erro', 'Não foi possível identificar o método de login existente.', 'error');
       return;
     }
-    var existingProvider = methods[0]; // e.g. 'google.com', 'password', 'apple.com', 'facebook.com'
+    var existingProvider = methods[0]; // e.g. 'google.com', 'password', 'emailLink', 'phone'
     var providerNames = {
       'google.com': 'Google',
       'password': 'E-mail e Senha',
-      'apple.com': 'Apple',
-      'facebook.com': 'Facebook'
+      'emailLink': 'Link de E-mail',
+      'phone': 'Celular'
     };
     var existingName = providerNames[existingProvider] || existingProvider;
 
@@ -201,117 +201,233 @@ function _tryLinkPendingCredential(result) {
   });
 }
 
-// ─── Apple Login ─────────────────────────────────────────────────────────────
-function handleAppleLogin() {
-  if (window.location.protocol === 'file:') {
-    showNotification('Indisponível', 'Login com Apple não está disponível offline.', 'warning');
+// ─── Email Link (Passwordless) Login ────────────────────────────────────────
+function handleEmailLinkLogin() {
+  var emailEl = document.getElementById('login-email-link');
+  var email = emailEl ? emailEl.value.trim() : '';
+  if (!email) {
+    showNotification('Informe o E-mail', 'Digite seu e-mail para receber o link de acesso.', 'warning');
+    if (emailEl) emailEl.focus();
     return;
   }
-  var appleProvider = new firebase.auth.OAuthProvider('apple.com');
-  appleProvider.addScope('email');
-  appleProvider.addScope('name');
 
-  showNotification('Conectando...', 'Abrindo popup da Apple...', 'info');
-  firebase.auth().signInWithPopup(appleProvider)
-    .then(function(result) {
-      var user = result.user;
-      // Apple only provides displayName on first sign-in. Save it immediately.
-      var appleName = '';
-      if (result.additionalUserInfo && result.additionalUserInfo.profile) {
-        var p = result.additionalUserInfo.profile;
-        if (p.name) {
-          var parts = [];
-          if (p.name.firstName) parts.push(p.name.firstName);
-          if (p.name.lastName) parts.push(p.name.lastName);
-          if (parts.length > 0) appleName = parts.join(' ');
-        }
-      }
-      if (!appleName && user.displayName) appleName = user.displayName;
+  var actionCodeSettings = {
+    url: 'https://scoreplace.app/#dashboard',
+    handleCodeInApp: true
+  };
 
-      // Persist Apple name to Firebase Auth profile + Firestore
-      if (appleName && !user.displayName) {
-        user.updateProfile({ displayName: appleName }).catch(function(e) {
-          console.warn('Apple profile update error:', e);
-        });
-      }
-      if (appleName && window.FirestoreDB && window.FirestoreDB.db && user.uid) {
-        window.FirestoreDB.saveUserProfile(user.uid, {
-          displayName: appleName,
-          email: user.email || '',
-          authProvider: 'apple.com',
-          updatedAt: new Date().toISOString()
-        }).catch(function(e) { console.warn('Apple Firestore save error:', e); });
-      }
-
-      _tryLinkPendingCredential(result);
-      showNotification('Login Realizado', 'Bem-vindo(a)' + (appleName ? ', ' + appleName : '') + '!', 'success');
+  showNotification('Enviando...', 'Enviando link de acesso para ' + email + '...', 'info');
+  firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+    .then(function() {
+      // Save the email locally so we can complete sign-in when user clicks the link
+      window.localStorage.setItem('scoreplace_emailForSignIn', email);
+      showNotification('Link Enviado ✉️', 'Um link de acesso foi enviado para ' + email + '. Verifique sua caixa de entrada (e spam). Clique no link para entrar.', 'success');
       var modal = document.getElementById('modal-login');
       if (modal) modal.classList.remove('active');
     })
     .catch(function(error) {
-      console.error('Apple auth error:', error);
-      if (error.code === 'auth/popup-blocked') {
-        showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
-      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-        // cancelled
-      } else if (_handleAccountLinking(error, 'Apple')) {
-        // handled
+      console.error('Email link send error:', error);
+      if (error.code === 'auth/invalid-email') {
+        showNotification('E-mail Inválido', 'O formato do e-mail está incorreto.', 'error');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Configurado', 'Login com Apple ainda não foi habilitado. Contate o suporte: scoreplace.app@gmail.com', 'warning');
+        showNotification('Não Disponível', 'Login por link de e-mail não está habilitado. Tente outro método.', 'warning');
       } else {
-        showNotification('Erro', 'Não foi possível realizar o login com Apple: ' + (error.message || ''), 'error');
+        showNotification('Erro', error.message || 'Não foi possível enviar o link.', 'error');
       }
     });
 }
 
-// ─── Facebook Login ──────────────────────────────────────────────────────────
-function handleFacebookLogin() {
-  if (window.location.protocol === 'file:') {
-    showNotification('Indisponível', 'Login com Facebook não está disponível offline.', 'warning');
-    return;
+// Complete email link sign-in when user arrives via the link
+function _completeEmailLinkSignIn() {
+  if (!firebase.auth().isSignInWithEmailLink(window.location.href)) return;
+
+  var email = window.localStorage.getItem('scoreplace_emailForSignIn');
+  if (!email) {
+    // User opened link on a different device — ask for email
+    email = window.prompt('Por favor, confirme seu e-mail para completar o login:');
+    if (!email) return;
   }
-  var fbProvider = new firebase.auth.FacebookAuthProvider();
-  fbProvider.addScope('email');
-  fbProvider.addScope('public_profile');
 
-  showNotification('Conectando...', 'Abrindo popup do Facebook...', 'info');
-  firebase.auth().signInWithPopup(fbProvider)
+  firebase.auth().signInWithEmailLink(email, window.location.href)
     .then(function(result) {
+      // Clear stored email
+      window.localStorage.removeItem('scoreplace_emailForSignIn');
       var user = result.user;
-      // Save Facebook photo (higher quality) and provider info
-      var fbPhotoUrl = user.photoURL || '';
-      if (fbPhotoUrl && fbPhotoUrl.indexOf('graph.facebook.com') !== -1 && fbPhotoUrl.indexOf('type=large') === -1) {
-        fbPhotoUrl = fbPhotoUrl.replace(/\?.*$/, '') + '?type=large';
-      }
+      // Save auth provider to Firestore
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
-        var fbData = { authProvider: 'facebook.com', updatedAt: new Date().toISOString() };
-        if (user.displayName) fbData.displayName = user.displayName;
-        if (user.email) fbData.email = user.email;
-        if (fbPhotoUrl) fbData.photoURL = fbPhotoUrl;
-        window.FirestoreDB.saveUserProfile(user.uid, fbData).catch(function(e) {
-          console.warn('Facebook Firestore save error:', e);
-        });
+        var profileData = { authProvider: 'emailLink', updatedAt: new Date().toISOString() };
+        if (user.email) profileData.email = user.email;
+        if (!user.displayName && email) profileData.displayName = email.split('@')[0];
+        window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
       }
-
-      _tryLinkPendingCredential(result);
       showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
-      var modal = document.getElementById('modal-login');
-      if (modal) modal.classList.remove('active');
+      // Clean the URL (remove sign-in link parameters)
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname + '#dashboard');
+      }
     })
     .catch(function(error) {
-      console.error('Facebook auth error:', error);
-      if (error.code === 'auth/popup-blocked') {
-        showNotification('Popup Bloqueado', 'Permita popups para este site.', 'error');
-      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-        // cancelled
-      } else if (_handleAccountLinking(error, 'Facebook')) {
-        // handled
-      } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Configurado', 'Login com Facebook ainda não foi habilitado. Contate o suporte: scoreplace.app@gmail.com', 'warning');
+      console.error('Email link sign-in error:', error);
+      window.localStorage.removeItem('scoreplace_emailForSignIn');
+      if (error.code === 'auth/invalid-action-code') {
+        showNotification('Link Expirado', 'Este link de acesso já foi usado ou expirou. Solicite um novo.', 'error');
+      } else if (error.code === 'auth/invalid-email') {
+        showNotification('E-mail Incorreto', 'O e-mail informado não corresponde ao link. Tente novamente.', 'error');
       } else {
-        showNotification('Erro', 'Não foi possível realizar o login com Facebook: ' + (error.message || ''), 'error');
+        showNotification('Erro no Login', error.message || 'Não foi possível completar o login.', 'error');
       }
     });
+}
+
+// Run email link check on page load
+try { _completeEmailLinkSignIn(); } catch(e) { console.warn('Email link check error:', e); }
+
+// ─── Phone/SMS Login ────────────────────────────────────────────────────────
+window._phoneConfirmationResult = null;
+window._phoneRecaptchaVerifier = null;
+window._phoneRecaptchaWidgetId = null;
+
+function handlePhoneLogin() {
+  var phoneEl = document.getElementById('login-phone');
+  var rawPhone = phoneEl ? phoneEl.value.trim() : '';
+  if (!rawPhone) {
+    showNotification('Informe o Telefone', 'Digite seu número de celular com DDD.', 'warning');
+    if (phoneEl) phoneEl.focus();
+    return;
+  }
+
+  // Format phone number: add +55 if no country code
+  var phone = rawPhone.replace(/[\s\-\(\)]/g, '');
+  if (!phone.startsWith('+')) {
+    // Remove leading zero if present
+    if (phone.startsWith('0')) phone = phone.substring(1);
+    phone = '+55' + phone;
+  }
+
+  // Validate basic format
+  if (phone.length < 12 || phone.length > 15) {
+    showNotification('Número Inválido', 'Digite um número válido com DDD. Ex: (11) 99999-8888', 'warning');
+    return;
+  }
+
+  // Initialize reCAPTCHA if not already done
+  var recaptchaContainer = document.getElementById('recaptcha-container');
+  if (!recaptchaContainer) {
+    showNotification('Erro', 'Container do reCAPTCHA não encontrado.', 'error');
+    return;
+  }
+
+  // Show loading
+  showNotification('Verificando...', 'Enviando código SMS para ' + phone + '...', 'info');
+
+  // Create invisible reCAPTCHA verifier
+  if (!window._phoneRecaptchaVerifier) {
+    window._phoneRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: function() {
+        // reCAPTCHA solved — will proceed with phone sign-in
+      },
+      'expired-callback': function() {
+        showNotification('reCAPTCHA Expirado', 'Tente novamente.', 'warning');
+        _resetPhoneRecaptcha();
+      }
+    });
+  }
+
+  firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier)
+    .then(function(confirmationResult) {
+      window._phoneConfirmationResult = confirmationResult;
+      // Show verification code input
+      _showPhoneVerificationStep();
+      showNotification('Código Enviado', 'Um SMS com o código de verificação foi enviado para ' + phone + '.', 'success');
+    })
+    .catch(function(error) {
+      console.error('Phone sign-in error:', error);
+      _resetPhoneRecaptcha();
+      if (error.code === 'auth/invalid-phone-number') {
+        showNotification('Número Inválido', 'O número de telefone não é válido. Verifique e tente novamente.', 'error');
+      } else if (error.code === 'auth/too-many-requests') {
+        showNotification('Muitas Tentativas', 'Muitas tentativas de SMS. Aguarde alguns minutos.', 'warning');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        showNotification('Não Disponível', 'Login por telefone não está habilitado. Tente outro método.', 'warning');
+      } else if (error.code === 'auth/captcha-check-failed') {
+        showNotification('Verificação Falhou', 'A verificação reCAPTCHA falhou. Recarregue a página e tente novamente.', 'error');
+      } else {
+        showNotification('Erro', error.message || 'Não foi possível enviar o SMS.', 'error');
+      }
+    });
+}
+
+function _showPhoneVerificationStep() {
+  var phoneStep = document.getElementById('phone-step-number');
+  var codeStep = document.getElementById('phone-step-code');
+  if (phoneStep) phoneStep.style.display = 'none';
+  if (codeStep) codeStep.style.display = 'block';
+  var codeInput = document.getElementById('login-phone-code');
+  if (codeInput) { codeInput.value = ''; codeInput.focus(); }
+}
+
+function handlePhoneVerifyCode() {
+  var codeEl = document.getElementById('login-phone-code');
+  var code = codeEl ? codeEl.value.trim() : '';
+  if (!code || code.length < 6) {
+    showNotification('Código Inválido', 'Digite o código de 6 dígitos recebido por SMS.', 'warning');
+    if (codeEl) codeEl.focus();
+    return;
+  }
+
+  if (!window._phoneConfirmationResult) {
+    showNotification('Erro', 'Sessão de verificação expirada. Solicite um novo código.', 'error');
+    _resetPhoneLoginUI();
+    return;
+  }
+
+  showNotification('Verificando...', 'Confirmando código...', 'info');
+  window._phoneConfirmationResult.confirm(code)
+    .then(function(result) {
+      var user = result.user;
+      // Save auth provider to Firestore
+      if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        var profileData = { authProvider: 'phone', updatedAt: new Date().toISOString() };
+        if (user.phoneNumber) profileData.phone = user.phoneNumber;
+        if (!user.displayName && user.phoneNumber) profileData.displayName = user.phoneNumber;
+        window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
+      }
+      window._phoneConfirmationResult = null;
+      _resetPhoneRecaptcha();
+      showNotification('Login Realizado', 'Bem-vindo(a)!', 'success');
+      var modal = document.getElementById('modal-login');
+      if (modal) modal.classList.remove('active');
+      _resetPhoneLoginUI();
+    })
+    .catch(function(error) {
+      console.error('Phone verify error:', error);
+      if (error.code === 'auth/invalid-verification-code') {
+        showNotification('Código Incorreto', 'O código digitado está incorreto. Verifique e tente novamente.', 'error');
+      } else if (error.code === 'auth/code-expired') {
+        showNotification('Código Expirado', 'O código expirou. Solicite um novo.', 'error');
+        _resetPhoneLoginUI();
+      } else {
+        showNotification('Erro', error.message || 'Não foi possível verificar o código.', 'error');
+      }
+    });
+}
+
+function _resetPhoneRecaptcha() {
+  if (window._phoneRecaptchaVerifier) {
+    try { window._phoneRecaptchaVerifier.clear(); } catch(e) {}
+    window._phoneRecaptchaVerifier = null;
+  }
+  var container = document.getElementById('recaptcha-container');
+  if (container) container.innerHTML = '';
+}
+
+function _resetPhoneLoginUI() {
+  var phoneStep = document.getElementById('phone-step-number');
+  var codeStep = document.getElementById('phone-step-code');
+  if (phoneStep) phoneStep.style.display = 'block';
+  if (codeStep) codeStep.style.display = 'none';
+  window._phoneConfirmationResult = null;
 }
 
 // ─── Email/Password Login ────────────────────────────────────────────────────
@@ -345,7 +461,7 @@ function handleEmailLogin() {
       } else if (error.code === 'auth/too-many-requests') {
         showNotification('Muitas Tentativas', 'Muitas tentativas de login. Aguarde alguns minutos.', 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'Login por e-mail/senha não está habilitado. Tente Google, Apple ou Facebook.', 'warning');
+        showNotification('Não Disponível', 'Login por e-mail/senha não está habilitado. Tente Google ou outro método.', 'warning');
       } else {
         showNotification('Erro no Login', error.message || 'Não foi possível entrar.', 'error');
       }
@@ -413,7 +529,7 @@ function handleEmailRegister() {
       } else if (error.code === 'auth/weak-password') {
         showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'O cadastro por e-mail/senha não está habilitado. Tente Google, Apple ou Facebook.', 'warning');
+        showNotification('Não Disponível', 'O cadastro por e-mail/senha não está habilitado. Tente Google ou outro método.', 'warning');
       } else {
         showNotification('Erro no Registro', error.message || 'Não foi possível criar a conta.', 'error');
       }
@@ -463,6 +579,22 @@ function toggleEmailMode(mode) {
     if (loginDiv) loginDiv.style.display = 'block';
     if (registerDiv) registerDiv.style.display = 'none';
   }
+}
+
+// ─── Switch login tabs ──────────────────────────────────────────────────────
+function switchLoginTab(tabId) {
+  var tabs = ['social', 'email', 'emaillink', 'phone'];
+  tabs.forEach(function(t) {
+    var panel = document.getElementById('login-panel-' + t);
+    var tab = document.getElementById('tab-' + t);
+    if (panel) panel.style.display = (t === tabId) ? 'block' : 'none';
+    if (tab) {
+      tab.style.background = (t === tabId) ? 'var(--primary-color)' : 'var(--surface-color)';
+      tab.style.color = (t === tabId) ? '#fff' : 'var(--text-muted)';
+    }
+  });
+  // Reset phone UI when switching away
+  if (tabId !== 'phone') _resetPhoneLoginUI();
 }
 
 // Busca dados demográficos do Google via People API e salva no Firestore
@@ -1059,77 +1191,111 @@ function setupLoginModal() {
         '<div class="modal-body">' +
           '<p class="text-muted mb-4">Acesse sua conta para organizar ou participar de campeonatos.</p>' +
 
-          // --- Social login buttons ---
-          '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">' +
+          // --- Login method tabs ---
+          '<div id="login-tabs" style="display:flex;gap:0;margin-bottom:1.2rem;border:1px solid var(--border-color);border-radius:10px;overflow:hidden;">' +
+            '<button type="button" class="login-tab active" onclick="switchLoginTab(\'social\')" id="tab-social" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--primary-color);color:#fff;transition:all 0.2s;">Google</button>' +
+            '<button type="button" class="login-tab" onclick="switchLoginTab(\'email\')" id="tab-email" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">E-mail</button>' +
+            '<button type="button" class="login-tab" onclick="switchLoginTab(\'emaillink\')" id="tab-emaillink" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">Link Mágico</button>' +
+            '<button type="button" class="login-tab" onclick="switchLoginTab(\'phone\')" id="tab-phone" style="flex:1;padding:8px 4px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;background:var(--surface-color);color:var(--text-muted);transition:all 0.2s;">Celular</button>' +
+          '</div>' +
 
-            // Google
-            '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;">' +
+          // --- Tab: Social (Google) ---
+          '<div id="login-panel-social" style="display:block;">' +
+            '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;margin-bottom:12px;">' +
               '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
               'Entrar com Google' +
             '</button>' +
-
-            // Apple
-            '<button type="button" class="btn hover-lift btn-block" onclick="handleAppleLogin()" style="background:#000;">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>' +
-              'Entrar com Apple' +
-            '</button>' +
-
-            // Facebook
-            '<button type="button" class="btn btn-block hover-lift" onclick="handleFacebookLogin()" style="background:#1877F2;">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' +
-              'Entrar com Facebook' +
-            '</button>' +
-
+            '<p style="color:var(--text-muted);font-size:0.75rem;text-align:center;">Rápido e seguro. Sua conta Google é usada apenas para autenticação.</p>' +
           '</div>' +
 
-          '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem;">' +
-            '<div style="flex: 1; height: 1px; background: var(--border-color);"></div>' +
-            '<span style="color: var(--text-muted); font-size: 0.875rem;">ou</span>' +
-            '<div style="flex: 1; height: 1px; background: var(--border-color);"></div>' +
-          '</div>' +
-
-          // --- Email/password form ---
-          '<div id="email-login-mode" style="display:block;">' +
-            '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
-              '<div class="form-group">' +
-                '<label class="form-label">E-mail</label>' +
-                '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>' +
+          // --- Tab: Email/password ---
+          '<div id="login-panel-email" style="display:none;">' +
+            '<div id="email-login-mode" style="display:block;">' +
+              '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
+                '<div class="form-group">' +
+                  '<label class="form-label">E-mail</label>' +
+                  '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>' +
+                '</div>' +
+                '<div class="form-group mb-4">' +
+                  '<label class="form-label">Senha</label>' +
+                  '<input type="password" id="login-password" class="form-control" placeholder="••••••••" required minlength="6">' +
+                '</div>' +
+                '<button type="submit" class="btn btn-secondary btn-block">Entrar</button>' +
+              '</form>' +
+              '<div style="text-align:center;margin-top:12px;">' +
+                '<span style="color:var(--text-muted);font-size:0.8rem;">Não tem conta? </span>' +
+                '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'register\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Criar conta</a>' +
+                '<span style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">|</span>' +
+                '<a href="#" onclick="event.preventDefault();handlePasswordReset()" style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">Esqueci a senha</a>' +
               '</div>' +
-              '<div class="form-group mb-4">' +
-                '<label class="form-label">Senha</label>' +
-                '<input type="password" id="login-password" class="form-control" placeholder="••••••••" required minlength="6">' +
+            '</div>' +
+            '<div id="email-register-mode" style="display:none;">' +
+              '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
+                '<div class="form-group">' +
+                  '<label class="form-label">Nome</label>' +
+                  '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required>' +
+                '</div>' +
+                '<div class="form-group">' +
+                  '<label class="form-label">E-mail</label>' +
+                  '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required>' +
+                '</div>' +
+                '<div class="form-group mb-4">' +
+                  '<label class="form-label">Senha (mínimo 6 caracteres)</label>' +
+                  '<input type="password" id="register-password" class="form-control" placeholder="••••••••" required minlength="6">' +
+                '</div>' +
+                '<button type="submit" class="btn btn-primary btn-block">Criar Conta</button>' +
+              '</form>' +
+              '<div style="text-align:center;margin-top:12px;">' +
+                '<span style="color:var(--text-muted);font-size:0.8rem;">Já tem conta? </span>' +
+                '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'login\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Entrar</a>' +
               '</div>' +
-              '<button type="submit" class="btn btn-secondary btn-block">Entrar com E-mail</button>' +
-            '</form>' +
-            '<div style="text-align:center;margin-top:12px;">' +
-              '<span style="color:var(--text-muted);font-size:0.8rem;">Não tem conta? </span>' +
-              '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'register\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Criar conta</a>' +
-              '<span style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">|</span>' +
-              '<a href="#" onclick="event.preventDefault();handlePasswordReset()" style="color:var(--text-muted);font-size:0.8rem;margin-left:12px;">Esqueci a senha</a>' +
             '</div>' +
           '</div>' +
 
-          // --- Register mode (hidden by default) ---
-          '<div id="email-register-mode" style="display:none;">' +
-            '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
-              '<div class="form-group">' +
-                '<label class="form-label">Nome</label>' +
-                '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required>' +
-              '</div>' +
+          // --- Tab: Email Link (Passwordless) ---
+          '<div id="login-panel-emaillink" style="display:none;">' +
+            '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Sem senha! Digite seu e-mail e receba um link mágico de acesso.</p>' +
+            '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
               '<div class="form-group">' +
                 '<label class="form-label">E-mail</label>' +
-                '<input type="email" id="register-email" class="form-control" placeholder="seu@email.com" required>' +
+                '<input type="email" id="login-email-link" class="form-control" placeholder="seu@email.com" required>' +
               '</div>' +
-              '<div class="form-group mb-4">' +
-                '<label class="form-label">Senha (mínimo 6 caracteres)</label>' +
-                '<input type="password" id="register-password" class="form-control" placeholder="••••••••" required minlength="6">' +
-              '</div>' +
-              '<button type="submit" class="btn btn-primary btn-block">Criar Conta</button>' +
+              '<button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">✉️ Enviar Link de Acesso</button>' +
             '</form>' +
-            '<div style="text-align:center;margin-top:12px;">' +
-              '<span style="color:var(--text-muted);font-size:0.8rem;">Já tem conta? </span>' +
-              '<a href="#" onclick="event.preventDefault();toggleEmailMode(\'login\')" style="color:var(--primary-color);font-size:0.8rem;font-weight:600;">Entrar</a>' +
+            '<p style="color:var(--text-muted);font-size:0.72rem;text-align:center;margin-top:10px;">Você receberá um e-mail com um link. Clique nele para entrar automaticamente.</p>' +
+          '</div>' +
+
+          // --- Tab: Phone/SMS ---
+          '<div id="login-panel-phone" style="display:none;">' +
+            '<div id="phone-step-number" style="display:block;">' +
+              '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Digite seu celular com DDD. Enviaremos um código por SMS.</p>' +
+              '<form onsubmit="event.preventDefault(); handlePhoneLogin();">' +
+                '<div class="form-group">' +
+                  '<label class="form-label">Celular</label>' +
+                  '<div style="display:flex;gap:8px;align-items:center;">' +
+                    '<span style="color:var(--text-muted);font-size:0.85rem;white-space:nowrap;">🇧🇷 +55</span>' +
+                    '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" required style="flex:1;">' +
+                  '</div>' +
+                '</div>' +
+                '<button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">📱 Enviar Código SMS</button>' +
+              '</form>' +
             '</div>' +
+            '<div id="phone-step-code" style="display:none;">' +
+              '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Digite o código de 6 dígitos que você recebeu por SMS.</p>' +
+              '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
+                '<div class="form-group">' +
+                  '<label class="form-label">Código de Verificação</label>' +
+                  '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;font-size:1.3rem;letter-spacing:8px;font-weight:700;">' +
+                '</div>' +
+                '<button type="submit" class="btn btn-success btn-block" style="margin-top:8px;">✓ Verificar Código</button>' +
+              '</form>' +
+              '<div style="text-align:center;margin-top:10px;">' +
+                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.78rem;">Reenviar código</a>' +
+                '<span style="color:var(--text-muted);font-size:0.78rem;margin:0 8px;">|</span>' +
+                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.78rem;">Voltar</a>' +
+              '</div>' +
+            '</div>' +
+            '<div id="recaptcha-container"></div>' +
           '</div>' +
 
         '</div>' +

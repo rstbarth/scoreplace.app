@@ -261,7 +261,7 @@ window._openSetScoring = function(tId, matchId) {
   if (!m) return;
 
   const sc = t.scoring;
-  const totalSets = sc.setsToWin * 2 - 1;
+  const isFixedSet = sc.fixedSet === true;
   const p1Name = m.p1 || 'Jogador 1';
   const p2Name = m.p2 || 'Jogador 2';
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
@@ -271,42 +271,74 @@ window._openSetScoring = function(tId, matchId) {
   if (existing) existing.remove();
 
   let setsHtml = '';
-  for (let i = 0; i < totalSets; i++) {
-    const isDecidingSet = (i === totalSets - 1) && sc.superTiebreak;
-    const label = isDecidingSet ? 'Super Tie-break' : 'Set ' + (i + 1);
-    setsHtml += '<div class="set-row" data-set="' + i + '" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
-      '<div style="width:100px;font-size:0.82rem;font-weight:600;color:var(--text-muted);">' + label + '</div>' +
-      '<input type="number" id="set-p1-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
+
+  if (isFixedSet) {
+    // Fixed Set mode: single input for games won by each player
+    const fsGames = sc.fixedSetGames || sc.gamesPerSet || 6;
+    setsHtml += '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+      '<div style="font-size:0.78rem;color:#f59e0b;font-weight:600;margin-bottom:4px;">⚡ Set Fixo de ' + fsGames + ' games</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);">Informe quantos games cada jogador venceu (total = ' + fsGames + ').</div>' +
+    '</div>';
+    setsHtml += '<div class="set-row" data-set="0" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+      '<div style="width:100px;font-size:0.82rem;font-weight:600;color:var(--text-muted);">Games</div>' +
+      '<input type="number" id="set-p1-0" min="0" max="' + fsGames + '" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
       '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
-      '<input type="number" id="set-p2-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
-      '<div id="tb-indicator-' + i + '" style="font-size:0.72rem;color:#c084fc;font-weight:600;min-width:60px;"></div>' +
+      '<input type="number" id="set-p2-0" min="0" max="' + fsGames + '" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
+      '<div id="tb-indicator-0" style="font-size:0.72rem;color:#c084fc;font-weight:600;min-width:60px;"></div>' +
+    '</div>';
+    // Tiebreak row for fixed set tie
+    setsHtml += '<div id="tb-input-row" style="display:none;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<div style="width:100px;font-size:0.82rem;font-weight:600;color:#c084fc;">Tie-break</div>' +
+        '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
+        '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
+        '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
+      '</div>' +
+      '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;">Empate — desempate por tie-break</div>' +
+    '</div>';
+  } else {
+    // Standard set-by-set scoring
+    const totalSets = sc.setsToWin * 2 - 1;
+    for (let i = 0; i < totalSets; i++) {
+      const isDecidingSet = (i === totalSets - 1) && sc.superTiebreak;
+      const label = isDecidingSet ? 'Super Tie-break' : 'Set ' + (i + 1);
+      setsHtml += '<div class="set-row" data-set="' + i + '" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+        '<div style="width:100px;font-size:0.82rem;font-weight:600;color:var(--text-muted);">' + label + '</div>' +
+        '<input type="number" id="set-p1-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
+        '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
+        '<input type="number" id="set-p2-' + i + '" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',' + i + ')">' +
+        '<div id="tb-indicator-' + i + '" style="font-size:0.72rem;color:#c084fc;font-weight:600;min-width:60px;"></div>' +
+      '</div>';
+    }
+    // Tiebreak input row (shown dynamically when needed)
+    setsHtml += '<div id="tb-input-row" style="display:none;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<div style="width:100px;font-size:0.82rem;font-weight:600;color:#c084fc;">Tie-break</div>' +
+        '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+        '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
+        '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+      '</div>' +
+      '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;"></div>' +
     '</div>';
   }
 
-  // Tiebreak input row (shown dynamically when needed)
-  setsHtml += '<div id="tb-input-row" style="display:none;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
-    '<div style="display:flex;align-items:center;gap:12px;">' +
-      '<div style="width:100px;font-size:0.82rem;font-weight:600;color:#c084fc;">Tie-break</div>' +
-      '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
-      '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
-      '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
-    '</div>' +
-    '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;"></div>' +
-  '</div>';
+  const headerSubtitle = isFixedSet
+    ? '⚡ Set Fixo de ' + (sc.fixedSetGames || sc.gamesPerSet) + ' games'
+    : sc.setsToWin + ' set' + (sc.setsToWin > 1 ? 's' : '') + ' · ' + sc.gamesPerSet + ' games/set';
 
   const overlay = document.createElement('div');
   overlay.id = 'set-scoring-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(8px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
 
   overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;max-height:90vh;display:flex;flex-direction:column;">' +
-    '<div style="background:linear-gradient(135deg,#6d28d9 0%,#a855f7 100%);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+    '<div style="background:linear-gradient(135deg,' + (isFixedSet ? '#b45309 0%,#f59e0b' : '#6d28d9 0%,#a855f7') + ' 100%);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
       '<div>' +
-        '<h3 style="margin:0;color:#f5f3ff;font-size:1.05rem;font-weight:800;">🎾 Resultado por Sets</h3>' +
-        '<p style="margin:2px 0 0;color:#e9d5ff;font-size:0.75rem;">' + sc.setsToWin + ' set' + (sc.setsToWin > 1 ? 's' : '') + ' · ' + sc.gamesPerSet + ' games/set</p>' +
+        '<h3 style="margin:0;color:#f5f3ff;font-size:1.05rem;font-weight:800;">' + (isFixedSet ? '⚡ Set Fixo' : '🎾 Resultado por Sets') + '</h3>' +
+        '<p style="margin:2px 0 0;color:#fef3c7;font-size:0.75rem;">' + headerSubtitle + '</p>' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
         '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#f5f3ff;border:1px solid rgba(255,255,255,0.25);">Cancelar</button>' +
-        '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-sm" style="background:#fff;color:#6d28d9;font-weight:700;border:none;" disabled>Salvar</button>' +
+        '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-sm" style="background:#fff;color:' + (isFixedSet ? '#b45309' : '#6d28d9') + ';font-weight:700;border:none;" disabled>Salvar</button>' +
       '</div>' +
     '</div>' +
     '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
@@ -328,6 +360,77 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t || !t.scoring) return;
   const sc = t.scoring;
+  const isFixedSet = sc.fixedSet === true;
+
+  if (isFixedSet) {
+    // Fixed Set mode: check if games add up to total, determine winner by majority
+    const fsGames = sc.fixedSetGames || sc.gamesPerSet || 6;
+    const el1 = document.getElementById('set-p1-0');
+    const el2 = document.getElementById('set-p2-0');
+    if (!el1 || !el2) return;
+    const g1 = parseInt(el1.value);
+    const g2 = parseInt(el2.value);
+    const indicator = document.getElementById('tb-indicator-0');
+    const tbRow = document.getElementById('tb-input-row');
+    const statusEl = document.getElementById('set-scoring-status');
+    const saveBtn = document.getElementById('btn-save-sets');
+
+    if (isNaN(g1) || isNaN(g2)) {
+      if (indicator) indicator.textContent = '';
+      if (tbRow) tbRow.style.display = 'none';
+      if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Informe os games de cada jogador'; }
+      if (saveBtn) saveBtn.disabled = true;
+      return;
+    }
+
+    const total = g1 + g2;
+    const half = Math.floor(fsGames / 2);
+    const isTie = g1 === g2 && g1 === half && fsGames % 2 === 0;
+
+    // Validate: total must equal fsGames
+    if (total !== fsGames) {
+      if (indicator) indicator.innerHTML = '<span style="color:#ef4444;">Total ≠ ' + fsGames + '</span>';
+      if (tbRow) tbRow.style.display = 'none';
+      if (statusEl) { statusEl.style.background = 'rgba(239,68,68,0.1)'; statusEl.style.color = '#ef4444'; statusEl.textContent = 'Total de games deve ser ' + fsGames + ' (atual: ' + total + ')'; }
+      if (saveBtn) saveBtn.disabled = true;
+      return;
+    }
+
+    if (isTie) {
+      // Tied — need tiebreak
+      if (indicator) indicator.textContent = 'Empate!';
+      if (tbRow) tbRow.style.display = 'block';
+      // Check if tiebreak is filled
+      const tbP1 = parseInt(document.getElementById('tb-p1')?.value);
+      const tbP2 = parseInt(document.getElementById('tb-p2')?.value);
+      const tbTarget = sc.tiebreakPoints || 7;
+      const tbMargin = sc.tiebreakMargin || 2;
+      if (!isNaN(tbP1) && !isNaN(tbP2)) {
+        const tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
+        if (tbComplete) {
+          const tbWinner = tbP1 > tbP2 ? 'Jogador 1' : 'Jogador 2';
+          if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = tbWinner + ' vence ' + g1 + '-' + g2 + ' TB(' + tbP1 + '-' + tbP2 + ')'; }
+          if (saveBtn) saveBtn.disabled = false;
+        } else {
+          if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Empate ' + g1 + '-' + g2 + ' — complete o tie-break (' + tbTarget + ' pts, dif. ' + tbMargin + ')'; }
+          if (saveBtn) saveBtn.disabled = true;
+        }
+      } else {
+        if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Empate ' + g1 + '-' + g2 + ' — preencha o tie-break'; }
+        if (saveBtn) saveBtn.disabled = true;
+      }
+    } else {
+      // Clear winner
+      if (indicator) indicator.textContent = '';
+      if (tbRow) tbRow.style.display = 'none';
+      const winner = g1 > g2 ? 'Jogador 1' : 'Jogador 2';
+      if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = winner + ' vence ' + g1 + '-' + g2; }
+      if (saveBtn) saveBtn.disabled = false;
+    }
+    return;
+  }
+
+  // Standard set-by-set mode
   const totalSets = sc.setsToWin * 2 - 1;
   const gps = sc.gamesPerSet;
   let p1Sets = 0, p2Sets = 0;
@@ -404,44 +507,78 @@ window._saveSetResult = function(tId, matchId) {
   if (!m) return;
 
   const sc = t.scoring;
-  const totalSets = sc.setsToWin * 2 - 1;
+  const isFixedSet = sc.fixedSet === true;
   let sets = [];
   let p1Sets = 0, p2Sets = 0;
 
-  for (let i = 0; i < totalSets; i++) {
-    const el1 = document.getElementById('set-p1-' + i);
-    const el2 = document.getElementById('set-p2-' + i);
-    if (!el1 || !el2) continue;
-    const g1 = parseInt(el1.value);
-    const g2 = parseInt(el2.value);
-    if (isNaN(g1) || isNaN(g2)) break;
+  if (isFixedSet) {
+    // Fixed Set mode: single set with games won by each player
+    const el1 = document.getElementById('set-p1-0');
+    const el2 = document.getElementById('set-p2-0');
+    if (!el1 || !el2) return;
+    const g1 = parseInt(el1.value) || 0;
+    const g2 = parseInt(el2.value) || 0;
+    const setData = { gamesP1: g1, gamesP2: g2, fixedSet: true };
 
-    const setData = { gamesP1: g1, gamesP2: g2 };
-
-    if (g1 === sc.gamesPerSet && g2 === sc.gamesPerSet) {
+    if (g1 === g2) {
+      // Tie — add tiebreak data
       const tbP1 = parseInt(document.getElementById('tb-p1')?.value) || 0;
       const tbP2 = parseInt(document.getElementById('tb-p2')?.value) || 0;
       setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
-      var tbMargin = (sc.tiebreakMargin || 2);
-      var tbTarget = (sc.tiebreakPoints || 7);
-      var tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
-      if (tbComplete && tbP1 > tbP2) { setData.gamesP1 = g1 + 1; }
-      else if (tbComplete && tbP2 > tbP1) { setData.gamesP2 = g2 + 1; }
+      // Tiebreak winner gets the set
+      if (tbP1 > tbP2) { setData.gamesP1 = g1 + 1; p1Sets = 1; }
+      else if (tbP2 > tbP1) { setData.gamesP2 = g2 + 1; p2Sets = 1; }
+    } else if (g1 > g2) {
+      p1Sets = 1;
+    } else {
+      p2Sets = 1;
     }
-
     sets.push(setData);
-    // Use adjusted games (after tiebreak) for set winner determination
-    if (setData.gamesP1 > setData.gamesP2) p1Sets++;
-    else if (setData.gamesP2 > setData.gamesP1) p2Sets++;
+  } else {
+    // Standard set-by-set mode
+    const totalSets = sc.setsToWin * 2 - 1;
+    for (let i = 0; i < totalSets; i++) {
+      const el1 = document.getElementById('set-p1-' + i);
+      const el2 = document.getElementById('set-p2-' + i);
+      if (!el1 || !el2) continue;
+      const g1 = parseInt(el1.value);
+      const g2 = parseInt(el2.value);
+      if (isNaN(g1) || isNaN(g2)) break;
 
-    if (p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin) break;
+      const setData = { gamesP1: g1, gamesP2: g2 };
+
+      if (g1 === sc.gamesPerSet && g2 === sc.gamesPerSet) {
+        const tbP1 = parseInt(document.getElementById('tb-p1')?.value) || 0;
+        const tbP2 = parseInt(document.getElementById('tb-p2')?.value) || 0;
+        setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
+        var tbMargin = (sc.tiebreakMargin || 2);
+        var tbTarget = (sc.tiebreakPoints || 7);
+        var tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
+        if (tbComplete && tbP1 > tbP2) { setData.gamesP1 = g1 + 1; }
+        else if (tbComplete && tbP2 > tbP1) { setData.gamesP2 = g2 + 1; }
+      }
+
+      sets.push(setData);
+      if (setData.gamesP1 > setData.gamesP2) p1Sets++;
+      else if (setData.gamesP2 > setData.gamesP1) p2Sets++;
+
+      if (p1Sets >= sc.setsToWin || p2Sets >= sc.setsToWin) break;
+    }
   }
 
   m.sets = sets;
-  m.scoreP1 = p1Sets;
-  m.scoreP2 = p2Sets;
   m.setsWonP1 = p1Sets;
   m.setsWonP2 = p2Sets;
+  if (isFixedSet) {
+    m.fixedSet = true;
+    // For fixed set, scoreP1/P2 show actual games (e.g. 4-2), not sets won
+    var _fs0 = sets[0];
+    m.scoreP1 = _fs0 ? _fs0.gamesP1 : p1Sets;
+    m.scoreP2 = _fs0 ? _fs0.gamesP2 : p2Sets;
+  } else {
+    m.scoreP1 = p1Sets;
+    m.scoreP2 = p2Sets;
+  }
 
   let totalGamesP1 = 0, totalGamesP2 = 0;
   sets.forEach(s => {

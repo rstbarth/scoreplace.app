@@ -1013,6 +1013,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const t = window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
   const useSets = t && t.scoring && t.scoring.type === 'sets';
+  const useFixedSet = useSets && t.scoring.fixedSet;
 
   const isDecided = !!m.winner;
   const isByeMatch = m.isBye || m.p2 === 'BYE';
@@ -1049,6 +1050,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
       const score = playerNum === 1 ? match.scoreP1 : match.scoreP2;
       return score != null ? String(score) : '';
     }
+    // Fixed set: show the single set game count as the main score
+    if (match.fixedSet || useFixedSet) {
+      var s0 = match.sets[0];
+      if (!s0) return '';
+      return String(playerNum === 1 ? s0.gamesP1 : s0.gamesP2);
+    }
     return match.sets.map(s => {
       const g = playerNum === 1 ? s.gamesP1 : s.gamesP2;
       const tb = s.tiebreak;
@@ -1062,6 +1069,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   // Inline score inputs (only when match is active, both players known, and result can be entered)
   const showInputs = !isDecided && !isByeMatch && !hasTBD && canEnterResult;
+  const showSetBtn = showInputs && useSets;
 
   // Check-in dot indicator
   const ciDot = (status) => {
@@ -1075,7 +1083,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      ${showInputs
+      ${showInputs && !showSetBtn
         ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1086,7 +1094,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      ${showInputs
+      ${showInputs && !showSetBtn
         ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
             style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
             oninput="window._highlightWinner('${_esc(m.id)}')">`
@@ -1097,10 +1105,19 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const vsRow = `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:3px 0;">VS</div>`;
 
   // Format set scores for winner badge
+  const _isFixedSetMatch = m.fixedSet || useFixedSet;
   const setsDisplay = isDecided && useSets && m.sets && m.sets.length > 0
-    ? `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
-        ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
-      </div>`
+    ? _isFixedSetMatch
+      ? (() => {
+          var _s0 = m.sets[0];
+          var _tbText = _s0 && _s0.tiebreak ? ' TB(' + _s0.tiebreak.pointsP1 + '-' + _s0.tiebreak.pointsP2 + ')' : '';
+          return `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
+            ⚡ ${_s0.gamesP1}-${_s0.gamesP2}${_tbText}
+          </div>`;
+        })()
+      : `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
+          ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
+        </div>`
     : '';
 
   const winnerBadge = isDecided && !isByeMatch
@@ -1110,17 +1127,26 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
 
-  const headerConfirmBtn = showInputs
+  const headerConfirmBtn = showSetBtn
+    ? `<button onclick="window._openSetScoring('${_esc(tId)}','${_esc(m.id)}')"
+        style="background:${useFixedSet ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)'};border:1px solid ${useFixedSet ? 'rgba(245,158,11,0.3)' : 'rgba(139,92,246,0.3)'};color:${useFixedSet ? '#fbbf24' : '#a78bfa'};border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='${useFixedSet ? 'rgba(245,158,11,0.3)' : 'rgba(139,92,246,0.3)'}'" onmouseout="this.style.background='${useFixedSet ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)'}'">${useFixedSet ? '⚡ Set Fixo' : '🎾 Sets'}</button>`
+    : showInputs
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
   const headerEditBtn = isDecided && !isByeMatch && canEnterResult
-    ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
-        style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
-        onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
-        title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
+    ? useSets
+      ? `<button onclick="window._openSetScoring('${_esc(tId)}','${_esc(m.id)}')"
+          style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
+          onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
+          title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
+      : `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
+          style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
+          onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
+          title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
     : '';
 
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');

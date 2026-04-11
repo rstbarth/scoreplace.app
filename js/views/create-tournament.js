@@ -433,6 +433,8 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="gsm-superTiebreakPoints" value="10">
                 <input type="hidden" id="gsm-countingType" value="numeric">
                 <input type="hidden" id="gsm-advantageRule" value="false">
+                <input type="hidden" id="gsm-fixedSet" value="false">
+                <input type="hidden" id="gsm-fixedSetGames" value="6">
               </div>
 
               <!-- Inscrição e Limite -->
@@ -2584,6 +2586,8 @@ function setupCreateTournamentModal() {
       document.getElementById('gsm-superTiebreakPoints').value = t.scoring.superTiebreakPoints || 10;
       document.getElementById('gsm-countingType').value = t.scoring.countingType || 'numeric';
       document.getElementById('gsm-advantageRule').value = t.scoring.advantageRule || false;
+      document.getElementById('gsm-fixedSet').value = t.scoring.fixedSet || false;
+      document.getElementById('gsm-fixedSetGames').value = t.scoring.fixedSetGames || 6;
       // Update detailed summary display
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
     }
@@ -2804,7 +2808,9 @@ function setupCreateTournamentModal() {
             superTiebreak: document.getElementById('gsm-superTiebreak').value === 'true',
             superTiebreakPoints: parseInt(document.getElementById('gsm-superTiebreakPoints').value) || 10,
             countingType: document.getElementById('gsm-countingType').value || 'numeric',
-            advantageRule: document.getElementById('gsm-advantageRule').value === 'true'
+            advantageRule: document.getElementById('gsm-advantageRule').value === 'true',
+            fixedSet: document.getElementById('gsm-fixedSet').value === 'true',
+            fixedSetGames: parseInt(document.getElementById('gsm-fixedSetGames').value) || 6
           },
           organizerEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
           creatorEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
@@ -2972,6 +2978,8 @@ window._openGSMConfig = function() {
   var stbPoints = document.getElementById('gsm-superTiebreakPoints').value;
   var counting = document.getElementById('gsm-countingType').value;
   var advantage = document.getElementById('gsm-advantageRule').value === 'true';
+  var fixedSet = document.getElementById('gsm-fixedSet').value === 'true';
+  var fixedSetGames = document.getElementById('gsm-fixedSetGames').value || '6';
 
   var existing = document.getElementById('gsm-config-overlay');
   if (existing) existing.remove();
@@ -2998,6 +3006,26 @@ window._openGSMConfig = function() {
         '<div style="display:flex;gap:8px;">' +
           '<button type="button" onclick="window._gsmSetCounting(\'tennis\')" id="gsm-btn-tennis" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'tennis' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Tênis (15, 30, 40)</button>' +
           '<button type="button" onclick="window._gsmSetCounting(\'numeric\')" id="gsm-btn-numeric" class="btn btn-sm" style="flex:1;font-size:0.78rem;' + (counting === 'numeric' ? 'background:#a855f7;color:#fff;' : 'background:rgba(255,255,255,0.08);color:var(--text-main,#e2e8f0);') + '">Numérico/Tempo</button>' +
+        '</div>' +
+      '</div>' +
+
+      // Set Fixo toggle
+      '<div id="gsm-fixed-set-section" style="display:' + (counting === 'tennis' ? 'block' : 'none') + ';background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:1rem;">' +
+        '<div class="toggle-row" style="padding:4px 0;margin-bottom:6px;">' +
+          '<div class="toggle-row-label">' +
+            '<span style="font-size:0.85rem;font-weight:700;">⚡ Set Fixo</span>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Disputa de N games fixos. Ganha quem vencer mais. Empate vai pro tie-break.</div>' +
+          '</div>' +
+          '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-fixedSet" ' + (fixedSet ? 'checked' : '') + ' onchange="window._gsmToggleFixedSet()"><span class="toggle-slider"></span></label>' +
+        '</div>' +
+        '<div id="gsm-fixed-set-details" style="display:' + (fixedSet ? 'flex' : 'none') + ';gap:12px;align-items:center;padding-left:8px;">' +
+          '<div style="min-width:120px;">' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);font-weight:600;display:block;margin-bottom:3px;">Total de games</label>' +
+            '<input type="number" id="gsm-cfg-fixedSetGames" class="form-control" min="2" max="20" value="' + fixedSetGames + '" style="font-size:0.85rem;width:80px;" oninput="window._gsmUpdateSummary()">' +
+          '</div>' +
+          '<div style="font-size:0.75rem;color:#f59e0b;line-height:1.4;flex:1;">' +
+            'Ex: Set Fixo de 6 → resultados possíveis: 6-0, 5-1, 4-2. Se 3-3, tie-break.' +
+          '</div>' +
         '</div>' +
       '</div>' +
 
@@ -3100,9 +3128,33 @@ window._gsmSetCounting = function(ct) {
   if (tbSection) tbSection.closest('div[style*="border-top"]').style.display = ct === 'tennis' ? 'block' : 'none';
   var stbSection = document.getElementById('gsm-super-tb-section');
   if (stbSection) stbSection.style.display = ct === 'tennis' && parseInt(document.getElementById('gsm-cfg-setsToWin').value) > 1 ? 'block' : 'none';
+  // Hide fixed set for numeric mode
+  var fsSection = document.getElementById('gsm-fixed-set-section');
+  if (fsSection) fsSection.style.display = ct === 'tennis' ? 'block' : 'none';
+  // Uncheck fixed set when switching to numeric
+  if (ct === 'numeric') {
+    var fsEl = document.getElementById('gsm-cfg-fixedSet');
+    if (fsEl && fsEl.checked) { fsEl.checked = false; window._gsmToggleFixedSet(); }
+  }
   document.getElementById('gsm-countingType').value = ct;
   // Always type=sets since we removed simple/advanced toggle
   document.getElementById('gsm-type').value = 'sets';
+  window._gsmUpdateSummary();
+};
+
+window._gsmToggleFixedSet = function() {
+  var checked = document.getElementById('gsm-cfg-fixedSet').checked;
+  document.getElementById('gsm-fixed-set-details').style.display = checked ? 'flex' : 'none';
+  // When fixed set is ON, force setsToWin=1, hide sets config, enable tiebreak auto
+  var setsConfig = document.getElementById('gsm-sets-config');
+  if (setsConfig) setsConfig.style.display = checked ? 'none' : 'flex';
+  if (checked) {
+    var setsEl = document.getElementById('gsm-cfg-setsToWin');
+    if (setsEl) setsEl.value = '1';
+    // Auto-enable tiebreak for fixed set (needed for ties)
+    var tbEl = document.getElementById('gsm-cfg-tiebreak');
+    if (tbEl) { tbEl.checked = true; window._gsmToggleTiebreak(); }
+  }
   window._gsmUpdateSummary();
 };
 
@@ -3142,8 +3194,21 @@ window._gsmUpdateSummary = function() {
   var stbSection = document.getElementById('gsm-super-tb-section');
   if (stbSection) stbSection.style.display = sets > 1 ? 'block' : 'none';
 
+  // Check for fixed set mode
+  var fsOn = document.getElementById('gsm-cfg-fixedSet') ? document.getElementById('gsm-cfg-fixedSet').checked : false;
+  var fsGames = parseInt(document.getElementById('gsm-cfg-fixedSetGames') ? document.getElementById('gsm-cfg-fixedSetGames').value : 0) || 6;
+
   var lines = [];
-  if (counting === 'numeric') {
+  if (fsOn && counting === 'tennis') {
+    var half = Math.floor(fsGames / 2);
+    var isEven = fsGames % 2 === 0;
+    lines.push('<strong>⚡ Set Fixo de ' + fsGames + ' games</strong>');
+    lines.push('Disputa de ' + fsGames + ' games fixos. Ganha quem vencer mais.');
+    if (isEven) {
+      lines.push('Empate ' + half + '-' + half + ': tie-break de ' + tbPts + ' pontos (diferença mín. ' + tbMargin + ').');
+    }
+    lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2' + (isEven ? ', ..., ' + half + '-' + half + ' (TB)' : '') + '.');
+  } else if (counting === 'numeric') {
     lines.push('<strong>' + sets + ' pontos</strong> para vencer');
     lines.push(games + ' tempos de ' + games + ' minutos (contagem numérica)');
   } else {
@@ -3161,7 +3226,15 @@ window._gsmUpdateSummary = function() {
 
   // Show/hide super tiebreak section based on sets and counting type
   var stbSection = document.getElementById('gsm-super-tb-section');
-  if (stbSection) stbSection.style.display = counting === 'tennis' && sets > 1 ? 'block' : 'none';
+  if (stbSection) stbSection.style.display = counting === 'tennis' && sets > 1 && !fsOn ? 'block' : 'none';
+
+  // Show/hide fixed set section
+  var fsSection = document.getElementById('gsm-fixed-set-section');
+  if (fsSection) fsSection.style.display = counting === 'tennis' ? 'block' : 'none';
+
+  // Hide sets config when fixed set is on
+  var setsConfig = document.getElementById('gsm-sets-config');
+  if (setsConfig) setsConfig.style.display = fsOn ? 'none' : 'flex';
 
   el.innerHTML = lines.join('<br>');
 };
@@ -3190,6 +3263,16 @@ window._gsmSaveConfig = function() {
     document.getElementById('gsm-superTiebreakPoints').value = stbPts;
     document.getElementById('gsm-countingType').value = counting;
     document.getElementById('gsm-advantageRule').value = advantage ? 'true' : 'false';
+
+    var fixedSetOn = document.getElementById('gsm-cfg-fixedSet') ? document.getElementById('gsm-cfg-fixedSet').checked : false;
+    var fixedSetGamesVal = document.getElementById('gsm-cfg-fixedSetGames') ? document.getElementById('gsm-cfg-fixedSetGames').value : '6';
+    document.getElementById('gsm-fixedSet').value = fixedSetOn ? 'true' : 'false';
+    document.getElementById('gsm-fixedSetGames').value = fixedSetGamesVal;
+    // When fixed set is on, force setsToWin=1 and auto-set gamesPerSet to match
+    if (fixedSetOn) {
+      document.getElementById('gsm-setsToWin').value = '1';
+      document.getElementById('gsm-gamesPerSet').value = fixedSetGamesVal;
+    }
   }
 
   // Update detailed summary in main form
@@ -3211,7 +3294,9 @@ window._gsmSaveConfig = function() {
         superTiebreak: document.getElementById('gsm-superTiebreak').value,
         superTiebreakPoints: document.getElementById('gsm-superTiebreakPoints').value,
         countingType: document.getElementById('gsm-countingType').value,
-        advantageRule: document.getElementById('gsm-advantageRule').value
+        advantageRule: document.getElementById('gsm-advantageRule').value,
+        fixedSet: document.getElementById('gsm-fixedSet').value,
+        fixedSetGames: document.getElementById('gsm-fixedSetGames').value
       };
       localStorage.setItem('scoreplace_gsm_prefs', JSON.stringify(prefs));
     } catch(e) {}
@@ -3239,8 +3324,16 @@ window._updateGSMSummaryFromHidden = function() {
   var advOn = document.getElementById('gsm-advantageRule').value === 'true';
   var tbMargin = parseInt(document.getElementById('gsm-tiebreakMargin').value) || 2;
 
+  var fsOn = document.getElementById('gsm-fixedSet').value === 'true';
+  var fsGames = parseInt(document.getElementById('gsm-fixedSetGames').value) || 6;
+
   var lines = [];
-  if (counting === 'numeric') {
+  if (fsOn && counting !== 'numeric') {
+    var half = Math.floor(fsGames / 2);
+    var isEven = fsGames % 2 === 0;
+    lines.push('<strong>⚡ Set Fixo de ' + fsGames + ' games</strong>');
+    lines.push('Ganha quem vencer mais.' + (isEven ? ' Empate ' + half + '-' + half + ': tie-break.' : ''));
+  } else if (counting === 'numeric') {
     lines.push('<strong>' + s + ' pontos</strong> para vencer');
     lines.push(g + ' tempos de ' + g + ' minutos (contagem numérica)');
   } else {
