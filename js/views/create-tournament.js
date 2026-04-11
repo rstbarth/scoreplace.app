@@ -292,11 +292,13 @@ function setupCreateTournamentModal() {
                 <div class="mb-2">
                   <div class="form-group" style="flex:1;">
                     <label class="form-label">Local do Evento</label>
-                    <div style="position:relative;" id="venue-autocomplete-container">
-                      <input type="text" class="form-control" id="tourn-venue" placeholder="Ex: Clube Esportivo Municipal, Arena Beach Park"
-                        style="flex:1; width:100%;" autocomplete="off">
-                      <div id="venue-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; margin-top:4px; max-height:220px; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
+                    <div style="position:relative;display:flex;gap:6px;margin-bottom:8px;" id="venue-autocomplete-container">
+                      <input type="text" class="form-control" id="tourn-venue" placeholder="Buscar local, arena, clube..."
+                        style="flex:1;box-sizing:border-box;font-size:0.8rem;" autocomplete="off">
+                      <button type="button" onclick="window._venueLocateMe()" class="btn btn-sm" style="background:var(--primary-color);color:#fff;border:none;white-space:nowrap;font-size:0.75rem;padding:6px 10px;" title="Usar minha localização">📍</button>
+                      <div id="venue-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; background:var(--bg-card);border:1px solid var(--border-color); border-radius:10px; margin-top:4px; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
                     </div>
+                    <div id="venue-create-map" style="display:none;width:100%;height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:8px;background:#1a1a2e;"></div>
                     <div id="venue-osm-info" style="display:none; margin-top:5px; font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:5px;"></div>
                     <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
                       <label class="toggle-switch" style="margin:0;">
@@ -1540,6 +1542,8 @@ function setupCreateTournamentModal() {
         if (placeIdEl) placeIdEl.value = '';
         if (photoUrlEl) photoUrlEl.value = '';
         window._applyVenuePhoto('');
+        var mapEl = document.getElementById('venue-create-map');
+        if (mapEl) mapEl.style.display = 'none';
         var infoEl = document.getElementById('venue-osm-info');
         if (infoEl) { infoEl.style.display = 'none'; infoEl.innerHTML = ''; }
       }
@@ -1714,12 +1718,101 @@ function setupCreateTournamentModal() {
       }
 
       window._checkWeather();
+
+      // Show map with the selected venue
+      window._initVenueCreateMap(place.location.lat(), place.location.lng(), name);
     } catch (err) {
       console.error('Place details fetch error:', err);
       if (typeof showNotification === 'function') {
         showNotification('Erro', 'Não foi possível obter detalhes do local: ' + (err.message || ''), 'error');
       }
     }
+  };
+
+  // ── Venue map in create/edit modal ──
+  var _venueCreateMap = null;
+  var _venueCreateMarker = null;
+
+  window._initVenueCreateMap = async function(lat, lng, venueName) {
+    var container = document.getElementById('venue-create-map');
+    if (!container) return;
+    if (isNaN(lat) || isNaN(lng)) { container.style.display = 'none'; return; }
+
+    container.style.display = 'block';
+
+    if (!window.google || !window.google.maps) {
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+      return;
+    }
+
+    try {
+      var { Map } = await google.maps.importLibrary('maps');
+      var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+      _venueCreateMap = new Map(container, {
+        center: { lat: lat, lng: lng },
+        zoom: 15,
+        mapId: 'scoreplace-venue-create-map',
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'cooperative',
+        clickableIcons: false,
+        colorScheme: 'DARK'
+      });
+
+      var pin = document.createElement('div');
+      pin.style.cssText = 'width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#10b981,#34d399);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;';
+      pin.textContent = '📍';
+
+      if (_venueCreateMarker) {
+        try { _venueCreateMarker.map = null; } catch(e) {}
+      }
+      _venueCreateMarker = new AdvancedMarkerElement({
+        map: _venueCreateMap,
+        position: { lat: lat, lng: lng },
+        content: pin,
+        title: venueName || ''
+      });
+    } catch (e) {
+      console.warn('[venue-create-map] init error:', e);
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+    }
+  };
+
+  window._venueLocateMe = function() {
+    if (!navigator.geolocation) {
+      if (typeof showNotification === 'function') showNotification('Erro', 'Geolocalização não disponível no seu navegador.', 'error');
+      return;
+    }
+    if (typeof showNotification === 'function') showNotification('Localizando...', 'Obtendo sua posição...', 'info');
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      // Set lat/lon in hidden fields
+      var latEl = document.getElementById('tourn-venue-lat');
+      var lonEl = document.getElementById('tourn-venue-lon');
+      if (latEl) latEl.value = lat;
+      if (lonEl) lonEl.value = lng;
+      // Reverse geocode to fill venue name
+      if (window.google && window.google.maps) {
+        var geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+          if (status === 'OK' && results && results[0]) {
+            var input = document.getElementById('tourn-venue');
+            var addrEl = document.getElementById('tourn-venue-address');
+            var label = results[0].formatted_address || '';
+            if (input) { input.value = label; input._lastSelectedVenue = label; }
+            if (addrEl) addrEl.value = label;
+          }
+          window._initVenueCreateMap(lat, lng, '');
+        });
+      } else {
+        window._initVenueCreateMap(lat, lng, '');
+      }
+    }, function(err) {
+      console.warn('Geolocation error:', err);
+      if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível obter sua localização.', 'error');
+    }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
   // Apply venue photo as background on the Local e Quadras box
@@ -2517,6 +2610,10 @@ function setupCreateTournamentModal() {
     // Apply saved venue photo as background
     if (t.venuePhotoUrl) {
       setTimeout(function() { window._applyVenuePhoto(t.venuePhotoUrl); }, 50);
+    }
+    // Show venue map if lat/lon available
+    if (t.venueLat && t.venueLon) {
+      setTimeout(function() { window._initVenueCreateMap(parseFloat(t.venueLat), parseFloat(t.venueLon), t.venue || ''); }, 300);
     }
     // Restore logo
     document.getElementById('tourn-logo-data').value = t.logoData || '';
