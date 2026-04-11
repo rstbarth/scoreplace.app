@@ -150,24 +150,30 @@ self.addEventListener('fetch', function(event) {
   // Skip chrome-extension and other non-http
   if (url.indexOf('http') !== 0) return;
 
-  // For same-origin static assets: cache-first with network fallback
+  // For same-origin static assets: network-first (always try fresh, fallback to cache)
   if (url.indexOf(self.location.origin) === 0) {
     event.respondWith(
-      caches.match(event.request).then(function(cached) {
-        if (cached) {
-          // Return cached, but also update cache in background (stale-while-revalidate)
-          var fetchPromise = fetch(event.request).then(function(networkResponse) {
-            if (networkResponse && networkResponse.status === 200) {
-              var responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then(function(cache) {
-                cache.put(event.request, responseClone);
-              });
-            }
-            return networkResponse;
-          }).catch(function() {});
-          return cached;
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, clone);
+          });
         }
-        // Not in cache: fetch from network and cache it
+        return response;
+      }).catch(function() {
+        // Network failed — fallback to cache (offline support)
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // For third-party assets: cache-first with network fallback
+  if (url.indexOf('http') === 0) {
+    event.respondWith(
+      caches.match(event.request).then(function(cached) {
+        if (cached) return cached;
         return fetch(event.request).then(function(response) {
           if (response && response.status === 200) {
             var clone = response.clone();
