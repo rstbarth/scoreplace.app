@@ -93,6 +93,7 @@ window._scrollToParticipant = function(tId, participantName) {
 // User pref notifyLevel: 'todas' (receives all), 'importantes' (fundamental+important), 'fundamentais' (only fundamental)
 window._notifLevelAllowed = function(userLevel, notifLevel) {
     if (!userLevel || userLevel === 'todas') return true;
+    if (userLevel === 'none') return false;
     if (userLevel === 'importantes') return notifLevel === 'fundamental' || notifLevel === 'important';
     if (userLevel === 'fundamentais') return notifLevel === 'fundamental';
     return true;

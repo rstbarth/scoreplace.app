@@ -2121,8 +2121,9 @@ function setupProfileModal() {
               (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true, color: '#3b82f6' }) : '') +
               '<div style="margin-top:6px;">' +
                 '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Receber comunicações dos torneios:</div>' +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b' }) : '') +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-todas', label: 'Todas', icon: '🟢', checked: true, color: '#22c55e', onchange: 'window._onNotifyToggle(\'todas\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
               '</div>' +
             '</div>' +
             // Locais de preferência (mapa)
@@ -2201,13 +2202,72 @@ function setupProfileModal() {
       }
     }
 
-    // Notification filter toggles — independent (not exclusive)
-    // Both off = 'todas', only imp = 'importantes', only fund = 'fundamentais', both on = 'fundamentais'
+    // Notification filter toggles: todas (green), importantes (yellow), fundamentais (red)
+    // todas ON = receive everything; importantes ON = important + fundamental; fundamentais ON = fundamental only
+    // Cascade: todas ON → imp+fund ON; todas OFF keeps imp/fund as-is; fund OFF → confirm warning
     window._applyNotifyFilterUI = function(level) {
+      var todasEl = document.getElementById('profile-filter-todas');
       var impEl = document.getElementById('profile-filter-importantes');
       var funEl = document.getElementById('profile-filter-fundamentais');
-      if (impEl) impEl.checked = (level === 'importantes' || level === 'fundamentais');
-      if (funEl) funEl.checked = (level === 'fundamentais');
+      if (todasEl) todasEl.checked = (level === 'todas');
+      if (impEl) impEl.checked = (level === 'todas' || level === 'importantes');
+      if (funEl) funEl.checked = true; // fundamentais always on by default
+      if (level === 'none') {
+        if (todasEl) todasEl.checked = false;
+        if (impEl) impEl.checked = false;
+        if (funEl) funEl.checked = false;
+      }
+    };
+
+    window._onNotifyToggle = function(which) {
+      var todasEl = document.getElementById('profile-filter-todas');
+      var impEl = document.getElementById('profile-filter-importantes');
+      var funEl = document.getElementById('profile-filter-fundamentais');
+      if (!todasEl || !impEl || !funEl) return;
+
+      if (which === 'todas') {
+        if (todasEl.checked) {
+          // Turning ON todas → auto-enable importantes + fundamentais
+          impEl.checked = true;
+          funEl.checked = true;
+        }
+        // Turning OFF todas just means user doesn't want "all" — imp/fund stay as-is
+      } else if (which === 'importantes') {
+        if (impEl.checked) {
+          // Turning ON importantes → also turn on fundamentais (it's a subset)
+          funEl.checked = true;
+        }
+        // Turning OFF importantes → also turn off todas
+        if (!impEl.checked) todasEl.checked = false;
+      } else if (which === 'fundamentais') {
+        if (!funEl.checked) {
+          // Warn before disabling fundamentais
+          if (typeof showConfirmDialog === 'function') {
+            showConfirmDialog(
+              'Desativar comunicações fundamentais?',
+              'Você não receberá nenhuma comunicação dos torneios, incluindo avisos indispensáveis como alterações de horário, cancelamentos e resultados. Tem certeza?',
+              function() {
+                // Confirmed: disable all
+                funEl.checked = false;
+                impEl.checked = false;
+                todasEl.checked = false;
+              },
+              function() {
+                // Cancelled: revert
+                funEl.checked = true;
+              }
+            );
+            // Revert immediately (dialog is async) — confirmed callback will re-set
+            funEl.checked = true;
+            return;
+          }
+        }
+        // Turning OFF fundamentais → also off importantes and todas
+        if (!funEl.checked) {
+          impEl.checked = false;
+          todasEl.checked = false;
+        }
+      }
     };
 
     // ─── Profile Theme Buttons ──────────────────────────────────────────────
@@ -2580,9 +2640,10 @@ function setupProfileModal() {
       var notifyPlatform = document.getElementById('profile-notify-platform') ? document.getElementById('profile-notify-platform').checked : true;
       var notifyEmail = document.getElementById('profile-notify-email') ? document.getElementById('profile-notify-email').checked : true;
       var notifyWhatsApp = document.getElementById('profile-notify-whatsapp') ? document.getElementById('profile-notify-whatsapp').checked : true;
+      var _todasChecked = document.getElementById('profile-filter-todas') ? document.getElementById('profile-filter-todas').checked : true;
       var _impChecked = document.getElementById('profile-filter-importantes') ? document.getElementById('profile-filter-importantes').checked : false;
       var _funChecked = document.getElementById('profile-filter-fundamentais') ? document.getElementById('profile-filter-fundamentais').checked : false;
-      var notifyLevel = _funChecked ? 'fundamentais' : (_impChecked ? 'importantes' : 'todas');
+      var notifyLevel = _todasChecked ? 'todas' : (_impChecked ? 'importantes' : (_funChecked ? 'fundamentais' : 'none'));
       var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
       var preferredLocations = Array.isArray(window._profileLocations) ? window._profileLocations : [];
       // Visual hints toggle
