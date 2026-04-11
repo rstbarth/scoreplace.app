@@ -1186,7 +1186,7 @@ function renderTournaments(container, tournamentId = null) {
         });
 
         if (parts.length > 0) {
-            // Sort preference: 'alpha_asc' = A→Z, 'alpha_desc' = Z→A, 'chrono' = enrollment order (default)
+            // Sort preference: alpha_asc/alpha_desc = alphabetical, chrono/chrono_desc = enrollment order
             var _enrollSort = window._enrollSortMode || 'chrono';
             if (_enrollSort === 'alpha_asc' || _enrollSort === 'alpha_desc') {
                 var _alphaDir = (_enrollSort === 'alpha_desc') ? -1 : 1;
@@ -1195,6 +1195,8 @@ function renderTournaments(container, tournamentId = null) {
                     var nB = (typeof b === 'string' ? b : (b.displayName || b.name || '')).toLowerCase();
                     return _alphaDir * nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
                 });
+            } else if (_enrollSort === 'chrono_desc') {
+                parts.reverse();
             }
             // (chrono = original array order = enrollment order, no sort needed)
 
@@ -1253,6 +1255,7 @@ function renderTournaments(container, tournamentId = null) {
                     if (ac !== bc) return ac ? 1 : -1; // unchecked first
                     if (_enrollSort === 'alpha_asc') return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
                     if (_enrollSort === 'alpha_desc') return b.name.localeCompare(a.name, 'pt-BR', { sensitivity: 'base' });
+                    if (_enrollSort === 'chrono_desc') return b.teamIdx - a.teamIdx;
                     return 0; // chrono = original order
                 });
 
@@ -1305,6 +1308,9 @@ function renderTournaments(container, tournamentId = null) {
                     var nA = (typeof a === 'string' ? a : (a.displayName || a.name || '')).toLowerCase();
                     var nB = (typeof b === 'string' ? b : (b.displayName || b.name || '')).toLowerCase();
                     return (_enrollSort === 'alpha_desc' ? -1 : 1) * nA.localeCompare(nB, 'pt-BR', { sensitivity: 'base' });
+                  }
+                  if (_enrollSort === 'chrono_desc') {
+                    return parts.indexOf(b) - parts.indexOf(a);
                   }
                   return 0; // chrono = original order
                 });
@@ -1449,12 +1455,16 @@ function renderTournaments(container, tournamentId = null) {
             var _sortAlphaAsc = _enrollSort === 'alpha_asc';
             var _sortAlphaDesc = _enrollSort === 'alpha_desc';
             var _sortAlphaActive = _sortAlphaAsc || _sortAlphaDesc;
-            var _sortChronoActive = _enrollSort === 'chrono' || !_enrollSort;
+            var _sortChronoAsc = _enrollSort === 'chrono' || (!_enrollSort);
+            var _sortChronoDesc = _enrollSort === 'chrono_desc';
+            var _sortChronoActive = _sortChronoAsc || _sortChronoDesc;
             var _alphaLabel = _sortAlphaDesc ? 'Z-A ↑' : 'A-Z ↓';
             var _alphaNextMode = _sortAlphaAsc ? 'alpha_desc' : 'alpha_asc';
+            var _chronoLabel = _sortChronoDesc ? '🕐 ↑' : '🕐 ↓';
+            var _chronoNextMode = _sortChronoDesc ? 'chrono' : 'chrono_desc';
             var _sortBtns = `<div style="display:inline-flex;gap:2px;margin-left:auto;">
               <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_alphaNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortAlphaDesc ? 'Ordenar Z-A' : 'Ordenar A-Z'}" style="padding:3px 10px;border-radius:8px 0 0 8px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortAlphaActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortAlphaActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortAlphaActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_alphaLabel}</button>
-              <button onclick="var _sy=window.scrollY;window._enrollSortMode='chrono';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="Ordem de inscrição" style="padding:3px 10px;border-radius:0 8px 8px 0;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortChronoActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortChronoActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortChronoActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">🕐</button>
+              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_chronoNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortChronoDesc ? 'Últimos inscritos primeiro' : 'Primeiros inscritos primeiro'}" style="padding:3px 10px;border-radius:0 8px 8px 0;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortChronoActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortChronoActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortChronoActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_chronoLabel}</button>
             </div>`;
 
             participantsHtml = `

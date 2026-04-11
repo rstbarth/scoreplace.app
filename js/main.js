@@ -277,8 +277,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.54-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Ordenacao de inscritos melhorada</b> — Botao A-Z alterna entre ordem crescente (A-Z ↓) e decrescente (Z-A ↑) a cada clique. Botao relogio retorna a ordem cronologica de inscricao.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Ordenacao de inscritos melhorada</b> — Botao A-Z alterna entre crescente (A-Z ↓) e decrescente (Z-A ↑). Botao relogio tambem alterna entre cronologico crescente (🕐 ↓) e decrescente (🕐 ↑). Setas indicam a direcao ativa.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
