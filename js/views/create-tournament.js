@@ -3328,9 +3328,14 @@ window._gsmUpdateSummary = function() {
   var fsSection = document.getElementById('gsm-fixed-set-section');
   if (fsSection) fsSection.style.display = counting === 'tennis' ? 'block' : 'none';
 
-  // Hide sets config when fixed set is on
+  // When fixed set is on, hide sets/games selectors and advantage, but keep tiebreak visible
   var setsConfig = document.getElementById('gsm-sets-config');
-  if (setsConfig) setsConfig.style.display = fsOn ? 'none' : 'flex';
+  if (setsConfig) {
+    var _setsGamesRow = setsConfig.querySelector(':scope > div:first-child');
+    if (_setsGamesRow) _setsGamesRow.style.display = fsOn ? 'none' : 'flex';
+    var _advRow = document.getElementById('gsm-advantage-row');
+    if (_advRow) _advRow.style.display = fsOn ? 'none' : (counting === 'tennis' ? 'flex' : 'none');
+  }
 
   el.innerHTML = lines.join('<br>');
 };
