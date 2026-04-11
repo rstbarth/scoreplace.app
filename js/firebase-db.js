@@ -39,10 +39,16 @@ window.FirestoreDB = {
 
   // ---- Tournaments ----
 
-  async saveTournament(tourData) {
+  async saveTournament(tourData, options) {
     if (!this.db) return;
     var docId = String(tourData.id);
     var cleanData = this._cleanUndefined(tourData);
+    // When skipParticipants is true, exclude participants array to prevent
+    // overwriting enrollments made by other users via transactions.
+    // This is critical: sync() and organizer edits should NOT touch participants.
+    if (options && options.skipParticipants) {
+      delete cleanData.participants;
+    }
     await this.db.collection('tournaments').doc(docId).set(cleanData, { merge: true });
   },
 
@@ -103,6 +109,38 @@ window.FirestoreDB = {
 
       transaction.update(docRef, updateData);
       return { alreadyEnrolled: false, participants: participants, autoCloseTriggered: !!updateData.status };
+    });
+  },
+
+  // Atomic deenrollment — prevents race conditions where deenroll overwrites
+  // concurrent enrollments by other users
+  async deenrollParticipant(tournamentId, userEmail, userDisplayName, userUid) {
+    if (!this.db) throw new Error('Firestore not initialized');
+    var docRef = this.db.collection('tournaments').doc(String(tournamentId));
+    return this.db.runTransaction(async function(transaction) {
+      var doc = await transaction.get(docRef);
+      if (!doc.exists) throw new Error('Tournament not found');
+      var data = doc.data();
+      var participants = Array.isArray(data.participants) ? data.participants : (data.participants ? Object.values(data.participants) : []);
+
+      var newParticipants = participants.filter(function(p) {
+        if (typeof p === 'string') {
+          if (p.indexOf(' / ') !== -1) return true; // keep teams
+          return p !== userEmail && p !== userDisplayName;
+        }
+        if (userUid && p.uid && p.uid === userUid) return false;
+        if (userEmail && p.email && p.email === userEmail) return false;
+        if (userDisplayName && p.displayName && p.displayName === userDisplayName) return false;
+        if (userDisplayName && p.name && p.name === userDisplayName) return false;
+        return true;
+      });
+
+      if (newParticipants.length === participants.length) {
+        return { notFound: true, participants: participants };
+      }
+
+      transaction.update(docRef, { participants: newParticipants });
+      return { notFound: false, participants: newParticipants };
     });
   },
 

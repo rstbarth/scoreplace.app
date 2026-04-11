@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.56-alpha';
+window.SCOREPLACE_VERSION = '0.8.57-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -469,13 +469,14 @@ window.AppStore = {
 
   // Sync: saves ALL organizer tournaments to Firestore IMMEDIATELY
   // No more debounce — every mutation must persist to prevent data loss across devices
+  // IMPORTANT: skipParticipants prevents overwriting enrollments from other users
   sync() {
     var store = this;
     if (!window.FirestoreDB || !window.FirestoreDB.db || !store.currentUser) return;
     store.tournaments.forEach(function(t) {
       if (t.organizerEmail === store.currentUser.email ||
           (Array.isArray(t.coHosts) && t.coHosts.some(function(ch) { return ch.email === store.currentUser.email && ch.status === 'active'; }))) {
-        window.FirestoreDB.saveTournament(t).catch(function(err) {
+        window.FirestoreDB.saveTournament(t, { skipParticipants: true }).catch(function(err) {
           console.warn('Sync error:', err);
         });
       }
