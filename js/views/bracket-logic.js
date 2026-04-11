@@ -356,11 +356,18 @@ function _advanceWinner(t, completedMatch) {
     }
   }
 
-  if (isDupla && completedMatch.loserMatchId) {
+  if (completedMatch.loserMatchId && (isDupla || completedMatch.isRepechageR1)) {
     const loserMatch = _findMatch(t, completedMatch.loserMatchId);
     if (loserMatch) {
-      if (!loserMatch.p1 || loserMatch.p1 === 'TBD') loserMatch.p1 = loser;
-      else if (!loserMatch.p2 || loserMatch.p2 === 'TBD') loserMatch.p2 = loser;
+      // Repechage R1 uses loserSlot for precise placement
+      if (completedMatch.loserSlot === 'p1') {
+        loserMatch.p1 = loser;
+      } else if (completedMatch.loserSlot === 'p2') {
+        loserMatch.p2 = loser;
+      } else {
+        if (!loserMatch.p1 || loserMatch.p1 === 'TBD') loserMatch.p1 = loser;
+        else if (!loserMatch.p2 || loserMatch.p2 === 'TBD') loserMatch.p2 = loser;
+      }
     }
   }
 

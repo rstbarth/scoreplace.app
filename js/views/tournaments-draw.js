@@ -559,108 +559,270 @@ window.generateDrawFunction = function (tId) {
             }
         }
 
-        // ── Play-in (Repescagem) handling with cross-seeding ──────────
+        // ── Repescagem (true repechage): ALL play R1, losers get 2nd chance ──
         if (t.p2Resolution === 'playin') {
             var catLen = catParticipants.length;
-            var catTarget = 1;
-            while (catTarget < catLen) catTarget *= 2;
-            // catTarget is the UPPER power of 2; we want the LOWER one
-            var catLo = catTarget / 2;
-            if (catLo < 1) catLo = 1;
-            // If already a power of 2, skip play-in
-            if (catLen > catLo && catLo >= 2) {
-                var excess = catLen - catLo;
-                // Play-in: last (excess * 2) participants play round 0
-                var playinParticipants = catParticipants.splice(catLen - (excess * 2));
-                // catParticipants now has (catLen - excess*2) = direct-seeded participants
+            // Need at least 3 participants for repechage to make sense
+            if (catLen >= 3) {
+                var r1MatchCount = Math.floor(catLen / 2);
+                var r1Winners = r1MatchCount; // winners from R1
+                // If odd, one gets BYE (direct to R2 as winner)
+                var hasOddBye = (catLen % 2 !== 0);
+                if (hasOddBye) r1Winners++;
 
-                // Generate play-in matches (round 0)
-                var playinMatchIds = [];
-                for (var pi = 0; pi < playinParticipants.length; pi += 2) {
-                    var pp1 = playinParticipants[pi];
-                    var pp2 = pi + 1 < playinParticipants.length ? playinParticipants[pi + 1] : null;
-                    if (!pp2) break;
-                    var playinMatch = {
-                        id: 'match-playin-' + timestamp + '-' + _matchCounter,
-                        round: 0,
-                        bracket: isDupla ? 'upper' : undefined,
-                        p1: getName(pp1),
-                        p2: getName(pp2),
-                        winner: null,
-                        isPlayin: true
-                    };
-                    if (catName) playinMatch.category = catName;
-                    matches.push(playinMatch);
-                    playinMatchIds.push(playinMatch.id);
-                    _matchCounter++;
-                }
+                // Target: next power of 2 >= r1Winners
+                var r2Target = 1;
+                while (r2Target < r1Winners) r2Target *= 2;
+                var spotsFromRepechage = r2Target - r1Winners;
 
-                // Round 1 cross-seeding: pair play-in winners (TBD) vs direct-seeded
-                // Build slot arrays
-                var directSlots = catParticipants.map(function(p) { return getName(p); });
-                var playinSlots = playinMatchIds.map(function(mId) { return { tbd: true, fromPlayinMatch: mId }; });
+                // Only run repechage if we need extra spots AND r1Winners is not already P2
+                if (spotsFromRepechage > 0 && r1MatchCount > 0) {
+                    // ── Step 1: Generate R1 matches (ALL participants play) ──
+                    var r1MatchIds = [];
+                    for (var ri1 = 0; ri1 < catParticipants.length - 1; ri1 += 2) {
+                        var rp1 = catParticipants[ri1];
+                        var rp2 = catParticipants[ri1 + 1];
+                        var r1m = {
+                            id: 'match-r1-' + timestamp + '-' + _matchCounter,
+                            round: 1,
+                            bracket: isDupla ? 'upper' : undefined,
+                            p1: getName(rp1),
+                            p2: getName(rp2),
+                            winner: null,
+                            isRepechageR1: true
+                        };
+                        if (catName) r1m.category = catName;
+                        matches.push(r1m);
+                        r1MatchIds.push(r1m.id);
+                        _matchCounter++;
+                    }
+                    // If odd participant count, last one gets BYE to R2 as winner
+                    var byePlayer = null;
+                    if (hasOddBye) {
+                        byePlayer = getName(catParticipants[catParticipants.length - 1]);
+                    }
 
-                // Cross-seed: alternate direct vs play-in winner
-                var r1Pairs = [];
-                var dIdx = 0, pIdx = 0;
-                while (dIdx < directSlots.length && pIdx < playinSlots.length) {
-                    r1Pairs.push({ p1: directSlots[dIdx], p2: playinSlots[pIdx] });
-                    dIdx++;
-                    pIdx++;
-                }
-                // Remaining direct vs direct
-                while (dIdx + 1 < directSlots.length) {
-                    r1Pairs.push({ p1: directSlots[dIdx], p2: directSlots[dIdx + 1] });
-                    dIdx += 2;
-                }
-                // Remaining play-in vs play-in (unlikely but safe)
-                while (pIdx + 1 < playinSlots.length) {
-                    r1Pairs.push({ p1: playinSlots[pIdx], p2: playinSlots[pIdx + 1] });
-                    pIdx += 2;
-                }
-                // If one direct left over, BYE
-                if (dIdx < directSlots.length) {
-                    r1Pairs.push({ p1: directSlots[dIdx], p2: null });
-                    dIdx++;
-                }
+                    // ── Step 2: Generate Repescagem bracket (losers from R1) ──
+                    // Losers will be fed dynamically via loserMatchId
+                    // We need to produce spotsFromRepechage qualifiers from r1MatchCount losers
+                    // Build a mini elimination bracket for the losers
+                    var repLosers = r1MatchCount; // number of losers from R1
+                    // Repechage rounds: eliminate until spotsFromRepechage remain
+                    // Each repechage round halves the field; we may need BYEs in repechage
+                    var repRounds = [];
+                    var prevRoundMatchIds = [];
 
-                // Generate R1 matches from pairs and link play-in matches
-                for (var ri = 0; ri < r1Pairs.length; ri++) {
-                    var pair = r1Pairs[ri];
-                    var r1p1 = typeof pair.p1 === 'string' ? pair.p1 : 'TBD';
-                    var r1p2 = pair.p2 === null ? 'BYE (Avança Direto)' : (typeof pair.p2 === 'string' ? pair.p2 : 'TBD');
-                    var isBye1 = r1p2 === 'BYE (Avança Direto)';
-                    var r1Match = {
-                        id: 'match-' + timestamp + '-' + _matchCounter,
-                        round: 1,
-                        bracket: isDupla ? 'upper' : undefined,
-                        p1: r1p1,
-                        p2: r1p2,
-                        winner: isBye1 ? r1p1 : null,
-                        isBye: isBye1
-                    };
-                    if (catName) r1Match.category = catName;
-                    matches.push(r1Match);
-                    _matchCounter++;
+                    // First repechage round: r1MatchCount losers pair up
+                    var repR1Count = Math.floor(repLosers / 2);
+                    var repOddBye = (repLosers % 2 !== 0);
+                    var repR1Matches = [];
+                    for (var rr1 = 0; rr1 < repR1Count; rr1++) {
+                        var repM = {
+                            id: 'match-rep-1-' + timestamp + '-' + _matchCounter,
+                            round: -1, // negative round = repechage
+                            bracket: isDupla ? 'upper' : undefined,
+                            p1: 'TBD',
+                            p2: 'TBD',
+                            winner: null,
+                            isRepechage: true,
+                            repRound: 1
+                        };
+                        if (catName) repM.category = catName;
+                        matches.push(repM);
+                        repR1Matches.push(repM);
+                        prevRoundMatchIds.push(repM.id);
+                        _matchCounter++;
+                    }
 
-                    // Link play-in matches → this R1 match via nextMatchId
-                    if (typeof pair.p1 === 'object' && pair.p1.tbd) {
-                        var piMatchP1 = matches.find(function(m) { return m.id === pair.p1.fromPlayinMatch; });
-                        if (piMatchP1) {
-                            piMatchP1.nextMatchId = r1Match.id;
-                            piMatchP1.nextSlot = 'p1'; // winner fills p1 of R1 match
+                    // Link R1 losers → repechage R1 matches via loserMatchId
+                    // Each R1 match's loser goes to a repechage match
+                    var repSlotIdx = 0;
+                    for (var lr = 0; lr < r1MatchIds.length; lr++) {
+                        var r1Match = matches.find(function(m) { return m.id === r1MatchIds[lr]; });
+                        if (!r1Match) continue;
+                        var targetRepIdx = Math.floor(repSlotIdx / 2);
+                        var targetSlot = (repSlotIdx % 2 === 0) ? 'p1' : 'p2';
+                        if (targetRepIdx < repR1Matches.length) {
+                            r1Match.loserMatchId = repR1Matches[targetRepIdx].id;
+                            r1Match.loserSlot = targetSlot;
+                        }
+                        repSlotIdx++;
+                    }
+                    // If odd losers, the last repechage match gets only 1 player (BYE in rep)
+                    // The last R1 loser that doesn't pair gets a direct pass in repechage
+                    var repSurvivors = repR1Count + (repOddBye ? 1 : 0);
+
+                    // Continue repechage rounds until we reach spotsFromRepechage
+                    var repRoundNum = 2;
+                    while (repSurvivors > spotsFromRepechage) {
+                        var nextRepCount = Math.floor(repSurvivors / 2);
+                        var nextRepOdd = (repSurvivors % 2 !== 0);
+                        var nextRepMatches = [];
+                        for (var rr2 = 0; rr2 < nextRepCount; rr2++) {
+                            var repM2 = {
+                                id: 'match-rep-' + repRoundNum + '-' + timestamp + '-' + _matchCounter,
+                                round: -repRoundNum,
+                                bracket: isDupla ? 'upper' : undefined,
+                                p1: 'TBD',
+                                p2: 'TBD',
+                                winner: null,
+                                isRepechage: true,
+                                repRound: repRoundNum
+                            };
+                            if (catName) repM2.category = catName;
+                            matches.push(repM2);
+                            nextRepMatches.push(repM2);
+                            _matchCounter++;
+                        }
+                        // Link previous repechage winners → next repechage round
+                        var prevRepSlot = 0;
+                        for (var prm = 0; prm < prevRoundMatchIds.length; prm++) {
+                            var prevRepM = matches.find(function(m) { return m.id === prevRoundMatchIds[prm]; });
+                            if (!prevRepM) continue;
+                            var tgtIdx2 = Math.floor(prevRepSlot / 2);
+                            var tgtSlot2 = (prevRepSlot % 2 === 0) ? 'p1' : 'p2';
+                            if (tgtIdx2 < nextRepMatches.length) {
+                                prevRepM.nextMatchId = nextRepMatches[tgtIdx2].id;
+                                prevRepM.nextSlot = tgtSlot2;
+                            }
+                            prevRepSlot++;
+                        }
+                        prevRoundMatchIds = nextRepMatches.map(function(m) { return m.id; });
+                        repSurvivors = nextRepCount + (nextRepOdd ? 1 : 0);
+                        repRoundNum++;
+                    }
+                    // prevRoundMatchIds now holds the FINAL repechage round match IDs
+                    // Their winners are the repechage qualifiers
+
+                    // ── Step 3: Generate R2 matches (R1 winners + repechage qualifiers) ──
+                    // R2 has r2Target participants: r1Winners from R1 + spotsFromRepechage from rep
+                    var r2Slots = [];
+                    // R1 winners (TBD — filled when R1 completes)
+                    for (var rw = 0; rw < r1MatchIds.length; rw++) {
+                        r2Slots.push({ tbd: true, fromMatch: r1MatchIds[rw], type: 'r1winner' });
+                    }
+                    if (byePlayer) {
+                        r2Slots.push({ name: byePlayer, type: 'bye' });
+                    }
+                    // Repechage qualifiers (TBD — filled when repechage completes)
+                    for (var rq = 0; rq < prevRoundMatchIds.length; rq++) {
+                        r2Slots.push({ tbd: true, fromMatch: prevRoundMatchIds[rq], type: 'repqualifier' });
+                    }
+                    // If repechage had odd survivors that auto-advance, add extra TBD slots
+                    // (handled by the odd-bye logic above)
+
+                    // Pair R2 slots: cross-seed R1 winners vs repechage qualifiers
+                    var r2Winners = r2Slots.filter(function(s) { return s.type === 'r1winner' || s.type === 'bye'; });
+                    var r2RepQ = r2Slots.filter(function(s) { return s.type === 'repqualifier'; });
+                    var r2Pairs = [];
+                    // Pair winners with repechage qualifiers first (cross-seed)
+                    var wIdx = 0, qIdx = 0;
+                    while (wIdx < r2Winners.length && qIdx < r2RepQ.length) {
+                        r2Pairs.push({ p1: r2Winners[wIdx], p2: r2RepQ[qIdx] });
+                        wIdx++; qIdx++;
+                    }
+                    // Remaining winners vs winners
+                    while (wIdx + 1 < r2Winners.length) {
+                        r2Pairs.push({ p1: r2Winners[wIdx], p2: r2Winners[wIdx + 1] });
+                        wIdx += 2;
+                    }
+                    // If one winner left over
+                    if (wIdx < r2Winners.length) {
+                        // Pair with remaining repechage or BYE
+                        if (qIdx < r2RepQ.length) {
+                            r2Pairs.push({ p1: r2Winners[wIdx], p2: r2RepQ[qIdx] });
+                            qIdx++;
+                        } else {
+                            r2Pairs.push({ p1: r2Winners[wIdx], p2: null }); // BYE
+                        }
+                        wIdx++;
+                    }
+
+                    // Generate R2 match objects
+                    for (var r2i = 0; r2i < r2Pairs.length; r2i++) {
+                        var rp = r2Pairs[r2i];
+                        var r2p1Name = rp.p1.name || 'TBD';
+                        var r2p2Name = rp.p2 === null ? 'BYE (Avança Direto)' : (rp.p2.name || 'TBD');
+                        var r2IsBye = r2p2Name === 'BYE (Avança Direto)';
+                        var r2m = {
+                            id: 'match-r2-' + timestamp + '-' + _matchCounter,
+                            round: 2,
+                            bracket: isDupla ? 'upper' : undefined,
+                            p1: r2p1Name,
+                            p2: r2p2Name,
+                            winner: r2IsBye ? r2p1Name : null,
+                            isBye: r2IsBye
+                        };
+                        if (catName) r2m.category = catName;
+                        matches.push(r2m);
+                        _matchCounter++;
+
+                        // Link R1 winners → R2
+                        if (rp.p1.tbd && rp.p1.fromMatch) {
+                            var srcM1 = matches.find(function(m) { return m.id === rp.p1.fromMatch; });
+                            if (srcM1) {
+                                if (rp.p1.type === 'repqualifier') {
+                                    srcM1.nextMatchId = r2m.id;
+                                    srcM1.nextSlot = 'p1';
+                                } else {
+                                    srcM1.nextMatchId = r2m.id;
+                                    srcM1.nextSlot = 'p1';
+                                }
+                            }
+                        }
+                        if (rp.p2 && rp.p2.tbd && rp.p2.fromMatch) {
+                            var srcM2 = matches.find(function(m) { return m.id === rp.p2.fromMatch; });
+                            if (srcM2) {
+                                if (rp.p2.type === 'repqualifier') {
+                                    srcM2.nextMatchId = r2m.id;
+                                    srcM2.nextSlot = 'p2';
+                                } else {
+                                    srcM2.nextMatchId = r2m.id;
+                                    srcM2.nextSlot = 'p2';
+                                }
+                            }
                         }
                     }
-                    if (pair.p2 && typeof pair.p2 === 'object' && pair.p2.tbd) {
-                        var piMatchP2 = matches.find(function(m) { return m.id === pair.p2.fromPlayinMatch; });
-                        if (piMatchP2) {
-                            piMatchP2.nextMatchId = r1Match.id;
-                            piMatchP2.nextSlot = 'p2'; // winner fills p2 of R1 match
+
+                    // ── Step 4: Generate remaining rounds (R3+) for standard elimination ──
+                    var currentRoundMatches = r2Pairs.length;
+                    var roundNum = 3;
+                    var prevRoundR = matches.filter(function(m) { return m.round === 2 && (!catName || m.category === catName); });
+                    while (currentRoundMatches > 1) {
+                        var nextRoundCount = Math.floor(currentRoundMatches / 2);
+                        var nextRoundMatches = [];
+                        for (var nr = 0; nr < nextRoundCount; nr++) {
+                            var nrm = {
+                                id: 'match-r' + roundNum + '-' + timestamp + '-' + _matchCounter,
+                                round: roundNum,
+                                bracket: isDupla ? 'upper' : undefined,
+                                p1: 'TBD',
+                                p2: 'TBD',
+                                winner: null
+                            };
+                            if (catName) nrm.category = catName;
+                            matches.push(nrm);
+                            nextRoundMatches.push(nrm);
+                            _matchCounter++;
                         }
+                        // Link previous round winners → this round
+                        for (var lnk = 0; lnk < prevRoundR.length; lnk++) {
+                            var tgtNr = Math.floor(lnk / 2);
+                            var tgtSl = (lnk % 2 === 0) ? 'p1' : 'p2';
+                            if (tgtNr < nextRoundMatches.length) {
+                                prevRoundR[lnk].nextMatchId = nextRoundMatches[tgtNr].id;
+                                prevRoundR[lnk].nextSlot = tgtSl;
+                            }
+                        }
+                        prevRoundR = nextRoundMatches;
+                        currentRoundMatches = nextRoundCount;
+                        roundNum++;
                     }
+
+                    t.hasRepechage = true;
+                    // Skip standard R1 generation — already handled above
+                    return; // continue to next category via forEach callback
                 }
-                // Skip standard R1 generation — already handled above
-                return; // continue to next category via forEach callback
             }
         }
 

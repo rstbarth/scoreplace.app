@@ -277,6 +277,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.31-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Repescagem real</b> — Sistema de repescagem reescrito: todos os times jogam a 1a rodada, perdedores disputam mini-chave de repescagem, e os classificados se juntam aos vencedores na 2a rodada formando potência de 2. Antes a repescagem se comportava como BYE.</p>' +
+        '<p><b>W.O. na lista de presença</b> — Na lista de inscritos de torneios em andamento, o label &quot;Ausente&quot; foi substituído por &quot;W.O.&quot; nos cards individuais e no botão de filtro.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Manual corrigido</b> — Texto das notas de versão no manual não vaza mais como texto sem formatação. Aspas duplas no conteúdo quebravam o atributo de busca do HTML, fazendo o texto aparecer como bloco ilegível abaixo das seções do manual.</p>' +
         '<p><b>Coroa do organizador</b> — Ícone de coroa agora aparece corretamente ao lado direito do nome do organizador nos cards de participantes, em vez de abaixo do avatar.</p>' +

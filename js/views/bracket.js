@@ -443,7 +443,8 @@ function _ensureFutureRounds(t) {
     roundsMap[m.round].push(m);
   });
 
-  const rounds = Object.keys(roundsMap).map(Number).sort((a, b) => a - b);
+  // Skip repechage rounds (negative) — only process main bracket rounds
+  const rounds = Object.keys(roundsMap).map(Number).filter(r => r >= 1).sort((a, b) => a - b);
   if (rounds.length === 0) return;
 
   const r1Count = (roundsMap[rounds[0]] || []).length;
@@ -567,32 +568,42 @@ function renderSingleElimBracket(t, canEnterResult) {
   });
 
   // Mostrar TODAS as rodadas (incluindo futuras com TBD)
+  // Sort: positive rounds ascending, negative (repechage) placed after round 1
   const activeRounds = Object.keys(roundsMap)
     .map(Number)
-    .sort((a, b) => a - b);
+    .sort(function(a, b) {
+      // Repechage (negative) rounds go after round 1 but before round 2
+      var aKey = a < 0 ? 1.5 + (Math.abs(a) * 0.01) : a;
+      var bKey = b < 0 ? 1.5 + (Math.abs(b) * 0.01) : b;
+      return aKey - bKey;
+    });
 
   if (activeRounds.length === 0) {
     return `<p class="text-muted">Nenhuma rodada ativa.</p>`;
   }
 
-  // Compute expected total rounds from round-1 match count (skip play-in round 0)
-  const firstMainRound = activeRounds.find(r => r >= 1) || activeRounds[0];
+  // Compute expected total rounds from positive rounds only (skip play-in and repechage)
+  const positiveRounds = activeRounds.filter(r => r >= 1);
+  const firstMainRound = positiveRounds[0] || activeRounds[0];
+  // For repechage tournaments, use R2 match count to determine total main rounds
+  const hasRepechage = activeRounds.some(r => r < 0);
+  const r2Matches = roundsMap[2] ? roundsMap[2].length : 0;
   const round1Matches = roundsMap[firstMainRound] ? roundsMap[firstMainRound].length : 1;
-  const expectedTotalRounds = round1Matches > 1
-    ? Math.ceil(Math.log2(round1Matches * 2))
+  const baseForCalc = hasRepechage && r2Matches > 0 ? r2Matches : round1Matches;
+  const mainRoundCount = baseForCalc > 1
+    ? Math.ceil(Math.log2(baseForCalc * 2))
     : 1;
 
   // Label by position from the end
   const getRoundLabel = (roundNum, roundIndex) => {
     if (roundNum === 0) return 'Play-in';
-    const fromEnd = expectedTotalRounds - roundIndex;
-    // Adjust for play-in: if round 0 exists, roundIndex is shifted by 1
-    const hasPlayin = activeRounds.indexOf(0) >= 0;
-    const adjustedFromEnd = hasPlayin ? expectedTotalRounds - (roundIndex - 1) : fromEnd;
-    if (adjustedFromEnd === 1) return _t('bracket.final');
-    if (adjustedFromEnd === 2) return _t('bracket.semiFinal');
-    if (adjustedFromEnd === 3) return _t('bracket.quarterFinal');
-    if (adjustedFromEnd === 4) return _t('bracket.round', {n: roundNum});
+    if (roundNum < 0) return 'Repescagem' + (Math.abs(roundNum) > 1 ? ' ' + Math.abs(roundNum) : '');
+    // For repechage tournaments, count from the last positive round
+    var posIdx = positiveRounds.indexOf(roundNum);
+    var fromEnd = positiveRounds.length - posIdx;
+    if (fromEnd === 1) return _t('bracket.final');
+    if (fromEnd === 2) return _t('bracket.semiFinal');
+    if (fromEnd === 3) return _t('bracket.quarterFinal');
     return _t('bracket.round', {n: roundNum});
   };
 
