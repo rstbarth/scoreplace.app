@@ -97,7 +97,8 @@
       type: 'host_transfer_invite', tournamentId: String(t.id), tournamentName: t.name,
       fromName: user.displayName, fromUid: user.uid,
       message: (user.displayName || _tH('org.theOrganizer')) + ' ' + _tH('org.wantsToTransfer') + ' "' + t.name + '".',
-      level: 'fundamental'
+      level: 'fundamental',
+      _fallbackEmail: target.email || '', _fallbackName: target.displayName || ''
     });
     // Notify self
     _notifyByEmail(user.uid, {
@@ -133,7 +134,8 @@
       type: 'cohost_invite', tournamentId: String(t.id), tournamentName: t.name,
       fromName: user.displayName, fromUid: user.uid,
       message: (user.displayName || _tH('org.theOrganizer')) + ' ' + _tH('org.invitedCohost') + ' "' + t.name + '".',
-      level: 'fundamental'
+      level: 'fundamental',
+      _fallbackEmail: target.email || '', _fallbackName: target.displayName || ''
     });
     _notifyByEmail(user.uid, {
       type: 'cohost_invite_sent', tournamentId: String(t.id), tournamentName: t.name,
@@ -362,7 +364,7 @@
     overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
   };
 
-  // ─── Helper: send notification by uid or email lookup ─────────────────────
+  // ─── Helper: send notification — tries uid, then email lookup, then displayName lookup ──
   function _notifyByEmail(uidOrEmail, data) {
     if (!uidOrEmail) { console.warn('[host-transfer] _notifyByEmail: no uidOrEmail'); return; }
     var cu = window.AppStore.currentUser || {};
@@ -393,23 +395,53 @@
       }
     }
 
-    // If it looks like a UID (no @), send directly
-    if (uidOrEmail.indexOf('@') === -1) {
-      _sendDirect(uidOrEmail);
-      return;
-    }
-    // Lookup by email to get uid
-    console.log('[host-transfer] Looking up uid for email:', uidOrEmail);
-    if (window.FirestoreDB && window.FirestoreDB.db) {
-      window.FirestoreDB.db.collection('users').where('email', '==', uidOrEmail).limit(1).get().then(function(snap) {
+    function _lookupByEmail(email, fallbackName) {
+      if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+      console.log('[host-transfer] Looking up uid for email:', email);
+      window.FirestoreDB.db.collection('users').where('email', '==', email).limit(1).get().then(function(snap) {
         if (!snap.empty) {
           _sendDirect(snap.docs[0].id);
+        } else if (fallbackName) {
+          // Email not found in profiles — try displayName (covers phone-auth users without email in profile)
+          console.log('[host-transfer] Email not found, trying displayName:', fallbackName);
+          window.FirestoreDB.db.collection('users').where('displayName', '==', fallbackName).limit(1).get().then(function(snap2) {
+            if (!snap2.empty) {
+              _sendDirect(snap2.docs[0].id);
+            } else {
+              console.warn('[host-transfer] No user found for email:', email, 'or name:', fallbackName);
+            }
+          }).catch(function(e) { console.error('[host-transfer] Name lookup FAILED:', e); });
         } else {
-          console.warn('[host-transfer] No user found for email:', uidOrEmail);
+          console.warn('[host-transfer] No user found for email:', email);
         }
       }).catch(function(e) { console.error('[host-transfer] Email lookup FAILED:', e); });
-    } else {
-      console.warn('[host-transfer] FirestoreDB.db not available');
     }
+
+    // If it looks like a UID (no @), try direct send + verify the doc exists
+    if (uidOrEmail.indexOf('@') === -1) {
+      // Verify the user doc exists before writing notification
+      if (window.FirestoreDB && window.FirestoreDB.db) {
+        window.FirestoreDB.db.collection('users').doc(uidOrEmail).get().then(function(doc) {
+          if (doc.exists) {
+            _sendDirect(uidOrEmail);
+          } else {
+            // UID doc doesn't exist — fallback to email/name lookup
+            console.warn('[host-transfer] UID doc not found:', uidOrEmail, '— trying email/name fallback');
+            var fallbackEmail = data._fallbackEmail || '';
+            var fallbackName = data._fallbackName || '';
+            if (fallbackEmail) {
+              _lookupByEmail(fallbackEmail, fallbackName);
+            } else {
+              console.warn('[host-transfer] No fallback email available for uid:', uidOrEmail);
+            }
+          }
+        }).catch(function() { _sendDirect(uidOrEmail); });
+      } else {
+        _sendDirect(uidOrEmail);
+      }
+      return;
+    }
+    // Input has @ — it's an email, lookup uid
+    _lookupByEmail(uidOrEmail, data._fallbackName || '');
   }
 })();
