@@ -242,6 +242,38 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Mapa no Local do Torneio</b> — Ao criar ou editar torneio, o campo de local agora exibe mapa interativo com pin ao selecionar o local. Botão de geolocalização (📍) permite usar sua posição atual. Mesmo padrão visual do mapa de preferências do perfil.</p>' +
+        '<p><b>Comunicações do Perfil</b> — Novo toggle "Todas" (verde) nas preferências de comunicação. Ativar "Todas" liga automaticamente Importantes e Fundamentais. Desativar "Fundamentais" exibe aviso de que nenhuma comunicação será recebida, com confirmação obrigatória.</p>' +
+        '<p><b>GSM Set Fixo</b> — O toggle de tie-break agora permanece visível quando Set Fixo está ativo, permitindo ao organizador escolher se empates vão para tie-break ou se partidas podem terminar empatadas (útil em Liga e Suíço).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auto-amizade com quem convidou</b> — Links de compartilhamento agora incluem referência de quem convidou (?ref=UID). A auto-amizade é criada apenas com quem compartilhou o link, não mais com o organizador.</p>' +
+        '<p><b>Correção de nomes desatualizados</b> — Quando um usuário altera o nome no perfil, a mudança agora se propaga automaticamente para todos os torneios em que participa, sem necessidade de novo login. Funciona para todos os usuários e em todas as páginas do app.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Atualizações em tempo real</b> — Debounce de atualização reduzido para respostas mais rápidas. Retry automático quando modal ou input está aberto. Service Worker agora usa network-first para assets do app (sempre busca versão mais recente).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>i18n PT-BR</b> — Acentuação corrigida em todo o app. Mapa de local do torneio nos detalhes. Toggle de acesso ao local (público/restrito). Correção de scroll ao salvar resultado. Correção de nomes desatualizados em inscrições.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Set Fixo</b> — Novo modo de pontuação "Set Fixo" no GSM: disputa de N games fixos onde ganha quem vencer mais.</p>' +
+        '<p><b>Login por email e telefone</b> — Abas de login: Email Link (passwordless) e Telefone (SMS). Removidos Apple e Facebook. Google Sign-In mantido.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Notificações em tempo real</b> — Listener Firestore onSnapshot para notificações instantâneas. Classificação de eliminatórias corrigida (posições únicas por jogador). Botão de organização movido para o card de detalhes. Busca de local no perfil corrigida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Correções diversas</b> — Seção de organizador restaurada nos detalhes do torneio. Exclusão de torneio corrigida (conflito de variável com i18n). Organizadores não-competidores excluídos da contagem de participantes. Espaçamento entre cards de partida no bracket.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria de segurança e correções</b> — uid do participante agora salvo na inscrição (corrige notificações de co-organização). Escaping de backslash em onclick handlers. Escape de nomes em atributos data-player-name. Toggle switch adotado em todo o app. Dead code removido.</p>' +
         '</div>' +
@@ -531,8 +563,16 @@
     }
   ];
 
+  // Build TOC (index) HTML
+  var tocHtml = '<div id="help-toc" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.2rem;padding:10px 12px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08);border-radius:10px;">';
+  for (var ti = 0; ti < helpSections.length; ti++) {
+    var ts = helpSections[ti];
+    tocHtml += '<a onclick="window._helpScrollTo(\'' + ts.id + '\')" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;padding:3px 8px;border-radius:6px;background:rgba(99,102,241,0.08);transition:all 0.15s;text-decoration:none;white-space:nowrap;" onmouseover="this.style.background=\'rgba(99,102,241,0.2)\';this.style.color=\'var(--text-bright)\'" onmouseout="this.style.background=\'rgba(99,102,241,0.08)\';this.style.color=\'var(--text-muted)\'">' + ts.icon + ' ' + ts.title + '</a>';
+  }
+  tocHtml += '</div>';
+
   // Build sections HTML
-  var sectionsHtml = '';
+  var sectionsHtml = tocHtml;
   for (var i = 0; i < helpSections.length; i++) {
     var s = helpSections[i];
     sectionsHtml += '<div class="help-section" data-help-id="' + s.id + '" data-search="' + (s.title + ' ' + s.content).replace(/<[^>]+>/g, '').toLowerCase() + '" style="margin-bottom: 1rem;">' +
@@ -603,6 +643,14 @@
     }
 
     if (noResults) noResults.style.display = visibleCount === 0 ? '' : 'none';
+  };
+
+  // Scroll to section and open it
+  window._helpScrollTo = function(sectionId) {
+    var sec = document.querySelector('.help-section[data-help-id="' + sectionId + '"]');
+    if (!sec) return;
+    sec.classList.add('open');
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 })();
 
