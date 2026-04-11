@@ -321,6 +321,16 @@ window.deenrollCurrentUser = function (tId) {
 window.addParticipantFunction = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
+    // Block if enrollments are closed (except Liga with open enrollment)
+    var _isLiga = t.format && (t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking');
+    var _ligaOpen = _isLiga && t.ligaOpenEnrollment;
+    var _sorteio = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                   (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                   (Array.isArray(t.groups) && t.groups.length > 0);
+    if ((t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen) {
+        showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
+        return;
+    }
     showInputDialog(
         _t('enroll.addParticipant'),
         _t('enroll.addParticipantMsg'),
@@ -345,6 +355,16 @@ window.addParticipantFunction = function (tId) {
 window.addTeamFunction = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
+    // Block if enrollments are closed (except Liga with open enrollment)
+    var _isLiga = t.format && (t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking');
+    var _ligaOpen = _isLiga && t.ligaOpenEnrollment;
+    var _sorteio = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                   (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                   (Array.isArray(t.groups) && t.groups.length > 0);
+    if ((t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen) {
+        showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
+        return;
+    }
     const teamSize = t.teamSize || 2;
     const items = Array.from({ length: teamSize }, (_, i) => ({ placeholder: `Nome do integrante ${i + 1}` }));
 

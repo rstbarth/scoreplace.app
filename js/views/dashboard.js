@@ -111,6 +111,18 @@ window._dashEnroll = function(tId) {
   var user = window.AppStore.currentUser;
   if (!t || !user) { window.enrollCurrentUser(tId); return; }
 
+  // Block enrollment if inscriptions are closed
+  var _isLiga = t.format && (t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking');
+  var _ligaOpen = _isLiga && t.ligaOpenEnrollment;
+  var _sorteio = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                 (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                 (Array.isArray(t.groups) && t.groups.length > 0);
+  var _aberto = (t.status !== 'closed' && t.status !== 'finished' && !_sorteio) || _ligaOpen;
+  if (!_aberto) {
+    if (typeof showAlertDialog === 'function') showAlertDialog('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', null, { type: 'warning' });
+    return;
+  }
+
   // For team tournaments, skip the team modal — enroll as individual participant
   // (organizer enrolling from dashboard is always self-enrollment)
   var hasCats = (t.combinedCategories && t.combinedCategories.length > 0) ||

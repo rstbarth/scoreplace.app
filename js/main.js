@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Inscrições bloqueadas quando encerradas</b> — Quando o organizador encerra as inscrições, ninguém mais pode se inscrever por nenhum caminho: link de convite, dashboard, +Participante, +Time. Validação adicionada em 5 pontos do código incluindo a transação do banco de dados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Placar inline consistente</b> — Torneios com sistema Game-Set-Match agora usam campos de placar direto no card da partida (mesmo padrão dos jogos normais), em vez de botão separado que abria modal. Confirmar e Editar resultado funcionam de forma idêntica em todos os formatos.</p>' +
         '</div>' +

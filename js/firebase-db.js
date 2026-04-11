@@ -61,6 +61,18 @@ window.FirestoreDB = {
       // Check if already enrolled (by email or displayName)
       var pEmail = participantObj.email || '';
       var pName = participantObj.displayName || participantObj.name || '';
+      // Block enrollment if tournament is closed, active (draw done), or finished
+      // Liga with open enrollment is the only exception
+      var _isLiga = data.format && (data.format === 'Liga' || data.format === 'Ranking' || data.format === 'liga' || data.format === 'ranking');
+      var _ligaOpen = _isLiga && data.ligaOpenEnrollment;
+      var _sorteioRealizado = (Array.isArray(data.matches) && data.matches.length > 0) ||
+                              (Array.isArray(data.rounds) && data.rounds.length > 0) ||
+                              (Array.isArray(data.groups) && data.groups.length > 0);
+      var _inscricoesAbertas = (data.status !== 'closed' && data.status !== 'finished' && !_sorteioRealizado) || _ligaOpen;
+      if (!_inscricoesAbertas) {
+        return { alreadyEnrolled: false, enrollmentClosed: true, participants: participants };
+      }
+
       var already = participants.some(function(p) {
         if (typeof p === 'string') {
           return (pEmail && p === pEmail) || (pName && p === pName);

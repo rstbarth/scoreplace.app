@@ -1091,6 +1091,24 @@ async function simulateLoginSuccess(user) {
         return;
       }
       if (t && window.AppStore.currentUser) {
+        // Block auto-enrollment if enrollments are closed
+        var _isLigaFmt = t.format && (t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking');
+        var _ligaOpenEnroll = _isLigaFmt && t.ligaOpenEnrollment;
+        var _sorteioFeito = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                            (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                            (Array.isArray(t.groups) && t.groups.length > 0);
+        var _canEnroll = (t.status !== 'closed' && t.status !== 'finished' && !_sorteioFeito) || _ligaOpenEnroll;
+        if (!_canEnroll) {
+          // Enrollments closed — just navigate to tournament without enrolling
+          if (typeof showNotification === 'function') {
+            showNotification('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', 'warning');
+          }
+          window.location.hash = '#tournaments/' + pendingEnrollId;
+          if (typeof initRouter === 'function') initRouter();
+          window._simulateLoginInProgress = false;
+          return;
+        }
+
         var _u = window.AppStore.currentUser;
         var participantObj = { name: _u.displayName, email: _u.email, displayName: _u.displayName };
 
@@ -1138,6 +1156,12 @@ async function simulateLoginSuccess(user) {
         // Use atomic Firestore transaction to prevent race conditions
         if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
           window.FirestoreDB.enrollParticipant(pendingEnrollId, participantObj).then(function(result) {
+            if (result.enrollmentClosed) {
+              if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', 'warning');
+              window.location.hash = '#tournaments/' + pendingEnrollId;
+              if (typeof initRouter === 'function') initRouter();
+              return;
+            }
             if (result.alreadyEnrolled) return;
             t.participants = result.participants;
             var catMsg = participantObj.categories ? ' na categoria ' + (typeof window._displayCategoryName === 'function' ? window._displayCategoryName(participantObj.categories[0]) : participantObj.categories[0]) : '';
