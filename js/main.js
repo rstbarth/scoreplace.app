@@ -277,9 +277,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.28-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Login reordenado</b> — Opções de login agora ordenadas da mais fácil para a mais complexa: Link Mágico (recomendado, sempre visível), SMS, E-mail/Senha, e Google por último (por exigir múltiplos cliques e permissões). Seção Google inclui passo a passo inline.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.27-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Login redesenhado</b> — Tela de login sem abas: Google como botão principal no topo, demais opções (Link Mágico, SMS, E-mail/Senha) como seções expansíveis abaixo. Mais intuitivo e acessível.</p>' +
-        '<p><b>Manual passo a passo</b> — Seção "Primeiros Passos" reescrita com guia detalhado em 4 passos coloridos, incluindo passo a passo do login com Google (Continuar, Permitir). Índice clicável no topo do manual.</p>' +
+        '<p><b>Login redesenhado</b> — Tela de login sem abas: todas as opções visíveis. Manual com guia detalhado em 4 passos coloridos e índice clicável.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
