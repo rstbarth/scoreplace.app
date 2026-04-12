@@ -277,7 +277,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.29-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Repescagem com critérios de desempate</b> — Classificação na repescagem agora usa todos os critérios configurados do torneio (saldo de pontos, vitórias, confronto direto, saldo de sets/games para GSM, etc.) em vez de apenas placar simples. Passam tantos quantos houverem vagas na rodada seguinte.</p>' +
         '<p><b>Escopo do W.O.</b> — Novo toggle na criação: "Individual" (substitui só o ausente, parceiro fica) ou "Time Inteiro" (time eliminado por W.O.). Configurável por torneio.</p>' +
         '<p><b>Inscrições após encerramento</b> — 3 modos: Fechadas (bloqueado), Lista de Espera (suplentes), Novos Confrontos (suplentes podem gerar jogos extras). Aplica-se a inscrição própria, times e adição pelo organizador.</p>' +
         '</div>' +

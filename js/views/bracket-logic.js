@@ -419,41 +419,165 @@ function _advanceWinner(t, completedMatch) {
   _maybeFinishElimination(t);
 }
 
-// ─── Repechage: assign R1 losers to repechage matches by R1 performance ─────
+// ─── Repechage helper: rank players using tournament tiebreaker criteria ─────
+// Builds a rich stats object per player from all their matches, then sorts using
+// the same criteria as _updateProgressiveClassification + configured t.tiebreakers.
+function _rankByTiebreakers(t, playerNames) {
+  var allMatches = t.matches || [];
+  var players = playerNames.map(function(name) {
+    var totalScored = 0, totalConceded = 0, matchesWon = 0, matchesPlayed = 0;
+    var setsWon = 0, setsLost = 0, gamesWon = 0, gamesLost = 0, tiebreaksWon = 0;
+    var lastScoreDiff = 0, lastPointsScored = 0;
+
+    allMatches.forEach(function(m) {
+      if (!m.winner || m.isBye) return;
+      if (m.p1 !== name && m.p2 !== name) return;
+      var isP1 = m.p1 === name;
+      var scored = parseInt(isP1 ? m.scoreP1 : m.scoreP2) || 0;
+      var conceded = parseInt(isP1 ? m.scoreP2 : m.scoreP1) || 0;
+      totalScored += scored;
+      totalConceded += conceded;
+      matchesPlayed++;
+      if (m.winner === name) matchesWon++;
+
+      // Track last match (most recent = the loss that eliminated them)
+      lastPointsScored = scored;
+      lastScoreDiff = scored - conceded; // higher = closer game = better
+
+      // GSM stats
+      if (m.sets && Array.isArray(m.sets)) {
+        m.sets.forEach(function(s) {
+          var pg = isP1 ? (s.gamesP1 || 0) : (s.gamesP2 || 0);
+          var og = isP1 ? (s.gamesP2 || 0) : (s.gamesP1 || 0);
+          gamesWon += pg; gamesLost += og;
+          if (pg > og) setsWon++; else if (og > pg) setsLost++;
+          if (s.tiebreak) {
+            var tp = isP1 ? (s.tiebreak.pointsP1 || 0) : (s.tiebreak.pointsP2 || 0);
+            var to = isP1 ? (s.tiebreak.pointsP2 || 0) : (s.tiebreak.pointsP1 || 0);
+            if (tp > to) tiebreaksWon++;
+          }
+        });
+      }
+    });
+
+    return {
+      name: name,
+      wins: matchesWon,
+      played: matchesPlayed,
+      scored: totalScored,
+      conceded: totalConceded,
+      diff: totalScored - totalConceded,
+      lastScoreDiff: lastScoreDiff,
+      lastPointsScored: lastPointsScored,
+      setsWon: setsWon,
+      setsLost: setsLost,
+      setsDiff: setsWon - setsLost,
+      gamesWon: gamesWon,
+      gamesLost: gamesLost,
+      gamesDiff: gamesWon - gamesLost,
+      tiebreaksWon: tiebreaksWon
+    };
+  });
+
+  // Build head-to-head map
+  var h2h = {};
+  allMatches.forEach(function(m) {
+    if (!m.winner || m.isBye) return;
+    var key = m.p1 + '|' + m.p2;
+    if (!h2h[key]) h2h[key] = { w1: 0, w2: 0 };
+    if (m.winner === m.p1) h2h[key].w1++;
+    else if (m.winner === m.p2) h2h[key].w2++;
+  });
+
+  // Get configured tiebreakers or default for elimination
+  var defaultTb = ['saldo_pontos', 'vitorias'];
+  if (t.scoring && t.scoring.type === 'gsm') {
+    defaultTb = ['saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'vitorias'];
+  }
+  var tiebreakers = t.tiebreakers || defaultTb;
+
+  players.sort(function(a, b) {
+    // Primary: last match score diff (closer game = better = higher diff)
+    if (a.lastScoreDiff !== b.lastScoreDiff) return b.lastScoreDiff - a.lastScoreDiff;
+    // Then: configured tiebreakers
+    for (var ti = 0; ti < tiebreakers.length; ti++) {
+      var tb = tiebreakers[ti];
+      var diff = 0;
+      switch (tb) {
+        case 'confronto_direto':
+          var k1 = a.name + '|' + b.name;
+          var k2 = b.name + '|' + a.name;
+          var h1 = h2h[k1] || { w1: 0, w2: 0 };
+          var h2 = h2h[k2] || { w1: 0, w2: 0 };
+          var aWins = h1.w1 + h2.w2;
+          var bWins = h1.w2 + h2.w1;
+          diff = bWins - aWins; // more h2h wins = better
+          break;
+        case 'saldo_pontos':
+          diff = b.diff - a.diff;
+          break;
+        case 'vitorias':
+          diff = b.wins - a.wins;
+          break;
+        case 'buchholz':
+          // Skip for elimination — not applicable with few matches
+          break;
+        case 'sonneborn_berger':
+          break;
+        case 'saldo_sets':
+          diff = b.setsDiff - a.setsDiff;
+          break;
+        case 'saldo_games':
+          diff = b.gamesDiff - a.gamesDiff;
+          break;
+        case 'sets_vencidos':
+          diff = b.setsWon - a.setsWon;
+          break;
+        case 'games_vencidos':
+          diff = b.gamesWon - a.gamesWon;
+          break;
+        case 'tiebreaks_vencidos':
+          diff = b.tiebreaksWon - a.tiebreaksWon;
+          break;
+        case 'sorteio':
+          diff = Math.random() - 0.5;
+          break;
+      }
+      if (diff !== 0) return diff;
+    }
+    // Ultimate: more points scored, then alphabetical
+    if (a.scored !== b.scored) return b.scored - a.scored;
+    return a.name.localeCompare(b.name);
+  });
+
+  return players;
+}
+
+// ─── Repechage: assign R1 losers to repechage matches by full tiebreaker criteria ─
 // Called after each R1 result. Only acts when ALL R1 matches are complete.
-// Ranks losers by: 1) score difference (ascending = closer game better),
-// 2) points scored (descending), 3) alphabetical.
+// Ranks losers using tournament tiebreaker criteria (score diff, sets, games, h2h, etc).
 // Top N losers fill repechage matches; rest are eliminated.
 function _assignRepechageLosers(t) {
   var cfg = t.repechageConfig;
   if (!cfg || cfg._losersAssigned) return;
-  var allMatches = t.matches || [];
 
   // Check if ALL R1 repechage matches are complete
   var r1Matches = cfg.r1MatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
   var allDone = r1Matches.length === cfg.r1MatchIds.length && r1Matches.every(function(m) { return m.winner; });
   if (!allDone) return;
 
-  // Collect losers with their R1 performance
-  var losers = [];
+  // Collect loser names
+  var loserNames = [];
   r1Matches.forEach(function(m) {
     var loser = m.winner === m.p1 ? m.p2 : m.p1;
-    var loserScore = m.winner === m.p1 ? (parseInt(m.scoreP2) || parseInt(m.score2) || 0) : (parseInt(m.scoreP1) || parseInt(m.score1) || 0);
-    var winnerScore = m.winner === m.p1 ? (parseInt(m.scoreP1) || parseInt(m.score1) || 0) : (parseInt(m.scoreP2) || parseInt(m.score2) || 0);
-    var diff = winnerScore - loserScore; // lower = closer game = better
-    losers.push({ name: loser, scoreDiff: diff, pointsScored: loserScore, fromMatchId: m.id });
+    if (loser && loser !== 'TBD' && loser !== 'BYE') loserNames.push(loser);
   });
 
-  // Sort: best losers first (smallest diff, then most points, then alpha)
-  losers.sort(function(a, b) {
-    if (a.scoreDiff !== b.scoreDiff) return a.scoreDiff - b.scoreDiff;
-    if (a.pointsScored !== b.pointsScored) return b.pointsScored - a.pointsScored;
-    return a.name.localeCompare(b.name);
-  });
+  // Rank using full tiebreaker criteria
+  var rankedLosers = _rankByTiebreakers(t, loserNames);
 
   // Top repParticipants go to repechage, rest eliminated
-  var repLosers = losers.slice(0, cfg.repParticipants);
-  // Assign to repechage match slots
+  var repLosers = rankedLosers.slice(0, cfg.repParticipants);
   var repMatches = cfg.repMatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
   var slotIdx = 0;
   for (var i = 0; i < repLosers.length; i++) {
@@ -465,14 +589,15 @@ function _assignRepechageLosers(t) {
     slotIdx++;
   }
 
-  // Store loser ranking for best-loser evaluation later
-  cfg._rankedLosers = losers;
+  // Store ranking for best-loser evaluation later
+  cfg._rankedLosers = rankedLosers;
   cfg._losersAssigned = true;
 }
 
-// ─── Repechage: advance best loser to R2 after all repechage matches done ───
+// ─── Repechage: advance best losers to R2 after all repechage matches done ───
 // When all repechage matches are complete and bestLoserCount > 0,
-// compare repechage losers by their original R1 performance and advance the best.
+// re-rank ALL repechage losers using full tiebreaker criteria (not just R1 stats)
+// and advance the best to their R2 slots.
 function _advanceBestLoser(t) {
   var cfg = t.repechageConfig;
   if (!cfg || !cfg._losersAssigned || cfg._bestLoserAdvanced) return;
@@ -484,27 +609,17 @@ function _advanceBestLoser(t) {
   if (!allDone) return;
 
   // Collect repechage losers
-  var repLosers = [];
+  var repLoserNames = [];
   repMatches.forEach(function(m) {
     var loser = m.winner === m.p1 ? m.p2 : m.p1;
-    // Find their R1 ranking
-    var ranked = (cfg._rankedLosers || []).find(function(r) { return r.name === loser; });
-    repLosers.push({
-      name: loser,
-      scoreDiff: ranked ? ranked.scoreDiff : 999,
-      pointsScored: ranked ? ranked.pointsScored : 0
-    });
+    if (loser && loser !== 'TBD' && loser !== 'BYE') repLoserNames.push(loser);
   });
 
-  // Sort: best repechage losers first (by R1 performance)
-  repLosers.sort(function(a, b) {
-    if (a.scoreDiff !== b.scoreDiff) return a.scoreDiff - b.scoreDiff;
-    if (a.pointsScored !== b.pointsScored) return b.pointsScored - a.pointsScored;
-    return a.name.localeCompare(b.name);
-  });
+  // Rank using full tiebreaker criteria (considers all matches: R1 + repechage)
+  var rankedRepLosers = _rankByTiebreakers(t, repLoserNames);
 
   // Advance top bestLoserCount to their R2 slots
-  var bestLosersToAdvance = repLosers.slice(0, cfg.bestLoserCount);
+  var bestLosersToAdvance = rankedRepLosers.slice(0, cfg.bestLoserCount);
   var blIdx = 0;
   var allM = t.matches || [];
   for (var i = 0; i < allM.length && blIdx < bestLosersToAdvance.length; i++) {
