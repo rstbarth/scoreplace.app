@@ -398,9 +398,9 @@
         '<p><b>i18n PT-BR</b> — Acentuação corrigida em todo o app. Mapa de local do torneio nos detalhes. Toggle de acesso ao local (público/restrito). Correção de scroll ao salvar resultado. Correção de nomes desatualizados em inscrições.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Coroa do organizador</b> — Ícone de coroa no card de detalhe reposicionado para canto inferior direito, igual ao card do dashboard.</p>' +
-        '<p><b>Templates acessíveis</b> — Botão "Usar Template" agora aparece corretamente no modal de criação rápida e no formulário avançado após salvar um template.</p>' +
+        '<p><b>Templates acessíveis</b> — Botão "Usar Template" agora aparece corretamente no modal de criação rápida. Corrigido MutationObserver que não detectava abertura do modal (escutava style, modal abre via class).</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
@@ -956,7 +956,7 @@
   // Hook into modal-quick-create open to refresh template button visibility
   var _qcObserver = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
-      if (m.target.id === 'modal-quick-create' && m.target.style.display !== 'none') {
+      if (m.target.id === 'modal-quick-create' && m.target.classList.contains('active')) {
         var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
         var btn = document.getElementById('btn-quick-template');
         var area = document.getElementById('qc-template-area');
@@ -966,7 +966,7 @@
     });
   });
   var qcModal = document.getElementById('modal-quick-create');
-  if (qcModal) _qcObserver.observe(qcModal, { attributes: true, attributeFilter: ['style'] });
+  if (qcModal) _qcObserver.observe(qcModal, { attributes: true, attributeFilter: ['class'] });
 
   // "Usar Template" button handler
   document.getElementById('btn-quick-template').addEventListener('click', function() {
