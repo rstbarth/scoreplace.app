@@ -398,9 +398,10 @@
         '<p><b>i18n PT-BR</b> — Acentuação corrigida em todo o app. Mapa de local do torneio nos detalhes. Toggle de acesso ao local (público/restrito). Correção de scroll ao salvar resultado. Correção de nomes desatualizados em inscrições.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Toggle Público/Privado</b> — Visibilidade do torneio agora usa toggle switch "Público" (padrão ativado). Desativar torna o torneio privado.</p>' +
         '<p><b>Coroa do organizador</b> — Ícone de coroa no card de detalhe reposicionado para canto inferior direito, igual ao card do dashboard.</p>' +
-        '<p><b>Templates acessíveis</b> — Botão "Usar Template" agora aparece corretamente no modal de criação rápida. Corrigido MutationObserver que não detectava abertura do modal (escutava style, modal abre via class).</p>' +
+        '<p><b>Templates acessíveis</b> — Botão "Usar Template" agora aparece corretamente no modal de criação rápida. Corrigido MutationObserver que não detectava abertura do modal.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

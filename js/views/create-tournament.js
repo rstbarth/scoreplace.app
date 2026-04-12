@@ -88,11 +88,13 @@ function setupCreateTournamentModal() {
 
               <!-- Público/Privado -->
               <div class="form-group mb-2">
-                <label class="form-label" style="margin-bottom:6px;">Visibilidade</label>
                 <input type="hidden" id="tourn-public" value="true">
-                <div style="display:flex;gap:6px;">
-                  <button type="button" id="btn-vis-public" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;" onclick="window._setVisibility('public')">🌐 Público</button>
-                  <button type="button" id="btn-vis-private" class="btn btn-sm" style="flex:1;padding:8px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);" onclick="window._setVisibility('private')">🔒 Privado</button>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <label class="toggle-switch" style="flex-shrink:0;">
+                    <input type="checkbox" id="toggle-public" checked onchange="window._setVisibility(this.checked ? 'public' : 'private')">
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">🌐 Público</span>
                 </div>
                 <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.</small>
               </div>
@@ -1186,19 +1188,15 @@ function setupCreateTournamentModal() {
 
   // ── Visibility toggle ──
   window._setVisibility = function(vis) {
-    var btnPub = document.getElementById('btn-vis-public');
-    var btnPri = document.getElementById('btn-vis-private');
+    var toggle = document.getElementById('toggle-public');
     var hidden = document.getElementById('tourn-public');
     var desc = document.getElementById('vis-desc');
-    if (!btnPub || !btnPri) return;
     if (vis === 'public') {
-      btnPub.style.border = '2px solid #3b82f6'; btnPub.style.background = 'rgba(59,130,246,0.15)'; btnPub.style.color = '#60a5fa';
-      btnPri.style.border = '2px solid rgba(255,255,255,0.18)'; btnPri.style.background = 'rgba(255,255,255,0.06)'; btnPri.style.color = 'var(--text-main)';
+      if (toggle) toggle.checked = true;
       if (hidden) hidden.value = 'true';
       if (desc) desc.textContent = 'Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.';
     } else {
-      btnPri.style.border = '2px solid #3b82f6'; btnPri.style.background = 'rgba(59,130,246,0.15)'; btnPri.style.color = '#60a5fa';
-      btnPub.style.border = '2px solid rgba(255,255,255,0.18)'; btnPub.style.background = 'rgba(255,255,255,0.06)'; btnPub.style.color = 'var(--text-main)';
+      if (toggle) toggle.checked = false;
       if (hidden) hidden.value = 'false';
       if (desc) desc.textContent = 'Apenas você e jogadores convidados poderão ver o torneio.';
     }
