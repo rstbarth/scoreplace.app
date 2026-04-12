@@ -863,14 +863,14 @@ function renderTournaments(container, tournamentId = null) {
 
         return `
         <div class="card mb-3" style="position:relative;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
-          ${isOrg ? '<div style="position:absolute;top:12px;right:12px;opacity:0.9;pointer-events:none;z-index:5;" title="Organizador"><svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : ''}
           <div class="card-body p-4">
-            
-            <!-- Top Row: Icon/Modality | Status (same line on mobile) -->
+
+            <!-- Top Row: Icon/Modality | Crown | Status (same line on mobile) -->
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: wrap; gap: 4px;">
                <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; min-width: 0;">
                   <span style="font-size: 1.1rem;">${getSportIcon(t.sport)}</span>
                   <span>${cleanSportName(t.sport) || 'Esporte'}</span>
+                  ${isOrg ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)" title="Organizador" style="flex-shrink:0;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : ''}
                </div>
                <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
                   ${statusText}
