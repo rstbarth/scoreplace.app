@@ -277,6 +277,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.29-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Escopo do W.O.</b> — Novo toggle na criação: "Individual" (substitui só o ausente, parceiro fica) ou "Time Inteiro" (time eliminado por W.O.). Configurável por torneio.</p>' +
+        '<p><b>Inscrições após encerramento</b> — 3 modos: Fechadas (bloqueado), Lista de Espera (suplentes), Novos Confrontos (suplentes podem gerar jogos extras). Aplica-se a inscrição própria, times e adição pelo organizador.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.27-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Check-in redesenhado</b> — Toggle Presente/Ausente substitui botao na lista de chamada. Botao W.O. substitui Ausente. Lista de espera na pagina de inscritos com toggle+W.O. Substituicao automatica: marca W.O. e o proximo presente da lista de espera entra no lugar.</p>' +
         '<p><b>Paineis de decisao com header sticky</b> — Botoes cancelar/voltar ficam fixos no topo ao rolar paineis de potencia de 2 e times incompletos.</p>' +

@@ -249,8 +249,9 @@ window._autoSubstituteWO = function(tId) {
 
   var oldEntry = woMatch[woSlot];
   var isTeam = oldEntry.includes(' / ');
+  var woScope = t.woScope || 'individual';
 
-  if (isTeam) {
+  if (isTeam && woScope === 'individual') {
     // W.O. is individual — replace only the absent member, partner stays
     var newMembers = oldEntry.split(' / ').map(function(n) { return n.trim() === absentMemberName ? replacementName : n.trim(); });
     var newTeamName = newMembers.join(' / ');

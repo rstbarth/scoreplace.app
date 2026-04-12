@@ -3,6 +3,37 @@
 (function() {
 var _t = window._t || function(k) { return k; };
 
+// Helper: check if late enrollment to standby is allowed
+function _allowsLateEnrollment(t) {
+  var le = t.lateEnrollment || 'closed';
+  return le === 'standby' || le === 'expand';
+}
+
+// Helper: add participant to standby/waitlist instead of main roster
+function _enrollToStandby(t, tId, participantObj, callback) {
+  if (!Array.isArray(t.standbyParticipants)) t.standbyParticipants = [];
+  var getName = function(p) { return typeof p === 'string' ? p : (p.displayName || p.name || p.email || ''); };
+  var newName = getName(participantObj);
+  // Check if already in standby
+  var already = t.standbyParticipants.some(function(sp) { return getName(sp) === newName; });
+  if (already) {
+    if (typeof showNotification !== 'undefined') showNotification('Já na espera', newName + ' já está na lista de espera.', 'info');
+    return;
+  }
+  // Check if already enrolled
+  var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var alreadyEnrolled = partsArr.some(function(p) { return getName(p) === newName; });
+  if (alreadyEnrolled) {
+    if (typeof showNotification !== 'undefined') showNotification('Já inscrito', newName + ' já está inscrito no torneio.', 'info');
+    return;
+  }
+  t.standbyParticipants.push(participantObj);
+  window.FirestoreDB.saveTournament(t);
+  var modeLabel = (t.lateEnrollment === 'expand') ? 'Novos confrontos podem ser gerados.' : 'Suplente na lista de espera.';
+  if (typeof showNotification !== 'undefined') showNotification('Lista de Espera', newName + ' adicionado à lista de espera. ' + modeLabel, 'success');
+  if (callback) callback();
+}
+
 window.enrollCurrentUser = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     const user = window.AppStore.currentUser;
@@ -33,6 +64,15 @@ window.enrollCurrentUser = function (tId) {
         const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
         const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
         if (!inscricoesAbertas) {
+            if (_allowsLateEnrollment(t) && t.status !== 'finished') {
+                // Late enrollment — send to standby
+                var participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '' };
+                _enrollToStandby(t, tId, participantObj, function() {
+                    const container = document.getElementById('view-container');
+                    if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
+                });
+                return;
+            }
             showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
             return;
         }
@@ -163,6 +203,23 @@ window.submitTeamEnroll = function (tId) {
     const ligaAberta = window._isLigaFormat(t) && t.ligaOpenEnrollment !== false && sorteioRealizado;
     const inscricoesAbertas = (t.status !== 'closed' && !sorteioRealizado) || ligaAberta;
     if (!inscricoesAbertas) {
+        if (_allowsLateEnrollment(t) && t.status !== 'finished') {
+            // Late enrollment for teams — collect names first, then send to standby
+            const inputs2 = document.querySelectorAll('.team-member-name-' + tId);
+            let teamNames2 = [user.displayName];
+            let allOk = true;
+            inputs2.forEach(function(inp) { var v = inp.value.trim(); if (!v) allOk = false; teamNames2.push(v); });
+            if (!allOk) { showAlertDialog(_t('enroll.requiredFields'), _t('enroll.requiredFieldsMsg'), null, { type: 'warning' }); return; }
+            var teamStr = teamNames2.join(' / ');
+            var partObj = { name: teamStr, email: user.email, displayName: teamStr, uid: user.uid || '' };
+            _enrollToStandby(t, tId, partObj, function() {
+                var mod2 = document.getElementById('team-enroll-modal-' + tId);
+                if (mod2) mod2.style.display = 'none';
+                var container = document.getElementById('view-container');
+                if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
+            });
+            return;
+        }
         showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
         return;
     }
@@ -334,16 +391,27 @@ window.addParticipantFunction = function (tId) {
     var _sorteio = (Array.isArray(t.matches) && t.matches.length > 0) ||
                    (Array.isArray(t.rounds) && t.rounds.length > 0) ||
                    (Array.isArray(t.groups) && t.groups.length > 0);
-    if ((t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen) {
+    var _closedOrDrawn = (t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen;
+    if (_closedOrDrawn && !_allowsLateEnrollment(t)) {
         showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
         return;
     }
+    var _addTitle = _closedOrDrawn ? '➕ Adicionar à Lista de Espera' : _t('enroll.addParticipant');
+    var _addMsg = _closedOrDrawn ? 'Inscrições encerradas. O participante será adicionado à lista de espera.' : _t('enroll.addParticipantMsg');
     showInputDialog(
-        _t('enroll.addParticipant'),
-        _t('enroll.addParticipantMsg'),
+        _addTitle,
+        _addMsg,
         (pName) => {
             if (!pName || !pName.trim()) return;
             var participantObj = { name: pName.trim(), displayName: pName.trim() };
+            // If late enrollment, add to standby instead
+            if (_closedOrDrawn) {
+                _enrollToStandby(t, tId, participantObj, function() {
+                    var container = document.getElementById('view-container');
+                    if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
+                });
+                return;
+            }
             // Use transactional enroll to prevent race conditions
             if (window.FirestoreDB && typeof window.FirestoreDB.enrollParticipant === 'function') {
                 window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
@@ -389,7 +457,8 @@ window.addTeamFunction = function (tId) {
     var _sorteio = (Array.isArray(t.matches) && t.matches.length > 0) ||
                    (Array.isArray(t.rounds) && t.rounds.length > 0) ||
                    (Array.isArray(t.groups) && t.groups.length > 0);
-    if ((t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen) {
+    var _closedOrDrawn2 = (t.status === 'closed' || t.status === 'finished' || _sorteio) && !_ligaOpen;
+    if (_closedOrDrawn2 && !_allowsLateEnrollment(t)) {
         showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
         return;
     }
@@ -397,7 +466,7 @@ window.addTeamFunction = function (tId) {
     const items = Array.from({ length: teamSize }, (_, i) => ({ placeholder: `Nome do integrante ${i + 1}` }));
 
     showMultiInputDialog(
-        _t('enroll.addTeam'),
+        _closedOrDrawn2 ? '➕ Adicionar Time à Lista de Espera' : _t('enroll.addTeam'),
         items,
         (teamNames) => {
             if (!teamNames || teamNames.some(n => !n.trim())) {
@@ -405,6 +474,14 @@ window.addTeamFunction = function (tId) {
                 return;
             }
             const teamString = teamNames.join(' / ');
+            // If late enrollment, add to standby
+            if (_closedOrDrawn2) {
+                _enrollToStandby(t, tId, { name: teamString, displayName: teamString }, function() {
+                    var container = document.getElementById('view-container');
+                    if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
+                });
+                return;
+            }
 
             let arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
             arr.push({ name: teamString, displayName: teamString });

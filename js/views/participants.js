@@ -250,12 +250,24 @@ window._declareAbsent = function (tId, playerName) {
   const opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
   const opponent = matchEntry ? matchEntry[opponentSide] : null;
 
+  const woScope = t.woScope || 'individual';
+  const isTeamEntry = teamName.includes('/') || teamName.includes(' / ');
+  const isIndividualWO = woScope === 'individual' && isTeamEntry;
+
   let confirmTitle, confirmMsg, confirmBtn;
 
-  if (hasStandby) {
+  if (hasStandby && isIndividualWO) {
+    confirmTitle = 'Declarar Ausência';
+    confirmMsg = `Declarar ${playerName} como ausente no Jogo ${friendlyNum}?\n\nO parceiro permanece. O próximo da lista de espera substituirá apenas ${playerName}.`;
+    confirmBtn = 'Substituir Individual';
+  } else if (hasStandby) {
     confirmTitle = 'Declarar Ausência';
     confirmMsg = `Declarar ${playerName} (${teamName}) como ausente no Jogo ${friendlyNum}?\n\nHá jogadores na lista de espera. O próximo da fila será promovido para substituir.`;
     confirmBtn = 'Substituir da Lista de Espera';
+  } else if (isIndividualWO) {
+    confirmTitle = 'Declarar Ausência';
+    confirmMsg = `Declarar ${playerName} como ausente no Jogo ${friendlyNum}?\n\nO parceiro permanece. Marque presença de alguém na lista de espera para poder substituir.`;
+    confirmBtn = 'Marcar Ausente';
   } else {
     confirmTitle = 'Declarar Ausência — W.O.';
     confirmMsg = `Declarar ${playerName} (${teamName}) como ausente no Jogo ${friendlyNum}?\n\nNão há lista de espera. ${opponent || 'O adversário'} vencerá por W.O. e avançará.`;
@@ -269,14 +281,66 @@ window._declareAbsent = function (tId, playerName) {
     delete t.checkedIn[playerName];
     t.absent[playerName] = Date.now();
 
-    if (hasStandby && matchEntry) {
-      // Promover próximo da lista de espera QUE ESTEJA PRESENTE
+    if (isIndividualWO && hasStandby && matchEntry) {
+      // Individual W.O. in teams — replace only the absent member, partner stays
       if (!t.checkedIn) t.checkedIn = {};
       let nextStandby = null;
       let nextStandbyIdx = -1;
       for (let si = 0; si < standby.length; si++) {
         const sName = typeof standby[si] === 'string' ? standby[si] : (standby[si].displayName || standby[si].name || standby[si].email || '');
-        // Check if any member of this standby entry is present
+        if (t.checkedIn[sName]) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
+      }
+      if (!nextStandby) {
+        if (typeof showNotification === 'function') showNotification('Sem substituto presente', 'Nenhum jogador da lista de espera está marcado como presente.', 'warning');
+        return;
+      }
+      const nextName = typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name || nextStandby.email || '');
+      // Build new team name replacing only the absent member
+      const sep = teamName.includes(' / ') ? ' / ' : '/';
+      const members = teamName.split(sep).map(n => n.trim());
+      const newMembers = members.map(n => n === playerName ? nextName : n);
+      const newTeamName = newMembers.join(' / ');
+      const partnerName = members.find(n => n !== playerName) || '';
+
+      // Update match
+      matchEntry[matchSide] = newTeamName;
+      // Update all match refs
+      (t.matches || []).forEach(function(m) {
+        if (m.p1 === teamName) m.p1 = newTeamName;
+        if (m.p2 === teamName) m.p2 = newTeamName;
+      });
+      // Update participants
+      const pIdx = partsArr.findIndex(p => {
+        const pn = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+        return pn === teamName;
+      });
+      if (pIdx >= 0) {
+        if (typeof partsArr[pIdx] === 'string') partsArr[pIdx] = newTeamName;
+        else { partsArr[pIdx].displayName = newTeamName; partsArr[pIdx].name = newTeamName; }
+      }
+      t.participants = partsArr;
+      t.standbyParticipants = [...standby.slice(0, nextStandbyIdx), ...standby.slice(nextStandbyIdx + 1)];
+      t.checkedIn[nextName] = true;
+
+      window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
+      window.AppStore.sync();
+      if (typeof showNotification === 'function') showNotification('Substituição Realizada', `${nextName} entrou no lugar de ${playerName}. ${partnerName} permanece no time.`, 'success');
+      _reRenderParticipants();
+
+    } else if (isIndividualWO && !hasStandby && matchEntry) {
+      // Just mark absent — no standby available, wait for organizer to add someone
+      window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
+      window.AppStore.sync();
+      if (typeof showNotification === 'function') showNotification('Ausência Marcada', `${playerName} marcado como ausente. Adicione alguém na lista de espera para substituir.`, 'warning');
+      _reRenderParticipants();
+
+    } else if (hasStandby && matchEntry) {
+      // Team W.O. scope — promote next standby to replace entire team
+      if (!t.checkedIn) t.checkedIn = {};
+      let nextStandby = null;
+      let nextStandbyIdx = -1;
+      for (let si = 0; si < standby.length; si++) {
+        const sName = typeof standby[si] === 'string' ? standby[si] : (standby[si].displayName || standby[si].name || standby[si].email || '');
         const sMembers = sName.includes('/') ? sName.split('/').map(n => n.trim()).filter(n => n) : [sName];
         const allPresent = sMembers.every(m => !!t.checkedIn[m]);
         if (allPresent) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
@@ -287,18 +351,13 @@ window._declareAbsent = function (tId, playerName) {
       }
       const nextName = typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name || nextStandby.email || '');
 
-      // Substituir o time ausente no match
       matchEntry[matchSide] = nextName;
-
-      // Atualizar participants array
       const pIdx = partsArr.findIndex(p => {
         const pn = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
         return pn === teamName;
       });
       if (pIdx >= 0) partsArr[pIdx] = nextName;
       t.participants = partsArr;
-
-      // Remover da lista de espera (pelo índice encontrado)
       t.standbyParticipants = [...standby.slice(0, nextStandbyIdx), ...standby.slice(nextStandbyIdx + 1)];
 
       window.AppStore.logAction(tId, `Ausência: ${playerName} (${teamName}) substituído por ${nextName} da lista de espera — Jogo ${friendlyNum}`);
@@ -307,17 +366,15 @@ window._declareAbsent = function (tId, playerName) {
       _reRenderParticipants();
 
     } else if (matchEntry) {
-      // W.O. — adversário vence
+      // W.O. — adversário vence (no standby, team scope)
       matchEntry.scoreP1 = matchSide === 'p1' ? 0 : 'W.O.';
       matchEntry.scoreP2 = matchSide === 'p2' ? 0 : 'W.O.';
       matchEntry.winner = matchEntry[opponentSide];
       matchEntry.wo = true;
 
-      // Avançar vencedor
       if (typeof _advanceWinner === 'function') {
         _advanceWinner(t, matchEntry);
       } else if (matchEntry.nextMatchId) {
-        // fallback: advance manually
         const next = (t.matches || []).find(nm => nm.id === matchEntry.nextMatchId);
         if (next) {
           if (!next.p1 || next.p1 === 'TBD') next.p1 = matchEntry.winner;
