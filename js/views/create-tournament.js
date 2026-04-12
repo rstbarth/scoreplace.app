@@ -3350,7 +3350,7 @@ window._openGSMConfig = function() {
         '</div>' +
         // Fixed set toggle
         '<div class="toggle-row" style="padding:6px 0;">' +
-          '<div class="toggle-row-label"><span style="font-size:0.82rem;">Games fixos</span><br><span style="font-size:0.68rem;color:var(--text-muted);">Disputa de N games fixos (quem vence mais ganha)</span></div>' +
+          '<div class="toggle-row-label"><span style="font-size:0.82rem;">Games fixos</span><br><span id="gsm-fixedset-desc" style="font-size:0.68rem;color:var(--text-muted);">Disputa de ' + gamesPerSet + ' games fixos (quem vence mais ganha)</span></div>' +
           '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-fixedSet" ' + (fixedSet ? 'checked' : '') + ' onchange="window._gsmToggleFixedSet()"><span class="toggle-slider"></span></label>' +
         '</div>' +
         // Advantage
@@ -3495,6 +3495,19 @@ window._gsmUpdateSummary = function() {
   // Show/hide super tiebreak section based on sets
   var stbSection = document.getElementById('gsm-super-tb-section');
   if (stbSection) stbSection.style.display = sets > 1 ? 'block' : 'none';
+
+  // Update dynamic labels
+  var fsDesc = document.getElementById('gsm-fixedset-desc');
+  if (fsDesc) fsDesc.textContent = 'Disputa de ' + games + ' games fixos (quem vence mais ganha)';
+  var tbLabel = document.getElementById('gsm-tb-label');
+  if (tbLabel) {
+    if (fsOn) {
+      var _half = Math.floor(games / 2);
+      tbLabel.textContent = 'Tie-break em caso de empate ' + _half + '-' + _half;
+    } else {
+      tbLabel.textContent = 'Tie-break em ' + (games - 1) + '-' + (games - 1);
+    }
+  }
 
   el.innerHTML = lines.join('<br>');
 };
