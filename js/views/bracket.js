@@ -1177,7 +1177,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
           title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
     : '';
 
-  const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
+  const matchLabel = matchNum ? `Jogo ${matchNum}` : (m.label || 'Partida');
 
   // Detect if current user participates in this match
   const _cu = window.AppStore && window.AppStore.currentUser;

@@ -277,9 +277,9 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.31-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Headers sticky em painéis de simulação</b> — Botões Voltar/Confirmar nos painéis de resolução de potência de 2 (BYE, Play-in, Suíço, Lista de Espera) agora ficam fixos no topo como cabeçalho, sempre visíveis ao rolar o conteúdo.</p>' +
-        '<p><b>Inscritos com header sticky</b> — Botão Voltar, título, badges e controles de check-in (filtros de presença, barra de progresso) agora ficam fixos no topo da tela de Inscritos, sempre visíveis ao rolar a lista.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.32-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>3º lugar com número do jogo</b> — Card da disputa de 3º lugar agora exibe o número do jogo em azul (ex: "Jogo 15") como todas as outras partidas, em vez de repetir "3º LUGAR" no cabeçalho do card.</p>' +
+        '<p><b>Headers sticky</b> — Botão Voltar + "Só meus jogos" fixos no topo do chaveamento. Voltar + filtros de check-in fixos nos Inscritos. Voltar/Confirmar fixos nos painéis de simulação.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
