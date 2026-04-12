@@ -863,7 +863,7 @@ function renderTournaments(container, tournamentId = null) {
 
         return `
         <div class="card mb-3" style="position:relative;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
-          ${isOrg ? '<div style="position:absolute;bottom:26px;right:26px;opacity:0.9;pointer-events:none;" title="Organizador"><svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : ''}
+          ${isOrg ? '<div style="position:absolute;top:12px;right:12px;opacity:0.9;pointer-events:none;z-index:5;" title="Organizador"><svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : ''}
           <div class="card-body p-4">
             
             <!-- Top Row: Icon/Modality | Status (same line on mobile) -->
@@ -977,7 +977,7 @@ function renderTournaments(container, tournamentId = null) {
                 </div>
 
                <!-- Formato, Regras e Categorias -->
-               <div class="info-box" style="font-size:0.78rem;padding:8px 12px;line-height:1.6;">
+               <div class="info-box" style="font-size:0.75rem;padding:6px 10px;line-height:1.5;gap:2px;border-radius:8px;">
                   <div><strong>Formato:</strong> ${t.format} · <strong>Inscrição:</strong> ${enrollmentText} · <strong>Acesso:</strong> ${publicText}</div>
                   ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? (() => {
                     const _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
