@@ -3447,8 +3447,8 @@ window._gsmUpdateSummary = function() {
       lines.push('Tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
     }
     if (stbOn && sets > 1) {
-      var _stbDraw = stbPts - 2;
-      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + ', prorroga até o vencedor ter 2 pontos de vantagem).');
+      var _stbDraw = stbPts - tbMargin;
+      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
     }
   }
 
