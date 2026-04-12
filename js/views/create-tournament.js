@@ -3145,6 +3145,8 @@ window._gsmSelectPreset = function(key) {
   var p = presets[key];
   if (!p) return;
   window._gsmSelectedPreset = key;
+  // Clear forced custom when user explicitly picks a named preset
+  if (key !== 'custom') window._gsmForcedCustom = false;
 
   if (key !== 'custom') {
     // Apply preset values to hidden fields
@@ -3267,6 +3269,8 @@ window._gsmUpdateMainSummary = function() {
 
 // Detect which preset matches current hidden field values
 window._gsmDetectPreset = function() {
+  // If user explicitly saved from Personalizado, keep it as custom
+  if (window._gsmForcedCustom) return 'custom';
   var s = parseInt(document.getElementById('gsm-setsToWin').value) || 1;
   var g = parseInt(document.getElementById('gsm-gamesPerSet').value) || 6;
   var tbOn = document.getElementById('gsm-tiebreakEnabled').value === 'true';
@@ -3475,6 +3479,8 @@ window._gsmUpdateSummary = function() {
 };
 
 window._gsmSaveConfig = function() {
+  // Mark that user explicitly chose custom — preserved until a preset is clicked
+  window._gsmForcedCustom = true;
   // Always save as type 'sets'
   document.getElementById('gsm-type').value = 'sets';
   document.getElementById('gsm-countingType').value = 'tennis';
