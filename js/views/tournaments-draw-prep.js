@@ -469,8 +469,8 @@ window.showUnifiedResolutionPanel = function(tId) {
             '</div>' +
         '</div>' +
         '<div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
-            '<div style="font-size:0.8rem;color:#64748b;">Escolha uma estratégia para continuar.</div>' +
-            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>' +
+            '<div style="font-size:0.8rem;color:#64748b;">' + (info.remainder > 0 ? 'Resolva o resto antes de continuar.' : 'Escolha uma estratégia para continuar.') + '</div>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Cancelar</button>' +
         '</div>' +
     '</div>';
 
