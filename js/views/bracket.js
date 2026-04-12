@@ -24,8 +24,6 @@ function renderBracket(container, tournamentId, isInline) {
   const tId = tournamentId || window._lastActiveTournamentId;
   const t = tId && window.AppStore ? window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString()) : null;
 
-  console.log('[Bracket] renderBracket called:', { tId, isInline, found: !!t, format: t ? t.format : null, matchCount: t && t.matches ? t.matches.length : 0, roundCount: t && t.rounds ? t.rounds.length : 0, groupCount: t && t.groups ? t.groups.length : 0 });
-
   if (!t) {
     container.innerHTML = `<div class="card" style="text-align:center;padding:3rem;"><h3>${_t('bracket.notFound')}</h3><a href="#dashboard" class="btn btn-primary" style="margin-top:1rem;display:inline-block;">Dashboard</a></div>`;
     return;
@@ -128,12 +126,14 @@ function renderBracket(container, tournamentId, isInline) {
   }
 
   // ── "Só meus jogos" toggle ──────────────────────────────────────────────────
+  // Reset on each render so toggle always starts OFF
+  window._showOnlyMyMatches = false;
   const _cu = window.AppStore && window.AppStore.currentUser;
-  const _myMatchesToggle = _cu && hasContent && !isInline ? `
+  const _myMatchesToggle = _cu && hasContent ? `
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;" class="no-print">
       <span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Só meus jogos</span>
       <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#f59e0b;--toggle-on-glow:rgba(245,158,11,0.3);--toggle-on-border:#f59e0b;">
-        <input type="checkbox" id="my-matches-toggle" ${window._showOnlyMyMatches ? 'checked' : ''} onchange="window._toggleMyMatches(this.checked)">
+        <input type="checkbox" id="my-matches-toggle" onchange="window._toggleMyMatches(this.checked)">
         <span class="toggle-slider"></span>
       </label>
     </div>` : '';
