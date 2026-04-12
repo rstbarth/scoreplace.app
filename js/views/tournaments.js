@@ -1221,9 +1221,33 @@ function renderTournaments(container, tournamentId = null) {
         var _orgBgPrimary = 'background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));border:1px solid rgba(99,102,241,0.3);';
         var _orgBgCohost = 'background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);';
 
+        // Resolve organizer display name (prefer name, fallback to finding it from participants or current user)
+        var _orgDisplayName = _t.organizerName;
+        if (!_orgDisplayName && _t.organizerEmail) {
+          // Try to find name from participants list
+          var _partsArr = Array.isArray(_t.participants) ? _t.participants : (_t.participants ? Object.values(_t.participants) : []);
+          for (var _oi = 0; _oi < _partsArr.length; _oi++) {
+            var _op = _partsArr[_oi];
+            if (typeof _op === 'object' && _op && (_op.email === _t.organizerEmail || _op.uid === _t.creatorUid)) {
+              _orgDisplayName = _op.displayName || _op.name || '';
+              break;
+            }
+          }
+          // Try current user if they are the organizer
+          if (!_orgDisplayName && window.AppStore.currentUser && window.AppStore.currentUser.email === _t.organizerEmail) {
+            _orgDisplayName = window.AppStore.currentUser.displayName || '';
+          }
+        }
+        if (!_orgDisplayName) _orgDisplayName = _t.organizerEmail;
+
+        // Backfill organizerName if we found it and it was missing
+        if (_orgDisplayName && _orgDisplayName !== _t.organizerEmail && !_t.organizerName) {
+          _t.organizerName = _orgDisplayName;
+        }
+
         // Primary organizer — only in org section if NOT enrolled
         if (!_enrolledEmails[_t.organizerEmail]) {
-          _orgCards += _buildOrgCard(_t.organizerName || _t.organizerEmail, 'Organizador', _orgBgPrimary, false, '');
+          _orgCards += _buildOrgCard(_orgDisplayName, 'Organizador', _orgBgPrimary, false, '');
         }
         if (Array.isArray(_t.coHosts)) {
           _t.coHosts.forEach(function(ch) {
@@ -1234,7 +1258,7 @@ function renderTournaments(container, tournamentId = null) {
         }
         if (_orgCards || _competitors.length === 0) {
           if (!_orgCards && _competitors.length === 0) {
-            _orgCards = _buildOrgCard(_t.organizerName || _t.organizerEmail, 'Organizador', _orgBgPrimary, false, '');
+            _orgCards = _buildOrgCard(_orgDisplayName, 'Organizador', _orgBgPrimary, false, '');
           }
           _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
             '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">ORGANIZAÇÃO</div>' +

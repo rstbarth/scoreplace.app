@@ -2903,6 +2903,7 @@ function setupCreateTournamentModal() {
             fixedSetGames: parseInt(document.getElementById('gsm-fixedSetGames').value) || 6
           },
           organizerEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
+          organizerName: window.AppStore.currentUser ? (window.AppStore.currentUser.displayName || window.AppStore.currentUser.email) : 'visitante',
           creatorEmail: window.AppStore.currentUser ? window.AppStore.currentUser.email : 'visitante@local',
           creatorUid: window.AppStore.currentUser ? window.AppStore.currentUser.uid : '',
           coHosts: []

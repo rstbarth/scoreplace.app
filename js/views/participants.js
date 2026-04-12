@@ -733,6 +733,9 @@ function renderParticipants(container, tournamentId) {
         <span style="font-size:0.85rem;font-weight:700;color:#4ade80;">Torneio em andamento — marque a presença abaixo</span>
     </div>` : '';
 
+  // Ready matches banner (check-in: jogos prontos para chamar)
+  const readyBannerHtml = (typeof window._renderReadyMatchesBanner === 'function') ? window._renderReadyMatchesBanner(t) : '';
+
   container.innerHTML = `
     <div class="sticky-back-header">
       <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'">
@@ -749,6 +752,7 @@ function renderParticipants(container, tournamentId) {
     </div>
     ${startBanner}
     ${startedBadge}
+    ${readyBannerHtml}
     ${checkInControls}
     ${parts.length > 0 ? `
       <div style="${gridStyle}">

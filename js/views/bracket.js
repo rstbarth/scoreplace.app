@@ -179,16 +179,13 @@ function renderBracket(container, tournamentId, isInline) {
     return;
   }
 
-  // ── Banner de jogos prontos (check-in ativo) ──────────────────────────────
-  const readyBannerHtml = _renderReadyMatchesBanner(t);
-
   // ── Bracket ────────────────────────────────────────────────────────────────
   const standbyHtml = _renderStandbyPanel(t, isOrg);
   try {
     if (isDupla) {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
     } else {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
     }
   } catch (bracketErr) {
     console.error('[Bracket] Render error:', bracketErr);
@@ -203,7 +200,7 @@ function renderBracket(container, tournamentId, isInline) {
 }
 
 // ─── Banner de Jogos Prontos (ambos presentes) ──────────────────────────────
-function _renderReadyMatchesBanner(t) {
+window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
   if (!t || !t.tournamentStarted || !t.checkedIn || !t.matches) return '';
   const ci = t.checkedIn;
   const hasAnyCheckin = Object.keys(ci).length > 0;
@@ -278,7 +275,7 @@ function _renderReadyMatchesBanner(t) {
         ${matchCards}
       </div>
     </div>`;
-}
+};
 
 // ─── Painel de Lista de Espera (Standby) ─────────────────────────────────────
 function _renderStandbyPanel(t, isOrg) {
