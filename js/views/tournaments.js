@@ -1075,7 +1075,7 @@ function renderTournaments(container, tournamentId = null) {
             </div>` : ''}
 
           </div>
-          ${(tournamentId && window.AppStore.isCreator(t)) ? `<div id="crown-org-btn" style="position:absolute;top:12px;right:12px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:100;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
+          ${(tournamentId && window.AppStore.isCreator(t)) ? `<div id="crown-org-btn" style="position:absolute;bottom:6px;right:8px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:100;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
             ondragover="event.preventDefault();event.dataTransfer.dropEffect='move';this.style.transform='scale(1.15)';"
             ondragleave="this.style.transform='scale(1)';"
             ondrop="this.style.transform='scale(1)';window._handleCrownDrop(event,'${t.id}')"
