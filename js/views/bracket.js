@@ -89,10 +89,7 @@ function renderBracket(container, tournamentId, isInline) {
       </div>` : '';
 
   const headerHtml = isInline ? `
-    <div class="mb-3" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <div style="flex:1;">${actionBtnsHtml}</div>
-      ${_myMatchesToggleHtml}
-    </div>` : `
+    <div class="mb-3">${actionBtnsHtml}</div>` : `
     <div class="sticky-back-header" style="padding-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
         <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">

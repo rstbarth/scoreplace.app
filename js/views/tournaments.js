@@ -1594,12 +1594,32 @@ function renderTournaments(container, tournamentId = null) {
           `;
         }
 
+        // Check if tournament has bracket content for "Só meus jogos" toggle
+        const _hasDrawContent = visible.length > 0 && (
+          (Array.isArray(visible[0].matches) && visible[0].matches.length > 0) ||
+          (Array.isArray(visible[0].rounds) && visible[0].rounds.length > 0) ||
+          (Array.isArray(visible[0].groups) && visible[0].groups.length > 0)
+        );
+        const _cuUser = window.AppStore && window.AppStore.currentUser;
+        const _myToggleHtml = _cuUser && _hasDrawContent ? `
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;" class="no-print">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap;">Só meus jogos</span>
+            <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#f59e0b;--toggle-on-glow:rgba(245,158,11,0.3);--toggle-on-border:#f59e0b;">
+              <input type="checkbox" id="my-matches-toggle" onchange="window._toggleMyMatches(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>` : '';
+
         headerHtml = `
-        <div class="sticky-back-header">
-          <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;" onclick="window.location.hash='#dashboard'">
-             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-             Voltar
-          </button>
+        <div class="sticky-back-header" style="padding-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+            <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;flex-shrink:0;" onclick="window.location.hash='#dashboard'">
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+               Voltar
+            </button>
+            <div style="flex:1;"></div>
+            ${_myToggleHtml}
+          </div>
         </div>
       `;
     }
