@@ -3097,13 +3097,14 @@ window._gsmBuildPresetDesc = function(key, cfg) {
 };
 
 window._gsmBuildDescFromValues = function(s, g, tb, tbP, stb, stbP) {
+  var tie = g - 1;
   if (s === 1) {
-    return g + ' games' + (tb ? ' + TB' + tbP + ' em ' + g + '-' + g : '');
+    return g + ' games' + (tb ? ' + TB' + tbP + ' em ' + tie + '-' + tie : '');
   }
   var totalSets = s * 2 - 1;
   var parts = [s + ' sets de ' + g + ' games'];
   if (stb) parts.push('Super TB ' + stbP + ' no ' + totalSets + '\u00BA');
-  else if (tb) parts.push('TB' + tbP + ' em ' + g + '-' + g);
+  else if (tb) parts.push('TB' + tbP + ' em ' + tie + '-' + tie);
   return parts.join(' + ');
 };
 
@@ -3248,13 +3249,14 @@ window._gsmUpdateMainSummary = function() {
   } else if (counting === 'numeric') {
     lines.push('<strong>' + s + ' pontos</strong> para vencer (' + g + ' min)');
   } else {
+    var tie = g - 1;
     if (s === 1) {
-      lines.push('<strong>1 set</strong> de ' + g + ' games' + (tbOn ? ' (TB ' + tbPts + ' em ' + g + '-' + g + ')' : ''));
+      lines.push('<strong>1 set</strong> de ' + g + ' games' + (tbOn ? ' (TB ' + tbPts + ' em ' + tie + '-' + tie + ')' : ''));
     } else {
       var totalSets = s * 2 - 1;
       lines.push('<strong>Melhor de ' + totalSets + '</strong> — ' + s + ' sets de ' + g + ' games');
       if (stbOn) lines.push('Set decisivo: Super TB ' + stbPts + ' pontos');
-      else if (tbOn) lines.push('TB ' + tbPts + ' em ' + g + '-' + g);
+      else if (tbOn) lines.push('TB ' + tbPts + ' em ' + tie + '-' + tie);
     }
     if (advOn) lines.push('Com vantagem (deuce/advantage)');
   }
@@ -3443,8 +3445,9 @@ window._gsmUpdateSummary = function() {
     lines.push('<strong>' + sets + ' set' + (sets > 1 ? 's' : '') + '</strong> de ' + games + ' games');
     lines.push('Contagem: 15-30-40' + (advOn ? ' + vantagem' : ''));
     if (tbOn) {
+      var _tbTie = games - 1;
       var _tbDraw = tbPts - tbMargin;
-      lines.push('Tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
+      lines.push('Em caso de empate ' + _tbTie + '-' + _tbTie + ', tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
     }
     if (stbOn && sets > 1) {
       var _stbDraw = stbPts - tbMargin;
