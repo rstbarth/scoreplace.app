@@ -3694,6 +3694,11 @@ window._refreshTemplateBtn = function() {
 };
 
 window._showTemplatePickerInCreate = function() {
+  // If cache not loaded yet, load from Firestore first
+  if (window._templateCache === null && typeof window._loadTemplates === 'function') {
+    window._loadTemplates().then(function() { window._showTemplatePickerInCreate(); });
+    return;
+  }
   var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
 
   if (templates.length === 0) {
@@ -3742,8 +3747,8 @@ window._applyTemplateInCreate = function(index) {
   }, 100);
 };
 
-window._deleteTemplateInCreate = function(templateId) {
-  if (typeof window._deleteTemplate === 'function') window._deleteTemplate(templateId);
+window._deleteTemplateInCreate = async function(templateId) {
+  if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
   if (typeof showNotification === 'function') showNotification('Template excluído', '', 'info');
   // Refresh picker
   var overlay = document.querySelector('.alert-dialog-overlay');

@@ -435,14 +435,15 @@ window._saveAsTemplate = function(tId) {
         venueAddress: t.venueAddress || '',
         teamSize: t.teamSize || 1
       };
-      var result = window._saveTemplate(template);
-      if (result === 'ok') {
-        showNotification(_t('template.saved'), '', 'success');
-      } else if (result === 'limit') {
-        showNotification(_t('template.limitFree'), '', 'warning');
-      } else {
-        showNotification('Erro ao salvar template', 'Tente novamente.', 'error');
-      }
+      window._saveTemplate(template).then(function(result) {
+        if (result === 'ok') {
+          showNotification(_t('template.saved'), '', 'success');
+        } else if (result === 'limit') {
+          showNotification(_t('template.limitFree'), '', 'warning');
+        } else {
+          showNotification('Erro ao salvar template', 'Tente novamente.', 'error');
+        }
+      })
     });
   }
 };

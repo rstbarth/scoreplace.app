@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.21-alpha';
+window.SCOREPLACE_VERSION = '0.8.22-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -845,52 +845,84 @@ window.AppStore = {
   }
 };
 
-// ─── Tournament Templates (localStorage-backed) ──────────────────────────
-// Simple, reliable — no Firestore rules dependency
-
-window._getTemplatesKey = function() {
-  var u = window.AppStore && window.AppStore.currentUser;
-  return u && u.email ? 'scoreplace_templates_' + u.email : null;
-};
+// ─── Tournament Templates (Firestore + localStorage fallback) ─────────────
+window._templateCache = null;
 
 window._getTemplates = function() {
-  var key = window._getTemplatesKey();
-  if (!key) return [];
-  try {
-    var raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
-  } catch(e) { return []; }
+  return window._templateCache || [];
 };
 
 window._loadTemplates = async function() {
-  // No-op — localStorage is synchronous, always available
-  return window._getTemplates();
-};
-
-window._saveTemplate = function(template) {
-  var key = window._getTemplatesKey();
-  if (!key) return 'error';
-  var templates = window._getTemplates();
   var u = window.AppStore && window.AppStore.currentUser;
-  var isPro = u && u.plan === 'pro';
-  if (!isPro && templates.length >= 10) return 'limit';
-  template.createdAt = new Date().toISOString();
-  template._id = 'tpl_' + Date.now();
-  templates.unshift(template);
+  if (!u || !u.uid) { window._templateCache = []; return []; }
   try {
-    localStorage.setItem(key, JSON.stringify(templates));
-    return 'ok';
+    var templates = await window.FirestoreDB.getTemplates(u.uid);
+    window._templateCache = templates;
+    // Migrate localStorage templates to Firestore (one-time)
+    var lsKey = 'scoreplace_templates_' + u.email;
+    var lsRaw = localStorage.getItem(lsKey);
+    if (lsRaw) {
+      try {
+        var lsTemplates = JSON.parse(lsRaw);
+        if (Array.isArray(lsTemplates) && lsTemplates.length > 0) {
+          for (var i = 0; i < lsTemplates.length; i++) {
+            if (!lsTemplates[i].createdAt) lsTemplates[i].createdAt = new Date().toISOString();
+            await window.FirestoreDB.saveTemplate(u.uid, lsTemplates[i]);
+          }
+          localStorage.removeItem(lsKey);
+          templates = await window.FirestoreDB.getTemplates(u.uid);
+          window._templateCache = templates;
+        }
+      } catch(e) { localStorage.removeItem(lsKey); }
+    }
+    return templates;
   } catch(e) {
-    console.error('[Templates] Save error:', e);
-    return 'error';
+    console.warn('[Templates] Firestore load failed, using localStorage:', e);
+    // Fallback to localStorage
+    var lsKey2 = 'scoreplace_templates_' + (u.email || '');
+    try {
+      var raw = localStorage.getItem(lsKey2);
+      window._templateCache = raw ? JSON.parse(raw) : [];
+    } catch(e2) { window._templateCache = []; }
+    return window._templateCache;
   }
 };
 
-window._deleteTemplate = function(templateId) {
-  var key = window._getTemplatesKey();
-  if (!key) return;
-  var templates = window._getTemplates().filter(function(t) { return t._id !== templateId; });
-  localStorage.setItem(key, JSON.stringify(templates));
+window._saveTemplate = async function(template) {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u || !u.uid) return 'error';
+  // Ensure cache is loaded
+  if (window._templateCache === null) await window._loadTemplates();
+  var templates = window._getTemplates();
+  var isPro = u && u.plan === 'pro';
+  if (!isPro && templates.length >= 10) return 'limit';
+  template.createdAt = new Date().toISOString();
+  try {
+    var id = await window.FirestoreDB.saveTemplate(u.uid, template);
+    if (id) {
+      template._id = id;
+      window._templateCache = window._templateCache || [];
+      window._templateCache.unshift(template);
+      return 'ok';
+    }
+    return 'error';
+  } catch(e) {
+    console.warn('[Templates] Firestore save failed, using localStorage:', e);
+    // Fallback: save to localStorage
+    template._id = 'tpl_' + Date.now();
+    window._templateCache = window._templateCache || [];
+    window._templateCache.unshift(template);
+    var lsKey = 'scoreplace_templates_' + (u.email || '');
+    try { localStorage.setItem(lsKey, JSON.stringify(window._templateCache)); } catch(e2) {}
+    return 'ok';
+  }
+};
+
+window._deleteTemplate = async function(templateId) {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u || !u.uid || !templateId) return;
+  try { await window.FirestoreDB.deleteTemplate(u.uid, templateId); } catch(e) {}
+  window._templateCache = (window._templateCache || []).filter(function(t) { return t._id !== templateId; });
 };
 
 window._applyTemplate = function(index) {

@@ -1008,8 +1008,8 @@
     }, 100);
   };
 
-  window._qcDeleteTemplate = function(templateId) {
-    if (typeof window._deleteTemplate === 'function') window._deleteTemplate(templateId);
+  window._qcDeleteTemplate = async function(templateId) {
+    if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
     var _t = window._t || function(k) { return k; };
     if (typeof showNotification === 'function') showNotification(_t('template.deleted'), '', 'info');
     // Refresh the list
