@@ -371,6 +371,11 @@
         '<p><b>Coroa do organizador</b> — Ícone de coroa agora aparece corretamente ao lado direito do nome do organizador nos cards de participantes, em vez de abaixo do avatar.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botão Clonar removido</b> — A função de clonar torneio foi substituída pelo sistema de Templates, que faz o mesmo com mais flexibilidade.</p>' +
+        '<p><b>Inscritos ocultos após sorteio</b> — Na página de detalhes do torneio, a lista de inscritos e check-in não aparece mais quando o chaveamento já foi gerado. Acesse via botão 👥 Inscritos no bracket.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.24-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Nome do organizador</b> — Organizador agora exibe nome do perfil em vez do e-mail. Torneios antigos sem nome salvo resolvem automaticamente via lista de participantes.</p>' +
         '<p><b>Lista de chamada movida</b> — Banner de jogos prontos para chamar (check-in) foi removido do topo do chaveamento e movido para a página de Inscritos, acessível pelo botão 👥 Inscritos.</p>' +

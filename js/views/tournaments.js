@@ -1109,7 +1109,6 @@ function renderTournaments(container, tournamentId = null) {
                 ${addParticipantBtns}
                 ${t.status !== 'closed' ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 ${_t('org.addBot')}</button>` : ''}
                 ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 ${_t('btn.export')}</button>` : ''}
-                ${window.AppStore.currentUser ? `<button class="btn btn-tool-purple hover-lift" onclick="event.stopPropagation(); window._cloneTournament('${t.id}')">📑 ${_t('btn.clone')}</button>` : ''}
                 ${isOrg ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window._saveAsTemplate('${t.id}')">💾 ${window._t ? window._t('btn.saveTemplate') : 'Salvar como Template'}</button>` : ''}
                 ${categoriasBtn}
                 ${toggleRegBtn}
@@ -1645,7 +1644,7 @@ function renderTournaments(container, tournamentId = null) {
 
     ${tournamentId ? _organizersHtml : ''}
 
-    ${participantsHtml}
+    ${hasDrawn ? '' : participantsHtml}
 
     ${hasDrawn ? `
       <div class="mt-5">
