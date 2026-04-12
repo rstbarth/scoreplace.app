@@ -410,13 +410,16 @@ window.FirestoreDB = {
   async getTemplates(uid) {
     if (!this.db || !uid) return [];
     try {
-      var snap = await this.db.collection('users').doc(uid).collection('templates')
-        .orderBy('createdAt', 'desc').get();
+      var snap = await this.db.collection('users').doc(uid).collection('templates').get();
       var templates = [];
       snap.forEach(function(doc) {
         var data = doc.data();
         data._id = doc.id;
         templates.push(data);
+      });
+      // Sort client-side (newest first) — avoids Firestore index requirement
+      templates.sort(function(a, b) {
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
       });
       return templates;
     } catch (e) {
