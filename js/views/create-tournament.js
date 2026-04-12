@@ -3068,7 +3068,6 @@ window._gsmPresets = {
   'set1': { label: '1 Set', icon: '⚡', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
   'best3': { label: 'Melhor de 3', icon: '🏆', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
   'best5': { label: 'Melhor de 5', icon: '🎯', setsToWin: 3, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
-  'set4': { label: '4 Sets', icon: '🔥', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
   'custom': { label: 'Personalizado', icon: '⚙️', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false }
 };
 
@@ -3102,8 +3101,9 @@ window._gsmBuildDescFromValues = function(s, g, tb, tbP, stb, stbP) {
     return g + ' games' + (tb ? ' + TB' + tbP + ' em ' + tie + '-' + tie : '');
   }
   var totalSets = s * 2 - 1;
-  var parts = [s + ' sets de ' + g + ' games'];
-  if (stb) parts.push('Super TB ' + stbP + ' no ' + totalSets + '\u00BA');
+  var normalSets = totalSets - (stb ? 1 : 0);
+  var parts = [normalSets + ' sets de ' + g + ' games'];
+  if (stb) parts.push('Super TB ' + stbP + ' no ' + totalSets + '\u00BA set');
   else if (tb) parts.push('TB' + tbP + ' em ' + tie + '-' + tie);
   return parts.join(' + ');
 };
