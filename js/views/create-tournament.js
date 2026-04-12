@@ -3348,15 +3348,20 @@ window._openGSMConfig = function() {
             '<input type="number" id="gsm-cfg-gamesPerSet" class="form-control" min="1" max="99" value="' + gamesPerSet + '" style="font-size:0.85rem;" oninput="window._gsmUpdateSummary()">' +
           '</div>' +
         '</div>' +
+        // Fixed set toggle
+        '<div class="toggle-row" style="padding:6px 0;">' +
+          '<div class="toggle-row-label"><span style="font-size:0.82rem;">Games fixos</span><br><span style="font-size:0.68rem;color:var(--text-muted);">Disputa de N games fixos (quem vence mais ganha)</span></div>' +
+          '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-fixedSet" ' + (fixedSet ? 'checked' : '') + ' onchange="window._gsmToggleFixedSet()"><span class="toggle-slider"></span></label>' +
+        '</div>' +
         // Advantage
         '<div id="gsm-advantage-row" class="toggle-row" style="padding:6px 0;">' +
           '<div class="toggle-row-label"><span style="font-size:0.82rem;">Regra de vantagem (40-40)</span></div>' +
           '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-advantage" ' + (advantage ? 'checked' : '') + ' onchange="window._gsmUpdateSummary()"><span class="toggle-slider"></span></label>' +
         '</div>' +
         // Tiebreak
-        '<div style="border-top:1px solid var(--border-color);padding-top:1rem;">' +
+        '<div id="gsm-tb-section" style="border-top:1px solid var(--border-color);padding-top:1rem;">' +
           '<div class="toggle-row" style="padding:6px 0;margin-bottom:8px;">' +
-            '<div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;">Tie-break em ' + gamesPerSet + '-' + gamesPerSet + '</span></div>' +
+            '<div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;" id="gsm-tb-label">Tie-break em ' + (parseInt(gamesPerSet) - 1) + '-' + (parseInt(gamesPerSet) - 1) + '</span></div>' +
             '<label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-cfg-tiebreak" ' + (tbEnabled ? 'checked' : '') + ' onchange="window._gsmToggleTiebreak()"><span class="toggle-slider"></span></label>' +
           '</div>' +
           '<div id="gsm-tb-details" style="display:' + (tbEnabled ? 'flex' : 'none') + ';gap:12px;flex-wrap:wrap;padding-left:26px;">' +
@@ -3396,7 +3401,23 @@ window._gsmSetType = function(type) {
 
 // Legacy stubs (old overlay used these, kept for safety)
 window._gsmSetCounting = function() {};
-window._gsmToggleFixedSet = function() {};
+window._gsmToggleFixedSet = function() {
+  var checked = document.getElementById('gsm-cfg-fixedSet').checked;
+  var gamesLabel = document.querySelector('label[for="gsm-cfg-gamesPerSet"]') || document.getElementById('gsm-cfg-gamesPerSet').previousElementSibling;
+  if (gamesLabel) gamesLabel.textContent = checked ? 'Games por set (fixo)' : 'Games por set';
+  // Update tiebreak label for fixed sets: empate at half-half
+  var g = parseInt(document.getElementById('gsm-cfg-gamesPerSet').value) || 6;
+  var tbLabel = document.getElementById('gsm-tb-label');
+  if (tbLabel) {
+    if (checked) {
+      var half = Math.floor(g / 2);
+      tbLabel.textContent = 'Tie-break em caso de empate ' + half + '-' + half;
+    } else {
+      tbLabel.textContent = 'Tie-break em ' + (g - 1) + '-' + (g - 1);
+    }
+  }
+  window._gsmUpdateSummary();
+};
 
 window._gsmToggleTiebreak = function() {
   var checked = document.getElementById('gsm-cfg-tiebreak').checked;
@@ -3434,9 +3455,9 @@ window._gsmUpdateSummary = function() {
   var stbSection = document.getElementById('gsm-super-tb-section');
   if (stbSection) stbSection.style.display = sets > 1 ? 'block' : 'none';
 
-  // Check for fixed set mode
+  // Check for fixed set mode — uses gamesPerSet as the fixed game count
   var fsOn = document.getElementById('gsm-cfg-fixedSet') ? document.getElementById('gsm-cfg-fixedSet').checked : false;
-  var fsGames = parseInt(document.getElementById('gsm-cfg-fixedSetGames') ? document.getElementById('gsm-cfg-fixedSetGames').value : 0) || 6;
+  var fsGames = fsOn ? games : (parseInt(document.getElementById('gsm-cfg-fixedSetGames') ? document.getElementById('gsm-cfg-fixedSetGames').value : 0) || 6);
 
   var lines = [];
   if (fsOn && counting === 'tennis') {
@@ -3502,8 +3523,9 @@ window._gsmSaveConfig = function() {
   document.getElementById('gsm-superTiebreak').value = stbOn ? 'true' : 'false';
   document.getElementById('gsm-superTiebreakPoints').value = stbPts;
   document.getElementById('gsm-advantageRule').value = advantage ? 'true' : 'false';
-  document.getElementById('gsm-fixedSet').value = 'false';
-  document.getElementById('gsm-fixedSetGames').value = '6';
+  var fsOn = document.getElementById('gsm-cfg-fixedSet') ? document.getElementById('gsm-cfg-fixedSet').checked : false;
+  document.getElementById('gsm-fixedSet').value = fsOn ? 'true' : 'false';
+  document.getElementById('gsm-fixedSetGames').value = fsOn ? games : '6';
 
   // Update detailed summary in main form
   if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
