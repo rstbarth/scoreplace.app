@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas reagem a atividade</b> — Scroll, clique ou digitacao agora escondem dicas na tela e reiniciam o timer de inatividade.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.61-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Destaque de jogos do usuario</b> — No chaveamento, partidas em que voce participa aparecem com borda dourada.</p>' +
         '<p><b>So meus jogos</b> — Toggle no topo do chaveamento filtra apenas suas partidas.</p>' +
