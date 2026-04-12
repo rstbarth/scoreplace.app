@@ -322,7 +322,7 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
         ${i === 0 ? '<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:6px;white-space:nowrap;">Próximo</span>' : ''}
         <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${_tIdSafe}', '${safeName}');"><span class="toggle-slider"></span></label>
         <span style="font-size:0.65rem;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
-        <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">W.O.</button>
+        <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAb ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">${isAb ? 'Reverter' : 'W.O.'}</button>
       </div>`;
   }).join('');
 

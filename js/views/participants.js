@@ -561,13 +561,16 @@ function renderParticipants(container, tournamentId) {
         ? `<label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;" onclick="event.stopPropagation();"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}');"><span class="toggle-slider"></span></label><span style="font-size:0.68rem;font-weight:700;color:${mc ? '#4ade80' : '#64748b'};white-space:nowrap;">${mc ? 'Presente' : 'Ausente'}</span>`
         : '';
 
-      // W.O. button — marca W.O. e rola para lista de espera
+      // W.O. button — marca W.O. / reverte W.O.
       const isStandbyOrNoMatch = isStandby || !ind.matchNum;
-      const woAction = isStandbyOrNoMatch
+      const woAction = isAbsent
         ? `window._markAbsent('${tId}', '${safeName}')`
-        : `window._declareAbsent('${tId}', '${safeName}')`;
+        : (isStandbyOrNoMatch
+          ? `window._markAbsent('${tId}', '${safeName}')`
+          : `window._declareAbsent('${tId}', '${safeName}')`);
+      const woLabel = isAbsent ? 'Reverter' : 'W.O.';
       const woBtn = canAct && isOrg
-        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${woAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;font-weight:800;font-size:0.7rem;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">W.O.</button>`
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${woAction}" style="border:1px solid ${isAbsent ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAbsent ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.7rem;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">${woLabel}</button>`
         : '';
       const woBadge = isWO ? `<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>` : '';
 
