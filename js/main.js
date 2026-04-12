@@ -277,6 +277,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.59-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Sortear direto</b> — Tela intermediaria de pre-sorteio eliminada. Clicar em Sortear abre o painel de resolucao diretamente.</p>' +
+        '<p><b>Inscricao individual por padrao</b> — Criacao rapida agora usa modo Individual como padrao.</p>' +
+        '<p><b>Descricoes dinamicas nos presets de pontuacao</b> — As descricoes dos presets (1 Set, Melhor de 3, etc.) atualizam em tempo real conforme a configuracao.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Inscricoes encerram automaticamente</b> — Quando a data/hora limite e atingida, inscricoes sao encerradas sem input do organizador. Quando o maximo de participantes e atingido, tambem encerra automaticamente. Validacao server-side bloqueia inscricoes mesmo via convite.</p>' +
         '<p><b>CRITICO: Race condition de inscricoes corrigida</b> — Inscricoes nao somem mais. Sync do organizador nao sobrescreve participantes. Desinscricao e adicionar participante agora usam transacoes atomicas.</p>' +
@@ -830,7 +836,7 @@
     const _qcSportTeamDefaults = {
       'Beach Tennis': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1, 'Padel': 2
     };
-    const qcTeamSize = _qcSportTeamDefaults[sportClean] || 2;
+    const qcTeamSize = _qcSportTeamDefaults[sportClean] || 1;
 
     const tourData = {
       id: 'tour_' + Date.now(),
@@ -838,7 +844,7 @@
       sport: sportRaw,
       format: 'Eliminatórias Simples',
       isPublic: true,
-      enrollmentMode: qcTeamSize > 1 ? 'time' : 'individual',
+      enrollmentMode: 'individual',
       teamSize: qcTeamSize,
       gameTypes: qcTeamSize > 1 ? 'duplas' : 'simples',
       thirdPlace: true,

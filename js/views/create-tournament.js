@@ -3065,11 +3065,46 @@ function setupCreateTournamentModal() {
 // ─── Preset-based scoring format system ───────────────────────────────────
 // Presets define common match formats. Each preset maps to hidden field values.
 window._gsmPresets = {
-  'set1': { label: '1 Set', desc: '6 games + TB7 em 6-6', icon: '⚡', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
-  'best3': { label: 'Melhor de 3', desc: '2 sets + Super TB 10 no 3\u00BA', icon: '🏆', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
-  'best5': { label: 'Melhor de 5', desc: '3 sets + Super TB 10 no 5\u00BA', icon: '🎯', setsToWin: 3, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
-  'set4': { label: '4 Sets', desc: 'Super TB 10 se empatar 2-2', icon: '🔥', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
-  'custom': { label: 'Personalizado', desc: 'Configure manualmente', icon: '⚙️', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false }
+  'set1': { label: '1 Set', icon: '⚡', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
+  'best3': { label: 'Melhor de 3', icon: '🏆', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
+  'best5': { label: 'Melhor de 5', icon: '🎯', setsToWin: 3, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
+  'set4': { label: '4 Sets', icon: '🔥', setsToWin: 2, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: true, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false },
+  'custom': { label: 'Personalizado', icon: '⚙️', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false, fixedSet: false }
+};
+
+// Build dynamic description from config values
+window._gsmBuildPresetDesc = function(key, cfg) {
+  if (key === 'custom') {
+    // Read current hidden field values for live description
+    var hS = document.getElementById('gsm-setsToWin');
+    var hG = document.getElementById('gsm-gamesPerSet');
+    var hTb = document.getElementById('gsm-tiebreakEnabled');
+    var hTbP = document.getElementById('gsm-tiebreakPoints');
+    var hStb = document.getElementById('gsm-superTiebreak');
+    var hStbP = document.getElementById('gsm-superTiebreakPoints');
+    if (hS && hG) {
+      var cs = parseInt(hS.value) || 1, cg = parseInt(hG.value) || 6;
+      var ctb = hTb && hTb.value === 'true', ctbP = parseInt(hTbP ? hTbP.value : 7) || 7;
+      var cstb = hStb && hStb.value === 'true', cstbP = parseInt(hStbP ? hStbP.value : 10) || 10;
+      // Only show dynamic desc if selected
+      if (window._gsmSelectedPreset === 'custom') {
+        return window._gsmBuildDescFromValues(cs, cg, ctb, ctbP, cstb, cstbP);
+      }
+    }
+    return 'Configure manualmente';
+  }
+  return window._gsmBuildDescFromValues(cfg.setsToWin, cfg.gamesPerSet, cfg.tiebreakEnabled, cfg.tiebreakPoints, cfg.superTiebreak, cfg.superTiebreakPoints);
+};
+
+window._gsmBuildDescFromValues = function(s, g, tb, tbP, stb, stbP) {
+  if (s === 1) {
+    return g + ' games' + (tb ? ' + TB' + tbP + ' em ' + g + '-' + g : '');
+  }
+  var totalSets = s * 2 - 1;
+  var parts = [s + ' sets de ' + g + ' games'];
+  if (stb) parts.push('Super TB ' + stbP + ' no ' + totalSets + '\u00BA');
+  else if (tb) parts.push('TB' + tbP + ' em ' + g + '-' + g);
+  return parts.join(' + ');
 };
 
 // Which sports lock noAd (no advantage)
@@ -3097,7 +3132,7 @@ window._gsmRenderPresets = function() {
       '">' +
       '<span style="font-size:1.3rem;">' + p.icon + '</span>' +
       '<span style="font-size:0.78rem;font-weight:700;color:' + (isActive ? '#c084fc' : 'var(--text-bright)') + ';">' + p.label + '</span>' +
-      '<span style="font-size:0.65rem;color:var(--text-muted);text-align:center;line-height:1.3;">' + p.desc + '</span>' +
+      '<span style="font-size:0.65rem;color:var(--text-muted);text-align:center;line-height:1.3;">' + window._gsmBuildPresetDesc(key, p) + '</span>' +
     '</button>';
   });
   container.innerHTML = html;

@@ -12,6 +12,13 @@ function renderTournaments(container, tournamentId = null) {
 
     window._handleSortearClick = function (tId, isAberto) {
         window._lastActiveTournamentId = tId;
+        var _startDraw = function() {
+            if (typeof window.showUnifiedResolutionPanel === 'function') {
+                window.showUnifiedResolutionPanel(tId);
+            } else if (typeof window.showFinalReviewPanel === 'function') {
+                window.showFinalReviewPanel(tId);
+            }
+        };
         if (isAberto) {
             showConfirmDialog(
                 _t('org.closeRegConfirmTitle'),
@@ -20,17 +27,16 @@ function renderTournaments(container, tournamentId = null) {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t) {
                         t.status = 'closed';
-                        // Salvar no Firestore e só navegar após confirmação
                         if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
                             window.FirestoreDB.saveTournament(t).then(function() {
-                                window.location.hash = '#pre-draw/' + tId;
+                                _startDraw();
                             }).catch(function() {
                                 window.AppStore.sync();
-                                window.location.hash = '#pre-draw/' + tId;
+                                _startDraw();
                             });
                         } else {
                             window.AppStore.sync();
-                            window.location.hash = '#pre-draw/' + tId;
+                            _startDraw();
                         }
                     }
                 },
@@ -38,7 +44,7 @@ function renderTournaments(container, tournamentId = null) {
                 { type: 'warning', confirmText: 'Encerrar e Sortear', cancelText: 'Manter Aberto' }
             );
         } else {
-            window.location.hash = `#pre-draw/${tId}`;
+            _startDraw();
         }
     };
 
