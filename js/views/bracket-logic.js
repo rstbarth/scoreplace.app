@@ -438,8 +438,8 @@ function _assignRepechageLosers(t) {
   var losers = [];
   r1Matches.forEach(function(m) {
     var loser = m.winner === m.p1 ? m.p2 : m.p1;
-    var loserScore = m.winner === m.p1 ? (parseInt(m.score2) || 0) : (parseInt(m.score1) || 0);
-    var winnerScore = m.winner === m.p1 ? (parseInt(m.score1) || 0) : (parseInt(m.score2) || 0);
+    var loserScore = m.winner === m.p1 ? (parseInt(m.scoreP2) || parseInt(m.score2) || 0) : (parseInt(m.scoreP1) || parseInt(m.score1) || 0);
+    var winnerScore = m.winner === m.p1 ? (parseInt(m.scoreP1) || parseInt(m.score1) || 0) : (parseInt(m.scoreP2) || parseInt(m.score2) || 0);
     var diff = winnerScore - loserScore; // lower = closer game = better
     losers.push({ name: loser, scoreDiff: diff, pointsScored: loserScore, fromMatchId: m.id });
   });
