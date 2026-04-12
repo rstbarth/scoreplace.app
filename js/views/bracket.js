@@ -1214,14 +1214,13 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }
   }
 
-  // Golden highlight for user's own matches
-  if (_isMyMatch && !matchReady && !matchPartial) {
-    cardBorder = 'rgba(251,191,36,0.5)';
+  // User's own matches: indigo border + glow (distinct from amber partial)
+  if (_isMyMatch) {
+    cardBorder = 'rgba(99,102,241,0.6)';
   }
-  const _myStyle = _isMyMatch ? 'background:rgba(251,191,36,0.04);box-shadow:0 0 12px rgba(251,191,36,0.08),0 4px 12px rgba(0,0,0,0.15);' : '';
 
   return `
-    <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}${_myStyle}">
+    <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:${_isMyMatch ? 'rgba(99,102,241,0.06)' : 'var(--bg-card)'};border:${_isMyMatch ? '2px' : '1px'} solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:${_isMyMatch ? '0 0 20px rgba(99,102,241,0.25),0 0 8px rgba(99,102,241,0.12),0 4px 12px rgba(0,0,0,0.15)' : matchReady ? '0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15)' : matchPartial ? '0 0 10px rgba(245,158,11,0.1),0 4px 12px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.15)'};${hasTBD ? 'opacity:0.6;' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
         <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${headerConfirmBtn}${headerEditBtn}</div>
