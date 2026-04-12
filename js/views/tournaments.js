@@ -937,7 +937,7 @@ function renderTournaments(container, tournamentId = null) {
 
         return `
         <div class="card mb-3" style="position:relative;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
-          <div class="card-body p-4">
+          <div class="card-body p-4" style="${isOrg ? 'padding-bottom: 38px;' : ''}">
 
             <!-- Top Row: Icon/Modality | Status (same line on mobile) -->
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: wrap; gap: 4px;">

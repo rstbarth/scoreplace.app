@@ -367,8 +367,8 @@ function renderDashboard(container) {
                <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
              </div>
           ` : ''}
-          <div class="card-body p-4">
-            
+          <div class="card-body p-4" style="${isOrg ? 'padding-bottom: 38px;' : ''}">
+
             <!-- Top Row: Icon/Modality | Status (same line, consistent with detail page) -->
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-wrap: nowrap;">
                <div style="display: flex; align-items: center; gap: 6px; opacity: 0.65; flex-shrink: 0;">
@@ -507,8 +507,7 @@ function renderDashboard(container) {
                 var _prog = window._getTournamentProgress(t);
                 if (_prog.total > 0) {
                   var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
-                  var _progBoxMargin = isOrg ? 'margin-right: 40px;' : '';
-                  _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;' + _progBoxMargin + '">';
+                  _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;">';
                   _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">';
                   _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
                   _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
