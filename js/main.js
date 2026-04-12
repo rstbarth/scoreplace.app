@@ -277,6 +277,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.31-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Headers sticky em painéis de simulação</b> — Botões Voltar/Confirmar nos painéis de resolução de potência de 2 (BYE, Play-in, Suíço, Lista de Espera) agora ficam fixos no topo como cabeçalho, sempre visíveis ao rolar o conteúdo.</p>' +
+        '<p><b>Inscritos com header sticky</b> — Botão Voltar, título, badges e controles de check-in (filtros de presença, barra de progresso) agora ficam fixos no topo da tela de Inscritos, sempre visíveis ao rolar a lista.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Repescagem com critérios de desempate</b> — Classificação na repescagem agora usa todos os critérios configurados do torneio (saldo de pontos, vitórias, confronto direto, saldo de sets/games para GSM, etc.) em vez de apenas placar simples. Passam tantos quantos houverem vagas na rodada seguinte.</p>' +
         '<p><b>Escopo do W.O.</b> — Novo toggle na criação: "Individual" (substitui só o ausente, parceiro fica) ou "Time Inteiro" (time eliminado por W.O.). Configurável por torneio.</p>' +

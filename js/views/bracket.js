@@ -76,13 +76,29 @@ function renderBracket(container, tournamentId, isInline) {
       }
     </style>`;
 
+  // "Só meus jogos" toggle — build HTML for use in sticky header
+  window._showOnlyMyMatches = false;
+  const _cu = window.AppStore && window.AppStore.currentUser;
+  const _myMatchesToggleHtml = _cu && hasContent ? `
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;" class="no-print">
+        <span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap;">Só meus jogos</span>
+        <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#f59e0b;--toggle-on-glow:rgba(245,158,11,0.3);--toggle-on-border:#f59e0b;">
+          <input type="checkbox" id="my-matches-toggle" onchange="window._toggleMyMatches(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>` : '';
+
   const headerHtml = isInline ? `
     <div class="mb-3">${actionBtnsHtml}</div>` : `
-    <div class="sticky-back-header">
-      <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Voltar
-      </button>
+    <div class="sticky-back-header" style="padding-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+        <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </button>
+        <div style="flex:1;"></div>
+        ${_myMatchesToggleHtml}
+      </div>
     </div>
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
@@ -125,22 +141,11 @@ function renderBracket(container, tournamentId, isInline) {
     }
   }
 
-  // ── "Só meus jogos" toggle ──────────────────────────────────────────────────
-  // Reset on each render so toggle always starts OFF
-  window._showOnlyMyMatches = false;
-  const _cu = window.AppStore && window.AppStore.currentUser;
-  const _myMatchesToggle = _cu && hasContent ? `
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;" class="no-print">
-      <span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Só meus jogos</span>
-      <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#f59e0b;--toggle-on-glow:rgba(245,158,11,0.3);--toggle-on-border:#f59e0b;">
-        <input type="checkbox" id="my-matches-toggle" onchange="window._toggleMyMatches(this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>` : '';
+  // ── "Só meus jogos" toggle is now inside the sticky header (headerHtml) ──
 
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderStandings(t, isOrg, canEnterResult);
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult);
     _applyMyMatchesFilter();
     return;
   }
@@ -148,7 +153,7 @@ function renderBracket(container, tournamentId, isInline) {
   // ── Fase de Grupos ─────────────────────────────────────────────────────────
   if (isGrupos && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderGroupStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult);
       _applyMyMatchesFilter();
       return;
     }
@@ -159,7 +164,7 @@ function renderBracket(container, tournamentId, isInline) {
   var isMonarch = t.format === 'Rei/Rainha da Praia';
   if (isMonarch && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + _renderMonarchStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult);
       _applyMyMatchesFilter();
       return;
     }
@@ -183,9 +188,9 @@ function renderBracket(container, tournamentId, isInline) {
   const standbyHtml = _renderStandbyPanel(t, isOrg);
   try {
     if (isDupla) {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
     } else {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
     }
   } catch (bracketErr) {
     console.error('[Bracket] Render error:', bracketErr);

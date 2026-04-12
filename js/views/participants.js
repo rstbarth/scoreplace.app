@@ -764,7 +764,7 @@ function renderParticipants(container, tournamentId) {
   const pctPresent = totalIndividuals > 0 ? Math.round(checkedCount / totalIndividuals * 100) : 0;
 
   const checkInControls = canCheckIn ? `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'all')" style="border:1px solid ${currentFilter === 'all' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'all' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'all' ? '#a5b4fc' : 'var(--text-muted)'};">Todos (${totalIndividuals})</button>
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'present')" style="border:1px solid ${currentFilter === 'present' ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'present' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'present' ? '#4ade80' : 'var(--text-muted)'};">Presentes (${checkedCount})</button>
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'absent')" style="border:1px solid ${currentFilter === 'absent' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'absent' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'absent' ? '#f87171' : 'var(--text-muted)'};">Ausentes (${absentConfirmedCount})</button>
@@ -800,23 +800,25 @@ function renderParticipants(container, tournamentId) {
   const standbyPanelHtml = (typeof window._renderStandbyPanel === 'function') ? window._renderStandbyPanel(t, isOrg) : '';
 
   container.innerHTML = `
-    <div class="sticky-back-header">
-      <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Voltar
-      </button>
-    </div>
-    <div class="mb-4">
-      <h2 style="margin:0;">${_t('participants.title')} — ${t.name}</h2>
-      <div class="d-flex gap-2 mt-1">
-        <span class="badge badge-info">${t.format || 'Eliminatórias'}</span>
-        <span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">${individualCount} participante${individualCount !== 1 ? 's' : ''}</span>
+    <div class="sticky-back-header" style="padding-bottom:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'" style="flex-shrink:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </button>
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <h2 style="margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_t('participants.title')} — ${window._safeHtml(t.name)}</h2>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <span class="badge badge-info" style="font-size:0.65rem;">${t.format || 'Eliminatórias'}</span>
+          <span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.65rem;">${individualCount}</span>
+        </div>
       </div>
+      ${checkInControls}
     </div>
     ${startBanner}
     ${startedBadge}
     ${readyBannerHtml}
-    ${checkInControls}
     ${parts.length > 0 ? `
       <div style="${gridStyle}">
         ${cardsStr}

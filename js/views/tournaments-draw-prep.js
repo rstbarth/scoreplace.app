@@ -2791,15 +2791,16 @@ window.showResolutionSimulationPanel = function (tId, option) {
         `;
     }
 
+    var _tIdSafe2 = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var _optSafe2 = String(option || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     overlay.innerHTML = `
-        <div style="background:#0f172a;width:94%;max-width:600px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 50px 150px rgba(0,0,0,0.9);overflow:hidden;animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);margin:auto 0;">
-            <div style="padding:2.5rem;">
+        <div style="background:#0f172a;width:94%;max-width:600px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 50px 150px rgba(0,0,0,0.9);overflow:hidden;animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);margin:auto 0;display:flex;flex-direction:column;max-height:95vh;">
+            <div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#312e81 0%,#4338ca 50%,#4f46e5 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;border-radius:32px 32px 0 0;">
+                <button onclick="document.getElementById('simulation-panel').remove();" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
+                <button onclick="window._confirmP2Resolution('${_tIdSafe2}', '${_optSafe2}')" style="background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:white;border:none;padding:8px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3);transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.3)'">✓ Confirmar</button>
+            </div>
+            <div style="padding:2rem 2.5rem 2.5rem;overflow-y:auto;flex:1;">
                 ${simulationHtml}
-
-                <div style="margin-top:1.5rem;display:grid;grid-template-columns:1fr 1.5fr;gap:12px;">
-                    <button onclick="document.getElementById('simulation-panel').remove();" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);padding:14px;border-radius:16px;font-weight:700;cursor:pointer;transition:all 0.2s;">Voltar</button>
-                    <button onclick="window._confirmP2Resolution('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(option || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:white;border:none;padding:14px;border-radius:16px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(79,70,229,0.3);transition:all 0.2s;">Confirmar</button>
-                </div>
                 <p style="margin-top:1rem;text-align:center;color:#64748b;font-size:0.7rem;font-style:italic;">Nota: Esta é uma simulação ilustrativa. Os times são embaralhados no sorteio.</p>
             </div>
         </div>
