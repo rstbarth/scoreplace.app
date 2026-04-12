@@ -922,6 +922,10 @@ async function simulateLoginSuccess(user) {
       window._autoFixStaleNames().catch(function(e) { console.warn('Auto-fix stale names error:', e); });
     }
 
+    // Load templates from Firestore (with localStorage migration)
+    if (typeof window._loadTemplates === 'function') {
+      window._loadTemplates().catch(function(e) { console.warn('Template load error:', e); });
+    }
     if (typeof window._checkTournamentReminders === 'function') {
       window._checkTournamentReminders().catch(function(e) { console.warn('Reminder check error:', e); });
     }

@@ -391,5 +391,46 @@ window.FirestoreDB = {
     } catch (e) {
       return 0;
     }
+  },
+
+  // ---- Templates ----
+
+  async saveTemplate(uid, templateData) {
+    if (!this.db || !uid) return null;
+    try {
+      var clean = this._cleanUndefined(templateData);
+      var ref = await this.db.collection('users').doc(uid).collection('templates').add(clean);
+      return ref.id;
+    } catch (e) {
+      console.error('Erro ao salvar template:', e);
+      return null;
+    }
+  },
+
+  async getTemplates(uid) {
+    if (!this.db || !uid) return [];
+    try {
+      var snap = await this.db.collection('users').doc(uid).collection('templates')
+        .orderBy('createdAt', 'desc').get();
+      var templates = [];
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        data._id = doc.id;
+        templates.push(data);
+      });
+      return templates;
+    } catch (e) {
+      console.error('Erro ao carregar templates:', e);
+      return [];
+    }
+  },
+
+  async deleteTemplate(uid, templateId) {
+    if (!this.db || !uid || !templateId) return;
+    try {
+      await this.db.collection('users').doc(uid).collection('templates').doc(templateId).delete();
+    } catch (e) {
+      console.error('Erro ao excluir template:', e);
+    }
   }
 };

@@ -16,6 +16,7 @@ function setupCreateTournamentModal() {
           <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.5rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
             <h2 class="card-title" id="create-modal-title">Criar Novo Torneio</h2>
             <div style="display:flex; gap:10px;">
+              <button class="btn btn-tool-amber" id="btn-load-template-create" style="display:none;" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
               <button class="btn btn-secondary" onclick="document.getElementById('modal-create-tournament').classList.remove('active')">Cancelar</button>
               <button class="btn btn-primary" id="btn-save-tournament">Salvar Torneio</button>
             </div>
@@ -2761,6 +2762,7 @@ function setupCreateTournamentModal() {
     window._updateRegDateVisibility();
     window._recalcDuration();
     openModal('modal-create-tournament');
+    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     setTimeout(function() {
       if (typeof window._gsmInitPresets === 'function') window._gsmInitPresets();
       else if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
@@ -3685,4 +3687,63 @@ window._prefillFromTemplate = function(tpl) {
       combined: tpl.combinedCategories || []
     };
   }
+};
+
+// ─── Template picker inside create-tournament modal ───────────────────────
+// Show/hide the "Template" button based on template availability
+window._refreshTemplateBtn = function() {
+  var btn = document.getElementById('btn-load-template-create');
+  if (!btn) return;
+  var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
+  btn.style.display = templates.length > 0 ? '' : 'none';
+};
+
+window._showTemplatePickerInCreate = function() {
+  var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
+  if (templates.length === 0) return;
+  var _t = window._t || function(k) { return k; };
+  var html = '<div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:1rem;">';
+  html += '<h3 style="margin:0 0 8px;font-size:1rem;color:var(--text-bright);">Carregar Template</h3>';
+  templates.forEach(function(tpl, i) {
+    var sportIcon = tpl.sport ? tpl.sport.split(' ')[0] : '🏆';
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.15s;" ' +
+      'onmouseenter="this.style.background=\'rgba(99,102,241,0.15)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.04)\'" ' +
+      'onclick="window._applyTemplateInCreate(' + i + ')">' +
+      '<span style="font-size:1.4rem;">' + sportIcon + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:700;font-size:0.9rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(tpl.name) + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);">' + window._safeHtml(tpl.format || '') +
+          (tpl.venue ? ' · ' + window._safeHtml(tpl.venue) : '') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-micro btn-danger-ghost" onclick="event.stopPropagation();window._deleteTemplateInCreate(\'' + window._safeHtml(tpl._id || String(i)) + '\')" title="Apagar">✕</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  if (typeof showAlertDialog === 'function') showAlertDialog('💾 Templates', html);
+};
+
+window._applyTemplateInCreate = function(index) {
+  var tpl = typeof window._applyTemplate === 'function' ? window._applyTemplate(index) : null;
+  if (!tpl) return;
+  // Close the alert dialog
+  var overlay = document.querySelector('.alert-dialog-overlay');
+  if (overlay) overlay.remove();
+  // Reset form and apply template
+  var form = document.getElementById('form-create-tournament');
+  if (form) form.reset();
+  if (typeof window._prefillFromTemplate === 'function') window._prefillFromTemplate(tpl);
+  if (typeof showNotification === 'function') showNotification('Template aplicado', window._safeHtml(tpl.name), 'success');
+  setTimeout(function() {
+    if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
+  }, 100);
+};
+
+window._deleteTemplateInCreate = async function(templateId) {
+  if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
+  if (typeof showNotification === 'function') showNotification('Template excluído', '', 'info');
+  // Refresh picker
+  var overlay = document.querySelector('.alert-dialog-overlay');
+  if (overlay) overlay.remove();
+  window._showTemplatePickerInCreate();
+  window._refreshTemplateBtn();
 };

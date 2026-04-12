@@ -845,36 +845,65 @@ window.AppStore = {
   }
 };
 
-// ─── Tournament Templates ─────────────────────────────────────────────────
+// ─── Tournament Templates (Firestore-backed with local cache) ─────────────
+// Cache: window._templateCache = [] (loaded once per session)
+window._templateCache = null;
+
 window._getTemplates = function() {
-  var u = window.AppStore && window.AppStore.currentUser;
-  if (!u) return [];
-  try {
-    var raw = localStorage.getItem('scoreplace_templates_' + u.email);
-    return raw ? JSON.parse(raw) : [];
-  } catch(e) { return []; }
+  // Return cached templates synchronously (for UI rendering)
+  return window._templateCache || [];
 };
 
-window._saveTemplate = function(template) {
+window._loadTemplates = async function() {
   var u = window.AppStore && window.AppStore.currentUser;
-  if (!u) return false;
+  if (!u || !u.uid) { window._templateCache = []; return []; }
+  try {
+    var templates = await window.FirestoreDB.getTemplates(u.uid);
+    window._templateCache = templates;
+    // Migrate localStorage templates to Firestore (one-time)
+    var lsKey = 'scoreplace_templates_' + u.email;
+    var lsRaw = localStorage.getItem(lsKey);
+    if (lsRaw) {
+      try {
+        var lsTemplates = JSON.parse(lsRaw);
+        if (Array.isArray(lsTemplates) && lsTemplates.length > 0) {
+          for (var i = 0; i < lsTemplates.length; i++) {
+            if (!lsTemplates[i].createdAt) lsTemplates[i].createdAt = new Date().toISOString();
+            await window.FirestoreDB.saveTemplate(u.uid, lsTemplates[i]);
+          }
+          localStorage.removeItem(lsKey);
+          // Reload from Firestore after migration
+          templates = await window.FirestoreDB.getTemplates(u.uid);
+          window._templateCache = templates;
+        }
+      } catch(e) { localStorage.removeItem(lsKey); }
+    }
+    return templates;
+  } catch(e) { window._templateCache = []; return []; }
+};
+
+window._saveTemplate = async function(template) {
+  var u = window.AppStore && window.AppStore.currentUser;
+  if (!u || !u.uid) return false;
   var templates = window._getTemplates();
   var isPro = u.plan === 'pro';
   if (!isPro && templates.length >= 10) return false;
   template.createdAt = new Date().toISOString();
-  templates.push(template);
-  localStorage.setItem('scoreplace_templates_' + u.email, JSON.stringify(templates));
-  return true;
+  var id = await window.FirestoreDB.saveTemplate(u.uid, template);
+  if (id) {
+    template._id = id;
+    window._templateCache = window._templateCache || [];
+    window._templateCache.unshift(template);
+    return true;
+  }
+  return false;
 };
 
-window._deleteTemplate = function(index) {
+window._deleteTemplate = async function(templateId) {
   var u = window.AppStore && window.AppStore.currentUser;
-  if (!u) return;
-  var templates = window._getTemplates();
-  if (index >= 0 && index < templates.length) {
-    templates.splice(index, 1);
-    localStorage.setItem('scoreplace_templates_' + u.email, JSON.stringify(templates));
-  }
+  if (!u || !u.uid || !templateId) return;
+  await window.FirestoreDB.deleteTemplate(u.uid, templateId);
+  window._templateCache = (window._templateCache || []).filter(function(t) { return t._id !== templateId; });
 };
 
 window._applyTemplate = function(index) {

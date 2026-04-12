@@ -435,12 +435,13 @@ window._saveAsTemplate = function(tId) {
         venueAddress: t.venueAddress || '',
         teamSize: t.teamSize || 1
       };
-      var ok = window._saveTemplate(template);
-      if (ok) {
-        showNotification(_t('template.saved'), '', 'success');
-      } else {
-        showNotification(_t('template.limitFree'), '', 'warning');
-      }
+      window._saveTemplate(template).then(function(ok) {
+        if (ok) {
+          showNotification(_t('template.saved'), '', 'success');
+        } else {
+          showNotification(_t('template.limitFree'), '', 'warning');
+        }
+      })
     });
   }
 };

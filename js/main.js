@@ -279,6 +279,7 @@
       content: '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Repescagem com melhor perdedor</b> — Sem BYEs: melhores perdedores de R1 jogam repescagem, vencedores + melhor perdedor (por desempenho R1) classificam. Barra de progresso conta todas as partidas do torneio. Numeracao: final = ultimo jogo. Lista de espera visivel no card com contagem separada.</p>' +
+        '<p><b>Templates no Firestore</b> — Templates de torneio migrados de localStorage para Firestore (sincroniza entre dispositivos). Botao "Carregar Template" no modal de criacao quando ha templates salvos.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
@@ -929,6 +930,7 @@
 
     if (typeof window._onFormatoChange === 'function') window._onFormatoChange();
     if (typeof openModal === 'function') openModal('modal-create-tournament');
+    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     // Ensure GSM summary renders after modal is visible
     setTimeout(function() {
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
@@ -976,7 +978,7 @@
           '<div style="font-weight:600;font-size:0.85rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(tpl.name) + '</div>' +
           '<div style="font-size:0.75rem;color:var(--text-muted);">' + window._safeHtml(tpl.format || '') + '</div>' +
         '</div>' +
-        '<button class="btn btn-micro btn-danger-ghost" onclick="event.stopPropagation();window._qcDeleteTemplate(' + i + ')" title="Apagar">✕</button>' +
+        '<button class="btn btn-micro btn-danger-ghost" onclick="event.stopPropagation();window._qcDeleteTemplate(\'' + window._safeHtml(tpl._id || String(i)) + '\')" title="Apagar">✕</button>' +
       '</div>';
     });
     html += '</div>';
@@ -1003,6 +1005,7 @@
       window._prefillFromTemplate(tpl);
     }
     if (typeof openModal === 'function') openModal('modal-create-tournament');
+    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     setTimeout(function() {
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
@@ -1010,8 +1013,8 @@
     }, 100);
   };
 
-  window._qcDeleteTemplate = function(index) {
-    if (typeof window._deleteTemplate === 'function') window._deleteTemplate(index);
+  window._qcDeleteTemplate = async function(templateId) {
+    if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
     var _t = window._t || function(k) { return k; };
     if (typeof showNotification === 'function') showNotification(_t('template.deleted'), '', 'info');
     // Refresh the list
