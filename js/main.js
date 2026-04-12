@@ -399,6 +399,7 @@
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Lista de Espera visível</b> — Stat-box "Lista de Espera" agora aparece corretamente após mover participantes para espera no painel de resolução.</p>' +
         '<p><b>Set Fixo</b> — Novo modo de pontuação "Set Fixo" no GSM: disputa de N games fixos onde ganha quem vencer mais.</p>' +
         '<p><b>Login por email e telefone</b> — Abas de login: Email Link (passwordless) e Telefone (SMS). Removidos Apple e Facebook. Google Sign-In mantido.</p>' +
         '</div>' +

@@ -257,6 +257,10 @@ window._executeRemoval = function(tId, mode, method) {
         if (typeof showNotification !== 'undefined') {
             showNotification('Ajuste realizado', removedNames + ' ' + actionLabel + '.', 'success');
         }
+        // Update stat-boxes (inscritos count + waitlist) in the detail view
+        if (typeof window._updateStatBoxes === 'function') {
+            window._updateStatBoxes(t);
+        }
         // Re-run diagnosis — may still have power-of-2 issues
         window.showUnifiedResolutionPanel(tId);
     });

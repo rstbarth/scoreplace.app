@@ -1,3 +1,50 @@
+// Dynamically update stat-boxes after participant/waitlist changes
+window._updateStatBoxes = function(t) {
+    var row = document.getElementById('stat-boxes-row');
+    if (!row || !t) return;
+
+    // Recount individuals
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    var indivCount = 0;
+    parts.forEach(function(p) {
+        if (typeof p === 'object' && Array.isArray(p.participants)) {
+            indivCount += p.participants.length;
+        } else if (typeof p === 'string' && p.indexOf('/') !== -1) {
+            indivCount += p.split('/').filter(function(n) { return n.trim().length > 0; }).length;
+        } else {
+            indivCount++;
+        }
+    });
+    if (Array.isArray(t.waitlist)) indivCount += t.waitlist.length;
+
+    // Update inscritos count
+    var inscBox = row.querySelector('[data-stat="inscritos"] .stat-value');
+    if (inscBox) inscBox.textContent = indivCount;
+
+    // Waitlist count
+    var wlCount = (Array.isArray(t.standbyParticipants) ? t.standbyParticipants.length : 0)
+        + (Array.isArray(t.waitlist) ? t.waitlist.length : 0);
+
+    var wlBox = row.querySelector('[data-stat="waitlist"]');
+    if (wlCount > 0 && !wlBox) {
+        // Insert waitlist stat-box
+        var div = document.createElement('div');
+        div.className = 'stat-box';
+        div.setAttribute('data-stat', 'waitlist');
+        div.style.cssText = 'background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);';
+        div.innerHTML =
+            '<span style="font-size: 1.1rem; margin-right: 4px;">⏳</span>' +
+            '<span class="stat-value" style="font-size: 1.4rem; font-weight: 800; line-height: 1; color: #fbbf24;">' + wlCount + '</span>' +
+            '<span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; color: #fbbf24; opacity: 0.9;">Lista de Espera</span>';
+        row.appendChild(div);
+    } else if (wlCount > 0 && wlBox) {
+        var wlVal = wlBox.querySelector('.stat-value');
+        if (wlVal) wlVal.textContent = wlCount;
+    } else if (wlCount === 0 && wlBox) {
+        wlBox.remove();
+    }
+};
+
 function renderTournaments(container, tournamentId = null) {
     if (!window.AppStore) return;
     // Clear one-time check flags for OTHER tournaments (keep current)
@@ -979,23 +1026,23 @@ function renderTournaments(container, tournamentId = null) {
 
                <!-- Stats Column -->
                 <div style="display: inline-flex; flex-direction: column; gap: 8px; width: 100%;">
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
-                        <div class="stat-box">
+                    <div id="stat-boxes-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
+                        <div class="stat-box" data-stat="inscritos">
                            <span style="font-size: 1.1rem; margin-right: 4px;">👤</span>
-                           <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
+                           <span class="stat-value" style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Inscritos</span>
                         </div>
                         ${teamCount > 0 ? `
-                        <div class="stat-box">
+                        <div class="stat-box" data-stat="equipes">
                            <span style="font-size: 1.1rem; margin-right: 4px;">👥</span>
-                           <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
+                           <span class="stat-value" style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.8;">Equipes</span>
                         </div>
                         ` : ''}
                         ${standbyCount > 0 ? `
-                        <div class="stat-box" style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);">
+                        <div class="stat-box" data-stat="waitlist" style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);">
                            <span style="font-size: 1.1rem; margin-right: 4px;">⏳</span>
-                           <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; color: #fbbf24;">${standbyCount}</span>
+                           <span class="stat-value" style="font-size: 1.4rem; font-weight: 800; line-height: 1; color: #fbbf24;">${standbyCount}</span>
                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; color: #fbbf24; opacity: 0.9;">Lista de Espera</span>
                         </div>
                         ` : ''}
