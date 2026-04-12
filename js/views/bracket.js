@@ -128,6 +128,7 @@ function renderBracket(container, tournamentId, isInline) {
   }
 
   // ── "Só meus jogos" toggle ──────────────────────────────────────────────────
+  const _cu = window.AppStore && window.AppStore.currentUser;
   const _myMatchesToggle = _cu && hasContent && !isInline ? `
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;" class="no-print">
       <span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Só meus jogos</span>
