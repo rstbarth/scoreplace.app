@@ -553,21 +553,21 @@ function renderParticipants(container, tournamentId) {
 
       const isStandby = !!ind.isStandby;
 
-      // Action buttons — 3 estados: presente (toggle), ausente (confirma ausência), sem confirmação (default)
+      // Action buttons — toggle Presente + botão W.O.
       const canAct = isStandby ? true : (!ind.matchDecided && !isWO);
 
-      // Presente: sempre clicável (toggle on/off)
-      const presentBtn = canAct
-        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}')" style="border:1px solid ${mc ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.2)'};background:${mc ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)'};color:#4ade80;${mc ? 'opacity:1;' : 'opacity:0.6;'}">${_t('participants.present')}</button>`
+      // Toggle "Presente"
+      const presentToggle = canAct
+        ? `<label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;" onclick="event.stopPropagation();"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}');"><span class="toggle-slider"></span></label><span style="font-size:0.68rem;font-weight:700;color:${mc ? '#4ade80' : '#64748b'};white-space:nowrap;">${mc ? 'Presente' : 'Ausente'}</span>`
         : '';
 
-      // Ausente: standby/sem jogo → marca ausência confirmada (toggle); regular com jogo → declara ausência com W.O./substituição
+      // W.O. button — marca W.O. e rola para lista de espera
       const isStandbyOrNoMatch = isStandby || !ind.matchNum;
-      const absentAction = isStandbyOrNoMatch
+      const woAction = isStandbyOrNoMatch
         ? `window._markAbsent('${tId}', '${safeName}')`
         : `window._declareAbsent('${tId}', '${safeName}')`;
-      const absentBtn = canAct && isOrg
-        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${absentAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">${_t('participants.absent')}</button>`
+      const woBtn = canAct && isOrg
+        ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${woAction}" style="border:1px solid ${isAbsent ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;font-weight:800;font-size:0.7rem;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">W.O.</button>`
         : '';
       const woBadge = isWO ? `<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>` : '';
 
@@ -603,8 +603,8 @@ function renderParticipants(container, tournamentId) {
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
                 ${woBadge}
-                ${presentBtn}
-                ${absentBtn}
+                ${presentToggle}
+                ${woBtn}
             </div>
         </div>`;
     }).join('');

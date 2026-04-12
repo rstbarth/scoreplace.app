@@ -193,6 +193,115 @@ window._substituteFromStandby = function (tId) {
   }
 };
 
+// Auto-substitute: find first W.O. player in bracket and replace with first present standby
+window._autoSubstituteWO = function(tId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t) return;
+
+  const ab = t.absent || {};
+  const ci = t.checkedIn || {};
+  const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?');
+
+  // Merge standby sources
+  var _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
+  var _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  var _spNames = new Set(_sp.map(function(p) { return getName(p); }));
+  var standby = _sp.slice();
+  _wl.forEach(function(w) { var wn = getName(w); if (wn && !_spNames.has(wn)) standby.push(w); });
+
+  // Find first present standby
+  const nextPresent = standby.find(p => !!ci[getName(p)]);
+  if (!nextPresent) {
+    if (typeof showNotification === 'function') showNotification('Sem substituto', 'Nenhum jogador da lista de espera está marcado como presente.', 'warning');
+    return;
+  }
+  const replacementName = getName(nextPresent);
+
+  // Find first W.O. match (player marked absent in undecided match)
+  let woMatch = null, woSlot = null, absentName = null;
+  if (t.matches) {
+    for (var i = 0; i < t.matches.length; i++) {
+      var m = t.matches[i];
+      if (m.winner || m.isBye) continue;
+      for (var si = 0; si < 2; si++) {
+        var slot = si === 0 ? 'p1' : 'p2';
+        var name = m[slot];
+        if (!name || name === 'TBD' || name === 'BYE') continue;
+        var members = name.includes(' / ') ? name.split(' / ').map(function(n) { return n.trim(); }) : [name];
+        var absentMember = members.find(function(n) { return !!ab[n]; });
+        if (absentMember) { woMatch = m; woSlot = slot; absentName = name; break; }
+      }
+      if (woMatch) break;
+    }
+  }
+
+  if (!woMatch) {
+    if (typeof showNotification === 'function') showNotification('Sem W.O.', 'Nenhum jogador com W.O. encontrado no chaveamento.', 'info');
+    return;
+  }
+
+  var oldName = woMatch[woSlot];
+  var teamSize = parseInt(t.teamSize) || 1;
+  var mode = (t.standbyMode === 'disqualify') ? 'teams' : (t.standbyMode || 'teams');
+
+  // For individual mode with teams, replace just the absent member inside the team
+  if (mode === 'individual' && oldName.includes(' / ')) {
+    var absentMemberName = oldName.split(' / ').map(function(n) { return n.trim(); }).find(function(n) { return !!ab[n]; });
+    var newMembers = oldName.split(' / ').map(function(n) { return n.trim() === absentMemberName ? replacementName : n.trim(); });
+    var newTeamName = newMembers.join(' / ');
+
+    showConfirmDialog('Substituir W.O.',
+      '<div style="text-align:left;line-height:1.8;"><div><strong style="color:#ef4444;">Ausente:</strong> ' + window._safeHtml(absentMemberName) + '</div><div><strong style="color:#4ade80;">Substituto:</strong> ' + window._safeHtml(replacementName) + '</div><div style="margin-top:6px;"><strong>Novo time:</strong> ' + window._safeHtml(newTeamName) + '</div></div>',
+      function() {
+        woMatch[woSlot] = newTeamName;
+        // Remove from standby
+        var idx = standby.indexOf(nextPresent);
+        if (idx !== -1) standby.splice(idx, 1);
+        t.standbyParticipants = standby;
+        // Update participants
+        var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+        var pi = partsArr.findIndex(function(p) { return getName(p) === oldName; });
+        if (pi !== -1) partsArr[pi] = newTeamName;
+        t.participants = partsArr;
+        // Update all match refs
+        (t.matches || []).forEach(function(match) {
+          if (match.p1 === oldName) match.p1 = newTeamName;
+          if (match.p2 === oldName) match.p2 = newTeamName;
+        });
+        window.AppStore.logAction(tId, 'Substituição W.O.: ' + absentMemberName + ' → ' + replacementName);
+        window.AppStore.syncImmediate(tId);
+        showNotification('Substituição Realizada', replacementName + ' entrou no lugar de ' + absentMemberName, 'success');
+        // Re-render participants page
+        var container = document.getElementById('view-container');
+        if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
+      }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
+  } else {
+    // Teams mode or individual without slash: replace entire entry
+    showConfirmDialog('Substituir W.O.',
+      '<div style="text-align:left;line-height:1.8;"><div><strong style="color:#ef4444;">W.O.:</strong> ' + window._safeHtml(oldName) + '</div><div><strong style="color:#4ade80;">Substituto:</strong> ' + window._safeHtml(replacementName) + '</div></div>',
+      function() {
+        woMatch[woSlot] = replacementName;
+        var idx = standby.indexOf(nextPresent);
+        if (idx !== -1) standby.splice(idx, 1);
+        t.standbyParticipants = standby;
+        var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+        var pi = partsArr.findIndex(function(p) { return getName(p) === oldName; });
+        if (pi !== -1) partsArr.splice(pi, 1);
+        partsArr.push(replacementName);
+        t.participants = partsArr;
+        (t.matches || []).forEach(function(match) {
+          if (match.p1 === oldName) match.p1 = replacementName;
+          if (match.p2 === oldName) match.p2 = replacementName;
+        });
+        window.AppStore.logAction(tId, 'Substituição W.O.: ' + oldName + ' → ' + replacementName);
+        window.AppStore.syncImmediate(tId);
+        showNotification('Substituição Realizada', replacementName + ' entrou no lugar de ' + oldName, 'success');
+        var container = document.getElementById('view-container');
+        if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
+      }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
+  }
+};
+
 window._toggleBracketMode = function (tId) {
   window._bracketMirrorMode = !window._bracketMirrorMode;
   _rerenderBracket(tId);

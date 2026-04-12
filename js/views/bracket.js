@@ -302,103 +302,70 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
     individual: 'Jogadores avulsos — completam times com membros ausentes'
   };
 
+  const _tIdSafe = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const ci = t.checkedIn || {};
+  const ab = t.absent || {};
+
   const listItems = standby.map((p, i) => {
     const name = getName(p);
+    const safeName = name.replace(/'/g, "\\'");
+    const mc = !!ci[name];
+    const isAb = !!ab[name];
+    const toggleColor = mc ? '#10b981' : '#64748b';
+    const statusLabel = mc ? 'Presente' : 'Ausente';
+    const statusColor = mc ? '#4ade80' : '#64748b';
+
     return `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px;border-left:4px solid ${i === 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
-        <div style="width:28px;height:28px;border-radius:50%;background:${i === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;color:${i === 0 ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
-        <span style="font-weight:600;font-size:0.9rem;color:${i === 0 ? '#fbbf24' : '#94a3b8'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-        ${i === 0 ? '<span style="font-size:0.65rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 8px;border-radius:6px;white-space:nowrap;">Próximo</span>' : ''}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${mc ? 'rgba(16,185,129,0.08)' : isAb ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)'};border-radius:10px;border-left:4px solid ${i === 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
+        <div style="width:26px;height:26px;border-radius:50%;background:${i === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:${i === 0 ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
+        <span style="font-weight:600;font-size:0.88rem;color:${i === 0 ? '#fbbf24' : '#94a3b8'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+        ${i === 0 ? '<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:6px;white-space:nowrap;">Próximo</span>' : ''}
+        <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${_tIdSafe}', '${safeName}');"><span class="toggle-slider"></span></label>
+        <span style="font-size:0.65rem;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
+        <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.08)'};color:#f87171;font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">W.O.</button>
       </div>`;
   }).join('');
 
-  // Build substitution UI based on mode
+  // Count W.O. players in main bracket (not standby) — these are candidates for substitution
+  const woPlayers = [];
+  if (t.matches) {
+    t.matches.filter(m => !m.winner && !m.isBye).forEach(m => {
+      ['p1', 'p2'].forEach(slot => {
+        const name = m[slot];
+        if (!name || name === 'TBD' || name === 'BYE') return;
+        // Check if any member of this team/player is marked absent
+        const members = name.includes(' / ') ? name.split(' / ').map(n => n.trim()) : [name];
+        const hasAbsent = members.some(n => !!ab[n]);
+        if (hasAbsent) woPlayers.push({ name, matchId: m.id, slot });
+      });
+    });
+  }
+
+  // Substitution: simple button that auto-picks next present standby to replace first W.O.
   let subsSection = '';
-  if (isOrg && standby.length > 0) {
-    if (mode === 'individual') {
-      // Individual mode: dropdown lists individual players from all undecided R1 matches
-      // Organizer picks the absent PLAYER, and the next standby individual fills that specific slot
-      const r1Players = [];
-      (t.matches || []).filter(m => m.round === 1 && !m.winner && !m.isBye).forEach(m => {
-        // For team names like "A / B", list each member separately
-        ['p1', 'p2'].forEach(slot => {
-          const name = m[slot];
-          if (!name || name === 'TBD' || name === 'BYE') return;
-          if (name.includes(' / ')) {
-            name.split(' / ').forEach((member, mi) => {
-              r1Players.push({ display: member.trim(), teamName: name, matchId: m.id, slot, memberIdx: mi });
-            });
-          } else {
-            r1Players.push({ display: name, teamName: name, matchId: m.id, slot, memberIdx: -1 });
-          }
-        });
-      });
-
-      if (r1Players.length > 0) {
-        const options = r1Players.map(p =>
-          `<option value="${window._safeHtml(p.matchId+'|'+p.slot+'|'+p.memberIdx+'|'+p.display)}">${window._safeHtml(p.display)}</option>`
-        ).join('');
-
-        subsSection = `
-          <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.06);">
-            <h4 style="margin:0 0 0.75rem;color:#f1f5f9;font-size:0.85rem;font-weight:700;">Substituir Jogador Ausente</h4>
-            <p style="margin:0 0 1rem;font-size:0.78rem;color:#64748b;line-height:1.5;">Selecione o jogador que faltou. <strong style="color:#fbbf24;">${getName(standby[0])}</strong> ocupará a vaga dentro do time existente.</p>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <select id="standby-wo-select" style="flex:1;min-width:180px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:10px 12px;font-size:0.85rem;font-weight:600;">
-                <option value="">Selecionar ausente...</option>
-                ${options}
-              </select>
-              <button class="btn btn-warning" onclick="window._substituteFromStandby('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
-                Substituir
-              </button>
-            </div>
-          </div>`;
-      }
-    } else {
-      // Teams mode: dropdown lists full team names (p1/p2 in R1)
-      // Incomplete team is disqualified and replaced by the next standby team
-      const r1Teams = [];
-      (t.matches || []).filter(m => m.round === 1 && !m.winner && !m.isBye).forEach(m => {
-        if (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') r1Teams.push({ name: m.p1, matchId: m.id, slot: 'p1' });
-        if (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') r1Teams.push({ name: m.p2, matchId: m.id, slot: 'p2' });
-      });
-
-      if (r1Teams.length > 0) {
-        const options = r1Teams.map(p =>
-          `<option value="${p.matchId}|${p.slot}">${window._safeHtml(p.name)}</option>`
-        ).join('');
-
-        const nextTeam = teamSize > 1
-          ? `Os próximos ${teamSize} jogadores da fila formarão o time substituto.`
-          : `<strong style="color:#fbbf24;">${getName(standby[0])}</strong> assumirá a vaga.`;
-
-        subsSection = `
-          <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.06);">
-            <h4 style="margin:0 0 0.75rem;color:#f1f5f9;font-size:0.85rem;font-weight:700;">Desclassificar Time Incompleto</h4>
-            <p style="margin:0 0 1rem;font-size:0.78rem;color:#64748b;line-height:1.5;">Selecione o time incompleto. ${nextTeam}</p>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <select id="standby-wo-select" style="flex:1;min-width:180px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:10px 12px;font-size:0.85rem;font-weight:600;">
-                <option value="">Selecionar time incompleto...</option>
-                ${options}
-              </select>
-              <button class="btn btn-warning" onclick="window._substituteFromStandby('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
-                Desclassificar e Substituir
-              </button>
-            </div>
-          </div>`;
-      }
-    }
+  if (isOrg && standby.length > 0 && woPlayers.length > 0) {
+    // Find first present standby
+    const nextPresent = standby.find(p => !!ci[getName(p)]);
+    const nextName = nextPresent ? getName(nextPresent) : null;
+    subsSection = `
+      <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:1rem;">🔄</span>
+          <h4 style="margin:0;color:#f1f5f9;font-size:0.85rem;font-weight:700;">Substituição</h4>
+        </div>
+        <p style="margin:0 0 1rem;font-size:0.78rem;color:#64748b;line-height:1.5;">${woPlayers.length} jogador${woPlayers.length > 1 ? 'es' : ''} com W.O. ${nextName ? 'O próximo presente na fila é <strong style="color:#fbbf24;">' + nextName + '</strong>.' : '<span style="color:#f87171;">Nenhum jogador da lista de espera está marcado como presente.</span>'}</p>
+        ${nextName ? `<button class="btn btn-warning hover-lift" style="width:100%;" onclick="window._autoSubstituteWO('${_tIdSafe}')">🔄 Substituir W.O. pelo próximo presente</button>` : ''}
+      </div>`;
   }
 
   return `
-    <div style="margin-top:2rem;background:var(--bg-card);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:1.5rem;max-width:520px;">
+    <div id="standby-panel-section" style="margin-top:2rem;background:var(--bg-card);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:1.5rem;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
         <span style="font-size:1.3rem;">📋</span>
         <h3 style="margin:0;color:#f1f5f9;font-size:1.05rem;font-weight:700;">Lista de Espera</h3>
         <span style="font-size:0.75rem;background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 10px;border-radius:10px;font-weight:700;">${standby.length}</span>
       </div>
-      ${teamSize > 1 ? `<div style="font-size:0.72rem;color:#64748b;margin-bottom:1rem;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:8px;border-left:3px solid rgba(245,158,11,0.3);">${modeDesc[mode]}</div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
         ${listItems}
       </div>
       ${subsSection}
