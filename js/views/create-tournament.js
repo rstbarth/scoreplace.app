@@ -3698,6 +3698,17 @@ window._refreshTemplateBtn = function() {
   // Refresh quick-create modal button
   var qcBtn = document.getElementById('btn-quick-template');
   if (qcBtn) qcBtn.style.display = hasTemplates ? 'block' : 'none';
+  // If cache not loaded yet, trigger async load and refresh again when done
+  if (window._templateCache === null && typeof window._loadTemplates === 'function') {
+    window._loadTemplates().then(function() {
+      var t2 = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
+      var has2 = t2.length > 0;
+      var b2 = document.getElementById('btn-load-template-create');
+      if (b2) b2.style.display = has2 ? '' : 'none';
+      var q2 = document.getElementById('btn-quick-template');
+      if (q2) q2.style.display = has2 ? 'block' : 'none';
+    }).catch(function() {});
+  }
 };
 
 window._showTemplatePickerInCreate = function() {
