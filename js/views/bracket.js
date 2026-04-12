@@ -278,8 +278,18 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
 };
 
 // ─── Painel de Lista de Espera (Standby) ─────────────────────────────────────
-function _renderStandbyPanel(t, isOrg) {
-  const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
+  // Merge both waitlist sources
+  var _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
+  var _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  // Deduplicate: use standbyParticipants as primary, add waitlist entries not already present
+  var _spNames = new Set(_sp.map(function(p) { return typeof p === 'string' ? p : (p.displayName || p.name || ''); }));
+  var _merged = _sp.slice();
+  _wl.forEach(function(w) {
+    var wn = typeof w === 'string' ? w : (w.displayName || w.name || '');
+    if (wn && !_spNames.has(wn)) _merged.push(w);
+  });
+  const standby = _merged;
   if (standby.length === 0) return '';
 
   const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?');
@@ -393,7 +403,7 @@ function _renderStandbyPanel(t, isOrg) {
       </div>
       ${subsSection}
     </div>`;
-}
+};
 
 // ─── Substituição de jogador/time da Lista de Espera ─────────────────────────
 

@@ -736,6 +736,9 @@ function renderParticipants(container, tournamentId) {
   // Ready matches banner (check-in: jogos prontos para chamar)
   const readyBannerHtml = (typeof window._renderReadyMatchesBanner === 'function') ? window._renderReadyMatchesBanner(t) : '';
 
+  // Standby / waitlist panel
+  const standbyPanelHtml = (typeof window._renderStandbyPanel === 'function') ? window._renderStandbyPanel(t, isOrg) : '';
+
   container.innerHTML = `
     <div class="sticky-back-header">
       <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'">
@@ -763,5 +766,6 @@ function renderParticipants(container, tournamentId) {
         <p class="text-muted">Nenhum inscrito ainda.</p>
       </div>
     `}
+    ${standbyPanelHtml}
   `;
 }
