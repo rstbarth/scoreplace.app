@@ -452,11 +452,11 @@ function setupCreateTournamentModal() {
                   <div id="game-type-buttons" style="display:flex;flex-direction:column;gap:8px;">
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                       <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏸</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameSimples')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">1 jogador por lado da quadra.</div></div></div>
-                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                       <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameDuplas')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">2 jogadores por lado (duplas).</div></div></div>
-                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                   </div>
                   <small class="text-muted" style="display:block;margin-top:6px;" id="game-type-desc">${_t('create.gameTypeHint')}</small>
@@ -734,23 +734,17 @@ function setupCreateTournamentModal() {
     var gameTypesField = document.getElementById('tourn-game-types');
     var teamSizeField = document.getElementById('tourn-team-size');
 
-    var enrollVal;
     if (sOn && dOn) {
       if (gameTypesField) gameTypesField.value = 'simples,duplas';
       if (teamSizeField) teamSizeField.value = '2';
-      enrollVal = 'misto';
     } else if (dOn) {
       if (gameTypesField) gameTypesField.value = 'duplas';
       if (teamSizeField) teamSizeField.value = '2';
-      enrollVal = 'time';
     } else {
       if (gameTypesField) gameTypesField.value = 'simples';
       if (teamSizeField) teamSizeField.value = '1';
-      enrollVal = 'individual';
     }
-    var inscricaoField = document.getElementById('select-inscricao');
-    if (inscricaoField) inscricaoField.value = enrollVal;
-    window._selectEnrollMode(enrollVal);
+    // Enrollment mode is independent — not synced from game type
 
     // Update description
     var descEl = document.getElementById('game-type-desc');
