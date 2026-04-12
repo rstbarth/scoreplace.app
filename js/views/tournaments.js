@@ -862,7 +862,7 @@ function renderTournaments(container, tournamentId = null) {
         var _cardTextColor = (_isLight && !venuePhotoBg) ? '#1f2937' : 'white';
 
         return `
-        <div class="card mb-3" style="position:relative;overflow-x:hidden;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
+        <div class="card mb-3" style="position:relative;${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; ${!tournamentId ? 'cursor: pointer;' : ''}" ${!tournamentId ? `onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'"` : ''}>
           ${isOrg ? '<div style="position:absolute;bottom:26px;right:26px;opacity:0.9;pointer-events:none;" title="Organizador"><svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg></div>' : ''}
           <div class="card-body p-4">
             
@@ -977,10 +977,8 @@ function renderTournaments(container, tournamentId = null) {
                 </div>
 
                <!-- Formato, Regras e Categorias -->
-               <div class="info-box">
-                  <div><strong>Formato:</strong> ${t.format}</div>
-                  <div><strong>Inscrição:</strong> ${enrollmentText}</div>
-                  <div><strong>Acesso:</strong> ${publicText}</div>
+               <div class="info-box" style="font-size:0.78rem;padding:8px 12px;line-height:1.6;">
+                  <div><strong>Formato:</strong> ${t.format} · <strong>Inscrição:</strong> ${enrollmentText} · <strong>Acesso:</strong> ${publicText}</div>
                   ${(t.ligaSeasonMonths || t.rankingSeasonMonths) ? (() => {
                     const _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
                     let _seasonInfo = `<div><strong>Temporada:</strong> ${_sm} meses`;
@@ -1050,7 +1048,7 @@ function renderTournaments(container, tournamentId = null) {
             </div>` : ''}
 
           </div>
-          ${(tournamentId && window.AppStore.isCreator(t)) ? `<div id="crown-org-btn" style="position:absolute;bottom:12px;right:12px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:10;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
+          ${(tournamentId && window.AppStore.isCreator(t)) ? `<div id="crown-org-btn" style="position:absolute;top:12px;right:12px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 20px rgba(251,191,36,0.4),0 0 15px rgba(251,191,36,0.3);z-index:100;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.3s;animation:crownGlow 2s ease-in-out infinite;"
             ondragover="event.preventDefault();event.dataTransfer.dropEffect='move';this.style.transform='scale(1.15)';"
             ondragleave="this.style.transform='scale(1)';"
             ondrop="this.style.transform='scale(1)';window._handleCrownDrop(event,'${t.id}')"

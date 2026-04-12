@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Coroa de organizacao reposicionada</b> — Botao coroa agora no topo direito do card, sem sobreposicao com outros elementos. Info-box de formato/acesso mais compacto.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Dicas reagem a atividade</b> — Scroll, clique ou digitacao agora escondem dicas na tela e reiniciam o timer de inatividade.</p>' +
         '</div>' +
