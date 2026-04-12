@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.8-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Convite sem login obrigatorio</b> — Visitantes podem ver o torneio sem fazer login. Se inscricoes abertas, scroll ate o botao "Inscrever-se" com destaque. Se inscricoes fechadas, mensagem explicativa e sugestao para criar proprio torneio. Login so e solicitado ao clicar em Inscrever-se.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Repescagem com melhor perdedor</b> — Sem BYEs: melhores perdedores de R1 jogam repescagem, vencedores + melhor perdedor (por desempenho R1) classificam. Barra de progresso conta todas as partidas do torneio. Numeracao: final = ultimo jogo. Lista de espera visivel no card com contagem separada.</p>' +
         '<p><b>Templates no Firestore</b> — Templates de torneio migrados de localStorage para Firestore (sincroniza entre dispositivos). Botao "Carregar Template" no modal de criacao quando ha templates salvos.</p>' +

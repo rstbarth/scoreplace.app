@@ -298,23 +298,12 @@ function renderTournaments(container, tournamentId = null) {
 
     // ─── Invite fallback card — shown when tournament can't be loaded yet ─────
     window._renderInviteFallbackCard = function(container, tId) {
-        var isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
-        if (isLoggedIn) {
-            // Logged-in user, tournament not loaded yet — show loading with retry
-            container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
-                '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
-                '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Carregando torneio...</h2>' +
-                '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Aguarde enquanto carregamos os dados do torneio.</p>' +
-                '<button class="btn hover-lift" onclick="window.location.hash=\'#dashboard\'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);font-weight:600;font-size:0.9rem;padding:10px 24px;border-radius:10px;">Voltar ao Início</button></div>';
-        } else {
-            // Not logged in — login opens automatically, show friendly message
-            container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
-                '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
-                '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Voc\u00EA foi convidado para um torneio!</h2>' +
-                '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Fa\u00E7a login para ser inscrito automaticamente.</p>' +
-                '<button class="btn hover-lift" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;font-weight:800;font-size:1.15rem;padding:16px 48px;border-radius:14px;box-shadow:0 6px 24px rgba(16,185,129,0.45);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:10px;">' +
-                '\u{1F511} Fazer Login</button></div>';
-        }
+        // Show loading message for all users (logged in or visitor)
+        container.innerHTML = '<div style="max-width:500px;width:100%;margin:2rem auto;text-align:center;padding:2rem;box-sizing:border-box;">' +
+            '<div style="font-size:3rem;margin-bottom:1rem;">\u{1F3C6}</div>' +
+            '<h2 style="color:var(--text-bright);margin-bottom:0.5rem;">Carregando torneio...</h2>' +
+            '<p style="color:var(--text-muted);margin-bottom:1.5rem;">Aguarde enquanto carregamos os dados do torneio.</p>' +
+            '<button class="btn hover-lift" onclick="window.location.hash=\'#dashboard\'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);font-weight:600;font-size:0.9rem;padding:10px 24px;border-radius:10px;">Voltar ao In\u00EDcio</button></div>';
     };
 
     // ========== Categories: moved to tournaments-categories.js ==========
@@ -822,21 +811,41 @@ function renderTournaments(container, tournamentId = null) {
                  `;
                 }
             } else if (!window.AppStore.currentUser) {
-                // Non-logged-in user viewing public tournament — show only enroll CTA if open
+                // Non-logged-in visitor viewing tournament
                 if (isAberto) {
+                    // Enrollments open — show enroll CTA (login triggered on click)
                     actionsHtml = `
                    ${teamEnrollModalHtml}
-                   <div style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.12));border:2px solid rgba(16,185,129,0.5);border-radius:16px;text-align:center;">
+                   <div id="visitor-enroll-cta" style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.12));border:2px solid rgba(16,185,129,0.5);border-radius:16px;text-align:center;">
                       <h3 style="color:#4ade80;font-size:1.3rem;font-weight:800;margin-bottom:6px;">Participe deste torneio!</h3>
-                      <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Fa\u00E7a login para se inscrever. Voc\u00EA ser\u00E1 inscrito automaticamente.</p>
+                      <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Clique abaixo para se inscrever.</p>
                       <button class="btn btn-success btn-cta hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">
                          \u2705 Inscrever-se
                       </button>
                    </div>
                  `;
+                } else if (isFinished) {
+                    // Tournament finished
+                    actionsHtml = `
+                   <div id="visitor-closed-cta" style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(185,28,28,0.08));border:2px solid rgba(239,68,68,0.35);border-radius:16px;text-align:center;">
+                      <h3 style="color:#f87171;font-size:1.15rem;font-weight:700;margin-bottom:6px;">Torneio Encerrado</h3>
+                      <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:16px;">Este torneio j\u00E1 foi finalizado. Que tal criar o seu pr\u00F3prio?</p>
+                      <button class="btn btn-primary btn-cta hover-lift" onclick="event.stopPropagation(); window.location.hash='#dashboard'">
+                         \u{1F3C6} Criar Meu Torneio
+                      </button>
+                   </div>
+                 `;
                 } else {
-                    // Inscriptions closed — just show status, no actions
-                    actionsHtml = '';
+                    // Enrollments closed but tournament still running
+                    actionsHtml = `
+                   <div id="visitor-closed-cta" style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(251,191,36,0.12),rgba(217,119,6,0.08));border:2px solid rgba(251,191,36,0.35);border-radius:16px;text-align:center;">
+                      <h3 style="color:#fbbf24;font-size:1.15rem;font-weight:700;margin-bottom:6px;">Inscri\u00E7\u00F5es Encerradas</h3>
+                      <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:16px;">Infelizmente as inscri\u00E7\u00F5es deste torneio j\u00E1 foram encerradas. Que tal criar o seu pr\u00F3prio?</p>
+                      <button class="btn btn-primary btn-cta hover-lift" onclick="event.stopPropagation(); window.location.hash='#dashboard'">
+                         \u{1F3C6} Criar Meu Torneio
+                      </button>
+                   </div>
+                 `;
                 }
             } else {
                 actionsHtml = `
@@ -1658,5 +1667,31 @@ function renderTournaments(container, tournamentId = null) {
           }, 300);
         }
       } catch (e) {}
+    }
+
+    // --- Invited visitor: scroll to enrollment CTA and show hint ---
+    if (tournamentId && !window.AppStore.currentUser) {
+      var _isInvite = false;
+      try {
+        var _h = window.location.hash || '';
+        _isInvite = _h.indexOf('ref=') !== -1 || !!sessionStorage.getItem('_inviteRefUid');
+      } catch(e) {}
+      // Scroll to CTA for any visitor viewing a tournament detail (invited or direct link)
+      setTimeout(function() {
+        var ctaEl = document.getElementById('visitor-enroll-cta') || document.getElementById('visitor-closed-cta');
+        if (ctaEl) {
+          ctaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Pulse animation to draw attention
+          ctaEl.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+          setTimeout(function() {
+            ctaEl.style.transform = 'scale(1.03)';
+            ctaEl.style.boxShadow = '0 0 20px rgba(16,185,129,0.4)';
+            setTimeout(function() {
+              ctaEl.style.transform = '';
+              ctaEl.style.boxShadow = '';
+            }, 600);
+          }, 400);
+        }
+      }, 500);
     }
 }

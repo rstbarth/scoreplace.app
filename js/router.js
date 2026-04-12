@@ -40,28 +40,7 @@ function initRouter() {
       } catch(e) {}
     }
 
-    // --- For non-logged-in users visiting a tournament, auto-enroll after login ---
-    const isLoggedIn = !!(window.AppStore && window.AppStore.currentUser);
-    // Check if Firebase Auth is still resolving — if so, don't open login modal yet
-    var _hasAuthCache = false;
-    try { _hasAuthCache = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
-    var _authResolved = !!window._authStateResolved;
-    if (!isLoggedIn && view === 'tournaments' && cleanParam) {
-      window._pendingInviteHash = hash;
-      // Auto-save pending enrollment so login → auto-enroll → tournament details
-      window._pendingEnrollTournamentId = cleanParam;
-      try { sessionStorage.setItem('_pendingEnrollTournamentId', cleanParam); } catch(e) {}
-      // Only open login modal if we're certain the user is NOT logged in
-      // (auth has resolved AND there's no cached session)
-      if (_authResolved && !_hasAuthCache) {
-        setTimeout(function() {
-          // Double-check: user may have logged in during the timeout
-          if (!window.AppStore || !window.AppStore.currentUser) {
-            if (typeof openModal === 'function') openModal('modal-login');
-          }
-        }, 600);
-      }
-    }
+    // --- Visitors can view tournaments without login — enrollment triggers login on demand ---
 
     links.forEach(l => {
       l.classList.remove('active');
