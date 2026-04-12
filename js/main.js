@@ -956,15 +956,6 @@
   document.getElementById('btn-quick-template').addEventListener('click', function() {
     var area = document.getElementById('qc-template-area');
     if (!area) return;
-    // If cache not loaded yet, trigger async load and retry
-    if (window._templateCache === null && typeof window._loadTemplates === 'function') {
-      area.style.display = 'block';
-      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Carregando templates...</p>';
-      window._loadTemplates().then(function() {
-        document.getElementById('btn-quick-template').click();
-      });
-      return;
-    }
     var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
     var _t = window._t || function(k) { return k; };
     if (templates.length === 0) {
@@ -1017,8 +1008,8 @@
     }, 100);
   };
 
-  window._qcDeleteTemplate = async function(templateId) {
-    if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
+  window._qcDeleteTemplate = function(templateId) {
+    if (typeof window._deleteTemplate === 'function') window._deleteTemplate(templateId);
     var _t = window._t || function(k) { return k; };
     if (typeof showNotification === 'function') showNotification(_t('template.deleted'), '', 'info');
     // Refresh the list

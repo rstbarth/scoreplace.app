@@ -3696,15 +3696,6 @@ window._refreshTemplateBtn = function() {
 window._showTemplatePickerInCreate = function() {
   var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
 
-  // If cache not loaded, try loading now and re-open picker when done
-  if (window._templateCache === null && typeof window._loadTemplates === 'function') {
-    if (typeof showNotification === 'function') showNotification('Carregando templates...', '', 'info');
-    window._loadTemplates().then(function() {
-      window._showTemplatePickerInCreate();
-    });
-    return;
-  }
-
   if (templates.length === 0) {
     var emptyHtml = '<div style="padding:1.5rem;text-align:center;">' +
       '<p style="font-size:1.2rem;margin-bottom:8px;">📁</p>' +
@@ -3751,8 +3742,8 @@ window._applyTemplateInCreate = function(index) {
   }, 100);
 };
 
-window._deleteTemplateInCreate = async function(templateId) {
-  if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
+window._deleteTemplateInCreate = function(templateId) {
+  if (typeof window._deleteTemplate === 'function') window._deleteTemplate(templateId);
   if (typeof showNotification === 'function') showNotification('Template excluído', '', 'info');
   // Refresh picker
   var overlay = document.querySelector('.alert-dialog-overlay');

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.20-alpha';
+window.SCOREPLACE_VERSION = '0.8.21-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -845,76 +845,52 @@ window.AppStore = {
   }
 };
 
-// ─── Tournament Templates (Firestore-backed with local cache) ─────────────
-// Cache: window._templateCache = [] (loaded once per session)
-window._templateCache = null;
+// ─── Tournament Templates (localStorage-backed) ──────────────────────────
+// Simple, reliable — no Firestore rules dependency
+
+window._getTemplatesKey = function() {
+  var u = window.AppStore && window.AppStore.currentUser;
+  return u && u.email ? 'scoreplace_templates_' + u.email : null;
+};
 
 window._getTemplates = function() {
-  // Return cached templates synchronously (for UI rendering)
-  return window._templateCache || [];
+  var key = window._getTemplatesKey();
+  if (!key) return [];
+  try {
+    var raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
 };
 
 window._loadTemplates = async function() {
-  var u = window.AppStore && window.AppStore.currentUser;
-  if (!u || !u.uid) { window._templateCache = []; return []; }
-  try {
-    var templates = await window.FirestoreDB.getTemplates(u.uid);
-    window._templateCache = templates;
-    // Migrate localStorage templates to Firestore (one-time)
-    var lsKey = 'scoreplace_templates_' + u.email;
-    var lsRaw = localStorage.getItem(lsKey);
-    if (lsRaw) {
-      try {
-        var lsTemplates = JSON.parse(lsRaw);
-        if (Array.isArray(lsTemplates) && lsTemplates.length > 0) {
-          for (var i = 0; i < lsTemplates.length; i++) {
-            if (!lsTemplates[i].createdAt) lsTemplates[i].createdAt = new Date().toISOString();
-            await window.FirestoreDB.saveTemplate(u.uid, lsTemplates[i]);
-          }
-          localStorage.removeItem(lsKey);
-          // Reload from Firestore after migration
-          templates = await window.FirestoreDB.getTemplates(u.uid);
-          window._templateCache = templates;
-        }
-      } catch(e) { localStorage.removeItem(lsKey); }
-    }
-    // Refresh template buttons in create modal if open
-    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
-    return templates;
-  } catch(e) { console.warn('[Templates] Load error:', e); window._templateCache = []; return []; }
+  // No-op — localStorage is synchronous, always available
+  return window._getTemplates();
 };
 
-window._saveTemplate = async function(template) {
-  var u = window.AppStore && window.AppStore.currentUser;
-  if (!u || !u.uid) return 'error';
-  // Load templates if cache is empty
-  if (window._templateCache === null) {
-    await window._loadTemplates();
-  }
+window._saveTemplate = function(template) {
+  var key = window._getTemplatesKey();
+  if (!key) return 'error';
   var templates = window._getTemplates();
-  var isPro = u.plan === 'pro';
+  var u = window.AppStore && window.AppStore.currentUser;
+  var isPro = u && u.plan === 'pro';
   if (!isPro && templates.length >= 10) return 'limit';
   template.createdAt = new Date().toISOString();
+  template._id = 'tpl_' + Date.now();
+  templates.unshift(template);
   try {
-    var id = await window.FirestoreDB.saveTemplate(u.uid, template);
-    if (id) {
-      template._id = id;
-      window._templateCache = window._templateCache || [];
-      window._templateCache.unshift(template);
-      return 'ok';
-    }
-    return 'error';
+    localStorage.setItem(key, JSON.stringify(templates));
+    return 'ok';
   } catch(e) {
     console.error('[Templates] Save error:', e);
     return 'error';
   }
 };
 
-window._deleteTemplate = async function(templateId) {
-  var u = window.AppStore && window.AppStore.currentUser;
-  if (!u || !u.uid || !templateId) return;
-  await window.FirestoreDB.deleteTemplate(u.uid, templateId);
-  window._templateCache = (window._templateCache || []).filter(function(t) { return t._id !== templateId; });
+window._deleteTemplate = function(templateId) {
+  var key = window._getTemplatesKey();
+  if (!key) return;
+  var templates = window._getTemplates().filter(function(t) { return t._id !== templateId; });
+  localStorage.setItem(key, JSON.stringify(templates));
 };
 
 window._applyTemplate = function(index) {
