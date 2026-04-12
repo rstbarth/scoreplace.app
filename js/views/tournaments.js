@@ -187,15 +187,28 @@ function renderTournaments(container, tournamentId = null) {
             if (t) {
                 if (!t.participants) t.participants = [];
                 if (!Array.isArray(t.participants)) {
-                    // Converte pra array se estava bugado como objeto
                     t.participants = Object.values(t.participants);
                 }
                 const currentCount = t.participants.length;
                 for (let i = 1; i <= qtd; i++) {
                     const numStr = String(currentCount + i).padStart(2, '0');
-                    t.participants.push('Bot ' + numStr);
+                    t.participants.push({
+                        name: 'Bot ' + numStr,
+                        displayName: 'Bot ' + numStr,
+                        email: 'bot' + numStr + '@scoreplace.app',
+                        uid: 'bot_' + numStr + '_' + Date.now(),
+                        isBot: true
+                    });
                 }
-                if (typeof window.AppStore.sync === 'function') window.AppStore.sync();
+                // Save directly to Firestore (sync() skips participants)
+                if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+                    window.FirestoreDB.saveTournament(t).then(function() {
+                        showNotification('Bots adicionados', qtd + ' bots adicionados ao torneio.', 'success');
+                    }).catch(function(err) {
+                        console.error('Erro ao salvar bots:', err);
+                        showNotification('Erro', 'Falha ao salvar bots no servidor.', 'error');
+                    });
+                }
 
                 // Recarrega view mantendo contexto de roteamento ID
                 const container = document.getElementById('view-container');
