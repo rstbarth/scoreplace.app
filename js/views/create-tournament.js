@@ -3268,12 +3268,24 @@ window._gsmUpdateMainSummary = function() {
 // Detect which preset matches current hidden field values
 window._gsmDetectPreset = function() {
   var s = parseInt(document.getElementById('gsm-setsToWin').value) || 1;
+  var g = parseInt(document.getElementById('gsm-gamesPerSet').value) || 6;
+  var tbOn = document.getElementById('gsm-tiebreakEnabled').value === 'true';
+  var tbPts = parseInt(document.getElementById('gsm-tiebreakPoints').value) || 7;
+  var tbMargin = parseInt(document.getElementById('gsm-tiebreakMargin').value) || 2;
   var stb = document.getElementById('gsm-superTiebreak').value === 'true';
+  var stbPts = parseInt(document.getElementById('gsm-superTiebreakPoints').value) || 10;
   var fs = document.getElementById('gsm-fixedSet').value === 'true';
   if (fs) return 'custom';
-  if (s === 1) return 'set1';
-  if (s === 2 && stb) return 'best3';
-  if (s === 3 && stb) return 'best5';
+  var presets = window._gsmPresets;
+  var keys = ['set1', 'best3', 'best5'];
+  for (var i = 0; i < keys.length; i++) {
+    var p = presets[keys[i]];
+    if (p.setsToWin === s && p.gamesPerSet === g && p.tiebreakEnabled === tbOn &&
+        p.tiebreakPoints === tbPts && p.tiebreakMargin === tbMargin &&
+        p.superTiebreak === stb && p.superTiebreakPoints === stbPts) {
+      return keys[i];
+    }
+  }
   return 'custom';
 };
 
