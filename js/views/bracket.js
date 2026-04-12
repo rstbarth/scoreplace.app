@@ -668,11 +668,11 @@ function renderSingleElimBracket(t, canEnterResult) {
   const thirdPlaceMatch = t.thirdPlaceMatch || { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null };
   const hasThirdPlace = activeRounds.length >= 2;
 
-  // Total matches across all rounds (for numbering: final = last, 3rd place = penultimate)
-  const totalBracketMatches = activeRounds.reduce((sum, r) => sum + (roundsMap[r] || []).length, 0);
-  // Final = highest game number; 3rd place = one before final
-  const finalMatchNum = hasThirdPlace ? totalBracketMatches + 2 : totalBracketMatches + 1;
-  const thirdPlaceMatchNum = hasThirdPlace ? totalBracketMatches + 1 : 0;
+  // Numbering: 3rd place = last semifinal + 1, final = 3rd place + 1
+  // Count matches in all rounds EXCEPT the final round (final gets its own number)
+  const preFinalsMatchCount = activeRounds.slice(0, -1).reduce((sum, r) => sum + (roundsMap[r] || []).length, 0);
+  const thirdPlaceMatchNum = hasThirdPlace ? preFinalsMatchCount + 1 : 0;
+  const finalMatchNum = hasThirdPlace ? preFinalsMatchCount + 2 : preFinalsMatchCount + 1;
 
   // Determine visible rounds (not hidden)
   const visibleRounds = activeRounds.filter(r => !hiddenSet.has(r));
