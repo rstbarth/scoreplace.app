@@ -516,6 +516,12 @@ window._getTournamentProgress = function(t) {
     if (Array.isArray(t.groups)) {
         t.groups.forEach(function(g) {
             if (Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
+            // Also check g.rounds[].matches[] (used by Rei/Rainha and Grupos + Elim.)
+            if (Array.isArray(g.rounds)) {
+                g.rounds.forEach(function(gr) {
+                    if (Array.isArray(gr.matches)) allMatches = allMatches.concat(gr.matches);
+                });
+            }
         });
     }
     if (Array.isArray(t.rodadas)) {

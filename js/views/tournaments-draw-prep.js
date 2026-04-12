@@ -93,18 +93,23 @@ window._showRemainderPanel = function(tId, info, t) {
     overlay.id = 'remainder-resolution-panel';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(12px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem;';
 
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);">' +
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:90vh;">' +
         '<style>@keyframes modalFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}</style>' +
-        // Header — purple/indigo gradient (distinct from orange power-of-2)
-        '<div style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);padding:2rem 2rem 1.5rem;">' +
-            '<div style="display:flex;align-items:center;gap:16px;margin-bottom:1.2rem;">' +
-                '<div style="width:56px;height:56px;background:rgba(255,255,255,0.12);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;backdrop-filter:blur(5px);">👥</div>' +
+        // Sticky top bar with cancel
+        '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 50%,#7c3aed 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:12px;">' +
+                '<span style="font-size:1.5rem;">👥</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#ede9fe;font-size:1.35rem;font-weight:900;letter-spacing:-0.02em;">Participantes Restantes</h3>' +
-                    '<p style="margin:4px 0 0;color:#c4b5fd;font-size:0.9rem;">' + remLabel + ' não forma' + (remCount > 1 ? 'm' : '') + ' time completo</p>' +
+                    '<h3 style="margin:0;color:#ede9fe;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">Participantes Restantes</h3>' +
+                    '<p style="margin:2px 0 0;color:#c4b5fd;font-size:0.75rem;">' + remLabel + ' não forma' + (remCount > 1 ? 'm' : '') + ' time completo</p>' +
                 '</div>' +
             '</div>' +
-            // Info summary
+            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#ede9fe;border:2px solid rgba(237,233,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(237,233,254,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(237,233,254,0.3)\'">✕ Cancelar</button>' +
+        '</div>' +
+        // Scrollable content
+        '<div style="overflow-y:auto;flex:1;">' +
+        // Info summary
+        '<div style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);padding:1.5rem 2rem;">' +
             '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' +
                 '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
                     '<div style="font-size:1.8rem;font-weight:900;color:#a78bfa;line-height:1;">' + teamsFormed + '</div>' +
@@ -121,7 +126,7 @@ window._showRemainderPanel = function(tId, info, t) {
             '</div>' +
         '</div>' +
         // Options
-        '<div style="padding:1.8rem 2rem;">' +
+        '<div style="padding:1.8rem 2rem 2rem;">' +
             '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">O que fazer com o resto?</h4>' +
             '<div style="display:flex;flex-direction:column;gap:10px;">' +
                 // Reabrir Inscrições
@@ -150,10 +155,6 @@ window._showRemainderPanel = function(tId, info, t) {
                 '</button>' +
             '</div>' +
         '</div>' +
-        // Footer with cancel
-        '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
-            '<div style="font-size:0.78rem;color:#64748b;">Resolva o resto antes do chaveamento.</div>' +
-            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.2s;">Cancelar</button>' +
         '</div>' +
     '</div>';
 
@@ -192,23 +193,33 @@ window._showRemovalSubChoice = function(tId, mode, info) {
     overlay.id = 'removal-subchoice-panel';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:2rem;';
 
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:24px;border:1px solid rgba(251,191,36,0.2);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;">' +
-        '<div style="background:linear-gradient(135deg,' + (isStandby ? '#1e40af 0%,#3b82f6' : '#991b1b 0%,#dc2626') + ' 100%);padding:1.5rem 2rem;">' +
-            '<h3 style="margin:0;color:#fff;font-size:1.2rem;font-weight:900;">' + title + '</h3>' +
-            '<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:0.85rem;">' + subtitle + '</p>' +
+    var _gradStart = isStandby ? '#1e40af' : '#991b1b';
+    var _gradEnd = isStandby ? '#3b82f6' : '#dc2626';
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:24px;border:1px solid rgba(251,191,36,0.2);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;display:flex;flex-direction:column;max-height:90vh;">' +
+        // Sticky top bar with Voltar button
+        '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,' + _gradStart + ' 0%,' + _gradEnd + ' 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.3rem;">' + (isStandby ? '⏱️' : '🚫') + '</span>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:900;">' + (isStandby ? 'Lista de Espera' : 'Exclusão') + '</h3>' +
+                    '<p style="margin:2px 0 0;color:rgba(255,255,255,0.7);font-size:0.72rem;">' + subtitle + '</p>' +
+                '</div>' +
+            '</div>' +
+            '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fff;border:2px solid rgba(255,255,255,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(255,255,255,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(255,255,255,0.3)\'">← Voltar</button>' +
         '</div>' +
-        '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:12px;">' +
-            '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
-                '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
-                '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
-            '</button>' +
-            '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
-                '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
-                '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
-            '</button>' +
-        '</div>' +
-        '<div style="padding:1rem 2rem 1.5rem;text-align:right;">' +
-            '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">Voltar</button>' +
+        // Scrollable content
+        '<div style="overflow-y:auto;flex:1;padding:1.5rem 2rem;">' +
+            '<div style="display:flex;flex-direction:column;gap:12px;">' +
+                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
+                '</button>' +
+                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
+                '</button>' +
+            '</div>' +
         '</div>' +
     '</div>';
 
@@ -561,15 +572,22 @@ window.showUnifiedResolutionPanel = function(tId) {
         '</div>' +
         '</div>';
 
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:800px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">' +
-        '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:2rem 2.5rem;">' +
-            '<div style="display:flex;align-items:center;gap:20px;margin-bottom:1.5rem;">' +
-                '<div style="width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(5px);">⚙️</div>' +
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:800px;border-radius:32px;margin:auto 0;border:1px solid rgba(251,191,36,0.2);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);display:flex;flex-direction:column;max-height:90vh;">' +
+        // Sticky top bar with cancel button
+        '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#78350f 0%,#92400e 50%,#b45309 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:12px;">' +
+                '<span style="font-size:1.5rem;">⚙️</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#fef3c7;font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
-                    '<p style="margin:4px 0 0;color:#fde68a;font-size:0.95rem;opacity:0.9;">Detectado: ' + issuesText + '</p>' +
+                    '<h3 style="margin:0;color:#fef3c7;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
+                    '<p style="margin:2px 0 0;color:#fde68a;font-size:0.75rem;opacity:0.9;">Detectado: ' + issuesText + '</p>' +
                 '</div>' +
             '</div>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fef3c7;border:2px solid rgba(254,243,199,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(254,243,199,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(254,243,199,0.3)\'">✕ Cancelar</button>' +
+        '</div>' +
+        // Scrollable content
+        '<div style="overflow-y:auto;flex:1;">' +
+        // Gauge section
+        '<div style="background:linear-gradient(135deg,#78350f 0%,#b45309 100%);padding:1.5rem 2.5rem;">' +
             gaugeHtml +
         '</div>' +
         '<style>' +
@@ -577,16 +595,13 @@ window.showUnifiedResolutionPanel = function(tId) {
             '@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }' +
             '@media (max-width:640px) { #unified-options-grid { grid-template-columns: 1fr 1fr !important; } } @media (max-width:400px) { #unified-options-grid { grid-template-columns: 1fr !important; } }' +
         '</style>' +
-        '<div style="padding:2.5rem;">' +
+        '<div style="padding:2rem 2.5rem 2.5rem;">' +
             '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
             '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
             '<div id="unified-options-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">' +
                 window._renderUnifiedOptions([]) +
             '</div>' +
         '</div>' +
-        '<div style="padding:1.5rem 2.5rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
-            '<div style="font-size:0.8rem;color:#64748b;">' + (info.remainder > 0 ? 'Resolva o resto antes de continuar.' : 'Escolha uma estratégia para continuar.') + '</div>' +
-            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Cancelar</button>' +
         '</div>' +
     '</div>';
 

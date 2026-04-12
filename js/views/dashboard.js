@@ -315,14 +315,27 @@ function renderDashboard(container) {
 
     let individualCount = 0;
     let teamCount = 0;
+    // Count waitlisted participants to subtract from active count
+    const _waitlistArr = Array.isArray(t.waitlist) ? t.waitlist : [];
+    const _waitlistNames = new Set();
+    _waitlistArr.forEach(function(w) {
+      var wName = typeof w === 'string' ? w : (w.displayName || w.name || '');
+      if (wName) _waitlistNames.add(wName);
+    });
+    const _standbyCount = _waitlistArr.length;
+
     if (t.participants) {
       const arr = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (Array.isArray(t.participants) ? t.participants : Object.values(t.participants));
       arr.forEach(p => {
+        // Skip waitlisted participants from the active count
+        var _pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+        if (_waitlistNames.has(_pName)) return;
+
         if (typeof p === 'object' && p !== null && Array.isArray(p.participants)) {
           teamCount++;
           individualCount += p.participants.length;
         } else {
-          const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          const pStr = _pName;
           if (pStr.includes('/')) {
             teamCount++;
             individualCount += pStr.split('/').filter(n => n.trim().length > 0).length;
@@ -465,6 +478,15 @@ function renderDashboard(container) {
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
                           </div>
                           <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Equipes</span>
+                       </div>
+                       ` : ''}
+                       ${_standbyCount > 0 ? `
+                       <div class="stat-box" style="flex-direction: column; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08);">
+                          <div style="display: flex; align-items: center; gap: 4px;">
+                             <span style="font-size: 1.1rem;">⏱️</span>
+                             <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95; color: #fbbf24;">${_standbyCount}</span>
+                          </div>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8; color: #fbbf24;">Espera</span>
                        </div>
                        ` : ''}
                    </div>

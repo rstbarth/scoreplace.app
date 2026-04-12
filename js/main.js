@@ -371,6 +371,12 @@
         '<p><b>Coroa do organizador</b> — Ícone de coroa agora aparece corretamente ao lado direito do nome do organizador nos cards de participantes, em vez de abaixo do avatar.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.23-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Painéis de decisão</b> — Botão Cancelar/Voltar agora fica em cabeçalho sticky no topo dos painéis de potência de 2, participantes restantes e sub-escolhas. Sempre visível ao rolar.</p>' +
+        '<p><b>Lista de espera no dashboard</b> — Cards do dashboard agora mostram stat-box de lista de espera quando há jogadores em standby, e contagem de inscritos não inclui mais os jogadores na espera.</p>' +
+        '<p><b>Barra de progresso corrigida</b> — Contagem de partidas agora inclui jogos dentro de grupos com rodadas (Rei/Rainha, Grupos + Eliminatórias).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.28-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Login reordenado</b> — Opções de login ordenadas da mais fácil para a mais complexa: Link Mágico (recomendado), SMS, E-mail/Senha, e Google por último. Seção Google inclui passo a passo inline.</p>' +
         '</div>' +
