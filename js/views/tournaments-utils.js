@@ -534,7 +534,8 @@ window._getTournamentProgress = function(t) {
         allMatches.push(t.thirdPlaceMatch);
     } else {
         // For elimination formats with 2+ rounds, always count 3rd place match even if not yet created
-        var _isElim = t.format && (t.format === 'Eliminatórias' || t.format === 'Eliminatorias');
+        var _fmt = (t.format || '').toLowerCase();
+        var _isElim = _fmt.indexOf('eliminat') === 0;
         var _hasMultipleRounds = (Array.isArray(t.matches) && t.matches.some(function(m) { return m.round >= 2; }));
         if (_isElim && _hasMultipleRounds) {
             allMatches.push({ id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null });
