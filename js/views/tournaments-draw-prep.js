@@ -73,6 +73,195 @@ window._diagnoseAll = function(t) {
     };
 };
 
+// ============ DEDICATED REMAINDER PANEL ============
+// Visually distinct from the power-of-2 panel (purple/indigo vs orange/brown)
+
+window._showRemainderPanel = function(tId, info, t) {
+    var existing = document.getElementById('remainder-resolution-panel');
+    if (existing) existing.remove();
+
+    var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var teamsFormed = info.effectiveTeams;
+    var remCount = info.remainder;
+    var remLabel = remCount + ' participante' + (remCount > 1 ? 's' : '');
+    var teamLabel = teamsFormed + ' time' + (teamsFormed > 1 ? 's' : '');
+
+    // Store info globally so onclick handlers can access it without JSON in attributes
+    window._remainderInfo = info;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'remainder-resolution-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(12px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem;';
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);">' +
+        '<style>@keyframes modalFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}</style>' +
+        // Header — purple/indigo gradient (distinct from orange power-of-2)
+        '<div style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);padding:2rem 2rem 1.5rem;">' +
+            '<div style="display:flex;align-items:center;gap:16px;margin-bottom:1.2rem;">' +
+                '<div style="width:56px;height:56px;background:rgba(255,255,255,0.12);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;backdrop-filter:blur(5px);">👥</div>' +
+                '<div>' +
+                    '<h3 style="margin:0;color:#ede9fe;font-size:1.35rem;font-weight:900;letter-spacing:-0.02em;">Participantes Restantes</h3>' +
+                    '<p style="margin:4px 0 0;color:#c4b5fd;font-size:0.9rem;">' + remLabel + ' não forma' + (remCount > 1 ? 'm' : '') + ' time completo</p>' +
+                '</div>' +
+            '</div>' +
+            // Info summary
+            '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
+                    '<div style="font-size:1.8rem;font-weight:900;color:#a78bfa;line-height:1;">' + teamsFormed + '</div>' +
+                    '<div style="font-size:0.7rem;color:#c4b5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Times formados</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
+                    '<div style="font-size:1.8rem;font-weight:900;color:#f59e0b;line-height:1;">' + remCount + '</div>' +
+                    '<div style="font-size:0.7rem;color:#fcd34d;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Resto</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
+                    '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.totalRawParticipants + '</div>' +
+                    '<div style="font-size:0.7rem;color:#93c5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Total inscritos</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        // Options
+        '<div style="padding:1.8rem 2rem;">' +
+            '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">O que fazer com o resto?</h4>' +
+            '<div style="display:flex;flex-direction:column;gap:10px;">' +
+                // Reabrir Inscrições
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.6rem;flex-shrink:0;">↩️</span>' +
+                    '<div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#60a5fa;">Reabrir Inscrições</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Abrir inscrições para completar ' + (remCount > 1 ? 'os times' : 'o time') + ' restante' + (remCount > 1 ? 's' : '') + '.</div>' +
+                    '</div>' +
+                '</button>' +
+                // Lista de Espera
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showRemovalSubChoice(\'' + tIdSafe + '\',\'standby\',window._remainderInfo)" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.6rem;flex-shrink:0;">⏱️</span>' +
+                    '<div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">Lista de Espera</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Mover ' + remLabel + ' para lista de espera. Escolha: sorteio ou últimos inscritos.</div>' +
+                    '</div>' +
+                '</button>' +
+                // Exclusão
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showRemovalSubChoice(\'' + tIdSafe + '\',\'exclusion\',window._remainderInfo)" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.6rem;flex-shrink:0;">🚫</span>' +
+                    '<div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#f87171;">Exclusão</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Remover ' + remLabel + ' do torneio. Escolha: sorteio ou últimos inscritos.</div>' +
+                    '</div>' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+        // Footer with cancel
+        '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);">' +
+            '<div style="font-size:0.78rem;color:#64748b;">Resolva o resto antes do chaveamento.</div>' +
+            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.2s;">Cancelar</button>' +
+        '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+};
+
+window._cancelRemainderPanel = function(tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+    if (t && t._suspendedByPanel) {
+        t.status = 'open';
+        delete t._suspendedByPanel;
+        window.FirestoreDB.saveTournament(t);
+    }
+    var panel = document.getElementById('remainder-resolution-panel');
+    if (panel) panel.remove();
+};
+
+// ============ SUB-CHOICE & REMOVAL (standalone, works from both panels) ============
+
+window._showRemovalSubChoice = function(tId, mode, info) {
+    var isStandby = mode === 'standby';
+    var title = isStandby ? '⏱️ Lista de Espera' : '🚫 Exclusão';
+    var removeCount = info.remainder > 0 ? info.remainder : info.excess;
+    var label = removeCount + ' participante' + (removeCount > 1 ? 's' : '');
+    var subtitle = isStandby
+        ? 'Mover ' + label + ' para lista de espera. Como escolher quem sai?'
+        : 'Remover ' + label + ' do torneio. Como escolher quem sai?';
+
+    var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    var existing = document.getElementById('removal-subchoice-panel');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'removal-subchoice-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:2rem;';
+
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:24px;border:1px solid rgba(251,191,36,0.2);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;">' +
+        '<div style="background:linear-gradient(135deg,' + (isStandby ? '#1e40af 0%,#3b82f6' : '#991b1b 0%,#dc2626') + ' 100%);padding:1.5rem 2rem;">' +
+            '<h3 style="margin:0;color:#fff;font-size:1.2rem;font-weight:900;">' + title + '</h3>' +
+            '<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:0.85rem;">' + subtitle + '</p>' +
+        '</div>' +
+        '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:12px;">' +
+            '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
+                '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
+                '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
+            '</button>' +
+            '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
+                '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
+                '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
+            '</button>' +
+        '</div>' +
+        '<div style="padding:1rem 2rem 1.5rem;text-align:right;">' +
+            '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">Voltar</button>' +
+        '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+};
+
+window._executeRemoval = function(tId, mode, method) {
+    var panel = document.getElementById('removal-subchoice-panel');
+    if (panel) panel.remove();
+
+    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+    if (!t) return;
+
+    // Re-diagnose to get current counts (avoids stale closure)
+    var currentInfo = window._diagnoseAll(t);
+    var arr = Array.isArray(t.participants) ? t.participants.slice() : [];
+    var removeCount = currentInfo.remainder > 0 ? currentInfo.remainder : currentInfo.excess;
+    var removed = [];
+
+    if (method === 'last') {
+        removed = arr.splice(arr.length - removeCount, removeCount);
+    } else {
+        for (var i = 0; i < removeCount && arr.length > 0; i++) {
+            var idx = Math.floor(Math.random() * arr.length);
+            removed.push(arr.splice(idx, 1)[0]);
+        }
+    }
+
+    t.participants = arr;
+
+    if (mode === 'standby') {
+        t.waitlist = (t.waitlist || []).concat(removed);
+    }
+
+    if (t._suspendedByPanel) {
+        delete t._suspendedByPanel;
+    }
+    t.status = 'closed';
+
+    window.FirestoreDB.saveTournament(t).then(function() {
+        var removedNames = removed.map(function(p) {
+            return typeof p === 'string' ? p : (p.displayName || p.name || '?');
+        }).join(', ');
+        var actionLabel = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s)';
+        if (typeof showNotification !== 'undefined') {
+            showNotification('Ajuste realizado', removedNames + ' ' + actionLabel + '.', 'success');
+        }
+        // Re-run diagnosis — may still have power-of-2 issues
+        window.showUnifiedResolutionPanel(tId);
+    });
+};
+
+// ============ UNIFIED RESOLUTION PANEL (POWER-OF-2) ============
+
 window.showUnifiedResolutionPanel = function(tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
@@ -95,6 +284,12 @@ window.showUnifiedResolutionPanel = function(tId) {
             window.FirestoreDB.saveTournament(t);
         }
         window.showFinalReviewPanel(tId);
+        return;
+    }
+
+    // Remainder gets its own dedicated panel (different from power-of-2)
+    if (info.remainder > 0) {
+        window._showRemainderPanel(tId, info, t);
         return;
     }
 
@@ -329,96 +524,8 @@ window.showUnifiedResolutionPanel = function(tId) {
         if (panel) panel.remove();
     };
 
-    // Sub-choice panel for standby/exclusion
-    window._showRemovalSubChoice = function(tId, mode, info) {
-        var isStandby = mode === 'standby';
-        var title = isStandby ? '⏱️ Lista de Espera' : '🚫 Exclusão';
-        var removeCount = info.remainder > 0 ? info.remainder : info.excess;
-        var label = removeCount + ' participante' + (removeCount > 1 ? 's' : '');
-        var subtitle = isStandby
-            ? 'Mover ' + label + ' para lista de espera. Como escolher quem sai?'
-            : 'Remover ' + label + ' do torneio. Como escolher quem sai?';
-
-        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-        var existing = document.getElementById('removal-subchoice-panel');
-        if (existing) existing.remove();
-
-        var overlay = document.createElement('div');
-        overlay.id = 'removal-subchoice-panel';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:2rem;';
-
-        overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:24px;border:1px solid rgba(251,191,36,0.2);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;">' +
-            '<div style="background:linear-gradient(135deg,' + (isStandby ? '#1e40af 0%,#3b82f6' : '#991b1b 0%,#dc2626') + ' 100%);padding:1.5rem 2rem;">' +
-                '<h3 style="margin:0;color:#fff;font-size:1.2rem;font-weight:900;">' + title + '</h3>' +
-                '<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:0.85rem;">' + subtitle + '</p>' +
-            '</div>' +
-            '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:12px;">' +
-                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
-                    '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
-                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
-                '</button>' +
-                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
-                    '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
-                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
-                '</button>' +
-            '</div>' +
-            '<div style="padding:1rem 2rem 1.5rem;text-align:right;">' +
-                '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">Voltar</button>' +
-            '</div>' +
-        '</div>';
-
-        document.body.appendChild(overlay);
-    };
-
-    // Execute removal (random or last enrolled)
-    window._executeRemoval = function(tId, mode, method) {
-        var panel = document.getElementById('removal-subchoice-panel');
-        if (panel) panel.remove();
-
-        var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-        if (!t) return;
-
-        var arr = Array.isArray(t.participants) ? t.participants.slice() : [];
-        var removeCount = info.remainder > 0 ? info.remainder : info.excess;
-        var removed = [];
-
-        if (method === 'last') {
-            // Remove last N enrolled
-            removed = arr.splice(arr.length - removeCount, removeCount);
-        } else {
-            // Random removal
-            for (var i = 0; i < removeCount && arr.length > 0; i++) {
-                var idx = Math.floor(Math.random() * arr.length);
-                removed.push(arr.splice(idx, 1)[0]);
-            }
-        }
-
-        t.participants = arr;
-
-        // Store removed in waitlist if standby
-        if (mode === 'standby') {
-            t.waitlist = (t.waitlist || []).concat(removed);
-        }
-
-        // Restore enrollment status
-        if (t._suspendedByPanel) {
-            delete t._suspendedByPanel;
-        }
-        t.status = 'closed';
-
-        window.FirestoreDB.saveTournament(t).then(function() {
-            var removedNames = removed.map(function(p) {
-                return typeof p === 'string' ? p : (p.displayName || p.name || '?');
-            }).join(', ');
-            var actionLabel = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s)';
-            if (typeof showNotification !== 'undefined') {
-                showNotification('Ajuste realizado', removedNames + ' ' + actionLabel + '.', 'success');
-            }
-            // Re-run diagnosis — may still have power-of-2 issues
-            window.showUnifiedResolutionPanel(tId);
-        });
-    };
+    // Sub-choice panel for standby/exclusion (called from both remainder and unified panels)
+    // NOTE: These are defined at IIFE scope so they work regardless of which panel invokes them.
 
     // Build the panel HTML
     let gaugeHtml = '';

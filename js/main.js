@@ -277,6 +277,13 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Painel dedicado de resto</b> — Quando sobram participantes que nao formam time, painel roxo exclusivo com 3 opcoes: reabrir inscricoes, lista de espera ou exclusao. Visualmente distinto do painel de potencia de 2.</p>' +
+        '<p><b>Sub-escolha de remocao</b> — Organizador decide entre sorteio aleatorio ou ultimos inscritos para lista de espera/exclusao.</p>' +
+        '<p><b>Tipo de jogo e inscricao independentes</b> — Trocar entre Simples/Duplas nao altera mais o modo de inscricao.</p>' +
+        '<p><b>Games fixos no Personalizado</b> — Toggle para disputar N games fixos (quem vence mais ganha) em vez de melhor de N.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.59-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Sortear direto</b> — Tela intermediaria de pre-sorteio eliminada. Clicar em Sortear abre o painel de resolucao diretamente.</p>' +
         '<p><b>Inscricao individual por padrao</b> — Criacao rapida agora usa modo Individual como padrao.</p>' +
