@@ -16,7 +16,7 @@ function setupCreateTournamentModal() {
           <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.5rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
             <h2 class="card-title" id="create-modal-title">Criar Novo Torneio</h2>
             <div style="display:flex; gap:10px;">
-              <button class="btn btn-tool-amber" id="btn-load-template-create" style="display:none;" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
+              <button class="btn btn-tool-amber" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
               <button class="btn btn-secondary" onclick="document.getElementById('modal-create-tournament').classList.remove('active')">Cancelar</button>
               <button class="btn btn-primary" id="btn-save-tournament">Salvar Torneio</button>
             </div>
@@ -3690,31 +3690,31 @@ window._prefillFromTemplate = function(tpl) {
 // ─── Template picker inside create-tournament modal ───────────────────────
 // Show/hide the "Template" button based on template availability
 window._refreshTemplateBtn = function() {
-  var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
-  var hasTemplates = templates.length > 0;
-  // Refresh create-tournament modal button
-  var btn = document.getElementById('btn-load-template-create');
-  if (btn) btn.style.display = hasTemplates ? '' : 'none';
-  // Refresh quick-create modal button
-  var qcBtn = document.getElementById('btn-quick-template');
-  if (qcBtn) qcBtn.style.display = hasTemplates ? 'block' : 'none';
-  // If cache not loaded yet, trigger async load and refresh again when done
-  if (window._templateCache === null && typeof window._loadTemplates === 'function') {
-    window._loadTemplates().then(function() {
-      var t2 = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
-      var has2 = t2.length > 0;
-      var b2 = document.getElementById('btn-load-template-create');
-      if (b2) b2.style.display = has2 ? '' : 'none';
-      var q2 = document.getElementById('btn-quick-template');
-      if (q2) q2.style.display = has2 ? 'block' : 'none';
-    }).catch(function() {});
-  }
+  // Buttons are always visible now — no-op kept for backward compat
 };
 
 window._showTemplatePickerInCreate = function() {
   var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
-  if (templates.length === 0) return;
-  var _t = window._t || function(k) { return k; };
+
+  // If cache not loaded, try loading now and re-open picker when done
+  if (window._templateCache === null && typeof window._loadTemplates === 'function') {
+    if (typeof showNotification === 'function') showNotification('Carregando templates...', '', 'info');
+    window._loadTemplates().then(function() {
+      window._showTemplatePickerInCreate();
+    });
+    return;
+  }
+
+  if (templates.length === 0) {
+    var emptyHtml = '<div style="padding:1.5rem;text-align:center;">' +
+      '<p style="font-size:1.2rem;margin-bottom:8px;">📁</p>' +
+      '<p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:12px;">Nenhum template salvo.</p>' +
+      '<p style="color:var(--text-muted);font-size:0.8rem;">Para salvar um template, abra um torneio existente e clique em <b>"💾 Salvar como Template"</b> nas Ferramentas do Organizador.</p>' +
+    '</div>';
+    if (typeof showAlertDialog === 'function') showAlertDialog('💾 Templates', emptyHtml);
+    return;
+  }
+
   var html = '<div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:1rem;">';
   html += '<h3 style="margin:0 0 8px;font-size:1rem;color:var(--text-bright);">Carregar Template</h3>';
   templates.forEach(function(tpl, i) {

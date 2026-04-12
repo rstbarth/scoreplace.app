@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.19-alpha';
+window.SCOREPLACE_VERSION = '0.8.20-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -886,20 +886,28 @@ window._loadTemplates = async function() {
 
 window._saveTemplate = async function(template) {
   var u = window.AppStore && window.AppStore.currentUser;
-  if (!u || !u.uid) return false;
+  if (!u || !u.uid) return 'error';
+  // Load templates if cache is empty
+  if (window._templateCache === null) {
+    await window._loadTemplates();
+  }
   var templates = window._getTemplates();
   var isPro = u.plan === 'pro';
-  if (!isPro && templates.length >= 10) return false;
+  if (!isPro && templates.length >= 10) return 'limit';
   template.createdAt = new Date().toISOString();
-  var id = await window.FirestoreDB.saveTemplate(u.uid, template);
-  if (id) {
-    template._id = id;
-    window._templateCache = window._templateCache || [];
-    window._templateCache.unshift(template);
-    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
-    return true;
+  try {
+    var id = await window.FirestoreDB.saveTemplate(u.uid, template);
+    if (id) {
+      template._id = id;
+      window._templateCache = window._templateCache || [];
+      window._templateCache.unshift(template);
+      return 'ok';
+    }
+    return 'error';
+  } catch(e) {
+    console.error('[Templates] Save error:', e);
+    return 'error';
   }
-  return false;
 };
 
 window._deleteTemplate = async function(templateId) {

@@ -819,7 +819,7 @@
           <button class="btn btn-primary btn-block" id="btn-quick-create">
             🏆 ${(window._t || function(k){return k;})('quickCreate.create')}
           </button>
-          <button class="btn btn-tool-amber btn-block" id="btn-quick-template" style="display:none;">
+          <button class="btn btn-tool-amber btn-block" id="btn-quick-template">
             💾 Usar Template
           </button>
           <button class="btn btn-secondary btn-block" id="btn-quick-advanced">
@@ -952,32 +952,24 @@
   });
 
   // ─── Template Integration ────────────────────────────────────────────────
-  // Show "Usar Template" button when templates exist
-  var _origOpen = window._origOpenQC || null;
-  // Hook into modal-quick-create open to refresh template button visibility
-  var _qcObserver = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.target.id === 'modal-quick-create' && m.target.classList.contains('active')) {
-        var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
-        var btn = document.getElementById('btn-quick-template');
-        var area = document.getElementById('qc-template-area');
-        if (btn) btn.style.display = templates.length > 0 ? 'block' : 'none';
-        if (area) area.style.display = 'none';
-      }
-    });
-  });
-  var qcModal = document.getElementById('modal-quick-create');
-  if (qcModal) _qcObserver.observe(qcModal, { attributes: true, attributeFilter: ['class'] });
-
-  // "Usar Template" button handler
+  // "Usar Template" button handler (always visible, loads on demand)
   document.getElementById('btn-quick-template').addEventListener('click', function() {
     var area = document.getElementById('qc-template-area');
     if (!area) return;
+    // If cache not loaded yet, trigger async load and retry
+    if (window._templateCache === null && typeof window._loadTemplates === 'function') {
+      area.style.display = 'block';
+      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Carregando templates...</p>';
+      window._loadTemplates().then(function() {
+        document.getElementById('btn-quick-template').click();
+      });
+      return;
+    }
     var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
     var _t = window._t || function(k) { return k; };
     if (templates.length === 0) {
       area.style.display = 'block';
-      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">' + _t('template.empty') + '</p>';
+      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Nenhum template salvo. Salve um a partir de um torneio existente (Ferramentas do Organizador → Salvar como Template).</p>';
       return;
     }
     var html = '<div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">';
