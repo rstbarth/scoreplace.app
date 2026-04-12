@@ -398,6 +398,11 @@
         '<p><b>i18n PT-BR</b> — Acentuação corrigida em todo o app. Mapa de local do torneio nos detalhes. Toggle de acesso ao local (público/restrito). Correção de scroll ao salvar resultado. Correção de nomes desatualizados em inscrições.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Coroa do organizador</b> — Ícone de coroa no card de detalhe reposicionado para canto inferior direito, igual ao card do dashboard.</p>' +
+        '<p><b>Templates acessíveis</b> — Botão "Usar Template" agora aparece corretamente no modal de criação rápida e no formulário avançado após salvar um template.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Lista de Espera visível</b> — Stat-box "Lista de Espera" agora aparece corretamente após mover participantes para espera no painel de resolução.</p>' +
         '<p><b>Set Fixo</b> — Novo modo de pontuação "Set Fixo" no GSM: disputa de N games fixos onde ganha quem vencer mais.</p>' +

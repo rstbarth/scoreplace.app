@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.8.14-alpha';
+window.SCOREPLACE_VERSION = '0.8.15-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -878,6 +878,8 @@ window._loadTemplates = async function() {
         }
       } catch(e) { localStorage.removeItem(lsKey); }
     }
+    // Refresh template buttons in create modal if open
+    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     return templates;
   } catch(e) { window._templateCache = []; return []; }
 };
@@ -894,6 +896,7 @@ window._saveTemplate = async function(template) {
     template._id = id;
     window._templateCache = window._templateCache || [];
     window._templateCache.unshift(template);
+    if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     return true;
   }
   return false;

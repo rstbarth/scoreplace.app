@@ -3692,10 +3692,14 @@ window._prefillFromTemplate = function(tpl) {
 // ─── Template picker inside create-tournament modal ───────────────────────
 // Show/hide the "Template" button based on template availability
 window._refreshTemplateBtn = function() {
-  var btn = document.getElementById('btn-load-template-create');
-  if (!btn) return;
   var templates = typeof window._getTemplates === 'function' ? window._getTemplates() : [];
-  btn.style.display = templates.length > 0 ? '' : 'none';
+  var hasTemplates = templates.length > 0;
+  // Refresh create-tournament modal button
+  var btn = document.getElementById('btn-load-template-create');
+  if (btn) btn.style.display = hasTemplates ? '' : 'none';
+  // Refresh quick-create modal button
+  var qcBtn = document.getElementById('btn-quick-template');
+  if (qcBtn) qcBtn.style.display = hasTemplates ? 'block' : 'none';
 };
 
 window._showTemplatePickerInCreate = function() {
