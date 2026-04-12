@@ -113,7 +113,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         issuesList.push('Times incompletos: ' + info.incompleteTeams.length);
     }
     if (info.remainder > 0) {
-        issuesList.push('Resto de ' + info.remainder + ' ' + (info.isTeam ? 'participantes' : 'inscrito(s)'));
+        issuesList.push('Resto de ' + info.remainder + ' participante' + (info.remainder > 1 ? 's' : ''));
     }
     if (info.isOdd && info.remainder === 0) {
         issuesList.push('Número ímpar de ' + (info.isTeam ? 'times' : 'inscritos'));
@@ -157,8 +157,12 @@ window.showUnifiedResolutionPanel = function(tId) {
         ];
 
         // Filter options based on context
+        // When there's remainder, show only remainder-specific options first
+        var remainderKeys = ['standby', 'exclusion', 'reopen'];
         let activeOptions = allOptions.filter(function(o) {
-            return excludedKeys.indexOf(o.key) === -1;
+            if (excludedKeys.indexOf(o.key) !== -1) return false;
+            if (info.remainder > 0) return remainderKeys.indexOf(o.key) !== -1;
+            return true;
         });
 
         // Nash scoring: fairness 45%, inclusion 35%, effort 20%
