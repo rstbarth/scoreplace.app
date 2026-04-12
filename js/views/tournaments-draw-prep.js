@@ -134,13 +134,23 @@ window.showUnifiedResolutionPanel = function(tId) {
     window._renderUnifiedOptions = function(excludedKeys) {
         excludedKeys = excludedKeys || [];
 
+        // Dynamic descriptions based on context
+        var _remLabel = info.remainder > 0 ? info.remainder + ' participante' + (info.remainder > 1 ? 's' : '') : '';
+        var _excessLabel = info.excess > 0 ? info.excess + (info.isTeam ? ' time' + (info.excess > 1 ? 's' : '') : ' inscrito' + (info.excess > 1 ? 's' : '')) : '';
+        var _standbyDesc = info.remainder > 0
+            ? 'Mover ' + _remLabel + ' do resto para lista de espera. Organizador escolhe: sorteio entre todos ou últimos inscritos.'
+            : 'Excluir ' + (_excessLabel || 'excedentes') + ' para lista de espera.';
+        var _exclusionDesc = info.remainder > 0
+            ? 'Remover ' + _remLabel + ' do resto. Organizador escolhe: sorteio entre todos ou últimos inscritos.'
+            : 'Remover ' + (_excessLabel || 'participantes') + ' para potência inferior exata.';
+
         // Define all possible options
         const allOptions = [
             { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aumentar número de inscritos para resolver pendências e potência de 2.' },
             { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: 'BYEs automáticos para próxima potência de 2.' },
             { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: 'Rodada de repescagem para resolver discrepâncias.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: 'Excluir excedentes para lista de espera.' },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover participantes para potência inferior exata.' },
+            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: _standbyDesc },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: _exclusionDesc },
             { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Alternar para formato suíço (resolve ambos os problemas).' },
             { key: 'dissolve', icon: '🧩', title: 'Ajuste Manual', desc: 'Reorganizar times manualmente (arrastar e soltar).' },
             { key: 'poll', icon: '🗳️', title: 'Enquete', desc: 'Deixar que os participantes votem na solução.' }
@@ -288,53 +298,10 @@ window.showUnifiedResolutionPanel = function(tId) {
             window.showResolutionSimulationPanel(tId, 'bye');
         } else if (option === 'playin') {
             window.showResolutionSimulationPanel(tId, 'playin');
-        } else if (option === 'standby') {
-            window.showResolutionSimulationPanel(tId, 'standby');
+        } else if (option === 'standby' || option === 'exclusion') {
+            window._showRemovalSubChoice(tId, option, info);
         } else if (option === 'swiss') {
             window.showResolutionSimulationPanel(tId, 'swiss');
-        } else if (option === 'exclusion') {
-            window.showAlertDialog('Confirmar Exclusão', 'Remover os últimos ' + info.excess + (info.isTeam ? ' times' : ' inscritos') + ' para chegar em ' + info.loP2 + '?', function() {
-                const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-                if (!t) return;
-
-                // Restore enrollment status
-                if (t._suspendedByPanel) {
-                    t.status = 'open';
-                    delete t._suspendedByPanel;
-                }
-
-                // Remove excess participants
-                const arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-                let effective = [];
-                arr.forEach(function(p) {
-                    const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-                    if (name.includes(' / ') || name.includes('/')) {
-                        effective.push(p);
-                    } else {
-                        effective.push(p);
-                    }
-                });
-
-                // Keep first loP2 teams
-                let kept = 0, removed = 0;
-                const newParticipants = [];
-                for (let i = 0; i < arr.length && kept < info.loP2; i++) {
-                    const p = arr[i];
-                    const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-                    const isTeam = name.includes(' / ') || name.includes('/');
-
-                    if (isTeam || (info.isTeam ? i % info.teamSize < info.loP2 * info.teamSize % info.teamSize : true)) {
-                        newParticipants.push(p);
-                        if (isTeam || i % info.teamSize === info.teamSize - 1) kept++;
-                    } else {
-                        removed++;
-                    }
-                }
-
-                t.participants = newParticipants;
-                window.AppStore.sync();
-                window.showFinalReviewPanel(tId);
-            });
         } else if (option === 'dissolve') {
             window.showDissolveTeamsPanel(tId);
         } else if (option === 'poll') {
@@ -356,6 +323,97 @@ window.showUnifiedResolutionPanel = function(tId) {
         // Close panel
         const panel = document.getElementById('unified-resolution-panel');
         if (panel) panel.remove();
+    };
+
+    // Sub-choice panel for standby/exclusion
+    window._showRemovalSubChoice = function(tId, mode, info) {
+        var isStandby = mode === 'standby';
+        var title = isStandby ? '⏱️ Lista de Espera' : '🚫 Exclusão';
+        var removeCount = info.remainder > 0 ? info.remainder : info.excess;
+        var label = removeCount + ' participante' + (removeCount > 1 ? 's' : '');
+        var subtitle = isStandby
+            ? 'Mover ' + label + ' para lista de espera. Como escolher quem sai?'
+            : 'Remover ' + label + ' do torneio. Como escolher quem sai?';
+
+        var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        var existing = document.getElementById('removal-subchoice-panel');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'removal-subchoice-panel';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:2rem;';
+
+        overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:24px;border:1px solid rgba(251,191,36,0.2);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;">' +
+            '<div style="background:linear-gradient(135deg,' + (isStandby ? '#1e40af 0%,#3b82f6' : '#991b1b 0%,#dc2626') + ' 100%);padding:1.5rem 2rem;">' +
+                '<h3 style="margin:0;color:#fff;font-size:1.2rem;font-weight:900;">' + title + '</h3>' +
+                '<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:0.85rem;">' + subtitle + '</p>' +
+            '</div>' +
+            '<div style="padding:1.5rem 2rem;display:flex;flex-direction:column;gap:12px;">' +
+                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
+                '</button>' +
+                '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
+                '</button>' +
+            '</div>' +
+            '<div style="padding:1rem 2rem 1.5rem;text-align:right;">' +
+                '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">Voltar</button>' +
+            '</div>' +
+        '</div>';
+
+        document.body.appendChild(overlay);
+    };
+
+    // Execute removal (random or last enrolled)
+    window._executeRemoval = function(tId, mode, method) {
+        var panel = document.getElementById('removal-subchoice-panel');
+        if (panel) panel.remove();
+
+        var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+        if (!t) return;
+
+        var arr = Array.isArray(t.participants) ? t.participants.slice() : [];
+        var removeCount = info.remainder > 0 ? info.remainder : info.excess;
+        var removed = [];
+
+        if (method === 'last') {
+            // Remove last N enrolled
+            removed = arr.splice(arr.length - removeCount, removeCount);
+        } else {
+            // Random removal
+            for (var i = 0; i < removeCount && arr.length > 0; i++) {
+                var idx = Math.floor(Math.random() * arr.length);
+                removed.push(arr.splice(idx, 1)[0]);
+            }
+        }
+
+        t.participants = arr;
+
+        // Store removed in waitlist if standby
+        if (mode === 'standby') {
+            t.waitlist = (t.waitlist || []).concat(removed);
+        }
+
+        // Restore enrollment status
+        if (t._suspendedByPanel) {
+            delete t._suspendedByPanel;
+        }
+        t.status = 'closed';
+
+        window.FirestoreDB.saveTournament(t).then(function() {
+            var removedNames = removed.map(function(p) {
+                return typeof p === 'string' ? p : (p.displayName || p.name || '?');
+            }).join(', ');
+            var actionLabel = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s)';
+            if (typeof showNotification !== 'undefined') {
+                showNotification('Ajuste realizado', removedNames + ' ' + actionLabel + '.', 'success');
+            }
+            // Re-run diagnosis — may still have power-of-2 issues
+            window.showUnifiedResolutionPanel(tId);
+        });
     };
 
     // Build the panel HTML
