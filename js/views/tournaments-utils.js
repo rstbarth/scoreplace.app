@@ -525,11 +525,14 @@ window._getTournamentProgress = function(t) {
         });
     }
     if (t.thirdPlaceMatch) allMatches.push(t.thirdPlaceMatch);
-    // Filter out BYE matches
+    // Filter out BYE matches (keep TBD — they are real future matches)
     var realMatches = allMatches.filter(function(m) {
         var p1 = m.p1 || m.player1 || '';
         var p2 = m.p2 || m.player2 || '';
-        return p1 && p2 && p1 !== 'BYE' && p2 !== 'BYE' && p1 !== 'TBD' && p2 !== 'TBD';
+        if (m.isBye) return false;
+        if (p2.indexOf('BYE') === 0) return false;
+        if (p1.indexOf('BYE') === 0) return false;
+        return p1 && p2;
     });
     var completed = realMatches.filter(function(m) {
         return m.winner || m.result || (m.score1 !== undefined && m.score2 !== undefined && (m.score1 !== null && m.score2 !== null));

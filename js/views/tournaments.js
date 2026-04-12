@@ -531,7 +531,12 @@ function renderTournaments(container, tournamentId = null) {
                 }
             });
         }
-        const standbyCount = Array.isArray(t.standbyParticipants) ? t.standbyParticipants.length : 0;
+        // Include waitlist in total individual count
+        if (Array.isArray(t.waitlist)) {
+            individualCount += t.waitlist.length;
+        }
+        const standbyCount = (Array.isArray(t.standbyParticipants) ? t.standbyParticipants.length : 0)
+            + (Array.isArray(t.waitlist) ? t.waitlist.length : 0);
 
         const expectedTeammates = Math.max(0, (t.teamSize || 2) - 1);
         const teamEnrollModalHtml = `

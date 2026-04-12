@@ -378,21 +378,27 @@ function _advanceWinner(t, completedMatch) {
     }
   }
 
-  if (completedMatch.loserMatchId && (isDupla || completedMatch.isRepechageR1)) {
+  // Dupla Eliminatória: loser goes to lower bracket
+  if (completedMatch.loserMatchId && isDupla) {
     const loserMatch = _findMatch(t, completedMatch.loserMatchId);
     if (loserMatch) {
-      // Repechage R1 uses loserSlot for precise placement
-      if (completedMatch.loserSlot === 'p1') {
-        loserMatch.p1 = loser;
-      } else if (completedMatch.loserSlot === 'p2') {
-        loserMatch.p2 = loser;
-      } else {
+      if (completedMatch.loserSlot === 'p1') loserMatch.p1 = loser;
+      else if (completedMatch.loserSlot === 'p2') loserMatch.p2 = loser;
+      else {
         if (!loserMatch.p1 || loserMatch.p1 === 'TBD') loserMatch.p1 = loser;
         else if (!loserMatch.p2 || loserMatch.p2 === 'TBD') loserMatch.p2 = loser;
       }
-      // Auto-resolve BYE matches in repechage
       _autoResolveBye(t, loserMatch);
     }
+  }
+
+  // Repechage: when R1 match completes, check if ALL R1 done → assign losers
+  if (completedMatch.isRepechageR1 && t.repechageConfig) {
+    _assignRepechageLosers(t);
+  }
+  // Repechage: when repechage match completes, check if ALL done → advance best loser
+  if (completedMatch.isRepechage && t.repechageConfig && t.repechageConfig.bestLoserCount > 0) {
+    _advanceBestLoser(t);
   }
 
   // Swiss/Liga: check if round is fully complete
@@ -411,6 +417,108 @@ function _advanceWinner(t, completedMatch) {
 
   // Auto-detect tournament completion for elimination formats
   _maybeFinishElimination(t);
+}
+
+// ─── Repechage: assign R1 losers to repechage matches by R1 performance ─────
+// Called after each R1 result. Only acts when ALL R1 matches are complete.
+// Ranks losers by: 1) score difference (ascending = closer game better),
+// 2) points scored (descending), 3) alphabetical.
+// Top N losers fill repechage matches; rest are eliminated.
+function _assignRepechageLosers(t) {
+  var cfg = t.repechageConfig;
+  if (!cfg || cfg._losersAssigned) return;
+  var allMatches = t.matches || [];
+
+  // Check if ALL R1 repechage matches are complete
+  var r1Matches = cfg.r1MatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
+  var allDone = r1Matches.length === cfg.r1MatchIds.length && r1Matches.every(function(m) { return m.winner; });
+  if (!allDone) return;
+
+  // Collect losers with their R1 performance
+  var losers = [];
+  r1Matches.forEach(function(m) {
+    var loser = m.winner === m.p1 ? m.p2 : m.p1;
+    var loserScore = m.winner === m.p1 ? (parseInt(m.score2) || 0) : (parseInt(m.score1) || 0);
+    var winnerScore = m.winner === m.p1 ? (parseInt(m.score1) || 0) : (parseInt(m.score2) || 0);
+    var diff = winnerScore - loserScore; // lower = closer game = better
+    losers.push({ name: loser, scoreDiff: diff, pointsScored: loserScore, fromMatchId: m.id });
+  });
+
+  // Sort: best losers first (smallest diff, then most points, then alpha)
+  losers.sort(function(a, b) {
+    if (a.scoreDiff !== b.scoreDiff) return a.scoreDiff - b.scoreDiff;
+    if (a.pointsScored !== b.pointsScored) return b.pointsScored - a.pointsScored;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Top repParticipants go to repechage, rest eliminated
+  var repLosers = losers.slice(0, cfg.repParticipants);
+  // Assign to repechage match slots
+  var repMatches = cfg.repMatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
+  var slotIdx = 0;
+  for (var i = 0; i < repLosers.length; i++) {
+    var targetMatch = repMatches[Math.floor(slotIdx / 2)];
+    if (targetMatch) {
+      if (slotIdx % 2 === 0) targetMatch.p1 = repLosers[i].name;
+      else targetMatch.p2 = repLosers[i].name;
+    }
+    slotIdx++;
+  }
+
+  // Store loser ranking for best-loser evaluation later
+  cfg._rankedLosers = losers;
+  cfg._losersAssigned = true;
+}
+
+// ─── Repechage: advance best loser to R2 after all repechage matches done ───
+// When all repechage matches are complete and bestLoserCount > 0,
+// compare repechage losers by their original R1 performance and advance the best.
+function _advanceBestLoser(t) {
+  var cfg = t.repechageConfig;
+  if (!cfg || !cfg._losersAssigned || cfg._bestLoserAdvanced) return;
+  if (cfg.bestLoserCount <= 0) return;
+
+  // Check if ALL repechage matches are complete
+  var repMatches = cfg.repMatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
+  var allDone = repMatches.length === cfg.repMatchIds.length && repMatches.every(function(m) { return m.winner; });
+  if (!allDone) return;
+
+  // Collect repechage losers
+  var repLosers = [];
+  repMatches.forEach(function(m) {
+    var loser = m.winner === m.p1 ? m.p2 : m.p1;
+    // Find their R1 ranking
+    var ranked = (cfg._rankedLosers || []).find(function(r) { return r.name === loser; });
+    repLosers.push({
+      name: loser,
+      scoreDiff: ranked ? ranked.scoreDiff : 999,
+      pointsScored: ranked ? ranked.pointsScored : 0
+    });
+  });
+
+  // Sort: best repechage losers first (by R1 performance)
+  repLosers.sort(function(a, b) {
+    if (a.scoreDiff !== b.scoreDiff) return a.scoreDiff - b.scoreDiff;
+    if (a.pointsScored !== b.pointsScored) return b.pointsScored - a.pointsScored;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Advance top bestLoserCount to their R2 slots
+  var bestLosersToAdvance = repLosers.slice(0, cfg.bestLoserCount);
+  var blIdx = 0;
+  var allM = t.matches || [];
+  for (var i = 0; i < allM.length && blIdx < bestLosersToAdvance.length; i++) {
+    var m = allM[i];
+    if (m.awaitsBestLoser) {
+      var slot = m.awaitsBestLoser; // 'p1' or 'p2'
+      m[slot] = bestLosersToAdvance[blIdx].name;
+      delete m.awaitsBestLoser;
+      blIdx++;
+      _autoResolveBye(t, m);
+    }
+  }
+
+  cfg._bestLoserAdvanced = true;
 }
 
 // ─── Progressive classification for elimination formats ─────────────────────

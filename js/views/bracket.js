@@ -668,11 +668,11 @@ function renderSingleElimBracket(t, canEnterResult) {
   const thirdPlaceMatch = t.thirdPlaceMatch || { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null };
   const hasThirdPlace = activeRounds.length >= 2;
 
-  const semiRoundIdx = activeRounds.length >= 2 ? activeRounds.length - 2 : -1;
-  const matchesBeforeFinal = semiRoundIdx >= 0
-    ? activeRounds.slice(0, semiRoundIdx + 1).reduce((sum, r) => sum + (roundsMap[r] || []).length, 0)
-    : 0;
-  const thirdPlaceMatchNum = hasThirdPlace ? matchesBeforeFinal + 1 : 0;
+  // Total matches across all rounds (for numbering: final = last, 3rd place = penultimate)
+  const totalBracketMatches = activeRounds.reduce((sum, r) => sum + (roundsMap[r] || []).length, 0);
+  // Final = highest game number; 3rd place = one before final
+  const finalMatchNum = hasThirdPlace ? totalBracketMatches + 2 : totalBracketMatches + 1;
+  const thirdPlaceMatchNum = hasThirdPlace ? totalBracketMatches + 1 : 0;
 
   // Determine visible rounds (not hidden)
   const visibleRounds = activeRounds.filter(r => !hiddenSet.has(r));
@@ -765,7 +765,7 @@ function renderSingleElimBracket(t, canEnterResult) {
     const finalMatches = roundsMap[finalRoundNum] || [];
     const finalMatchHtml = finalMatches.map(m => {
       globalMatchNum++;
-      return renderMatchCard(m, canEnterResult, t.id, hasThirdPlace ? thirdPlaceMatchNum + 1 : globalMatchNum);
+      return renderMatchCard(m, canEnterResult, t.id, hasThirdPlace ? finalMatchNum : globalMatchNum);
     }).join('');
 
     const thirdPlaceCol = hasThirdPlace ? `
@@ -801,7 +801,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       const matchesHtml = roundsMap[roundNum].map(m => {
         if (isFinalRound && hasThirdPlace) {
           globalMatchNum++;
-          return renderMatchCard(m, canEnterResult, t.id, thirdPlaceMatchNum + 1);
+          return renderMatchCard(m, canEnterResult, t.id, finalMatchNum);
         }
         globalMatchNum++;
         return renderMatchCard(m, canEnterResult, t.id, globalMatchNum);
