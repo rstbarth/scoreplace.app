@@ -669,8 +669,9 @@ function renderSingleElimBracket(t, canEnterResult) {
   const hasThirdPlace = activeRounds.length >= 2;
 
   // Numbering: 3rd place = last semifinal + 1, final = 3rd place + 1
-  // Count matches in all rounds EXCEPT the final round (final gets its own number)
-  const preFinalsMatchCount = activeRounds.slice(0, -1).reduce((sum, r) => sum + (roundsMap[r] || []).length, 0);
+  // Count matches in all rounds EXCEPT the final round (last positive round gets its own number)
+  const finalRoundNumForCount = positiveRounds.length > 0 ? positiveRounds[positiveRounds.length - 1] : null;
+  const preFinalsMatchCount = activeRounds.filter(r => r !== finalRoundNumForCount).reduce((sum, r) => sum + (roundsMap[r] || []).length, 0);
   const thirdPlaceMatchNum = hasThirdPlace ? preFinalsMatchCount + 1 : 0;
   const finalMatchNum = hasThirdPlace ? preFinalsMatchCount + 2 : preFinalsMatchCount + 1;
 
@@ -792,7 +793,7 @@ function renderSingleElimBracket(t, canEnterResult) {
       if (hiddenSet.has(roundNum)) return; // Skip hidden rounds
 
       const label = getRoundLabel(roundNum, idx);
-      const isFinalRound = (mainRoundCount - positiveRounds.indexOf(roundNum)) === 1;
+      const isFinalRound = (positiveRounds.length > 0 && roundNum === positiveRounds[positiveRounds.length - 1]);
       const complete = isRoundComplete(roundNum);
 
       // "Ocultar" button — only for completed rounds that are not the final
