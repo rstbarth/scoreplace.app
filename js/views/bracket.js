@@ -1,6 +1,24 @@
 
 // ─── Bracket / Standings View ───────────────────────────────────────────────
 
+// "Só meus jogos" toggle — hides non-user match cards
+window._showOnlyMyMatches = false;
+window._toggleMyMatches = function(checked) {
+  window._showOnlyMyMatches = !!checked;
+  _applyMyMatchesFilter();
+};
+function _applyMyMatchesFilter() {
+  var cards = document.querySelectorAll('[data-my-match]');
+  if (!cards.length) return;
+  cards.forEach(function(card) {
+    if (window._showOnlyMyMatches && card.getAttribute('data-my-match') === '0') {
+      card.style.display = 'none';
+    } else {
+      card.style.display = '';
+    }
+  });
+}
+
 function renderBracket(container, tournamentId, isInline) {
   var _t = window._t || function(k) { return k; };
   const tId = tournamentId || window._lastActiveTournamentId;
@@ -107,16 +125,28 @@ function renderBracket(container, tournamentId, isInline) {
     }
   }
 
+  // ── "Só meus jogos" toggle ──────────────────────────────────────────────────
+  const _myMatchesToggle = _cu && hasContent && !isInline ? `
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;" class="no-print">
+      <span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Só meus jogos</span>
+      <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#f59e0b;--toggle-on-glow:rgba(245,158,11,0.3);--toggle-on-border:#f59e0b;">
+        <input type="checkbox" id="my-matches-toggle" ${window._showOnlyMyMatches ? 'checked' : ''} onchange="window._toggleMyMatches(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>` : '';
+
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult);
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderStandings(t, isOrg, canEnterResult);
+    _applyMyMatchesFilter();
     return;
   }
 
   // ── Fase de Grupos ─────────────────────────────────────────────────────────
   if (isGrupos && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + renderGroupStage(t, isOrg, canEnterResult);
+      _applyMyMatchesFilter();
       return;
     }
     // If stage is elimination, fall through to bracket rendering below
@@ -126,7 +156,8 @@ function renderBracket(container, tournamentId, isInline) {
   var isMonarch = t.format === 'Rei/Rainha da Praia';
   if (isMonarch && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + _renderMonarchStage(t, isOrg, canEnterResult);
+      _applyMyMatchesFilter();
       return;
     }
   }
@@ -151,10 +182,11 @@ function renderBracket(container, tournamentId, isInline) {
   // ── Bracket ────────────────────────────────────────────────────────────────
   const standbyHtml = _renderStandbyPanel(t, isOrg);
   if (isDupla) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
   } else {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _myMatchesToggle + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
   }
+  _applyMyMatchesFilter();
 
   // ── Scrollbar fixa no bottom da viewport (só na view dedicada #bracket) ──
   if ((window.location.hash || '').startsWith('#bracket')) {
@@ -1159,6 +1191,28 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const matchLabel = m.label || (matchNum ? `Jogo ${matchNum}` : 'Partida');
 
+  // Detect if current user participates in this match
+  const _cu = window.AppStore && window.AppStore.currentUser;
+  const _cuName = _cu ? (_cu.displayName || '') : '';
+  const _cuEmail = _cu ? (_cu.email || '') : '';
+  const _isMyMatch = !!(_cu && !isByeMatch && (function() {
+    var sides = [m.p1 || '', m.p2 || ''];
+    for (var si = 0; si < sides.length; si++) {
+      var s = sides[si];
+      if (!s || s === 'TBD' || s === 'BYE') continue;
+      if (_cuName && (s === _cuName || s.indexOf(_cuName) !== -1)) return true;
+      if (_cuEmail && s === _cuEmail) return true;
+      if (s.indexOf('/') !== -1) {
+        var members = s.split('/').map(function(n) { return n.trim(); });
+        for (var mi = 0; mi < members.length; mi++) {
+          if (_cuName && members[mi] === _cuName) return true;
+          if (_cuEmail && members[mi] === _cuEmail) return true;
+        }
+      }
+    }
+    return false;
+  })());
+
   // Card border color based on check-in readiness
   let cardBorder = isDecided ? 'rgba(16,185,129,0.2)' : hasTBD ? 'rgba(255,255,255,0.05)' : 'var(--border-color)';
   let readyBadge = '';
@@ -1172,8 +1226,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }
   }
 
+  // Golden highlight for user's own matches
+  if (_isMyMatch && !matchReady && !matchPartial) {
+    cardBorder = 'rgba(251,191,36,0.5)';
+  }
+  const _myStyle = _isMyMatch ? 'background:rgba(251,191,36,0.04);box-shadow:0 0 12px rgba(251,191,36,0.08),0 4px 12px rgba(0,0,0,0.15);' : '';
+
   return `
-    <div id="card-${m.id}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}">
+    <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:var(--bg-card);border:1px solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);${hasTBD ? 'opacity:0.6;' : ''}${matchReady ? 'box-shadow:0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15);' : ''}${_myStyle}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
         <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${headerConfirmBtn}${headerEditBtn}</div>

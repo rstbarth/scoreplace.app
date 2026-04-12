@@ -277,6 +277,13 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.61-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Destaque de jogos do usuario</b> — No chaveamento, partidas em que voce participa aparecem com borda dourada.</p>' +
+        '<p><b>So meus jogos</b> — Toggle no topo do chaveamento filtra apenas suas partidas.</p>' +
+        '<p><b>Cancelar preserva status</b> — Cancelar paineis de resolucao agora restaura o status original das inscricoes.</p>' +
+        '<p><b>Ordenacao cronologica corrigida</b> — Botao cronologico agora alterna corretamente entre ordem crescente e decrescente.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Painel dedicado de resto</b> — Quando sobram participantes que nao formam time, painel roxo exclusivo com 3 opcoes: reabrir inscricoes, lista de espera ou exclusao. Visualmente distinto do painel de potencia de 2.</p>' +
         '<p><b>Sub-escolha de remocao</b> — Organizador decide entre sorteio aleatorio ou ultimos inscritos para lista de espera/exclusao.</p>' +

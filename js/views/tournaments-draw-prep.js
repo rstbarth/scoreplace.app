@@ -163,8 +163,9 @@ window._showRemainderPanel = function(tId, info, t) {
 window._cancelRemainderPanel = function(tId) {
     var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
     if (t && t._suspendedByPanel) {
-        t.status = 'open';
+        t.status = t._previousStatus || 'open';
         delete t._suspendedByPanel;
+        delete t._previousStatus;
         window.FirestoreDB.saveTournament(t);
     }
     var panel = document.getElementById('remainder-resolution-panel');
@@ -244,6 +245,7 @@ window._executeRemoval = function(tId, mode, method) {
 
     if (t._suspendedByPanel) {
         delete t._suspendedByPanel;
+        delete t._previousStatus;
     }
     t.status = 'closed';
 
@@ -268,6 +270,7 @@ window.showUnifiedResolutionPanel = function(tId) {
 
     // Suspend enrollment while decision panel is open
     if (t.status !== 'closed') {
+        t._previousStatus = t.status; // preserve original status for cancel
         t.status = 'closed';
         t._suspendedByPanel = true;
         window.FirestoreDB.saveTournament(t);
@@ -279,8 +282,9 @@ window.showUnifiedResolutionPanel = function(tId) {
     if (!info.hasIssues) {
         // Auto-restore enrollment
         if (t._suspendedByPanel) {
-            t.status = 'open';
+            t.status = t._previousStatus || 'open';
             delete t._suspendedByPanel;
+            delete t._previousStatus;
             window.FirestoreDB.saveTournament(t);
         }
         window.showFinalReviewPanel(tId);
@@ -512,10 +516,11 @@ window.showUnifiedResolutionPanel = function(tId) {
         const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
         if (!t) return;
 
-        // Restore enrollment
+        // Restore enrollment to previous status
         if (t._suspendedByPanel) {
-            t.status = 'open';
+            t.status = t._previousStatus || 'open';
             delete t._suspendedByPanel;
+            delete t._previousStatus;
             window.FirestoreDB.saveTournament(t);
         }
 
@@ -1173,12 +1178,13 @@ window._cancelPowerOf2Panel = function (tId) {
     if (panel) panel.remove();
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (t && t._suspendedByPanel) {
-        t.status = 'open';
+        t.status = t._previousStatus || 'open';
         delete t._suspendedByPanel;
+        delete t._previousStatus;
         window.AppStore.sync();
         const container = document.getElementById('view-container');
         if (container) renderTournaments(container, window.location.hash.split('/')[1]);
-        showNotification('Inscrições Restauradas', 'As inscrições foram reabertas.', 'info');
+        showNotification('Inscrições Restauradas', 'O status das inscrições foi restaurado.', 'info');
     }
 };
 
