@@ -1611,7 +1611,12 @@ function renderTournaments(container, tournamentId = null) {
     if (hasDrawn && typeof renderBracket === 'function') {
         const inlineContainer = document.getElementById('inline-bracket-container');
         if (inlineContainer) {
-            renderBracket(inlineContainer, tournamentId, true);
+            try {
+                renderBracket(inlineContainer, tournamentId, true);
+            } catch (inlineErr) {
+                console.error('[InlineBracket] Error:', inlineErr);
+                inlineContainer.innerHTML = '<div style="padding:1rem;color:#f87171;font-size:0.85rem;">Erro ao renderizar chaveamento: ' + window._safeHtml(String(inlineErr)) + '</div>';
+            }
         }
     }
 
