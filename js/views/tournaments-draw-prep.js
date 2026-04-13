@@ -224,16 +224,28 @@ window._showGroupsConfigPanel = function(tId) {
         if (!t) return;
         t.gruposCount = numGroups;
         t.gruposClassified = classPerGroup;
-        window.FirestoreDB.saveTournament(t);
-
-        // Close panel
-        var panel = document.getElementById('groups-config-panel');
-        if (panel) panel.remove();
-
-        // Proceed to final review or directly to draw
-        if (typeof window.showFinalReviewPanel === 'function') {
-            window.showFinalReviewPanel(tId);
+        // Ensure enrollment is closed
+        if (t.status !== 'closed') {
+            t.status = 'closed';
         }
+        // Clean up suspension flags
+        delete t._suspendedByPanel;
+        delete t._previousStatus;
+        window.FirestoreDB.saveTournament(t).then(function() {
+            // Close panel
+            var panel = document.getElementById('groups-config-panel');
+            if (panel) panel.remove();
+            // Go directly to draw generation (skip final review to avoid re-triggering groups panel)
+            if (typeof window.generateDrawFunction === 'function') {
+                window.generateDrawFunction(tId);
+            }
+        }).catch(function() {
+            var panel = document.getElementById('groups-config-panel');
+            if (panel) panel.remove();
+            if (typeof window.generateDrawFunction === 'function') {
+                window.generateDrawFunction(tId);
+            }
+        });
     };
 
     window._cancelGroupsConfig = function(tId) {
