@@ -281,6 +281,7 @@
         '<p><b>BYE brackets consistentes</b> — Chaves com BYE agora distribuem os byes intercalados com partidas reais, garantindo que a segunda rodada cruze vencedores reais com classificados por BYE. Corrige brackets onde BYE jogava contra BYE.</p>' +
         '<p><b>Toasts sem duplicata</b> — Inscrição e desinscrição não geram mais notificações duplicadas.</p>' +
         '<p><b>Divulgação imediata</b> — Sorteio sempre com divulgação pública imediata, sem diálogo de visibilidade.</p>' +
+        '<p><b>Header sticky corrigido</b> — Botão Voltar e toggle "Só meus jogos" no chaveamento e na página de detalhes agora ficam fixos no topo ao rolar a página.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.32-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
