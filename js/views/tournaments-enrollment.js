@@ -156,17 +156,6 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                 }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
 
-            // Notify the enrolled user (confirmation)
-            if (user.uid || user.email) {
-                window._sendUserNotification(user.uid || user.email, {
-                    type: 'enrollment_confirmed',
-                    message: 'Inscrição confirmada no torneio "' + window._safeHtml(t.name) + '"!',
-                    tournamentId: String(t.id),
-                    tournamentName: t.name || '',
-                    level: 'fundamental'
-                });
-            }
-
             // Auto-amizade: apenas com quem convidou (ref no link)
             try {
                 var _refUid = null;
@@ -279,17 +268,6 @@ window.submitTeamEnroll = function (tId) {
                 }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
 
-            // Notify the enrolled user (confirmation)
-            if (user.uid || user.email) {
-                window._sendUserNotification(user.uid || user.email, {
-                    type: 'enrollment_confirmed',
-                    message: 'Sua equipe foi inscrita no torneio "' + window._safeHtml(t.name) + '"!',
-                    tournamentId: String(t.id),
-                    tournamentName: t.name || '',
-                    level: 'fundamental'
-                });
-            }
-
             // Auto-amizade: apenas com quem convidou (ref no link)
             try {
                 var _refUid3 = null;
@@ -340,16 +318,6 @@ window.deenrollCurrentUser = function (tId) {
                                     });
                                 }
                             }).catch(function(e) { console.warn('Notify organizer unenroll error:', e); });
-                        }
-                        // Notify the user (confirmation)
-                        if (user.uid || user.email) {
-                            window._sendUserNotification(user.uid || user.email, {
-                                type: 'enrollment_cancelled_confirm',
-                                message: 'Sua inscrição no torneio "' + window._safeHtml(t.name) + '" foi cancelada.',
-                                tournamentId: String(t.id),
-                                tournamentName: t.name || '',
-                                level: 'fundamental'
-                            });
                         }
                         if (typeof showNotification !== 'undefined') showNotification(_t('enroll.cancelledTitle'), _t('enroll.cancelledMsg', { name: window._safeHtml(t.name) }), 'info');
                         const container = document.getElementById('view-container');
