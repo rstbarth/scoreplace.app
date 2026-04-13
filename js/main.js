@@ -283,6 +283,7 @@
         '<p><b>Divulgação imediata</b> — Sorteio sempre com divulgação pública imediata, sem diálogo de visibilidade.</p>' +
         '<p><b>Header sticky corrigido</b> — Botão Voltar e toggle "Só meus jogos" no chaveamento e na página de detalhes agora ficam fixos no topo ao rolar a página.</p>' +
         '<p><b>Box Equipes</b> — Cards do dashboard e detalhes do torneio mostram box "Equipes" com contagem de times formados (por sorteio, inscrição ou organizador), entre Inscritos e Espera.</p>' +
+        '<p><b>BYE limpo no chaveamento</b> — R1 mostra apenas jogos reais (BYE matches ocultos). Na R2+, times que avançaram de BYE exibem badge verde "BYE" ao lado do nome.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.32-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
