@@ -252,7 +252,7 @@ function setupCreateTournamentModal() {
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
-                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:80px;padding:6px 8px;font-size:0.85rem;">
+                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
@@ -282,7 +282,7 @@ function setupCreateTournamentModal() {
                   </div>
                   <div class="form-group" style="margin:0;flex:0 0 auto;">
                     <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
-                    <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:80px;padding:6px 8px;font-size:0.85rem;">
+                    <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;">
                   </div>
                   <div class="form-group" style="margin:0;flex:0 0 auto;">
                     <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
