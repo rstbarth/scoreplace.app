@@ -277,6 +277,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Configuração de Grupos</b> — Formato "Fase de Grupos + Eliminatórias" agora exibe painel dedicado com todas as distribuições possíveis de grupos. Mostra grupos iguais e mistos (ex: 3 grupos de 4 + 1 grupo de 3), classificados por grupo configurável (1-4), e destaque para configurações com potência de 2 na eliminatória. BYE, Suíço e Lista de Espera não são permitidos neste formato.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Voltar sempre fixo</b> — Botão "Voltar" agora usa position: fixed (em vez de sticky) para garantir visibilidade permanente no topo em todas as páginas exceto Dashboard. Escondido automaticamente quando o menu hamburger está aberto.</p>' +
         '<p><b>Voltar no Explorar</b> — Página "Explorar" agora inclui botão Voltar fixo no topo.</p>' +

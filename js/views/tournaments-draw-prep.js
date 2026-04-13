@@ -73,6 +73,185 @@ window._diagnoseAll = function(t) {
     };
 };
 
+// ============ GROUPS CONFIGURATION PANEL ============
+// For "Fase de Grupos + Eliminatórias" — lets organizer choose group distribution
+
+window._showGroupsConfigPanel = function(tId) {
+    var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+    if (!t) return;
+
+    var info = window._diagnoseAll(t);
+    var N = info.effectiveTeams;
+    var unitLabel = info.isTeam ? 'times' : 'participantes';
+    var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var currentClassified = parseInt(t.gruposClassified) || 2;
+
+    // Remove existing panel
+    var existing = document.getElementById('groups-config-panel');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'groups-config-panel';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+
+    window._groupsSelectedConfig = null;
+
+    // Generate all valid group configurations
+    function generateConfigs(n, classPerGroup) {
+        var configs = [];
+        // Try group counts from 2 to max sensible (n/2, capped at 16)
+        var maxGroups = Math.min(Math.floor(n / 2), 16);
+        for (var g = 2; g <= maxGroups; g++) {
+            var base = Math.floor(n / g);
+            var rem = n % g;
+            if (base < 2) continue; // minimum 2 per group
+            var totalAdvance = g * classPerGroup;
+            if (totalAdvance < 2) continue;
+            var isPow2 = totalAdvance > 0 && (totalAdvance & (totalAdvance - 1)) === 0;
+            // Find nearest power of 2
+            var lo = 1;
+            while (lo * 2 <= totalAdvance) lo *= 2;
+            var hi = lo * 2;
+            configs.push({
+                groups: g,
+                base: base,
+                remainder: rem,
+                bigGroups: rem,
+                smallGroups: g - rem,
+                bigSize: base + 1,
+                smallSize: base,
+                totalAdvance: totalAdvance,
+                isPow2: isPow2,
+                nearestPow2: isPow2 ? totalAdvance : (totalAdvance - lo <= hi - totalAdvance ? lo : hi),
+                classPerGroup: classPerGroup
+            });
+        }
+        return configs;
+    }
+
+    function renderPanel(classPerGroup) {
+        var configs = generateConfigs(N, classPerGroup);
+
+        // Sort: power-of-2 first, then by evenness (remainder=0 first), then by group count
+        configs.sort(function(a, b) {
+            if (a.isPow2 !== b.isPow2) return a.isPow2 ? -1 : 1;
+            if (a.remainder !== b.remainder) return a.remainder === 0 ? -1 : (b.remainder === 0 ? 1 : 0);
+            return a.groups - b.groups;
+        });
+
+        // Header
+        var html = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:800px;border-radius:32px;margin:auto 0;border:1px solid rgba(59,130,246,0.25);box-shadow:0 40px 120px rgba(0,0,0,0.8);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:90vh;">' +
+            '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#1e3a5f 0%,#1e40af 50%,#3b82f6 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
+                '<div style="display:flex;align-items:center;gap:12px;">' +
+                    '<span style="font-size:1.5rem;">🏟️</span>' +
+                    '<div>' +
+                        '<h3 style="margin:0;color:#dbeafe;font-size:1.1rem;font-weight:900;">Configuração dos Grupos</h3>' +
+                        '<p style="margin:2px 0 0;color:#93c5fd;font-size:0.75rem;opacity:0.9;">' + N + ' ' + unitLabel + ' — escolha a distribuição</p>' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="window._cancelGroupsConfig(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#dbeafe;border:2px solid rgba(219,234,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\'">✕ Cancelar</button>' +
+            '</div>' +
+            '<div style="overflow-y:auto;flex:1;padding:1.5rem;">';
+
+        // Classified per group selector
+        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;flex-wrap:wrap;">' +
+            '<span style="font-size:0.8rem;font-weight:700;color:var(--text-bright);">Classificados por grupo:</span>';
+        for (var cp = 1; cp <= 4; cp++) {
+            var isActive = cp === classPerGroup;
+            html += '<button onclick="window._groupsRerenderPanel(' + cp + ')" style="padding:6px 16px;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.15s;border:2px solid ' + (isActive ? '#3b82f6' : 'rgba(255,255,255,0.15)') + ';background:' + (isActive ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.05)') + ';color:' + (isActive ? '#93c5fd' : 'var(--text-muted)') + ';">' + cp + '</button>';
+        }
+        html += '</div>';
+
+        if (configs.length === 0) {
+            html += '<div style="text-align:center;padding:2rem;color:var(--text-muted);">Nenhuma configuração válida para ' + N + ' ' + unitLabel + '.</div>';
+        } else {
+            // Grid of configs
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">';
+            configs.forEach(function(c, idx) {
+                var isEven = c.remainder === 0;
+                var borderColor = c.isPow2 ? 'rgba(34,197,94,0.5)' : (isEven ? 'rgba(59,130,246,0.35)' : 'rgba(251,191,36,0.35)');
+                var bgColor = c.isPow2 ? 'rgba(34,197,94,0.08)' : (isEven ? 'rgba(59,130,246,0.06)' : 'rgba(251,191,36,0.06)');
+                var glowColor = c.isPow2 ? '0 0 16px rgba(34,197,94,0.15)' : 'none';
+
+                // Distribution text
+                var distText = '';
+                if (isEven) {
+                    distText = c.groups + ' grupos de ' + c.base;
+                } else {
+                    distText = c.bigGroups + ' grupo' + (c.bigGroups > 1 ? 's' : '') + ' de ' + c.bigSize + ' + ' + c.smallGroups + ' grupo' + (c.smallGroups > 1 ? 's' : '') + ' de ' + c.smallSize;
+                }
+
+                // Advance info
+                var advanceText = c.totalAdvance + ' avançam';
+                var pow2Badge = c.isPow2
+                    ? '<span style="font-size:0.6rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:2px 6px;border-radius:4px;">✓ POT. 2</span>'
+                    : '<span style="font-size:0.6rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 6px;border-radius:4px;">≠ pot. 2</span>';
+
+                // Recommended badge
+                var recommendBadge = (idx === 0) ? '<div style="margin-bottom:4px;"><span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span></div>' : '';
+
+                html += '<button onclick="window._selectGroupsConfig(\'' + tIdSafe + '\',' + c.groups + ',' + c.classPerGroup + ')" style="background:' + bgColor + ';border:2px solid ' + borderColor + ';box-shadow:' + glowColor + ';border-radius:16px;padding:14px 16px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;align-items:center;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'">' +
+                    recommendBadge +
+                    '<div style="font-size:2rem;font-weight:950;color:#fff;line-height:1;">' + c.groups + '</div>' +
+                    '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">grupos</div>' +
+                    '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);line-height:1.3;margin-top:2px;">' + distText + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">' +
+                        '<span style="font-size:0.7rem;color:#93c5fd;font-weight:600;">' + advanceText + '</span>' +
+                        pow2Badge +
+                    '</div>' +
+                '</button>';
+            });
+            html += '</div>';
+        }
+
+        // Legend
+        html += '<div style="margin-top:1rem;display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">🟢 Potência de 2 (eliminatória perfeita)</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">🔵 Grupos iguais</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">🟡 Grupos mistos</span>' +
+            '</div>';
+
+        html += '</div></div>';
+        return html;
+    }
+
+    window._groupsRerenderPanel = function(classPerGroup) {
+        overlay.innerHTML = renderPanel(classPerGroup);
+    };
+
+    window._selectGroupsConfig = function(tId, numGroups, classPerGroup) {
+        var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+        if (!t) return;
+        t.gruposCount = numGroups;
+        t.gruposClassified = classPerGroup;
+        window.FirestoreDB.saveTournament(t);
+
+        // Close panel
+        var panel = document.getElementById('groups-config-panel');
+        if (panel) panel.remove();
+
+        // Proceed to final review or directly to draw
+        if (typeof window.showFinalReviewPanel === 'function') {
+            window.showFinalReviewPanel(tId);
+        }
+    };
+
+    window._cancelGroupsConfig = function(tId) {
+        var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+        if (t && t._suspendedByPanel) {
+            t.status = t._previousStatus || 'open';
+            delete t._suspendedByPanel;
+            delete t._previousStatus;
+            window.FirestoreDB.saveTournament(t);
+        }
+        var panel = document.getElementById('groups-config-panel');
+        if (panel) panel.remove();
+    };
+
+    overlay.innerHTML = renderPanel(currentClassified);
+    document.body.appendChild(overlay);
+};
+
 // ============ DEDICATED REMAINDER PANEL ============
 // Visually distinct from the power-of-2 panel (purple/indigo vs orange/brown)
 
@@ -2185,17 +2364,29 @@ window.toggleRegistrationStatus = function (tId) {
 
     // Run unified diagnostics for formats that need it
     var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
-    var isGrupos = t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
+    var isGrupos = t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1 || t.format === 'Fase de Grupos + Eliminatórias';
+
+    // Groups format: always show groups config panel (no BYE/Swiss/waitlist)
+    if (isGrupos && typeof window._showGroupsConfigPanel === 'function') {
+        if (typeof window._diagnoseAll === 'function') {
+            var diagG = window._diagnoseAll(t);
+            // Only block on incomplete teams or remainder (not power of 2 or odd)
+            if (diagG.incompleteTeams.length > 0 || diagG.remainder > 0) {
+                window.showUnifiedResolutionPanel(tId);
+                return;
+            }
+        }
+        window._showGroupsConfigPanel(tId);
+        return;
+    }
+
     if (typeof window._diagnoseAll === 'function') {
         var diag = window._diagnoseAll(t);
         // Elimination: full check (power of 2, odd, incomplete teams, remainder)
-        // Groups: check odd count and incomplete teams
         // Swiss/Liga: only check incomplete teams and remainder
         var hasRelevantIssues = false;
         if (isElim) {
             hasRelevantIssues = diag.hasIssues;
-        } else if (isGrupos) {
-            hasRelevantIssues = diag.incompleteTeams.length > 0 || diag.remainder > 0 || diag.isOdd;
         } else {
             hasRelevantIssues = diag.incompleteTeams.length > 0 || diag.remainder > 0;
         }
