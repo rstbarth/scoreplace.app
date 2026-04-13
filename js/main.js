@@ -319,6 +319,10 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.71-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Liga: folga justa e toggle ativo</b> — Jogadores que não completam grupo recebem folga com pontuação média (sem BYE/extra). Sistema distribui folgas de forma igualitária. Toggle "Participando dos sorteios" permite que o inscrito se desative temporariamente — recebe pontuação média e não entra no próximo sorteio. Histórico de folgas (sitOutHistory) garante rotação justa entre todos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.70-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Liga simplificada</b> — Configurações da Liga enxutas: removidos duração da temporada e toggle duplicado de formato de rodada. Dropdowns substituídos por botões exclusivos. Data de início sincroniza com agendamento. Datas reposicionadas após agendamento de sorteios.</p>' +
         '</div>' +

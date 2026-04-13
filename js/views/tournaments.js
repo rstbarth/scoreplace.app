@@ -639,6 +639,32 @@ function renderTournaments(container, tournamentId = null) {
              <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
 
+        // Liga active toggle: participants can opt out of upcoming rounds
+        let ligaActiveToggleHtml = '';
+        if (isParticipating && window._isLigaFormat(t) && t.status === 'active') {
+          const _myPart = (() => {
+            const user = window.AppStore.currentUser;
+            if (!user || !t.participants) return null;
+            const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+            return arr.find(p => {
+              if (typeof p !== 'object') return false;
+              if (p.uid && user.uid && p.uid === user.uid) return true;
+              if (p.email && p.email === user.email) return true;
+              return false;
+            });
+          })();
+          const _ligaIsActive = _myPart ? (_myPart.ligaActive !== false) : true;
+          ligaActiveToggleHtml = `
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 10px;background:${_ligaIsActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'};border:1px solid ${_ligaIsActive ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'};border-radius:8px;">
+              <label class="toggle-switch" style="flex-shrink:0;">
+                <input type="checkbox" ${_ligaIsActive ? 'checked' : ''} onchange="window._toggleLigaActive('${t.id}', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+              <span style="font-size:0.75rem;font-weight:600;color:${_ligaIsActive ? '#34d399' : '#f87171'};">${_ligaIsActive ? '🟢 Participando dos sorteios' : '🔴 Fora dos próximos sorteios'}</span>
+            </div>
+          `;
+        }
+
         // Ações Específicas da tela Explore
         let actionsHtml = '';
         const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
@@ -957,6 +983,7 @@ function renderTournaments(container, tournamentId = null) {
             ${enrollBtnHtml ? `<div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
                ${enrollBtnHtml}
                ${tournamentId ? `<div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : ''}
+               ${ligaActiveToggleHtml}
             </div>` : (tournamentId ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : '')}
 
             <!-- Middle Left: Nome + Logo + Favorito -->

@@ -76,7 +76,6 @@ function _computeStandings(t, category) {
     (round.matches || []).forEach(m => {
       // If filtering by category, only count matches in that category
       if (category && m.category !== category) return;
-      if (!m.winner || m.isBye) return;
 
       // Helper to ensure dynamic entry has GSM fields
       function _ensureEntry(name) {
@@ -101,6 +100,15 @@ function _computeStandings(t, category) {
         if (scoreMap[m.p1]) { scoreMap[m.p1].setsWon += sw1; scoreMap[m.p1].setsLost += sw2; scoreMap[m.p1].gamesWon += gw1; scoreMap[m.p1].gamesLost += gw2; scoreMap[m.p1].tiebreaksWon += tb1; }
         if (scoreMap[m.p2]) { scoreMap[m.p2].setsWon += sw2; scoreMap[m.p2].setsLost += sw1; scoreMap[m.p2].gamesWon += gw2; scoreMap[m.p2].gamesLost += gw1; scoreMap[m.p2].tiebreaksWon += tb2; }
       }
+
+      // Sit-out: player receives average points compensation (Liga)
+      if (m.isSitOut && m.p1 && m.sitOutPoints !== undefined) {
+        _ensureEntry(m.p1);
+        scoreMap[m.p1].points += (m.sitOutPoints || 0);
+        return;
+      }
+      // Skip BYE and unresolved matches
+      if (!m.winner || m.isBye) return;
 
       // Rei/Rainha (monarch) matches in Liga: individual stats from team matches
       if (m.isMonarch && m.team1 && m.team2) {
@@ -950,9 +958,112 @@ function _generateNextRound(t) {
 }
 
 // ─── Rei/Rainha round generation for Liga ────────────────────────────────────
+
+// Helper: get active players for Liga (filters out ligaActive === false)
+function _getActiveLigaPlayers(t) {
+  var allP = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var activeNames = {};
+  allP.forEach(function(p) {
+    if (typeof p === 'object' && p.ligaActive === false) return; // explicitly inactive
+    var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+    if (name) activeNames[name] = true;
+  });
+  return activeNames;
+}
+
+// Helper: get inactive players for this round (ligaActive === false)
+function _getInactiveLigaPlayers(t) {
+  var allP = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var names = [];
+  allP.forEach(function(p) {
+    if (typeof p === 'object' && p.ligaActive === false) {
+      var name = p.displayName || p.name || '';
+      if (name) names.push(name);
+    }
+  });
+  return names;
+}
+
+// Helper: choose which players sit out this round based on fairness (least sit-outs first)
+function _chooseSitOutPlayers(t, players, numToSitOut, category) {
+  if (numToSitOut <= 0) return { playing: players, sitOut: [] };
+  // Build sit-out count per player from history
+  var history = t.sitOutHistory || {};
+  var catKey = category || '__all__';
+  var catHistory = history[catKey] || {};
+  // Sort players by sit-out count ascending, then by standing position (worse players sit out first)
+  var indexed = players.map(function(name, idx) {
+    return { name: name, sitOuts: catHistory[name] || 0, rank: idx };
+  });
+  // Players with fewest sit-outs go first (play); ties broken by rank (worse rank sits out)
+  indexed.sort(function(a, b) {
+    if (a.sitOuts !== b.sitOuts) return b.sitOuts - a.sitOuts; // most sit-outs = should play now
+    return b.rank - a.rank; // worse rank = more likely to sit out
+  });
+  var sitOut = indexed.slice(0, numToSitOut).map(function(x) { return x.name; });
+  var playing = players.filter(function(p) { return sitOut.indexOf(p) === -1; });
+  return { playing: playing, sitOut: sitOut };
+}
+
+// Helper: record sit-out in tournament history
+function _recordSitOut(t, sitOutPlayers, category) {
+  if (!sitOutPlayers || sitOutPlayers.length === 0) return;
+  if (!t.sitOutHistory) t.sitOutHistory = {};
+  var catKey = category || '__all__';
+  if (!t.sitOutHistory[catKey]) t.sitOutHistory[catKey] = {};
+  sitOutPlayers.forEach(function(name) {
+    t.sitOutHistory[catKey][name] = (t.sitOutHistory[catKey][name] || 0) + 1;
+  });
+}
+
+// Helper: compute average points per round for a player (for sit-out compensation)
+function _computeAvgPointsPerRound(t, playerName, category) {
+  var totalPoints = 0;
+  var roundsPlayed = 0;
+  (t.rounds || []).forEach(function(round) {
+    var playedThisRound = false;
+    (round.matches || []).forEach(function(m) {
+      if (category && m.category !== category) return;
+      if (m.isSitOut) return; // don't count sit-out compensation rounds
+      if (m.isMonarch && m.team1 && m.team2) {
+        if (m.team1.indexOf(playerName) !== -1 || m.team2.indexOf(playerName) !== -1) {
+          if (m.winner) {
+            playedThisRound = true;
+            var isDraw = m.winner === 'draw' || m.draw;
+            var team1Won = !isDraw && m.winner === m.p1;
+            var team2Won = !isDraw && m.winner === m.p2;
+            var inTeam1 = m.team1.indexOf(playerName) !== -1;
+            if (isDraw) totalPoints += 1;
+            else if ((inTeam1 && team1Won) || (!inTeam1 && team2Won)) totalPoints += 3;
+          }
+        }
+      } else if (!m.isBye && m.winner) {
+        if (m.p1 === playerName || m.p2 === playerName) {
+          playedThisRound = true;
+          if (m.winner === 'draw' || m.draw) totalPoints += 1;
+          else if (m.winner === playerName) totalPoints += 3;
+        }
+      }
+    });
+    if (playedThisRound) roundsPlayed++;
+  });
+  return roundsPlayed > 0 ? Math.round(totalPoints / roundsPlayed) : 1;
+}
+
 window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPlayers(t, category) {
   var standings = _computeStandings(t, category);
-  var players = standings.map(function(s) { return s.name; });
+  var allPlayers = standings.map(function(s) { return s.name; });
+  var isLiga = window._isLigaFormat && window._isLigaFormat(t);
+
+  // Liga: filter out inactive players and record them as sit-out
+  var players = allPlayers;
+  var inactiveSitOuts = [];
+  if (isLiga) {
+    var activeNames = _getActiveLigaPlayers(t);
+    players = allPlayers.filter(function(name) { return activeNames[name]; });
+    inactiveSitOuts = allPlayers.filter(function(name) { return !activeNames[name]; });
+  }
+
   if (players.length < 4) {
     // Not enough for Rei/Rainha groups, fallback to standard pairing
     _generateNextRoundForPlayers(t, category);
@@ -963,15 +1074,25 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
   var ts = Date.now();
   var catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
   var catLabel = category && window._displayCategoryName ? ' (' + window._displayCategoryName(category) + ')' : (category ? ' (' + category + ')' : '');
-  var matchCounter = 0;
 
-  // Divide players into groups of 4 (by standings order — similar level)
-  var numGroups = Math.floor(players.length / 4);
+  // Liga: determine sit-outs fairly instead of BYE/extra matches
   var remainder = players.length % 4;
+  var playingPlayers = players;
+  var sitOutPlayers = [];
+
+  if (remainder > 0 && isLiga) {
+    var result = _chooseSitOutPlayers(t, players, remainder, category);
+    playingPlayers = result.playing;
+    sitOutPlayers = result.sitOut;
+    _recordSitOut(t, sitOutPlayers, category);
+  }
+
+  // Divide playing players into groups of 4 (by standings order — similar level)
+  var numGroups = Math.floor(playingPlayers.length / 4);
   var groups = [];
 
   for (var gi = 0; gi < numGroups; gi++) {
-    var gPlayers = players.slice(gi * 4, gi * 4 + 4);
+    var gPlayers = playingPlayers.slice(gi * 4, gi * 4 + 4);
     var A = gPlayers[0], B = gPlayers[1], C = gPlayers[2], D = gPlayers[3];
     var groupName = 'R' + roundNum + ' ' + (typeof _t === 'function' ? _t('label.group') : 'Grupo') + ' ' + String.fromCharCode(65 + gi);
 
@@ -999,47 +1120,72 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
     groups.push({ name: groupName, players: gPlayers, matches: matches });
   }
 
-  // Remainder players (< 4) get standard pairings
+  // Sit-out matches for Liga: remainder + inactive players receive average points compensation
+  var sitOutMatches = [];
+  if (isLiga) {
+    var allSitOuts = sitOutPlayers.concat(inactiveSitOuts);
+    // Record sit-outs (both remainder and inactive)
+    _recordSitOut(t, inactiveSitOuts, category);
+    allSitOuts.forEach(function(name, si) {
+      var avgPts = _computeAvgPointsPerRound(t, name, category);
+      var isInactive = inactiveSitOuts.indexOf(name) !== -1;
+      var soObj = {
+        id: 'sitout-rr-r' + roundNum + '-' + si + catSuffix + '-' + ts,
+        round: roundNum, roundIndex: (t.rounds || []).length,
+        p1: name, p2: 'FOLGA', winner: name,
+        isSitOut: true, sitOutPoints: avgPts,
+        sitOutReason: isInactive ? 'inactive' : 'remainder',
+        label: 'R' + roundNum + ' • Folga' + (isInactive ? ' (inativo)' : '') + catLabel
+      };
+      if (category) soObj.category = category;
+      sitOutMatches.push(soObj);
+    });
+  }
+
+  // Non-Liga remainder: old behavior (standard pairings / BYE)
   var remainderMatches = [];
-  if (remainder >= 2) {
-    var remPlayers = players.slice(numGroups * 4);
-    for (var ri = 0; ri < remPlayers.length; ri += 2) {
-      if (ri + 1 < remPlayers.length) {
-        var rObj = {
-          id: 'match-rr-r' + roundNum + '-rem-' + ri + catSuffix + '-' + ts,
-          round: roundNum, roundIndex: (t.rounds || []).length,
-          p1: remPlayers[ri], p2: remPlayers[ri + 1],
-          winner: null, label: 'R' + roundNum + ' • Extra' + catLabel
-        };
-        if (category) rObj.category = category;
-        remainderMatches.push(rObj);
-      } else {
-        // Odd remainder — BYE
-        var byeObj = {
-          id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
-          round: roundNum, roundIndex: (t.rounds || []).length,
-          p1: remPlayers[ri], p2: 'BYE', winner: remPlayers[ri], isBye: true,
-          label: 'R' + roundNum + ' • BYE' + catLabel
-        };
-        if (category) byeObj.category = category;
-        remainderMatches.push(byeObj);
+  if (!isLiga && remainder > 0) {
+    var remRemainder = players.length % 4;
+    if (remRemainder >= 2) {
+      var remPlayers = players.slice(numGroups * 4);
+      for (var ri = 0; ri < remPlayers.length; ri += 2) {
+        if (ri + 1 < remPlayers.length) {
+          var rObj = {
+            id: 'match-rr-r' + roundNum + '-rem-' + ri + catSuffix + '-' + ts,
+            round: roundNum, roundIndex: (t.rounds || []).length,
+            p1: remPlayers[ri], p2: remPlayers[ri + 1],
+            winner: null, label: 'R' + roundNum + ' • Extra' + catLabel
+          };
+          if (category) rObj.category = category;
+          remainderMatches.push(rObj);
+        } else {
+          var byeObj = {
+            id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
+            round: roundNum, roundIndex: (t.rounds || []).length,
+            p1: remPlayers[ri], p2: 'BYE', winner: remPlayers[ri], isBye: true,
+            label: 'R' + roundNum + ' • BYE' + catLabel
+          };
+          if (category) byeObj.category = category;
+          remainderMatches.push(byeObj);
+        }
       }
+    } else if (remRemainder === 1) {
+      var byeObj2 = {
+        id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
+        round: roundNum, roundIndex: (t.rounds || []).length,
+        p1: players[players.length - 1], p2: 'BYE', winner: players[players.length - 1], isBye: true,
+        label: 'R' + roundNum + ' • BYE' + catLabel
+      };
+      if (category) byeObj2.category = category;
+      remainderMatches.push(byeObj2);
     }
-  } else if (remainder === 1) {
-    var byeObj2 = {
-      id: 'bye-rr-r' + roundNum + catSuffix + '-' + ts,
-      round: roundNum, roundIndex: (t.rounds || []).length,
-      p1: players[players.length - 1], p2: 'BYE', winner: players[players.length - 1], isBye: true,
-      label: 'R' + roundNum + ' • BYE' + catLabel
-    };
-    if (category) byeObj2.category = category;
-    remainderMatches.push(byeObj2);
   }
 
   // Collect all matches for the round
   var allMatches = [];
   groups.forEach(function(g) { allMatches = allMatches.concat(g.matches); });
   allMatches = allMatches.concat(remainderMatches);
+  allMatches = allMatches.concat(sitOutMatches);
 
   if (!t.rounds) t.rounds = [];
   if (t.rounds.length < roundNum) {
@@ -1058,23 +1204,37 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
 
 function _generateNextRoundForPlayers(t, category) {
   const standings = _computeStandings(t, category);
+  const _isLigaFmtHere = window._isLigaFormat && window._isLigaFormat(t);
   const roundNum = (t.rounds || []).length + 1;
   const roundIdx = (t.rounds || []).length;
   const timestamp = Date.now();
   const catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
 
+  // Liga: filter inactive players, create sit-outs for them
+  var inactiveSitOutsSwiss = [];
+  var activeNamesSwiss = null;
+  if (_isLigaFmtHere) {
+    activeNamesSwiss = _getActiveLigaPlayers(t);
+    inactiveSitOutsSwiss = _getInactiveLigaPlayers(t);
+    _recordSitOut(t, inactiveSitOutsSwiss, category);
+  }
+
   const played = new Set();
   (t.rounds || []).forEach(r => {
     (r.matches || []).forEach(m => {
       if (category && m.category !== category) return;
-      if (m.p1 && m.p2 && m.p2 !== 'BYE') {
+      if (m.p1 && m.p2 && m.p2 !== 'BYE' && m.p2 !== 'FOLGA') {
         played.add(`${m.p1}|||${m.p2}`);
         played.add(`${m.p2}|||${m.p1}`);
       }
     });
   });
 
-  const players = standings.map(s => s.name);
+  var allPlayersSwiss = standings.map(s => s.name);
+  // Liga: filter out inactive players
+  const players = (_isLigaFmtHere && activeNamesSwiss)
+    ? allPlayersSwiss.filter(function(n) { return activeNamesSwiss[n]; })
+    : allPlayersSwiss;
   const matched = new Set();
   const newMatches = [];
 
@@ -1118,17 +1278,47 @@ function _generateNextRoundForPlayers(t, category) {
     }
   }
 
-  // BYE for odd player
+  // Remainder: Liga gets sit-out with avg points; others get BYE
   players.filter(p => !matched.has(p)).forEach(p => {
-    var byeObj = {
-      id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
-      round: roundNum, roundIndex: roundIdx,
-      p1: p, p2: 'BYE', winner: p, isBye: true,
-      label: `R${roundNum} • BYE` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
-    };
-    if (category) byeObj.category = category;
-    newMatches.push(byeObj);
+    if (_isLigaFmtHere) {
+      var avgPts = _computeAvgPointsPerRound(t, p, category);
+      _recordSitOut(t, [p], category);
+      var soObj = {
+        id: `sitout-r${roundNum}-rem${catSuffix}-${timestamp}`,
+        round: roundNum, roundIndex: roundIdx,
+        p1: p, p2: 'FOLGA', winner: p,
+        isSitOut: true, sitOutPoints: avgPts, sitOutReason: 'remainder',
+        label: `R${roundNum} • Folga` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
+      };
+      if (category) soObj.category = category;
+      newMatches.push(soObj);
+    } else {
+      var byeObj = {
+        id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
+        round: roundNum, roundIndex: roundIdx,
+        p1: p, p2: 'BYE', winner: p, isBye: true,
+        label: `R${roundNum} • BYE` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
+      };
+      if (category) byeObj.category = category;
+      newMatches.push(byeObj);
+    }
   });
+
+  // Liga: add sit-out matches for inactive players
+  if (_isLigaFmtHere && inactiveSitOutsSwiss.length > 0) {
+    inactiveSitOutsSwiss.forEach(function(name, si) {
+      var avgPts = _computeAvgPointsPerRound(t, name, category);
+      var soObj = {
+        id: `sitout-r${roundNum}-inact-${si}${catSuffix}-${timestamp}`,
+        round: roundNum, roundIndex: roundIdx,
+        p1: name, p2: 'FOLGA', winner: name,
+        isSitOut: true, sitOutPoints: avgPts, sitOutReason: 'inactive',
+        label: `R${roundNum} • Folga (inativo)` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
+      };
+      if (category) soObj.category = category;
+      newMatches.push(soObj);
+    });
+  }
 
   if (!t.rounds) t.rounds = [];
   // If first category in a new round, push new round; otherwise append to existing round

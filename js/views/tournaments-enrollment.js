@@ -520,4 +520,35 @@ window.deleteTournamentFunction = function (tId) {
     );
 };
 
+// Liga active toggle: participant opts in/out of upcoming draws
+window._toggleLigaActive = function(tId, isActive) {
+  var tournaments = window.AppStore.state.tournaments;
+  var t = tournaments.find(function(x) { return x.id === tId; });
+  if (!t || !t.participants) return;
+  var user = window.AppStore.currentUser;
+  if (!user) return;
+  var arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
+  var found = arr.find(function(p) {
+    if (typeof p !== 'object') return false;
+    if (p.uid && user.uid && p.uid === user.uid) return true;
+    if (p.email && p.email === user.email) return true;
+    return false;
+  });
+  if (found) {
+    found.ligaActive = isActive;
+    window.FirestoreDB.saveTournament(t).then(function() {
+      window.showNotification(
+        isActive ? '🟢 Ativado' : '🔴 Desativado',
+        isActive ? 'Você participará dos próximos sorteios.' : 'Você ficará de fora dos próximos sorteios e receberá pontuação média.',
+        isActive ? 'success' : 'warning'
+      );
+      // Re-render tournament detail
+      if (typeof window.renderTournaments === 'function') {
+        var container = document.getElementById('view-container');
+        if (container) window.renderTournaments(container, tId);
+      }
+    });
+  }
+};
+
 })();
