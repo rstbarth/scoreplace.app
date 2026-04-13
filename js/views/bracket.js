@@ -1119,7 +1119,8 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Detect if a player advanced via BYE (from a R1 BYE match)
-  const _byeBadge = '<span style="display:inline-flex;align-items:center;justify-content:center;width:52px;font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:4px 0;border-radius:6px;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(34,197,94,0.2);">BYE</span>';
+  const _byeBadgeFull = '<span style="display:inline-flex;align-items:center;justify-content:center;width:52px;font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:4px 0;border-radius:6px;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(34,197,94,0.2);">BYE</span>';
+  const _byeBadgeMini = '<span style="font-size:0.45rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:1px 4px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;vertical-align:middle;">BYE</span>';
   let _p1Bye = false, _p2Bye = false;
   if (t && m.round > 1 && Array.isArray(t.matches)) {
     const _byeWinners = {};
@@ -1151,16 +1152,16 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      <div style="flex-shrink:0;">
-        ${showInputs ? p1Score : (_p1Bye && !p1ScoreVal ? _byeBadge : (p1ScoreVal || ''))}
+      <div style="display:flex;align-items:center;flex-shrink:0;">
+        ${_p1Bye && (showInputs || p1ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p1Score : (_p1Bye && !p1ScoreVal ? _byeBadgeFull : (p1ScoreVal || ''))}
       </div>
     </div>`;
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      <div style="flex-shrink:0;">
-        ${showInputs ? p2Score : (_p2Bye && !p2ScoreVal ? _byeBadge : (p2ScoreVal || ''))}
+      <div style="display:flex;align-items:center;flex-shrink:0;">
+        ${_p2Bye && (showInputs || p2ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p2Score : (_p2Bye && !p2ScoreVal ? _byeBadgeFull : (p2ScoreVal || ''))}
       </div>
     </div>`;
 
