@@ -324,19 +324,12 @@
         '<p><b>Templates no Firestore</b> — Templates de torneio migrados de localStorage para Firestore (sincroniza entre dispositivos). Botao "Carregar Template" no modal de criacao quando ha templates salvos.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Coroa de organizacao reposicionada</b> — Botao coroa agora no topo direito do card, sem sobreposicao com outros elementos. Info-box de formato/acesso mais compacto.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Dicas reagem a atividade</b> — Scroll, clique ou digitacao agora escondem dicas na tela e reiniciam o timer de inatividade.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.61-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Destaque de jogos do usuario</b> — No chaveamento, partidas em que voce participa aparecem com borda dourada.</p>' +
-        '<p><b>So meus jogos</b> — Toggle no topo do chaveamento filtra apenas suas partidas.</p>' +
-        '<p><b>Cancelar preserva status</b> — Cancelar paineis de resolucao agora restaura o status original das inscricoes.</p>' +
-        '<p><b>Ordenacao cronologica corrigida</b> — Botao cronologico agora alterna corretamente entre ordem crescente e decrescente.</p>' +
+        '<p><b>Navegacao por grupos</b> — Botoes coloridos (A, B, C...) no cabecalho fixo do chaveamento para scroll direto ao grupo desejado em Fase de Grupos.</p>' +
+        '<p><b>Painel de configuracao de grupos</b> — Ao sortear formato Fase de Grupos, painel dedicado exibe todas as distribuicoes possiveis de grupos com detalhes de classificados e fase eliminatoria.</p>' +
+        '<p><b>Badge BYE elegante</b> — Partidas com BYE exibem badge compacto e sinalizado no area do placar, visivel mesmo com campo de resultado presente.</p>' +
+        '<p><b>Numeracao de final/3o lugar corrigida</b> — Partidas ocultas com BYE nao contam na numeracao; final e 3o lugar sempre sequenciais apos ultima semifinal real.</p>' +
+        '<p><b>Menu hamburger com header fixo</b> — Menu mobile empurra o cabecalho de voltar para baixo dinamicamente em vez de ficar oculto.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

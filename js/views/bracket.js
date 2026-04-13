@@ -88,6 +88,18 @@ function renderBracket(container, tournamentId, isInline) {
         </label>
       </div>` : '';
 
+  // Group nav buttons for Fase de Grupos
+  const _groupNavHtml = (isGrupos && t.groups && t.groups.length > 0 && t.currentStage === 'groups') ? (() => {
+    const colors = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">' +
+      t.groups.map((g, i) => {
+        const c = colors[i % colors.length];
+        const letter = String.fromCharCode(65 + i);
+        return '<button onclick="var el=document.getElementById(\'group-section-' + i + '\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'start\'});" style="padding:3px 10px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1.5px solid ' + c + ';background:' + c + '20;color:' + c + ';transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.background=\'' + c + '40\'" onmouseout="this.style.background=\'' + c + '20\'">' + letter + '</button>';
+      }).join('') +
+    '</div>';
+  })() : '';
+
   const headerHtml = isInline ? `
     <div class="mb-3">${actionBtnsHtml}</div>` : `
     <div class="sticky-back-header" style="padding-bottom:8px;">
@@ -96,7 +108,7 @@ function renderBracket(container, tournamentId, isInline) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Voltar
         </button>
-        <div style="flex:1;"></div>
+        ${_groupNavHtml ? '<div style="flex:1;min-width:0;overflow-x:auto;">' + _groupNavHtml + '</div>' : '<div style="flex:1;"></div>'}
         ${_myMatchesToggleHtml}
       </div>
     </div>
@@ -1415,7 +1427,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     const groupColor = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'][gi % 8];
 
     return `
-      <div class="card" style="border-left:4px solid ${groupColor};">
+      <div class="card" id="group-section-${gi}" style="border-left:4px solid ${groupColor};scroll-margin-top:120px;">
         <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(g.name)}</h3>
         <div style="overflow-x:auto;margin-bottom:1rem;">
           <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
