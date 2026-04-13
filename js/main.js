@@ -319,6 +319,12 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.73-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Card de folga</b> — Jogadores em folga (Liga) exibem card compacto com emoji, nome e pontuação média recebida, em vez de card de partida normal.</p>' +
+        '<p><b>Notificação pós-sorteio</b> — Todos os participantes recebem notificação quando uma rodada é sorteada (Liga/Suíço), tanto na primeira rodada quanto nas seguintes.</p>' +
+        '<p><b>Folgas não bloqueiam rodada</b> — Matches de folga (isSitOut) não contam como "partidas incompletas" ao encerrar rodada.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.72-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fase de Grupos com duplas</b> — Formato Grupos + Eliminatórias agora forma duplas/times antes de distribuir nos grupos. Jogadores individuais são sorteados em times automaticamente.</p>' +
         '<p><b>Botão Voltar corrigido</b> — Botão Voltar no detalhe do torneio agora usa history.back() para retornar à tela anterior (dashboard, explorar, etc.) em vez de sempre ir ao dashboard.</p>' +

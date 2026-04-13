@@ -246,10 +246,24 @@ window.generateDrawFunction = function (tId) {
         // Generate first round using Swiss pairing (respects categories automatically)
         _generateNextRound(t);
 
-        window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${t.rounds[0].matches.length} partida(s)`);
+        var _roundMatchCount = (t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
+        var _roundSitOuts = (t.rounds[0].matches || []).filter(function(m) { return m.isSitOut; }).length;
+        window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${_roundMatchCount} partida(s)` + (_roundSitOuts ? ` e ${_roundSitOuts} folga(s)` : ''));
 
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
-        showNotification('Torneio Iniciado', `Rodada 1 gerada com ${t.rounds[0].matches.length} partida(s)!`, 'success');
+        showNotification('Torneio Iniciado', `Rodada 1 gerada com ${_roundMatchCount} partida(s)!`, 'success');
+
+        // Notify all participants about the new round
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            window._notifyTournamentParticipants(t, {
+                type: 'draw',
+                level: 'all',
+                title: '🎲 Rodada 1 — ' + (t.name || 'Torneio'),
+                message: _roundMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
+                tournamentId: tId
+            });
+        }
+
         // Save immediately to Firestore, then navigate
         window.AppStore.syncImmediate(tId).then(function() {
             window.location.hash = `#bracket/${tId}`;

@@ -901,7 +901,7 @@ window._closeRound = function (tId, roundIdx) {
   const round = (t.rounds || [])[roundIdx];
   if (!round) return;
 
-  const unfinished = (round.matches || []).filter(m => !m.winner && !m.isBye);
+  const unfinished = (round.matches || []).filter(m => !m.winner && !m.isBye && !m.isSitOut);
   if (unfinished.length > 0) {
     showConfirmDialog(
       'Rodada Incompleta',
@@ -927,7 +927,20 @@ function _doCloseRound(t, tId, roundIdx) {
     showNotification('Torneio Encerrado', `${maxRounds} rodadas concluídas!`, 'success');
   } else {
     _generateNextRound(t);
-    showNotification('Nova Rodada', `Rodada ${t.rounds.length} gerada!`, 'success');
+    var _newRound = t.rounds[t.rounds.length - 1];
+    var _newMatchCount = (_newRound && _newRound.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+    showNotification('Nova Rodada', `Rodada ${t.rounds.length} gerada com ${_newMatchCount} partida(s)!`, 'success');
+
+    // Notify all participants about the new round
+    if (typeof window._notifyTournamentParticipants === 'function') {
+      window._notifyTournamentParticipants(t, {
+        type: 'draw',
+        level: 'all',
+        title: '🎲 Rodada ' + t.rounds.length + ' — ' + (t.name || 'Torneio'),
+        message: _newMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
+        tournamentId: tId
+      });
+    }
   }
 
   window.AppStore.logAction(tId, `Rodada ${roundIdx + 1} encerrada`);
