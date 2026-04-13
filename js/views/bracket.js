@@ -1119,7 +1119,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Detect if a player advanced via BYE (from a R1 BYE match)
-  const _byeBadge = '<span style="font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;margin-left:4px;vertical-align:middle;">BYE</span>';
+  const _byeBadge = '<span style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:0.5rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">BYE</span>';
   let _p1Bye = false, _p2Bye = false;
   if (t && m.round > 1 && Array.isArray(t.matches)) {
     const _byeWinners = {};
@@ -1131,7 +1131,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+      <div style="position:relative;flex-shrink:0;">
         ${_p1Bye ? _byeBadge : ''}
         ${showInputs
           ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
@@ -1145,7 +1145,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+      <div style="position:relative;flex-shrink:0;">
         ${_p2Bye ? _byeBadge : ''}
         ${showInputs
           ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
