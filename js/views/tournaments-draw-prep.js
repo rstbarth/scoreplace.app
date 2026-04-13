@@ -2256,7 +2256,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const _byeLabel = function(num) {
             if (isTeam) {
                 var members = [];
-                for (var _m = 0; _m < teamSize; _m++) members.push('Jogador');
+                for (var _m = 0; _m < teamSize; _m++) members.push('Jogador ' + ((num - 1) * teamSize + _m + 1));
                 return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + members.join(', ') + ')</span>';
             }
             return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span>';
