@@ -226,11 +226,11 @@ function setupCreateTournamentModal() {
                   <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
-                      <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;" oninput="window._syncLigaDrawDateToStart()">
+                      <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;" onchange="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
-                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;" oninput="window._syncLigaDrawDateToStart()">
+                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;" onchange="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>

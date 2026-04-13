@@ -1077,6 +1077,10 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
     inactiveSitOuts = allPlayers.filter(function(name) { return !activeNames[name]; });
   }
 
+  if (players.length < 2) {
+    console.warn('[bracket-logic] Not enough active players for Rei/Rainha round:', players.length);
+    return;
+  }
   if (players.length < 4) {
     // Not enough for Rei/Rainha groups, fallback to standard pairing
     _generateNextRoundForPlayers(t, category);
@@ -1248,6 +1252,10 @@ function _generateNextRoundForPlayers(t, category) {
   const players = (_isLigaFmtHere && activeNamesSwiss)
     ? allPlayersSwiss.filter(function(n) { return activeNamesSwiss[n]; })
     : allPlayersSwiss;
+  if (players.length < 2) {
+    console.warn('[bracket-logic] Not enough active players for round generation:', players.length);
+    return;
+  }
   const matched = new Set();
   const newMatches = [];
 

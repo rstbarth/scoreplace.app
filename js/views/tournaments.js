@@ -657,7 +657,7 @@ function renderTournaments(container, tournamentId = null) {
           ligaActiveToggleHtml = `
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 10px;background:${_ligaIsActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'};border:1px solid ${_ligaIsActive ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'};border-radius:8px;">
               <label class="toggle-switch" style="flex-shrink:0;">
-                <input type="checkbox" ${_ligaIsActive ? 'checked' : ''} onchange="window._toggleLigaActive('${t.id}', this.checked)">
+                <input type="checkbox" ${_ligaIsActive ? 'checked' : ''} onchange="window._toggleLigaActive('${String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this.checked)">
                 <span class="toggle-slider"></span>
               </label>
               <span style="font-size:0.75rem;font-weight:600;color:${_ligaIsActive ? '#34d399' : '#f87171'};">${_ligaIsActive ? '🟢 Participando dos sorteios' : '🔴 Fora dos próximos sorteios'}</span>

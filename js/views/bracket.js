@@ -1073,7 +1073,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:1.1rem;">😴</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:0.82rem;font-weight:700;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="if(window._showPlayerStats)window._showPlayerStats('${window._safeHtml(String(m.p1).replace(/'/g, "\\'"))}','${tId}')" style="cursor:pointer;">${window._safeHtml(m.p1)}</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" onclick="if(window._showPlayerStats)window._showPlayerStats('${window._safeHtml(String(m.p1).replace(/'/g, "\\'"))}','${String(tId).replace(/'/g, "\\'")}')">${window._safeHtml(m.p1)}</div>
             <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Folga ${_soReason} — recebe <b style="color:#fbbf24;">${_soPts} pt${_soPts !== 1 ? 's' : ''}</b> (média)</div>
           </div>
         </div>

@@ -546,6 +546,7 @@ window._getTournamentProgress = function(t) {
         var p1 = m.p1 || m.player1 || '';
         var p2 = m.p2 || m.player2 || '';
         if (m.isBye) return false;
+        if (m.isSitOut) return false;
         if (p2.indexOf('BYE') === 0) return false;
         if (p1.indexOf('BYE') === 0) return false;
         return p1 && p2;
