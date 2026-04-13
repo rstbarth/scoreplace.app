@@ -319,6 +319,11 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.75-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botão Voltar hierárquico</b> — Botão Voltar no detalhe do torneio agora navega por hierarquia (sempre volta ao dashboard) em vez de seguir o histórico do browser. Resolve loop infinito ao navegar nível 3 → nível 2 → nível 3.</p>' +
+        '<p><b>Testes 116/116</b> — Corrigidos 4 testes que falhavam: TBD conta como partida pendente, templates async com retorno string, runner suporta funções async.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.74-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria v0.8.70-73</b> — Correções de segurança e lógica: atributo style duplicado no card de folga (bracket.js), ID de torneio escapado no toggle Liga ativo (XSS), progresso do torneio não conta mais folgas como partidas pendentes, guard contra 0 jogadores ativos na geração de rodadas (Liga), oninput→onchange nos campos de data/hora do sorteio Liga.</p>' +
         '</div>' +
