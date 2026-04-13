@@ -2247,59 +2247,138 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const totalSpots = info.hi;
         const byes = info.missing;
         const activeTeams = info.count;
-        const matchesCount = (info.count - byes) / 2;
+        const realMatchesR1 = activeTeams - byes; // participants that actually play in R1 = count - byes; matches = that / 2
+        const realMatchesR1Count = realMatchesR1 / 2;
+        const matchesR2 = totalSpots / 4; // R2 is power-of-2 bracket
 
-        // Anonymous labels: "Time X (Jogador, Jogador)" for teams, "Participante X" for individuals
+        // Anonymous label helper
+        const _tLabel = isTeam ? 'Time' : 'Participante';
         const _byeLabel = function(num) {
             if (isTeam) {
                 var members = [];
                 for (var _m = 0; _m < teamSize; _m++) members.push('Jogador');
-                return '<div><span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Time ' + num + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + members.join(', ') + ')</span></div>';
+                return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + members.join(', ') + ')</span>';
             }
-            return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Participante ' + num + '</span>';
+            return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span>';
         };
+
+        // R1: only real matches (participant vs participant)
+        let _pNum = 0;
+        let r1Html = '';
+        for (var _ri = 0; _ri < realMatchesR1Count; _ri++) {
+            var _a = ++_pNum;
+            var _b = ++_pNum;
+            r1Html += '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ' + (_ri + 1) + '</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(96,165,250,0.4);margin-bottom:4px;">' + _byeLabel(_a) + '</div>' +
+                '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(96,165,250,0.4);">' + _byeLabel(_b) + '</div>' +
+            '</div>';
+        }
+
+        // R2: build matchups — BYE winners (already placed) + R1 winners
+        // In real bracket: BYE winners are spread so they face R1 winners
+        // BYE participants numbered after R1 participants
+        let r2Html = '';
+        let _byeNum = 0;
+        let _r1MatchNum = 0;
+        for (var _r2i = 0; _r2i < matchesR2; _r2i++) {
+            var slot1 = '';
+            var slot2 = '';
+            var slot1Color = '';
+            var slot2Color = '';
+            var hasByeSlot = false;
+
+            if (_r1MatchNum < realMatchesR1Count && _byeNum < byes) {
+                // Cross: R1 winner vs BYE winner
+                _r1MatchNum++;
+                _byeNum++;
+                var _byePart = _pNum + _byeNum;
+                slot1 = 'Vencedor Jogo ' + _r1MatchNum;
+                slot1Color = 'rgba(96,165,250,0.4)';
+                slot2 = _byeLabel(_byePart);
+                slot2Color = 'rgba(34,197,94,0.4)';
+                hasByeSlot = true;
+            } else if (_r1MatchNum < realMatchesR1Count) {
+                // Two R1 winners
+                var _w1 = ++_r1MatchNum;
+                var _w2 = ++_r1MatchNum;
+                slot1 = 'Vencedor Jogo ' + _w1;
+                slot1Color = 'rgba(96,165,250,0.4)';
+                slot2 = 'Vencedor Jogo ' + _w2;
+                slot2Color = 'rgba(96,165,250,0.4)';
+            } else {
+                // Two BYE winners
+                _byeNum++;
+                var _bp1 = _pNum + _byeNum;
+                _byeNum++;
+                var _bp2 = _pNum + _byeNum;
+                slot1 = _byeLabel(_bp1);
+                slot1Color = 'rgba(34,197,94,0.4)';
+                slot2 = _byeLabel(_bp2);
+                slot2Color = 'rgba(34,197,94,0.4)';
+                hasByeSlot = true;
+            }
+
+            var _byeBadge = hasByeSlot ? '<span style="font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">BYE</span>' : '';
+            r2Html += '<div style="background:rgba(15,23,42,0.8);border:1px solid ' + (hasByeSlot ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)') + ';border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">' +
+                    '<span style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;">R2 — Jogo ' + (_r2i + 1) + '</span>' +
+                    _byeBadge +
+                '</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ' + slot1Color + ';margin-bottom:4px;">' +
+                    '<span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">' + slot1 + '</span>' +
+                '</div>' +
+                '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ' + slot2Color + ';">' +
+                    '<span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">' + slot2 + '</span>' +
+                '</div>' +
+            '</div>';
+        }
 
         simulationHtml = `
             <div style="text-align:center;margin-bottom:2rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:1rem;">🥇</span>
                 <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de BYE (Avanço Direto)</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">Chave de ${totalSpots} vagas configurada.</p>
+                <p style="color:#94a3b8;margin:8px 0 0;">Chave de ${totalSpots} vagas · ${byes} ${isTeam ? 'times' : 'participantes'} avançam com BYE</p>
             </div>
 
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center;">
-                    <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
-                        <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${byes}</div>
-                        <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Avançam com BYE</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;text-align:center;">
+                    <div style="background:rgba(96,165,250,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
+                        <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${realMatchesR1Count}</div>
+                        <div style="font-size:0.65rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Jogos R1</div>
                     </div>
-                    <div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
-                        <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${matchesCount}</div>
-                        <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Partidas da 1ª Rodada</div>
+                    <div style="background:rgba(34,197,94,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
+                        <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${byes}</div>
+                        <div style="font-size:0.65rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">BYEs direto p/ R2</div>
+                    </div>
+                    <div style="background:rgba(139,92,246,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
+                        <div style="font-size:1.5rem;font-weight:900;color:#a78bfa;">${matchesR2}</div>
+                        <div style="font-size:0.65rem;color:#c4b5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Jogos R2</div>
                     </div>
                 </div>
             </div>
 
-            <div style="max-height:400px;overflow-y:auto;padding-right:10px;mask-image:linear-gradient(to bottom, black 85%, transparent 100%);">
-                <h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Esqueleto de Confrontos (R1)</h4>
-                ${Array.from({ length: byes }).map((_, i) => `
-                    <div style="background:rgba(255,255,255,0.02);padding:12px 15px;border-radius:12px;margin-bottom:8px;border-left:4px solid #4ade80;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <div style="flex:1;min-width:0;">${_byeLabel(i + 1)}</div>
-                        <span style="font-size:0.65rem;font-weight:800;color:#4ade80;text-transform:uppercase;background:rgba(34,197,94,0.2);padding:2px 8px;border-radius:6px;flex-shrink:0;">Avança direto</span>
-                    </div>
-                `).join('')}
-                ${Array.from({ length: matchesCount }).map((_, i) => `
-                    <div style="background:rgba(255,255,255,0.02);padding:12px 15px;border-radius:12px;margin-bottom:8px;border-left:4px solid #60a5fa;">
-                        <div style="display:flex;justify-content:space-between;color:#94a3b8;font-size:0.75rem;margin-bottom:6px;">
-                            <span>Partida #${i + 1}</span>
-                            <span>Confronto</span>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:6px;">
-                            <div>${_byeLabel(byes + (i * 2) + 1)}</div>
-                            <div style="font-size:0.65rem;color:#64748b;font-weight:700;text-align:center;">VS</div>
-                            <div>${_byeLabel(byes + (i * 2) + 2)}</div>
-                        </div>
-                    </div>
-                `).join('')}
+            <div style="max-height:500px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
+                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Rodada 1 — ${realMatchesR1Count} ${realMatchesR1Count === 1 ? 'jogo real' : 'jogos reais'}</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    ${r1Html}
+                </div>
+
+                <div style="text-align:center;margin:1.5rem 0;padding:10px;background:rgba(255,255,255,0.02);border-radius:12px;">
+                    <div style="font-size:0.7rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${realMatchesR1Count} Vencedores → R2</div>
+                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${byes} com BYE → direto para R2</div>
+                </div>
+
+                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Rodada 2 — ${matchesR2} jogos (potência de 2 atingida ✓)</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    ${r2Html}
+                </div>
+
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:12px;margin-top:1rem;">
+                    <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">A partir da R2, a chave segue em potência de 2 (${matchesR2} → ${matchesR2 / 2}${matchesR2 >= 4 ? ' → ' + (matchesR2 / 4) : ''}...) sem mais BYEs.</div>
+                </div>
             </div>
         `;
     } else if (option === 'playin') {
