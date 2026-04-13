@@ -1119,7 +1119,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Detect if a player advanced via BYE (from a R1 BYE match)
-  const _byeBadge = '<span style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:0.5rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">BYE</span>';
+  const _byeBadge = '<span style="display:inline-flex;align-items:center;justify-content:center;width:52px;font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:4px 0;border-radius:6px;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(34,197,94,0.2);">BYE</span>';
   let _p1Bye = false, _p2Bye = false;
   if (t && m.round > 1 && Array.isArray(t.matches)) {
     const _byeWinners = {};
@@ -1128,31 +1128,39 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     if (m.p2 && _byeWinners[m.p2]) _p2Bye = true;
   }
 
+  const _scoreOrBye = (pBye, inputHtml, scoreHtml, showInput) => {
+    if (showInput) return inputHtml;
+    if (pBye && !scoreHtml) return _byeBadge;
+    return scoreHtml || '';
+  };
+
+  const p1Score = showInputs
+    ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
+        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+        oninput="window._highlightWinner('${_esc(m.id)}')">`
+    : null;
+  const p1ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner) : null;
+
+  const p2Score = showInputs
+    ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
+        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+        oninput="window._highlightWinner('${_esc(m.id)}')">`
+    : null;
+  const p2ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner) : null;
+
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      <div style="position:relative;flex-shrink:0;">
-        ${_p1Bye ? _byeBadge : ''}
-        ${showInputs
-          ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
-              style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
-              oninput="window._highlightWinner('${_esc(m.id)}')">`
-          : scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner)
-        }
+      <div style="flex-shrink:0;">
+        ${showInputs ? p1Score : (_p1Bye && !p1ScoreVal ? _byeBadge : (p1ScoreVal || ''))}
       </div>
     </div>`;
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      <div style="position:relative;flex-shrink:0;">
-        ${_p2Bye ? _byeBadge : ''}
-        ${showInputs
-          ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
-              style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
-              oninput="window._highlightWinner('${_esc(m.id)}')">`
-          : scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner)
-        }
+      <div style="flex-shrink:0;">
+        ${showInputs ? p2Score : (_p2Bye && !p2ScoreVal ? _byeBadge : (p2ScoreVal || ''))}
       </div>
     </div>`;
 
