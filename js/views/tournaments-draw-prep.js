@@ -2051,12 +2051,15 @@ window._handleP2Option = function (tId, option) {
         const p2Panel = document.getElementById('p2-resolution-panel');
         if (p2Panel) p2Panel.remove();
         // Collect poll options from P2 context
+        var _pTeamSize = parseInt(t.teamSize) || 1;
+        var _pLabel = _pTeamSize > 1 ? 'times' : 'participantes';
+        var _pLabelInscritos = _pTeamSize > 1 ? 'inscritos' : 'inscritos';
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' inscritos para chegar a ' + info.hi + '. Igualdade total.' },
-            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' participantes avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
-            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' participantes disputam ' + info.excess + ' vaga(s). Vencedores enfrentam quem avançou direto.' },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + ' inscritos para chaveamento perfeito de ' + info.lo + '.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' participantes vão para lista de espera. Chaveamento de ' + info.lo + '.' },
+            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' ' + _pLabel + ' para chegar a ' + info.hi + '. Igualdade total.' },
+            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' ' + _pLabel + ' avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
+            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' ' + _pLabel + ' disputam ' + info.excess + ' vaga(s). Vencedores enfrentam quem avançou direto.' },
+            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + ' ' + _pLabelInscritos + ' para chaveamento perfeito de ' + info.lo + '.' },
+            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' ' + _pLabel + ' vão para lista de espera. Chaveamento de ' + info.lo + '.' },
             { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' }
         ];
         window._showPollCreationDialog(tId, 'p2', pollOptions);
@@ -2309,6 +2312,9 @@ window.showResolutionSimulationPanel = function (tId, option) {
 
     let simulationHtml = '';
     if (option === 'bye') {
+        const teamSize = parseInt(t.teamSize) || 1;
+        const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;
+        const tLabelPlural = teamSize > 1 ? 'times' : 'participantes';
         const totalSpots = info.hi;
         const byes = info.missing;
         const activeTeams = info.count;
@@ -2320,7 +2326,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de BYE (Avanço Direto)</h3>
                 <p style="color:#94a3b8;margin:8px 0 0;">Chave de ${totalSpots} vagas configurada.</p>
             </div>
-            
+
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center;">
                     <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
@@ -2338,7 +2344,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Esqueleto de Confrontos (R1)</h4>
                 ${Array.from({ length: byes }).map((_, i) => `
                     <div style="background:rgba(255,255,255,0.02);padding:12px 15px;border-radius:12px;margin-bottom:8px;border-left:4px solid #4ade80;display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Participante ${i + 1}</span>
+                        <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">${tLabel(i + 1)}</span>
                         <span style="font-size:0.65rem;font-weight:800;color:#4ade80;text-transform:uppercase;background:rgba(34,197,94,0.2);padding:2px 8px;border-radius:6px;">Avança direto</span>
                     </div>
                 `).join('')}
@@ -2349,8 +2355,8 @@ window.showResolutionSimulationPanel = function (tId, option) {
                             <span>Confronto</span>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:4px;">
-                            <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Participante ${byes + (i * 2) + 1}</span>
-                            <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Participante ${byes + (i * 2) + 2}</span>
+                            <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">${tLabel(byes + (i * 2) + 1)}</span>
+                            <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">${tLabel(byes + (i * 2) + 2)}</span>
                         </div>
                     </div>
                 `).join('')}
