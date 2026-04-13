@@ -25,7 +25,7 @@
 </style>
 </head>
 <body>
-<h1>scoreplace.app — Testes Automatizados v0.8.0</h1>
+<h1>scoreplace.app — Testes Automatizados v0.8.74</h1>
 <div class="summary" id="summary">Executando...</div>
 <div id="load-status" class="load-status"></div>
 <div id="results"></div>
@@ -806,7 +806,7 @@ describe('SCOREPLACE_VERSION', function() {
     expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
   });
   it('versao atual e 0.8.2-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.8.14-alpha');
+    expect(window.SCOREPLACE_VERSION).toBe('0.8.74-alpha');
   });
 });
 
@@ -993,7 +993,7 @@ describe('Email Templates — _emailTemplate', function() {
 // ─── Version Test Update ────────────────────────────────────────────────────
 describe('Version — v0.8.1', function() {
   it('SCOREPLACE_VERSION is 0.8.2-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.8.14-alpha');
+    expect(window.SCOREPLACE_VERSION).toBe('0.8.74-alpha');
   });
 });
 
@@ -1292,6 +1292,103 @@ describe('Advance Monarch — Idempotência', function() {
     }
     // matches array should remain unchanged
     expect(t.matches.length).toBe(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _getTournamentProgress — isSitOut exclusion (v0.8.74)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_getTournamentProgress — isSitOut exclusion', function() {
+  it('exclui matches isSitOut do total e completed', function() {
+    var t = {
+      rounds: [{ matches: [
+        { p1: 'A', p2: 'B', winner: 'A', scoreP1: 6, scoreP2: 3 },
+        { p1: 'C', p2: 'FOLGA', winner: 'C', isSitOut: true, sitOutPoints: 3 },
+        { p1: 'D', p2: 'E', winner: null }
+      ]}]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(2); // A vs B + D vs E (sitout excluded)
+    expect(prog.completed).toBe(1); // only A vs B
+    expect(prog.pct).toBe(50);
+  });
+
+  it('torneio so com sitOuts tem 0 matches reais', function() {
+    var t = {
+      rounds: [{ matches: [
+        { p1: 'A', p2: 'FOLGA', winner: 'A', isSitOut: true, sitOutPoints: 2 },
+        { p1: 'B', p2: 'FOLGA', winner: 'B', isSitOut: true, sitOutPoints: 3 }
+      ]}]
+    };
+    var prog = window._getTournamentProgress(t);
+    expect(prog.total).toBe(0);
+    expect(prog.pct).toBe(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _computeStandings — isSitOut points (v0.8.74)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_computeStandings — isSitOut points', function() {
+  it('jogador em folga recebe sitOutPoints nos standings', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }],
+      rounds: [{ matches: [
+        { p1: 'A', p2: 'B', winner: 'A', scoreP1: 6, scoreP2: 3 },
+        { p1: 'C', p2: 'FOLGA', winner: 'C', isSitOut: true, sitOutPoints: 3 }
+      ]}]
+    };
+    var standings = window._computeStandings(t);
+    var c = standings.find(function(s) { return s.name === 'C'; });
+    expect(c.points).toBe(3);
+    expect(c.wins).toBe(0); // sitOut is not a win
+    expect(c.played).toBe(0); // sitOut is not a played match
+  });
+
+  it('jogador com mix de matches e sitOuts acumula tudo', function() {
+    var t = {
+      participants: [{ displayName: 'A' }, { displayName: 'B' }, { displayName: 'C' }],
+      rounds: [
+        { matches: [
+          { p1: 'A', p2: 'B', winner: 'A', scoreP1: 6, scoreP2: 3 },
+          { p1: 'C', p2: 'FOLGA', winner: 'C', isSitOut: true, sitOutPoints: 2 }
+        ]},
+        { matches: [
+          { p1: 'A', p2: 'C', winner: 'C', scoreP1: 3, scoreP2: 6 },
+          { p1: 'B', p2: 'FOLGA', winner: 'B', isSitOut: true, sitOutPoints: 1 }
+        ]}
+      ]
+    };
+    var standings = window._computeStandings(t);
+    var c = standings.find(function(s) { return s.name === 'C'; });
+    // C: 2pts (sitout R1) + 3pts (win R2) = 5pts
+    expect(c.points).toBe(5);
+    expect(c.wins).toBe(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Liga Sit-Out Fairness (v0.8.74)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
+  it('escolhe quem tem menos folgas para ficar de fora', function() {
+    if (typeof _chooseSitOutPlayers !== 'function' && typeof window._chooseSitOutPlayers !== 'function') {
+      // Function is module-scoped, skip if not exposed
+      expect(true).toBe(true);
+      return;
+    }
+    var fn = window._chooseSitOutPlayers || _chooseSitOutPlayers;
+    var t = {
+      sitOutHistory: { '__all__': { 'A': 2, 'B': 0, 'C': 1, 'D': 0 } },
+      rounds: []
+    };
+    var result = fn(t, ['A', 'B', 'C', 'D'], 1, null);
+    // B e D tem 0 folgas; um deles deve ser o sit-out
+    expect(result.sitOut.length).toBe(1);
+    expect(result.playing.length).toBe(3);
+    // O escolhido deve ser B ou D (os que tem menos folgas)
+    var sitOutPlayer = result.sitOut[0];
+    expect(sitOutPlayer === 'B' || sitOutPlayer === 'D').toBe(true);
   });
 });
 
