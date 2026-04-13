@@ -189,39 +189,26 @@ function setupCreateTournamentModal() {
               <!-- Campos específicos: Liga (unificado com antigo Ranking) -->
               <div id="liga-fields" style="display:none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações da Liga</p>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Duração da Temporada</label>
-                    <select class="form-control" id="liga-season-duration" onchange="window._onLigaSeasonChange()">
-                      <option value="indefinida">Indefinida (sem prazo)</option>
-                      <option value="3">3 meses</option>
-                      <option value="6">6 meses</option>
-                      <option value="12">12 meses (1 ano)</option>
-                      <option value="custom">Personalizado</option>
-                    </select>
-                  </div>
-                  <div class="form-group full-width" id="liga-custom-duration-container" style="display:none;">
-                    <label class="form-label">Meses de duração</label>
-                    <input type="number" class="form-control" id="liga-custom-months" min="1" max="36" value="6" placeholder="Ex: 9">
+                <input type="hidden" id="liga-season-duration" value="indefinida">
+                <div id="liga-custom-duration-container" style="display:none;"><input type="hidden" id="liga-custom-months" value="6"></div>
+                <input type="hidden" id="liga-round-format" value="standard">
+                <div class="form-group mb-3">
+                  <label class="form-label" style="font-size:0.75rem;">Pontuação de Novos Inscritos</label>
+                  <input type="hidden" id="liga-new-player-score" value="zero">
+                  <div id="liga-nps-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="liga-nps-btn liga-nps-active" data-value="zero" onclick="window._selectLigaNps(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;white-space:nowrap;">Zero</button>
+                    <button type="button" class="liga-nps-btn" data-value="min" onclick="window._selectLigaNps(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">Mínima</button>
+                    <button type="button" class="liga-nps-btn" data-value="avg" onclick="window._selectLigaNps(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">Média</button>
+                    <button type="button" class="liga-nps-btn" data-value="organizer" onclick="window._selectLigaNps(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">Org. decide</button>
                   </div>
                 </div>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">Pontuação de Novos Inscritos</label>
-                    <select class="form-control" id="liga-new-player-score">
-                      <option value="zero">Zero absoluto</option>
-                      <option value="min">Mínima atual da tabela</option>
-                      <option value="avg">Média atual da tabela</option>
-                      <option value="organizer">Organizador decide na hora</option>
-                    </select>
-                  </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">Regra de Inatividade</label>
-                    <select class="form-control" id="liga-inactivity">
-                      <option value="keep">Manter pontos</option>
-                      <option value="decay">Decaimento fixo por rodada</option>
-                      <option value="remove">Remover após X rodadas sem jogar</option>
-                    </select>
+                <div class="form-group mb-3">
+                  <label class="form-label" style="font-size:0.75rem;">Regra de Inatividade</label>
+                  <input type="hidden" id="liga-inactivity" value="keep">
+                  <div id="liga-inact-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="liga-inact-btn liga-inact-active" data-value="keep" onclick="window._selectLigaInact(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;white-space:nowrap;">Manter</button>
+                    <button type="button" class="liga-inact-btn" data-value="decay" onclick="window._selectLigaInact(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">Decaimento</button>
+                    <button type="button" class="liga-inact-btn" data-value="remove" onclick="window._selectLigaInact(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">Remover</button>
                   </div>
                 </div>
                 <div class="form-group" id="liga-inactivity-x-container" style="display:none;">
@@ -234,25 +221,16 @@ function setupCreateTournamentModal() {
                     <label class="toggle-switch"><input type="checkbox" id="liga-open-enrollment" checked><span class="toggle-slider"></span></label>
                   </div>
                 </div>
-                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
-                  <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Formato de Rodada</p>
-                  <div style="display:flex;gap:8px;margin-bottom:0.75rem;" id="liga-round-format-buttons">
-                    <button type="button" class="liga-rf-btn liga-rf-active" data-value="standard" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;">${_t('liga.formatStandard')}</button>
-                    <button type="button" class="liga-rf-btn" data-value="rei_rainha" onclick="window._selectLigaRoundFormat(this)" style="flex:1;padding:8px 12px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;">👑 ${_t('liga.formatMonarch')}</button>
-                  </div>
-                  <input type="hidden" id="liga-round-format" value="standard">
-                  <div id="liga-rf-desc" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Pareamento suíço: jogadores com pontuação similar se enfrentam.</div>
-                </div>
                 <div id="liga-draw-schedule" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
                   <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios</p>
                   <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
-                      <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;">
+                      <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;" oninput="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
-                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;">
+                      <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;" oninput="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
                       <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
@@ -271,6 +249,31 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
               <!-- ranking-fields removido em v0.2.6: unificado com liga-fields -->
+
+              <!-- Datas e Horários (posicionado após agendamento de sorteios) -->
+              <div class="dates-row" style="display:flex; gap:10px; margin-bottom:0.75rem; align-items:stretch; flex-wrap:wrap;">
+                <div id="reg-date-container" style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Encerramento Inscrições</div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="date" class="form-control" id="tourn-reg-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                  </div>
+                </div>
+                <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Início do Torneio</div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="date" class="form-control" id="tourn-start-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
+                    <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                  </div>
+                </div>
+                <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Fim do Torneio</div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="date" class="form-control" id="tourn-end-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                  </div>
+                </div>
+              </div>
 
               <!-- Campos periocidade de sorteio: Suíço -->
               <div id="suico-draw-schedule-fields" style="display:none; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
@@ -341,31 +344,6 @@ function setupCreateTournamentModal() {
                     <label class="form-label">Nomes das Quadras/Campos <small style="opacity:0.6;">(separados por vírgula)</small></label>
                     <input type="text" class="form-control" id="tourn-court-names" placeholder="Ex: Quadra Central, Quadra 1, Quadra 2" style="width:100%;" oninput="window._onCourtNamesInput()">
                     <small class="text-muted" style="display:block;margin-top:4px;" id="court-names-hint">Deixe em branco para numeração automática (Quadra 1, Quadra 2...).</small>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Datas e Horários -->
-              <div class="dates-row" style="display:flex; gap:10px; margin-bottom:0.75rem; align-items:stretch; flex-wrap:wrap;">
-                <div id="reg-date-container" style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Encerramento Inscrições</div>
-                  <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-reg-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
-                  </div>
-                </div>
-                <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Início do Torneio</div>
-                  <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-start-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
-                    <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
-                  </div>
-                </div>
-                <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Fim do Torneio</div>
-                  <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-end-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
               </div>
@@ -1358,13 +1336,10 @@ function setupCreateTournamentModal() {
       }
     }
 
-    // Sync Liga internal round format toggle with global draw mode
+    // Sync Liga internal round format hidden field with global draw mode
     if (isLiga) {
-      var ligaRfVal = isMonarch ? 'rei_rainha' : 'standard';
       var ligaRfHidden = document.getElementById('liga-round-format');
-      if (ligaRfHidden) ligaRfHidden.value = ligaRfVal;
-      var ligaRfBtn = document.querySelector('#liga-round-format-buttons .liga-rf-btn[data-value="' + ligaRfVal + '"]');
-      if (ligaRfBtn) window._selectLigaRoundFormat(ligaRfBtn);
+      if (ligaRfHidden) ligaRfHidden.value = isMonarch ? 'rei_rainha' : 'standard';
     }
 
     // Esconder estimativas de tempo para Liga e Suíço (não fazem sentido)
@@ -1380,44 +1355,48 @@ function setupCreateTournamentModal() {
   // _onRankingManualChange mantida como alias para backward compat
   window._onRankingManualChange = function () {};
 
-  // Liga round format toggle (Padrão / Rei/Rainha)
-  window._selectLigaRoundFormat = function(btn) {
+  // Liga: select exclusive NPS button
+  window._selectLigaNps = function(btn) {
     var val = btn.getAttribute('data-value');
-    document.getElementById('liga-round-format').value = val;
-    var btns = document.querySelectorAll('#liga-round-format-buttons .liga-rf-btn');
+    document.getElementById('liga-new-player-score').value = val;
+    var btns = document.querySelectorAll('#liga-nps-buttons .liga-nps-btn');
     btns.forEach(function(b) {
       if (b.getAttribute('data-value') === val) {
-        b.classList.add('liga-rf-active');
+        b.classList.add('liga-nps-active');
         b.style.border = '2px solid #34d399'; b.style.background = 'rgba(16,185,129,0.15)'; b.style.color = '#34d399';
       } else {
-        b.classList.remove('liga-rf-active');
+        b.classList.remove('liga-nps-active');
         b.style.border = '2px solid rgba(255,255,255,0.18)'; b.style.background = 'rgba(255,255,255,0.06)'; b.style.color = 'var(--text-main)';
       }
     });
-    var desc = document.getElementById('liga-rf-desc');
-    if (desc) desc.textContent = val === 'rei_rainha'
-      ? 'Grupos de 4 com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual acumulada.'
-      : 'Pareamento suíço: jogadores com pontuação similar se enfrentam.';
   };
 
-  // Toggle liga season custom duration
-  window._onLigaSeasonChange = function () {
-    var sel = document.getElementById('liga-season-duration');
-    var c = document.getElementById('liga-custom-duration-container');
-    if (sel && c) c.style.display = sel.value === 'custom' ? '' : 'none';
+  // Liga: select exclusive inactivity button
+  window._selectLigaInact = function(btn) {
+    var val = btn.getAttribute('data-value');
+    document.getElementById('liga-inactivity').value = val;
+    var btns = document.querySelectorAll('#liga-inact-buttons .liga-inact-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === val) {
+        b.classList.add('liga-inact-active');
+        b.style.border = '2px solid #34d399'; b.style.background = 'rgba(16,185,129,0.15)'; b.style.color = '#34d399';
+      } else {
+        b.classList.remove('liga-inact-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)'; b.style.background = 'rgba(255,255,255,0.06)'; b.style.color = 'var(--text-main)';
+      }
+    });
+    var xContainer = document.getElementById('liga-inactivity-x-container');
+    if (xContainer) xContainer.style.display = val === 'remove' ? 'block' : 'none';
   };
 
-  (function() {
-    var sel = document.getElementById('liga-season-duration');
-    if (sel) sel.addEventListener('change', window._onLigaSeasonChange);
-    var inact = document.getElementById('liga-inactivity');
-    if (inact) {
-      inact.addEventListener('change', function() {
-        var c = document.getElementById('liga-inactivity-x-container');
-        if (c) c.style.display = inact.value === 'remove' ? '' : 'none';
-      });
-    }
-  })();
+  // Liga: sync draw date to tournament start date
+  window._syncLigaDrawDateToStart = function() {
+    var drawDate = document.getElementById('liga-first-draw-date').value;
+    var drawTime = document.getElementById('liga-first-draw-time').value;
+    if (drawDate) document.getElementById('tourn-start-date').value = drawDate;
+    if (drawTime) document.getElementById('tourn-start-time').value = drawTime;
+    window._recalcDuration();
+  };
 
   // ─── Category management ──────────────────────────────────────────────────
   window._toggleGenderCat = function(cat) {
@@ -2044,9 +2023,10 @@ function setupCreateTournamentModal() {
     }, 500);
   };
 
+  // _onLigaInactivityChange kept as alias — now handled by _selectLigaInact onclick
   window._onLigaInactivityChange = function () {
-    const val = document.getElementById('liga-inactivity').value;
-    const xContainer = document.getElementById('liga-inactivity-x-container');
+    var val = document.getElementById('liga-inactivity').value;
+    var xContainer = document.getElementById('liga-inactivity-x-container');
     if (xContainer) xContainer.style.display = val === 'remove' ? 'block' : 'none';
   };
 
@@ -2062,14 +2042,10 @@ function setupCreateTournamentModal() {
     if (intervalField) intervalField.disabled = disabled;
   };
 
-  // Wire up inactivity change
+  // Wire up liga event listeners
   setTimeout(() => {
-    const el = document.getElementById('liga-inactivity');
-    if (el) el.addEventListener('change', window._onLigaInactivityChange);
-    // Wire up liga open enrollment checkbox to hide/show registration date
     const openEnrollEl = document.getElementById('liga-open-enrollment');
     if (openEnrollEl) openEnrollEl.addEventListener('change', window._updateRegDateVisibility);
-    // Wire up liga manual draw checkbox
     const ligaManualEl = document.getElementById('liga-manual-draw');
     if (ligaManualEl) ligaManualEl.addEventListener('change', window._onLigaManualDrawChange);
   }, 100);
@@ -2816,34 +2792,28 @@ function setupCreateTournamentModal() {
     var _season = t.ligaSeasonMonths || t.rankingSeasonMonths;
     var _openEnroll = (t.ligaOpenEnrollment !== undefined) ? t.ligaOpenEnrollment : (t.rankingOpenEnrollment !== undefined ? t.rankingOpenEnrollment : true);
 
-    if (_nps) document.getElementById('liga-new-player-score').value = _nps;
-    if (_inact) document.getElementById('liga-inactivity').value = _inact;
+    // NPS: activate correct button
+    if (_nps) {
+      var _npsBtn = document.querySelector('#liga-nps-buttons .liga-nps-btn[data-value="' + _nps + '"]');
+      if (_npsBtn) window._selectLigaNps(_npsBtn);
+    }
+    // Inactivity: activate correct button
+    if (_inact) {
+      var _inactBtn = document.querySelector('#liga-inact-buttons .liga-inact-btn[data-value="' + _inact + '"]');
+      if (_inactBtn) window._selectLigaInact(_inactBtn);
+    }
     if (_inactX) document.getElementById('liga-inactivity-x').value = _inactX;
     document.getElementById('liga-open-enrollment').checked = _openEnroll !== false;
-
-    // Temporada
-    if (_season) {
-      var lsd = document.getElementById('liga-season-duration');
-      if (['3','6','12'].indexOf(String(_season)) !== -1) {
-        lsd.value = String(_season);
-      } else {
-        lsd.value = 'custom';
-        document.getElementById('liga-custom-months').value = _season;
-        document.getElementById('liga-custom-duration-container').style.display = '';
-      }
-    }
 
     // Agendamento (shared field drawFirstDate, drawFirstTime, drawIntervalDays, drawManual)
     if (t.format === 'Liga' && t.drawFirstDate) document.getElementById('liga-first-draw-date').value = t.drawFirstDate;
     if (t.format === 'Liga' && t.drawFirstTime) document.getElementById('liga-first-draw-time').value = t.drawFirstTime;
     if (t.format === 'Liga' && t.drawIntervalDays) document.getElementById('liga-draw-interval').value = t.drawIntervalDays;
     if (t.format === 'Liga') document.getElementById('liga-manual-draw').checked = !!t.drawManual;
-    // Liga round format
-    if (t.ligaRoundFormat && t.ligaRoundFormat !== 'standard') {
+    // Liga round format (derive from drawMode, keep hidden field in sync)
+    if (t.ligaRoundFormat) {
       var _rfEl = document.getElementById('liga-round-format');
       if (_rfEl) _rfEl.value = t.ligaRoundFormat;
-      var _rfBtn = document.querySelector('#liga-round-format-buttons .liga-rf-btn[data-value="' + t.ligaRoundFormat + '"]');
-      if (_rfBtn) window._selectLigaRoundFormat(_rfBtn);
     }
 
     // Elim settings
@@ -3043,13 +3013,6 @@ function setupCreateTournamentModal() {
 
         // Liga (unificado — inclui antigo Ranking)
         if (formatValue === 'liga') {
-          // Temporada
-          var ligaSeasonSel = document.getElementById('liga-season-duration').value;
-          if (ligaSeasonSel !== 'indefinida') {
-            tourData.ligaSeasonMonths = ligaSeasonSel === 'custom'
-              ? (parseInt(document.getElementById('liga-custom-months').value) || 6)
-              : parseInt(ligaSeasonSel);
-          }
           // Configurações
           tourData.ligaNewPlayerScore = document.getElementById('liga-new-player-score').value;
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
@@ -3067,6 +3030,7 @@ function setupCreateTournamentModal() {
           tourData.rankingInactivityX = null;
           tourData.rankingSeasonMonths = null;
           tourData.rankingOpenEnrollment = null;
+          tourData.ligaSeasonMonths = null;
         }
 
         // Eliminatórias

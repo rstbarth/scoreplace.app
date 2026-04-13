@@ -319,6 +319,10 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.70-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Liga simplificada</b> — Configurações da Liga enxutas: removidos duração da temporada e toggle duplicado de formato de rodada. Dropdowns substituídos por botões exclusivos. Data de início sincroniza com agendamento. Datas reposicionadas após agendamento de sorteios.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Repescagem com melhor perdedor</b> — Sem BYEs: melhores perdedores de R1 jogam repescagem, vencedores + melhor perdedor (por desempenho R1) classificam. Barra de progresso conta todas as partidas do torneio. Numeracao: final = ultimo jogo. Lista de espera visivel no card com contagem separada.</p>' +
         '<p><b>Templates no Firestore</b> — Templates de torneio migrados de localStorage para Firestore (sincroniza entre dispositivos). Botao "Carregar Template" no modal de criacao quando ha templates salvos.</p>' +
