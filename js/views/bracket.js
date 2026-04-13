@@ -92,7 +92,6 @@ function renderBracket(container, tournamentId, isInline) {
   const _hasGroupStage = t.groups && t.groups.length > 0;
   const _inElimination = t.currentStage === 'elimination' || (t.matches && t.matches.length > 0 && _hasGroupStage);
   const _showGroupNav = _hasGroupStage && !_inElimination;
-  console.log('[GroupNav] hasGroups:', _hasGroupStage, 'inElim:', _inElimination, 'show:', _showGroupNav, 'isGrupos:', isGrupos, 'currentStage:', t.currentStage, 'groups:', t.groups?.length, 'isInline:', isInline);
   const _groupNavHtml = _showGroupNav ? (() => {
     const colors = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
     return '<div id="group-nav-btns" style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;">' +
@@ -106,7 +105,7 @@ function renderBracket(container, tournamentId, isInline) {
 
   const headerHtml = isInline ? `
     <div class="mb-3">${actionBtnsHtml}</div>
-    ${_groupNavHtml ? '<div style="position:sticky;top:60px;z-index:99;background:var(--bg-darker);padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">' + _groupNavHtml + '</div>' : ''}` : `
+    ${_groupNavHtml ? '<div id="group-nav-fixed" style="position:fixed;top:60px;left:0;right:0;z-index:100;background:var(--bg-darker);padding:8px 2rem;border-bottom:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:10px;max-width:1400px;margin:0 auto;box-sizing:border-box;"><span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap;">Grupos:</span>' + _groupNavHtml + '</div><div style="height:44px;"></div>' : ''}` : `
     <div class="sticky-back-header" style="padding-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
         <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">
