@@ -4,7 +4,7 @@
   top: 60px;
   left: 0;
   right: 0;
-  z-index: 90;
+  z-index: 101;
   background: var(--bg-darker);
   padding: 10px 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -17,10 +17,6 @@
 /* Spacer so content doesn't hide behind fixed header */
 .sticky-back-header + * {
   margin-top: 50px;
-}
-/* Hide fixed back header when hamburger menu is open */
-.topbar.topbar-menu-open ~ #view-container .sticky-back-header {
-  display: none;
 }
 @media (max-width: 767px) {
   .sticky-back-header {
