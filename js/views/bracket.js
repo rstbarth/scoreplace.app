@@ -88,20 +88,23 @@ function renderBracket(container, tournamentId, isInline) {
         </label>
       </div>` : '';
 
-  // Group nav buttons for Fase de Grupos
-  const _groupNavHtml = (isGrupos && t.groups && t.groups.length > 0 && t.currentStage !== 'elimination') ? (() => {
+  // Group nav buttons for Fase de Grupos (also shown inline)
+  const _hasGroupStage = t.groups && t.groups.length > 0 && (isGrupos || (t.format === 'Rei/Rainha da Praia'));
+  const _showGroupNav = _hasGroupStage && t.currentStage !== 'elimination';
+  const _groupNavHtml = _showGroupNav ? (() => {
     const colors = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
-    return '<div style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;">' +
+    return '<div id="group-nav-btns" style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;">' +
       t.groups.map((g, i) => {
         const c = colors[i % colors.length];
         const letter = String.fromCharCode(65 + i);
-        return '<button onclick="var el=document.getElementById(\'group-section-' + i + '\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'start\'});" style="min-width:28px;height:28px;padding:0 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1.5px solid ' + c + ';background:' + c + '20;color:' + c + ';transition:all 0.15s;white-space:nowrap;line-height:1;" onmouseover="this.style.background=\'' + c + '40\'" onmouseout="this.style.background=\'' + c + '20\'">' + letter + '</button>';
+        return '<button onclick="var el=document.getElementById(\'group-section-' + i + '\');if(el){el.scrollIntoView({behavior:\'smooth\',block:\'start\'});}" style="min-width:28px;height:28px;padding:0 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1.5px solid ' + c + ';background:' + c + '20;color:' + c + ';transition:all 0.15s;white-space:nowrap;line-height:1;" onmouseover="this.style.background=\'' + c + '40\'" onmouseout="this.style.background=\'' + c + '20\'">' + letter + '</button>';
       }).join('') +
     '</div>';
   })() : '';
 
   const headerHtml = isInline ? `
-    <div class="mb-3">${actionBtnsHtml}</div>` : `
+    <div class="mb-3">${actionBtnsHtml}</div>
+    ${_groupNavHtml ? '<div style="position:sticky;top:60px;z-index:99;background:var(--bg-darker);padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">' + _groupNavHtml + '</div>' : ''}` : `
     <div class="sticky-back-header" style="padding-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
         <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">
