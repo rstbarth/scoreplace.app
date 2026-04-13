@@ -554,11 +554,16 @@ window.showUnifiedResolutionPanel = function(tId) {
     var _loSub = info.isTeam ? 'Times (' + (info.loP2 * info.teamSize) + ' part.)' : 'Inscritos';
     var _hiSub = info.isTeam ? 'Times (' + (info.hiP2 * info.teamSize) + ' part.)' : 'Inscritos';
 
+    var _excessCount = info.effectiveTeams - info.loP2;
+    var _missingCount = info.hiP2 - info.effectiveTeams;
+    var _unitLabel = info.isTeam ? 'times' : 'inscritos';
+
     gaugeHtml = '<div style="display:flex;align-items:center;justify-content:center;gap:1rem;background:rgba(0,0,0,0.3);padding:1.25rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">' +
         '<div style="text-align:center;min-width:80px;">' +
         '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Inferior</div>' +
         '<div style="font-size:1.8rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</div>' +
         '<div style="font-size:0.7rem;color:#86efac;margin-top:2px;">' + _loSub + '</div>' +
+        '<div style="font-size:0.65rem;color:#f87171;margin-top:4px;font-weight:700;">sobram ' + _excessCount + ' ' + _unitLabel + '</div>' +
         '</div>' +
         '<div style="text-align:center;min-width:100px;padding:0 0.5rem;">' +
         '<div style="font-size:2.5rem;font-weight:950;color:#fbbf24;line-height:1;">' + info.effectiveTeams + '</div>' +
@@ -569,6 +574,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Superior</div>' +
         '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</div>' +
         '<div style="font-size:0.7rem;color:#93c5fd;margin-top:2px;">' + _hiSub + '</div>' +
+        '<div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;font-weight:700;">faltam ' + _missingCount + ' ' + _unitLabel + '</div>' +
         '</div>' +
         '</div>';
 
