@@ -1615,6 +1615,18 @@ function renderTournaments(container, tournamentId = null) {
             </label>
           </div>` : '';
 
+        // Group nav buttons for Fase de Grupos
+        const _grpTour = visible[0];
+        const _isGruposFmt = _grpTour && (_grpTour.format === 'Fase de Grupos + Eliminatórias');
+        const _hasGrpNav = _isGruposFmt && _grpTour.groups && _grpTour.groups.length > 0 && _grpTour.currentStage !== 'elimination';
+        const _grpColors = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
+        const _grpNavHtml = _hasGrpNav ? '<div style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;">' +
+          _grpTour.groups.map(function(g, i) {
+            var c = _grpColors[i % _grpColors.length];
+            var letter = String.fromCharCode(65 + i);
+            return '<button onclick="var el=document.getElementById(\'group-section-' + i + '\');if(el){el.scrollIntoView({behavior:\'smooth\',block:\'start\'});}" style="min-width:28px;height:28px;padding:0 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1.5px solid ' + c + ';background:' + c + '20;color:' + c + ';transition:all 0.15s;white-space:nowrap;line-height:1;" onmouseover="this.style.background=\'' + c + '40\'" onmouseout="this.style.background=\'' + c + '20\'">' + letter + '</button>';
+          }).join('') + '</div>' : '';
+
         headerHtml = `
         <div class="sticky-back-header" style="padding-bottom:8px;">
           <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
@@ -1622,7 +1634,7 @@ function renderTournaments(container, tournamentId = null) {
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                Voltar
             </button>
-            <div style="flex:1;"></div>
+            ${_grpNavHtml ? '<div style="flex:1;min-width:0;overflow-x:auto;">' + _grpNavHtml + '</div>' : '<div style="flex:1;"></div>'}
             ${_myToggleHtml}
           </div>
         </div>

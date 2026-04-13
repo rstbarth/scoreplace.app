@@ -104,8 +104,7 @@ function renderBracket(container, tournamentId, isInline) {
   })() : '';
 
   const headerHtml = isInline ? `
-    <div class="mb-3">${actionBtnsHtml}</div>
-    ${_groupNavHtml ? '<div id="group-nav-fixed" style="position:fixed;top:60px;left:0;right:0;z-index:100;background:var(--bg-darker);padding:8px 2rem;border-bottom:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:10px;max-width:1400px;margin:0 auto;box-sizing:border-box;"><span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap;">Grupos:</span>' + _groupNavHtml + '</div><div style="height:44px;"></div>' : ''}` : `
+    <div class="mb-3">${actionBtnsHtml}</div>` : `
     <div class="sticky-back-header" style="padding-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
         <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">
