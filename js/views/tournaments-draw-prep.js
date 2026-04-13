@@ -2319,38 +2319,14 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const activeTeams = info.count;
         const matchesCount = (info.count - byes) / 2;
 
-        // Build team list with member names for display
-        const _byePartsArr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-        const _byeTeamList = [];
-        const _byeIndividuals = [];
-        _byePartsArr.forEach(function(p) {
-            const pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
-            if (pName.includes('/')) {
-                const members = pName.split('/').map(function(m) { return m.trim(); }).filter(function(m) { return m.length > 0; });
-                _byeTeamList.push({ name: pName, members: members });
-            } else if (pName) {
-                _byeIndividuals.push(pName);
-            }
-        });
-        // Group individuals into teams of teamSize
-        if (isTeam && _byeIndividuals.length > 0) {
-            for (var _bi = 0; _bi < _byeIndividuals.length; _bi += teamSize) {
-                var _chunk = _byeIndividuals.slice(_bi, _bi + teamSize);
-                if (_chunk.length === teamSize) {
-                    _byeTeamList.push({ name: _chunk.join(' / '), members: _chunk });
-                }
-            }
-        } else {
-            _byeIndividuals.forEach(function(n) { _byeTeamList.push({ name: n, members: [n] }); });
-        }
-        const _safeH = window._safeHtml || function(s) { return s; };
-        const _byeTeamCard = function(idx) {
-            const team = _byeTeamList[idx];
-            if (!team) return isTeam ? 'Time ' + (idx + 1) : 'Participante ' + (idx + 1);
+        // Anonymous labels: "Time X (Jogador, Jogador)" for teams, "Participante X" for individuals
+        const _byeLabel = function(num) {
             if (isTeam) {
-                return '<div><span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Time ' + (idx + 1) + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + _safeH(team.members.join(', ')) + ')</span></div>';
+                var members = [];
+                for (var _m = 0; _m < teamSize; _m++) members.push('Jogador');
+                return '<div><span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Time ' + num + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + members.join(', ') + ')</span></div>';
             }
-            return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _safeH(team.name) + '</span>';
+            return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">Participante ' + num + '</span>';
         };
 
         simulationHtml = `
@@ -2377,26 +2353,23 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Esqueleto de Confrontos (R1)</h4>
                 ${Array.from({ length: byes }).map((_, i) => `
                     <div style="background:rgba(255,255,255,0.02);padding:12px 15px;border-radius:12px;margin-bottom:8px;border-left:4px solid #4ade80;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <div style="flex:1;min-width:0;">${_byeTeamCard(i)}</div>
+                        <div style="flex:1;min-width:0;">${_byeLabel(i + 1)}</div>
                         <span style="font-size:0.65rem;font-weight:800;color:#4ade80;text-transform:uppercase;background:rgba(34,197,94,0.2);padding:2px 8px;border-radius:6px;flex-shrink:0;">Avança direto</span>
                     </div>
                 `).join('')}
-                ${Array.from({ length: matchesCount }).map((_, i) => {
-                    const idx1 = byes + (i * 2);
-                    const idx2 = byes + (i * 2) + 1;
-                    return `
+                ${Array.from({ length: matchesCount }).map((_, i) => `
                     <div style="background:rgba(255,255,255,0.02);padding:12px 15px;border-radius:12px;margin-bottom:8px;border-left:4px solid #60a5fa;">
                         <div style="display:flex;justify-content:space-between;color:#94a3b8;font-size:0.75rem;margin-bottom:6px;">
                             <span>Partida #${i + 1}</span>
                             <span>Confronto</span>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:6px;">
-                            <div>${_byeTeamCard(idx1)}</div>
+                            <div>${_byeLabel(byes + (i * 2) + 1)}</div>
                             <div style="font-size:0.65rem;color:#64748b;font-weight:700;text-align:center;">VS</div>
-                            <div>${_byeTeamCard(idx2)}</div>
+                            <div>${_byeLabel(byes + (i * 2) + 2)}</div>
                         </div>
-                    </div>`;
-                }).join('')}
+                    </div>
+                `).join('')}
             </div>
         `;
     } else if (option === 'playin') {
