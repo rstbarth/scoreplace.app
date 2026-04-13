@@ -441,6 +441,8 @@ function renderDashboard(container) {
 
             ${(() => {
               if (!sorteioRealizado || isFinished) return '';
+              // Liga: não mostrar tempo decorrido (usa countdowns de próximo sorteio / fim de temporada)
+              if (window._isLigaFormat && window._isLigaFormat(t)) return '';
               // Determine start time: startDate or first match/round creation
               var _startTs = 0;
               if (t.startDate) {
