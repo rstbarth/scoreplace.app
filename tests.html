@@ -69,7 +69,13 @@ window.AppStore = window.AppStore || {
   getMyOrganized: function() { return []; },
   getMyParticipations: function() { return []; }
 };
-window.FirestoreDB = window.FirestoreDB || { db: null, saveTournament: function() { return Promise.resolve(); } };
+window.FirestoreDB = window.FirestoreDB || {
+  db: null,
+  saveTournament: function() { return Promise.resolve(); },
+  saveTemplate: function() { return Promise.reject('no firestore in test'); },
+  getTemplates: function() { return Promise.reject('no firestore in test'); },
+  deleteTemplate: function() { return Promise.reject('no firestore in test'); }
+};
 if (typeof showNotification === 'undefined') window.showNotification = function() {};
 if (typeof showAlertDialog === 'undefined') window.showAlertDialog = function() {};
 if (typeof showConfirmDialog === 'undefined') window.showConfirmDialog = function() {};
@@ -277,7 +283,7 @@ describe('_getTournamentProgress', function() {
     expect(prog.pct).toBe(100);
   });
 
-  it('exclui partidas TBD', function() {
+  it('conta partidas TBD como pendentes no total', function() {
     var t = {
       matches: [
         { p1: 'A', p2: 'TBD' },
@@ -285,8 +291,10 @@ describe('_getTournamentProgress', function() {
       ]
     };
     var prog = window._getTournamentProgress(t);
-    expect(prog.total).toBe(1);
+    // TBD matches are real future matches — counted in total but not completed
+    expect(prog.total).toBe(2);
     expect(prog.completed).toBe(1);
+    expect(prog.pct).toBe(50);
   });
 
   it('funciona com rounds array (Liga/Suico)', function() {
@@ -892,15 +900,17 @@ describe('Tournament Templates — CRUD', function() {
   it('setup: mock user for template tests', function() {
     _origUser = window.AppStore ? window.AppStore.currentUser : null;
     if (!window.AppStore) window.AppStore = {};
-    window.AppStore.currentUser = { email: 'test-templates@scoreplace.test', plan: 'free' };
+    window.AppStore.currentUser = { email: 'test-templates@scoreplace.test', uid: 'test-uid-tpl', plan: 'free' };
     _testKey = 'scoreplace_templates_test-templates@scoreplace.test';
     localStorage.removeItem(_testKey);
+    window._templateCache = [];
     expect(true).toBe(true);
   });
 
-  it('_saveTemplate saves a template', function() {
-    var ok = window._saveTemplate({ name: 'Test Template', sport: 'Beach Tennis', format: 'Eliminatorias Simples' });
-    expect(ok).toBe(true);
+  it('_saveTemplate saves a template (async)', async function() {
+    var ok = await window._saveTemplate({ name: 'Test Template', sport: 'Beach Tennis', format: 'Eliminatorias Simples' });
+    // Returns 'ok' or 'error' (Firestore fails in test env, fallback to localStorage returns 'ok')
+    expect(ok).toBe('ok');
   });
 
   it('_getTemplates returns saved template', function() {
@@ -909,17 +919,20 @@ describe('Tournament Templates — CRUD', function() {
     expect(templates[0].name).toBe('Test Template');
   });
 
-  it('_deleteTemplate removes template', function() {
-    window._deleteTemplate(0);
+  it('_deleteTemplate removes template by _id', async function() {
+    var templates = window._getTemplates();
+    var id = templates.length > 0 ? templates[0]._id : null;
+    if (id) await window._deleteTemplate(id);
     expect(window._getTemplates().length).toBe(0);
   });
 
-  it('Free plan blocks 11th template', function() {
-    for (var i = 0; i < 10; i++) window._saveTemplate({ name: 'T' + i });
-    var ok = window._saveTemplate({ name: 'T10 should fail' });
-    expect(ok).toBe(false);
+  it('Free plan blocks 11th template', async function() {
+    for (var i = 0; i < 10; i++) await window._saveTemplate({ name: 'T' + i });
+    var ok = await window._saveTemplate({ name: 'T10 should fail' });
+    expect(ok).toBe('limit');
     // cleanup
     localStorage.removeItem(_testKey);
+    window._templateCache = [];
     window.AppStore.currentUser = _origUser;
   });
 });
@@ -1392,8 +1405,8 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
   });
 });
 
-// ─── Run all tests ───────────────────────────────────────────────────────────
-(function runTests() {
+// ─── Run all tests (supports async test functions) ──────────────────────────
+(async function runTests() {
   var results = document.getElementById('results');
   var summary = document.getElementById('summary');
   var loadStatus = document.getElementById('load-status');
@@ -1412,11 +1425,13 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
   var passed = 0, failed = 0;
   var suites = {};
 
-  _tests.forEach(function(test) {
+  for (var ti = 0; ti < _tests.length; ti++) {
+    var test = _tests[ti];
     if (!suites[test.suite]) suites[test.suite] = [];
     var result = { name: test.name, pass: true, error: null };
     try {
-      test.fn();
+      var ret = test.fn();
+      if (ret && typeof ret.then === 'function') await ret;
       passed++;
     } catch(e) {
       result.pass = false;
@@ -1424,7 +1439,7 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
       failed++;
     }
     suites[test.suite].push(result);
-  });
+  }
 
   // Render results
   Object.keys(suites).forEach(function(suiteName) {
