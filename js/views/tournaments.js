@@ -571,12 +571,17 @@ function renderTournaments(container, tournamentId = null) {
         if (t.participants) {
             const arr = typeof window._getCompetitors === 'function' ? window._getCompetitors(t) : (Array.isArray(t.participants) ? t.participants : Object.values(t.participants));
             arr.forEach(p => {
-                const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
-                if (pStr.includes('/')) {
+                if (typeof p === 'object' && p !== null && Array.isArray(p.participants)) {
                     teamCount++;
-                    individualCount += pStr.split('/').filter(n => n.trim().length > 0).length;
+                    individualCount += p.participants.length;
                 } else {
-                    individualCount++;
+                    const pStr = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+                    if (pStr.includes('/')) {
+                        teamCount++;
+                        individualCount += pStr.split('/').filter(n => n.trim().length > 0).length;
+                    } else {
+                        individualCount++;
+                    }
                 }
             });
         }

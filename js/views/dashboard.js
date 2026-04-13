@@ -471,7 +471,7 @@ function renderDashboard(container) {
                           </div>
                           <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Inscritos</span>
                        </div>
-                       ${(teamCount > 0 && t.enrollmentMode !== 'individual') ? `
+                       ${teamCount > 0 ? `
                        <div class="stat-box" style="flex-direction: column;">
                           <div style="display: flex; align-items: center; gap: 4px;">
                              <span style="font-size: 1.1rem;">👥</span>
