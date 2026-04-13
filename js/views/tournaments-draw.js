@@ -161,9 +161,10 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Verificação de número ímpar (formatos não-eliminatórios) ──────
+    // ── Verificação de número ímpar (formatos não-eliminatórios, exceto Grupos) ──────
     const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
-    if (!isElim && !t.oddResolution && typeof window.checkOddEntries === 'function') {
+    const isGruposFmt = t.format === 'Fase de Grupos + Eliminatórias' || (t.format || '').indexOf('Grupo') !== -1;
+    if (!isElim && !isGruposFmt && !t.oddResolution && typeof window.checkOddEntries === 'function') {
         const oddInfo = window.checkOddEntries(t);
         if (oddInfo.isOdd) {
             window.showOddEntriesPanel(tId);
@@ -171,8 +172,8 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Verificação de potência de 2 para eliminatórias ──────────────
-    if (isElim && !t.p2Resolution) {
+    // ── Verificação de potência de 2 para eliminatórias (não Grupos) ──────────────
+    if (isElim && !isGruposFmt && !t.p2Resolution) {
         const info = window.checkPowerOf2(t);
         if (info.count < 2) {
             const _label = (info.teamSize > 1) ? 'times' : 'participantes';
