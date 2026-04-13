@@ -781,9 +781,9 @@ function renderTournaments(container, tournamentId = null) {
                       <span style="font-size:0.85rem;font-weight:700;color:#4ade80;">Torneio em andamento</span>
                   </div>` : '';
 
-                // Contagem regressiva de sorteio automático (Ranking / Suíço com auto-draw)
+                // Contagem regressiva de sorteio automático (Suíço com auto-draw; Liga usa o countdown com ticker na seção de eventos)
                 let autoDrawCountdownHtml = '';
-                if (isAutoDrawFormat && !t.drawManual && t.drawFirstDate) {
+                if (isAutoDrawFormat && !isLigaFormat && !t.drawManual && t.drawFirstDate) {
                     const _nextDraw = window._calcNextDrawDate(t);
                     if (_nextDraw) {
                         const _now = new Date();
@@ -1033,20 +1033,46 @@ function renderTournaments(container, tournamentId = null) {
                 var _sd = new Date(t.startDate).getTime();
                 if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: _t('event.tournamentStart'), icon: '🏁', color: '#10b981' });
               }
-              if (t.endDate) {
+              // Liga: next draw countdown
+              var _isLiga = window._isLigaFormat && window._isLigaFormat(t);
+              if (_isLiga && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
+                var _nextDraw = window._calcNextDrawDate(t);
+                if (_nextDraw) {
+                  var _ndTs = _nextDraw.getTime();
+                  if (!isNaN(_ndTs) && _ndTs > _now) _events.push({ ts: _ndTs, label: 'Próximo sorteio', icon: '🎲', color: '#fb923c' });
+                }
+              }
+              // Liga: season end countdown (startDate + ligaSeasonMonths)
+              if (_isLiga) {
+                var _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
+                if (_sm && t.startDate) {
+                  var _ssd = new Date(t.startDate);
+                  if (!isNaN(_ssd.getTime())) {
+                    var _seasonEnd = new Date(_ssd);
+                    _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_sm));
+                    var _seTs = _seasonEnd.getTime();
+                    if (!isNaN(_seTs) && _seTs > _now) _events.push({ ts: _seTs, label: 'Fim da temporada', icon: '🏁', color: '#8b5cf6' });
+                  }
+                }
+              }
+              if (!_isLiga && t.endDate) {
                 var _ed = new Date(t.endDate).getTime();
                 if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: _t('event.tournamentEnd'), icon: '🏆', color: '#8b5cf6' });
               }
               if (_events.length === 0) return '';
               _events.sort(function(a,b) { return a.ts - b.ts; });
-              var _next = _events[0];
-              var _countdownText = window._formatCountdown ? window._formatCountdown(_next.ts - _now) : '';
-              var _rgb = _next.color === '#f59e0b' ? '245,158,11' : _next.color === '#10b981' ? '16,185,129' : '139,92,246';
-              return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
-                '<span style="font-size:1.3rem;">' + _next.icon + '</span>' +
-                '<span style="font-size:0.85rem;font-weight:700;color:' + _next.color + ';">' + _next.label + '</span>' +
-                '<span data-countdown-target="' + _next.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _next.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
-              '</div>';
+              var _colorMap = { '#f59e0b': '245,158,11', '#10b981': '16,185,129', '#8b5cf6': '139,92,246', '#fb923c': '251,146,60' };
+              var _html = '';
+              _events.forEach(function(_ev) {
+                var _countdownText = window._formatCountdown ? window._formatCountdown(_ev.ts - _now) : '';
+                var _rgb = _colorMap[_ev.color] || '139,92,246';
+                _html += '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
+                  '<span style="font-size:1.3rem;">' + _ev.icon + '</span>' +
+                  '<span style="font-size:0.85rem;font-weight:700;color:' + _ev.color + ';">' + _ev.label + '</span>' +
+                  '<span data-countdown-target="' + _ev.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ev.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
+                '</div>';
+              });
+              return _html;
             })()}
 
             <!-- Linha separadora -->
