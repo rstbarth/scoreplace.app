@@ -528,43 +528,62 @@ window.generateDrawFunction = function (tId) {
             }
         }
 
-        // BYE handling por categoria
+        // BYE handling por categoria — interleave for proper bracket distribution
         if (t.p2Resolution === 'bye') {
             var catLen = catParticipants.length;
             var catTarget = 1;
             while (catTarget < catLen) catTarget *= 2;
             var catByes = catTarget - catLen;
-            for (var bi = 0; bi < catByes; bi++) {
-                catParticipants.push('BYE (Avança Direto)');
-            }
-            // VIP priority for BYEs
             if (catByes > 0) {
+                // Split: players for real matches vs players who get BYEs
+                // realMatches = catTarget/2 - catByes = matches with 2 real players
+                // byeMatches = catByes = matches with 1 real + 1 BYE
+                var _realMatchCount = catTarget / 2 - catByes;
+                var _realMatchPlayers = _realMatchCount * 2; // these play each other
+                var _byePlayers = catByes; // these get auto-advance
+
+                var _rmGroup = catParticipants.slice(0, _realMatchPlayers);
+                var _byGroup = catParticipants.slice(_realMatchPlayers);
+
+                // VIP priority: move VIPs to BYE group so they auto-advance
                 var _vips = t.vips || {};
                 var _gn = function(p) { return typeof p === 'string' ? p : (p.displayName || p.name || ''); };
-                var byeIdx = [];
-                catParticipants.forEach(function(p, i) { if (_gn(p) === 'BYE (Avança Direto)') byeIdx.push(i); });
-                var vipIdx = [];
-                catParticipants.forEach(function(p, i) {
-                    var nm = _gn(p);
-                    if (nm !== 'BYE (Avança Direto)' && _vips[nm]) vipIdx.push(i);
-                });
-                var vi = 0;
-                for (var bii = 0; bii < byeIdx.length && vi < vipIdx.length; bii++) {
-                    var byePos = byeIdx[bii];
-                    if (byePos % 2 === 1) {
-                        var pairPos = byePos - 1;
-                        var curP1 = _gn(catParticipants[pairPos]);
-                        if (!_vips[curP1]) {
-                            var viPos = vipIdx[vi];
-                            if (viPos !== pairPos) {
-                                var swp = catParticipants[pairPos];
-                                catParticipants[pairPos] = catParticipants[viPos];
-                                catParticipants[viPos] = swp;
+                if (Object.keys(_vips).length > 0) {
+                    // Find VIPs in real match group and swap with non-VIPs in bye group
+                    for (var _vi2 = 0; _vi2 < _rmGroup.length; _vi2++) {
+                        var _vn = _gn(_rmGroup[_vi2]);
+                        if (_vips[_vn]) {
+                            // Find a non-VIP in bye group to swap with
+                            for (var _bj = 0; _bj < _byGroup.length; _bj++) {
+                                if (!_vips[_gn(_byGroup[_bj])]) {
+                                    var _swpTmp = _rmGroup[_vi2];
+                                    _rmGroup[_vi2] = _byGroup[_bj];
+                                    _byGroup[_bj] = _swpTmp;
+                                    break;
+                                }
                             }
-                            vi++;
                         }
                     }
                 }
+
+                // Build interleaved array: alternate [real pair, bye pair]
+                // This ensures R2 cross-seeding: each R2 match gets 1 R1 winner + 1 BYE winner
+                var _newArr = [];
+                var _rIdx = 0; // index into real match players (step 2)
+                var _bIdx = 0; // index into bye players
+                while (_rIdx < _rmGroup.length || _bIdx < _byGroup.length) {
+                    // Add a real match pair
+                    if (_rIdx < _rmGroup.length) {
+                        _newArr.push(_rmGroup[_rIdx++]);
+                        _newArr.push(_rmGroup[_rIdx++]);
+                    }
+                    // Add a BYE match pair
+                    if (_bIdx < _byGroup.length) {
+                        _newArr.push(_byGroup[_bIdx++]);
+                        _newArr.push('BYE (Avança Direto)');
+                    }
+                }
+                catParticipants = _newArr;
             }
         }
 

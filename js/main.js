@@ -277,6 +277,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>BYE brackets consistentes</b> — Chaves com BYE agora distribuem os byes intercalados com partidas reais, garantindo que a segunda rodada cruze vencedores reais com classificados por BYE. Corrige brackets onde BYE jogava contra BYE.</p>' +
+        '<p><b>Toasts sem duplicata</b> — Inscrição e desinscrição não geram mais notificações duplicadas.</p>' +
+        '<p><b>Divulgação imediata</b> — Sorteio sempre com divulgação pública imediata, sem diálogo de visibilidade.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.32-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>3º lugar com número do jogo</b> — Card da disputa de 3º lugar agora exibe o número do jogo em azul (ex: "Jogo 15") como todas as outras partidas, em vez de repetir "3º LUGAR" no cabeçalho do card.</p>' +
         '<p><b>Headers sticky</b> — Botão Voltar + "Só meus jogos" fixos no topo do chaveamento. Voltar + filtros de check-in fixos nos Inscritos. Voltar/Confirmar fixos nos painéis de simulação.</p>' +
