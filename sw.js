@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.8.71';
+var CACHE_NAME = 'scoreplace-v0.8.72';
 var STATIC_ASSETS = [
   '/',
   '/index.html',

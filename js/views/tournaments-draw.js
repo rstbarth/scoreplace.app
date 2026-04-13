@@ -324,10 +324,50 @@ window.generateDrawFunction = function (tId) {
         let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
         const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || '');
 
+        // --- Team formation (when teamSize > 1) ---
+        let _grpTeamSize = parseInt(t.teamSize) || 1;
+        const _grpEnrMode = t.enrollmentMode || t.enrollment || 'individual';
+        if ((_grpEnrMode === 'time' || _grpEnrMode === 'misto') && _grpTeamSize < 2) {
+            _grpTeamSize = 2;
+        }
+        if (_grpTeamSize > 1) {
+            let _grpIndividuals = [];
+            let _grpPreFormed = [];
+            participants.forEach(p => {
+                const name = getName(p);
+                if (name.includes(' / ')) {
+                    _grpPreFormed.push(name);
+                } else {
+                    _grpIndividuals.push(name);
+                }
+            });
+            // Shuffle individuals before forming teams
+            for (let i = _grpIndividuals.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [_grpIndividuals[i], _grpIndividuals[j]] = [_grpIndividuals[j], _grpIndividuals[i]];
+            }
+            let _grpNewTeams = [];
+            while (_grpIndividuals.length >= _grpTeamSize) {
+                const group = _grpIndividuals.splice(0, _grpTeamSize);
+                _grpNewTeams.push(group.join(' / '));
+            }
+            if (!t.teamOrigins) t.teamOrigins = {};
+            _grpNewTeams.forEach(tn => { t.teamOrigins[tn] = 'sorteada'; });
+            // Replace participants with formed teams
+            participants = [..._grpPreFormed, ..._grpNewTeams, ..._grpIndividuals];
+            t.participants = participants;
+            if (_grpNewTeams.length > 0) {
+                window.AppStore.logAction(tId, `Sorteio de times: ${_grpNewTeams.length} time(s) de ${_grpTeamSize} formado(s)`);
+            }
+        }
+
+        // Convert participants to name strings
+        let _grpNames = participants.map(p => getName(p));
+
         // Shuffle
-        for (let i = participants.length - 1; i > 0; i--) {
+        for (let i = _grpNames.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [participants[i], participants[j]] = [participants[j], participants[i]];
+            [_grpNames[i], _grpNames[j]] = [_grpNames[j], _grpNames[i]];
         }
 
         const numGroups = t.gruposCount || 4;
@@ -341,8 +381,8 @@ window.generateDrawFunction = function (tId) {
             rounds: []
         }));
 
-        participants.forEach((p, idx) => {
-            groups[idx % numGroups].participants.push(getName(p));
+        _grpNames.forEach((name, idx) => {
+            groups[idx % numGroups].participants.push(name);
         });
 
         // Generate round-robin matches within each group

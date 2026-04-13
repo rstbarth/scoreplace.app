@@ -319,6 +319,11 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.72-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fase de Grupos com duplas</b> — Formato Grupos + Eliminatórias agora forma duplas/times antes de distribuir nos grupos. Jogadores individuais são sorteados em times automaticamente.</p>' +
+        '<p><b>Botão Voltar corrigido</b> — Botão Voltar no detalhe do torneio agora usa history.back() para retornar à tela anterior (dashboard, explorar, etc.) em vez de sempre ir ao dashboard.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.71-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Liga: folga justa e toggle ativo</b> — Jogadores que não completam grupo recebem folga com pontuação média (sem BYE/extra). Sistema distribui folgas de forma igualitária. Toggle "Participando dos sorteios" permite que o inscrito se desative temporariamente — recebe pontuação média e não entra no próximo sorteio. Histórico de folgas (sitOutHistory) garante rotação justa entre todos.</p>' +
         '</div>' +

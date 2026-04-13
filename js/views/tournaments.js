@@ -1179,7 +1179,7 @@ function renderTournaments(container, tournamentId = null) {
 
     let headerHtml = `
     <div class="sticky-back-header">
-      <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;" onclick="window.location.hash='#dashboard'">
+      <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;" onclick="event.stopPropagation(); if(history.length>1){history.back();}else{window.location.hash='#dashboard';}">
          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
          Voltar
       </button>
@@ -1657,7 +1657,7 @@ function renderTournaments(container, tournamentId = null) {
         headerHtml = `
         <div class="sticky-back-header" style="padding-bottom:8px;">
           <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
-            <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;flex-shrink:0;" onclick="window.location.hash='#dashboard'">
+            <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;flex-shrink:0;" onclick="event.stopPropagation(); if(history.length>1){history.back();}else{window.location.hash='#dashboard';}">
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                Voltar
             </button>
