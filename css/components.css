@@ -1,25 +1,34 @@
-/* ==== STICKY BACK HEADER ==== */
+/* ==== FIXED BACK HEADER ==== */
 .sticky-back-header {
-  position: sticky;
+  position: fixed;
   top: 60px;
+  left: 0;
+  right: 0;
   z-index: 90;
   background: var(--bg-darker);
-  padding: 10px 0;
-  margin: -2rem -2rem 1rem -2rem;
   padding: 10px 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+/* Spacer so content doesn't hide behind fixed header */
+.sticky-back-header + * {
+  margin-top: 50px;
+}
+/* Hide fixed back header when hamburger menu is open */
+.topbar.topbar-menu-open ~ #view-container .sticky-back-header {
+  display: none;
 }
 @media (max-width: 767px) {
   .sticky-back-header {
-    margin: -1rem -1rem 1rem -1rem;
     padding: 10px 1rem;
   }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
   .sticky-back-header {
-    margin: -1.5rem -1.5rem 1rem -1.5rem;
     padding: 10px 1.5rem;
   }
 }

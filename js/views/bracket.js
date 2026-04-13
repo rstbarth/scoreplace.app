@@ -1130,24 +1130,30 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
-      ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}${_p1Bye ? _byeBadge : ''}</div>
-      ${showInputs
-        ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
-            style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
-            oninput="window._highlightWinner('${_esc(m.id)}')">`
-        : scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner)
-      }
+      ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+        ${_p1Bye ? _byeBadge : ''}
+        ${showInputs
+          ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
+              style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+              oninput="window._highlightWinner('${_esc(m.id)}')">`
+          : scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner)
+        }
+      </div>
     </div>`;
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
-      ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}${_p2Bye ? _byeBadge : ''}</div>
-      ${showInputs
-        ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
-            style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;flex-shrink:0;"
-            oninput="window._highlightWinner('${_esc(m.id)}')">`
-        : scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner)
-      }
+      ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+        ${_p2Bye ? _byeBadge : ''}
+        ${showInputs
+          ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
+              style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+              oninput="window._highlightWinner('${_esc(m.id)}')">`
+          : scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner)
+        }
+      </div>
     </div>`;
 
   const vsRow = `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:3px 0;">VS</div>`;
