@@ -462,6 +462,17 @@ window.showUnifiedResolutionPanel = function(tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
 
+    // Groups format: redirect to dedicated groups config panel
+    var _isGruposFmt = t.format === 'Fase de Grupos + Eliminatórias' || t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
+    if (_isGruposFmt && typeof window._showGroupsConfigPanel === 'function') {
+        var _diagG = window._diagnoseAll(t);
+        // Only fall through to standard panel for incomplete teams/remainder
+        if (_diagG.incompleteTeams.length === 0 && _diagG.remainder === 0) {
+            window._showGroupsConfigPanel(tId);
+            return;
+        }
+    }
+
     // Suspend enrollment while decision panel is open
     if (t.status !== 'closed') {
         t._previousStatus = t.status; // preserve original status for cancel
