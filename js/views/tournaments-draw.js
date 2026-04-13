@@ -214,10 +214,9 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Pergunta de divulgação do sorteio ─────────────────────────────
+    // Divulgação sempre imediata a todos
     if (!t.drawVisibility) {
-        window._showDrawVisibilityDialog(tId);
-        return;
+        t.drawVisibility = 'public';
     }
 
     // ── Liga / Suíço / Ranking: generate first round standings ──────────────────
