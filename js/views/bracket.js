@@ -89,8 +89,10 @@ function renderBracket(container, tournamentId, isInline) {
       </div>` : '';
 
   // Group nav buttons for Fase de Grupos (also shown inline)
-  const _hasGroupStage = t.groups && t.groups.length > 0 && (isGrupos || (t.format === 'Rei/Rainha da Praia'));
-  const _showGroupNav = _hasGroupStage && t.currentStage !== 'elimination';
+  const _hasGroupStage = t.groups && t.groups.length > 0;
+  const _inElimination = t.currentStage === 'elimination' || (t.matches && t.matches.length > 0 && _hasGroupStage);
+  const _showGroupNav = _hasGroupStage && !_inElimination;
+  console.log('[GroupNav] hasGroups:', _hasGroupStage, 'inElim:', _inElimination, 'show:', _showGroupNav, 'isGrupos:', isGrupos, 'currentStage:', t.currentStage, 'groups:', t.groups?.length, 'isInline:', isInline);
   const _groupNavHtml = _showGroupNav ? (() => {
     const colors = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
     return '<div id="group-nav-btns" style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;">' +
