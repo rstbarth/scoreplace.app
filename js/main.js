@@ -319,8 +319,8 @@
         '<p><b>Add Bot corrigido</b> — Bots agora persistem no Firestore (antes sync() ignorava participantes). Bots criados como objetos completos com nome, email e uid.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.76-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Contagens regressivas da Liga</b> — Detalhe do torneio Liga agora exibe até 3 countdowns ao vivo com ticker: início do torneio (quando ainda não começou), próximo sorteio (🎲 com data/hora calculada pelo agendamento), e fim da temporada (quando ligaSeasonMonths definido). Todos com atualização em tempo real a cada segundo.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.78-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Countdown excludente da Liga</b> — Liga exibe apenas um countdown por vez, por prioridade: 🏁 Início da Liga (antes de começar) → 🎲 Próximo sorteio (quando há sorteio agendado dentro da temporada) → 🏁 Fim da temporada (quando não há mais sorteios). Tempo decorrido ("Em andamento") não aparece em Ligas. Aplicado tanto no dashboard quanto no detalhe do torneio.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.75-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

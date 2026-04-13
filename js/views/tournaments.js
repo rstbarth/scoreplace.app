@@ -1024,55 +1024,86 @@ function renderTournaments(container, tournamentId = null) {
             ${(() => {
               if (isFinished) return '';
               var _now = Date.now();
+              var _isLiga = window._isLigaFormat && window._isLigaFormat(t);
+
+              // Liga: um único countdown excludente (início → próximo sorteio → fim da temporada)
+              if (_isLiga) {
+                var _ligaEvent = null;
+                // 1. Torneio ainda não começou? → countdown para início
+                if (t.startDate && !sorteioRealizado) {
+                  var _sd = new Date(t.startDate).getTime();
+                  if (!isNaN(_sd) && _sd > _now) _ligaEvent = { ts: _sd, label: 'Início da Liga', icon: '🏁', color: '#10b981' };
+                }
+                // 2. Já começou e tem próximo sorteio agendado? → countdown para próximo sorteio
+                if (!_ligaEvent && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
+                  var _nextDraw = window._calcNextDrawDate(t);
+                  if (_nextDraw) {
+                    var _ndTs = _nextDraw.getTime();
+                    // Só mostra se o próximo sorteio está dentro do prazo da temporada (se houver)
+                    var _seasonEndTs = null;
+                    var _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
+                    if (_sm && t.startDate) {
+                      var _ssd = new Date(t.startDate);
+                      if (!isNaN(_ssd.getTime())) {
+                        var _se = new Date(_ssd);
+                        _se.setMonth(_se.getMonth() + parseInt(_sm));
+                        _seasonEndTs = _se.getTime();
+                      }
+                    }
+                    if (!isNaN(_ndTs) && _ndTs > _now && (!_seasonEndTs || _ndTs <= _seasonEndTs)) {
+                      _ligaEvent = { ts: _ndTs, label: 'Próximo sorteio', icon: '🎲', color: '#fb923c' };
+                    }
+                  }
+                }
+                // 3. Sem próximo sorteio dentro da temporada? → countdown para fim da temporada
+                if (!_ligaEvent) {
+                  var _sm2 = t.ligaSeasonMonths || t.rankingSeasonMonths;
+                  if (_sm2 && t.startDate) {
+                    var _ssd2 = new Date(t.startDate);
+                    if (!isNaN(_ssd2.getTime())) {
+                      var _seasonEnd = new Date(_ssd2);
+                      _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_sm2));
+                      var _seTs = _seasonEnd.getTime();
+                      if (!isNaN(_seTs) && _seTs > _now) _ligaEvent = { ts: _seTs, label: 'Fim da temporada', icon: '🏁', color: '#8b5cf6' };
+                    }
+                  }
+                }
+                if (!_ligaEvent) return '';
+                var _countdownText = window._formatCountdown ? window._formatCountdown(_ligaEvent.ts - _now) : '';
+                var _colorMap = { '#10b981': '16,185,129', '#fb923c': '251,146,60', '#8b5cf6': '139,92,246' };
+                var _rgb = _colorMap[_ligaEvent.color] || '139,92,246';
+                return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
+                  '<span style="font-size:1.3rem;">' + _ligaEvent.icon + '</span>' +
+                  '<span style="font-size:0.85rem;font-weight:700;color:' + _ligaEvent.color + ';">' + _ligaEvent.label + '</span>' +
+                  '<span data-countdown-target="' + _ligaEvent.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ligaEvent.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
+                '</div>';
+              }
+
+              // Não-Liga: múltiplos countdowns (inscrições, início, fim)
               var _events = [];
               if (isAberto && t.registrationLimit) {
                 var _rd = new Date(t.registrationLimit).getTime();
                 if (!isNaN(_rd) && _rd > _now) _events.push({ ts: _rd, label: _t('event.enrollClose'), icon: '⏰', color: '#f59e0b' });
               }
               if (t.startDate) {
-                var _sd = new Date(t.startDate).getTime();
-                if (!isNaN(_sd) && _sd > _now && !sorteioRealizado) _events.push({ ts: _sd, label: _t('event.tournamentStart'), icon: '🏁', color: '#10b981' });
+                var _sd2 = new Date(t.startDate).getTime();
+                if (!isNaN(_sd2) && _sd2 > _now && !sorteioRealizado) _events.push({ ts: _sd2, label: _t('event.tournamentStart'), icon: '🏁', color: '#10b981' });
               }
-              // Liga: next draw countdown
-              var _isLiga = window._isLigaFormat && window._isLigaFormat(t);
-              if (_isLiga && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
-                var _nextDraw = window._calcNextDrawDate(t);
-                if (_nextDraw) {
-                  var _ndTs = _nextDraw.getTime();
-                  if (!isNaN(_ndTs) && _ndTs > _now) _events.push({ ts: _ndTs, label: 'Próximo sorteio', icon: '🎲', color: '#fb923c' });
-                }
-              }
-              // Liga: season end countdown (startDate + ligaSeasonMonths)
-              if (_isLiga) {
-                var _sm = t.ligaSeasonMonths || t.rankingSeasonMonths;
-                if (_sm && t.startDate) {
-                  var _ssd = new Date(t.startDate);
-                  if (!isNaN(_ssd.getTime())) {
-                    var _seasonEnd = new Date(_ssd);
-                    _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_sm));
-                    var _seTs = _seasonEnd.getTime();
-                    if (!isNaN(_seTs) && _seTs > _now) _events.push({ ts: _seTs, label: 'Fim da temporada', icon: '🏁', color: '#8b5cf6' });
-                  }
-                }
-              }
-              if (!_isLiga && t.endDate) {
+              if (t.endDate) {
                 var _ed = new Date(t.endDate).getTime();
                 if (!isNaN(_ed) && _ed > _now) _events.push({ ts: _ed, label: _t('event.tournamentEnd'), icon: '🏆', color: '#8b5cf6' });
               }
               if (_events.length === 0) return '';
               _events.sort(function(a,b) { return a.ts - b.ts; });
-              var _colorMap = { '#f59e0b': '245,158,11', '#10b981': '16,185,129', '#8b5cf6': '139,92,246', '#fb923c': '251,146,60' };
-              var _html = '';
-              _events.forEach(function(_ev) {
-                var _countdownText = window._formatCountdown ? window._formatCountdown(_ev.ts - _now) : '';
-                var _rgb = _colorMap[_ev.color] || '139,92,246';
-                _html += '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
-                  '<span style="font-size:1.3rem;">' + _ev.icon + '</span>' +
-                  '<span style="font-size:0.85rem;font-weight:700;color:' + _ev.color + ';">' + _ev.label + '</span>' +
-                  '<span data-countdown-target="' + _ev.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ev.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
-                '</div>';
-              });
-              return _html;
+              var _colorMap2 = { '#f59e0b': '245,158,11', '#10b981': '16,185,129', '#8b5cf6': '139,92,246' };
+              var _next = _events[0];
+              var _countdownText2 = window._formatCountdown ? window._formatCountdown(_next.ts - _now) : '';
+              var _rgb2 = _colorMap2[_next.color] || '139,92,246';
+              return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb2 + ',0.1);border:1px solid rgba(' + _rgb2 + ',0.3);border-radius:12px;">' +
+                '<span style="font-size:1.3rem;">' + _next.icon + '</span>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:' + _next.color + ';">' + _next.label + '</span>' +
+                '<span data-countdown-target="' + _next.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _next.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText2 + '</span>' +
+              '</div>';
             })()}
 
             <!-- Linha separadora -->
