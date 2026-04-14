@@ -3068,14 +3068,21 @@ window.showResolutionSimulationPanel = function (tId, option) {
             '</button>';
         });
 
-        // ── Build Nash criteria legend ──
-        const legendHtml = `
-            <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:1.5rem;">
-                <span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão ${Math.round(wPrecision*100)}%</span>
-                <span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça ${Math.round(wFairness*100)}%</span>
-                <span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço ${Math.round(wEffort*100)}%</span>
-                <span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade ${Math.round(wSpeed*100)}%</span>
-            </div>`;
+        // ── Build dynamic Nash criteria legend (updates per selected option) ──
+        // Store nashScores globally so _selectSwissRounds can access them
+        window._swNashScores = nashScores;
+
+        function _buildNashLegend(r) {
+            const s = nashScores[r];
+            if (!s) return '';
+            return '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:1.5rem;">' +
+                '<span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão <b>' + s.precision.toFixed(1) + '</b>/10</span>' +
+                '<span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça <b>' + s.fairness.toFixed(1) + '</b>/10</span>' +
+                '<span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço <b>' + s.effort.toFixed(1) + '</b>/10</span>' +
+                '<span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade <b>' + s.speed.toFixed(1) + '</b>/10</span>' +
+            '</div>';
+        }
+        window._buildSwissNashLegend = _buildNashLegend;
 
         // ── Function to build simulation preview for selected round count ──
         // (stored globally so _selectSwissRounds can update it)
@@ -3153,25 +3160,29 @@ window.showResolutionSimulationPanel = function (tId, option) {
                     btn.style.boxShadow = c.glow;
                 }
             });
+            // Update Nash criteria legend (dynamic per option)
+            var legendEl = document.getElementById('swiss-nash-legend');
+            if (legendEl && window._buildSwissNashLegend) legendEl.innerHTML = window._buildSwissNashLegend(r);
             // Update simulation preview
             var previewEl = document.getElementById('swiss-sim-preview');
             if (previewEl) previewEl.innerHTML = window._buildSwissSimPreview(r);
             // Update summary stats
             var statsEl = document.getElementById('swiss-stats-summary');
             if (statsEl) {
+                var tp = matchesPerRound * r;
                 statsEl.innerHTML =
-                    '<div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">' +
-                    '<div style="font-size:1.5rem;font-weight:900;color:#4ade80;">' + totalTeams + '</div>' +
-                    '<div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">' + teamWord + '</div></div>' +
-                    '<div style="background:rgba(139,92,246,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">' +
-                    '<div style="font-size:1.5rem;font-weight:900;color:#8b5cf6;">' + r + '</div>' +
-                    '<div style="font-size:0.7rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Rodadas</div></div>' +
-                    '<div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">' +
-                    '<div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">' + targetTeams + '</div>' +
-                    '<div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Classificados</div></div>' +
-                    '<div style="background:rgba(245,158,11,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">' +
-                    '<div style="font-size:1.5rem;font-weight:900;color:#f59e0b;">' + (matchesPerRound * r) + '</div>' +
-                    '<div style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Total Partidas</div></div>';
+                    '<div style="background:rgba(34,197,94,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(34,197,94,0.2);">' +
+                    '<div style="font-size:1.3rem;font-weight:900;color:#4ade80;">' + totalTeams + '</div>' +
+                    '<div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">' + teamWord + '</div></div>' +
+                    '<div style="background:rgba(139,92,246,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(139,92,246,0.2);">' +
+                    '<div style="font-size:1.3rem;font-weight:900;color:#8b5cf6;">' + r + '</div>' +
+                    '<div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Rodadas</div></div>' +
+                    '<div style="background:rgba(96,165,250,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(96,165,250,0.2);">' +
+                    '<div style="font-size:1.3rem;font-weight:900;color:#60a5fa;">' + targetTeams + '</div>' +
+                    '<div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Classificados</div></div>' +
+                    '<div style="background:rgba(245,158,11,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(245,158,11,0.2);">' +
+                    '<div style="font-size:1.3rem;font-weight:900;color:#f59e0b;">' + tp + '</div>' +
+                    '<div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Partidas</div></div>';
             }
         };
 
@@ -3182,28 +3193,28 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <p style="color:#94a3b8;margin:8px 0 0;font-size:0.82rem;">Escolha quantas rodadas de classificação antes da eliminatória.</p>
             </div>
 
-            ${legendHtml}
+            <div id="swiss-nash-legend">${_buildNashLegend(bestRounds)}</div>
 
             <div style="display:grid;grid-template-columns:repeat(${Math.min(roundOptions.length, 4)}, 1fr);gap:10px;margin-bottom:2rem;">
                 ${roundOptionsHtml}
             </div>
 
-            <div id="swiss-stats-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.25rem;margin-bottom:1.5rem;">
-                <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
-                    <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
-                    <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${teamWord}</div>
+            <div id="swiss-stats-summary" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:0.75rem;margin-bottom:1.5rem;">
+                <div style="background:rgba(34,197,94,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(34,197,94,0.2);">
+                    <div style="font-size:1.3rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
+                    <div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${teamWord}</div>
                 </div>
-                <div style="background:rgba(139,92,246,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
-                    <div style="font-size:1.5rem;font-weight:900;color:#8b5cf6;">${bestRounds}</div>
-                    <div style="font-size:0.7rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Rodadas</div>
+                <div style="background:rgba(139,92,246,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(139,92,246,0.2);">
+                    <div style="font-size:1.3rem;font-weight:900;color:#8b5cf6;">${bestRounds}</div>
+                    <div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Rodadas</div>
                 </div>
-                <div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
-                    <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${targetTeams}</div>
-                    <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Classificados</div>
+                <div style="background:rgba(96,165,250,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(96,165,250,0.2);">
+                    <div style="font-size:1.3rem;font-weight:900;color:#60a5fa;">${targetTeams}</div>
+                    <div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Classificados</div>
                 </div>
-                <div style="background:rgba(245,158,11,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">
-                    <div style="font-size:1.5rem;font-weight:900;color:#f59e0b;">${matchesPerRound * bestRounds}</div>
-                    <div style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Total Partidas</div>
+                <div style="background:rgba(245,158,11,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(245,158,11,0.2);">
+                    <div style="font-size:1.3rem;font-weight:900;color:#f59e0b;">${matchesPerRound * bestRounds}</div>
+                    <div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Partidas</div>
                 </div>
             </div>
 
