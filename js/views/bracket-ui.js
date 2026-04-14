@@ -1008,6 +1008,55 @@ window._editResult = function (tId, matchId) {
   );
 };
 
+// ─── Edit result inline (DOM swap: static scores → inputs, Edit → Confirm) ──
+window._editResultInline = function(tId, matchId) {
+  var card = document.getElementById('card-' + matchId);
+  if (!card) return;
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t) return;
+  var m = window._findMatch ? window._findMatch(t, matchId) : null;
+  if (!m) return;
+
+  var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
+  var inputStyle = 'width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(245,158,11,0.4);color:var(--text-bright);border-radius:6px;padding:4px 6px;';
+
+  // Find score display containers (the last div in each player row)
+  var rows = card.querySelectorAll('[style*="border-radius:8px"][style*="display:flex"]');
+  if (rows.length >= 2) {
+    // P1 row — replace score area
+    var p1ScoreDiv = rows[0].querySelector('div:last-child');
+    if (p1ScoreDiv) {
+      p1ScoreDiv.innerHTML = '<input type="number" id="s1-' + matchId + '" min="0" placeholder="0"' +
+        (m.scoreP1 != null ? ' value="' + m.scoreP1 + '"' : '') +
+        ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
+    }
+    // P2 row — replace score area
+    var p2ScoreDiv = rows[1].querySelector('div:last-child');
+    if (p2ScoreDiv) {
+      p2ScoreDiv.innerHTML = '<input type="number" id="s2-' + matchId + '" min="0" placeholder="0"' +
+        (m.scoreP2 != null ? ' value="' + m.scoreP2 + '"' : '') +
+        ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
+    }
+  }
+
+  // Swap Edit button → Confirm button in the header
+  var headerDiv = card.querySelector('div:first-child > div:last-child');
+  if (headerDiv) {
+    headerDiv.innerHTML = '<button id="confirm-' + matchId + '" onclick="window._saveResultInline(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')"' +
+      ' style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"' +
+      ' onmouseover="this.style.background=\'rgba(16,185,129,0.3)\'" onmouseout="this.style.background=\'rgba(16,185,129,0.15)\'">✓ ' +
+      (typeof _t === 'function' ? _t('bracket.confirm') : 'Confirmar') + '</button>';
+  }
+
+  // Remove winner badge if present (last child after p2 row)
+  var winnerBadge = card.querySelector('[style*="color:#4ade80"][style*="font-weight:700"][style*="margin-top:6px"]');
+  if (winnerBadge) winnerBadge.style.display = 'none';
+
+  // Focus first input
+  var s1 = document.getElementById('s1-' + matchId);
+  if (s1) { s1.focus(); s1.select(); }
+};
+
 // ─── Share match result ──────────────────────────────────────────────────────
 window._shareMatchResult = function(tId, matchId) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });

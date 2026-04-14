@@ -1136,9 +1136,8 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }).join(' ');
   };
 
-  // Inline score inputs: show for any match where both players are known and user can enter results
-  // For decided matches, pre-fill with existing scores so organizer can edit directly
-  const showInputs = !isByeMatch && !hasTBD && canEnterResult;
+  // Inline score inputs: only for undecided matches with both players known
+  const showInputs = !isDecided && !isByeMatch && !hasTBD && canEnterResult;
 
   // Check-in dot indicator
   const ciDot = (status) => {
@@ -1167,21 +1166,16 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     return scoreHtml || '';
   };
 
-  // Pre-fill values for decided matches
-  const _prefillP1 = isDecided && m.scoreP1 != null ? ` value="${m.scoreP1}"` : '';
-  const _prefillP2 = isDecided && m.scoreP2 != null ? ` value="${m.scoreP2}"` : '';
-  const _inputBorder = isDecided ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.15)';
-
   const p1Score = showInputs
-    ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"${_prefillP1}
-        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid ${_inputBorder};color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+    ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
+        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
         oninput="window._highlightWinner('${_esc(m.id)}')">`
     : null;
   const p1ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner) : null;
 
   const p2Score = showInputs
-    ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"${_prefillP2}
-        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid ${_inputBorder};color:var(--text-bright);border-radius:6px;padding:4px 6px;"
+    ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
+        style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
         oninput="window._highlightWinner('${_esc(m.id)}')">`
     : null;
   const p2ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner) : null;
@@ -1234,9 +1228,9 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
-  // Edit button: for decided matches with inputs (re-saves with updated values)
-  const headerEditBtn = showInputs && isDecided
-    ? `<button onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
+  // Edit button: for decided matches — opens inline inputs for editing
+  const headerEditBtn = isDecided && !isByeMatch && canEnterResult
+    ? `<button onclick="window._editResultInline('${_esc(tId)}','${_esc(m.id)}')"
           style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
           onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
           title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
