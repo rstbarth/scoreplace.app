@@ -618,8 +618,14 @@ function renderDashboard(container) {
   // Grupo 2: abertos para se inscrever (já excluem org e participante por definição)
   const abertos = abertosParaVoce; // já ordenado por sortByDate
 
+  // Grupo 3: encerrados visíveis (públicos ou com participação) que não estão em meus
+  const encerradosVisiveis = visible.filter(t => {
+    if (t.status !== 'finished') return false;
+    return !seenIds.has(t.id);
+  }).sort(sortByDate);
+
   // Collect unique sports and locations for filter bar
-  const allTournaments = [...meus, ...abertosParaVoce];
+  const allTournaments = [...meus, ...abertosParaVoce, ...encerradosVisiveis];
   const uniqueIds = new Set();
   const allUnique = [];
   allTournaments.forEach(t => { if (!uniqueIds.has(t.id)) { uniqueIds.add(t.id); allUnique.push(t); } });
@@ -794,13 +800,13 @@ function renderDashboard(container) {
     filtered.sort(sortByDate);
   } else if (curFilter === 'encerrados') {
     const seen = new Set();
-    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
+    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce, ...encerradosVisiveis].forEach(t => {
       if (!seen.has(t.id) && t.status === 'finished') { seen.add(t.id); filtered.push(t); }
     });
     filtered.sort(sortByDate);
   } else {
     const seen = new Set();
-    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce].forEach(t => {
+    [...organizadosSorted, ...participacoesSorted, ...abertosParaVoce, ...encerradosVisiveis].forEach(t => {
       if (!seen.has(t.id)) { seen.add(t.id); filtered.push(t); }
     });
     filtered.sort(sortByDate);
@@ -853,7 +859,7 @@ function renderDashboard(container) {
         if (myFinished.length > 0) finishedCards += '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;opacity:0.7;">' + _t('dashboard.otherFinished', {count: otherFinished.length}) + '</div>';
         finishedCards += '<div class="cards-grid">' + otherFinished.map(t => renderTournamentCard(t, '')).join('') + '</div>';
       }
-      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">' + _t('dashboard.finishedSection', {count: finishedList.length}) + '</summary><div style="margin-top:0.75rem;">' + finishedCards + '</div></details></div>';
+      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details open><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">' + _t('dashboard.finishedSection', {count: finishedList.length}) + '</summary><div style="margin-top:0.75rem;">' + finishedCards + '</div></details></div>';
     }
   } else {
     // When viewing "encerrados" filter, sort user's tournaments first
