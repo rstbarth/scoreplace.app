@@ -93,7 +93,7 @@
     { id: 'start-tournament', selector: '[onclick*="_startTournament"]', text: 'Inicie o torneio! As partidas serão liberadas para lançamento de resultados.', context: 'tournament-detail', priority: 9, position: 'top' },
     { id: 'detail-view-bracket', selector: '[onclick*="bracket"]', text: 'Veja o chaveamento completo com todas as partidas, placares e classificação.', context: 'tournament-detail', priority: 7, position: 'top' },
     { id: 'detail-export-csv', selector: '[onclick*="_exportTournamentCSV"]', text: 'Exporte todos os resultados para uma planilha CSV (Excel/Google Sheets).', context: 'tournament-detail', priority: 3, position: 'top' },
-    { id: 'liga-toggle-active', selector: '[onchange*="_toggleLigaActive"]', text: 'Ative ou desative a Liga. Quando ativa, sorteios automáticos acontecem no horário agendado.', context: 'tournament-detail', priority: 6, position: 'top' },
+    { id: 'liga-toggle-active', selector: '[onchange*="_toggleLigaActive"]', text: 'Ative para participar dos sorteios da Liga. Desativado = folga com 0 pontos na rodada. Quem fica de fora por falta de jogadores recebe a média dos seus pontos.', context: 'tournament-detail', priority: 6, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CREATE / EDIT TOURNAMENT — Form Fields

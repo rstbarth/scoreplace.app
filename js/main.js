@@ -169,7 +169,7 @@
           '<p style="margin:0;"><b>♟️ Suíço</b> — Todos jogam todas as rodadas. Emparelhamentos por pontuação (adversários de nível similar). Ótimo para muitos participantes em poucas rodadas. Rodadas configuráveis. Classificação com Buchholz e Sonneborn-Berger.</p>' +
         '</div>' +
         '<div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável. Inscrições sempre abertas (opcional). Sorteios automáticos ou manuais com intervalo. Regras de inatividade e pontuação de novos jogadores. Rodadas podem usar formato Rei/Rainha. Ideal para comunidades regulares.</p>' +
+          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável. Inscrições sempre abertas (opcional). Sorteios automáticos ou manuais. Cada jogador tem um toggle "Ativo" no seu card: desativado = folga com 0 pontos; quem fica de fora por número ímpar recebe a média dos seus pontos. Rodadas podem usar formato Rei/Rainha. Ideal para comunidades regulares.</p>' +
         '</div>' +
         '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;">' +
           '<p style="margin:0;"><b>👑 Rei/Rainha da Praia</b> — Modo de sorteio especial: grupos de 4 jogadores com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual. Top 1 ou 2 de cada grupo avançam para eliminatória até coroar o Rei/Rainha. Pode ser usado na Liga também.</p>' +
@@ -239,7 +239,7 @@
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Progressão Automática</div>' +
           '<p><b>Eliminatórias</b> — Vencedor avança automaticamente. Ao completar todas as partidas, o torneio encerra e exibe o pódio.</p>' +
           '<p><b>Grupos</b> — Ao completar todos os jogos do grupo, os classificados avançam para eliminatória automaticamente.</p>' +
-          '<p><b>Liga/Suíço</b> — Classificação atualizada em tempo real. "Fechar Rodada" gera a próxima.</p>' +
+          '<p><b>Liga/Suíço</b> — Classificação atualizada em tempo real. "Fechar Rodada" gera a próxima. Na Liga, jogadores inativos (toggle desativado) ficam de folga com 0 pontos; quem fica de fora por número insuficiente de jogadores recebe a média dos seus pontos.</p>' +
           '<p><b>Rei/Rainha</b> — Standings individuais por grupo. Top jogadores avançam para eliminatória.</p>' +
         '</div>' +
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
@@ -532,7 +532,7 @@
             '• <b>Iniciar Torneio</b> — Liberar partidas<br>' +
             '• <b>Ver Chaves</b> — Chaveamento completo<br>' +
             '• <b>Exportar CSV</b> — Planilha de resultados<br>' +
-            '• <b>Liga ativo</b> — Ativar/desativar sorteios automáticos' +
+            '• <b>Liga ativo</b> — Toggle de participação: ativo = entra nos sorteios; inativo = folga com 0 pts' +
           '</p>' +
         '</div>' +
 
@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas e manual atualizados</b> — Dica do toggle Liga corrigida: descreve participação nos sorteios e regras de pontuação (inativo = 0 pts, folga por falta de jogadores = média). Manual de ajuda atualizado nas seções Formatos, Resultados e Referência Rápida com detalhes do toggle ativo e pontuação diferenciada.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Liga: pontuacao diferenciada para inativos</b> — Jogador que desativa o toggle de participacao recebe 0 pontos na rodada (antes recebia media). Jogador que fica de fora por falta de participantes suficientes continua recebendo a media de seus pontos. Card de folga diferenciado: inativo com icone vermelho e 0 pts, remainder com icone amarelo e media.</p>' +
         '</div>' +
