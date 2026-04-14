@@ -2,33 +2,62 @@
 var _t = window._t || function(k) { return k; };
 
 // Helper: re-render bracket preserving scroll position (zero jump)
-function _rerenderBracket(tId, focusMatchId) {
+// Uses anchor-based approach: saves the viewport-relative offset of a reference
+// element, re-renders, then scrolls so the same element is at the same offset.
+function _rerenderBracket(tId, anchorMatchId) {
+  // 1. Find anchor element — prefer the specific match card, fallback to any visible card
+  var anchorEl = null;
+  var anchorOffsetY = 0;
+  if (anchorMatchId) {
+    anchorEl = document.getElementById('card-' + anchorMatchId);
+  }
+  if (!anchorEl) {
+    // Find first match card visible in viewport
+    var allCards = document.querySelectorAll('[id^="card-"]');
+    for (var ci = 0; ci < allCards.length; ci++) {
+      var rect = allCards[ci].getBoundingClientRect();
+      if (rect.top >= -100 && rect.top <= window.innerHeight) {
+        anchorEl = allCards[ci];
+        break;
+      }
+    }
+  }
+  var anchorId = anchorEl ? anchorEl.id : null;
+  if (anchorEl) {
+    anchorOffsetY = anchorEl.getBoundingClientRect().top;
+  }
+
+  // 2. Save horizontal scrolls
   var _sx = window.scrollX || window.pageXOffset || 0;
   var _sy = window.scrollY || window.pageYOffset || 0;
-
-  // Also save bracket horizontal scroll
   var bracketWrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
   var _bsx = bracketWrapper ? bracketWrapper.scrollLeft : 0;
 
-  // Suppress Firestore onSnapshot soft-refresh that fires after syncImmediate —
-  // it would re-render the view again and potentially reset scroll position.
+  // 3. Suppress Firestore soft-refresh
   window._suppressSoftRefresh = true;
   clearTimeout(window._pendingSoftRefresh);
 
   var container = document.getElementById('view-container');
 
-  // Lock the container height to prevent layout shift during re-render
+  // 4. Lock container height to prevent flash
   var prevHeight = container ? container.offsetHeight : 0;
   if (container && prevHeight > 0) {
     container.style.minHeight = prevHeight + 'px';
   }
 
+  // 5. Re-render
   renderBracket(container, tId);
 
-  // Restore scroll immediately, after layout, and after paint
+  // 6. Restore scroll anchored to the reference element
   function _restore() {
-    window.scrollTo(_sx, _sy);
-    // Restore bracket horizontal scroll
+    var newAnchor = anchorId ? document.getElementById(anchorId) : null;
+    if (newAnchor) {
+      var newRect = newAnchor.getBoundingClientRect();
+      var delta = newRect.top - anchorOffsetY;
+      window.scrollBy(0, delta);
+    } else {
+      window.scrollTo(_sx, _sy);
+    }
     var newWrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
     if (newWrapper) newWrapper.scrollLeft = _bsx;
   }
@@ -38,9 +67,7 @@ function _rerenderBracket(tId, focusMatchId) {
     _restore();
     requestAnimationFrame(function() {
       _restore();
-      // Release min-height lock after render is stable
       if (container) container.style.minHeight = '';
-      // Re-enable soft refresh after render cycle is fully complete
       setTimeout(function() { window._suppressSoftRefresh = false; }, 3000);
     });
   });
@@ -824,7 +851,7 @@ window._saveSetResult = function(tId, matchId) {
     });
   }
 
-  _rerenderBracket(tId);
+  _rerenderBracket(tId, matchId);
 };
 
 window._saveResultInline = function (tId, matchId) {
@@ -950,7 +977,7 @@ window._saveResultInline = function (tId, matchId) {
     });
   }
 
-  _rerenderBracket(tId);
+  _rerenderBracket(tId, matchId);
 };
 
 window._editResult = function (tId, matchId) {
