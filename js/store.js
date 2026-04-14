@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.23-alpha';
+window.SCOREPLACE_VERSION = '0.10.24-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -163,9 +163,63 @@ window._checkTopbarWrap = function() {
   window.addEventListener('resize', function() {
     clearTimeout(_wrapTimer);
     _wrapTimer = setTimeout(window._checkTopbarWrap, 60);
+    // Close hamburger dropdown on resize (layout may change)
+    window._closeHamburger();
   });
   window.addEventListener('load', function() { setTimeout(window._checkTopbarWrap, 300); });
 })();
+
+// ─── Hamburger dropdown (OUTSIDE topbar stacking context) ──────────────
+// The #hamburger-dropdown is a SIBLING of <header class="topbar">,
+// so it has its own stacking context at z-index 102 (above back-header 101).
+// This is the ONLY correct architecture for Voltar + hamburger coexistence.
+window._toggleHamburger = function(btn) {
+  var dd = document.getElementById('hamburger-dropdown');
+  if (!dd) return;
+  var isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    window._closeHamburger();
+    return;
+  }
+  // Populate dropdown with cloned nav content from .topbar-menu
+  var menu = document.querySelector('.topbar-menu');
+  if (!menu) return;
+  dd.innerHTML = '';
+  // Clone each child group (nav, actions, profile)
+  var children = menu.children;
+  for (var i = 0; i < children.length; i++) {
+    var clone = children[i].cloneNode(true);
+    dd.appendChild(clone);
+  }
+  dd.classList.add('open');
+  document.body.classList.add('hamburger-open');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+
+  // Close on click outside
+  setTimeout(function() {
+    document.addEventListener('click', window._hamburgerOutsideClick);
+  }, 10);
+};
+
+window._closeHamburger = function() {
+  var dd = document.getElementById('hamburger-dropdown');
+  if (dd) {
+    dd.classList.remove('open');
+    dd.innerHTML = '';
+  }
+  document.body.classList.remove('hamburger-open');
+  var btn = document.querySelector('.hamburger-btn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('click', window._hamburgerOutsideClick);
+};
+
+window._hamburgerOutsideClick = function(e) {
+  var dd = document.getElementById('hamburger-dropdown');
+  var btn = document.querySelector('.hamburger-btn');
+  if (dd && !dd.contains(e.target) && btn && !btn.contains(e.target)) {
+    window._closeHamburger();
+  }
+};
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';

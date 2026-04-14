@@ -1407,21 +1407,23 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
 });
 
 // ─── Z-Index Hierarchy — structural guard against hamburger/Voltar bug ───────
+// Architecture: hamburger dropdown is OUTSIDE the topbar (sibling element).
+// It has z-index 102, back-header has 101, topbar has 100.
+// Both Voltar and hamburger are visible and clickable simultaneously.
 describe('Z-Index Hierarchy', function() {
   it('CSS variables define correct stacking order', function() {
-    // Read CSS variables from :root
     var style = getComputedStyle(document.documentElement);
     var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
     var zBackHeader = parseInt(style.getPropertyValue('--z-back-header'));
-    var zBackLowered = parseInt(style.getPropertyValue('--z-back-header-lowered'));
+    var zDropdown = parseInt(style.getPropertyValue('--z-hamburger-dropdown'));
     var zModal = parseInt(style.getPropertyValue('--z-modal'));
 
-    // back-header MUST be above topbar for clicks to work
+    // back-header MUST be above topbar for Voltar clicks to work
     expect(zBackHeader > zTopbar).toBe(true);
-    // lowered back-header MUST be below topbar for hamburger menu to show
-    expect(zBackLowered < zTopbar).toBe(true);
+    // hamburger dropdown MUST be above back-header so menu shows on top
+    expect(zDropdown > zBackHeader).toBe(true);
     // modal MUST be above everything
-    expect(zModal > zBackHeader).toBe(true);
+    expect(zModal > zDropdown).toBe(true);
   });
 
   it('--z-back-header is exactly --z-topbar + 1', function() {
@@ -1431,11 +1433,19 @@ describe('Z-Index Hierarchy', function() {
     expect(zBackHeader).toBe(zTopbar + 1);
   });
 
-  it('--z-back-header-lowered is exactly --z-topbar - 1', function() {
+  it('--z-hamburger-dropdown is exactly --z-topbar + 2', function() {
     var style = getComputedStyle(document.documentElement);
     var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
-    var zBackLowered = parseInt(style.getPropertyValue('--z-back-header-lowered'));
-    expect(zBackLowered).toBe(zTopbar - 1);
+    var zDropdown = parseInt(style.getPropertyValue('--z-hamburger-dropdown'));
+    expect(zDropdown).toBe(zTopbar + 2);
+  });
+
+  it('#hamburger-dropdown exists as sibling of header, not child', function() {
+    var dd = document.getElementById('hamburger-dropdown');
+    expect(!!dd).toBe(true);
+    // It must NOT be inside the topbar
+    var topbar = document.querySelector('.topbar');
+    expect(topbar && topbar.contains(dd)).toBe(false);
   });
 });
 

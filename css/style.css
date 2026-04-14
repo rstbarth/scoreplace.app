@@ -7,16 +7,15 @@
 
    Layer stack (bottom → top):
      content (0) < scrollbar (50) < sidebar (80)
-     < topbar (100) < back-header (101)
-     < back-header-lowered (99) ← only while hamburger menu is open
+     < topbar (100) < back-header (101) < hamburger-dropdown (102)
      < modal (1000) < toast (9999) < hint (100000)
 
-   WHY back-header is 101 (above topbar 100):
-     The hamburger dropdown is a CHILD of .topbar, so it's trapped
-     inside topbar's stacking context. If topbar > back-header,
-     the topbar area blocks clicks on the Voltar button.
-     Solution: back-header is normally 101 (clickable, above topbar).
-     When hamburger opens, CSS sibling rule lowers it to 99 temporarily.
+   ARCHITECTURE (v0.10.24):
+     The hamburger dropdown is a SIBLING of .topbar (not a child).
+     This gives it its own stacking context at z-index 102.
+     back-header stays at 101 ALWAYS — visible AND clickable.
+     No z-index juggling needed. No lowering. No hiding.
+     Both Voltar and hamburger menu work simultaneously.
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --z-content:              0;
@@ -24,7 +23,7 @@
   --z-sidebar:             80;
   --z-topbar:             100;
   --z-back-header:        101;   /* MUST be topbar + 1 for clicks to work   */
-  --z-back-header-lowered: 99;   /* MUST be topbar - 1 for menu to show     */
+  --z-hamburger-dropdown: 102;   /* OUTSIDE topbar — own stacking context   */
   --z-modal:             1000;
   --z-toast:             9999;
   --z-hint:            100000;
