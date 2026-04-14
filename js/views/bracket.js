@@ -1227,15 +1227,16 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
 
-  const headerConfirmBtn = showInputs
+  // Confirm button: only for undecided matches with inputs
+  const headerConfirmBtn = showInputs && !isDecided
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
-  // Edit button only when inputs are NOT shown (e.g. user is not organizer but match is decided)
-  const headerEditBtn = isDecided && !isByeMatch && canEnterResult && !showInputs
-    ? `<button onclick="window._editResult('${_esc(tId)}','${_esc(m.id)}')"
+  // Edit button: for decided matches with inputs (re-saves with updated values)
+  const headerEditBtn = showInputs && isDecided
+    ? `<button onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
           style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
           onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
           title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
