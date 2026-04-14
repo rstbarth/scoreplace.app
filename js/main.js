@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Fix estrutural: hamburger menu atrás do Voltar</b> — Hierarquia de z-index reestruturada de forma definitiva: topbar (200) > sticky-back-header (150) > conteúdo (100). Antes ambos eram 100/101, e o menu (filho do topbar) ficava preso dentro do stacking context do pai. Removido JS frágil que tentava empurrar o Voltar para baixo dinamicamente. Agora é puramente CSS — não regride mais.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.22-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: hamburger menu atrás do Voltar</b> — Quando o menu hamburger abre, o z-index do Voltar abaixa temporariamente (101→99) para que o menu (dentro do topbar z-index 100) fique por cima. Ao fechar, Voltar volta a 101 e fica clicável normalmente. Solução 100% CSS via seletor de irmão (~), sem JS frágil. Voltar nunca é escondido.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
