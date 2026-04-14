@@ -33,7 +33,7 @@
   z-index: var(--z-hamburger-dropdown);  /* 102 — above back-header (101) */
   background: var(--bg-darker);
   border-bottom: 1px solid var(--border-color);
-  padding: 10px 1rem;
+  padding: 4px 1rem 6px;  /* slim vertical padding — don't cover Voltar */
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .hamburger-dropdown.open {

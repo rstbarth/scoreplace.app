@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.25-alpha';
+window.SCOREPLACE_VERSION = '0.10.26-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -227,7 +227,7 @@ window._adjustBackHeaderForHamburger = function() {
   var dd = document.getElementById('hamburger-dropdown');
   if (dd && dd.classList.contains('open')) {
     var ddHeight = dd.offsetHeight;
-    backHeader.style.top = (60 + ddHeight) + 'px';
+    backHeader.style.top = (60 + ddHeight + 4) + 'px';
   } else {
     backHeader.style.top = '60px';
   }
