@@ -878,6 +878,20 @@ input[type="number"] {
 }
 [data-theme="ocean"] .hint-balloon-got-it:hover { background: rgba(34,211,238,0.30); }
 
+/* ─── Pending invite animations ─── */
+@keyframes invitePulse {
+  0%, 100% { border-color: rgba(251,191,36,0.5); box-shadow: 0 0 8px rgba(251,191,36,0.2); }
+  50% { border-color: rgba(251,191,36,0.9); box-shadow: 0 0 24px rgba(251,191,36,0.4); }
+}
+@keyframes inviteBtnPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 8px rgba(251,191,36,0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 4px 20px rgba(251,191,36,0.6); }
+}
+@keyframes enrollPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 4px 20px rgba(16,185,129,0.6); }
+}
+
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .hint-balloon { max-width: calc(100vw - 24px); min-width: 180px; }

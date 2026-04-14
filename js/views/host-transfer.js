@@ -364,7 +364,7 @@
     overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
   };
 
-  // ─── Helper: send notification — tries uid, then email lookup, then displayName lookup ──
+  // ─── Helper: send notification — uses _sendUserNotification (proven path) with fallback ──
   function _notifyByEmail(uidOrEmail, data) {
     if (!uidOrEmail) { console.warn('[host-transfer] _notifyByEmail: no uidOrEmail'); return; }
     var cu = window.AppStore.currentUser || {};
@@ -382,8 +382,23 @@
     };
     if (data.inviteType) payload.inviteType = data.inviteType;
 
+    // Primary: use _sendUserNotification (proven working path from tournaments-organizer.js)
+    function _trySendUserNotification(uid) {
+      if (typeof window._sendUserNotification === 'function') {
+        console.log('[host-transfer] Using _sendUserNotification for uid:', uid, 'type:', payload.type);
+        window._sendUserNotification(uid, data).then(function() {
+          console.log('[host-transfer] _sendUserNotification succeeded for uid:', uid);
+        }).catch(function(e) {
+          console.warn('[host-transfer] _sendUserNotification failed, trying direct write:', e);
+          _sendDirect(uid);
+        });
+        return true;
+      }
+      return false;
+    }
+
     function _sendDirect(uid) {
-      console.log('[host-transfer] Sending notification to uid:', uid, 'type:', payload.type);
+      console.log('[host-transfer] Sending notification directly to uid:', uid, 'type:', payload.type);
       if (window.FirestoreDB && window.FirestoreDB.addNotification) {
         window.FirestoreDB.addNotification(uid, payload).then(function() {
           console.log('[host-transfer] Notification written successfully for uid:', uid);
@@ -395,18 +410,23 @@
       }
     }
 
+    function _resolveAndSend(uid) {
+      if (!_trySendUserNotification(uid)) {
+        _sendDirect(uid);
+      }
+    }
+
     function _lookupByEmail(email, fallbackName) {
       if (!window.FirestoreDB || !window.FirestoreDB.db) return;
       console.log('[host-transfer] Looking up uid for email:', email);
       window.FirestoreDB.db.collection('users').where('email', '==', email).limit(1).get().then(function(snap) {
         if (!snap.empty) {
-          _sendDirect(snap.docs[0].id);
+          _resolveAndSend(snap.docs[0].id);
         } else if (fallbackName) {
-          // Email not found in profiles — try displayName (covers phone-auth users without email in profile)
           console.log('[host-transfer] Email not found, trying displayName:', fallbackName);
           window.FirestoreDB.db.collection('users').where('displayName', '==', fallbackName).limit(1).get().then(function(snap2) {
             if (!snap2.empty) {
-              _sendDirect(snap2.docs[0].id);
+              _resolveAndSend(snap2.docs[0].id);
             } else {
               console.warn('[host-transfer] No user found for email:', email, 'or name:', fallbackName);
             }
@@ -419,13 +439,11 @@
 
     // If it looks like a UID (no @), try direct send + verify the doc exists
     if (uidOrEmail.indexOf('@') === -1) {
-      // Verify the user doc exists before writing notification
       if (window.FirestoreDB && window.FirestoreDB.db) {
         window.FirestoreDB.db.collection('users').doc(uidOrEmail).get().then(function(doc) {
           if (doc.exists) {
-            _sendDirect(uidOrEmail);
+            _resolveAndSend(uidOrEmail);
           } else {
-            // UID doc doesn't exist — fallback to email/name lookup
             console.warn('[host-transfer] UID doc not found:', uidOrEmail, '— trying email/name fallback');
             var fallbackEmail = data._fallbackEmail || '';
             var fallbackName = data._fallbackName || '';
@@ -435,9 +453,9 @@
               console.warn('[host-transfer] No fallback email available for uid:', uidOrEmail);
             }
           }
-        }).catch(function() { _sendDirect(uidOrEmail); });
+        }).catch(function() { _resolveAndSend(uidOrEmail); });
       } else {
-        _sendDirect(uidOrEmail);
+        _resolveAndSend(uidOrEmail);
       }
       return;
     }

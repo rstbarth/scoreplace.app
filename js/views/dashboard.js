@@ -982,4 +982,45 @@ function renderDashboard(container) {
   if (proBtn && typeof window._isPro === 'function') {
     proBtn.style.display = window._isPro() ? 'none' : 'inline-flex';
   }
+
+  // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───
+  _checkPendingInvitesAndRedirect(visible);
+}
+
+// Check all tournaments for pending co-org invites or pending transfers targeting current user
+function _checkPendingInvitesAndRedirect(allTournaments) {
+  var cu = window.AppStore.currentUser;
+  if (!cu || !cu.email) return;
+  // Only auto-redirect once per session to avoid loop
+  if (window._pendingInviteRedirected) return;
+
+  var email = cu.email;
+  var uid = cu.uid || '';
+
+  for (var i = 0; i < allTournaments.length; i++) {
+    var t = allTournaments[i];
+
+    // Check co-host pending invite
+    if (Array.isArray(t.coHosts)) {
+      var pendingCohost = t.coHosts.find(function(ch) {
+        return ch.status === 'pending' && (ch.email === email || (uid && ch.uid === uid));
+      });
+      if (pendingCohost) {
+        window._pendingInviteRedirected = true;
+        window._pendingInviteType = 'cohost';
+        window._pendingInviteTournamentId = String(t.id);
+        window.location.hash = '#tournaments/' + t.id;
+        return;
+      }
+    }
+
+    // Check pending transfer
+    if (t.pendingTransfer && (t.pendingTransfer.targetEmail === email || (uid && t.pendingTransfer.targetUid === uid))) {
+      window._pendingInviteRedirected = true;
+      window._pendingInviteType = 'transfer';
+      window._pendingInviteTournamentId = String(t.id);
+      window.location.hash = '#tournaments/' + t.id;
+      return;
+    }
+  }
 }

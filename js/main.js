@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Convites de co-organização corrigidos</b> — Notificações de convite agora entregues corretamente via sistema unificado (_sendUserNotification). Dashboard detecta convites pendentes e redireciona automaticamente para o torneio. Banner dourado pulsante "Convite de Co-Organização" com botões Aceitar/Recusar na página do torneio. Botão Inscrever-se pulsa em verde quando usuário chega via link de convite.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Placares sempre visíveis na copa</b> — Todas as partidas com ambos os jogadores definidos agora exibem campos de placar permanentes, inclusive partidas já decididas (pré-preenchidas com valores existentes para edição direta). Não é mais necessário clicar "Editar" para alterar um resultado.</p>' +
         '</div>' +

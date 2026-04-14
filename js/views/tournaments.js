@@ -631,10 +631,16 @@ function renderTournaments(container, tournamentId = null) {
       `;
 
         // Botão inscrever/desinscrever — disponível em todos os contextos (detalhe e listagem)
+        // Detect if user arrived via invite link for this tournament
+        const _isInviteTarget = tournamentId && !isParticipating && isAberto && (
+          window._pendingInviteHash === '#tournaments/' + t.id ||
+          (function() { try { return sessionStorage.getItem('_pendingEnrollTournamentId') === String(t.id); } catch(e) { return false; } })()
+        );
+        const _enrollFlash = _isInviteTarget ? 'animation:enrollPulse 1.5s ease-in-out infinite;' : '';
         const enrollBtnHtml = (isParticipating && isAberto) ? `
              <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>
           ` : (isAberto ? `
-             <button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>
+             <button class="btn btn-sm btn-success hover-lift" style="${_enrollFlash}" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>
           ` : (isParticipating ? `
              <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
@@ -663,6 +669,43 @@ function renderTournaments(container, tournamentId = null) {
               <span style="font-size:0.75rem;font-weight:600;color:${_ligaIsActive ? '#34d399' : '#f87171'};">${_ligaIsActive ? '🟢 Participando dos sorteios' : '🔴 Fora dos próximos sorteios'}</span>
             </div>
           `;
+        }
+
+        // ─── Pending co-org/transfer invite banner ───
+        let pendingInviteBannerHtml = '';
+        if (tournamentId && window.AppStore.currentUser) {
+          const _cu = window.AppStore.currentUser;
+          const _cuEmail = _cu.email || '';
+          const _cuUid = _cu.uid || '';
+          // Check co-host pending invite
+          let _pendingType = '';
+          if (Array.isArray(t.coHosts)) {
+            const _pendingCh = t.coHosts.find(function(ch) {
+              return ch.status === 'pending' && (ch.email === _cuEmail || (_cuUid && ch.uid === _cuUid));
+            });
+            if (_pendingCh) _pendingType = 'cohost';
+          }
+          // Check pending transfer
+          if (!_pendingType && t.pendingTransfer && (t.pendingTransfer.targetEmail === _cuEmail || (_cuUid && t.pendingTransfer.targetUid === _cuUid))) {
+            _pendingType = 'transfer';
+          }
+          if (_pendingType) {
+            const _safeTid = String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const _invLabel = _pendingType === 'transfer' ? '👑 Convite para Organizar' : '👑 Convite de Co-Organização';
+            const _invDesc = _pendingType === 'transfer'
+              ? 'Você foi convidado(a) para assumir a organização deste torneio.'
+              : 'Você foi convidado(a) para co-organizar este torneio.';
+            pendingInviteBannerHtml = `
+              <div class="pending-invite-banner" style="margin-top:1rem;padding:18px 20px;background:linear-gradient(135deg,rgba(251,191,36,0.18),rgba(217,119,6,0.12));border:2px solid rgba(251,191,36,0.5);border-radius:16px;text-align:center;animation:invitePulse 2s ease-in-out infinite;">
+                <div style="font-size:1.3rem;font-weight:800;color:#fbbf24;margin-bottom:6px;">${_invLabel}</div>
+                <p style="color:#fef3c7;font-size:0.88rem;margin-bottom:14px;">${_invDesc}</p>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                  <button class="btn btn-sm hover-lift" style="background:#fbbf24;color:#78350f;font-weight:700;border:none;padding:8px 24px;font-size:0.9rem;border-radius:10px;animation:inviteBtnPulse 1.5s ease-in-out infinite;" onclick="event.stopPropagation(); window._acceptHostInvite('${_safeTid}','${_pendingType}'); setTimeout(function(){var c=document.getElementById('view-container');if(c&&typeof renderTournaments==='function')renderTournaments(c,'${_safeTid}');},800);">✅ Aceitar</button>
+                  <button class="btn btn-sm hover-lift" style="background:transparent;color:#f87171;border:1px solid rgba(239,68,68,0.5);padding:8px 24px;font-size:0.9rem;border-radius:10px;" onclick="event.stopPropagation(); window._rejectHostInvite('${_safeTid}','${_pendingType}'); setTimeout(function(){var c=document.getElementById('view-container');if(c&&typeof renderTournaments==='function')renderTournaments(c,'${_safeTid}');},800);">❌ Recusar</button>
+                </div>
+              </div>
+            `;
+          }
         }
 
         // Ações Específicas da tela Explore
@@ -985,6 +1028,8 @@ function renderTournaments(container, tournamentId = null) {
                ${tournamentId ? `<div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : ''}
                ${ligaActiveToggleHtml}
             </div>` : (tournamentId ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : '')}
+
+            ${pendingInviteBannerHtml}
 
             <!-- Middle Left: Nome + Logo + Favorito -->
             <div style="display: flex; align-items: center; gap: 14px; margin: 1.8rem 0 0.5rem 0;">
