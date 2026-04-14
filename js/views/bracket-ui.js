@@ -1648,6 +1648,8 @@ window._advanceToElimination = function (tId) {
 window._advanceMonarchToElimination = function(tId) {
   var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
   if (!t || !t.groups) return;
+  // Liga uses Rei/Rainha as round format only — no elimination phase
+  if (typeof window._isLigaFormat === 'function' && window._isLigaFormat(t)) return;
   // Idempotent: don't re-advance if already in elimination
   if (t.currentStage === 'elimination' || (t.matches && t.matches.length > 0)) return;
 

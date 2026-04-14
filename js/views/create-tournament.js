@@ -866,7 +866,8 @@ function setupCreateTournamentModal() {
     if (descEl) descEl.textContent = _drawModeDescs[value] || '';
     // Show/hide Rei/Rainha config and update dependent fields
     var rrFields = document.getElementById('rei-rainha-fields');
-    if (rrFields) rrFields.style.display = value === 'rei_rainha' ? 'block' : 'none';
+    var _fmtVal = document.getElementById('select-formato').value;
+    if (rrFields) rrFields.style.display = (value === 'rei_rainha' && _fmtVal !== 'liga') ? 'block' : 'none';
     // Re-trigger format change to sync Liga round format toggle etc.
     window._onFormatoChange();
   };
@@ -1319,7 +1320,8 @@ function setupCreateTournamentModal() {
     document.getElementById('suico-draw-schedule-fields').style.display = isSuico ? 'block' : 'none';
     document.getElementById('elim-settings').style.display = (isElim || isGrupos) ? 'block' : 'none';
     document.getElementById('grupos-fields').style.display = isGrupos ? 'block' : 'none';
-    document.getElementById('rei-rainha-fields').style.display = isMonarch ? 'block' : 'none';
+    // Rei/Rainha classified config: hide for Liga (pontos corridos, sem fase eliminatória)
+    document.getElementById('rei-rainha-fields').style.display = (isMonarch && !isLiga) ? 'block' : 'none';
 
     // Grupos + Elim. incompatível com Rei/Rainha: esconder botão e forçar Sorteio
     var monarchDrawBtn = document.getElementById('btn-draw-mode-monarch');
@@ -3046,12 +3048,15 @@ function setupCreateTournamentModal() {
         }
 
         if (drawModeValue === 'rei_rainha') {
-          tourData.monarchClassified = parseInt(document.getElementById('monarch-classified').value) || 1;
-          tourData.monarchAdvanceToElim = true; // always advance to elimination
           tourData.drawMode = 'rei_rainha';
-          // For Liga, set ligaRoundFormat instead of changing the format
+          // Liga: pontos corridos, sem fase eliminatória — não salvar classificados
           if (formatValue === 'liga') {
             tourData.ligaRoundFormat = 'rei_rainha';
+            tourData.monarchAdvanceToElim = false;
+            tourData.monarchClassified = null;
+          } else {
+            tourData.monarchClassified = parseInt(document.getElementById('monarch-classified').value) || 1;
+            tourData.monarchAdvanceToElim = true; // advance to elimination
           }
         } else {
           tourData.drawMode = 'sorteio';
