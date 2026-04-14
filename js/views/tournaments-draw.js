@@ -571,8 +571,10 @@ window.generateDrawFunction = function (tId) {
         var _swLo = 1;
         while (_swLo * 2 <= _swCount) _swLo *= 2;
         t.p2TargetCount = _swLo;
-        // Swiss rounds = ceil(log2(participants)) — enough to establish ranking
-        t.swissRounds = Math.max(2, Math.ceil(Math.log2(_swCount)));
+        // Swiss rounds: use organizer-selected value if set, otherwise ceil(log2(participants))
+        if (!t.swissRounds || t.swissRounds < 2) {
+            t.swissRounds = Math.max(2, Math.ceil(Math.log2(_swCount)));
+        }
         // Generate first Swiss round
         _generateNextRound(t);
 

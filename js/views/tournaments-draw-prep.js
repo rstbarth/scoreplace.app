@@ -2991,115 +2991,224 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const teamSize = parseInt(t.teamSize) || 1;
         const totalTeams = info.count;
         const targetTeams = info.lo;
-        const swissRounds = Math.ceil(Math.log2(totalTeams));
+        const recRounds = Math.max(2, Math.ceil(Math.log2(totalTeams)));
         const matchesPerRound = Math.floor(totalTeams / 2);
         const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;
+        const teamWord = teamSize > 1 ? 'Times' : 'Participantes';
 
-        // Match card for swiss rounds (purple accent)
-        const swissCard = (roundNum, matchNum, t1, t2) => `
-            <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(139,92,246,0.1);">R${roundNum} — Jogo ${matchNum}</div>
-                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(139,92,246,0.4);margin-bottom:4px;">
-                    <span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">${t1}</span>
-                </div>
-                <div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>
-                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(139,92,246,0.4);">
-                    <span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">${t2}</span>
-                </div>
+        // ── Generate round options from 2 up to max (capped at recRounds + 2, max 7) ──
+        const minRounds = 2;
+        const maxRounds = Math.min(recRounds + 2, Math.max(recRounds, 5), totalTeams - 1); // can't have more rounds than n-1
+        const roundOptions = [];
+        for (let r = minRounds; r <= maxRounds; r++) roundOptions.push(r);
+
+        // ── Nash scoring per round option ──
+        // Criteria: precision (more rounds → better classification quality), effort (more rounds → more work),
+        //           fairness (more rounds → fairer), speed (fewer rounds → faster tournament)
+        const wPrecision = 0.35, wFairness = 0.30, wEffort = 0.20, wSpeed = 0.15;
+        let nashScores = {};
+        let nashMax = 0, nashMin = 10;
+        roundOptions.forEach(function(r) {
+            // Precision: how well does r rounds separate N players? log2(N) is ideal minimum
+            const idealMin = Math.log2(totalTeams);
+            const precisionRaw = Math.min(r / idealMin, 1.5); // caps at 1.5x ideal
+            const precision = Math.min(10, precisionRaw * 7); // 0-10 scale
+            // Fairness: more rounds = everyone plays more = fairer ranking
+            const fairness = Math.min(10, 4 + (r / maxRounds) * 6);
+            // Effort: inverse — fewer rounds = less work
+            const effort = Math.max(1, 10 - ((r - minRounds) / Math.max(1, maxRounds - minRounds)) * 7);
+            // Speed: inverse — fewer rounds = faster
+            const speed = Math.max(1, 10 - ((r - minRounds) / Math.max(1, maxRounds - minRounds)) * 8);
+
+            const score = precision * wPrecision + fairness * wFairness + effort * wEffort + speed * wSpeed;
+            nashScores[r] = { precision, fairness, effort, speed, total: score };
+            if (score > nashMax) nashMax = score;
+            if (score < nashMin) nashMin = score;
+        });
+
+        const nashRange = nashMax - nashMin || 1;
+        // Recommended = highest score (typically near recRounds)
+        let bestRounds = recRounds;
+        let bestScore = -1;
+        roundOptions.forEach(function(r) {
+            if (nashScores[r].total > bestScore) { bestScore = nashScores[r].total; bestRounds = r; }
+        });
+
+        // Color palette (same as unified panel Nash colors)
+        const _swNashPalette = ['#2ABFA3','#4A90D9','#A8D44B','#B3D9F7','#F5D63D','#F5A623','#F5653D','#D62020'];
+        const _swSortedRounds = roundOptions.slice().sort(function(a,b) { return nashScores[b].total - nashScores[a].total; });
+
+        function _swNashColor(r) {
+            const rank = _swSortedRounds.indexOf(r);
+            const color = _swNashPalette[Math.min(rank < 0 ? _swNashPalette.length - 1 : rank, _swNashPalette.length - 1)];
+            return { bg: color + '30', border: color + '80', glow: '0 0 12px ' + color + '25', pill: color, pillBg: color + '20' };
+        }
+
+        // Save selected rounds to window for confirm
+        window._swissSelectedRounds = bestRounds;
+
+        // ── Build round option cards ──
+        let roundOptionsHtml = '';
+        roundOptions.forEach(function(r) {
+            const c = _swNashColor(r);
+            const normPct = Math.round(((nashScores[r].total - nashMin) / nashRange) * 100);
+            const isBest = r === bestRounds;
+            const totalMatches = matchesPerRound * r;
+            const isSelected = r === bestRounds;
+
+            roundOptionsHtml += '<button data-swiss-rounds="' + r + '" style="background:' + c.bg + ';border:2px solid ' + (isSelected ? '#a78bfa' : c.border) + ';box-shadow:' + (isSelected ? '0 0 16px rgba(139,92,246,0.4)' : c.glow) + ';border-radius:16px;padding:14px 12px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:4px;position:relative;" ' +
+                'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" ' +
+                'onmouseout="this.style.transform=\'\';this.style.filter=\'\'" ' +
+                'onclick="window._selectSwissRounds(' + r + ')">' +
+                (isBest ? '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">⭐ Recomendado</div>' : '') +
+                '<div style="font-size:1.8rem;font-weight:900;color:#fff;line-height:1;">' + r + '</div>' +
+                '<div style="font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:700;">rodadas</div>' +
+                '<div style="font-size:0.62rem;color:rgba(255,255,255,0.45);margin-top:2px;">' + totalMatches + ' partidas</div>' +
+                '<div style="margin-top:auto;padding-top:6px;"><span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + normPct + '%</span></div>' +
+            '</button>';
+        });
+
+        // ── Build Nash criteria legend ──
+        const legendHtml = `
+            <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:1.5rem;">
+                <span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão ${Math.round(wPrecision*100)}%</span>
+                <span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça ${Math.round(wFairness*100)}%</span>
+                <span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço ${Math.round(wEffort*100)}%</span>
+                <span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade ${Math.round(wSpeed*100)}%</span>
             </div>`;
 
-        // Match card for elimination (standard green/red)
-        const elimCard = (num, t1, t2) => `
-            <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ${num}</div>
-                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);margin-bottom:4px;">
-                    <span style="font-weight:600;font-size:0.85rem;color:#4ade80;">${t1}</span>
-                </div>
-                <div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>
-                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(239,68,68,0.4);">
-                    <span style="font-weight:600;font-size:0.85rem;color:#ef4444;">${t2}</span>
-                </div>
-            </div>`;
+        // ── Function to build simulation preview for selected round count ──
+        // (stored globally so _selectSwissRounds can update it)
+        window._buildSwissSimPreview = function(selectedRounds) {
+            const mpr = matchesPerRound;
+            // Swiss round cards
+            const swissCard2 = (roundNum, matchNum, t1, t2) =>
+                '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(139,92,246,0.1);">R' + roundNum + ' — Jogo ' + matchNum + '</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(139,92,246,0.4);margin-bottom:4px;">' +
+                '<span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">' + t1 + '</span></div>' +
+                '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(139,92,246,0.4);">' +
+                '<span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">' + t2 + '</span></div></div>';
 
-        // Build swiss round sections with match cards
-        let swissRoundsHtml = '';
-        for (let r = 0; r < swissRounds; r++) {
-            // Show up to 4 match cards per round (to keep it manageable)
-            const showMax = Math.min(matchesPerRound, 4);
-            let cardsHtml = '';
-            for (let m = 0; m < showMax; m++) {
-                if (r === 0) {
-                    // R1: sequential pairing
-                    cardsHtml += swissCard(r + 1, m + 1, tLabel((m * 2) + 1), tLabel((m * 2) + 2));
-                } else {
-                    // R2+: by ranking
-                    cardsHtml += swissCard(r + 1, m + 1, `${m + 1}º colocado`, `${matchesPerRound + m + 1}º colocado`);
+            const elimCard2 = (num, t1, t2) =>
+                '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ' + num + '</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);margin-bottom:4px;">' +
+                '<span style="font-weight:600;font-size:0.85rem;color:#4ade80;">' + t1 + '</span></div>' +
+                '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
+                '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(239,68,68,0.4);">' +
+                '<span style="font-weight:600;font-size:0.85rem;color:#ef4444;">' + t2 + '</span></div></div>';
+
+            let roundsHtml = '';
+            for (let r = 0; r < selectedRounds; r++) {
+                const showMax = Math.min(mpr, 4);
+                let cards = '';
+                for (let m = 0; m < showMax; m++) {
+                    if (r === 0) cards += swissCard2(r + 1, m + 1, tLabel((m * 2) + 1), tLabel((m * 2) + 2));
+                    else cards += swissCard2(r + 1, m + 1, (m + 1) + 'º colocado', (mpr + m + 1) + 'º colocado');
                 }
+                const moreC = mpr - showMax;
+                roundsHtml += '<div style="margin-bottom:1.5rem;">' +
+                    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">' +
+                    '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;color:white;flex-shrink:0;">' + (r + 1) + '</span>' +
+                    '<span style="font-weight:700;font-size:0.85rem;color:#e2e8f0;">Rodada ' + (r + 1) + '</span>' +
+                    '<span style="margin-left:auto;font-size:0.68rem;color:#64748b;">' + mpr + ' partidas</span>' +
+                    '<span style="font-size:0.65rem;color:#a78bfa;background:rgba(139,92,246,0.1);padding:2px 8px;border-radius:6px;font-weight:700;">' + (r === 0 ? 'Sorteio' : 'Por pontuação') + '</span>' +
+                    '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + cards + '</div>' +
+                    (moreC > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreC + ' partidas nesta rodada</div>' : '') +
+                    '</div>';
             }
-            const moreCount = matchesPerRound - showMax;
 
-            swissRoundsHtml += `
-                <div style="margin-bottom:1.5rem;">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">
-                        <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;color:white;flex-shrink:0;">${r + 1}</span>
-                        <span style="font-weight:700;font-size:0.85rem;color:#e2e8f0;">Rodada ${r + 1}</span>
-                        <span style="margin-left:auto;font-size:0.68rem;color:#64748b;">${matchesPerRound} partidas</span>
-                        <span style="font-size:0.65rem;color:#a78bfa;background:rgba(139,92,246,0.1);padding:2px 8px;border-radius:6px;font-weight:700;">${r === 0 ? 'Sorteio' : 'Por pontuação'}</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        ${cardsHtml}
-                    </div>
-                    ${moreCount > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreCount + ' partidas nesta rodada</div>' : ''}
-                </div>`;
-        }
+            // Elimination phase
+            const elimM = targetTeams / 2;
+            const showElimMax2 = Math.min(elimM, 4);
+            let elimH = '';
+            for (let i = 0; i < showElimMax2; i++) elimH += elimCard2(i + 1, '#' + ((i * 2) + 1) + ' classificado', '#' + ((i * 2) + 2) + ' classificado');
+            const moreElim2 = elimM - showElimMax2;
 
-        // Build elimination bracket match cards
-        const elimMatches = targetTeams / 2;
-        const showElimMax = Math.min(elimMatches, 4);
-        let elimHtml = '';
-        for (let i = 0; i < showElimMax; i++) {
-            elimHtml += elimCard(i + 1, `#${(i * 2) + 1} classificado`, `#${(i * 2) + 2} classificado`);
-        }
-        const moreElim = elimMatches - showElimMax;
+            return '<h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Fase Classificatória — ' + selectedRounds + ' Rodadas</h4>' +
+                roundsHtml +
+                '<div style="text-align:center;margin:0.75rem 0;padding:12px;background:rgba(34,197,94,0.05);border:1px dashed rgba(34,197,94,0.2);border-radius:12px;">' +
+                '<div style="font-size:0.72rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Classificação Final</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">Top ' + targetTeams + ' avançam para chave eliminatória</div></div>' +
+                '<h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 1rem;">Fase Eliminatória — Chave de ' + targetTeams + '</h4>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + elimH + '</div>' +
+                (moreElim2 > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreElim2 + ' partidas na R1 eliminatória</div>' : '');
+        };
+
+        window._selectSwissRounds = function(r) {
+            window._swissSelectedRounds = r;
+            // Update button selection styles
+            var btns = document.querySelectorAll('[data-swiss-rounds]');
+            btns.forEach(function(btn) {
+                var br = parseInt(btn.getAttribute('data-swiss-rounds'));
+                var c = _swNashColor(br);
+                if (br === r) {
+                    btn.style.borderColor = '#a78bfa';
+                    btn.style.boxShadow = '0 0 16px rgba(139,92,246,0.4)';
+                } else {
+                    btn.style.borderColor = c.border;
+                    btn.style.boxShadow = c.glow;
+                }
+            });
+            // Update simulation preview
+            var previewEl = document.getElementById('swiss-sim-preview');
+            if (previewEl) previewEl.innerHTML = window._buildSwissSimPreview(r);
+            // Update summary stats
+            var statsEl = document.getElementById('swiss-stats-summary');
+            if (statsEl) {
+                statsEl.innerHTML =
+                    '<div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">' +
+                    '<div style="font-size:1.5rem;font-weight:900;color:#4ade80;">' + totalTeams + '</div>' +
+                    '<div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">' + teamWord + '</div></div>' +
+                    '<div style="background:rgba(139,92,246,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">' +
+                    '<div style="font-size:1.5rem;font-weight:900;color:#8b5cf6;">' + r + '</div>' +
+                    '<div style="font-size:0.7rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Rodadas</div></div>' +
+                    '<div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">' +
+                    '<div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">' + targetTeams + '</div>' +
+                    '<div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Classificados</div></div>' +
+                    '<div style="background:rgba(245,158,11,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">' +
+                    '<div style="font-size:1.5rem;font-weight:900;color:#f59e0b;">' + (matchesPerRound * r) + '</div>' +
+                    '<div style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Total Partidas</div></div>';
+            }
+        };
 
         simulationHtml = `
-            <div style="text-align:center;margin-bottom:2rem;">
-                <span style="font-size:3rem;display:block;margin-bottom:1rem;">🏅</span>
-                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de Formato Suíço</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">Todos jogam ${swissRounds} rodadas. Os ${targetTeams} melhores avançam para a eliminatória.</p>
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <span style="font-size:3rem;display:block;margin-bottom:0.75rem;">🏅</span>
+                <h3 style="color:white;font-size:1.4rem;font-weight:900;margin:0;">Classificatória Suíça</h3>
+                <p style="color:#94a3b8;margin:8px 0 0;font-size:0.82rem;">Escolha quantas rodadas de classificação antes da eliminatória.</p>
             </div>
 
-            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
-                    <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
-                        <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
-                        <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${teamSize > 1 ? 'Times' : 'Participantes'}</div>
-                    </div>
-                    <div style="background:rgba(139,92,246,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
-                        <div style="font-size:1.5rem;font-weight:900;color:#8b5cf6;">${swissRounds}</div>
-                        <div style="font-size:0.7rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Rodadas Suíço</div>
-                    </div>
-                    <div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
-                        <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${targetTeams}</div>
-                        <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Classificados</div>
-                    </div>
+            ${legendHtml}
+
+            <div style="display:grid;grid-template-columns:repeat(${Math.min(roundOptions.length, 4)}, 1fr);gap:10px;margin-bottom:2rem;">
+                ${roundOptionsHtml}
+            </div>
+
+            <div id="swiss-stats-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.25rem;margin-bottom:1.5rem;">
+                <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
+                    <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
+                    <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${teamWord}</div>
+                </div>
+                <div style="background:rgba(139,92,246,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
+                    <div style="font-size:1.5rem;font-weight:900;color:#8b5cf6;">${bestRounds}</div>
+                    <div style="font-size:0.7rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Rodadas</div>
+                </div>
+                <div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
+                    <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${targetTeams}</div>
+                    <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Classificados</div>
+                </div>
+                <div style="background:rgba(245,158,11,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">
+                    <div style="font-size:1.5rem;font-weight:900;color:#f59e0b;">${matchesPerRound * bestRounds}</div>
+                    <div style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Total Partidas</div>
                 </div>
             </div>
 
-            <div style="max-height:500px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
-                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Fase Classificatória — ${swissRounds} Rodadas</h4>
-                ${swissRoundsHtml}
-
-                <div style="text-align:center;margin:0.75rem 0;padding:12px;background:rgba(34,197,94,0.05);border:1px dashed rgba(34,197,94,0.2);border-radius:12px;">
-                    <div style="font-size:0.72rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Classificação Final</div>
-                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">Top ${targetTeams} avançam para chave eliminatória</div>
-                </div>
-
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 1rem;">Fase Eliminatória — Chave de ${targetTeams}</h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                    ${elimHtml}
-                </div>
-                ${moreElim > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreElim + ' partidas na R1 eliminatória</div>' : ''}
+            <div id="swiss-sim-preview" style="max-height:400px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
+                ${window._buildSwissSimPreview(bestRounds)}
             </div>
         `;
     }
@@ -3167,7 +3276,11 @@ window._confirmP2Resolution = function (tId, option) {
     } else if (option === 'swiss') {
         t.p2Resolution = 'swiss';
         t.classifyFormat = 'swiss';
-        actionMsg = 'Iniciado com Fase Classificatória (Suíço)';
+        // Save organizer-selected round count (from simulation panel)
+        if (window._swissSelectedRounds) {
+            t.swissRounds = window._swissSelectedRounds;
+        }
+        actionMsg = 'Iniciado com Fase Classificatória (Suíço' + (t.swissRounds ? ' — ' + t.swissRounds + ' rodadas' : '') + ')';
     }
 
     t.status = 'closed';

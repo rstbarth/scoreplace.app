@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Escolha de rodadas no Suíço classificatório</b> — Ao selecionar Suíço como resolução de potência de 2, o organizador agora escolhe quantas rodadas jogar (de 2 até N). Cada opção exibe pontuação de equilíbrio de Nash com 4 critérios: Precisão (35%), Justiça (30%), Esforço (20%) e Velocidade (15%). A opção recomendada é destacada com badge. Ao clicar numa opção, a simulação visual atualiza em tempo real mostrando rodadas, partidas e fase eliminatória.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.16-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: Suíço como classificatória para Dupla Eliminatória</b> — Quando o Suíço é escolhido como resolução de potência de 2 (p2Resolution), ele agora funciona corretamente como fase classificatória: gera rodadas suíças, e ao encerrar a última rodada, os top N classificados (potência de 2 mais próxima) avançam automaticamente para a fase eliminatória do formato original (Eliminatórias, Dupla Eliminatória, etc.). Antes, o Suíço-como-resolução era tratado como torneio Suíço puro, ignorando o formato real.</p>' +
         '</div>' +
