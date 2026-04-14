@@ -221,7 +221,7 @@ window.generateDrawFunction = function (tId) {
     }
 
     // ── Liga / Suíço / Ranking: generate first round standings ──────────────────
-    if (window._isLigaFormat(t) || t.format === 'Suíço Clássico') {
+    if (window._isLigaFormat(t) || t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss') {
         let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
 
         // Shuffle participants
@@ -562,14 +562,11 @@ window.generateDrawFunction = function (tId) {
         t.rounds = [];
         t.status = 'active';
         t.currentStage = 'swiss';
-        // Temporarily treat as Suíço for round generation
-        var _origFormat = t.format;
-        t.format = 'Suíço Clássico';
+        t.classifyFormat = 'swiss';
+        // Generate first Swiss round — _generateNextRound does not check t.format
         if (typeof window._generateNextRound === 'function') {
             window._generateNextRound(t);
         }
-        t.format = _origFormat; // Restore original format
-        t.classifyFormat = 'swiss'; // Keep Swiss classification marker
 
         var _swRoundMatches = (t.rounds[0] && t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();

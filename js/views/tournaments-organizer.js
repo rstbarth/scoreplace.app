@@ -42,7 +42,7 @@ window._cloneTournament = function(tournamentId) {
         newT.ligaNewPlayerPoints = t.ligaNewPlayerPoints || '';
     }
     // Suíço-specific
-    if (t.format === 'Suíço Clássico') {
+    if (t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss') {
         newT.swissRounds = t.swissRounds || '';
     }
     // Draw scheduling

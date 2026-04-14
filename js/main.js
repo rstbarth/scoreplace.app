@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix estrutural: detecção de Suíço como classificação</b> — Corrigido problema recorrente onde torneios com formato Suíço aplicado via resolução de potência de 2 renderizavam tela em branco no bracket. A causa raiz era que 9 arquivos verificavam apenas <code>t.format === \'Suíço Clássico\'</code>, ignorando <code>classifyFormat</code> e <code>currentStage</code>. Agora todos os pontos de detecção incluem as 3 condições. Removido hack temporário de troca de formato no sorteio.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: Suíço como ajuste de potência de 2</b> — Ao selecionar formato Suíço na resolução de potência de 2, o sorteio agora gera corretamente a Rodada 1 com standings, pairings e notificações (antes apenas marcava status sem gerar partidas). Corrigido flickering na tela de simulação: painel de resolução é escondido quando a simulação abre e restaurado ao voltar.</p>' +
         '</div>' +

@@ -129,7 +129,7 @@ window._exportTournamentCSV = function(tournamentId) {
     var rows = [];
     var hasStandings = false;
     var isLiga = window._isLigaFormat ? window._isLigaFormat(t) : false;
-    var isSuico = t.format === 'Suíço Clássico';
+    var isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
 
     // For Liga/Suíço: export standings
     if (isLiga || isSuico) {

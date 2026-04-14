@@ -50,7 +50,7 @@ function renderBracket(container, tournamentId, isInline) {
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
   const canEnterResult = isOrg || t.resultEntry === 'players' || t.resultEntry === 'referee';
   const isLiga = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
-  const isSuico = t.format === 'Suíço Clássico';
+  const isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
   const isDupla = t.format === 'Dupla Eliminatória';
 
   const isGrupos = t.format === 'Fase de Grupos + Eliminatórias';
@@ -1548,7 +1548,7 @@ function renderStandings(t, isOrg, canEnterResult) {
 
   const currentRoundData = rounds[currentRound - 1];
   const allComplete = (currentRoundData.matches || []).every(m => m.winner);
-  const isSuico = t.format === 'Suíço Clássico';
+  const isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
   const isLigaFmt = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
   const maxRounds = t.swissRounds || 99;
   const isFinished = isSuico && currentRound >= maxRounds && allComplete;

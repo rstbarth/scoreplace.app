@@ -931,7 +931,7 @@ function _doCloseRound(t, tId, roundIdx) {
   t.rounds[roundIdx].status = 'complete';
   t.standings = _computeStandings(t);
 
-  const isSuico = t.format === 'Suíço Clássico';
+  const isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
   const maxRounds = t.swissRounds || 99;
 
   if (isSuico && t.rounds.length >= maxRounds) {

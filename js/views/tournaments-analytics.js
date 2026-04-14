@@ -64,7 +64,7 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
         if (t.format) stats.formats[t.format] = (stats.formats[t.format] || 0) + 1;
 
         // Check standings for position (Liga/Suíço)
-        if (typeof window._computeStandings === 'function' && (window._isLigaFormat(t) || t.format === 'Suíço Clássico')) {
+        if (typeof window._computeStandings === 'function' && (window._isLigaFormat(t) || t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss')) {
             var computed = window._computeStandings(t);
             for (var si = 0; si < computed.length; si++) {
                 if (_nameMatch(computed[si].name, playerName)) {
