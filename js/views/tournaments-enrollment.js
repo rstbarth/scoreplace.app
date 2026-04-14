@@ -538,7 +538,7 @@ window.deleteTournamentFunction = function (tId) {
     showConfirmDialog(
         _t('enroll.deleteTournament'),
         _t('enroll.deleteTournamentMsg'),
-        async () => {
+        function() {
             const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === tId.toString());
             if (idx !== -1) {
                 // Marca como deletado para evitar que o listener traga de volta
@@ -546,13 +546,24 @@ window.deleteTournamentFunction = function (tId) {
                 window.AppStore._deletedTournamentIds.push(String(tId));
                 try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
 
-                // Notify all enrolled participants BEFORE removing — must await to ensure delivery
+                // Save reference for background tasks before removing
                 var _delTour = window.AppStore.tournaments[idx];
+
+                // ── Optimistic: remove from memory, navigate immediately ──
+                window.AppStore.tournaments.splice(idx, 1);
+                window.AppStore._saveToCache();
+                try { localStorage.removeItem('boratime_state'); } catch(e) {}
+
+                showNotification(_t('enroll.deletedTitle'), _t('enroll.deletedMsg'), 'success');
+                window.location.hash = '#dashboard';
+
+                // ── Background: notify participants + delete from Firestore ──
+                // Notifications run in background — don't block UI
                 if (_delTour && typeof window._notifyTournamentParticipants === 'function') {
                     var _cu = window.AppStore.currentUser;
                     var _tFn = window._t || function(k) { return k; };
                     try {
-                        await window._notifyTournamentParticipants(_delTour, {
+                        window._notifyTournamentParticipants(_delTour, {
                             type: 'tournament_deleted',
                             message: _tFn('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
                             level: 'fundamental'
@@ -560,14 +571,9 @@ window.deleteTournamentFunction = function (tId) {
                     } catch(e) { console.warn('Delete notification error:', e); }
                 }
 
-                // Remove da memória
-                window.AppStore.tournaments.splice(idx, 1);
-
-                // Deleta do Firestore (banco de dados)
+                // Firestore delete runs in background
                 if (window.FirestoreDB && window.FirestoreDB.db) {
                     window.FirestoreDB.deleteTournament(tId).then(function() {
-                        // Tournament deleted from Firestore
-                        // Após confirmação do Firestore, remove da lista de deletados (já foi removido de verdade)
                         var delIdx = window.AppStore._deletedTournamentIds.indexOf(String(tId));
                         if (delIdx !== -1) window.AppStore._deletedTournamentIds.splice(delIdx, 1);
                         try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
@@ -576,15 +582,6 @@ window.deleteTournamentFunction = function (tId) {
                         showNotification(_t('enroll.deleteError'), _t('enroll.deleteErrorMsg'), 'error');
                     });
                 }
-
-                // Atualiza cache local para refletir a remoção
-                window.AppStore._saveToCache();
-
-                // Limpa cache antigo do boratime se existir
-                try { localStorage.removeItem('boratime_state'); } catch(e) {}
-
-                showNotification(_t('enroll.deletedTitle'), _t('enroll.deletedMsg'), 'success');
-                window.location.hash = '#dashboard';
             }
         },
         null,

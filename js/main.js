@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Exclusão de torneio instantânea</b> — Apagar torneio agora usa UI otimista: remove da tela e navega ao dashboard imediatamente. Notificações aos participantes e exclusão do Firestore rodam em background sem bloquear a interface.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Escolha de rodadas no Suíço classificatório</b> — Ao selecionar Suíço como resolução de potência de 2, o organizador agora escolhe quantas rodadas jogar (de 2 até N). Cada opção exibe pontuação de equilíbrio de Nash com 4 critérios: Precisão (35%), Justiça (30%), Esforço (20%) e Velocidade (15%). A opção recomendada é destacada com badge. Ao clicar numa opção, a simulação visual atualiza em tempo real mostrando rodadas, partidas e fase eliminatória.</p>' +
         '</div>' +
