@@ -1020,23 +1020,18 @@ window._editResultInline = function(tId, matchId) {
   var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
   var inputStyle = 'width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(245,158,11,0.4);color:var(--text-bright);border-radius:6px;padding:4px 6px;';
 
-  // Find score display containers (the last div in each player row)
-  var rows = card.querySelectorAll('[style*="border-radius:8px"][style*="display:flex"]');
-  if (rows.length >= 2) {
-    // P1 row — replace score area
-    var p1ScoreDiv = rows[0].querySelector('div:last-child');
-    if (p1ScoreDiv) {
-      p1ScoreDiv.innerHTML = '<input type="number" id="s1-' + matchId + '" min="0" placeholder="0"' +
-        (m.scoreP1 != null ? ' value="' + m.scoreP1 + '"' : '') +
-        ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
-    }
-    // P2 row — replace score area
-    var p2ScoreDiv = rows[1].querySelector('div:last-child');
-    if (p2ScoreDiv) {
-      p2ScoreDiv.innerHTML = '<input type="number" id="s2-' + matchId + '" min="0" placeholder="0"' +
-        (m.scoreP2 != null ? ' value="' + m.scoreP2 + '"' : '') +
-        ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
-    }
+  // Replace score containers by their explicit IDs
+  var p1ScoreDiv = document.getElementById('score-p1-' + matchId);
+  if (p1ScoreDiv) {
+    p1ScoreDiv.innerHTML = '<input type="number" id="s1-' + matchId + '" min="0" placeholder="0"' +
+      (m.scoreP1 != null ? ' value="' + m.scoreP1 + '"' : '') +
+      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
+  }
+  var p2ScoreDiv = document.getElementById('score-p2-' + matchId);
+  if (p2ScoreDiv) {
+    p2ScoreDiv.innerHTML = '<input type="number" id="s2-' + matchId + '" min="0" placeholder="0"' +
+      (m.scoreP2 != null ? ' value="' + m.scoreP2 + '"' : '') +
+      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
   }
 
   // Swap Edit button → Confirm button in the header
@@ -1048,9 +1043,14 @@ window._editResultInline = function(tId, matchId) {
       (typeof _t === 'function' ? _t('bracket.confirm') : 'Confirmar') + '</button>';
   }
 
-  // Remove winner badge if present (last child after p2 row)
-  var winnerBadge = card.querySelector('[style*="color:#4ade80"][style*="font-weight:700"][style*="margin-top:6px"]');
-  if (winnerBadge) winnerBadge.style.display = 'none';
+  // Hide winner badge and sets display
+  var allDivs = card.children;
+  for (var i = 0; i < allDivs.length; i++) {
+    var st = allDivs[i].getAttribute('style') || '';
+    if (st.indexOf('margin-top:6px') !== -1 && (st.indexOf('#4ade80') !== -1 || st.indexOf('monospace') !== -1)) {
+      allDivs[i].style.display = 'none';
+    }
+  }
 
   // Focus first input
   var s1 = document.getElementById('s1-' + matchId);

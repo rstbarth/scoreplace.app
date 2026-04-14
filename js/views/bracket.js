@@ -1183,7 +1183,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
-      <div style="display:flex;align-items:center;flex-shrink:0;">
+      <div id="score-p1-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
         ${_p1Bye && (showInputs || p1ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p1Score : (_p1Bye && !p1ScoreVal ? _byeBadgeFull : (p1ScoreVal || ''))}
       </div>
     </div>`;
@@ -1191,7 +1191,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
-      <div style="display:flex;align-items:center;flex-shrink:0;">
+      <div id="score-p2-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
         ${_p2Bye && (showInputs || p2ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p2Score : (_p2Bye && !p2ScoreVal ? _byeBadgeFull : (p2ScoreVal || ''))}
       </div>
     </div>`;
