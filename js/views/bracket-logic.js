@@ -933,8 +933,64 @@ function _doCloseRound(t, tId, roundIdx) {
 
   const isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
   const maxRounds = t.swissRounds || 99;
+  const isSwissClassification = t.p2Resolution === 'swiss' && t.currentStage === 'swiss';
 
   if (isSuico && t.rounds.length >= maxRounds) {
+    // Swiss-as-classification: transition to elimination phase
+    if (isSwissClassification && t.p2TargetCount) {
+      var _finalStandings = _computeStandings(t);
+      var _targetCount = t.p2TargetCount;
+      var _advancedNames = _finalStandings.slice(0, _targetCount).map(function(s) { return s.name; });
+
+      // Store Swiss results for reference
+      t.swissStandings = _finalStandings;
+      t.swissRoundsData = t.rounds.slice();
+
+      // Clear Swiss state, transition to elimination
+      t.currentStage = 'elimination';
+      delete t.classifyFormat;
+      t.rounds = [];
+
+      // Update participants to only include advanced players (preserve objects)
+      var _allParts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+      var _advancedParts = [];
+      _advancedNames.forEach(function(name) {
+        var found = _allParts.find(function(p) {
+          var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+          return pName === name;
+        });
+        if (found) _advancedParts.push(found);
+      });
+      // Save eliminated players for reference
+      t.swissEliminated = _allParts.filter(function(p) {
+        var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return _advancedNames.indexOf(pName) === -1;
+      });
+      t.participants = _advancedParts;
+
+      // Generate elimination bracket with the advanced players
+      if (typeof window.generateDrawFunction === 'function') {
+        // Temporarily disable p2Resolution to avoid re-entering Swiss
+        var _savedP2 = t.p2Resolution;
+        t.p2Resolution = 'bye'; // now power-of-2 is guaranteed
+        window.AppStore.syncImmediate(tId).then(function() {
+          window.generateDrawFunction(tId);
+        });
+      }
+
+      showNotification('Classificatória Encerrada!', 'Top ' + _targetCount + ' avançam para ' + (t.format || 'Eliminatórias') + '!', 'success');
+      if (typeof window._notifyTournamentParticipants === 'function') {
+        var _tFn2a = window._t || function(k) { return k; };
+        window._notifyTournamentParticipants(t, {
+          type: 'swiss_to_elimination',
+          message: 'Fase classificatória encerrada! Top ' + _targetCount + ' avançam para ' + (t.format || 'Eliminatórias') + '.',
+          level: 'important'
+        });
+      }
+      return;
+    }
+
+    // Pure Swiss: just finish
     t.status = 'finished';
     showNotification('Torneio Encerrado', `${maxRounds} rodadas concluídas!`, 'success');
     // Notify all participants about Swiss tournament finish

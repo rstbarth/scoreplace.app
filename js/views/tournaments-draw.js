@@ -222,8 +222,9 @@ window.generateDrawFunction = function (tId) {
         t.drawVisibility = 'public';
     }
 
-    // ── Liga / Suíço / Ranking: generate first round standings ──────────────────
-    if (window._isLigaFormat(t) || t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss') {
+    // ── Liga / Suíço Puro / Ranking: generate first round standings ──────────────────
+    // Note: Swiss-as-p2Resolution (t.p2Resolution === 'swiss') is handled separately below
+    if ((window._isLigaFormat(t) || t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss') && !t.p2Resolution) {
         let participants = Array.isArray(t.participants) ? [...t.participants] : Object.values(t.participants || {});
 
         // Shuffle participants
@@ -547,7 +548,7 @@ window.generateDrawFunction = function (tId) {
 
     // 1. Shuffling agora é feito por categoria dentro do loop de geração de matches
 
-    // 2. Handle Swiss/Classificatória — generate first round like Liga/Suíço
+    // 2. Handle Swiss/Classificatória — classification phase before elimination
     if (t.p2Resolution === 'swiss') {
         var _swissNames = participants.map(function(p) {
             return typeof p === 'string' ? p : (p.displayName || p.name || '');
@@ -565,21 +566,26 @@ window.generateDrawFunction = function (tId) {
         t.status = 'active';
         t.currentStage = 'swiss';
         t.classifyFormat = 'swiss';
-        // Generate first Swiss round — _generateNextRound does not check t.format
-        if (typeof window._generateNextRound === 'function') {
-            window._generateNextRound(t);
-        }
+        // Calculate target: nearest power-of-2 below participant count
+        var _swCount = _swissNames.length;
+        var _swLo = 1;
+        while (_swLo * 2 <= _swCount) _swLo *= 2;
+        t.p2TargetCount = _swLo;
+        // Swiss rounds = ceil(log2(participants)) — enough to establish ranking
+        t.swissRounds = Math.max(2, Math.ceil(Math.log2(_swCount)));
+        // Generate first Swiss round
+        _generateNextRound(t);
 
         var _swRoundMatches = (t.rounds[0] && t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
-        showNotification('Fase Classificatória Iniciada', 'Rodada 1 gerada com ' + _swRoundMatches + ' partida(s)!', 'success');
+        showNotification('Fase Classificatória', 'Rodada 1 de ' + t.swissRounds + ' gerada com ' + _swRoundMatches + ' partida(s). Top ' + _swLo + ' avançam para ' + (t.format || 'Eliminatórias') + '.', 'success');
         // Notify participants
         if (typeof window._notifyTournamentParticipants === 'function') {
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
                 level: 'important',
-                title: '🎲 Rodada 1 — ' + (t.name || 'Torneio'),
-                message: _swRoundMatches + ' partida(s) sorteada(s). Confira seus confrontos!',
+                title: '🎲 Classificatória — ' + (t.name || 'Torneio'),
+                message: 'Rodada 1 de ' + t.swissRounds + '. Top ' + _swLo + ' avançam para ' + (t.format || 'Eliminatórias') + '!',
                 tournamentId: tId
             });
         }
