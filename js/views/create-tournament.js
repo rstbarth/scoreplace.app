@@ -3122,6 +3122,25 @@ function setupCreateTournamentModal() {
           }
         }
 
+        // Notify friends about new tournament (only for new, not edit)
+        if (!editId && typeof window._sendUserNotification === 'function') {
+          var _cu = window.AppStore.currentUser;
+          var _newTour = window.AppStore.tournaments[window.AppStore.tournaments.length - 1];
+          if (_cu && _newTour && Array.isArray(_cu.friends) && _cu.friends.length > 0) {
+            var _tFnCreate = window._t || function(k) { return k; };
+            var _createMsg = _tFnCreate('notif.newTournamentByFriend').replace('{friend}', _cu.displayName || 'Um amigo').replace('{name}', _newTour.name || 'Torneio');
+            _cu.friends.forEach(function(friendUid) {
+              window._sendUserNotification(friendUid, {
+                type: 'tournament_created',
+                message: _createMsg,
+                tournamentId: String(_newTour.id),
+                tournamentName: _newTour.name || '',
+                level: 'all'
+              });
+            });
+          }
+        }
+
         if (typeof window.updateViewModeVisibility === 'function') window.updateViewModeVisibility();
         closeModal('modal-create-tournament');
 

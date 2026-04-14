@@ -44,52 +44,10 @@ function renderNotifications(container) {
     var html = '';
     notifs.forEach(function(n) {
       var isUnread = !n.read;
-      var icon = '🔔';
-      var accentColor = 'var(--primary-color)';
-
-      if (n.type === 'friend_request') {
-        icon = '👋';
-        accentColor = '#f59e0b';
-      } else if (n.type === 'friend_accepted') {
-        icon = '🤝';
-        accentColor = 'var(--success-color)';
-      } else if (n.type === 'tournament_invite') {
-        icon = '🏆';
-        accentColor = 'var(--primary-color)';
-      } else if (n.type === 'enrollment_new') {
-        icon = '✅';
-        accentColor = 'var(--success-color)';
-      } else if (n.type === 'enrollment_cancelled' || n.type === 'enrollment_cancelled_confirm') {
-        icon = '🛑';
-        accentColor = 'var(--danger-color, #ef4444)';
-      } else if (n.type === 'enrollment_confirm') {
-        icon = '🎉';
-        accentColor = 'var(--success-color)';
-      } else if (n.type === 'result') {
-        icon = '🏅';
-        accentColor = '#a78bfa';
-      } else if (n.type === 'tournament_update') {
-        icon = '📢';
-        accentColor = '#f59e0b';
-      } else if (n.type === 'org_communication') {
-        icon = '📣';
-        accentColor = '#f59e0b';
-      } else if (n.type === 'host_transfer_invite' || n.type === 'cohost_invite') {
-        icon = '👑';
-        accentColor = '#fbbf24';
-      } else if (n.type === 'host_transfer_sent' || n.type === 'cohost_invite_sent') {
-        icon = '📨';
-        accentColor = '#fbbf24';
-      } else if (n.type === 'host_invite_accepted') {
-        icon = '✅';
-        accentColor = 'var(--success-color)';
-      } else if (n.type === 'host_invite_rejected') {
-        icon = '❌';
-        accentColor = 'var(--danger-color)';
-      } else if (n.type === 'cohost_removed') {
-        icon = '🚫';
-        accentColor = 'var(--danger-color)';
-      }
+      // Use centralized notification catalog for icon/color
+      var _catEntry = (window.NOTIF_CATALOG && window.NOTIF_CATALOG[n.type]) || {};
+      var icon = _catEntry.icon || '🔔';
+      var accentColor = _catEntry.color || 'var(--primary-color)';
 
       var timeAgo = _timeAgo(n.createdAt);
       var unreadDot = isUnread ? '<div class="notif-unread-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); flex-shrink: 0;"></div>' : '';
@@ -114,9 +72,12 @@ function renderNotifications(container) {
           '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); _acceptFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">' + _t('notif.accept') + '</button>' +
           '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); _rejectFriend(\'' + safeFromUid + '\'); _markNotifRead(\'' + safeNotifId + '\')">' + _t('notif.reject') + '</button>' +
         '</div>';
-      } else if (n.tournamentId) {
+      } else if (n.tournamentId && n.type !== 'tournament_deleted') {
+        // For draw/result/new_round: navigate to bracket; for others: tournament detail
+        var _navTarget = (n.type === 'draw' || n.type === 'new_round' || n.type === 'result' || n.type === 'tournament_finished') ? '#bracket/' : '#tournaments/';
+        var _btnLabel = (n.type === 'draw' || n.type === 'new_round' || n.type === 'result' || n.type === 'tournament_finished') ? _t('notif.viewBracket') : _t('notif.viewTournament');
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
-          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#tournaments/' + safeTournamentId + '\'; _markNotifRead(\'' + safeNotifId + '\')">' + _t('notif.viewTournament') + '</button>' +
+          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'' + _navTarget + safeTournamentId + '\'; _markNotifRead(\'' + safeNotifId + '\')">' + _btnLabel + '</button>' +
         '</div>';
       }
 

@@ -138,6 +138,14 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
                 if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
+                // Notify all participants about auto-closed enrollments
+                if (typeof window._notifyTournamentParticipants === 'function') {
+                    window._notifyTournamentParticipants(t, {
+                        type: 'enrollments_closed',
+                        message: _t('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                        level: 'important'
+                    }, user.email);
+                }
             }
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
@@ -250,6 +258,14 @@ window.submitTeamEnroll = function (tId) {
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
                 if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
+                // Notify all participants about auto-closed enrollments
+                if (typeof window._notifyTournamentParticipants === 'function') {
+                    window._notifyTournamentParticipants(t, {
+                        type: 'enrollments_closed',
+                        message: _t('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                        level: 'important'
+                    }, user.email);
+                }
             }
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.teamEnrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
@@ -487,6 +503,18 @@ window.deleteTournamentFunction = function (tId) {
                 if (!window.AppStore._deletedTournamentIds) window.AppStore._deletedTournamentIds = [];
                 window.AppStore._deletedTournamentIds.push(String(tId));
                 try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
+
+                // Notify all enrolled participants BEFORE removing
+                var _delTour = window.AppStore.tournaments[idx];
+                if (_delTour && typeof window._notifyTournamentParticipants === 'function') {
+                    var _cu = window.AppStore.currentUser;
+                    var _tFn = window._t || function(k) { return k; };
+                    window._notifyTournamentParticipants(_delTour, {
+                        type: 'tournament_deleted',
+                        message: _tFn('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
+                        level: 'fundamental'
+                    }, _cu ? _cu.email : null);
+                }
 
                 // Remove da memória
                 window.AppStore.tournaments.splice(idx, 1);

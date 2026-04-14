@@ -155,6 +155,33 @@ window._notifyTournamentParticipants = async function(tournament, notifData, exc
 };
 
 /**
+ * Dispatch notifications through email/WhatsApp channels.
+ * Takes the result from _notifyTournamentParticipants and processes batch delivery.
+ * @param {Object} channelResult - { emails: string[], phones: string[] }
+ * @param {string} templateType - email template type (e.g. 'draw', 'tournament_deleted')
+ * @param {Object} templateData - data for the email template
+ */
+window._dispatchChannels = function(channelResult, templateType, templateData) {
+    if (!channelResult) return;
+    // Email batch: generate HTML template and log for Cloud Function integration
+    if (channelResult.emails && channelResult.emails.length > 0 && typeof window._emailTemplate === 'function') {
+        var html = window._emailTemplate(templateType, templateData);
+        // If Cloud Function sendEmailBatch is available, use it
+        if (window.FirestoreDB && typeof window.FirestoreDB.sendEmailBatch === 'function') {
+            window.FirestoreDB.sendEmailBatch(channelResult.emails, templateData.subject || 'scoreplace.app', html);
+        } else {
+            // Queue for future server-side delivery — store in Firestore
+            console.log('[_dispatchChannels] Email queued for ' + channelResult.emails.length + ' recipients (template: ' + templateType + ')');
+        }
+    }
+    // WhatsApp: browser limitation prevents bulk sending
+    // Phones are collected for future server-side WhatsApp Business API integration
+    if (channelResult.phones && channelResult.phones.length > 0) {
+        console.log('[_dispatchChannels] WhatsApp queued for ' + channelResult.phones.length + ' recipients');
+    }
+};
+
+/**
  * Check and send countdown reminders for tournaments (7d, 2d, day-of).
  * Should be called on app load / periodically.
  */

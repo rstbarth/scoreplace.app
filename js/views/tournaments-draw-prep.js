@@ -2370,6 +2370,15 @@ window.toggleRegistrationStatus = function (tId) {
                 t.activePollId = null;
             }
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
+            // Notify participants about reopened enrollments
+            if (typeof window._notifyTournamentParticipants === 'function') {
+                var _tFnReopen = window._t || function(k) { return k; };
+                window._notifyTournamentParticipants(t, {
+                    type: 'enrollments_reopened',
+                    message: _tFnReopen('notif.enrollmentsReopened').replace('{name}', t.name || 'Torneio'),
+                    level: 'important'
+                }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
+            }
             _saveTournament(function() {
                 _refreshView();
                 if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
@@ -2424,6 +2433,15 @@ window.toggleRegistrationStatus = function (tId) {
     showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + window._safeHtml(t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
+        // Notify participants about closed enrollments
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            var _tFnClose = window._t || function(k) { return k; };
+            window._notifyTournamentParticipants(t, {
+                type: 'enrollments_closed',
+                message: _tFnClose('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                level: 'important'
+            }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
+        }
         _saveTournament(function() {
             _refreshView();
             if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
@@ -2438,6 +2456,15 @@ window._handleClosureOption = function (tId, option) {
     if (option === 'just_close') {
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
+        // Notify participants about closed enrollments
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            var _tFnClose2 = window._t || function(k) { return k; };
+            window._notifyTournamentParticipants(t, {
+                type: 'enrollments_closed',
+                message: _tFnClose2('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                level: 'important'
+            }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
+        }
         if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
             window.FirestoreDB.saveTournament(t).then(function() {
                 var container = document.getElementById('view-container');

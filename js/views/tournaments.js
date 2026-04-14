@@ -291,8 +291,22 @@ function renderTournaments(container, tournamentId = null) {
                             return name === participantName;
                         });
                         if (idx === -1) return;
+                        // Capture participant before removing to send notification
+                        var _removedP = arr[idx];
                         arr.splice(idx, 1);
                         t.participants = arr;
+
+                        // Notify removed participant
+                        if (_removedP && typeof _removedP === 'object' && _removedP.uid && typeof window._sendUserNotification === 'function') {
+                            var _tFnRem = window._t || function(k) { return k; };
+                            window._sendUserNotification(_removedP.uid, {
+                                type: 'participant_removed',
+                                message: _tFnRem('notif.youWereRemoved').replace('{name}', t.name || 'Torneio'),
+                                tournamentId: String(t.id),
+                                tournamentName: t.name || '',
+                                level: 'fundamental'
+                            });
+                        }
 
                         if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
                             window.FirestoreDB.saveTournament(t);

@@ -837,15 +837,27 @@ function _maybeFinishElimination(t) {
 
   // All matches done — mark as finished
   t.status = 'finished';
+  var _finChampion = null;
   if (typeof showNotification === 'function') {
-    var champion = null;
     var roundNums = allMatches.map(function(m) { return m.round || 0; });
     var lastRound = Math.max.apply(null, roundNums);
     var finalMatches = allMatches.filter(function(m) { return m.round === lastRound && !m.isBye; });
     if (finalMatches.length > 0 && finalMatches[0].winner) {
-      champion = finalMatches[0].winner;
+      _finChampion = finalMatches[0].winner;
     }
-    showNotification('🏆 Torneio Encerrado!', champion ? champion + ' é o campeão!' : 'Todas as partidas foram concluídas.', 'success');
+    showNotification('🏆 Torneio Encerrado!', _finChampion ? _finChampion + ' é o campeão!' : 'Todas as partidas foram concluídas.', 'success');
+  }
+  // Notify all participants about tournament finish (idempotent guard)
+  if (!t._finishNotified && typeof window._notifyTournamentParticipants === 'function') {
+    t._finishNotified = true;
+    var _tFn = window._t || function(k) { return k; };
+    var _finMsg = _tFn('notif.tournamentFinished').replace('{name}', t.name || 'Torneio');
+    if (_finChampion) _finMsg += ' ' + _finChampion + ' ' + _tFn('notif.isChampion');
+    window._notifyTournamentParticipants(t, {
+      type: 'tournament_finished',
+      message: _finMsg,
+      level: 'important'
+    });
   }
 }
 
@@ -925,6 +937,16 @@ function _doCloseRound(t, tId, roundIdx) {
   if (isSuico && t.rounds.length >= maxRounds) {
     t.status = 'finished';
     showNotification('Torneio Encerrado', `${maxRounds} rodadas concluídas!`, 'success');
+    // Notify all participants about Swiss tournament finish
+    if (!t._finishNotified && typeof window._notifyTournamentParticipants === 'function') {
+      t._finishNotified = true;
+      var _tFn2 = window._t || function(k) { return k; };
+      window._notifyTournamentParticipants(t, {
+        type: 'tournament_finished',
+        message: _tFn2('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+        level: 'important'
+      });
+    }
   } else {
     _generateNextRound(t);
     var _newRound = t.rounds[t.rounds.length - 1];
@@ -934,8 +956,8 @@ function _doCloseRound(t, tId, roundIdx) {
     // Notify all participants about the new round
     if (typeof window._notifyTournamentParticipants === 'function') {
       window._notifyTournamentParticipants(t, {
-        type: 'draw',
-        level: 'all',
+        type: 'new_round',
+        level: 'important',
         title: '🎲 Rodada ' + t.rounds.length + ' — ' + (t.name || 'Torneio'),
         message: _newMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
         tournamentId: tId

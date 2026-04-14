@@ -720,8 +720,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Sistema de notificações reescrito</b> — Todos os eventos agora geram notificações classificadas em 3 níveis: fundamental, importante e geral. Novos eventos cobertos: torneio apagado, sorteio realizado (todos os formatos), torneio encerrado, inscrições encerradas/reabertas, participante removido, torneio criado (notifica amigos). Catálogo centralizado de notificações (notification-catalog.js). Resultado de partida agora classificado como fundamental. Validação de perfil: WhatsApp sem telefone ou email sem email cadastrado bloqueia o save com alerta. Novos templates de email para todos os tipos. View de notificações refatorada com ícones/cores do catálogo. Navegação inteligente: draw/resultado levam ao bracket, torneio apagado não mostra botão.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Convites de co-organização corrigidos</b> — Notificações de convite agora entregues corretamente via sistema unificado (_sendUserNotification). Dashboard detecta convites pendentes e redireciona automaticamente para o torneio. Banner dourado pulsante "Convite de Co-Organização" com botões Aceitar/Recusar na página do torneio. Botão Inscrever-se pulsa em verde quando usuário chega via link de convite.</p>' +
+        '<p><b>Convites de co-organização corrigidos</b> — Notificações de convite agora entregues corretamente via sistema unificado. Dashboard detecta convites pendentes e redireciona automaticamente para o torneio. Banner dourado pulsante com botões Aceitar/Recusar na página do torneio.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

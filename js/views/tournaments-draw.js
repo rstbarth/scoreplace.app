@@ -257,7 +257,7 @@ window.generateDrawFunction = function (tId) {
         if (typeof window._notifyTournamentParticipants === 'function') {
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
-                level: 'all',
+                level: 'important',
                 title: '🎲 Rodada 1 — ' + (t.name || 'Torneio'),
                 message: _roundMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
                 tournamentId: tId
@@ -320,6 +320,16 @@ window.generateDrawFunction = function (tId) {
         t.status = 'active';
         window.AppStore.logAction(tId, _t('monarch.drawDone') + ' — ' + numGroups + ' grupos de 4');
 
+        // Notify participants about Rei/Rainha draw
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            var _tFn3 = window._t || function(k) { return k; };
+            window._notifyTournamentParticipants(t, {
+                type: 'draw',
+                level: 'important',
+                message: _tFn3('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+                tournamentId: tId
+            }, t.organizerEmail);
+        }
         if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
             window.FirestoreDB.saveTournament(t).then(function() {
                 showNotification(_t('monarch.drawDone'), _t('monarch.groupsFormed', {count: numGroups}), 'success');
@@ -465,6 +475,16 @@ window.generateDrawFunction = function (tId) {
 
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
         showNotification('Fase de Grupos Iniciada', `${numGroups} grupos gerados!`, 'success');
+        // Notify participants about groups draw
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            var _tFn2 = window._t || function(k) { return k; };
+            window._notifyTournamentParticipants(t, {
+                type: 'draw',
+                level: 'important',
+                message: _tFn2('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+                tournamentId: tId
+            }, t.organizerEmail);
+        }
         window.AppStore.syncImmediate(tId).then(function() {
             window.location.hash = `#bracket/${tId}`;
         });
@@ -888,6 +908,18 @@ window.generateDrawFunction = function (tId) {
     if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
 
     showNotification('Sucesso', 'Sorteio realizado com sucesso!', 'success');
+
+    // Notify all participants about the draw
+    if (typeof window._notifyTournamentParticipants === 'function') {
+        var _tFn = window._t || function(k) { return k; };
+        window._notifyTournamentParticipants(t, {
+            type: 'draw',
+            level: 'important',
+            message: _tFn('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+            tournamentId: tId
+        }, t.organizerEmail);
+    }
+
     window._lastActiveTournamentId = tId;
     // Save immediately — critical: draw MUST persist to Firestore before navigating
     window.AppStore.syncImmediate(tId).then(function() {

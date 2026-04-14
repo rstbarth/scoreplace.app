@@ -2889,6 +2889,23 @@ function setupProfileModal() {
         else window._hintSystem.disable();
       }
 
+      // Validate channel prerequisites before saving
+      var _tAuth = window._t || function(k) { return k; };
+      if (notifyWhatsApp && !phoneDigits) {
+        if (typeof showAlertDialog === 'function') {
+          showAlertDialog(_tAuth('profile.phoneRequired'), _tAuth('profile.phoneRequiredMsg'), null, { type: 'warning' });
+        }
+        var _phoneEl = document.getElementById('profile-edit-phone');
+        if (_phoneEl) _phoneEl.focus();
+        return;
+      }
+      if (notifyEmail && !(window.AppStore.currentUser.email)) {
+        if (typeof showAlertDialog === 'function') {
+          showAlertDialog(_tAuth('profile.emailRequired'), _tAuth('profile.emailRequiredMsg'), null, { type: 'warning' });
+        }
+        return;
+      }
+
       if (name) {
         window.AppStore.currentUser.displayName = name;
         window.AppStore.currentUser.name = name;

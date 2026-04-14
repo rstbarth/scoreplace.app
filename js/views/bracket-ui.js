@@ -835,7 +835,7 @@ window._saveSetResult = function(tId, matchId) {
       message: _resultText,
       tournamentId: tId,
       tournamentName: t.name,
-      level: 'all',
+      level: 'fundamental',
       timestamp: Date.now()
     };
     const _parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
@@ -960,7 +960,7 @@ window._saveResultInline = function (tId, matchId) {
       message: _resultText,
       tournamentId: tId,
       tournamentName: t.name,
-      level: 'all',
+      level: 'fundamental',
       timestamp: Date.now()
     };
     // Find UIDs for both players and send notifications

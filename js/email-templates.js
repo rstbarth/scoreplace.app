@@ -86,6 +86,56 @@
           'Ver Torneio', url
         ));
 
+      case 'tournament_deleted':
+        return _wrap(_body(
+          'Torneio Cancelado',
+          'O torneio <b>' + name + '</b> foi cancelado pelo organizador.',
+          'Ir para Dashboard', 'https://scoreplace.app/#dashboard'
+        ));
+
+      case 'draw':
+        return _wrap(_body(
+          'Chaveamento Gerado — ' + name,
+          'O chaveamento do torneio <b>' + name + '</b> foi gerado! Confira seus confrontos.',
+          'Ver Chaves', url
+        ));
+
+      case 'tournament_finished':
+        var champText = data.champion ? '<br><b>' + data.champion + '</b> e o campeao!' : '';
+        return _wrap(_body(
+          'Torneio Encerrado — ' + name,
+          'O torneio <b>' + name + '</b> foi encerrado!' + champText,
+          'Ver Resultado', url
+        ));
+
+      case 'enrollments_closed':
+        return _wrap(_body(
+          'Inscricoes Encerradas — ' + name,
+          'As inscricoes do torneio <b>' + name + '</b> foram encerradas. O sorteio sera realizado em breve.',
+          'Ver Torneio', url
+        ));
+
+      case 'new_round':
+        return _wrap(_body(
+          'Nova Rodada — ' + name,
+          'Uma nova rodada foi gerada no torneio <b>' + name + '</b>. Confira seus confrontos!',
+          'Ver Chaves', url
+        ));
+
+      case 'participant_removed':
+        return _wrap(_body(
+          'Remocao de Torneio',
+          'Voce foi removido(a) do torneio <b>' + name + '</b> pelo organizador.',
+          'Ir para Dashboard', 'https://scoreplace.app/#dashboard'
+        ));
+
+      case 'tournament_created':
+        return _wrap(_body(
+          'Novo Torneio — ' + name,
+          (data.friendName || 'Um amigo') + ' criou o torneio <b>' + name + '</b>. Participe!',
+          'Ver Torneio', url
+        ));
+
       default:
         return _wrap(_body('Notificacao', 'Voce tem uma nova notificacao do scoreplace.app.', 'Abrir App', url));
     }

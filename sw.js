@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.9.9';
+var CACHE_NAME = 'scoreplace-v0.10.0';
 var STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -63,6 +63,7 @@ var STATIC_ASSETS = [
   '/css/bracket.css',
   '/css/responsive.css',
   '/js/theme.js',
+  '/js/notification-catalog.js',
   '/js/store.js',
   '/js/firebase-db.js',
   '/js/notifications.js',
