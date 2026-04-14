@@ -2309,6 +2309,16 @@ window.finishTournament = function(tId) {
             }
             window.AppStore.logAction(tId, 'Torneio encerrado manualmente');
             window.AppStore.sync();
+            // Notify all participants
+            if (typeof window._notifyTournamentParticipants === 'function') {
+                var _tFnFin = window._t || function(k) { return k; };
+                window._notifyTournamentParticipants(t, {
+                    type: 'tournament_finished',
+                    message: _tFnFin('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+                    tournamentName: t.name || '',
+                    level: 'important'
+                }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
+            }
             const container = document.getElementById('view-container');
             if (container) renderTournaments(container, tId);
             showNotification('🏆 Torneio Encerrado', '"' + t.name + '" foi encerrado com sucesso.', 'success');

@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Notificações de torneio encerrado</b> — Todos os participantes agora recebem notificação quando um torneio é encerrado, seja manualmente pelo organizador, automaticamente ao completar todas as partidas, ou por expiração de temporada da Liga. Corrigidos 3 pontos de encerramento que não enviavam notificação.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: torneios encerrados visíveis</b> — Torneios encerrados públicos e de participação agora aparecem corretamente no dashboard. Seção "Torneios Encerrados" aberta por padrão (não mais colapsada). Filtro "Encerrados" inclui todos os encerrados visíveis.</p>' +
         '</div>' +

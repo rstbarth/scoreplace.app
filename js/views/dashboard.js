@@ -236,6 +236,17 @@ function renderDashboard(container) {
             if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
               window.FirestoreDB.saveTournament(t).catch(function() {});
             }
+            // Notify participants of season end
+            if (!t._seasonFinishNotified && typeof window._notifyTournamentParticipants === 'function') {
+              t._seasonFinishNotified = true;
+              var _tFnSeason = window._t || function(k) { return k; };
+              window._notifyTournamentParticipants(t, {
+                type: 'tournament_finished',
+                message: _tFnSeason('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+                tournamentName: t.name || '',
+                level: 'important'
+              });
+            }
           }
         }
       }
