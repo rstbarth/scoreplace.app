@@ -1166,8 +1166,8 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
     // Record sit-outs (both remainder and inactive)
     _recordSitOut(t, inactiveSitOuts, category);
     allSitOuts.forEach(function(name, si) {
-      var avgPts = _computeAvgPointsPerRound(t, name, category);
       var isInactive = inactiveSitOuts.indexOf(name) !== -1;
+      var avgPts = isInactive ? 0 : _computeAvgPointsPerRound(t, name, category);
       var soObj = {
         id: 'sitout-rr-r' + roundNum + '-' + si + catSuffix + '-' + ts,
         round: roundNum, roundIndex: (t.rounds || []).length,
@@ -1317,8 +1317,8 @@ function _generateNextRoundForPlayers(t, category) {
     var allSitOuts = sitOutPlayers.concat(inactiveSitOutsSwiss);
     _recordSitOut(t, inactiveSitOutsSwiss, category);
     allSitOuts.forEach(function(name, idx) {
-      var avgPts = _computeAvgPointsPerRound(t, name, category);
       var isInactive = inactiveSitOutsSwiss.indexOf(name) !== -1;
+      var avgPts = isInactive ? 0 : _computeAvgPointsPerRound(t, name, category);
       var soObj = {
         id: 'sitout-r' + roundNum + '-' + idx + catSuffix + '-' + timestamp,
         round: roundNum, roundIndex: roundIdx,

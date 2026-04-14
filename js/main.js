@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Liga: pontuacao diferenciada para inativos</b> — Jogador que desativa o toggle de participacao recebe 0 pontos na rodada (antes recebia media). Jogador que fica de fora por falta de participantes suficientes continua recebendo a media de seus pontos. Card de folga diferenciado: inativo com icone vermelho e 0 pts, remainder com icone amarelo e media.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Sistema de notificações reescrito</b> — Todos os eventos agora geram notificações classificadas em 3 níveis: fundamental, importante e geral. Novos eventos cobertos: torneio apagado, sorteio realizado (todos os formatos), torneio encerrado, inscrições encerradas/reabertas, participante removido, torneio criado (notifica amigos). Catálogo centralizado de notificações (notification-catalog.js). Resultado de partida agora classificado como fundamental. Validação de perfil: WhatsApp sem telefone ou email sem email cadastrado bloqueia o save com alerta. Novos templates de email para todos os tipos. View de notificações refatorada com ícones/cores do catálogo. Navegação inteligente: draw/resultado levam ao bracket, torneio apagado não mostra botão.</p>' +
         '</div>' +
