@@ -26,23 +26,29 @@
 
   // ── Hint Catalog ───────────────────────────────────────────────────────────
   var _hints = [
-    // ── Global / Topbar (only when element is visible in topbar) ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GLOBAL / TOPBAR
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'login-cta', selector: '#btn-login', text: 'Faça login para criar e gerenciar torneios! Use suas redes sociais se preferir.', context: 'global', priority: 10, position: 'bottom', requiresLogout: true },
     { id: 'hamburger', selector: '.hamburger-btn', text: 'Toque aqui para abrir o menu e navegar pelo app!', context: 'global', priority: 9, position: 'bottom' },
-    { id: 'profile', selector: '#btn-login', text: 'Acesse seu perfil, veja estatísticas e configure notificações.', context: 'global', priority: 7, position: 'bottom' },
+    { id: 'profile', selector: '#btn-login', text: 'Acesse seu perfil, veja estatísticas e configure notificações.', context: 'global', priority: 7, position: 'bottom', requiresLogin: true },
     { id: 'theme', selector: '#theme-toggle-btn', text: 'Experimente trocar o tema! Temos Noturno, Claro, Pôr do Sol e Oceano.', context: 'global', priority: 4, position: 'bottom' },
     { id: 'help', selector: 'a[onclick*="modal-help"]', text: 'Dúvidas? Aqui tem o manual completo com todas as funcionalidades!', context: 'global', priority: 5, position: 'bottom' },
     { id: 'quick-search', selector: '.hamburger-btn', text: 'Dica: use Ctrl+K para buscar torneios e jogadores rapidamente!', context: 'global', priority: 3, position: 'bottom', requiresLogin: true },
     { id: 'notifications', selector: 'a[href="#notifications"]', text: 'Fique por dentro! Aqui você recebe avisos de torneios e convites.', context: 'global', priority: 5, position: 'bottom', requiresLogin: true },
     { id: 'explore-nav', selector: 'a[href="#explore"]', text: 'Descubra torneios públicos da comunidade e participe!', context: 'global', priority: 6, position: 'bottom' },
 
-    // ── Strategic (Apoie / Pro) — only when button is on screen ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STRATEGIC (Apoie / Pro)
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'apoie-dash', selector: '#btn-support-pix', text: 'Gostou do scoreplace? Seu apoio via PIX mantém a plataforma gratuita e nos ajuda a crescer!', context: 'dashboard', priority: 8, strategic: true, position: 'bottom' },
     { id: 'pro-dash', selector: '#btn-upgrade-pro', text: 'Desbloqueie torneios ilimitados, upload de logo e Modo TV sem marca! Apenas R$19,90/mês.', context: 'dashboard', priority: 8, strategic: true, position: 'bottom', requiresPlan: 'free' },
     { id: 'apoie-detail', selector: '#btn-support-pix', text: 'Cada contribuição faz diferença! Apoie via PIX e ajude a manter o scoreplace gratuito.', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom' },
     { id: 'pro-detail', selector: '#btn-upgrade-pro', text: 'Com o plano Pro você pode criar torneios ilimitados e personalizar com sua marca!', context: 'tournament-detail', priority: 6, strategic: true, position: 'bottom', requiresPlan: 'free' },
 
-    // ── Dashboard: Hero Box ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DASHBOARD
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'new-tournament', selector: '#btn-create-tournament-in-box', text: 'Crie seu próprio torneio! Escolha o esporte, defina o formato e convide os participantes — leva menos de 1 minuto.', context: 'dashboard', priority: 10, position: 'bottom' },
     { id: 'hero-filter-todos', selector: '[onclick*="_applyDashFilter(\'todos\')"]', text: 'Veja todos os torneios de uma vez — organizados por você e os que participa.', context: 'dashboard', priority: 4, position: 'top', requiresLogin: true },
     { id: 'hero-filter-organizados', selector: '[onclick*="_applyDashFilter(\'organizados\')"]', text: 'Filtre só os torneios que você organiza. Ideal para gerenciar vários eventos.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
@@ -50,38 +56,95 @@
     { id: 'hero-filter-abertos', selector: '[onclick*="_applyDashFilter(\'abertos\')"]', text: 'Torneios com inscrições abertas para você! Inscreva-se e comece a competir.', context: 'dashboard', priority: 6, position: 'top', requiresLogin: true },
     { id: 'hero-filter-favoritos', selector: '[onclick*="_applyDashFilter(\'favoritos\')"]', text: 'Seus torneios favoritados ficam aqui. Clique na estrela em qualquer card para favoritar!', context: 'dashboard', priority: 4, position: 'top', requiresLogin: true },
     { id: 'hero-filter-encerrados', selector: '[onclick*="_applyDashFilter(\'encerrados\')"]', text: 'Reveja torneios encerrados: classificação final, podium e histórico de partidas.', context: 'dashboard', priority: 3, position: 'top', requiresLogin: true },
-    // ── Dashboard: Geral ──
     { id: 'dashboard-filters', selector: '[data-filter]', text: 'Use os filtros para ver só os torneios que organiza, participa ou favoritou.', context: 'dashboard', priority: 4, position: 'bottom', requiresLogin: true },
     { id: 'dashboard-compact', selector: '[onclick*="_setDashView"]', text: 'Prefere uma visualização mais compacta? Alterne entre cards e lista!', context: 'dashboard', priority: 3, position: 'top' },
     { id: 'dashboard-card-fav', selector: '[data-fav-id]', text: 'Clique na estrela para favoritar um torneio e encontrá-lo mais rápido!', context: 'dashboard', priority: 4, position: 'top' },
+    { id: 'dashboard-sport-filter', selector: '[onclick*="_applyDashSport"]', text: 'Filtre por esporte: veja apenas torneios de Beach Tennis, Tênis, Padel ou outra modalidade.', context: 'dashboard', priority: 3, position: 'top' },
+    { id: 'dashboard-location-filter', selector: '[onclick*="_applyDashLocation"]', text: 'Filtre por local para ver torneios perto de você ou em um local específico.', context: 'dashboard', priority: 3, position: 'top' },
+    { id: 'dashboard-format-filter', selector: '[onclick*="_applyDashFormat"]', text: 'Filtre por formato: Eliminatórias, Liga, Suíço, Grupos + Eliminatória e mais.', context: 'dashboard', priority: 3, position: 'top' },
+    { id: 'dashboard-load-more', selector: '[onclick*="_dashPage"]', text: 'Você tem mais torneios! Clique para carregar os próximos.', context: 'dashboard', priority: 2, position: 'top' },
 
-    // ── Tournament Detail ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOURNAMENT DETAIL — Participant Actions
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'invite-friends', selector: '[onclick*="_shareTournament"]', text: 'Convide amigos! Compartilhe o link por WhatsApp, QR Code ou copie o link.', context: 'tournament-detail', priority: 7, position: 'top' },
     { id: 'enroll-btn', selector: '[onclick*="enrollInTournament"]', text: 'Inscreva-se para participar! O organizador será notificado automaticamente.', context: 'tournament-detail', priority: 8, position: 'top' },
+    { id: 'unenroll-btn', selector: '[onclick*="unenrollFrom"]', text: 'Cancele sua inscrição. Você poderá se inscrever novamente se as inscrições estiverem abertas.', context: 'tournament-detail', priority: 5, position: 'top' },
     { id: 'qr-code', selector: '[onclick*="_showQRCode"]', text: 'Gere um QR Code para projetar no local do evento. Participantes escaneiam e se inscrevem!', context: 'tournament-detail', priority: 4, position: 'top' },
-    { id: 'tv-mode', selector: '[onclick*="_tvMode"]', text: 'Modo TV: projete o placar ao vivo em um telão no local do torneio!', context: 'bracket', priority: 5, position: 'top' },
+    { id: 'detail-participants', selector: '[onclick*="participants"]', text: 'Veja a lista completa de participantes, faça check-in e gerencie inscritos.', context: 'tournament-detail', priority: 5, position: 'top' },
+    { id: 'detail-rules', selector: '[onclick*="rules"]', text: 'Confira as regras do torneio, critérios de desempate e histórico de atividades.', context: 'tournament-detail', priority: 4, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOURNAMENT DETAIL — Organizer Tools
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'org-edit-new', selector: '[onclick*="openEditModal"]', text: 'Edite os detalhes do seu torneio — local, datas, formato, categorias e mais.', context: 'tournament-detail', priority: 10, position: 'top' },
     { id: 'org-communicate', selector: '[onclick*="_sendOrgCommunication"]', text: 'Envie mensagens para todos os inscritos — ideal para avisos de horário ou local.', context: 'tournament-detail', priority: 5, position: 'top' },
     { id: 'org-sortear', selector: '[onclick*="_handleSortearClick"]', text: 'Sorteie o chaveamento! Os participantes serão distribuídos automaticamente.', context: 'tournament-detail', priority: 9, position: 'top' },
-    { id: 'org-edit-new', selector: '[onclick*="openEditModal"]', text: 'Edite os detalhes do seu torneio clicando aqui — local, datas, formato e mais!', context: 'tournament-detail', priority: 10, position: 'top' },
+    { id: 'org-add-participant', selector: '[onclick*="addParticipantFunction"]', text: 'Adicione um participante manualmente digitando nome e e-mail.', context: 'tournament-detail', priority: 6, position: 'top' },
+    { id: 'org-add-team', selector: '[onclick*="addTeamFunction"]', text: 'Adicione um time completo (dupla ou mais jogadores) de uma vez.', context: 'tournament-detail', priority: 5, position: 'top' },
+    { id: 'org-add-bots', selector: '[onclick*="addBotsFunction"]', text: 'Preencha vagas faltantes com jogadores fictícios (bots) para completar o chaveamento.', context: 'tournament-detail', priority: 4, position: 'top' },
+    { id: 'org-categories', selector: '[onclick*="_openCategoryManager"]', text: 'Gerencie categorias: mova participantes entre categorias, mescle ou separe por gênero/nível.', context: 'tournament-detail', priority: 6, position: 'top' },
+    { id: 'org-toggle-registration', selector: '[onclick*="toggleRegistrationStatus"]', text: 'Encerre ou reabra as inscrições. Quando encerradas, ninguém mais poderá se inscrever.', context: 'tournament-detail', priority: 7, position: 'top' },
+    { id: 'org-save-template', selector: '[onclick*="_saveAsTemplate"]', text: 'Salve as configurações como template para criar torneios similares no futuro rapidamente.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'org-clone', selector: '[onclick*="_cloneTournament"]', text: 'Crie uma cópia deste torneio com as mesmas configurações mas sem participantes.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'org-finish-tournament', selector: '[onclick*="finishTournament"]', text: 'Encerre o torneio definitivamente. O pódio e a classificação final serão exibidos.', context: 'tournament-detail', priority: 4, position: 'top' },
+    { id: 'org-delete-tournament', selector: '[onclick*="deleteTournamentFunction"]', text: 'Exclua o torneio permanentemente. Esta ação não pode ser desfeita!', context: 'tournament-detail', priority: 2, position: 'top' },
+    { id: 'org-cohost-picker', selector: '[onclick*="_openOrgPickerDialog"]', text: 'Compartilhe a organização! Convide um participante para ser co-organizador ou transfira a organização.', context: 'tournament-detail', priority: 5, position: 'top' },
+    { id: 'start-tournament', selector: '[onclick*="_startTournament"]', text: 'Inicie o torneio! As partidas serão liberadas para lançamento de resultados.', context: 'tournament-detail', priority: 9, position: 'top' },
+    { id: 'detail-view-bracket', selector: '[onclick*="bracket"]', text: 'Veja o chaveamento completo com todas as partidas, placares e classificação.', context: 'tournament-detail', priority: 7, position: 'top' },
+    { id: 'detail-export-csv', selector: '[onclick*="_exportTournamentCSV"]', text: 'Exporte todos os resultados para uma planilha CSV (Excel/Google Sheets).', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'liga-toggle-active', selector: '[onchange*="_toggleLigaActive"]', text: 'Ative ou desative a Liga. Quando ativa, sorteios automáticos acontecem no horário agendado.', context: 'tournament-detail', priority: 6, position: 'top' },
 
-    // ── Create Tournament ──
-    { id: 'ct-sport', selector: '#select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação e regras próprias.', context: 'create-tournament', priority: 8, position: 'bottom' },
-    { id: 'ct-format', selector: '#select-formato', text: 'Eliminatória Simples, Dupla Eliminatória, Liga (todos contra todos), Suíço (pareamento por pontos), Grupos + Eliminatória...', context: 'create-tournament', priority: 8, position: 'bottom' },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CREATE / EDIT TOURNAMENT — Form Fields
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'ct-sport', selector: '.sport-btn, #select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação próprios (sets, games, pontos).', context: 'create-tournament', priority: 8, position: 'bottom' },
+    { id: 'ct-format', selector: '.formato-btn, #select-formato', text: 'Formato do torneio: Eliminatória (mata-mata), Dupla Eliminatória, Grupos + Elim., Suíço ou Liga.', context: 'create-tournament', priority: 8, position: 'bottom' },
+    { id: 'ct-draw-mode', selector: '.draw-mode-btn', text: 'Modo de sorteio: "Sorteio" distribui aleatoriamente, "Rei/Rainha" forma grupos de 4 com parceiros rotativos.', context: 'create-tournament', priority: 7, position: 'bottom' },
+    { id: 'ct-enroll-mode', selector: '.enroll-mode-btn', text: 'Modo de inscrição: Individual (cada um por si), Apenas Times (duplas/equipes) ou Misto (ambos).', context: 'create-tournament', priority: 6, position: 'bottom' },
+    { id: 'ct-game-type', selector: '[onclick*="_selectGameType"]', text: 'Tipo de jogo: Simples (1 vs 1) ou Duplas (2 vs 2). Define como os times são formados.', context: 'create-tournament', priority: 6, position: 'bottom' },
     { id: 'ct-venue', selector: '#tourn-venue', text: 'Informe o local! A busca mostra endereços reais e até previsão do tempo para o dia do evento.', context: 'create-tournament', priority: 6, position: 'bottom' },
-    { id: 'ct-categories', selector: '#btn-cat-fem', text: 'Ative categorias para separar chaveamentos por gênero e/ou nível de habilidade.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-venue-access', selector: '#toggle-venue-public, [onclick*="_onVenueAccessToggle"]', text: 'Endereço público: visível na aba Explorar. Desative para manter o endereço privado para os inscritos.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-court-count', selector: '#tourn-court-count', text: 'Quantas quadras/mesas disponíveis? Usado para calcular a duração estimada do torneio.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-categories', selector: '#btn-cat-fem, #btn-cat-masc', text: 'Ative categorias por gênero (Fem, Masc, Misto) para criar chaveamentos separados por categoria.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-skill-categories', selector: '#tourn-skill-categories', text: 'Categorias por nível: digite A, B, C separados por vírgula. Combinam com gênero (ex: Fem A, Masc B).', context: 'create-tournament', priority: 4, position: 'bottom' },
     { id: 'ct-gsm', selector: '#btn-gsm-config', text: 'Configure sets, games e tiebreaks! Ideal para tênis, beach tennis, padel e vôlei.', context: 'create-tournament', priority: 7, position: 'bottom' },
     { id: 'ct-logo', selector: '#logo-preview', text: 'Gere uma logo automática para o torneio! Você também pode fazer upload da sua.', context: 'create-tournament', priority: 4, position: 'top' },
-    { id: 'ct-public', selector: '#tourn-public', text: 'Torneio público aparece na aba Explorar — ótimo para atrair novos participantes!', context: 'create-tournament', priority: 5, position: 'top' },
-    { id: 'ct-dates', selector: '#tourn-start-date', text: 'Defina datas de início e inscrição. Os participantes verão contagem regressiva nos cards!', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-public', selector: '#tourn-public, #toggle-public', text: 'Torneio público aparece na aba Explorar — ótimo para atrair novos participantes!', context: 'create-tournament', priority: 5, position: 'top' },
+    { id: 'ct-dates', selector: '#tourn-start-date', text: 'Defina datas de início e fim. Os participantes verão contagem regressiva nos cards!', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-reg-date', selector: '#tourn-reg-date', text: 'Prazo de inscrição: as inscrições serão encerradas automaticamente nesta data.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-max-participants', selector: '#tourn-max-participants', text: 'Limite de participantes. Deixe vazio para sem limite.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-auto-close', selector: '#tourn-auto-close', text: 'Fecha inscrições automaticamente quando atingir o limite de participantes (potência de 2).', context: 'create-tournament', priority: 3, position: 'bottom' },
+    { id: 'ct-time-estimates', selector: '#tourn-game-duration', text: 'Duração da partida em minutos. Usado para calcular a duração total estimada do torneio.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-monarch-classified', selector: '.monarch-cls-btn', text: 'Quantos jogadores avançam de cada grupo Rei/Rainha para a fase eliminatória: 1 (só o melhor) ou 2.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-groups-config', selector: '#grupos-count', text: 'Número de grupos e classificados por grupo na fase de grupos.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-swiss-rounds', selector: '#suico-rounds', text: 'Número de rodadas no formato Suíço. Recomendado: log₂ do número de participantes (ex: 8 jogadores = 3 rodadas).', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-wo-scope', selector: '[onclick*="_selectWOScope"]', text: 'W.O. Individual: só o jogador ausente perde. W.O. do Time: todo o time é eliminado por uma ausência.', context: 'create-tournament', priority: 3, position: 'bottom' },
+    { id: 'ct-late-enrollment', selector: '[onclick*="_selectLatePolicy"]', text: 'O que acontece com inscrições tardias: Fechado (recusa), Standby (fila de espera) ou Expansão (aceita e ajusta chave).', context: 'create-tournament', priority: 3, position: 'bottom' },
+    { id: 'ct-tiebreakers', selector: '#tiebreaker-list', text: 'Arraste para reordenar os critérios de desempate. O primeiro critério tem prioridade máxima.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-load-template', selector: '#btn-load-template-create', text: 'Carregue um template salvo para preencher o formulário com configurações prontas!', context: 'create-tournament', priority: 5, position: 'bottom' },
 
-    // ── Overlay: Invite Modal ──
+    // ── Create Tournament: Liga-specific ──
+    { id: 'ct-liga-season', selector: '#liga-season-months', text: 'Duração da temporada da Liga. Ao final, a classificação é congelada e o campeão é coroado.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-liga-open-enrollment', selector: '#liga-open-enrollment', text: 'Inscrições sempre abertas: novos jogadores podem entrar a qualquer momento durante a temporada.', context: 'create-tournament', priority: 4, position: 'bottom' },
+    { id: 'ct-liga-manual-draw', selector: '#liga-manual-draw', text: 'Sorteio manual: você decide quando gerar cada rodada. Desative para agendar sorteios automáticos.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-liga-draw-schedule', selector: '#liga-first-draw-date', text: 'Agende sorteios automáticos: defina a data/hora do primeiro e o intervalo entre eles.', context: 'create-tournament', priority: 5, position: 'bottom' },
+    { id: 'ct-liga-nps', selector: '.liga-nps-btn', text: 'Pontuação de novos jogadores: Zero (começa do zero), Mínimo, Média dos demais, ou decisão do organizador.', context: 'create-tournament', priority: 3, position: 'bottom' },
+    { id: 'ct-liga-inactivity', selector: '.liga-inact-btn', text: 'Regra de inatividade: Manter (nada muda), Decair (perde pontos), Remover (excluído da Liga).', context: 'create-tournament', priority: 3, position: 'bottom' },
+    { id: 'ct-liga-round-format', selector: '[onclick*="ligaRoundFormat"]', text: 'Formato da rodada: Padrão (1 vs 1) ou Rei/Rainha (grupos de 4 com parceiros rotativos).', context: 'create-tournament', priority: 5, position: 'bottom' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY: Invite Modal
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'inv-friends', selector: '[id^="invite-friends-btn"]', text: 'Envie convites para todos os seus amigos da plataforma com um clique!', context: 'invite-modal', priority: 8, position: 'bottom' },
     { id: 'inv-whatsapp', selector: '.btn-whatsapp', text: 'Compartilhe o convite direto no WhatsApp — ideal para grupos!', context: 'invite-modal', priority: 7, position: 'bottom' },
     { id: 'inv-link', selector: '.btn-primary', text: 'Copie o link e cole onde quiser: Instagram, Telegram, SMS...', context: 'invite-modal', priority: 7, position: 'bottom' },
     { id: 'inv-qr', selector: 'img[alt="QR Code"]', text: 'Projete ou mostre este QR Code no evento. Os jogadores escaneiam e se inscrevem na hora!', context: 'invite-modal', priority: 6, position: 'top' },
     { id: 'inv-email', selector: '[id^="invite-email"]', text: 'Digite o e-mail de quem quer convidar e envie diretamente.', context: 'invite-modal', priority: 5, position: 'top' },
 
-    // ── Overlay: Power of 2 Panel ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY: Power of 2 Panel
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'p2-nash', selector: '.p2-option', text: 'As cores indicam o equilíbrio de Nash: verde é a opção mais equilibrada, azul a menos. O percentual mostra o score.', context: 'p2-panel', priority: 9, position: 'top' },
     { id: 'p2-reopen', selector: '[onclick*="handleP2Option"][onclick*="reopen"]', text: 'Reabre as inscrições para completar a potência de 2 com novos participantes.', context: 'p2-panel', priority: 7, position: 'top' },
     { id: 'p2-bye', selector: '[onclick*="handleP2Option"][onclick*="bye"]', text: 'BYE: alguns participantes avançam direto para a 2ª rodada sem jogar.', context: 'p2-panel', priority: 7, position: 'top' },
@@ -89,39 +152,96 @@
     { id: 'p2-swiss', selector: '[onclick*="handleP2Option"][onclick*="swiss"]', text: 'Formato Suíço: todos jogam várias rodadas antes de afunilar para os melhores classificados.', context: 'p2-panel', priority: 6, position: 'top' },
     { id: 'p2-poll', selector: '[onclick*="handleP2Option"][onclick*="poll"]', text: 'Enquete: deixe os participantes votarem na solução que preferem!', context: 'p2-panel', priority: 5, position: 'top' },
 
-    // ── Overlay: Incomplete Teams Panel ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY: Incomplete Teams Panel
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'it-nash', selector: '[onclick*="handleIncompleteOption"]', text: 'Cada opção tem um score de Nash indicando a solução mais equilibrada entre justiça, inclusão e praticidade.', context: 'incomplete-panel', priority: 9, position: 'top' },
     { id: 'it-reopen', selector: '[onclick*="handleIncompleteOption"][onclick*="reopen"]', text: 'Reabre inscrições para que novos jogadores completem os times.', context: 'incomplete-panel', priority: 7, position: 'top' },
     { id: 'it-lottery', selector: '[onclick*="handleIncompleteOption"][onclick*="lottery"]', text: 'Bots: preenche as vagas faltantes com nomes fictícios para completar times.', context: 'incomplete-panel', priority: 6, position: 'top' },
     { id: 'it-dissolve', selector: '[onclick*="handleIncompleteOption"][onclick*="dissolve"]', text: 'Ajuste Manual: reorganize jogadores entre times arrastando e soltando.', context: 'incomplete-panel', priority: 6, position: 'top' },
 
-    // ── Overlay: Poll Creation ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY: Poll Creation / Voting
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'poll-create-deadline', selector: '#poll-deadline', text: 'Defina até quando os participantes podem votar. Após o prazo a enquete encerra automaticamente.', context: 'poll-creation', priority: 8, position: 'bottom' },
     { id: 'poll-create-options', selector: '[data-poll-option]', text: 'Marque as opções que deseja incluir na enquete. O badge Nash indica a mais equilibrada.', context: 'poll-creation', priority: 7, position: 'top' },
-
-    // ── Overlay: Poll Voting ──
     { id: 'poll-vote', selector: '[onclick*="castPollVote"]', text: 'Escolha a opção que prefere. Você pode mudar seu voto até o encerramento da enquete.', context: 'poll-voting', priority: 9, position: 'top' },
 
-    // ── Overlay: GSM Config ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY: GSM Config / Set Scoring
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'gsm-sets', selector: '#gsm-sets-to-win', text: 'Quantos sets para vencer a partida. Ex: tênis profissional usa 3, amador usa 1 ou 2.', context: 'gsm-config', priority: 8, position: 'bottom' },
     { id: 'gsm-games', selector: '#gsm-games-per-set', text: 'Games por set. Padrão 6 para tênis, 11 para tênis de mesa, 25 para vôlei.', context: 'gsm-config', priority: 7, position: 'bottom' },
     { id: 'gsm-tiebreak', selector: '#gsm-tiebreak-toggle', text: 'Ative o tiebreak para sets empatados. Comum em todos os esportes de raquete.', context: 'gsm-config', priority: 6, position: 'bottom' },
     { id: 'gsm-super-tb', selector: '#gsm-super-tb-toggle', text: 'Super tiebreak: o set decisivo é jogado em formato curto (10 pontos). Popular no beach tennis e duplas.', context: 'gsm-config', priority: 5, position: 'bottom' },
-
-    // ── Overlay: Set Scoring ──
+    { id: 'gsm-counting', selector: '#gsm-counting-type', text: 'Tipo de contagem: Numérica (1, 2, 3...) ou Tênis (15, 30, 40, game).', context: 'gsm-config', priority: 5, position: 'bottom' },
+    { id: 'gsm-advantage', selector: '#gsm-advantage-toggle', text: 'Regra de vantagem (deuce/advantage): ao empatar em 40-40, exige 2 pontos de diferença.', context: 'gsm-config', priority: 4, position: 'bottom' },
     { id: 'set-scoring-input', selector: '.set-score-row', text: 'Insira o placar de cada set. O sistema calcula automaticamente quem venceu a partida.', context: 'set-scoring', priority: 9, position: 'top' },
+    { id: 'set-scoring-save', selector: '#btn-save-sets', text: 'Salve o placar dos sets. O vencedor será determinado automaticamente.', context: 'set-scoring', priority: 8, position: 'top' },
 
-    // ── Bracket / Standings ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BRACKET / STANDINGS
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'bracket-zoom', selector: '.zoom-slider', text: 'Use o zoom para ver o chaveamento completo. Dica: arraste para navegar!', context: 'bracket', priority: 4, position: 'top' },
     { id: 'bracket-print', selector: '[onclick*="_printBracket"]', text: 'Imprima o chaveamento para colar na parede do evento!', context: 'bracket', priority: 3, position: 'top' },
     { id: 'bracket-export', selector: '[onclick*="_exportTournamentCSV"]', text: 'Exporte resultados em CSV para abrir no Excel ou Google Sheets.', context: 'bracket', priority: 3, position: 'top' },
     { id: 'standings-sort', selector: 'th[onclick*="_sortStandingsTable"]', text: 'Clique nos cabeçalhos da tabela para ordenar por qualquer coluna!', context: 'bracket', priority: 5, position: 'bottom' },
     { id: 'bracket-share', selector: '[onclick*="_shareMatchResult"]', text: 'Compartilhe o resultado de cada partida direto no WhatsApp!', context: 'bracket', priority: 4, position: 'top' },
+    { id: 'tv-mode', selector: '[onclick*="_tvMode"]', text: 'Modo TV: projete o placar ao vivo em um telão no local do torneio! Auto-atualiza a cada 30s.', context: 'bracket', priority: 5, position: 'top' },
+    { id: 'score-inline-input', selector: 'input[id^="s1-"]', text: 'Digite o placar diretamente aqui. Clique em ✓ para confirmar ou use "Lançar Sets" para placar detalhado.', context: 'bracket', priority: 6, position: 'top' },
+    { id: 'score-confirm-inline', selector: 'button[id^="confirm-"]', text: 'Confirme o placar para registrar o resultado da partida.', context: 'bracket', priority: 7, position: 'top' },
+    { id: 'score-edit', selector: '[onclick*="_editResult"]', text: 'Edite o resultado de uma partida já registrada.', context: 'bracket', priority: 4, position: 'top' },
+    { id: 'bracket-round-hide', selector: '[onclick*="_toggleRoundVisibility"]', text: 'Oculte ou mostre rodadas já concluídas para economizar espaço na tela.', context: 'bracket', priority: 3, position: 'top' },
+    { id: 'org-close-round', selector: '[onclick*="_closeRound"]', text: 'Feche a rodada atual e gere a próxima automaticamente com base nos resultados.', context: 'bracket', priority: 8, position: 'top' },
+    { id: 'org-advance-elimination', selector: '[onclick*="_advanceToElimination"]', text: 'Avance os classificados dos grupos para a fase eliminatória (mata-mata).', context: 'bracket', priority: 8, position: 'top' },
+    { id: 'player-stats', selector: '[onclick*="_showPlayerStats"]', text: 'Clique no nome de um jogador para ver suas estatísticas globais em todos os torneios!', context: 'bracket', priority: 5, position: 'top' },
+    { id: 'player-history', selector: '[onclick*="_showPlayerHistory"]', text: 'Veja o histórico completo de partidas deste jogador no torneio: adversários, placares e resultados.', context: 'bracket', priority: 4, position: 'top' },
+    { id: 'my-matches-toggle', selector: '#my-matches-toggle', text: 'Filtre para ver apenas as suas partidas no chaveamento.', context: 'bracket', priority: 5, position: 'top' },
 
-    // ── Explore ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PARTICIPANTS / CHECK-IN
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'participant-vip', selector: '[onclick*="_toggleVip"]', text: 'Marque como VIP para prioridade no cabeçamento do chaveamento (cabeça de chave).', context: 'tournament-detail', priority: 4, position: 'top' },
+    { id: 'participant-remove', selector: '[onclick*="removeParticipantFunction"]', text: 'Remova este participante do torneio.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'checkin-toggle', selector: '.toggle-switch', text: 'Faça check-in: confirme a presença dos participantes antes de iniciar o torneio.', context: 'tournament-detail', priority: 6, position: 'top' },
+    { id: 'checkin-filter', selector: '[onclick*="_setCheckInFilter"]', text: 'Filtre a lista: Todos, Presentes ou Ausentes. Facilita o controle no dia do evento.', context: 'tournament-detail', priority: 4, position: 'top' },
+    { id: 'checkin-reset', selector: '[onclick*="_resetCheckIn"]', text: 'Limpe todos os check-ins para recomeçar a chamada do zero.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'participants-sort', selector: '[onclick*="_enrollSortMode"]', text: 'Ordene a lista: alfabética (A-Z), cronológica (primeiro inscrito) ou inversa.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'checkin-wo', selector: '[onclick*="_markAbsent"]', text: 'Marque W.O. (walkover): o jogador ausente perde a partida automaticamente.', context: 'bracket', priority: 5, position: 'top' },
+    { id: 'bracket-substitute-wo', selector: '[onclick*="_autoSubstituteWO"]', text: 'Substitua automaticamente o jogador W.O. pelo próximo da lista de espera presente.', context: 'bracket', priority: 5, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PRE-DRAW
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'predraw-confirm-draw', selector: '[onclick*="_runPreDrawConfirm"]', text: 'Confirme o sorteio! O chaveamento será gerado com base nas configurações definidas.', context: 'tournament-detail', priority: 9, position: 'top' },
+    { id: 'predraw-rename-cat', selector: '[onclick*="_renameCat"]', text: 'Renomeie esta categoria antes do sorteio.', context: 'tournament-detail', priority: 3, position: 'top' },
+    { id: 'predraw-merge-cat', selector: '[onclick*="_mergeCat"]', text: 'Mescle duas categorias em uma só (ex: quando poucas inscrições em uma categoria).', context: 'tournament-detail', priority: 4, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPLORE
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'explore-search', selector: '#explore-search', text: 'Busque por nome, esporte, formato ou cidade para encontrar torneios perto de você!', context: 'explore', priority: 6, position: 'bottom' },
+    { id: 'explore-friend-request', selector: '[onclick*="_sendFriendRequest"]', text: 'Envie um pedido de amizade para se conectar e ser convidado para torneios futuros.', context: 'explore', priority: 5, position: 'top' },
 
-    // ── Meta: teach user about hints ──
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NOTIFICATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'notif-accept-host', selector: '[onclick*="_acceptHostInvite"]', text: 'Aceite o convite para ser co-organizador deste torneio.', context: 'global', priority: 7, position: 'top' },
+    { id: 'notif-accept-friend', selector: '[onclick*="_acceptFriend"]', text: 'Aceite o pedido de amizade para trocar convites de torneio!', context: 'global', priority: 6, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PROFILE MODAL
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'profile-gender', selector: '#profile-edit-gender', text: 'Selecione seu gênero para ser distribuído automaticamente nas categorias corretas ao se inscrever.', context: 'global', priority: 5, position: 'bottom' },
+    { id: 'profile-language', selector: '#profile-lang-flags button, [onclick*="_setLang"]', text: 'Escolha o idioma do app: Português (🇧🇷) ou English (🇺🇸).', context: 'global', priority: 4, position: 'bottom' },
+    { id: 'profile-sports', selector: '#profile-edit-sports', text: 'Informe seus esportes preferidos para receber sugestões de torneios relevantes.', context: 'global', priority: 4, position: 'bottom' },
+    { id: 'profile-location', selector: '#profile-location-search', text: 'Adicione sua localização para encontrar torneios perto de você e receber notificações.', context: 'global', priority: 5, position: 'bottom' },
+    { id: 'profile-notify-level', selector: '[onclick*="_toggleNotifyFilter"]', text: 'Configure o nível de notificações: Todas, Só Importantes ou Só Fundamentais.', context: 'global', priority: 4, position: 'top' },
+    { id: 'profile-hints-toggle', selector: '[onclick*="hintSystem"]', text: 'Ative ou desative as dicas visuais que aparecem quando você fica parado.', context: 'global', priority: 3, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // META
+    // ═══════════════════════════════════════════════════════════════════════════
     { id: 'hints-meta', selector: '#btn-login', text: 'Essas dicas aparecem quando você fica parado. Para desativá-las, clique "Desativar dicas" aqui embaixo — ou reative no seu Perfil quando quiser.', context: 'global', priority: 2, position: 'bottom' }
   ];
 

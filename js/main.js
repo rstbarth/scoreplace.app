@@ -95,125 +95,266 @@
       id: 'dashboard',
       title: _t('help.dashboard'),
       icon: '📊',
-      content: '<p>A <b>Dashboard</b> é sua página principal. Ela mostra um resumo dos seus torneios e permite filtrar de várias formas:</p>' +
-        '<p><b>Cards de resumo</b> — No topo você vê cards clicáveis: "Meus Torneios" (que você organiza), "Participando" (que você está inscrito) e "Inscrições Abertas". Clique neles para filtrar os cards abaixo.</p>' +
-        '<p><b>Filtros por modalidade, local e formato</b> — Logo abaixo dos cards de resumo, aparecem pills coloridas para filtrar por esporte (roxo), local (verde) e formato (amarelo). Clique em "✕ Limpar filtros" para voltar a ver tudo.</p>' +
-        '<p><b>Cards de torneio</b> — Cada torneio aparece como um card com nome, esporte, data, número de inscritos e status. Se o torneio tem uma foto do local, ela aparece como fundo do card. Se tem logo, ele aparece ao lado do nome. Clique no card para ver os detalhes.</p>'
+      content: '<p>A <b>Dashboard</b> é sua página principal com todos os seus torneios.</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Hero Box e Filtros Principais</div>' +
+          '<p><b>Cards de resumo</b> — No topo: "Meus Torneios", "Participando" e "Inscrições Abertas". Clique para filtrar.</p>' +
+          '<p><b>Filtros no topo</b> — Todos, Organizados, Participando, Abertos, Favoritos, Encerrados. O ativo fica destacado.</p>' +
+          '<p><b>Filtros por modalidade, local e formato</b> — Pills coloridas (roxo=esporte, verde=local, amarelo=formato). Use "✕ Limpar filtros" para resetar.</p>' +
+          '<p><b>Visualização</b> — Alterne entre Cards (visual completo) e Lista (uma linha por torneio) com os botões no canto.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cards de Torneio</div>' +
+          '<p>Cada card mostra: nome, esporte, formato, inscritos, barra de progresso, countdown e status.</p>' +
+          '<p><b>Estrela ⭐</b> — Clique para favoritar. Torneios favoritos aparecem no filtro "Favoritos".</p>' +
+          '<p><b>Foto do local</b> — Aparece como fundo do card quando disponível.</p>' +
+          '<p><b>Logo</b> — Miniatura ao lado do nome (56×56px).</p>' +
+          '<p><b>Próximas partidas</b> — No topo, um widget mostra suas partidas pendentes com link direto.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Paginação e Contagens</div>' +
+          '<p>Torneios são carregados em lotes de 12. Clique em "Carregar mais" para ver os próximos.</p>' +
+          '<p>Torneios encerrados ficam agrupados em seção colapsável no final.</p>' +
+        '</div>'
     },
     {
       id: 'criar-torneio',
       title: _t('help.createTournament'),
       icon: '➕',
-      content: '<p>Existem duas formas de criar um torneio:</p>' +
-        '<p><b>Criação rápida</b> — Clique em "+ Novo Torneio" na dashboard, escolha o esporte e clique em "Criar Torneio". Um torneio de eliminatórias simples é criado instantaneamente com nome automático.</p>' +
-        '<p><b>Detalhes avançados</b> — Na criação rápida, clique em "Detalhes Avançados" para abrir o formulário completo onde você pode configurar:</p>' +
-        '<p>Nome, esporte, formato (5 opções), datas de início/fim, prazo de inscrição, local (com busca automática no mapa), número de quadras, público ou privado, modo de inscrição (individual ou times), máximo de participantes, logo do torneio e muito mais.</p>' +
-        '<p><b>Logo do torneio</b> — Você pode gerar um logo automático (baseado no nome, esporte, formato e local) ou fazer upload de uma imagem. Use o cadeado para travar o logo e evitar que ele mude ao editar o torneio. Você também pode baixar o logo gerado.</p>'
+      content: '<p>Duas formas de criar um torneio:</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Criação Rápida</div>' +
+          '<p>Clique em "+ Novo Torneio" → escolha o esporte → "Criar Torneio". Pronto! Nome automático, formato Eliminatórias, inscrição individual.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Formulário Completo</div>' +
+          '<p>Na criação rápida, clique em "Detalhes Avançados" ou use "Editar" em um torneio existente.</p>' +
+          '<p><b>Esporte</b> — Beach Tennis, Tênis, Padel, Pickleball, Tênis de Mesa. Cada um tem padrões de pontuação próprios.</p>' +
+          '<p><b>Formato</b> — Eliminatórias, Dupla Eliminatória, Grupos + Elim., Suíço, Liga. Cada formato tem configurações específicas.</p>' +
+          '<p><b>Modo de Sorteio</b> — Sorteio (aleatório) ou Rei/Rainha da Praia (grupos de 4 com parceiros rotativos).</p>' +
+          '<p><b>Modo de Inscrição</b> — Individual, Apenas Times ou Misto (aceita ambos).</p>' +
+          '<p><b>Tipo de Jogo</b> — Simples (1v1) ou Duplas (2v2). Ambos ligados = chaves paralelas.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Campos do Formulário</div>' +
+          '<p><b>Local</b> — Busca automática no Google Maps com foto e previsão do tempo.</p>' +
+          '<p><b>Quadras</b> — Número de quadras (1-50) e nomes personalizados. Afeta a duração estimada.</p>' +
+          '<p><b>Datas</b> — Início, fim e prazo de inscrição. Contagem regressiva automática nos cards.</p>' +
+          '<p><b>Máximo de participantes</b> — Limite opcional. Pode auto-encerrar inscrições ao atingir.</p>' +
+          '<p><b>Público/Privado</b> — Público aparece na aba Explorar. Endereço pode ser público ou restrito.</p>' +
+          '<p><b>Categorias</b> — Gênero (Fem/Masc/Misto) × Habilidade (A/B/C). Gera chaveamentos separados.</p>' +
+          '<p><b>Pontuação (GSM)</b> — Configure sets, games, tiebreaks e super tiebreak por esporte.</p>' +
+          '<p><b>Logo</b> — Geração automática por Canvas ou upload. Cadeado trava contra auto-regeneração.</p>' +
+          '<p><b>W.O.</b> — Individual (só o ausente perde) ou Time Inteiro (time eliminado).</p>' +
+          '<p><b>Inscrições tardias</b> — Fechado, Lista de Espera ou Expansão (aceita e ajusta chave).</p>' +
+          '<p><b>Desempate</b> — Arraste para reordenar critérios: confronto direto, saldo, Buchholz, etc.</p>' +
+          '<p><b>Templates</b> — Salve configurações como template. Carregue em torneios futuros.</p>' +
+        '</div>'
     },
     {
       id: 'formatos',
       title: _t('help.formats'),
       icon: '🎯',
-      content: '<p>O scoreplace.app suporta <b>5 formatos</b> de torneio:</p>' +
-        '<p><b>Eliminatórias Simples</b> — Perdeu, está fora. Ideal para torneios rápidos. Opcional: disputa de 3º lugar.</p>' +
-        '<p><b>Dupla Eliminatória</b> — Cada participante precisa perder 2 vezes para ser eliminado. Tem chave de vencedores e de perdedores.</p>' +
-        '<p><b>Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Os participantes são divididos em grupos, jogam entre si, e os melhores de cada grupo avançam para as eliminatórias.</p>' +
-        '<p><b>Suíço Clássico</b> — Todos jogam todas as rodadas. Os emparelhamentos são feitos por pontuação. Ótimo para xadrez e jogos de mesa. Número de rodadas configurável.</p>' +
-        '<p><b>Liga</b> — Temporada contínua com classificação por pontos corridos. Duração configurável (indefinida, 3, 6, 12 meses ou personalizada). Inscrições podem permanecer abertas durante toda a temporada. Sorteios automáticos ou manuais com intervalo configurável. Regras de inatividade e pontuação de novos jogadores. Ideal para comunidades que jogam regularmente.</p>'
+      content: '<p>O scoreplace.app suporta <b>5 formatos</b> de torneio + modo Rei/Rainha:</p>' +
+        '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<p style="margin:0;"><b>🏆 Eliminatórias Simples</b> — Perdeu, está fora. Opcional: disputa de 3º lugar, repescagem (melhores perdedores da R1 disputam vagas extra). Quando inscritos não são potência de 2, painel inteligente sugere: BYE, Play-in, Suíço, reabrir ou enquete.</p>' +
+        '</div>' +
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<p style="margin:0;"><b>🔄 Dupla Eliminatória</b> — Precisa perder 2x para sair. Chave de vencedores (Winners) e perdedores (Losers). Grande final entre o campeão de cada chave.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<p style="margin:0;"><b>⚽ Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Participantes divididos em grupos, todos jogam entre si. Os N melhores de cada grupo avançam para mata-mata. Configurável: número de grupos e classificados por grupo.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<p style="margin:0;"><b>♟️ Suíço</b> — Todos jogam todas as rodadas. Emparelhamentos por pontuação (adversários de nível similar). Ótimo para muitos participantes em poucas rodadas. Rodadas configuráveis. Classificação com Buchholz e Sonneborn-Berger.</p>' +
+        '</div>' +
+        '<div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável. Inscrições sempre abertas (opcional). Sorteios automáticos ou manuais com intervalo. Regras de inatividade e pontuação de novos jogadores. Rodadas podem usar formato Rei/Rainha. Ideal para comunidades regulares.</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;">' +
+          '<p style="margin:0;"><b>👑 Rei/Rainha da Praia</b> — Modo de sorteio especial: grupos de 4 jogadores com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual. Top 1 ou 2 de cada grupo avançam para eliminatória até coroar o Rei/Rainha. Pode ser usado na Liga também.</p>' +
+        '</div>'
     },
     {
       id: 'inscricao',
       title: _t('help.enrollment'),
       icon: '✍️',
-      content: '<p><b>Para se inscrever</b> — Abra o torneio e clique no botão "Inscrever-se". Se o torneio for por times, você precisará preencher os nomes dos integrantes da equipe.</p>' +
-        '<p><b>Confirmação</b> — Após a inscrição, você será redirecionado para a página do torneio e verá seu nome destacado entre os inscritos.</p>' +
-        '<p><b>Cancelar inscrição</b> — Clique em "Cancelar Inscrição" na página do torneio. Uma confirmação será pedida antes de remover.</p>' +
-        '<p><b>Convites</b> — Se alguém te convidar para um torneio, você receberá um link. Ao clicar, basta fazer login (se necessário) e confirmar a inscrição.</p>' +
-        '<p><b>Inscrição automática fechada</b> — Alguns torneios fecham inscrições automaticamente ao atingir o número máximo de participantes.</p>'
+      content: '<p><b>Inscrever-se</b> — Abra o torneio e clique em "Inscrever-se". Em torneios com categorias, escolha sua categoria. Em torneios por times, preencha os nomes da equipe.</p>' +
+        '<p><b>Por convite</b> — Clique no link recebido, faça login e será inscrito automaticamente (+ amizade com quem convidou).</p>' +
+        '<p><b>Cancelar inscrição</b> — Botão "Cancelar Inscrição" na página do torneio. Confirmação obrigatória.</p>' +
+        '<p><b>Encerramento automático</b> — Inscrições encerram ao atingir o limite ou na data/hora de prazo.</p>' +
+        '<p><b>Inscrições tardias</b> — Dependendo da configuração: Fechado (bloqueado), Lista de Espera (suplente) ou Expansão (aceita e ajusta chave).</p>' +
+        '<p><b>Lista de espera</b> — Suplentes podem substituir ausentes no check-in. Contagem separada no card.</p>' +
+        '<p><b>Modos</b> — Individual (cada um por si), Times (duplas/equipes inscritas juntas) ou Misto (aceita ambos).</p>'
     },
     {
       id: 'sorteio',
       title: _t('help.draw'),
       icon: '🎲',
-      content: '<p><b>Antes do sorteio</b> — O organizador pode abrir a "Janela Pré-Sorteio" para organizar os participantes por categoria, mover entre grupos e definir a ordem de cabeças de chave.</p>' +
-        '<p><b>Realizar o sorteio</b> — O organizador clica em "Sortear" para gerar as chaves oficiais. Em eliminatórias, os confrontos são definidos aleatoriamente. Em grupos, os participantes são distribuídos nos grupos.</p>' +
-        '<p><b>Visualizar chaves</b> — Após o sorteio, a aba "Chaves" mostra a estrutura do torneio: árvore de eliminatórias, tabela de grupos, classificação da liga, etc.</p>' +
-        '<p><b>Iniciar torneio</b> — Após o sorteio, o organizador clica em "Iniciar Torneio" para habilitar check-in e lançamento de resultados.</p>' +
-        '<p><b>Enquete entre participantes</b> — Em eliminatórias, quando há times incompletos ou o número de inscritos não é potência de 2, o organizador pode abrir uma enquete para que os próprios participantes votem na solução preferida (BYE, repescagem, lista de espera, etc.). O prazo padrão é 48h com contagem regressiva ao vivo. A opção recomendada é calculada pelo equilíbrio de Nash (maximizando justiça, inclusão e praticidade). Antes de votar, o participante vê apenas as descrições das opções; após votar, o resultado parcial e seu voto são revelados. É possível mudar o voto até o encerramento.</p>'
+      content: '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Antes do Sorteio</div>' +
+          '<p>O organizador encerra inscrições (manual ou automático) e clica em "Sortear".</p>' +
+          '<p><b>Painel de resolução</b> — Se os inscritos não são potência de 2 (eliminatórias), painel inteligente com Nash sugere: BYE, Play-in, Repescagem, Suíço, Reabrir, Lista de Espera ou Enquete.</p>' +
+          '<p><b>Times incompletos</b> — Se há sobra de jogadores que não formam time completo: Reabrir, Bots, Lista de Espera ou Ajuste Manual.</p>' +
+          '<p><b>Cabeças de chave (VIP)</b> — Marque jogadores como VIP na lista de inscritos para prioridade no seeding.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">O Sorteio</div>' +
+          '<p><b>Eliminatórias</b> — Confrontos aleatórios respeitando VIPs. BYEs distribuídos intercalados.</p>' +
+          '<p><b>Grupos</b> — Painel mostra todas as distribuições possíveis (grupos iguais e mistos). Classificados por grupo configurável.</p>' +
+          '<p><b>Liga/Suíço</b> — Gera rodada por pontuação. Sorteios podem ser automáticos (agendados) ou manuais.</p>' +
+          '<p><b>Rei/Rainha</b> — Grupos de 4 com rotação de parceiros (3 partidas por grupo).</p>' +
+          '<p><b>Divulgação imediata</b> — Todos recebem notificação quando o sorteio é realizado.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Enquete entre Participantes</div>' +
+          '<p>Quando há impasse (potência de 2, times incompletos), crie uma enquete para os participantes votarem.</p>' +
+          '<p>Prazo padrão: 48h. Contagem regressiva ao vivo. Recomendação por Nash (justiça 45%, inclusão 35%, praticidade 20%).</p>' +
+          '<p>Antes de votar: apenas descrições. Após votar: resultado parcial e seu voto visíveis. Pode mudar o voto até encerrar.</p>' +
+        '</div>'
     },
     {
       id: 'checkin',
       title: _t('help.checkin'),
       icon: '✅',
-      content: '<p><b>Check-in</b> — Depois que o torneio é iniciado, o organizador pode fazer a chamada de presença na aba "Inscritos". Cada participante pode ser marcado como Presente, Ausente ou Pendente.</p>' +
-        '<p><b>Indicadores nas chaves</b> — Nas chaves, cada jogador tem um ponto colorido: verde (presente), vermelho (ausente), cinza (pendente). A partida aparece verde quando ambos estão presentes.</p>' +
-        '<p><b>Ausência e W.O.</b> — Se um jogador é declarado ausente, o organizador pode dar W.O. (vitória automática ao adversário) ou substituir por um reserva (standby).</p>' +
-        '<p><b>Lista de espera</b> — Participantes na lista de espera podem ser chamados para substituir ausentes.</p>'
+      content: '<p><b>Check-in</b> — Após iniciar o torneio, faça a chamada na aba "Inscritos". Toggle Presente/Ausente por participante.</p>' +
+        '<p><b>Filtros</b> — Todos, Presentes, Ausentes, Pendentes. Facilita o controle no dia do evento.</p>' +
+        '<p><b>Indicadores nas chaves</b> — Ponto verde (presente), vermelho (ausente), cinza (pendente). Partida verde quando ambos presentes.</p>' +
+        '<p><b>W.O. (Walkover)</b> — Marque ausente → botão W.O. dá vitória automática ao adversário. Escopo configurável: Individual (só o ausente) ou Time Inteiro.</p>' +
+        '<p><b>Substituição automática</b> — Marque W.O. e o próximo presente da lista de espera entra no lugar.</p>' +
+        '<p><b>Limpar check-in</b> — Botão "Limpar" reseta todos os check-ins para recomeçar.</p>' +
+        '<p><b>Ordenação</b> — Botões A-Z (alfabética) e 🕐 (cronológica) no cabeçalho da lista.</p>'
     },
     {
       id: 'resultados',
       title: _t('help.results'),
       icon: '📝',
-      content: '<p><b>Lançar resultado</b> — O organizador (ou os próprios jogadores, dependendo da configuração) pode clicar na partida para informar o placar.</p>' +
-        '<p><b>Configurações de lançamento</b> — No formulário de criação, você define quem pode lançar resultados: apenas o organizador, pelos próprios jogadores (com aceite do adversário), ou por árbitro designado.</p>' +
-        '<p><b>Progressão automática</b> — Em eliminatórias, o vencedor avança automaticamente para a próxima fase. Na liga e suíço, a classificação é atualizada em tempo real.</p>'
+      content: '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Lançando Resultados</div>' +
+          '<p><b>Placar simples</b> — Digite o placar diretamente nos campos numéricos do card da partida e clique ✓ para confirmar.</p>' +
+          '<p><b>Game-Set-Match (GSM)</b> — Para torneios com sets, clique em "Lançar Sets" para abrir o overlay dedicado. Insira o placar set a set; tiebreaks aparecem automaticamente quando necessário.</p>' +
+          '<p><b>Editar resultado</b> — Clique no ✏️ para reabrir os campos e corrigir o placar.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Progressão Automática</div>' +
+          '<p><b>Eliminatórias</b> — Vencedor avança automaticamente. Ao completar todas as partidas, o torneio encerra e exibe o pódio.</p>' +
+          '<p><b>Grupos</b> — Ao completar todos os jogos do grupo, os classificados avançam para eliminatória automaticamente.</p>' +
+          '<p><b>Liga/Suíço</b> — Classificação atualizada em tempo real. "Fechar Rodada" gera a próxima.</p>' +
+          '<p><b>Rei/Rainha</b> — Standings individuais por grupo. Top jogadores avançam para eliminatória.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Compartilhar e Exportar</div>' +
+          '<p><b>Compartilhar resultado</b> — Botão de compartilhar em cada partida concluída (WhatsApp, clipboard).</p>' +
+          '<p><b>Exportar CSV</b> — Baixe todos os resultados em planilha para Excel/Google Sheets.</p>' +
+          '<p><b>Imprimir</b> — Imprima o chaveamento completo (orientação paisagem automática).</p>' +
+        '</div>'
     },
     {
       id: 'convidar',
       title: _t('help.invite'),
       icon: '👥',
-      content: '<p><b>Dentro do torneio</b> — Clique em "Convidar" para abrir o painel de convites. Você tem 5 opções:</p>' +
-        '<p><b>Amigos na plataforma</b> — Selecione amigos que já têm conta no scoreplace.app. Eles recebem uma notificação direta.</p>' +
-        '<p><b>QR Code</b> — Um código QR exclusivo é gerado para o torneio. Basta apontar a câmera do celular para escanear e acessar a página de inscrição. Ideal para compartilhar presencialmente em eventos, quadras e academias.</p>' +
-        '<p><b>WhatsApp</b> — Um link de convite é gerado e aberto no WhatsApp para você compartilhar com quem quiser.</p>' +
-        '<p><b>E-mail</b> — Um e-mail de convite é preparado com o link do torneio para enviar aos seus contatos.</p>' +
-        '<p><b>Copiar link</b> — Copie o link de convite para colar em qualquer lugar (grupos, redes sociais, etc).</p>'
+      content: '<p>Clique em "Convidar" dentro do torneio para abrir o painel com 5 canais:</p>' +
+        '<p><b>👥 Amigos na plataforma</b> — Envie convites para todos os seus amigos com um clique. Eles recebem notificação direta.</p>' +
+        '<p><b>📱 QR Code</b> — Código exclusivo para projetar no evento. Escaneie com a câmera e se inscreva na hora.</p>' +
+        '<p><b>💬 WhatsApp</b> — Link formatado aberto direto no WhatsApp. Ideal para grupos.</p>' +
+        '<p><b>📧 E-mail</b> — Envie convite por e-mail digitando o endereço do destinatário.</p>' +
+        '<p><b>🔗 Copiar link</b> — Copie o link para colar em Instagram, Telegram, SMS ou qualquer rede.</p>' +
+        '<p><b>Auto-inscrição</b> — Quem clicar no link e fizer login é inscrito automaticamente + amizade com quem convidou.</p>' +
+        '<p><b>Sem login</b> — Visitantes podem ver o torneio sem login. Ao clicar em "Inscrever-se", o login é solicitado.</p>'
     },
     {
       id: 'perfil',
       title: _t('help.profile'),
       icon: '👤',
-      content: '<p><b>Acessar</b> — Clique no seu avatar/nome no canto superior direito para abrir o perfil.</p>' +
-        '<p><b>Informações pessoais</b> — Nome, gênero, data de nascimento, cidade, esportes preferidos (separados por vírgula) e categoria padrão.</p>' +
-        '<p><b>WhatsApp</b> — Preencha seu número com código do país para receber notificações por WhatsApp.</p>' +
-        '<p><b>CEP de preferência</b> — Informe um ou mais CEPs (separados por vírgula) para ser notificado quando houver torneios perto de você.</p>' +
-        '<p><b>Social</b> — Ative "Aceitar convites" para permitir que outros usuários te encontrem e enviem convites de amizade.</p>' +
-        '<p><b>Filtros de comunicação</b> — Por padrão, você recebe todas as notificações. Ative "Só Importantes" (amarelo) para receber apenas as importantes e fundamentais, ou "Só Fundamentais" (vermelho) para receber o mínimo essencial.</p>' +
-        '<p><b>Canais</b> — Ative/desative recebimento por Plataforma, E-mail e WhatsApp.</p>' +
-        '<p><b>Tema</b> — Escolha entre Escuro, Claro, Alto Contraste, Alternativo ou Automático (segue o sistema).</p>'
+      content: '<p><b>Acessar</b> — Clique no seu avatar (foto ou iniciais) no canto superior direito.</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Informações Pessoais</div>' +
+          '<p><b>Nome</b> — Exibido em torneios, chaveamentos e classificações.</p>' +
+          '<p><b>Gênero</b> — Usado para atribuição automática de categorias (Fem/Masc).</p>' +
+          '<p><b>Data de nascimento</b> — Exibida na aba Explorar para outros jogadores.</p>' +
+          '<p><b>Cidade e localização</b> — Busca automática no mapa. Botão 📍 usa GPS.</p>' +
+          '<p><b>Esportes preferidos</b> — Separados por vírgula. Usado para sugestões.</p>' +
+          '<p><b>Categoria/nível</b> — Seu nível de jogo (A, B, C, etc.).</p>' +
+          '<p><b>Telefone</b> — Com código do país para notificações por WhatsApp.</p>' +
+          '<p><b>Avatar</b> — Escolha entre avatares pré-definidos ou use sua foto do Google.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Configurações</div>' +
+          '<p><b>Idioma</b> — 🇧🇷 Português ou 🇺🇸 English. Bandeiras clicáveis com destaque visual.</p>' +
+          '<p><b>Tema</b> — Noturno (escuro), Claro, Pôr do Sol, Oceano. 4 opções visuais.</p>' +
+          '<p><b>Notificações</b> — Todas (padrão), Só Importantes ou Só Fundamentais. Canais: Plataforma, E-mail, WhatsApp.</p>' +
+          '<p><b>Dicas visuais</b> — Ative/desative as dicas que aparecem quando você fica parado.</p>' +
+        '</div>' +
+        '<div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Estatísticas e Conta</div>' +
+          '<p><b>Meu Desempenho</b> — Torneios, partidas, vitórias, derrotas, aproveitamento e títulos.</p>' +
+          '<p><b>Histórico</b> — Últimos 8 torneios com posição final e link direto.</p>' +
+          '<p><b>Excluir conta</b> — Exclusão permanente com dupla confirmação (digitar "EXCLUIR"). Remove todos os dados.</p>' +
+        '</div>'
     },
     {
       id: 'notificacoes',
       title: _t('help.notifications'),
       icon: '🔔',
-      content: '<p>O scoreplace.app te mantém informado sobre tudo que acontece nos torneios em que você está inscrito:</p>' +
-        '<p><b>Inscrição confirmada</b> — Ao se inscrever em um torneio, você recebe confirmação.</p>' +
-        '<p><b>Alterações no torneio</b> — Se o organizador mudar data, local, formato ou outras configurações, você é notificado.</p>' +
-        '<p><b>Comunicados do organizador</b> — O organizador pode enviar mensagens diretas para todos os inscritos, com nível de importância.</p>' +
-        '<p><b>Lembretes</b> — Você recebe lembretes automáticos 7 dias, 2 dias e no dia do torneio.</p>' +
-        '<p><b>Torneios próximos</b> — Se você preencheu CEPs no perfil, é notificado quando abrem inscrições para torneios perto de você.</p>' +
-        '<p><b>Convites de amizade</b> — Receba e responda convites de amizade diretamente nas notificações.</p>' +
-        '<p><b>Níveis</b> — Fundamentais (inscrição, dia do torneio), Importantes (alterações, 2 dias antes), Gerais (7 dias antes, torneios próximos, comunicados). Você escolhe no perfil o que receber.</p>'
+      content: '<p>O scoreplace.app notifica sobre tudo que acontece nos seus torneios:</p>' +
+        '<p><b>Inscrição</b> — Confirmação ao se inscrever. Organizador também é notificado.</p>' +
+        '<p><b>Alterações</b> — Data, local, formato ou configurações mudaram? Você sabe.</p>' +
+        '<p><b>Sorteio e resultados</b> — Notificação quando rodada é sorteada e quando resultado é lançado.</p>' +
+        '<p><b>Comunicados</b> — Mensagens do organizador com nível: Fundamental, Importante ou Geral.</p>' +
+        '<p><b>Lembretes</b> — Automáticos: 7 dias, 2 dias e no dia do torneio.</p>' +
+        '<p><b>Torneios próximos</b> — Baseado na sua localização (perfil). Avisado quando abrem inscrições perto.</p>' +
+        '<p><b>Amizade e co-organização</b> — Pedidos de amizade e convites para co-organizar aparecem nas notificações. Aceite ou recuse diretamente.</p>' +
+        '<p><b>Níveis</b> — <span style="color:#ef4444;">Fundamentais</span> (inscrição, dia do torneio), <span style="color:#f59e0b;">Importantes</span> (alterações, 2 dias antes), <span style="color:#60a5fa;">Gerais</span> (7 dias antes, comunicados, proximidade).</p>' +
+        '<p><b>Push</b> — Notificações push no navegador (requer permissão). Funcionam mesmo com o app fechado.</p>'
     },
     {
       id: 'explorar',
       title: _t('help.explore'),
       icon: '🌐',
-      content: '<p><b>Aba Explorar</b> — Encontre outros jogadores e faça amizades na comunidade.</p>' +
-        '<p><b>Pedidos de amizade</b> — No topo aparecem pedidos pendentes para aceitar ou recusar.</p>' +
-        '<p><b>Seus amigos</b> — Lista de amigos com avatar, cidade, esportes e idade. Você pode remover amigos.</p>' +
-        '<p><b>Conhecidos</b> — Jogadores de torneios que você participou mas que ainda não são amigos. Ótimo para expandir sua rede.</p>' +
-        '<p><b>Buscar</b> — Use a barra de busca para encontrar jogadores por nome, cidade ou esporte. Envie convites de amizade diretamente.</p>'
+      content: '<p><b>Aba Explorar</b> — Encontre jogadores e expanda sua rede na comunidade.</p>' +
+        '<p><b>Pedidos pendentes</b> — No topo, aceite ou recuse pedidos de amizade recebidos.</p>' +
+        '<p><b>Seus amigos</b> — Lista com avatar, cidade, esportes e idade. Remova amigos se quiser.</p>' +
+        '<p><b>Conhecidos</b> — Jogadores de torneios que você participou mas que ainda não são amigos. Envie convite de amizade.</p>' +
+        '<p><b>Busca</b> — Encontre jogadores por nome, cidade ou esporte. Envie convites diretamente.</p>' +
+        '<p><b>Cancelar</b> — Cancele um pedido de amizade enviado que ainda está pendente.</p>'
     },
     {
       id: 'organizador',
       title: _t('help.organizers'),
       icon: '🛠️',
-      content: '<p><b>Visão de Organizador</b> — Use o botão "Organizador / Participante" no cabeçalho para alternar entre as perspectivas. Na visão de organizador, você vê todos os controles de gerenciamento.</p>' +
-        '<p><b>Comunicar inscritos</b> — Na página do torneio, use o botão "Comunicar Inscritos" para enviar mensagens para todos os participantes. Escolha o nível de importância para respeitar as preferências de cada usuário.</p>' +
-        '<p><b>Adicionar participantes</b> — Você pode adicionar participantes manualmente (nomes) ou bots para testes.</p>' +
-        '<p><b>Regras e histórico</b> — A aba "Regras" mostra todas as configurações do torneio de forma transparente, além do log de ações (quem fez o quê e quando).</p>' +
-        '<p><b>Logo</b> — Gere um logo automático para dar identidade visual ao seu torneio. Ele aparece nos cards da dashboard e na página de detalhe.</p>'
+      content: '<p><b>Visão de Organizador</b> — Botão "Organizador/Participante" no cabeçalho alterna perspectivas.</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Ferramentas do Organizador</div>' +
+          '<p><b>Editar</b> — Reabra o formulário completo para alterar qualquer configuração.</p>' +
+          '<p><b>Comunicar</b> — Envie mensagens para todos os inscritos com nível de importância (Fundamental/Importante/Geral).</p>' +
+          '<p><b>+ Participante / + Time</b> — Adicione inscritos manualmente.</p>' +
+          '<p><b>Add Bot</b> — Preencha vagas com jogadores fictícios para testes.</p>' +
+          '<p><b>Categorias</b> — Gerencie categorias: mova, mescle, atribua participantes.</p>' +
+          '<p><b>Exportar CSV</b> — Baixe resultados em planilha.</p>' +
+          '<p><b>Salvar Template</b> — Salve configurações para reusar em futuros torneios.</p>' +
+          '<p><b>QR Code</b> — Gere QR para projetar no evento.</p>' +
+          '<p><b>Modo TV</b> — Projete placar ao vivo em telão (fullscreen, auto-refresh 30s).</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Fluxo do Organizador</div>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Crie o torneio (rápido ou detalhado)</li>' +
+            '<li>Convide participantes</li>' +
+            '<li>Gerencie categorias (se aplicável)</li>' +
+            '<li>Encerre inscrições (manual ou automático)</li>' +
+            '<li>Sorteie o chaveamento</li>' +
+            '<li>Inicie o torneio + check-in</li>' +
+            '<li>Lance resultados ou aguarde os jogadores</li>' +
+            '<li>Feche rodadas (Liga/Suíço) ou aguarde encerramento automático</li>' +
+            '<li>Encerre e veja o pódio!</li>' +
+          '</ol>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Co-organização</div>' +
+          '<p><b>Compartilhar organização</b> — Convide um participante para ser co-organizador (botão 👑 Organização).</p>' +
+          '<p><b>Transferir</b> — Transfira a organização completa para outro participante.</p>' +
+          '<p>Co-organizadores têm acesso a todas as ferramentas exceto excluir o torneio.</p>' +
+        '</div>'
     },
     {
       id: 'categorias',
@@ -238,24 +379,56 @@
       id: 'local',
       title: _t('help.venue'),
       icon: '📍',
-      content: '<p><b>Busca de local</b> — Ao criar um torneio, digite o nome do local e o sistema busca automaticamente no mapa com endereço completo e foto.</p>' +
-        '<p><b>Acesso</b> — Defina o tipo de acesso: aberto ao público, apenas sócios, ou com convite.</p>' +
-        '<p><b>Quadras</b> — Configure o número de quadras/campos disponíveis (1 a 50) e dê nomes personalizados a cada uma.</p>' +
-        '<p><b>Estimativa de duração</b> — O sistema calcula automaticamente a duração estimada do torneio baseado no número de participantes, quadras, tempo de aquecimento e duração média das partidas.</p>' +
-        '<p><b>Foto do local</b> — Se disponível, a foto do local aparece como fundo nos cards do torneio.</p>'
+      content: '<p><b>Busca automática</b> — Digite o nome do local e o Google Maps sugere endereços reais com foto e coordenadas.</p>' +
+        '<p><b>Localização GPS</b> — Botão 📍 usa sua localização atual para preencher o campo.</p>' +
+        '<p><b>Acesso</b> — Público (visível para todos), Sócios ou Convite.</p>' +
+        '<p><b>Endereço público/privado</b> — Toggle controla se o endereço aparece na aba Explorar.</p>' +
+        '<p><b>Quadras</b> — 1 a 50 quadras com nomes personalizados (ex: Quadra Central, Quadra 2).</p>' +
+        '<p><b>Duração estimada</b> — Cálculo automático: duração da partida × número de partidas ÷ quadras + aquecimento + chamada.</p>' +
+        '<p><b>Previsão do tempo</b> — Quando o local tem coordenadas e a data é nos próximos 5 dias, exibe previsão automática.</p>' +
+        '<p><b>Foto do local</b> — Aparece como fundo nos cards do dashboard e na página de detalhes.</p>'
+    },
+    {
+      id: 'chaveamento',
+      title: _t('help.bracket'),
+      icon: '🏅',
+      content: '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Navegação no Chaveamento</div>' +
+          '<p><b>Zoom</b> — Slider e botões +/- para ajustar o tamanho. Arraste para navegar.</p>' +
+          '<p><b>Ocultar rodadas</b> — Clique para esconder rodadas concluídas e economizar espaço.</p>' +
+          '<p><b>Navegação por grupos</b> — Botões coloridos (A, B, C...) para pular direto ao grupo desejado.</p>' +
+          '<p><b>Só meus jogos</b> — Toggle filtra para mostrar apenas suas partidas.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Classificação (Liga/Suíço)</div>' +
+          '<p><b>Tabela de standings</b> — Colunas: Posição, Nome, Pts, V, E, D, PF, PC, Saldo. GSM adiciona ±S e ±G.</p>' +
+          '<p><b>Ordenação</b> — Clique nos cabeçalhos (▲/▼) para ordenar por qualquer coluna.</p>' +
+          '<p><b>Clique no nome</b> — Abre estatísticas globais do jogador ou histórico de partidas no torneio.</p>' +
+          '<p><b>Confrontos diretos</b> — Matriz NxN expansível abaixo da classificação (verde=vantagem, vermelho=desvantagem).</p>' +
+          '<p><b>Rodadas anteriores</b> — Seção colapsável mostrando resultados de rodadas passadas.</p>' +
+          '<p><b>Estatísticas do torneio</b> — Destaques automáticos: mais vitórias, maior sequência, total de partidas.</p>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Ferramentas</div>' +
+          '<p><b>Modo TV</b> — Fullscreen para projetar em telão. Auto-refresh 30s. Sair com ESC.</p>' +
+          '<p><b>Imprimir</b> — CSS otimizado para impressão (paisagem, bordas, fundo branco).</p>' +
+          '<p><b>Exportar CSV</b> — Classificação ou resultados em planilha.</p>' +
+          '<p><b>Compartilhar resultado</b> — Cada partida tem botão de compartilhar (WhatsApp/clipboard).</p>' +
+          '<p><b>Pódio</b> — Torneios encerrados exibem podio visual com medalhas (🥇🥈🥉).</p>' +
+        '</div>'
     },
     {
       id: 'desempate',
       title: _t('help.tiebreak'),
       icon: '⚖️',
-      content: '<p>Em caso de empate na classificação, o scoreplace.app usa critérios configuráveis pelo organizador:</p>' +
+      content: '<p>Critérios de desempate configuráveis pelo organizador (arraste para reordenar prioridade):</p>' +
         '<p><b>Confronto Direto</b> — Quem ganhou no confronto entre os empatados.</p>' +
         '<p><b>Saldo de Pontos</b> — Diferença entre pontos feitos e sofridos.</p>' +
-        '<p><b>Número de Vitórias</b> — Quem tem mais vitórias totais.</p>' +
-        '<p><b>Buchholz</b> — Força dos adversários enfrentados (usado muito no xadrez).</p>' +
-        '<p><b>Sonneborn-Berger</b> — Qualidade das vitórias (pontos dos adversários derrotados).</p>' +
+        '<p><b>Número de Vitórias</b> — Total de vitórias no torneio.</p>' +
+        '<p><b>Buchholz</b> — Força dos adversários enfrentados (soma dos pontos dos adversários).</p>' +
+        '<p><b>Sonneborn-Berger</b> — Qualidade das vitórias (pontos dos adversários que você derrotou).</p>' +
         '<p><b>Sorteio</b> — Desempate aleatório como último recurso.</p>' +
-        '<p>O organizador pode arrastar para reordenar a prioridade dos critérios na criação do torneio.</p>'
+        '<p><b>GSM extras</b> — Torneios com sets: saldo de sets (±S), saldo de games (±G), sets vencidos, games vencidos, tiebreaks vencidos.</p>'
     },
     {
       id: 'atalhos-teclado',
@@ -277,6 +450,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.79-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas visuais expandidas</b> — Sistema de hints ampliado de 67 para 144 dicas contextuais cobrindo absolutamente todos os botões, toggles, campos e funcionalidades do app: formulário de criação (formato, esporte, modo de sorteio, inscrição, GSM, categorias, Liga, quadras, datas, W.O., desempate, templates), ferramentas do organizador (editar, comunicar, sortear, categorias, co-organização, encerrar, excluir), bracket (zoom, imprimir, fechar rodada, avançar eliminatória, placar inline, GSM overlay), perfil (gênero, idioma, notificações), check-in (filtros, W.O., substituição, ordenação) e explore (amizade, busca).</p>' +
+        '<p><b>Manual de ajuda reescrito</b> — Todas as 20 seções do manual completamente reescritas com cobertura completa de cada funcionalidade. Nova seção "Chaveamento e Classificação" com documentação de zoom, navegação por grupos, Modo TV, standings, confrontos diretos, rodadas anteriores e exportação. Seções existentes expandidas com boxes visuais passo a passo cobrindo todos os campos do formulário, fluxo do organizador, formatos detalhados com descrições coloridas, check-in com W.O./substituição, resultados GSM, e co-organização.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Configuração de Grupos</b> — Formato "Fase de Grupos + Eliminatórias" agora exibe painel dedicado com todas as distribuições possíveis de grupos. Mostra grupos iguais e mistos (ex: 3 grupos de 4 + 1 grupo de 3), classificados por grupo configurável (1-4), e destaque para configurações com potência de 2 na eliminatória. BYE, Suíço e Lista de Espera não são permitidos neste formato.</p>' +
         '</div>' +

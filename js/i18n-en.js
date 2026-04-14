@@ -292,6 +292,7 @@ window._translations['en'] = {
   'help.explore': 'Explore Tournaments',
   'help.organizers': 'Tips for Organizers',
   'help.venue': 'Venue & Courts',
+  'help.bracket': 'Bracket & Standings',
   'help.tiebreak': 'Tiebreakers',
   'help.categories': 'Categories',
   'help.shortcuts': 'Keyboard Shortcuts',

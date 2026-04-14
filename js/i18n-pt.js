@@ -292,6 +292,7 @@ window._translations['pt'] = {
   'help.explore': 'Explorar Torneios',
   'help.organizers': 'Dicas para Organizadores',
   'help.venue': 'Local e Quadras',
+  'help.bracket': 'Chaveamento e Classificação',
   'help.tiebreak': 'Desempate',
   'help.categories': 'Categorias',
   'help.shortcuts': 'Atalhos de Teclado',
