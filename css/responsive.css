@@ -934,6 +934,10 @@ img {
   margin-top: 8px;
 }
 .topbar.topbar-hamburger .topbar-menu.open { display: flex !important; }
+/* When hamburger open, topbar must wrap so dropdown expands below logo/icons */
+.topbar.topbar-hamburger.topbar-menu-open {
+  flex-wrap: wrap !important;
+}
 /* Hide notification bell when hamburger menu is open (avoid duplicate with nav bell) */
 .topbar-menu-open #header-notif-bell { display: none !important; }
 .topbar.topbar-hamburger .topbar-nav-group {

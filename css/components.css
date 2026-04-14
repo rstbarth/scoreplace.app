@@ -1,10 +1,13 @@
 /* ==== FIXED BACK HEADER ==== */
+/* z-index 150: must be BELOW .topbar (200) so hamburger dropdown is never hidden.
+   DO NOT raise above 200 — it causes the recurring hamburger-behind-Voltar bug.
+   Z-index hierarchy: topbar 200 > sticky-back-header 150 > bracket-scrollbar 100 */
 .sticky-back-header {
   position: fixed;
   top: 60px;
   left: 0;
   right: 0;
-  z-index: 101;
+  z-index: 150;
   background: var(--bg-darker);
   padding: 10px 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -13,6 +16,12 @@
   max-width: 1400px;
   margin: 0 auto;
   box-sizing: border-box;
+}
+/* When hamburger menu is open, push back-header below expanded topbar */
+.topbar-menu-open ~ main .sticky-back-header,
+.topbar-menu-open ~ #view-container .sticky-back-header,
+.topbar-menu-open ~ .sticky-back-header {
+  transition: top 0.2s ease;
 }
 /* Spacer so content doesn't hide behind fixed header */
 .sticky-back-header + * {

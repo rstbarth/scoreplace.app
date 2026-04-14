@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix estrutural: hamburger menu atrás do Voltar</b> — Hierarquia de z-index reestruturada de forma definitiva: topbar (200) > sticky-back-header (150) > conteúdo (100). Antes ambos eram 100/101, e o menu (filho do topbar) ficava preso dentro do stacking context do pai. Removido JS frágil que tentava empurrar o Voltar para baixo dinamicamente. Agora é puramente CSS — não regride mais.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: simulação Suíço pareamento correto</b> — Rodadas 2+ agora mostram pareamento por adjacência (1º vs 2º, 3º vs 4º, etc.) em vez de metade superior vs inferior. Antes, 8 participantes mostravam "1º vs 5º, 2º vs 6º..." o que sugeria haver 16 colocados.</p>' +
         '</div>' +
