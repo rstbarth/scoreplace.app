@@ -27,14 +27,18 @@
    It has its own stacking context at z-index 102 (above back-header 101).
    This is the ONLY correct architecture — DO NOT move inside the topbar.
    When open, JS pushes .sticky-back-header down so BOTH are visible. */
+/* When hamburger is open, kill topbar bottom margin so dropdown is flush */
+body.hamburger-open .topbar {
+  margin-bottom: 0 !important;
+}
 .hamburger-dropdown {
   display: none;
   position: relative;  /* normal flow — pushes content below it */
   z-index: var(--z-hamburger-dropdown);  /* 102 — above back-header (101) */
   background: var(--bg-darker);
   border-bottom: 1px solid var(--border-color);
-  padding: 0 1rem 4px;  /* zero top padding — flush with topbar */
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  padding: 2px 1rem 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 .hamburger-dropdown.open {
   display: flex;
@@ -42,7 +46,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 /* Nav groups inside dropdown */
 .hamburger-dropdown .topbar-nav-group {
@@ -61,7 +65,7 @@
   align-items: center;
   gap: 4px;
 }
-/* Nav links inside dropdown: icons only on small screens, labels on wider */
+/* Nav links inside dropdown — compact */
 .hamburger-dropdown a,
 .hamburger-dropdown button {
   color: var(--text-color, #d1d5db);
@@ -69,16 +73,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  height: 40px;
-  border-radius: 20px;
+  gap: 4px;
+  padding: 4px 8px;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 17px;
   background: transparent;
   transition: background 0.2s;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 .hamburger-dropdown a:hover,
 .hamburger-dropdown button:hover {
