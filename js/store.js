@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.29-alpha';
+window.SCOREPLACE_VERSION = '0.10.30-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -169,10 +169,22 @@ window._checkTopbarWrap = function() {
   window.addEventListener('load', function() { setTimeout(window._checkTopbarWrap, 300); });
 })();
 
-// ─── Hamburger dropdown (OUTSIDE topbar stacking context) ──────────────
-// The #hamburger-dropdown is a SIBLING of <header class="topbar">,
-// so it has its own stacking context at z-index 102 (above back-header 101).
-// This is the ONLY correct architecture for Voltar + hamburger coexistence.
+// ═══════════════════════════════════════════════════════════════════════════
+// HAMBURGER DROPDOWN — OUTSIDE topbar stacking context
+// ═══════════════════════════════════════════════════════════════════════════
+// ARCHITECTURE (DO NOT CHANGE):
+//   #hamburger-dropdown is a SIBLING of <header class="topbar">, NOT a child.
+//   It has its own stacking context: z-index 102 > back-header 101 > topbar 100.
+//   When open, JS pushes .sticky-back-header (Voltar) down below the dropdown.
+//   Both are visible and clickable simultaneously.
+//
+// RULES:
+//   1. DO NOT move the dropdown inside the topbar — breaks Voltar.
+//   2. DO NOT change z-index values — update style.css vars + tests first.
+//   3. DO NOT use display:none on .sticky-back-header — user needs Voltar.
+//   4. DO NOT raise topbar z-index above back-header — blocks Voltar clicks.
+//   5. See tests.html "Z-Index Hierarchy" suite for automated guards.
+// ═══════════════════════════════════════════════════════════════════════════
 window._toggleHamburger = function(btn) {
   var dd = document.getElementById('hamburger-dropdown');
   if (!dd) return;

@@ -1406,10 +1406,20 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
   });
 });
 
-// ─── Z-Index Hierarchy — structural guard against hamburger/Voltar bug ───────
-// Architecture: hamburger dropdown is OUTSIDE the topbar (sibling element).
-// It has z-index 102, back-header has 101, topbar has 100.
-// Both Voltar and hamburger are visible and clickable simultaneously.
+// ═══════════════════════════════════════════════════════════════════════════════
+// Z-Index Hierarchy & Hamburger Architecture
+// ═══════════════════════════════════════════════════════════════════════════════
+// ARCHITECTURE (v0.10.29+):
+//   - Hamburger dropdown (#hamburger-dropdown) is a SIBLING of <header>, not a child.
+//   - Z-index: topbar(100) < back-header(101) < dropdown(102) < modal(1000).
+//   - .topbar-menu is ALWAYS display:none in hamburger mode.
+//   - Nav content is CLONED into the dropdown by JS (_toggleHamburger).
+//   - When dropdown opens, JS pushes .sticky-back-header down via getBoundingClientRect.
+//   - Both Voltar and hamburger are visible and clickable simultaneously.
+//
+// IF ANY OF THESE TESTS FAIL, YOU BROKE THE HAMBURGER/VOLTAR ARCHITECTURE.
+// DO NOT "fix" the tests — fix the code to match this architecture.
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('Z-Index Hierarchy', function() {
   it('CSS variables define correct stacking order', function() {
     var style = getComputedStyle(document.documentElement);
@@ -1440,12 +1450,35 @@ describe('Z-Index Hierarchy', function() {
     expect(zDropdown).toBe(zTopbar + 2);
   });
 
+  it('--z-back-header-lowered must NOT exist (removed in v0.10.24)', function() {
+    var style = getComputedStyle(document.documentElement);
+    var val = style.getPropertyValue('--z-back-header-lowered').trim();
+    // This variable was the old approach. It must be gone.
+    expect(val === '').toBe(true);
+  });
+
   it('#hamburger-dropdown exists as sibling of header, not child', function() {
     var dd = document.getElementById('hamburger-dropdown');
     expect(!!dd).toBe(true);
     // It must NOT be inside the topbar
     var topbar = document.querySelector('.topbar');
     expect(topbar && topbar.contains(dd)).toBe(false);
+  });
+
+  it('#hamburger-dropdown has position:relative (not sticky/fixed)', function() {
+    var dd = document.getElementById('hamburger-dropdown');
+    if (!dd) { expect(false).toBe(true); return; }
+    // Temporarily make visible to read computed style
+    dd.style.display = 'block';
+    var pos = getComputedStyle(dd).position;
+    dd.style.display = '';
+    expect(pos).toBe('relative');
+  });
+
+  it('_toggleHamburger, _closeHamburger, _adjustBackHeaderForHamburger exist', function() {
+    expect(typeof window._toggleHamburger).toBe('function');
+    expect(typeof window._closeHamburger).toBe('function');
+    expect(typeof window._adjustBackHeaderForHamburger).toBe('function');
   });
 });
 

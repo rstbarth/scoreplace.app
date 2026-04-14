@@ -912,8 +912,20 @@ img {
 /* Header notification bell: hidden by default, shown alongside hamburger */
 #header-notif-bell { display: none !important; }
 
-/* ── Hamburger mode: ≤767px (CSS) or JS-triggered (.topbar-hamburger) ── */
-/* Shared hamburger rules (used by both media query and JS class) */
+/* ══════════════════════════════════════════════════════════════════════
+   HAMBURGER MODE — ARCHITECTURE RULES (DO NOT CHANGE)
+   ──────────────────────────────────────────────────────────────────
+   1. The hamburger dropdown (#hamburger-dropdown) is a SIBLING of
+      <header class="topbar">, NOT a child. This is critical.
+   2. Nav content is CLONED into the dropdown by JS (_toggleHamburger).
+   3. The .topbar-menu is ALWAYS display:none in hamburger mode.
+   4. Z-index stack: topbar(100) < back-header(101) < dropdown(102).
+   5. When dropdown opens, JS pushes .sticky-back-header down.
+   6. DO NOT move the dropdown inside the topbar.
+   7. DO NOT change z-index values without updating style.css + tests.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── JS-triggered hamburger (.topbar-hamburger) ── */
 .topbar.topbar-hamburger .hamburger-btn {
   display: flex !important;
   align-items: center;
@@ -925,30 +937,13 @@ img {
 .topbar.topbar-hamburger #header-notif-bell { display: flex !important; }
 .topbar.topbar-hamburger { align-items: center !important; padding-bottom: 0.15rem !important; }
 .topbar.topbar-hamburger .topbar-menu {
-  display: none !important;  /* always hidden — content cloned into #hamburger-dropdown */
+  display: none !important;  /* ALWAYS hidden — content cloned into #hamburger-dropdown */
 }
-/* Hide notification bell when hamburger dropdown is open (class set on body by JS) */
-body.hamburger-open #header-notif-bell { display: none !important; }
-.topbar.topbar-hamburger .topbar-nav-group {
-  width: 100%; justify-content: center !important; gap: 4px !important;
-}
-.topbar.topbar-hamburger .topbar-nav-group a > span,
-.topbar.topbar-hamburger .topbar-nav-group button > span {
-  max-width: 120px !important; opacity: 1 !important;
-}
-.topbar.topbar-hamburger .topbar-nav-group a,
-.topbar.topbar-hamburger .topbar-nav-group button {
-  padding: 6px 10px !important; gap: 6px !important;
-}
-.topbar.topbar-hamburger .topbar-action-group {
-  width: 100% !important; justify-content: center !important;
-}
-.topbar.topbar-hamburger .topbar-profile-group {
-  width: 100%; justify-content: center !important;
-}
-.topbar.topbar-hamburger .user-name-label { display: inline !important; }
 
-/* ≤767px always triggers hamburger via CSS */
+/* Hide header notif bell when dropdown is open (avoids duplicate with nav bell inside dropdown) */
+body.hamburger-open #header-notif-bell { display: none !important; }
+
+/* ── ≤767px always triggers hamburger via CSS ── */
 @media (max-width: 767px) {
   .hamburger-btn {
     display: flex !important;
@@ -959,33 +954,10 @@ body.hamburger-open #header-notif-bell { display: none !important; }
     flex-shrink: 0;
   }
   #header-notif-bell { display: flex !important; }
-  .topbar { align-items: center !important; flex-wrap: wrap !important; padding-bottom: 0.15rem !important; }
+  .topbar { align-items: center !important; flex-wrap: nowrap !important; padding-bottom: 0.15rem !important; }
   .topbar-menu {
-    display: none !important;  /* always hidden on mobile — content cloned into #hamburger-dropdown */
+    display: none !important;  /* ALWAYS hidden — content cloned into #hamburger-dropdown */
   }
-  .topbar-nav-group {
-    justify-content: center !important; gap: 2px !important; flex-wrap: nowrap !important;
-  }
-  .topbar-nav-group a > span,
-  .topbar-nav-group button > span {
-    max-width: 0 !important; opacity: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important;
-  }
-  .topbar-nav-group a,
-  .topbar-nav-group button {
-    padding: 6px 10px !important; gap: 0 !important; font-size: 1.1rem !important;
-  }
-  .topbar-action-group {
-    justify-content: center !important;
-  }
-  #view-mode-selector {
-    font-size: 0.72rem !important;
-    padding: 0 8px !important;
-    height: 32px !important;
-  }
-  .topbar-profile-group {
-    justify-content: center !important;
-  }
-  .user-name-label { display: inline !important; }
 }
 
 /* Menu: visible when not in hamburger mode (desktop/tablet only) */

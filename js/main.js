@@ -834,7 +834,7 @@
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Voltar sempre fixo</b> — Botão "Voltar" agora usa position: fixed (em vez de sticky) para garantir visibilidade permanente no topo em todas as páginas exceto Dashboard. Escondido automaticamente quando o menu hamburger está aberto.</p>' +
+        '<p><b>Voltar sempre fixo</b> — Botão "Voltar" usa position: fixed para visibilidade permanente no topo. Desde v0.10.29, coexiste com o menu hamburger (ambos visíveis).</p>' +
         '<p><b>Voltar no Explorar</b> — Página "Explorar" agora inclui botão Voltar fixo no topo.</p>' +
         '<p><b>Badge BYE compacto</b> — Badge "BYE" no chaveamento posicionado acima do campo de placar para não aumentar a altura do card.</p>' +
         '</div>' +
