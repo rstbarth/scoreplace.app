@@ -496,7 +496,7 @@ window.deleteTournamentFunction = function (tId) {
     showConfirmDialog(
         _t('enroll.deleteTournament'),
         _t('enroll.deleteTournamentMsg'),
-        () => {
+        async () => {
             const idx = window.AppStore.tournaments.findIndex(tour => tour.id.toString() === tId.toString());
             if (idx !== -1) {
                 // Marca como deletado para evitar que o listener traga de volta
@@ -504,16 +504,18 @@ window.deleteTournamentFunction = function (tId) {
                 window.AppStore._deletedTournamentIds.push(String(tId));
                 try { localStorage.setItem('scoreplace_deleted_ids', JSON.stringify(window.AppStore._deletedTournamentIds)); } catch(e) {}
 
-                // Notify all enrolled participants BEFORE removing
+                // Notify all enrolled participants BEFORE removing — must await to ensure delivery
                 var _delTour = window.AppStore.tournaments[idx];
                 if (_delTour && typeof window._notifyTournamentParticipants === 'function') {
                     var _cu = window.AppStore.currentUser;
                     var _tFn = window._t || function(k) { return k; };
-                    window._notifyTournamentParticipants(_delTour, {
-                        type: 'tournament_deleted',
-                        message: _tFn('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
-                        level: 'fundamental'
-                    }, _cu ? _cu.email : null);
+                    try {
+                        await window._notifyTournamentParticipants(_delTour, {
+                            type: 'tournament_deleted',
+                            message: _tFn('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
+                            level: 'fundamental'
+                        }, _cu ? _cu.email : null);
+                    } catch(e) { console.warn('Delete notification error:', e); }
                 }
 
                 // Remove da memória

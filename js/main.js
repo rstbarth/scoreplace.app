@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: notificação ao deletar torneio</b> — Callback de exclusão agora é async e aguarda (await) o envio de todas as notificações antes de remover o torneio do Firestore. Antes, a notificação era fire-and-forget e podia ser perdida na race condition com a exclusão.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: notificações do app</b> — Notificações agora usam o uid do participante diretamente em vez de buscar por email no Firestore (mais rápido e confiável). Novo helper _resolveOrganizerUid usa creatorUid do torneio com fallback para email. Corrigido em: inscrição individual, inscrição de time, cancelamento de inscrição, auto-inscrição por convite, e broadcast para todos os participantes.</p>' +
         '</div>' +
