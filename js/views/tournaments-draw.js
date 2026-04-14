@@ -545,13 +545,47 @@ window.generateDrawFunction = function (tId) {
 
     // 1. Shuffling agora é feito por categoria dentro do loop de geração de matches
 
-    // 2. Handle Swiss/Classificatória
+    // 2. Handle Swiss/Classificatória — generate first round like Liga/Suíço
     if (t.p2Resolution === 'swiss') {
+        var _swissNames = participants.map(function(p) {
+            return typeof p === 'string' ? p : (p.displayName || p.name || '');
+        });
+        // Shuffle
+        for (var _si = _swissNames.length - 1; _si > 0; _si--) {
+            var _sj = Math.floor(Math.random() * (_si + 1));
+            var _stmp = _swissNames[_si]; _swissNames[_si] = _swissNames[_sj]; _swissNames[_sj] = _stmp;
+        }
+        // Initialize standings
+        t.standings = _swissNames.map(function(name) {
+            return { name: name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0 };
+        });
+        t.rounds = [];
         t.status = 'active';
         t.currentStage = 'swiss';
-        showNotification('Sucesso', 'Fase Classificatória (Suíço) Iniciada!', 'success');
+        // Temporarily treat as Suíço for round generation
+        var _origFormat = t.format;
+        t.format = 'Suíço Clássico';
+        if (typeof window._generateNextRound === 'function') {
+            window._generateNextRound(t);
+        }
+        t.format = _origFormat; // Restore original format
+        t.classifyFormat = 'swiss'; // Keep Swiss classification marker
+
+        var _swRoundMatches = (t.rounds[0] && t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
+        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
+        showNotification('Fase Classificatória Iniciada', 'Rodada 1 gerada com ' + _swRoundMatches + ' partida(s)!', 'success');
+        // Notify participants
+        if (typeof window._notifyTournamentParticipants === 'function') {
+            window._notifyTournamentParticipants(t, {
+                type: 'draw',
+                level: 'important',
+                title: '🎲 Rodada 1 — ' + (t.name || 'Torneio'),
+                message: _swRoundMatches + ' partida(s) sorteada(s). Confira seus confrontos!',
+                tournamentId: tId
+            });
+        }
         window.AppStore.syncImmediate(tId).then(function() {
-            window.location.hash = `#tournaments/${tId}`;
+            window.location.hash = '#bracket/' + tId;
         });
         return;
     }

@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: Suíço como ajuste de potência de 2</b> — Ao selecionar formato Suíço na resolução de potência de 2, o sorteio agora gera corretamente a Rodada 1 com standings, pairings e notificações (antes apenas marcava status sem gerar partidas). Corrigido flickering na tela de simulação: painel de resolução é escondido quando a simulação abre e restaurado ao voltar.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Notificações de torneio encerrado</b> — Todos os participantes agora recebem notificação quando um torneio é encerrado, seja manualmente pelo organizador, automaticamente ao completar todas as partidas, ou por expiração de temporada da Liga. Corrigidos 3 pontos de encerramento que não enviavam notificação.</p>' +
         '</div>' +

@@ -2493,6 +2493,10 @@ window.showResolutionSimulationPanel = function (tId, option) {
     const existing = document.getElementById('simulation-panel');
     if (existing) existing.remove();
 
+    // Hide the resolution panel behind to prevent flickering from dual backdrop-filters
+    var _resPanelBehind = document.getElementById('p2-resolution-panel') || document.getElementById('unified-resolution-panel');
+    if (_resPanelBehind) _resPanelBehind.style.display = 'none';
+
     const overlay = document.createElement('div');
     overlay.id = 'simulation-panel';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);backdrop-filter:blur(20px);z-index:999999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
@@ -3078,7 +3082,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
     overlay.innerHTML = `
         <div style="background:#0f172a;width:94%;max-width:600px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 50px 150px rgba(0,0,0,0.9);overflow:hidden;animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);margin:auto 0;display:flex;flex-direction:column;max-height:95vh;">
             <div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#312e81 0%,#4338ca 50%,#4f46e5 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;border-radius:32px 32px 0 0;">
-                <button onclick="document.getElementById('simulation-panel').remove();" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
+                <button onclick="document.getElementById('simulation-panel').remove(); var _rp=document.getElementById('p2-resolution-panel')||document.getElementById('unified-resolution-panel'); if(_rp)_rp.style.display='';" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
                 <button onclick="window._confirmP2Resolution('${_tIdSafe2}', '${_optSafe2}')" style="background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:white;border:none;padding:8px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3);transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.3)'">✓ Confirmar</button>
             </div>
             <div style="padding:2rem 2.5rem 2.5rem;overflow-y:auto;flex:1;">
