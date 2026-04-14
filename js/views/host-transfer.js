@@ -147,6 +147,22 @@
   };
 
   // ─── Accept host invite ───────────────────────────────────────────────────
+  // Helper: mark all pending invite notifications as read for a user+tournament
+  function _markInviteNotifsRead(uid, tId, types) {
+    if (!uid || !tId || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    types.forEach(function(typ) {
+      window.FirestoreDB.db.collection('users').doc(uid).collection('notifications')
+        .where('type', '==', typ).where('tournamentId', '==', String(tId)).where('read', '==', false)
+        .get().then(function(snap) {
+          snap.forEach(function(d) { d.ref.update({ read: true }); });
+        }).catch(function() {});
+    });
+    // Refresh badge
+    if (typeof window._updateNotificationBadge === 'function') {
+      setTimeout(window._updateNotificationBadge, 500);
+    }
+  }
+
   window._acceptHostInvite = function(tId, inviteType) {
     var user = window.AppStore.currentUser;
     if (!user) return;
@@ -170,12 +186,22 @@
         t.creatorEmail = user.email;
         t.pendingTransfer = null;
         window.FirestoreDB.saveTournament(t);
-        // Notify old organizer
+        // Notify old organizer that transfer was accepted
         _notifyByEmail(oldOrgUid, {
           type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
           message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.acceptedTransfer') + ' "' + t.name + '".',
           level: 'fundamental'
         });
+        // Mark old organizer's "sent" notification as read
+        _markInviteNotifsRead(oldOrgUid, tId, ['host_transfer_sent']);
+        // Notify the acceptor (confirmation)
+        _notifyByEmail(user.uid, {
+          type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
+          message: _tH('org.youAcceptedTransfer') + ' "' + t.name + '".',
+          level: 'fundamental'
+        });
+        // Mark acceptor's invite notification as read
+        _markInviteNotifsRead(user.uid, tId, ['host_transfer_invite']);
         // Update local state
         var local = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
         if (local) { Object.assign(local, t); }
@@ -185,12 +211,23 @@
         if (entry) {
           entry.status = 'active';
           window.FirestoreDB.saveTournament(t);
-          // Notify organizer
-          _notifyByEmail(t.organizerEmail, {
+          // Notify organizer that cohost was accepted
+          var orgUid = t.creatorUid || '';
+          _notifyByEmail(orgUid || t.organizerEmail, {
             type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
             message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.acceptedCohost') + ' "' + t.name + '".',
-            level: 'all'
+            level: 'important'
           });
+          // Mark organizer's "sent" notification as read
+          if (orgUid) _markInviteNotifsRead(orgUid, tId, ['cohost_invite_sent']);
+          // Notify the acceptor (confirmation)
+          _notifyByEmail(user.uid, {
+            type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
+            message: _tH('org.youAcceptedCohost') + ' "' + t.name + '".',
+            level: 'important'
+          });
+          // Mark acceptor's invite notification as read
+          _markInviteNotifsRead(user.uid, tId, ['cohost_invite']);
           var local = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
           if (local) { Object.assign(local, t); }
         }
@@ -212,20 +249,43 @@
         var fromUid = t.pendingTransfer.fromUid;
         t.pendingTransfer = null;
         window.FirestoreDB.saveTournament(t);
+        // Notify old organizer that transfer was rejected
         _notifyByEmail(fromUid, {
           type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
           message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.rejectedTransfer') + ' "' + t.name + '".',
           level: 'important'
         });
+        // Mark old organizer's "sent" notification as read
+        _markInviteNotifsRead(fromUid, tId, ['host_transfer_sent']);
+        // Notify the rejecter (confirmation)
+        _notifyByEmail(user.uid, {
+          type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
+          message: _tH('org.youRejectedTransfer') + ' "' + t.name + '".',
+          level: 'important'
+        });
+        // Mark rejecter's invite notification as read
+        _markInviteNotifsRead(user.uid, tId, ['host_transfer_invite']);
       } else if (inviteType === 'cohost') {
         if (Array.isArray(t.coHosts)) {
           t.coHosts = t.coHosts.filter(function(ch) { return !(ch.email === user.email && ch.status === 'pending'); });
           window.FirestoreDB.saveTournament(t);
-          _notifyByEmail(t.organizerEmail, {
+          // Notify organizer that cohost was rejected
+          var orgUid = t.creatorUid || '';
+          _notifyByEmail(orgUid || t.organizerEmail, {
             type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
             message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.rejectedCohost') + ' "' + t.name + '".',
             level: 'important'
           });
+          // Mark organizer's "sent" notification as read
+          if (orgUid) _markInviteNotifsRead(orgUid, tId, ['cohost_invite_sent']);
+          // Notify the rejecter (confirmation)
+          _notifyByEmail(user.uid, {
+            type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
+            message: _tH('org.youRejectedCohost') + ' "' + t.name + '".',
+            level: 'important'
+          });
+          // Mark rejecter's invite notification as read
+          _markInviteNotifsRead(user.uid, tId, ['cohost_invite']);
         }
       }
       if (typeof showNotification === 'function') showNotification(_tH('org.rejected'), _tH('org.inviteRejected'), 'info');

@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Notificações de co-organização completas</b> — Ao aceitar ou recusar convite de co-organização ou transferência, ambos (convidante e convidado) recebem notificação. Notificação original de convite é marcada como lida automaticamente para ambos os lados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: notificação ao deletar torneio</b> — Callback de exclusão agora é async e aguarda (await) o envio de todas as notificações antes de remover o torneio do Firestore. Antes, a notificação era fire-and-forget e podia ser perdida na race condition com a exclusão.</p>' +
         '</div>' +
