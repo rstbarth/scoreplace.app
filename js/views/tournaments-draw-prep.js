@@ -3076,10 +3076,10 @@ window.showResolutionSimulationPanel = function (tId, option) {
             const s = nashScores[r];
             if (!s) return '';
             return '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:1.5rem;">' +
-                '<span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão <b>' + s.precision.toFixed(1) + '</b>/10</span>' +
-                '<span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça <b>' + s.fairness.toFixed(1) + '</b>/10</span>' +
-                '<span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço <b>' + s.effort.toFixed(1) + '</b>/10</span>' +
-                '<span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade <b>' + s.speed.toFixed(1) + '</b>/10</span>' +
+                '<span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão <b>' + Math.round(s.precision * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça <b>' + Math.round(s.fairness * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço <b>' + Math.round(s.effort * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade <b>' + Math.round(s.speed * 10) + '%</b></span>' +
             '</div>';
         }
         window._buildSwissNashLegend = _buildNashLegend;
