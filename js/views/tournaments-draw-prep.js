@@ -3106,7 +3106,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 let cards = '';
                 for (let m = 0; m < showMax; m++) {
                     if (r === 0) cards += swissCard2(r + 1, m + 1, tLabel((m * 2) + 1), tLabel((m * 2) + 2));
-                    else cards += swissCard2(r + 1, m + 1, (m + 1) + 'º colocado', (mpr + m + 1) + 'º colocado');
+                    else cards += swissCard2(r + 1, m + 1, (m * 2 + 1) + 'º colocado', (m * 2 + 2) + 'º colocado');
                 }
                 const moreC = mpr - showMax;
                 roundsHtml += '<div style="margin-bottom:1.5rem;">' +

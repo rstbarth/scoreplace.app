@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: simulação Suíço pareamento correto</b> — Rodadas 2+ agora mostram pareamento por adjacência (1º vs 2º, 3º vs 4º, etc.) em vez de metade superior vs inferior. Antes, 8 participantes mostravam "1º vs 5º, 2º vs 6º..." o que sugeria haver 16 colocados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.19-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Beta Testers</b> — Lista de emails com acesso Pro completo sem necessidade de assinatura Stripe. Testadores têm todas as funcionalidades desbloqueadas automaticamente ao fazer login.</p>' +
         '</div>' +
