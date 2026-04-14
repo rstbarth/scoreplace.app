@@ -162,10 +162,11 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Verificação de número ímpar (formatos não-eliminatórios, exceto Grupos) ──────
+    // ── Verificação de número ímpar (formatos não-eliminatórios, exceto Grupos, Suíço e Liga) ──────
     const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
     const isGruposFmt = t.format === 'Fase de Grupos + Eliminatórias' || (t.format || '').indexOf('Grupo') !== -1;
-    if (!isElim && !isGruposFmt && !t.oddResolution && typeof window.checkOddEntries === 'function') {
+    const isSuicoOrLiga = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss' || (window._isLigaFormat && window._isLigaFormat(t));
+    if (!isElim && !isGruposFmt && !isSuicoOrLiga && !t.oddResolution && typeof window.checkOddEntries === 'function') {
         const oddInfo = window.checkOddEntries(t);
         if (oddInfo.isOdd) {
             window.showOddEntriesPanel(tId);

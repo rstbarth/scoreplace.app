@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: sorteio Suíço não gerava confrontos</b> — Torneios Suíço e Liga agora pulam direto para o sorteio sem passar pelo painel de resolução de potência de 2 (que não se aplica a esses formatos). Antes, o painel bloqueava o fluxo exigindo resolução de "número ímpar" ou "não é potência de 2" — problemas que o Suíço resolve naturalmente com BYE.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: flickering nos painéis de resolução</b> — Removido <code>backdrop-filter:blur</code> de todos os 10 overlays em draw-prep e draw (resolução de potência de 2, simulação, enquete, reabrir, revisão final). Scroll do body travado enquanto painel está aberto e restaurado ao fechar. Background opaco (92-95%) substitui o blur problemático.</p>' +
         '</div>' +

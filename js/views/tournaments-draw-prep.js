@@ -485,6 +485,13 @@ window.showUnifiedResolutionPanel = function(tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
 
+    // Swiss/Liga: skip power-of-2 and odd-number checks — these formats handle BYEs naturally
+    var _isSuicoOrLiga = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss' || (window._isLigaFormat && window._isLigaFormat(t));
+    if (_isSuicoOrLiga) {
+        window.showFinalReviewPanel(tId);
+        return;
+    }
+
     // Groups format: redirect to dedicated groups config panel
     var _isGruposFmt = t.format === 'Fase de Grupos + Eliminatórias' || t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1;
     if (_isGruposFmt && typeof window._showGroupsConfigPanel === 'function') {
