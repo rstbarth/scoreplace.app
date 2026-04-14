@@ -113,7 +113,6 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
         catsArr = [selectedCategories];
     }
 
-    // Use atomic Firestore transaction to prevent race conditions
     const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', selfEnrolled: true };
     if (user.gender) participantObj.gender = user.gender;
     if (catsArr) {
@@ -126,19 +125,41 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
         window._showUpgradeModal('participants');
         return;
     }
+
+    // --- Optimistic UI: update locally FIRST, then sync to Firestore ---
+    // Check if already enrolled locally
+    var partsArr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+    var alreadyIn = partsArr.some(function(p) {
+        if (typeof p === 'string') return p === user.email || p === user.displayName;
+        return (p.email && p.email === user.email) || (p.uid && user.uid && p.uid === user.uid);
+    });
+    if (alreadyIn) {
+        if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
+        window._scrollToParticipant(tId, user.displayName);
+        return;
+    }
+
+    // Add to local state immediately
+    if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
+    t.participants.push(participantObj);
+
+    // Show success and navigate immediately (no wait for network)
+    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
+    window._scrollToParticipant(tId, user.displayName);
+
+    // --- Background: Firestore transaction for consistency ---
     if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
         window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
             if (result.alreadyEnrolled) {
-                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
-                window._scrollToParticipant(tId, user.displayName);
+                // Already enrolled on server — local state is fine, just sync participants
+                t.participants = result.participants;
                 return;
             }
-            // Update local state from transaction result
+            // Sync authoritative server state
             t.participants = result.participants;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
                 if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
-                // Notify all participants about auto-closed enrollments
                 if (typeof window._notifyTournamentParticipants === 'function') {
                     window._notifyTournamentParticipants(t, {
                         type: 'enrollments_closed',
@@ -146,10 +167,12 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                         level: 'important'
                     }, user.email);
                 }
+                // Re-render to show closed status
+                var container = document.getElementById('view-container');
+                if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
             }
-            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
-            // Notify organizer about new enrollment
+            // Notify organizer (fire-and-forget)
             if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
                 window._resolveOrganizerUid(t).then(function(orgUid) {
                     if (orgUid) {
@@ -164,7 +187,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                 }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
 
-            // Auto-amizade: apenas com quem convidou (ref no link)
+            // Auto-amizade (fire-and-forget)
             try {
                 var _refUid = null;
                 var _h = window.location.hash || '';
@@ -176,12 +199,15 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                     try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
                 }
             } catch(e) { console.warn('Auto-friend error:', e); }
-
-            // Navigate to tournament detail and scroll to the enrolled participant
-            window._scrollToParticipant(tId, user.displayName);
         }).catch(function(err) {
+            // Rollback: remove from local state and re-render
             console.warn('Enroll transaction error:', err);
+            t.participants = t.participants.filter(function(p) {
+                return !(p.email === user.email && p.uid === (user.uid || ''));
+            });
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.errorMsg'), 'error');
+            var container = document.getElementById('view-container');
+            if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
         });
     }
 };
@@ -245,20 +271,26 @@ window.submitTeamEnroll = function (tId) {
     const mod = document.getElementById('team-enroll-modal-' + tId);
     if (mod) mod.style.display = 'none';
 
-    // Use atomic Firestore transaction to prevent race conditions
+    // --- Optimistic UI: update locally FIRST, then sync to Firestore ---
+    if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
+    t.participants.push(participantObj);
+    t.teamOrigins = _teamOrigins;
+
+    // Show success and navigate immediately (no wait for network)
+    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.teamEnrolledMsg', { name: window._safeHtml(t.name) }), 'success');
+    window._scrollToParticipant(tId, teamString);
+
+    // --- Background: Firestore transaction for consistency ---
     if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
         window.FirestoreDB.enrollParticipant(tId, participantObj, { teamOrigins: _teamOrigins }).then(function(result) {
             if (result.alreadyEnrolled) {
-                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
-                window._scrollToParticipant(tId, user.displayName);
+                t.participants = result.participants;
                 return;
             }
             t.participants = result.participants;
-            t.teamOrigins = _teamOrigins;
             if (result.autoCloseTriggered) {
                 t.status = 'closed';
                 if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
-                // Notify all participants about auto-closed enrollments
                 if (typeof window._notifyTournamentParticipants === 'function') {
                     window._notifyTournamentParticipants(t, {
                         type: 'enrollments_closed',
@@ -266,10 +298,11 @@ window.submitTeamEnroll = function (tId) {
                         level: 'important'
                     }, user.email);
                 }
+                var container = document.getElementById('view-container');
+                if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
             }
-            if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.teamEnrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
-            // Notify organizer about new team enrollment
+            // Notify organizer (fire-and-forget)
             if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
                 window._resolveOrganizerUid(t).then(function(orgUid) {
                     if (orgUid) {
@@ -284,7 +317,7 @@ window.submitTeamEnroll = function (tId) {
                 }).catch(function(e) { console.warn('Notify organizer error:', e); });
             }
 
-            // Auto-amizade: apenas com quem convidou (ref no link)
+            // Auto-amizade (fire-and-forget)
             try {
                 var _refUid3 = null;
                 var _h3 = window.location.hash || '';
@@ -296,12 +329,15 @@ window.submitTeamEnroll = function (tId) {
                     try { sessionStorage.removeItem('_inviteRefUid'); } catch(e2) {}
                 }
             } catch(e) { console.warn('Auto-friend error:', e); }
-
-            // Navigate to tournament detail and scroll to the enrolled team
-            window._scrollToParticipant(tId, teamString);
         }).catch(function(err) {
+            // Rollback: remove from local state and re-render
             console.warn('Team enroll transaction error:', err);
+            t.participants = t.participants.filter(function(p) {
+                return !(typeof p === 'object' && p.name === teamString && p.email === user.email);
+            });
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.errorMsg'), 'error');
+            var container = document.getElementById('view-container');
+            if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
         });
     }
 };
@@ -315,13 +351,29 @@ window.deenrollCurrentUser = function (tId) {
             _t('enroll.cancelEnroll'),
             _t('enroll.cancelEnrollMsg'),
             () => {
-                // Use transactional deenroll to prevent race conditions
+                // --- Optimistic UI: remove locally FIRST, then sync to Firestore ---
+                var _savedParticipants = Array.isArray(t.participants) ? t.participants.slice() : Object.values(t.participants || {}).slice();
+                // Remove from local state immediately
+                t.participants = _savedParticipants.filter(function(p) {
+                    if (typeof p === 'string') return p !== user.email && p !== user.displayName;
+                    var pEmail = p.email || '';
+                    var pName = p.displayName || p.name || '';
+                    var pUid = p.uid || '';
+                    return !(pEmail === user.email || (user.uid && pUid === user.uid) || (pName && pName === user.displayName));
+                });
+
+                // Show success and re-render immediately (no wait for network)
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.cancelledTitle'), _t('enroll.cancelledMsg', { name: window._safeHtml(t.name) }), 'info');
+                const container = document.getElementById('view-container');
+                if (container) renderTournaments(container, window.location.hash.split('/')[1]);
+
+                // --- Background: Firestore transaction for consistency ---
                 if (window.FirestoreDB && typeof window.FirestoreDB.deenrollParticipant === 'function') {
                     window.FirestoreDB.deenrollParticipant(tId, user.email, user.displayName, user.uid).then(function(result) {
                         if (result && !result.notFound) {
                             t.participants = result.participants;
                         }
-                        // Notify organizer about unenrollment
+                        // Notify organizer (fire-and-forget)
                         if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
                             window._resolveOrganizerUid(t).then(function(orgUid) {
                                 if (orgUid) {
@@ -335,29 +387,19 @@ window.deenrollCurrentUser = function (tId) {
                                 }
                             }).catch(function(e) { console.warn('Notify organizer unenroll error:', e); });
                         }
-                        if (typeof showNotification !== 'undefined') showNotification(_t('enroll.cancelledTitle'), _t('enroll.cancelledMsg', { name: window._safeHtml(t.name) }), 'info');
-                        const container = document.getElementById('view-container');
-                        if (container) renderTournaments(container, window.location.hash.split('/')[1]);
                     }).catch(function(err) {
+                        // Rollback: restore original participants and re-render
                         console.warn('Deenroll transaction error:', err);
+                        t.participants = _savedParticipants;
                         if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível cancelar a inscrição. Tente novamente.', 'error');
+                        var c2 = document.getElementById('view-container');
+                        if (c2) renderTournaments(c2, window.location.hash.split('/')[1]);
                     });
                 } else {
-                    // Fallback: non-transactional (legacy)
-                    let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-                    arr = arr.filter(p => {
-                        if (typeof p === 'string') return p !== user.email && p !== user.displayName;
-                        var pEmail = p.email || '';
-                        var pName = p.displayName || p.name || '';
-                        return !(pEmail === user.email || (pName && pName === user.displayName));
-                    });
-                    t.participants = arr;
+                    // Fallback: non-transactional save (already removed locally above)
                     if (window.FirestoreDB && window.FirestoreDB.saveTournament) {
                         window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('Deenroll save error:', err); });
                     }
-                    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.cancelledTitle'), _t('enroll.cancelledMsg', { name: window._safeHtml(t.name) }), 'info');
-                    const container = document.getElementById('view-container');
-                    if (container) renderTournaments(container, window.location.hash.split('/')[1]);
                 }
             },
             null,

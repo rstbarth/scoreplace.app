@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.13-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Inscrição/desinscrição instantânea</b> — UI otimista: ao clicar em Inscrever-se ou Desinscrever-se, a tela atualiza imediatamente sem esperar a resposta do servidor. A transação Firestore roda em background; se falhar, o estado é revertido automaticamente com aviso ao usuário.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix estrutural: detecção de Suíço como classificação</b> — Corrigido problema recorrente onde torneios com formato Suíço aplicado via resolução de potência de 2 renderizavam tela em branco no bracket. A causa raiz era que 9 arquivos verificavam apenas <code>t.format === \'Suíço Clássico\'</code>, ignorando <code>classifyFormat</code> e <code>currentStage</code>. Agora todos os pontos de detecção incluem as 3 condições. Removido hack temporário de troca de formato no sorteio.</p>' +
         '</div>' +
