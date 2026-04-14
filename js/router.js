@@ -51,6 +51,17 @@ function initRouter() {
     const fixedBar = document.getElementById('bracket-fixed-scrollbar');
     if (fixedBar) fixedBar.remove();
 
+    // Close hamburger menu on every navigation so it never stays open
+    // across views (which would keep sticky-back-header at lowered z-index)
+    var _hMenu = document.querySelector('.topbar-menu');
+    var _hBtn = document.querySelector('.hamburger-btn');
+    if (_hMenu && _hMenu.classList.contains('open')) {
+      _hMenu.classList.remove('open');
+      if (_hBtn) _hBtn.setAttribute('aria-expanded', 'false');
+      var _hTopbar = _hBtn ? _hBtn.closest('.topbar') : null;
+      if (_hTopbar) _hTopbar.classList.remove('topbar-menu-open');
+    }
+
     // On soft refresh (remote data update), skip scroll reset and fade animation
     // to preserve user's current position and avoid visual disruption
     if (!window._isSoftRefresh) {

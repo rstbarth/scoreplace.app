@@ -4,7 +4,7 @@
   top: 60px;
   left: 0;
   right: 0;
-  z-index: 101;
+  z-index: var(--z-back-header);  /* see style.css z-index hierarchy */
   background: var(--bg-darker);
   padding: 10px 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -21,7 +21,7 @@
    DO NOT raise topbar z-index — it covers the back button permanently. */
 .topbar-menu-open ~ * .sticky-back-header,
 .topbar-menu-open ~ .sticky-back-header {
-  z-index: 99 !important;
+  z-index: var(--z-back-header-lowered) !important;  /* see style.css z-index hierarchy */
 }
 /* Spacer so content doesn't hide behind fixed header */
 .sticky-back-header + * {
@@ -353,7 +353,7 @@
   overflow-x: hidden;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);  /* see style.css z-index hierarchy */
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-normal);
@@ -634,7 +634,7 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator:hover {
   height: 14px;
   background: var(--bg-card, #1e293b);
   border-top: 1px solid rgba(255,255,255,0.1);
-  z-index: 100;
+  z-index: var(--z-bracket-scrollbar);  /* see style.css z-index hierarchy */
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -747,7 +747,7 @@ input[type="number"] {
 /* --- Tooltip Balloon (uses real div arrow, not pseudo-element) --- */
 .hint-balloon {
   position: absolute;
-  z-index: 100000;
+  z-index: var(--z-hint);  /* see style.css z-index hierarchy */
   max-width: 320px;
   min-width: 200px;
   opacity: 0;

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>scoreplace.app — Testes</title>
+<link rel="stylesheet" href="css/style.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0f172a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 2rem; }
@@ -1402,6 +1403,39 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
     // O escolhido deve ser B ou D (os que tem menos folgas)
     var sitOutPlayer = result.sitOut[0];
     expect(sitOutPlayer === 'B' || sitOutPlayer === 'D').toBe(true);
+  });
+});
+
+// ─── Z-Index Hierarchy — structural guard against hamburger/Voltar bug ───────
+describe('Z-Index Hierarchy', function() {
+  it('CSS variables define correct stacking order', function() {
+    // Read CSS variables from :root
+    var style = getComputedStyle(document.documentElement);
+    var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
+    var zBackHeader = parseInt(style.getPropertyValue('--z-back-header'));
+    var zBackLowered = parseInt(style.getPropertyValue('--z-back-header-lowered'));
+    var zModal = parseInt(style.getPropertyValue('--z-modal'));
+
+    // back-header MUST be above topbar for clicks to work
+    expect(zBackHeader > zTopbar).toBe(true);
+    // lowered back-header MUST be below topbar for hamburger menu to show
+    expect(zBackLowered < zTopbar).toBe(true);
+    // modal MUST be above everything
+    expect(zModal > zBackHeader).toBe(true);
+  });
+
+  it('--z-back-header is exactly --z-topbar + 1', function() {
+    var style = getComputedStyle(document.documentElement);
+    var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
+    var zBackHeader = parseInt(style.getPropertyValue('--z-back-header'));
+    expect(zBackHeader).toBe(zTopbar + 1);
+  });
+
+  it('--z-back-header-lowered is exactly --z-topbar - 1', function() {
+    var style = getComputedStyle(document.documentElement);
+    var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
+    var zBackLowered = parseInt(style.getPropertyValue('--z-back-header-lowered'));
+    expect(zBackLowered).toBe(zTopbar - 1);
   });
 });
 

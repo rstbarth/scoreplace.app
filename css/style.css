@@ -1,4 +1,36 @@
 /* ═══════════════════════════════════════════════════════════════
+   Z-INDEX HIERARCHY — Single source of truth for all layers.
+   ─────────────────────────────────────────────────────────────
+   RULE: Every z-index in the app MUST use these variables.
+         Never hardcode z-index values in other CSS files.
+         Changing a value here updates the entire app safely.
+
+   Layer stack (bottom → top):
+     content (0) < scrollbar (50) < sidebar (80)
+     < topbar (100) < back-header (101)
+     < back-header-lowered (99) ← only while hamburger menu is open
+     < modal (1000) < toast (9999) < hint (100000)
+
+   WHY back-header is 101 (above topbar 100):
+     The hamburger dropdown is a CHILD of .topbar, so it's trapped
+     inside topbar's stacking context. If topbar > back-header,
+     the topbar area blocks clicks on the Voltar button.
+     Solution: back-header is normally 101 (clickable, above topbar).
+     When hamburger opens, CSS sibling rule lowers it to 99 temporarily.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --z-content:              0;
+  --z-bracket-scrollbar:   50;
+  --z-sidebar:             80;
+  --z-topbar:             100;
+  --z-back-header:        101;   /* MUST be topbar + 1 for clicks to work   */
+  --z-back-header-lowered: 99;   /* MUST be topbar - 1 for menu to show     */
+  --z-modal:             1000;
+  --z-toast:             9999;
+  --z-hint:            100000;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    TEMAS — Variáveis CSS para todos os componentes
    Ordem de ciclagem: dark → light → sunset → ocean
    ═══════════════════════════════════════════════════════════════ */

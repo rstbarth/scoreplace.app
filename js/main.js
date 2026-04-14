@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.22-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Fix: hamburger menu atrás do Voltar</b> — Quando o menu hamburger abre, o z-index do Voltar abaixa temporariamente (101→99) para que o menu (dentro do topbar z-index 100) fique por cima. Ao fechar, Voltar volta a 101 e fica clicável normalmente. Solução 100% CSS via seletor de irmão (~), sem JS frágil. Voltar nunca é escondido.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.23-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Arquitetura robusta: hamburger vs Voltar</b> — Z-index centralizado em variáveis CSS (--z-topbar, --z-back-header, --z-back-header-lowered) em style.css. Um único lugar controla toda a hierarquia. Menu hamburger fecha automaticamente ao navegar entre views (router.js). 3 testes automatizados validam a hierarquia (back-header > topbar, lowered < topbar). Nunca mais regride.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
