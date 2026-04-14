@@ -2361,6 +2361,13 @@ function setupProfileModal() {
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
               '</div>' +
+              // Notification channel toggles (between comm filters and locations)
+              '<div style="margin-top:10px;">' +
+                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Canais de notificação:</div>' +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: 'Plataforma', icon: '🔔', checked: true }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: 'E-mail', icon: '✉️', checked: true, color: '#e67e22' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: 'WhatsApp', icon: '💬', checked: true, color: '#25D366' }) : '') +
+              '</div>' +
             '</div>' +
             // Locais de preferência (mapa)
             '<div class="form-group" style="margin-bottom: 1rem;">' +
@@ -2374,14 +2381,6 @@ function setupProfileModal() {
               '<div id="profile-map-container" style="width:100%;height:200px;border-radius:10px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:8px;background:#1a1a2e;"></div>' +
               '<div id="profile-locations-list" style="display:flex;flex-direction:column;gap:4px;"></div>' +
               '<input type="hidden" id="profile-edit-ceps" value="">' +
-            '</div>' +
-            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            // Notification toggles
-            '<div style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Canais de Notificação</label>' +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: 'Plataforma', icon: '🔔', checked: true }) : '') +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: 'E-mail', icon: '✉️', checked: true, color: '#e67e22' }) : '') +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: 'WhatsApp', icon: '💬', checked: true, color: '#25D366' }) : '') +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Theme — exclusive buttons

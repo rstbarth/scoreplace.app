@@ -355,8 +355,10 @@ function renderDashboard(container) {
       enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>`;
     } else if (!isParticipating && canEnroll) {
       enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._dashEnroll('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>`;
-    } else if (isParticipating && !canEnroll) {
+    } else if (isParticipating && !canEnroll && !isFinished) {
       enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>`;
+    } else if (isFinished && (isParticipating || isOrg)) {
+      enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(251,191,36,0.12); padding: 3px 10px; border-radius: 10px; border: 1px solid rgba(251,191,36,0.25);">🏆 ${isOrg ? _t('dashboard.youOrganized') : _t('dashboard.youParticipated')}</div>`;
     }
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
@@ -827,15 +829,58 @@ function renderDashboard(container) {
       filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: activeList.length - visibleActive.length}) + '</button></div>';
     }
     if (finishedList.length > 0) {
-      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">' + _t('dashboard.finishedSection', {count: finishedList.length}) + '</summary><div class="cards-grid" style="margin-top:0.75rem;">' + finishedList.map(t => renderTournamentCard(t, '')).join('') + '</div></details></div>';
+      // Separate: user's finished tournaments first, then others
+      var _cu = window.AppStore.currentUser;
+      var myFinished = finishedList.filter(function(t) {
+        if (!_cu) return false;
+        if (t.organizerEmail === _cu.email) return true;
+        var pArr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+        return pArr.some(function(p) {
+          if (typeof p === 'string') return p === _cu.email || p === _cu.displayName;
+          if (p.uid && _cu.uid && p.uid === _cu.uid) return true;
+          if (p.email && p.email === _cu.email) return true;
+          if (p.displayName && p.displayName === _cu.displayName) return true;
+          return false;
+        });
+      });
+      var otherFinished = finishedList.filter(function(t) { return myFinished.indexOf(t) === -1; });
+      var finishedCards = '';
+      if (myFinished.length > 0) {
+        finishedCards += '<div style="font-size:0.78rem;font-weight:700;color:var(--text-bright);margin-bottom:8px;opacity:0.85;">🏆 ' + _t('dashboard.yourFinished', {count: myFinished.length}) + '</div>';
+        finishedCards += '<div class="cards-grid" style="margin-bottom:1rem;">' + myFinished.map(t => renderTournamentCard(t, '')).join('') + '</div>';
+      }
+      if (otherFinished.length > 0) {
+        if (myFinished.length > 0) finishedCards += '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;opacity:0.7;">' + _t('dashboard.otherFinished', {count: otherFinished.length}) + '</div>';
+        finishedCards += '<div class="cards-grid">' + otherFinished.map(t => renderTournamentCard(t, '')).join('') + '</div>';
+      }
+      filteredHtml += '<div style="grid-column:1/-1;margin-top:0.5rem;"><details><summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--text-muted);padding:8px 0;user-select:none;">' + _t('dashboard.finishedSection', {count: finishedList.length}) + '</summary><div style="margin-top:0.75rem;">' + finishedCards + '</div></details></div>';
     }
   } else {
-    const visibleItems = filtered.slice(0, pageNum * PAGE_SIZE);
+    // When viewing "encerrados" filter, sort user's tournaments first
+    var _sortedFiltered = filtered;
+    if (curFilter === 'encerrados' && window.AppStore.currentUser) {
+      var _cu2 = window.AppStore.currentUser;
+      var _isMine = function(t) {
+        if (t.organizerEmail === _cu2.email) return true;
+        var pArr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
+        return pArr.some(function(p) {
+          if (typeof p === 'string') return p === _cu2.email || p === _cu2.displayName;
+          if (p.uid && _cu2.uid && p.uid === _cu2.uid) return true;
+          if (p.email && p.email === _cu2.email) return true;
+          if (p.displayName && p.displayName === _cu2.displayName) return true;
+          return false;
+        });
+      };
+      var _myEnc = filtered.filter(_isMine);
+      var _otherEnc = filtered.filter(function(t) { return !_isMine(t); });
+      _sortedFiltered = _myEnc.concat(_otherEnc);
+    }
+    const visibleItems = _sortedFiltered.slice(0, pageNum * PAGE_SIZE);
     filteredHtml = visibleItems.length > 0
       ? visibleItems.map(t => renderTournamentCard(t, '')).join('')
       : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
-    if (filtered.length > visibleItems.length) {
-      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: filtered.length - visibleItems.length}) + '</button></div>';
+    if (_sortedFiltered.length > visibleItems.length) {
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: _sortedFiltered.length - visibleItems.length}) + '</button></div>';
     }
   }
 
