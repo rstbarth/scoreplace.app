@@ -1441,7 +1441,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       const roundLabelColor = r.status === 'complete' ? '#4ade80' : r.status === 'active' ? '#fbbf24' : 'var(--text-muted)';
       const matchesInRound = (r.matches || []).map(m => {
         groupGlobalMatchNum++;
-        return `<div style="min-width:250px;max-width:300px;flex:1;">${renderMatchCard(m, canEnterResult && r.status === 'active', t.id, groupGlobalMatchNum)}</div>`;
+        return `<div style="min-width:250px;max-width:300px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, groupGlobalMatchNum)}</div>`;
       }).join('');
       return `
         <div style="margin-bottom:0.75rem;">
@@ -1612,7 +1612,7 @@ function renderStandings(t, isOrg, canEnterResult) {
             '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">Saldo</th>' +
             '</tr></thead><tbody>' + gRows + '</tbody></table>';
           var gCards = g.matches.map(function(m, mi) {
-            return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult && currentRoundData.status !== 'complete', t.id, mi + 1) + '</div>';
+            return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult, t.id, mi + 1) + '</div>';
           }).join('');
           var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">' + _t('bracket.ongoing') + '</span>';
           return '<div style="background:rgba(251,191,36,0.03);border:1px solid rgba(251,191,36,0.15);border-left:3px solid ' + (gDone?'#4ade80':'#fbbf24') + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
@@ -1623,7 +1623,7 @@ function renderStandings(t, isOrg, canEnterResult) {
           '</div>';
         }).join('');
       })() : `<div style="display:flex;flex-wrap:wrap;gap:16px;">
-        ${(() => { const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0); return (currentRoundData.matches || []).map((m, idx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult && currentRoundData.status !== 'complete', t.id, prevMatches + idx + 1)}</div>`).join(''); })()}
+        ${(() => { const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0); return (currentRoundData.matches || []).map((m, idx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, prevMatches + idx + 1)}</div>`).join(''); })()}
       </div>`}
     </div>`;
 
