@@ -25,11 +25,11 @@
 /* ==== HAMBURGER DROPDOWN (outside topbar) ==== */
 /* This element is a SIBLING of <header class="topbar">, NOT a child.
    It has its own stacking context at z-index 102 (above back-header 101).
-   This is the ONLY correct architecture — DO NOT move inside the topbar. */
+   This is the ONLY correct architecture — DO NOT move inside the topbar.
+   When open, JS pushes .sticky-back-header down so BOTH are visible. */
 .hamburger-dropdown {
   display: none;
-  position: sticky;
-  top: 60px;
+  position: relative;  /* normal flow — pushes content below it */
   z-index: var(--z-hamburger-dropdown);  /* 102 — above back-header (101) */
   background: var(--bg-darker);
   border-bottom: 1px solid var(--border-color);

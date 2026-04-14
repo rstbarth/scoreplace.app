@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.24-alpha';
+window.SCOREPLACE_VERSION = '0.10.25-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -195,6 +195,9 @@ window._toggleHamburger = function(btn) {
   document.body.classList.add('hamburger-open');
   if (btn) btn.setAttribute('aria-expanded', 'true');
 
+  // Push back-header (Voltar) down so it appears below the dropdown
+  window._adjustBackHeaderForHamburger();
+
   // Close on click outside
   setTimeout(function() {
     document.addEventListener('click', window._hamburgerOutsideClick);
@@ -211,6 +214,23 @@ window._closeHamburger = function() {
   var btn = document.querySelector('.hamburger-btn');
   if (btn) btn.setAttribute('aria-expanded', 'false');
   document.removeEventListener('click', window._hamburgerOutsideClick);
+  // Restore back-header to default position
+  window._adjustBackHeaderForHamburger();
+};
+
+// Push .sticky-back-header down when hamburger is open, restore when closed.
+// The dropdown is position:relative in the document flow, so it takes space.
+// But back-header is position:fixed, so we must manually adjust its top.
+window._adjustBackHeaderForHamburger = function() {
+  var backHeader = document.querySelector('.sticky-back-header');
+  if (!backHeader) return;
+  var dd = document.getElementById('hamburger-dropdown');
+  if (dd && dd.classList.contains('open')) {
+    var ddHeight = dd.offsetHeight;
+    backHeader.style.top = (60 + ddHeight) + 'px';
+  } else {
+    backHeader.style.top = '60px';
+  }
 };
 
 window._hamburgerOutsideClick = function(e) {

@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.24-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Hamburger fora do topbar</b> — Menu hamburger agora renderiza FORA do header (elemento irmão, não filho). Stacking context próprio em z-index 102. Botão Voltar permanece em z-index 101 — SEMPRE visível E clicável, mesmo com o menu aberto. Sem truques de z-index, sem lowering. Estrutura à prova de regressão.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Hamburger + Voltar coexistem</b> — Menu hamburger renderiza FORA do header como elemento irmão. Quando aberto, o botão Voltar é empurrado para baixo automaticamente — ambos visíveis e clicáveis ao mesmo tempo. Z-index hierárquico: topbar (100) < Voltar (101) < dropdown (102). Estrutura à prova de regressão.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
