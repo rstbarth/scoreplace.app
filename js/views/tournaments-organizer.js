@@ -67,6 +67,19 @@ window._cloneTournament = function(tournamentId) {
 
 
 /**
+ * Resolve the organizer uid of a tournament.
+ * Uses creatorUid directly if available, falls back to email lookup.
+ */
+window._resolveOrganizerUid = async function(t) {
+    if (t.creatorUid) return t.creatorUid;
+    if (!t.organizerEmail || !window.FirestoreDB || !window.FirestoreDB.db) return null;
+    try {
+        var snap = await window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get();
+        return snap.empty ? null : snap.docs[0].id;
+    } catch(e) { return null; }
+};
+
+/**
  * Send notification to a specific user (by uid) via all their enabled channels.
  * @param {string} uid - target user UID
  * @param {object} notifData - { type, message, tournamentId, tournamentName, level ('fundamental'|'important'|'all') }
@@ -123,28 +136,45 @@ window._notifyTournamentParticipants = async function(tournament, notifData, exc
     if (!window.FirestoreDB || !window.FirestoreDB.db) return;
     var t = tournament;
     var parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-    var emails = [];
+
+    // Build list of {uid, email} from participants — prefer uid directly from participant object
+    var recipients = [];
+    var seenUids = {};
+    var seenEmails = {};
     parts.forEach(function(p) {
-        var e = typeof p === 'string' ? '' : (p.email || '');
-        if (e && e !== excludeEmail) emails.push(e);
+        if (typeof p === 'string') return; // string-only participants can't receive notifications
+        var e = p.email || '';
+        var u = p.uid || '';
+        if (e && e === excludeEmail) return;
+        // Deduplicate by uid first, then by email
+        if (u && !seenUids[u]) { seenUids[u] = true; recipients.push({ uid: u, email: e }); }
+        else if (e && !u && !seenEmails[e]) { seenEmails[e] = true; recipients.push({ uid: '', email: e }); }
     });
-    // Also notify organizer (always involved in their tournament) if not excluded and not already in the list
-    if (t.organizerEmail && t.organizerEmail !== excludeEmail && emails.indexOf(t.organizerEmail) === -1) {
-        emails.push(t.organizerEmail);
+
+    // Also notify organizer if not excluded and not already in list
+    if (t.organizerEmail && t.organizerEmail !== excludeEmail) {
+        var orgUid = t.creatorUid || '';
+        var orgAlready = (orgUid && seenUids[orgUid]) || (!orgUid && seenEmails[t.organizerEmail]);
+        if (!orgAlready) {
+            recipients.push({ uid: orgUid, email: t.organizerEmail });
+            if (orgUid) seenUids[orgUid] = true;
+        }
     }
-    // Deduplicate
-    emails = emails.filter(function(e, i) { return emails.indexOf(e) === i; });
 
     var nd = Object.assign({}, notifData, { tournamentId: String(t.id), tournamentName: t.name || '' });
     var allEmails = [];
     var allPhones = [];
 
-    for (var i = 0; i < emails.length; i++) {
+    for (var i = 0; i < recipients.length; i++) {
         try {
-            // Look up uid by email
-            var snap = await window.FirestoreDB.db.collection('users').where('email', '==', emails[i]).limit(1).get();
-            if (!snap.empty) {
-                var uid = snap.docs[0].id;
+            var r = recipients[i];
+            var uid = r.uid;
+            // If uid not available, fall back to email lookup
+            if (!uid && r.email) {
+                var snap = await window.FirestoreDB.db.collection('users').where('email', '==', r.email).limit(1).get();
+                if (!snap.empty) uid = snap.docs[0].id;
+            }
+            if (uid) {
                 var result = await window._sendUserNotification(uid, nd);
                 if (result && result.email) allEmails.push(result.email);
                 if (result && result.phone) allPhones.push(result.phone);

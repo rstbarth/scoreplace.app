@@ -150,10 +150,10 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
             // Notify organizer about new enrollment
-            if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
-                window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                    if (!snap.empty) {
-                        window._sendUserNotification(snap.docs[0].id, {
+            if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
+                window._resolveOrganizerUid(t).then(function(orgUid) {
+                    if (orgUid) {
+                        window._sendUserNotification(orgUid, {
                             type: 'enrollment_new',
                             message: (user.displayName || 'Um participante') + ' se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
                             tournamentId: String(t.id),
@@ -270,10 +270,10 @@ window.submitTeamEnroll = function (tId) {
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.teamEnrolledMsg', { name: window._safeHtml(t.name) }), 'success');
 
             // Notify organizer about new team enrollment
-            if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
-                window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                    if (!snap.empty) {
-                        window._sendUserNotification(snap.docs[0].id, {
+            if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
+                window._resolveOrganizerUid(t).then(function(orgUid) {
+                    if (orgUid) {
+                        window._sendUserNotification(orgUid, {
                             type: 'enrollment_new',
                             message: 'Equipe "' + window._safeHtml(teamString) + '" se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
                             tournamentId: String(t.id),
@@ -322,10 +322,10 @@ window.deenrollCurrentUser = function (tId) {
                             t.participants = result.participants;
                         }
                         // Notify organizer about unenrollment
-                        if (t.organizerEmail && t.organizerEmail !== user.email && window.FirestoreDB && window.FirestoreDB.db) {
-                            window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                                if (!snap.empty) {
-                                    window._sendUserNotification(snap.docs[0].id, {
+                        if (t.organizerEmail && t.organizerEmail !== user.email && typeof window._resolveOrganizerUid === 'function') {
+                            window._resolveOrganizerUid(t).then(function(orgUid) {
+                                if (orgUid) {
+                                    window._sendUserNotification(orgUid, {
                                         type: 'enrollment_cancelled',
                                         message: (user.displayName || 'Um participante') + ' cancelou a inscrição no torneio "' + window._safeHtml(t.name) + '".',
                                         tournamentId: String(t.id),

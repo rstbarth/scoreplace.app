@@ -1178,10 +1178,10 @@ async function simulateLoginSuccess(user) {
               try { sessionStorage.removeItem('_inviteRefUid'); } catch(e) {}
             }
             // Notify organizer about new enrollment
-            if (t.organizerEmail && t.organizerEmail !== _u.email && window.FirestoreDB && window.FirestoreDB.db) {
-              window.FirestoreDB.db.collection('users').where('email', '==', t.organizerEmail).limit(1).get().then(function(snap) {
-                if (!snap.empty && typeof window._sendUserNotification === 'function') {
-                  window._sendUserNotification(snap.docs[0].id, {
+            if (t.organizerEmail && t.organizerEmail !== _u.email && typeof window._resolveOrganizerUid === 'function') {
+              window._resolveOrganizerUid(t).then(function(orgUid) {
+                if (orgUid && typeof window._sendUserNotification === 'function') {
+                  window._sendUserNotification(orgUid, {
                     type: 'enrollment_new',
                     message: (_u.displayName || 'Um participante') + ' se inscreveu no torneio "' + t.name + '".',
                     tournamentId: String(t.id),
