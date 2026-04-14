@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: email e WhatsApp nas notificações</b> — Canais de email e WhatsApp estavam completamente inativos (função _dispatchChannels existia mas nunca era chamada). Agora, _sendUserNotification e _notifyTournamentParticipants auto-disparam email e WhatsApp automaticamente para TODAS as notificações. Novos métodos queueEmail e queueWhatsApp no FirestoreDB escrevem na collection mail (Firebase Extension) e whatsapp_queue. Flag _skipDispatch evita duplicação em broadcasts batch.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Liga Rei/Rainha sem eliminatória</b> — Painel "Classificados por grupo" (1 ou 2) agora escondido quando formato é Liga com rodada Rei/Rainha (pontos corridos, sem fase eliminatória). Guard extra impede auto-advance para eliminatória em torneios Liga.</p>' +
         '</div>' +

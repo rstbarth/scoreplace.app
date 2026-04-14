@@ -393,6 +393,38 @@ window.FirestoreDB = {
     }
   },
 
+  // ---- Email Queue (Firebase Extension "Trigger Email from Firestore") ----
+
+  async queueEmail(to, subject, html) {
+    if (!this.db || !to) return;
+    try {
+      var toArr = Array.isArray(to) ? to : [to];
+      await this.db.collection('mail').add({
+        to: toArr,
+        message: { subject: subject || 'scoreplace.app', html: html || '' },
+        createdAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Erro ao enfileirar email:', e);
+    }
+  },
+
+  // ---- WhatsApp Queue (for future Cloud Function integration) ----
+
+  async queueWhatsApp(phones, message) {
+    if (!this.db || !phones || !phones.length) return;
+    try {
+      await this.db.collection('whatsapp_queue').add({
+        phones: phones,
+        message: message || '',
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      });
+    } catch (e) {
+      console.warn('Erro ao enfileirar WhatsApp:', e);
+    }
+  },
+
   // ---- Templates ----
 
   async saveTemplate(uid, templateData) {

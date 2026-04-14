@@ -84,7 +84,7 @@ window._resolveOrganizerUid = async function(t) {
  * @param {string} uid - target user UID
  * @param {object} notifData - { type, message, tournamentId, tournamentName, level ('fundamental'|'important'|'all') }
  */
-window._sendUserNotification = async function(uid, notifData) {
+window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
     if (!window.FirestoreDB || !window.FirestoreDB.db || !uid) return;
     try {
         var profile = await window.FirestoreDB.loadUserProfile(uid);
@@ -110,7 +110,7 @@ window._sendUserNotification = async function(uid, notifData) {
             if (notifData.inviteType) _notifPayload.inviteType = notifData.inviteType;
             await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
-        // Email — collect for batch (returned)
+        // Email — collect for dispatch
         var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;
         // WhatsApp — collect phone
         var phone = null;
@@ -119,6 +119,18 @@ window._sendUserNotification = async function(uid, notifData) {
             var digits = (profile.phone || '').replace(/\D/g, '');
             if (digits) phone = cc + digits;
         }
+
+        // Auto-dispatch email & WhatsApp for this individual notification
+        // (skip when called from _notifyTournamentParticipants which does batch dispatch)
+        if (!_skipDispatch && (email || phone) && typeof window._dispatchChannels === 'function') {
+            var tUrl = notifData.tournamentId ? 'https://scoreplace.app/#tournaments/' + notifData.tournamentId : 'https://scoreplace.app';
+            window._dispatchChannels(
+                { emails: email ? [email] : [], phones: phone ? [phone] : [] },
+                notifData.type || 'info',
+                { tournamentName: notifData.tournamentName || '', tournamentUrl: tUrl, subject: 'scoreplace.app — ' + (notifData.tournamentName || 'Notificação'), message: notifData.message || '' }
+            );
+        }
+
         return { email: email, phone: phone };
     } catch(e) {
         console.warn('_sendUserNotification error:', e);
@@ -175,13 +187,26 @@ window._notifyTournamentParticipants = async function(tournament, notifData, exc
                 if (!snap.empty) uid = snap.docs[0].id;
             }
             if (uid) {
-                var result = await window._sendUserNotification(uid, nd);
+                var result = await window._sendUserNotification(uid, nd, true); // skip individual dispatch; batch below
                 if (result && result.email) allEmails.push(result.email);
                 if (result && result.phone) allPhones.push(result.phone);
             }
         } catch(e) { console.warn('Notify participant error:', e); }
     }
-    return { emails: allEmails, phones: allPhones };
+
+    // Auto-dispatch email & WhatsApp channels
+    var channelResult = { emails: allEmails, phones: allPhones };
+    if ((allEmails.length > 0 || allPhones.length > 0) && typeof window._dispatchChannels === 'function') {
+        var tUrl = 'https://scoreplace.app/#tournaments/' + String(t.id);
+        window._dispatchChannels(channelResult, nd.type || 'info', {
+            tournamentName: t.name || '',
+            tournamentUrl: tUrl,
+            subject: 'scoreplace.app — ' + (t.name || 'Notificação'),
+            message: nd.message || ''
+        });
+    }
+
+    return channelResult;
 };
 
 /**
@@ -191,23 +216,31 @@ window._notifyTournamentParticipants = async function(tournament, notifData, exc
  * @param {string} templateType - email template type (e.g. 'draw', 'tournament_deleted')
  * @param {Object} templateData - data for the email template
  */
+/**
+ * Dispatch email and WhatsApp notifications.
+ * Writes to Firestore 'mail' collection (processed by Firebase Extension "Trigger Email")
+ * and 'whatsapp_queue' collection (processed by Cloud Function).
+ * @param {Object} channelResult - { emails: string[], phones: string[] }
+ * @param {string} templateType - email template type (e.g. 'draw', 'tournament_deleted')
+ * @param {Object} templateData - { tournamentName, tournamentUrl, subject, ... }
+ */
 window._dispatchChannels = function(channelResult, templateType, templateData) {
     if (!channelResult) return;
-    // Email batch: generate HTML template and log for Cloud Function integration
+    templateData = templateData || {};
+    // ── Email ──
     if (channelResult.emails && channelResult.emails.length > 0 && typeof window._emailTemplate === 'function') {
         var html = window._emailTemplate(templateType, templateData);
-        // If Cloud Function sendEmailBatch is available, use it
-        if (window.FirestoreDB && typeof window.FirestoreDB.sendEmailBatch === 'function') {
-            window.FirestoreDB.sendEmailBatch(channelResult.emails, templateData.subject || 'scoreplace.app', html);
-        } else {
-            // Queue for future server-side delivery — store in Firestore
-            console.log('[_dispatchChannels] Email queued for ' + channelResult.emails.length + ' recipients (template: ' + templateType + ')');
+        var subject = templateData.subject || 'scoreplace.app — ' + (templateData.tournamentName || 'Notificação');
+        if (window.FirestoreDB && typeof window.FirestoreDB.queueEmail === 'function') {
+            window.FirestoreDB.queueEmail(channelResult.emails, subject, html);
         }
     }
-    // WhatsApp: browser limitation prevents bulk sending
-    // Phones are collected for future server-side WhatsApp Business API integration
+    // ── WhatsApp ──
     if (channelResult.phones && channelResult.phones.length > 0) {
-        console.log('[_dispatchChannels] WhatsApp queued for ' + channelResult.phones.length + ' recipients');
+        var waMsg = templateData.message || templateData.tournamentName || 'Notificação do scoreplace.app';
+        if (window.FirestoreDB && typeof window.FirestoreDB.queueWhatsApp === 'function') {
+            window.FirestoreDB.queueWhatsApp(channelResult.phones, waMsg);
+        }
     }
 };
 
