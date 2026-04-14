@@ -10,7 +10,8 @@ window.showFinalReviewPanel = function (tId) {
 
     const overlay = document.createElement('div');
     overlay.id = 'final-review-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(15px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem 0;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
+    document.body.style.overflow = 'hidden';
 
     overlay.innerHTML = `
         <div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:24px;border:1px solid rgba(34,197,94,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s ease-out;">
@@ -70,7 +71,7 @@ window.showFinalReviewPanel = function (tId) {
                     <button onclick="window.generateDrawFunction('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:15px;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:10px;">
                         <span>🎲</span> Rodar Sorteio Agora
                     </button>
-                    <button onclick="document.getElementById('final-review-panel').remove();" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;">
+                    <button onclick="document.getElementById('final-review-panel').remove();document.body.style.overflow='';" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;">
                         Voltar e Revisar
                     </button>
                 </div>
@@ -250,7 +251,7 @@ window.generateDrawFunction = function (tId) {
         var _roundSitOuts = (t.rounds[0].matches || []).filter(function(m) { return m.isSitOut; }).length;
         window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${_roundMatchCount} partida(s)` + (_roundSitOuts ? ` e ${_roundSitOuts} folga(s)` : ''));
 
-        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
+        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
         showNotification('Torneio Iniciado', `Rodada 1 gerada com ${_roundMatchCount} partida(s)!`, 'success');
 
         // Notify all participants about the new round
@@ -473,7 +474,7 @@ window.generateDrawFunction = function (tId) {
 
         window.AppStore.logAction(tId, `Sorteio Realizado — ${numGroups} grupos criados com rodízio interno`);
 
-        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
+        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
         showNotification('Fase de Grupos Iniciada', `${numGroups} grupos gerados!`, 'success');
         // Notify participants about groups draw
         if (typeof window._notifyTournamentParticipants === 'function') {
@@ -569,7 +570,7 @@ window.generateDrawFunction = function (tId) {
         }
 
         var _swRoundMatches = (t.rounds[0] && t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
-        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
+        if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
         showNotification('Fase Classificatória Iniciada', 'Rodada 1 gerada com ' + _swRoundMatches + ' partida(s)!', 'success');
         // Notify participants
         if (typeof window._notifyTournamentParticipants === 'function') {
@@ -936,7 +937,7 @@ window.generateDrawFunction = function (tId) {
 
     window.AppStore.logAction(tId, 'Sorteio Realizado e Chaveamento Gerado');
 
-    if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove();
+    if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
 
     showNotification('Sucesso', 'Sorteio realizado com sucesso!', 'success');
 

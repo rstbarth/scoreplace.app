@@ -2,6 +2,11 @@
 
 (function() {
 
+// Helper: restore body scroll when any overlay panel is removed
+window._restoreBodyScroll = function() {
+    document.body.style.overflow = '';
+};
+
 // ============ UNIFIED RESOLUTION PANEL SYSTEM ============
 
 window._diagnoseAll = function(t) {
@@ -92,7 +97,8 @@ window._showGroupsConfigPanel = function(tId) {
 
     var overlay = document.createElement('div');
     overlay.id = 'groups-config-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
+    document.body.style.overflow = 'hidden';
 
     window._groupsSelectedConfig = null;
 
@@ -235,6 +241,7 @@ window._showGroupsConfigPanel = function(tId) {
             // Close panel
             var panel = document.getElementById('groups-config-panel');
             if (panel) panel.remove();
+            document.body.style.overflow = '';
             // Go directly to draw generation (skip final review to avoid re-triggering groups panel)
             if (typeof window.generateDrawFunction === 'function') {
                 window.generateDrawFunction(tId);
@@ -242,6 +249,7 @@ window._showGroupsConfigPanel = function(tId) {
         }).catch(function() {
             var panel = document.getElementById('groups-config-panel');
             if (panel) panel.remove();
+            document.body.style.overflow = '';
             if (typeof window.generateDrawFunction === 'function') {
                 window.generateDrawFunction(tId);
             }
@@ -258,6 +266,7 @@ window._showGroupsConfigPanel = function(tId) {
         }
         var panel = document.getElementById('groups-config-panel');
         if (panel) panel.remove();
+        document.body.style.overflow = '';
     };
 
     overlay.innerHTML = renderPanel(currentClassified);
@@ -282,7 +291,8 @@ window._showRemainderPanel = function(tId, info, t) {
 
     var overlay = document.createElement('div');
     overlay.id = 'remainder-resolution-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);backdrop-filter:blur(12px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    document.body.style.overflow = 'hidden';
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:90vh;">' +
         '<style>@keyframes modalFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}</style>' +
@@ -321,7 +331,7 @@ window._showRemainderPanel = function(tId, info, t) {
             '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">O que fazer com o resto?</h4>' +
             '<div style="display:flex;flex-direction:column;gap:10px;">' +
                 // Reabrir Inscrições
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">↩️</span>' +
                     '<div>' +
                         '<div style="font-weight:800;font-size:0.95rem;color:#60a5fa;">Reabrir Inscrições</div>' +
@@ -329,7 +339,7 @@ window._showRemainderPanel = function(tId, info, t) {
                     '</div>' +
                 '</button>' +
                 // Lista de Espera
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showRemovalSubChoice(\'' + tIdSafe + '\',\'standby\',window._remainderInfo)" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'standby\',window._remainderInfo)" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">⏱️</span>' +
                     '<div>' +
                         '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">Lista de Espera</div>' +
@@ -337,7 +347,7 @@ window._showRemainderPanel = function(tId, info, t) {
                     '</div>' +
                 '</button>' +
                 // Exclusão
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();window._showRemovalSubChoice(\'' + tIdSafe + '\',\'exclusion\',window._remainderInfo)" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'exclusion\',window._remainderInfo)" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">🚫</span>' +
                     '<div>' +
                         '<div style="font-weight:800;font-size:0.95rem;color:#f87171;">Exclusão</div>' +
@@ -362,6 +372,7 @@ window._cancelRemainderPanel = function(tId) {
     }
     var panel = document.getElementById('remainder-resolution-panel');
     if (panel) panel.remove();
+    document.body.style.overflow = '';
 };
 
 // ============ SUB-CHOICE & REMOVAL (standalone, works from both panels) ============
@@ -382,7 +393,7 @@ window._showRemovalSubChoice = function(tId, mode, info) {
 
     var overlay = document.createElement('div');
     overlay.id = 'removal-subchoice-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:2rem;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:100000;display:flex;align-items:center;justify-content:center;padding:1rem;';
 
     var _gradStart = isStandby ? '#1e40af' : '#991b1b';
     var _gradEnd = isStandby ? '#3b82f6' : '#dc2626';
@@ -521,7 +532,8 @@ window.showUnifiedResolutionPanel = function(tId) {
     // Create overlay
     const overlay = document.createElement('div');
     overlay.id = 'unified-resolution-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
+    document.body.style.overflow = 'hidden';
 
     // Build issues description
     let issuesList = [];
@@ -710,6 +722,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         // Remove panel
         const panel = document.getElementById('unified-resolution-panel');
         if (panel) panel.remove();
+        document.body.style.overflow = '';
 
         // Handle option
         if (option === 'reopen') {
@@ -744,6 +757,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         // Close panel
         const panel = document.getElementById('unified-resolution-panel');
         if (panel) panel.remove();
+        document.body.style.overflow = '';
     };
 
     // Sub-choice panel for standby/exclusion (called from both remainder and unified panels)
@@ -825,7 +839,7 @@ window._showReopenPanel = function(tId, info) {
 
     const overlay = document.createElement('div');
     overlay.id = 'reopen-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:2rem 0;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
 
     const currentLabel = info.isTeam ? 'Times atuais: ' + info.effectiveTeams + ' (' + (info.effectiveTeams * info.teamSize) + ' participantes)' : 'Inscritos atuais: ' + info.effectiveTeams;
     const needLabel = info.isTeam ? 'Faltam: ' + info.missing + ' times (' + info.missingParticipants + ' participantes)' : 'Faltam: ' + info.missing + ' inscritos';
@@ -973,7 +987,7 @@ window.showDissolveTeamsPanel = function (tId) {
 
     const overlay = document.createElement('div');
     overlay.id = 'dissolve-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);backdrop-filter:blur(15px);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;';
 
     overlay.innerHTML = `
         <div style="background:var(--bg-card,#1e293b);width:96%;max-width:900px;height:85vh;border-radius:24px;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
@@ -1056,7 +1070,7 @@ window._showIncompleteTeamDialog = function (tId, remainder, teamSize, totalIndi
     const totalTeamsPossible = Math.floor(totalIndividuals / teamSize);
     const overlay = document.createElement('div');
     overlay.id = 'incomplete-team-dialog';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100000;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:100000;';
 
     overlay.innerHTML = `
       <div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:16px;max-width:480px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
@@ -1423,7 +1437,8 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
 
     var overlay = document.createElement('div');
     overlay.id = 'poll-creation-dialog';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:100001;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    document.body.style.overflow = 'hidden';
 
     var optionsHtml = pollOptions.map(function(opt) {
         var isNash = (opt.key === nashRec);
@@ -1482,6 +1497,7 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
 
     document.getElementById('poll-cancel-btn').addEventListener('click', function() {
         overlay.remove();
+        document.body.style.overflow = '';
     });
 
     document.getElementById('poll-create-btn').addEventListener('click', function() {
@@ -1569,6 +1585,7 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
         }
 
         overlay.remove();
+        document.body.style.overflow = '';
         if (typeof showNotification === 'function') {
             showNotification('Enquete Criada', 'Os participantes foram notificados para votar. Inscrições suspensas até o encerramento. Prazo: ' + hours + ' horas.', 'success');
         }
@@ -1614,7 +1631,8 @@ window._showPollVotingDialog = function(tId, pollId) {
 
     var overlay = document.createElement('div');
     overlay.id = 'poll-voting-dialog';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:100001;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    document.body.style.overflow = 'hidden';
 
     // Countdown string
     var countdownStr = '';
@@ -1693,7 +1711,7 @@ window._showPollVotingDialog = function(tId, pollId) {
         '</div>' +
 
         '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
-        '<button onclick="document.getElementById(\'poll-voting-dialog\').remove();" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
+        '<button onclick="document.getElementById(\'poll-voting-dialog\').remove();document.body.style.overflow=\'\';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
         '</div>' +
         '</div>';
 
@@ -2209,7 +2227,7 @@ window._handleP2Option = function (tId, option) {
 window._showReopenPanel = function (tId, info) {
     const overlay = document.createElement('div');
     overlay.id = 'reopen-panel';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto;';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:1rem;';
     overlay.innerHTML = `
         <div style="background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-radius:20px;width:100%;max-width:480px;box-shadow:0 25px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);margin:auto 0;">
             <div style="padding:2rem 2.5rem 1.5rem;">
@@ -2248,7 +2266,7 @@ window._showReopenPanel = function (tId, info) {
             </div>
 
             <div style="padding:1.25rem 2.5rem 1.75rem;display:flex;gap:12px;justify-content:flex-end;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);border-radius:0 0 20px 20px;">
-                <button onclick="document.getElementById('reopen-panel').remove(); var p2=document.getElementById('p2-resolution-panel'); if(p2) p2.style.display='flex';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
+                <button onclick="document.getElementById('reopen-panel').remove();document.body.style.overflow=''; var p2=document.getElementById('p2-resolution-panel'); if(p2) p2.style.display='flex';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
                 <button onclick="window._confirmReopen('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${info.hi})" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;padding:10px 28px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;box-shadow:0 4px 15px rgba(59,130,246,0.3);transition:all 0.2s;">Confirmar Reabertura</button>
             </div>
         </div>
@@ -2276,6 +2294,7 @@ window._confirmReopen = function (tId, target) {
 
     if (document.getElementById('reopen-panel')) document.getElementById('reopen-panel').remove();
     if (document.getElementById('p2-resolution-panel')) document.getElementById('p2-resolution-panel').remove();
+    document.body.style.overflow = '';
 
     const container = document.getElementById('view-container');
     if (container) renderTournaments(container, window.location.hash.split('/')[1]);
@@ -2499,7 +2518,8 @@ window.showResolutionSimulationPanel = function (tId, option) {
 
     const overlay = document.createElement('div');
     overlay.id = 'simulation-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);backdrop-filter:blur(20px);z-index:999999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 0;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:999999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
+    document.body.style.overflow = 'hidden';
 
     let simulationHtml = '';
     if (option === 'bye') {
@@ -3082,7 +3102,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
     overlay.innerHTML = `
         <div style="background:#0f172a;width:94%;max-width:600px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 50px 150px rgba(0,0,0,0.9);overflow:hidden;animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);margin:auto 0;display:flex;flex-direction:column;max-height:95vh;">
             <div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#312e81 0%,#4338ca 50%,#4f46e5 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;border-radius:32px 32px 0 0;">
-                <button onclick="document.getElementById('simulation-panel').remove(); var _rp=document.getElementById('p2-resolution-panel')||document.getElementById('unified-resolution-panel'); if(_rp)_rp.style.display='';" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
+                <button onclick="document.getElementById('simulation-panel').remove();document.body.style.overflow=''; var _rp=document.getElementById('p2-resolution-panel')||document.getElementById('unified-resolution-panel'); if(_rp)_rp.style.display='';" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
                 <button onclick="window._confirmP2Resolution('${_tIdSafe2}', '${_optSafe2}')" style="background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:white;border:none;padding:8px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3);transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.3)'">✓ Confirmar</button>
             </div>
             <div style="padding:2rem 2.5rem 2.5rem;overflow-y:auto;flex:1;">
@@ -3149,6 +3169,8 @@ window._confirmP2Resolution = function (tId, option) {
 
     if (document.getElementById('simulation-panel')) document.getElementById('simulation-panel').remove();
     if (document.getElementById('p2-resolution-panel')) document.getElementById('p2-resolution-panel').remove();
+    if (document.getElementById('unified-resolution-panel')) document.getElementById('unified-resolution-panel').remove();
+    document.body.style.overflow = '';
 
     window.showFinalReviewPanel(tId);
 };
