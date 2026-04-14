@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Liga com duplas aleatórias</b> — Rodadas da Liga agora formam duplas aleatórias a cada sorteio e confrontam dupla vs dupla. Parceiros são sorteados a cada rodada para máxima variedade. Pontuação individual mantida (vitória = 3pts, empate = 1pt). Jogadores excedentes (quando não múltiplo de 4) recebem folga com pontuação média.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Dicas do App no manual</b> — Nova seção "Dicas do App" no manual de ajuda com todas as 144 dicas visuais do sistema organizadas por área (Barra Superior, Dashboard, Criar Torneio, Ferramentas do Organizador, Chaveamento, Perfil, etc.) em boxes coloridos para consulta rápida.</p>' +
         '</div>' +

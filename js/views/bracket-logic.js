@@ -1226,6 +1226,7 @@ function _generateNextRoundForPlayers(t, category) {
   const roundIdx = (t.rounds || []).length;
   const timestamp = Date.now();
   const catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
+  const catLabel = category && window._displayCategoryName ? ' (' + window._displayCategoryName(category) + ')' : (category ? ' (' + category + ')' : '');
 
   // Liga: filter inactive players, create sit-outs for them
   var inactiveSitOutsSwiss = [];
@@ -1236,7 +1237,89 @@ function _generateNextRoundForPlayers(t, category) {
     _recordSitOut(t, inactiveSitOutsSwiss, category);
   }
 
-  const played = new Set();
+  var allPlayersSwiss = standings.map(s => s.name);
+  // Liga: filter out inactive players
+  const players = (_isLigaFmtHere && activeNamesSwiss)
+    ? allPlayersSwiss.filter(function(n) { return activeNamesSwiss[n]; })
+    : allPlayersSwiss;
+  if (players.length < 2) {
+    console.warn('[bracket-logic] Not enough active players for round generation:', players.length);
+    return;
+  }
+
+  // ─── Liga: form random doubles and match them (dupla vs dupla) ───────────
+  if (_isLigaFmtHere) {
+    // Shuffle players randomly for fair partner assignment
+    var shuffled = players.slice();
+    for (var si = shuffled.length - 1; si > 0; si--) {
+      var sj = Math.floor(Math.random() * (si + 1));
+      var tmp = shuffled[si]; shuffled[si] = shuffled[sj]; shuffled[sj] = tmp;
+    }
+
+    // Handle sit-outs: need multiple of 4 for doubles matches
+    var remainder = shuffled.length % 4;
+    var playingPlayers = shuffled;
+    var sitOutPlayers = [];
+    if (remainder > 0) {
+      var result = _chooseSitOutPlayers(t, shuffled, remainder, category);
+      playingPlayers = result.playing;
+      sitOutPlayers = result.sitOut;
+      _recordSitOut(t, sitOutPlayers, category);
+    }
+
+    // Re-shuffle playing players to randomize partner assignment
+    for (var ri = playingPlayers.length - 1; ri > 0; ri--) {
+      var rj = Math.floor(Math.random() * (ri + 1));
+      var rtmp = playingPlayers[ri]; playingPlayers[ri] = playingPlayers[rj]; playingPlayers[rj] = rtmp;
+    }
+
+    // Form doubles: take consecutive pairs of 4 → team1 = [0,1] vs team2 = [2,3]
+    var newMatches = [];
+    for (var mi = 0; mi < playingPlayers.length; mi += 4) {
+      var A = playingPlayers[mi], B = playingPlayers[mi + 1];
+      var C = playingPlayers[mi + 2], D = playingPlayers[mi + 3];
+      var matchObj = {
+        id: 'match-r' + roundNum + '-' + newMatches.length + catSuffix + '-' + timestamp,
+        round: roundNum, roundIndex: roundIdx,
+        p1: A + ' / ' + B, p2: C + ' / ' + D,
+        team1: [A, B], team2: [C, D],
+        winner: null, scoreP1: null, scoreP2: null,
+        isMonarch: true,
+        label: 'R' + roundNum + ' • Partida ' + (newMatches.length + 1) + catLabel
+      };
+      if (category) matchObj.category = category;
+      newMatches.push(matchObj);
+    }
+
+    // Sit-out matches: remainder + inactive players receive average points
+    var allSitOuts = sitOutPlayers.concat(inactiveSitOutsSwiss);
+    _recordSitOut(t, inactiveSitOutsSwiss, category);
+    allSitOuts.forEach(function(name, idx) {
+      var avgPts = _computeAvgPointsPerRound(t, name, category);
+      var isInactive = inactiveSitOutsSwiss.indexOf(name) !== -1;
+      var soObj = {
+        id: 'sitout-r' + roundNum + '-' + idx + catSuffix + '-' + timestamp,
+        round: roundNum, roundIndex: roundIdx,
+        p1: name, p2: 'FOLGA', winner: name,
+        isSitOut: true, sitOutPoints: avgPts,
+        sitOutReason: isInactive ? 'inactive' : 'remainder',
+        label: 'R' + roundNum + ' • Folga' + (isInactive ? ' (inativo)' : '') + catLabel
+      };
+      if (category) soObj.category = category;
+      newMatches.push(soObj);
+    });
+
+    if (!t.rounds) t.rounds = [];
+    if (t.rounds.length < roundNum) {
+      t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
+    } else {
+      t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(newMatches);
+    }
+    return;
+  }
+
+  // ─── Non-Liga: Swiss pairing (1v1) ──────────────────────────────────────
+  var played = new Set();
   (t.rounds || []).forEach(r => {
     (r.matches || []).forEach(m => {
       if (category && m.category !== category) return;
@@ -1247,17 +1330,8 @@ function _generateNextRoundForPlayers(t, category) {
     });
   });
 
-  var allPlayersSwiss = standings.map(s => s.name);
-  // Liga: filter out inactive players
-  const players = (_isLigaFmtHere && activeNamesSwiss)
-    ? allPlayersSwiss.filter(function(n) { return activeNamesSwiss[n]; })
-    : allPlayersSwiss;
-  if (players.length < 2) {
-    console.warn('[bracket-logic] Not enough active players for round generation:', players.length);
-    return;
-  }
-  const matched = new Set();
-  const newMatches = [];
+  var matched = new Set();
+  var newMatches = [];
 
   // Pair players with similar score, avoiding repeats when possible
   for (let i = 0; i < players.length; i++) {
@@ -1271,7 +1345,7 @@ function _generateNextRoundForPlayers(t, category) {
           round: roundNum, roundIndex: roundIdx,
           p1: players[i], p2: players[j],
           winner: null,
-          label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
+          label: `R${roundNum} • Partida ${newMatches.length + 1}` + catLabel
         };
         if (category) matchObj.category = category;
         newMatches.push(matchObj);
@@ -1288,7 +1362,7 @@ function _generateNextRoundForPlayers(t, category) {
             round: roundNum, roundIndex: roundIdx,
             p1: players[i], p2: players[j],
             winner: null,
-            label: `R${roundNum} • Partida ${newMatches.length + 1}` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
+            label: `R${roundNum} • Partida ${newMatches.length + 1}` + catLabel
           };
           if (category) matchObj2.category = category;
           newMatches.push(matchObj2);
@@ -1299,54 +1373,22 @@ function _generateNextRoundForPlayers(t, category) {
     }
   }
 
-  // Remainder: Liga gets sit-out with avg points; others get BYE
+  // Remainder: BYE for non-Liga
   players.filter(p => !matched.has(p)).forEach(p => {
-    if (_isLigaFmtHere) {
-      var avgPts = _computeAvgPointsPerRound(t, p, category);
-      _recordSitOut(t, [p], category);
-      var soObj = {
-        id: `sitout-r${roundNum}-rem${catSuffix}-${timestamp}`,
-        round: roundNum, roundIndex: roundIdx,
-        p1: p, p2: 'FOLGA', winner: p,
-        isSitOut: true, sitOutPoints: avgPts, sitOutReason: 'remainder',
-        label: `R${roundNum} • Folga` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
-      };
-      if (category) soObj.category = category;
-      newMatches.push(soObj);
-    } else {
-      var byeObj = {
-        id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
-        round: roundNum, roundIndex: roundIdx,
-        p1: p, p2: 'BYE', winner: p, isBye: true,
-        label: `R${roundNum} • BYE` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
-      };
-      if (category) byeObj.category = category;
-      newMatches.push(byeObj);
-    }
+    var byeObj = {
+      id: `bye-r${roundNum}${catSuffix}-${timestamp}`,
+      round: roundNum, roundIndex: roundIdx,
+      p1: p, p2: 'BYE', winner: p, isBye: true,
+      label: `R${roundNum} • BYE` + catLabel
+    };
+    if (category) byeObj.category = category;
+    newMatches.push(byeObj);
   });
 
-  // Liga: add sit-out matches for inactive players
-  if (_isLigaFmtHere && inactiveSitOutsSwiss.length > 0) {
-    inactiveSitOutsSwiss.forEach(function(name, si) {
-      var avgPts = _computeAvgPointsPerRound(t, name, category);
-      var soObj = {
-        id: `sitout-r${roundNum}-inact-${si}${catSuffix}-${timestamp}`,
-        round: roundNum, roundIndex: roundIdx,
-        p1: name, p2: 'FOLGA', winner: name,
-        isSitOut: true, sitOutPoints: avgPts, sitOutReason: 'inactive',
-        label: `R${roundNum} • Folga (inativo)` + (category ? ` (${window._displayCategoryName ? window._displayCategoryName(category) : category})` : '')
-      };
-      if (category) soObj.category = category;
-      newMatches.push(soObj);
-    });
-  }
-
   if (!t.rounds) t.rounds = [];
-  // If first category in a new round, push new round; otherwise append to existing round
   if (t.rounds.length < roundNum) {
     t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
   } else {
-    // Append matches for this category to existing round
     t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(newMatches);
   }
 }
