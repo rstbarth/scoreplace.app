@@ -446,10 +446,284 @@
         '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">Os atalhos funcionam quando nenhum campo de texto está focado.</p>'
     },
     {
+      id: 'dicas-app',
+      title: _t('help.hints'),
+      icon: '💡',
+      content: '<p>O scoreplace.app exibe <b>dicas visuais contextuais</b> quando você fica parado por alguns segundos. Elas aparecem como balões com seta apontando para o elemento. Clique "Entendi" para dispensar ou "Desativar dicas" para parar.</p>' +
+        '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Você pode reativar as dicas no seu Perfil. São 144 dicas ao todo, organizadas por área:</p>' +
+
+        // ── Global / Topbar ──
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">🔝 Barra Superior (8)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Login</b> — Faça login para criar e gerenciar torneios<br>' +
+            '• <b>Menu ☰</b> — Abra o menu para navegar pelo app<br>' +
+            '• <b>Perfil</b> — Acesse estatísticas e configurações<br>' +
+            '• <b>Tema</b> — Noturno, Claro, Pôr do Sol e Oceano<br>' +
+            '• <b>Ajuda (?)</b> — Manual completo com todas as funcionalidades<br>' +
+            '• <b>Busca rápida</b> — Ctrl+K para buscar torneios e jogadores<br>' +
+            '• <b>Notificações</b> — Avisos de torneios e convites<br>' +
+            '• <b>Explorar</b> — Torneios públicos da comunidade' +
+          '</p>' +
+        '</div>' +
+
+        // ── Strategic ──
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#fbbf24;margin-bottom:8px;">💡 Apoie / Pro (4)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Apoie (Dashboard)</b> — PIX mantém a plataforma gratuita<br>' +
+            '• <b>Pro (Dashboard)</b> — Torneios ilimitados, logo, Modo TV sem marca<br>' +
+            '• <b>Apoie (Torneio)</b> — Cada contribuição faz diferença<br>' +
+            '• <b>Pro (Torneio)</b> — Criar torneios ilimitados e personalizar' +
+          '</p>' +
+        '</div>' +
+
+        // ── Dashboard ──
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#34d399;margin-bottom:8px;">📊 Dashboard (15)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>+ Novo Torneio</b> — Crie em menos de 1 minuto<br>' +
+            '• <b>Filtro Todos</b> — Veja todos os torneios de uma vez<br>' +
+            '• <b>Filtro Organizados</b> — Só os que você organiza<br>' +
+            '• <b>Filtro Participando</b> — Só onde está inscrito<br>' +
+            '• <b>Filtro Abertos</b> — Inscrições disponíveis<br>' +
+            '• <b>Filtro Favoritos</b> — Seus favoritados<br>' +
+            '• <b>Filtro Encerrados</b> — Classificação final e pódio<br>' +
+            '• <b>Filtros gerais</b> — Por tipo, esporte, local, formato<br>' +
+            '• <b>Cards/Lista</b> — Alterne visualização compacta<br>' +
+            '• <b>Estrela ⭐</b> — Favoritar torneio<br>' +
+            '• <b>Filtro por esporte</b> — Beach Tennis, Tênis, Padel...<br>' +
+            '• <b>Filtro por local</b> — Torneios perto de você<br>' +
+            '• <b>Filtro por formato</b> — Eliminatórias, Liga, Suíço...<br>' +
+            '• <b>Carregar mais</b> — Próximos torneios (paginação)' +
+          '</p>' +
+        '</div>' +
+
+        // ── Tournament Detail: Participant ──
+        '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#60a5fa;margin-bottom:8px;">🏆 Detalhe do Torneio — Participante (6)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Convidar</b> — WhatsApp, QR Code, link<br>' +
+            '• <b>Inscrever-se</b> — Organizador notificado automaticamente<br>' +
+            '• <b>Cancelar inscrição</b> — Se inscrições abertas, pode voltar<br>' +
+            '• <b>QR Code</b> — Projetar no evento<br>' +
+            '• <b>Inscritos</b> — Lista, check-in, gerenciar<br>' +
+            '• <b>Regras</b> — Configurações, desempate, histórico' +
+          '</p>' +
+        '</div>' +
+
+        // ── Tournament Detail: Organizer ──
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#a855f7;margin-bottom:8px;">🛠️ Ferramentas do Organizador (17)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Editar</b> — Local, datas, formato, categorias<br>' +
+            '• <b>Comunicar</b> — Mensagens para todos os inscritos<br>' +
+            '• <b>Sortear</b> — Gerar chaveamento automaticamente<br>' +
+            '• <b>+ Participante</b> — Adicionar manualmente<br>' +
+            '• <b>+ Time</b> — Adicionar dupla/equipe<br>' +
+            '• <b>Add Bot</b> — Jogadores fictícios para completar<br>' +
+            '• <b>Categorias</b> — Mover, mesclar, atribuir<br>' +
+            '• <b>Abrir/Fechar inscrições</b> — Controlar período<br>' +
+            '• <b>Salvar Template</b> — Reusar configurações<br>' +
+            '• <b>Clonar</b> — Copiar torneio sem participantes<br>' +
+            '• <b>Encerrar</b> — Finalizar e exibir pódio<br>' +
+            '• <b>Excluir</b> — Remover permanentemente<br>' +
+            '• <b>Co-organização</b> — Convidar ou transferir<br>' +
+            '• <b>Iniciar Torneio</b> — Liberar partidas<br>' +
+            '• <b>Ver Chaves</b> — Chaveamento completo<br>' +
+            '• <b>Exportar CSV</b> — Planilha de resultados<br>' +
+            '• <b>Liga ativo</b> — Ativar/desativar sorteios automáticos' +
+          '</p>' +
+        '</div>' +
+
+        // ── Create Tournament ──
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#f59e0b;margin-bottom:8px;">➕ Criar/Editar Torneio (32)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Esporte</b> — Padrões de pontuação por modalidade<br>' +
+            '• <b>Formato</b> — Eliminatória, Dupla, Grupos, Suíço, Liga<br>' +
+            '• <b>Modo de sorteio</b> — Sorteio ou Rei/Rainha<br>' +
+            '• <b>Modo de inscrição</b> — Individual, Times, Misto<br>' +
+            '• <b>Tipo de jogo</b> — Simples (1v1) ou Duplas (2v2)<br>' +
+            '• <b>Local</b> — Busca Google Maps + previsão do tempo<br>' +
+            '• <b>Endereço público</b> — Visível ou privado<br>' +
+            '• <b>Quadras</b> — Quantidade e nomes<br>' +
+            '• <b>Categorias gênero</b> — Fem, Masc, Misto<br>' +
+            '• <b>Categorias habilidade</b> — A, B, C separados por vírgula<br>' +
+            '• <b>Pontuação (GSM)</b> — Sets, games, tiebreaks<br>' +
+            '• <b>Logo</b> — Gerar automático ou upload<br>' +
+            '• <b>Público/Privado</b> — Visível no Explorar<br>' +
+            '• <b>Data de início</b> — Contagem regressiva nos cards<br>' +
+            '• <b>Prazo de inscrição</b> — Encerramento automático<br>' +
+            '• <b>Máximo participantes</b> — Limite opcional<br>' +
+            '• <b>Auto-encerrar</b> — Ao atingir o limite<br>' +
+            '• <b>Duração da partida</b> — Para estimativa total<br>' +
+            '• <b>Classificados Rei/Rainha</b> — 1 ou 2 por grupo<br>' +
+            '• <b>Grupos</b> — Número e classificados por grupo<br>' +
+            '• <b>Rodadas Suíço</b> — Recomendado: log₂ participantes<br>' +
+            '• <b>W.O.</b> — Individual ou Time Inteiro<br>' +
+            '• <b>Inscrições tardias</b> — Fechado, Standby, Expansão<br>' +
+            '• <b>Desempate</b> — Arrastar para reordenar critérios<br>' +
+            '• <b>Template</b> — Carregar configuração salva<br>' +
+            '• <b>Liga: temporada</b> — Duração em meses<br>' +
+            '• <b>Liga: inscrições abertas</b> — Durante toda temporada<br>' +
+            '• <b>Liga: sorteio manual</b> — Ou agendar automáticos<br>' +
+            '• <b>Liga: agendamento</b> — Data, hora e intervalo<br>' +
+            '• <b>Liga: novos jogadores</b> — Zero, Mínimo, Média<br>' +
+            '• <b>Liga: inatividade</b> — Manter, Decair, Remover<br>' +
+            '• <b>Liga: formato rodada</b> — Padrão ou Rei/Rainha' +
+          '</p>' +
+        '</div>' +
+
+        // ── Invite Modal ──
+        '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#22d3ee;margin-bottom:8px;">👥 Modal de Convite (5)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Amigos</b> — Convidar da plataforma com um clique<br>' +
+            '• <b>WhatsApp</b> — Link direto para grupos<br>' +
+            '• <b>Copiar link</b> — Instagram, Telegram, SMS<br>' +
+            '• <b>QR Code</b> — Projetar no evento<br>' +
+            '• <b>E-mail</b> — Enviar por e-mail' +
+          '</p>' +
+        '</div>' +
+
+        // ── Power of 2 + Incomplete Teams ──
+        '<div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#f87171;margin-bottom:8px;">🔢 Painéis de Resolução (10)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Nash (P2)</b> — Cores indicam equilíbrio: verde=melhor<br>' +
+            '• <b>Reabrir (P2)</b> — Completar potência de 2<br>' +
+            '• <b>BYE</b> — Avançar sem jogar na 1ª rodada<br>' +
+            '• <b>Play-in</b> — Rodada extra para excedentes<br>' +
+            '• <b>Suíço</b> — Várias rodadas antes de afunilar<br>' +
+            '• <b>Enquete</b> — Participantes votam na solução<br>' +
+            '• <b>Nash (Times)</b> — Score de equilíbrio por opção<br>' +
+            '• <b>Reabrir (Times)</b> — Novos jogadores completam times<br>' +
+            '• <b>Bots</b> — Preencher vagas com nomes fictícios<br>' +
+            '• <b>Ajuste Manual</b> — Arrastar e soltar entre times' +
+          '</p>' +
+        '</div>' +
+
+        // ── Poll ──
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#c084fc;margin-bottom:8px;">📊 Enquete (3)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Prazo</b> — Encerramento automático<br>' +
+            '• <b>Opções</b> — Marcar e ver Nash<br>' +
+            '• <b>Votar</b> — Mudar voto até encerrar' +
+          '</p>' +
+        '</div>' +
+
+        // ── GSM ──
+        '<div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#ec4899;margin-bottom:8px;">🎾 Pontuação GSM (8)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Sets para vencer</b> — 1 a 5 (amador vs profissional)<br>' +
+            '• <b>Games por set</b> — 6 (tênis), 11 (mesa), 25 (vôlei)<br>' +
+            '• <b>Tiebreak</b> — Para sets empatados<br>' +
+            '• <b>Super tiebreak</b> — Set decisivo curto (10 pts)<br>' +
+            '• <b>Contagem</b> — Numérica ou Tênis (15-30-40)<br>' +
+            '• <b>Vantagem</b> — Deuce/advantage em 40-40<br>' +
+            '• <b>Placar dos sets</b> — Entrada set a set automática<br>' +
+            '• <b>Salvar sets</b> — Vencedor determinado automaticamente' +
+          '</p>' +
+        '</div>' +
+
+        // ── Bracket ──
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">🏅 Chaveamento / Classificação (15)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Zoom</b> — Slider + arraste para navegar<br>' +
+            '• <b>Imprimir</b> — Para colar na parede do evento<br>' +
+            '• <b>Exportar CSV</b> — Excel / Google Sheets<br>' +
+            '• <b>Ordenar colunas</b> — Clique nos cabeçalhos<br>' +
+            '• <b>Compartilhar resultado</b> — WhatsApp / clipboard<br>' +
+            '• <b>Modo TV</b> — Telão fullscreen, auto-refresh 30s<br>' +
+            '• <b>Placar inline</b> — Digitar direto no card<br>' +
+            '• <b>Confirmar placar</b> — Registrar resultado<br>' +
+            '• <b>Editar resultado</b> — Reabrir campos<br>' +
+            '• <b>Ocultar rodada</b> — Economizar espaço<br>' +
+            '• <b>Fechar rodada</b> — Gerar próxima automaticamente<br>' +
+            '• <b>Avançar eliminatória</b> — Classificados dos grupos<br>' +
+            '• <b>Estatísticas do jogador</b> — Clique no nome<br>' +
+            '• <b>Histórico de partidas</b> — Adversários e placares<br>' +
+            '• <b>Só meus jogos</b> — Filtrar suas partidas' +
+          '</p>' +
+        '</div>' +
+
+        // ── Check-in ──
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#34d399;margin-bottom:8px;">✅ Participantes / Check-in (8)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>VIP</b> — Prioridade no cabeçamento<br>' +
+            '• <b>Remover</b> — Excluir participante<br>' +
+            '• <b>Toggle check-in</b> — Confirmar presença<br>' +
+            '• <b>Filtros</b> — Todos, Presentes, Ausentes<br>' +
+            '• <b>Limpar</b> — Resetar todos os check-ins<br>' +
+            '• <b>Ordenar</b> — A-Z ou cronológico<br>' +
+            '• <b>W.O.</b> — Marcar ausente/walkover<br>' +
+            '• <b>Substituir W.O.</b> — Próximo da lista de espera' +
+          '</p>' +
+        '</div>' +
+
+        // ── Pre-draw ──
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#f59e0b;margin-bottom:8px;">🎲 Pré-Sorteio (3)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Confirmar sorteio</b> — Gerar chaveamento<br>' +
+            '• <b>Renomear categoria</b> — Antes do sorteio<br>' +
+            '• <b>Mesclar categorias</b> — Unir poucas inscrições' +
+          '</p>' +
+        '</div>' +
+
+        // ── Explore ──
+        '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#22d3ee;margin-bottom:8px;">🌐 Explorar (2)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Busca</b> — Nome, esporte, formato, cidade<br>' +
+            '• <b>Pedido de amizade</b> — Conectar para convites futuros' +
+          '</p>' +
+        '</div>' +
+
+        // ── Notifications ──
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#fbbf24;margin-bottom:8px;">🔔 Notificações (2)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Aceitar co-organização</b> — Convite para organizar junto<br>' +
+            '• <b>Aceitar amizade</b> — Trocar convites de torneio' +
+          '</p>' +
+        '</div>' +
+
+        // ── Profile ──
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#c084fc;margin-bottom:8px;">👤 Perfil (6)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Gênero</b> — Atribuição automática de categorias<br>' +
+            '• <b>Idioma</b> — 🇧🇷 Português / 🇺🇸 English<br>' +
+            '• <b>Esportes</b> — Para sugestões de torneios<br>' +
+            '• <b>Localização</b> — Torneios perto de você<br>' +
+            '• <b>Notificações</b> — Todas, Importantes, Fundamentais<br>' +
+            '• <b>Dicas visuais</b> — Ativar/desativar este sistema' +
+          '</p>' +
+        '</div>' +
+
+        // ── Meta ──
+        '<div style="background:rgba(107,114,128,0.06);border:1px solid rgba(107,114,128,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#9ca3af;margin-bottom:8px;">ℹ️ Meta (1)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Sobre as dicas</b> — Como desativar e reativar no Perfil' +
+          '</p>' +
+        '</div>'
+    },
+    {
       id: 'notas-versoes',
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.9.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas do App no manual</b> — Nova seção "Dicas do App" no manual de ajuda com todas as 144 dicas visuais do sistema organizadas por área (Barra Superior, Dashboard, Criar Torneio, Ferramentas do Organizador, Chaveamento, Perfil, etc.) em boxes coloridos para consulta rápida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.8.79-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Dicas visuais expandidas</b> — Sistema de hints ampliado de 67 para 144 dicas contextuais cobrindo absolutamente todos os botões, toggles, campos e funcionalidades do app: formulário de criação (formato, esporte, modo de sorteio, inscrição, GSM, categorias, Liga, quadras, datas, W.O., desempate, templates), ferramentas do organizador (editar, comunicar, sortear, categorias, co-organização, encerrar, excluir), bracket (zoom, imprimir, fechar rodada, avançar eliminatória, placar inline, GSM overlay), perfil (gênero, idioma, notificações), check-in (filtros, W.O., substituição, ordenação) e explore (amizade, busca).</p>' +
         '<p><b>Manual de ajuda reescrito</b> — Todas as 20 seções do manual completamente reescritas com cobertura completa de cada funcionalidade. Nova seção "Chaveamento e Classificação" com documentação de zoom, navegação por grupos, Modo TV, standings, confrontos diretos, rodadas anteriores e exportação. Seções existentes expandidas com boxes visuais passo a passo cobrindo todos os campos do formulário, fluxo do organizador, formatos detalhados com descrições coloridas, check-in com W.O./substituição, resultados GSM, e co-organização.</p>' +

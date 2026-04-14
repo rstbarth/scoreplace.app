@@ -293,6 +293,7 @@ window._translations['pt'] = {
   'help.organizers': 'Dicas para Organizadores',
   'help.venue': 'Local e Quadras',
   'help.bracket': 'Chaveamento e Classificação',
+  'help.hints': 'Dicas do App',
   'help.tiebreak': 'Desempate',
   'help.categories': 'Categorias',
   'help.shortcuts': 'Atalhos de Teclado',
