@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.19-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Beta Testers</b> — Lista de emails com acesso Pro completo sem necessidade de assinatura Stripe. Testadores têm todas as funcionalidades desbloqueadas automaticamente ao fazer login.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Exclusão de torneio instantânea</b> — Apagar torneio agora usa UI otimista: remove da tela e navega ao dashboard imediatamente. Notificações aos participantes e exclusão do Firestore rodam em background sem bloquear a interface.</p>' +
         '</div>' +

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.18-alpha';
+window.SCOREPLACE_VERSION = '0.10.19-alpha';
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
@@ -187,11 +187,19 @@ window._whatsappShareUrl = function(text) {
     return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
 };
 
+// ─── Beta Testers (acesso Pro completo) ─────────────────────────────────────
+// Emails nesta lista recebem Pro automaticamente sem precisar de Stripe/Firestore
+window.BETA_TESTERS = [
+  'rstbarth@gmail.com'
+];
+
 // ─── Plano Pro ──────────────────────────────────────────────────────────────
 // Verifica se o usuário logado tem plano Pro ativo
 window._isPro = function() {
   var user = window.AppStore && window.AppStore.currentUser;
   if (!user) return false;
+  // Beta testers sempre têm Pro
+  if (user.email && window.BETA_TESTERS.indexOf(user.email.toLowerCase()) !== -1) return true;
   if (user.plan !== 'pro') return false;
   // Checa expiração
   if (user.planExpiresAt) {
