@@ -1768,13 +1768,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
     fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0,
     tieRule: sc.tieRule || null, // 'extend'|'tiebreak'|'ask'|null (null = standard 2-game lead)
     tieRulePending: false, // true when waiting for user choice at tie
-    // Serve tracking
-    servingTeam: 0,     // 1 or 2 (0 = not yet chosen)
-    serverP1: 0,        // Index into p1Players of who serves for team 1
-    serverP2: 0,        // Index into p2Players of who serves for team 2
-    serveConfigured: false, // true after initial serve selection
+    // Serve tracking — progressive: defined at each player's first serve
+    serveOrder: [],      // [{team:1|2, name:'Ana'}, ...] rotation cycle (2 for singles, 4 for doubles)
+    serveSkipped: false, // user chose to skip serve tracking
+    servePending: false, // true when waiting for user to pick a server
     totalGamesPlayed: 0  // total games completed (for serve rotation)
   };
+  var serveSlots = isDoubles ? 4 : 2; // total rotation length
 
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
@@ -1984,6 +1984,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   function _addPoint(player) {
     if (state.isFinished) return;
     if (state.tieRulePending) return; // Waiting for tie resolution dialog
+    if (_needsServePick()) return; // Waiting for serve selection
 
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
@@ -2178,87 +2179,126 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (typeof window._maybeFinishElimination === 'function') window._maybeFinishElimination(t);
   }
 
-  // ── Serve tracking helpers ──
-  // Calculate who is currently serving based on total games played + tiebreak points
-  function _getCurrentServer() {
-    if (!state.serveConfigured || state.servingTeam === 0) return null;
-    // In tiebreak: serves alternate every 2 points (first server gets 1, then 2 each)
-    if (state.isTiebreak || _isDecidingSet()) {
-      var totalPts = state.currentGameP1 + state.currentGameP2;
-      // First point: whoever's turn it is. Then every 2 points, switch.
-      var tbServeOffset = (totalPts === 0) ? 0 : Math.floor((totalPts + 1) / 2);
-      var teamOffset = (state.totalGamesPlayed + tbServeOffset) % 2;
-      var servTeam = teamOffset === 0 ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
-      // In doubles: rotate server within team
-      var players = servTeam === 1 ? p1Players : p2Players;
-      if (players.length > 1) {
-        var teamGames = 0;
-        // Count how many times this team served so far
-        for (var sg = 0; sg < state.totalGamesPlayed + tbServeOffset; sg++) {
-          var sTeam = ((sg % 2) === 0) ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
-          if (sTeam === servTeam) teamGames++;
-        }
-        var baseIdx = servTeam === 1 ? state.serverP1 : state.serverP2;
-        var serverIdx = (baseIdx + teamGames) % players.length;
-        return { team: servTeam, name: players[serverIdx] };
-      }
-      return { team: servTeam, name: players[0] };
+  // ── Serve tracking — progressive definition ──
+  // The serve order is built game by game as each player serves for the first time.
+  // Singles: 2 slots (game 1: pick, game 2: auto). Doubles: 4 slots (game 1: pick anyone,
+  // game 2: other team pick player, game 3+4: auto remaining players).
+
+  // Get which players are already in the serve order from a specific team
+  function _serveOrderPlayersForTeam(team) {
+    var names = [];
+    for (var i = 0; i < state.serveOrder.length; i++) {
+      if (state.serveOrder[i].team === team) names.push(state.serveOrder[i].name);
     }
-    // Normal games: alternate every game
-    var teamOffset2 = state.totalGamesPlayed % 2;
-    var servTeam2 = teamOffset2 === 0 ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
-    var players2 = servTeam2 === 1 ? p1Players : p2Players;
-    if (players2.length > 1) {
-      // In doubles: each player serves alternate games for their team
-      var teamServeCount = Math.floor(state.totalGamesPlayed / 2);
-      var baseIdx2 = servTeam2 === 1 ? state.serverP1 : state.serverP2;
-      var serverIdx2 = (baseIdx2 + teamServeCount) % players2.length;
-      return { team: servTeam2, name: players2[serverIdx2] };
-    }
-    return { team: servTeam2, name: players2[0] };
+    return names;
   }
 
-  // Show serve picker dialog (before first point)
-  function _showServePicker() {
+  // Determine which team should serve at a given slot index (alternates)
+  function _teamForSlot(slotIdx) {
+    if (state.serveOrder.length === 0) return 0; // Not yet determined
+    var firstTeam = state.serveOrder[0].team;
+    return (slotIdx % 2 === 0) ? firstTeam : (firstTeam === 1 ? 2 : 1);
+  }
+
+  // Get eligible players for the next serve slot
+  function _getEligibleServers() {
+    var slot = state.serveOrder.length;
+    if (slot === 0) {
+      // First serve — any player from any team
+      var all = [];
+      for (var i = 0; i < p1Players.length; i++) all.push({ team: 1, name: p1Players[i] });
+      for (var j = 0; j < p2Players.length; j++) all.push({ team: 2, name: p2Players[j] });
+      return all;
+    }
+    // Subsequent slots: must be from the alternating team, and not yet in serveOrder
+    var team = _teamForSlot(slot);
+    var used = _serveOrderPlayersForTeam(team);
+    var teamPlayers = team === 1 ? p1Players : p2Players;
+    var eligible = [];
+    for (var k = 0; k < teamPlayers.length; k++) {
+      if (used.indexOf(teamPlayers[k]) === -1) eligible.push({ team: team, name: teamPlayers[k] });
+    }
+    return eligible;
+  }
+
+  // Check if a serve pick is needed right now (before next point)
+  function _needsServePick() {
+    if (state.serveSkipped || state.isFinished) return false;
+    var slot = state.serveOrder.length;
+    if (slot >= serveSlots) return false; // Fully configured
+    // Is the current game the one where this slot applies?
+    return state.totalGamesPlayed === slot && state.currentGameP1 === 0 && state.currentGameP2 === 0;
+  }
+
+  // Auto-fill serve slot if only 1 eligible player
+  function _tryAutoFillServe() {
+    if (state.serveSkipped) return;
+    while (state.serveOrder.length < serveSlots) {
+      var eligible = _getEligibleServers();
+      if (eligible.length === 1) {
+        state.serveOrder.push(eligible[0]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Get current server based on completed serveOrder + totalGamesPlayed
+  function _getCurrentServer() {
+    if (state.serveSkipped || state.serveOrder.length === 0) return null;
+    var idx;
+    if (state.isTiebreak || _isDecidingSet()) {
+      // In tiebreak: advance serve position every 2 points (first server serves 1, then 2 each)
+      var totalPts = state.currentGameP1 + state.currentGameP2;
+      var tbOffset = (totalPts === 0) ? 0 : Math.floor((totalPts + 1) / 2);
+      idx = (state.totalGamesPlayed + tbOffset) % state.serveOrder.length;
+    } else {
+      idx = state.totalGamesPlayed % state.serveOrder.length;
+    }
+    return state.serveOrder[idx] || null;
+  }
+
+  // Show serve picker overlay on top of scoreboard
+  function _showServePickerOverlay() {
     var container = document.getElementById('live-score-content');
     if (!container) return;
-    // Build buttons for each player across both teams
+    var eligible = _getEligibleServers();
+    var slot = state.serveOrder.length;
+    var gameNum = slot + 1;
+    var title = slot === 0 ? 'Quem começa sacando?' : 'Game ' + gameNum + ' — quem saca?';
+    var subtitle = slot === 0 ? 'Toque no jogador que vai sacar' : 'Primeiro saque deste jogador no jogo';
+
     var btns = '';
-    for (var i = 0; i < p1Players.length; i++) {
-      btns += '<button onclick="window._liveSetServer(1,' + i + ')" style="padding:14px 16px;border-radius:12px;border:2px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.08);cursor:pointer;text-align:center;width:100%;">' +
-        '<div style="font-size:0.92rem;font-weight:700;color:#3b82f6;">' + window._safeHtml(p1Players[i]) + '</div>' +
-        (isDoubles ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">Time 1</div>' : '') +
+    for (var i = 0; i < eligible.length; i++) {
+      var e = eligible[i];
+      var clr = e.team === 1 ? '#3b82f6' : '#ef4444';
+      var bgClr = e.team === 1 ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
+      var bdrClr = e.team === 1 ? 'rgba(59,130,246,0.3)' : 'rgba(239,68,68,0.3)';
+      btns += '<button onclick="window._livePickServer(' + e.team + ',\'' + _esc(e.name) + '\')" style="padding:16px;border-radius:12px;border:2px solid ' + bdrClr + ';background:' + bgClr + ';cursor:pointer;text-align:center;width:100%;">' +
+        '<div style="font-size:1rem;font-weight:700;color:' + clr + ';">' + window._safeHtml(e.name) + '</div>' +
       '</button>';
     }
-    for (var j = 0; j < p2Players.length; j++) {
-      btns += '<button onclick="window._liveSetServer(2,' + j + ')" style="padding:14px 16px;border-radius:12px;border:2px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);cursor:pointer;text-align:center;width:100%;">' +
-        '<div style="font-size:0.92rem;font-weight:700;color:#ef4444;">' + window._safeHtml(p2Players[j]) + '</div>' +
-        (isDoubles ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">Time 2</div>' : '') +
-      '</button>';
-    }
+
     container.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.5rem;gap:1.5rem;">' +
         '<div style="text-align:center;">' +
           '<div style="font-size:1.5rem;margin-bottom:6px;">🏐</div>' +
-          '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">Quem começa sacando?</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Toque no nome de quem vai sacar primeiro</div>' +
+          '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">' + title + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">' + subtitle + '</div>' +
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;">' + btns + '</div>' +
-        '<button onclick="window._liveSetServer(0,0)" style="font-size:0.72rem;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:8px;">Pular (não rastrear saque)</button>' +
+        (slot === 0 ? '<button onclick="window._livePickServer(0,\'\')" style="font-size:0.72rem;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:8px;">Pular (não rastrear saque)</button>' : '') +
       '</div>';
   }
 
-  window._liveSetServer = function(team, playerIdx) {
+  window._livePickServer = function(team, name) {
     if (team === 0) {
-      // Skip serve tracking
-      state.serveConfigured = true;
-      state.servingTeam = 0;
+      state.serveSkipped = true;
     } else {
-      state.serveConfigured = true;
-      state.servingTeam = team;
-      if (team === 1) state.serverP1 = playerIdx;
-      else state.serverP2 = playerIdx;
+      state.serveOrder.push({ team: team, name: name });
+      _tryAutoFillServe(); // Auto-fill remaining if only 1 option
     }
+    state.servePending = false;
     _render();
   };
 
@@ -2267,9 +2307,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var container = document.getElementById('live-score-content');
     if (!container) return;
 
-    // If serve not yet configured, show picker first
-    if (!state.serveConfigured && !state.isFinished) {
-      _showServePicker();
+    // Check if we need a serve pick before continuing
+    if (_needsServePick()) {
+      _showServePickerOverlay();
       return;
     }
 
@@ -2460,8 +2500,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.winner = null;
         state.tieRulePending = false;
         state.totalGamesPlayed = 0;
-        state.serveConfigured = false;
-        state.servingTeam = 0;
+        state.serveOrder = [];
+        state.serveSkipped = false;
+        state.servePending = false;
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
         _render();

@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Scoreboard fullscreen + Saque</b> — Placar branco apenas nos números (fundo escuro preenche a tela). Escala automática com clamp() para qualquer tamanho de tela. Antes do primeiro ponto, tela "Quem começa sacando?" com todos os jogadores. Indicador 🏐 ao lado do nome de quem saca, alterna a cada game (tiebreak: a cada 2 pontos). Duplas: rotação automática de servidor dentro do time. Nomes em azul (time 1) e vermelho (time 2). Botões ▲/▼ coloridos por time.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Saque progressivo</b> — Ordem de saque definida game a game: no 1° game, escolha qualquer jogador; no 2° game (duplas), escolha quem saca do outro time; games 3-4 preenchidos automaticamente. Singles: auto após 1° pick. Indicador 🏐 no nome do sacador. Tiebreak: alterna a cada 2 pontos. Opção "Pular" para não rastrear saque.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
