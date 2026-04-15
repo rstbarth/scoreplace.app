@@ -1002,13 +1002,9 @@ function renderDashboard(container) {
           <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:min(55vw,240px); min-height: 78px; font-size: 1.35rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
             ${_t('dashboard.newTournament')}
           </button>
-          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:0 0 auto;min-width:min(25vw,110px); min-height: 78px; font-size: 0.88rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
+          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:0 0 auto;min-width:min(30vw,140px); min-height: 78px; font-size: 1rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
             <span style="font-size:1.5rem;">📡</span>
             <span>Partida Casual</span>
-          </button>
-          <button class="btn btn-cta hover-lift" id="btn-scan-qr" style="background:linear-gradient(135deg,#a855f7,#7c3aed); color: #ffffff; flex:0 0 auto;min-width:min(25vw,110px); min-height: 78px; font-size: 0.88rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openScanQR==='function')window._openScanQR();">
-            <span style="font-size:1.5rem;">📷</span>
-            <span>Escanear QR</span>
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center;">
