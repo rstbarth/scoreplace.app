@@ -1753,7 +1753,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (p2Players.length === 1) p2Players.push('Adversário 2');
   } else {
     if (p1Players.length === 0) p1Players = ['Eu'];
-    if (p2Players.length === 0) p2Players = ['Adversário'];
+    if (p2Players.length === 0) p2Players = ['Adversário 1'];
   }
 
   // Sport emoji for serve picker
@@ -2560,8 +2560,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
         var shortName = window._safeHtml(pn.split(' ')[0]);
-        var servIcon = isServing ? ' <span style="font-size:0.85rem;">' + _sportBall + '</span>' : '';
-        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;font-size:clamp(0.95rem,3.5vw,1.2rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + shortName + servIcon + '</div>';
+        var servIcon = isServing ? '<span style="font-size:0.85rem;">' + _sportBall + '</span> ' : '';
+        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;font-size:clamp(0.95rem,3.5vw,1.2rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + servIcon + shortName + '</div>';
       }
       return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:0 4px;">' + lines + '</div>';
     };
