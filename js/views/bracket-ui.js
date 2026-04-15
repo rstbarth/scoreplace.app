@@ -1760,7 +1760,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     countingType: useSets ? (sc.countingType || 'numeric') : 'numeric',
     advantageRule: useSets ? (sc.advantageRule === true) : false,
     isFixedSet: useSets && sc.fixedSet === true,
-    fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0
+    fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0,
+    tieRule: sc.tieRule || null, // 'extend'|'tiebreak'|'supertiebreak'|'ask'|null (null = standard 2-game lead)
+    tieRulePending: false // true when waiting for user choice at tie
   };
 
   // Initialize first set
@@ -1856,30 +1858,123 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var cs = _currentSet();
     var g = state.gamesPerSet;
 
-    if (state.isFixedSet) {
-      // Fixed set: game IS the set
-      return 0; // Handled in _checkGameWon
+    if (state.isFixedSet) return 0; // Handled in _checkGameWon
+    if (_isDecidingSet()) return 0; // handled by tiebreak game
+
+    // tieRule logic: what happens when tied at g-g
+    if (state.tieRule && cs.gamesP1 === g && cs.gamesP2 === g) {
+      var rule = state.tieRule;
+      if (rule === 'ask' && !state.tieRulePending) {
+        // Pause and ask the user
+        state.tieRulePending = true;
+        _showTieRuleDialog();
+        return -2; // Signal: paused, waiting for user choice
+      }
+      if (rule === 'extend') {
+        // Already at g-g, next game wins (no 2-game lead)
+        // This is handled below — we just don't enter tiebreak
+      }
+      if (rule === 'tiebreak') {
+        state.isTiebreak = true;
+        state.currentGameP1 = 0;
+        state.currentGameP2 = 0;
+        return -1;
+      }
+      if (rule === 'supertiebreak') {
+        state.isTiebreak = true;
+        state.tiebreakPoints = state.superTiebreakPoints || 10;
+        state.currentGameP1 = 0;
+        state.currentGameP2 = 0;
+        return -1;
+      }
     }
 
-    if (_isDecidingSet()) {
-      // Super tiebreak set: won via tiebreak points
-      return 0; // handled by tiebreak game
+    // tieRule 'extend': at (g+1) vs g, the (g+1) player wins
+    if (state.tieRule === 'extend') {
+      if (cs.gamesP1 > g && cs.gamesP1 > cs.gamesP2) return 1;
+      if (cs.gamesP2 > g && cs.gamesP2 > cs.gamesP1) return 2;
+      // Still tied or nobody reached g+1 yet — play on
+      if (cs.gamesP1 <= g && cs.gamesP2 <= g) {
+        // Not at tie yet, standard check: first to g wins
+        if (cs.gamesP1 >= g && cs.gamesP1 > cs.gamesP2) return 1;
+        if (cs.gamesP2 >= g && cs.gamesP2 > cs.gamesP1) return 2;
+      }
+      return 0;
     }
 
-    // Standard set: first to 'g' games with 2-game lead, or tiebreak at g-g
+    // Standard rules: first to 'g' games with 2-game lead, or tiebreak at g-g
     if (cs.gamesP1 >= g && cs.gamesP1 - cs.gamesP2 >= 2) return 1;
     if (cs.gamesP2 >= g && cs.gamesP2 - cs.gamesP1 >= 2) return 2;
 
-    // Tiebreak trigger: at g-g
+    // Standard tiebreak trigger at g-g (when tieRule is not set)
     if (state.tiebreakEnabled && cs.gamesP1 === g && cs.gamesP2 === g) {
       state.isTiebreak = true;
       state.currentGameP1 = 0;
       state.currentGameP2 = 0;
-      return -1; // Signal: entering tiebreak
+      return -1;
     }
 
     return 0;
   }
+
+  // Dialog shown when tieRule is 'ask' and games are tied
+  function _showTieRuleDialog() {
+    var cs = _currentSet();
+    var g = state.gamesPerSet;
+    var dialogHtml =
+      '<div id="tie-rule-dialog" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10;padding:1rem;">' +
+        '<div style="background:var(--bg-card,#1e293b);border-radius:16px;border:1px solid rgba(192,132,252,0.3);padding:1.5rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
+          '<div style="text-align:center;margin-bottom:1rem;">' +
+            '<div style="font-size:1.5rem;margin-bottom:4px;">⚖️</div>' +
+            '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Empate ' + g + ' × ' + g + '</div>' +
+            '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Como desempatar?</div>' +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:8px;">' +
+            '<button onclick="window._liveResolveTie(\'extend\')" style="padding:14px;border-radius:12px;border:2px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);cursor:pointer;text-align:left;">' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#10b981;">Prorrogar +1 game</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Quem fizer o próximo game vence o set</div>' +
+            '</button>' +
+            '<button onclick="window._liveResolveTie(\'tiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(192,132,252,0.3);background:rgba(192,132,252,0.08);cursor:pointer;text-align:left;">' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#c084fc;">Tie-break (7 pts)</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Tie-break a 7 pontos com margem de 2</div>' +
+            '</button>' +
+            '<button onclick="window._liveResolveTie(\'supertiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);cursor:pointer;text-align:left;">' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#fbbf24;">Super tie-break (10 pts)</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Super tie-break a 10 pontos com margem de 2</div>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var contentEl = document.getElementById('live-score-content');
+    if (contentEl) {
+      contentEl.style.position = 'relative';
+      contentEl.insertAdjacentHTML('beforeend', dialogHtml);
+    }
+  }
+
+  // Handler for tie rule dialog choice
+  window._liveResolveTie = function(rule) {
+    state.tieRulePending = false;
+    var dialog = document.getElementById('tie-rule-dialog');
+    if (dialog) dialog.remove();
+
+    if (rule === 'extend') {
+      state.tieRule = 'extend';
+      // No tiebreak — just play on, next game wins
+    } else if (rule === 'tiebreak') {
+      state.tieRule = 'tiebreak';
+      state.isTiebreak = true;
+      state.currentGameP1 = 0;
+      state.currentGameP2 = 0;
+    } else if (rule === 'supertiebreak') {
+      state.tieRule = 'supertiebreak';
+      state.isTiebreak = true;
+      state.tiebreakPoints = state.superTiebreakPoints || 10;
+      state.currentGameP1 = 0;
+      state.currentGameP2 = 0;
+    }
+    _render();
+  };
 
   // Check if match is won
   function _checkMatchWon() {
@@ -1891,6 +1986,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Add point to player
   function _addPoint(player) {
     if (state.isFinished) return;
+    if (state.tieRulePending) return; // Waiting for tie resolution dialog
 
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
@@ -1953,6 +2049,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
           _finishSet(setResult);
         }
         // setResult === -1 means we entered tiebreak, already handled
+        // setResult === -2 means waiting for tie rule dialog (ask mode)
       }
     }
 
@@ -2269,61 +2366,67 @@ window._openCasualMatch = function() {
   var cu = window.AppStore && window.AppStore.currentUser;
   var userSport = '';
   if (cu && cu.preferredSports) {
-    // Take first sport from comma-separated list
     userSport = cu.preferredSports.split(',')[0].trim();
   }
 
-  // Available sports (same as create-tournament)
+  // Available sports
   var sports = [
-    { key: 'Beach Tennis', icon: '🎾', label: 'Beach Tennis' },
-    { key: 'Pickleball', icon: '🥒', label: 'Pickleball' },
-    { key: 'Tênis', icon: '🎾', label: 'Tênis' },
-    { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa' },
-    { key: 'Padel', icon: '🏸', label: 'Padel' },
-    { key: '_simple', icon: '🏅', label: 'Placar Simples' }
+    { key: 'Beach Tennis', icon: '🎾', label: 'Beach Tennis', defaultDoubles: true },
+    { key: 'Pickleball', icon: '🥒', label: 'Pickleball', defaultDoubles: false },
+    { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
+    { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
+    { key: 'Padel', icon: '🏸', label: 'Padel', defaultDoubles: true },
+    { key: '_simple', icon: '🏅', label: 'Placar Simples', defaultDoubles: false }
   ];
 
-  // Resolve initial sport (match user pref to available options)
+  // Resolve initial sport
   var initialSport = '_simple';
   for (var si = 0; si < sports.length; si++) {
     if (userSport && userSport.toLowerCase().indexOf(sports[si].key.toLowerCase()) !== -1) {
-      initialSport = sports[si].key;
-      break;
+      initialSport = sports[si].key; break;
     }
     if (userSport && sports[si].key.toLowerCase().indexOf(userSport.toLowerCase().replace(/[^\w\u00C0-\u024F]/gu, '')) !== -1) {
-      initialSport = sports[si].key;
-      break;
+      initialSport = sports[si].key; break;
     }
   }
 
   // State
   var selectedSport = initialSport;
+  var isDoubles = sports.find(function(s) { return s.key === initialSport; });
+  isDoubles = isDoubles ? isDoubles.defaultDoubles : false;
   var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
-  var p2Name = '';
+
+  // Casual default config per sport (overrides _sportScoringDefaults for casual)
+  var _casualDefaults = {
+    'Beach Tennis':  { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false, tieRule:'ask' },
+    'Pickleball':    { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false, tieRule:'extend' },
+    'Tênis':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true, tieRule:'tiebreak' },
+    'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false, tieRule:'extend' },
+    'Padel':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false, tieRule:'tiebreak' }
+  };
 
   function _getConfig() {
     if (selectedSport === '_simple') return { type: 'simple' };
-    // Check user's saved GSM prefs first
     try {
-      var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
+      var prefs = JSON.parse(localStorage.getItem('scoreplace_casual_prefs') || '{}');
       if (prefs[selectedSport]) return prefs[selectedSport];
     } catch(e) {}
-    // Fallback to sport defaults
-    var defaults = window._sportScoringDefaults || {};
-    return defaults[selectedSport] || defaults['_default'] || { type: 'simple' };
+    return _casualDefaults[selectedSport] || { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false, tieRule:'ask' };
   }
+
+  var _tieRuleLabels = { 'ask': 'Perguntar no jogo', 'extend': 'Prorrogar +1 game', 'tiebreak': 'Tie-break 7pts', 'supertiebreak': 'Super tie-break 10pts' };
 
   function _configSummary() {
     var cfg = _getConfig();
-    if (cfg.type === 'simple' || !cfg.type || cfg.type !== 'sets') return 'Placar livre (sem sets/games)';
+    if (!cfg.type || cfg.type !== 'sets') return 'Placar livre (sem sets/games)';
     var parts = [];
-    parts.push(cfg.setsToWin + ' set' + (cfg.setsToWin > 1 ? 's' : '') + ' para vencer');
-    parts.push(cfg.gamesPerSet + ' games/set');
-    if (cfg.tiebreakEnabled) parts.push('TB ' + (cfg.tiebreakPoints || 7) + ' pts');
-    if (cfg.superTiebreak) parts.push('Super TB ' + (cfg.superTiebreakPoints || 10) + ' pts');
-    if (cfg.countingType === 'tennis') parts.push('Contagem tênis (15-30-40)');
-    if (cfg.advantageRule) parts.push('Vantagem (AD)');
-    if (cfg.fixedSet) parts.push('Set fixo ' + (cfg.fixedSetGames || cfg.gamesPerSet) + ' games');
+    parts.push(cfg.setsToWin + ' set' + (cfg.setsToWin > 1 ? 's' : ''));
+    parts.push(cfg.gamesPerSet + ' games');
+    if (cfg.countingType === 'tennis') parts.push('15-30-40');
+    else parts.push('1-2-3');
+    if (cfg.advantageRule) parts.push('AD');
+    var tr = cfg.tieRule || 'ask';
+    parts.push('Empate: ' + (_tieRuleLabels[tr] || tr));
     return parts.join(' · ');
   }
 
@@ -2344,6 +2447,54 @@ window._openCasualMatch = function() {
         '">' + sp.icon + ' ' + sp.label + '</button>';
     }
 
+    // Singles / Doubles toggle
+    var modeToggle =
+      '<div style="margin-bottom:1.5rem;">' +
+        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Modo</label>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button onclick="window._casualSetDoubles(false)" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.85rem;font-weight:600;border:2px solid ' + (!isDoubles ? '#38bdf8' : 'rgba(255,255,255,0.12)') + ';background:' + (!isDoubles ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (!isDoubles ? '#38bdf8' : 'var(--text-muted)') + ';">👤 Single</button>' +
+          '<button onclick="window._casualSetDoubles(true)" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.85rem;font-weight:600;border:2px solid ' + (isDoubles ? '#38bdf8' : 'rgba(255,255,255,0.12)') + ';background:' + (isDoubles ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isDoubles ? '#38bdf8' : 'var(--text-muted)') + ';">👥 Dupla</button>' +
+        '</div>' +
+      '</div>';
+
+    // Player names
+    var playersHtml = '';
+    if (isDoubles) {
+      playersHtml =
+        '<div style="margin-bottom:1.5rem;">' +
+          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Duplas</label>' +
+          '<div style="display:flex;gap:12px;">' +
+            // Team 1
+            '<div style="flex:1;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:10px;">' +
+              '<div style="font-size:0.72rem;font-weight:700;color:#60a5fa;margin-bottom:6px;text-align:center;">Time 1</div>' +
+              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1A" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p1b-name" placeholder="Jogador 1B" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '</div>' +
+            // Team 2
+            '<div style="flex:1;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px;">' +
+              '<div style="font-size:0.72rem;font-weight:700;color:#f87171;margin-bottom:6px;text-align:center;">Time 2</div>' +
+              '<input type="text" id="casual-p2a-name" placeholder="Jogador 2A" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p2b-name" placeholder="Jogador 2B" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    } else {
+      playersHtml =
+        '<div style="margin-bottom:1.5rem;">' +
+          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
+          '<div style="display:flex;flex-direction:column;gap:10px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<div style="width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,0.2);color:#60a5fa;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">1</div>' +
+              '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<div style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.2);color:#f87171;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">2</div>' +
+              '<input type="text" id="casual-p2-name" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
     content.innerHTML =
       // Sport picker
       '<div style="margin-bottom:1.5rem;">' +
@@ -2351,39 +2502,38 @@ window._openCasualMatch = function() {
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + sportBtns + '</div>' +
       '</div>' +
 
+      // Singles/Doubles
+      modeToggle +
+
       // Config summary + gear
       '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px 16px;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;">' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-size:0.72rem;font-weight:600;color:#818cf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Configuração do Jogo</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-bright);" id="casual-config-summary">' + window._safeHtml(_configSummary()) + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-bright);">' + window._safeHtml(_configSummary()) + '</div>' +
         '</div>' +
         '<button onclick="window._casualOpenConfig()" style="width:42px;height:42px;border-radius:50%;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#818cf8;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Configurar">⚙️</button>' +
       '</div>' +
 
-      // Player names
-      '<div style="margin-bottom:1.5rem;">' +
-        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
-        '<div style="display:flex;flex-direction:column;gap:10px;">' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,0.2);color:#60a5fa;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">1</div>' +
-            '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Nome do jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.4)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.12)\'">' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.2);color:#f87171;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">2</div>' +
-            '<input type="text" id="casual-p2-name" value="' + window._safeHtml(p2Name) + '" placeholder="Nome do jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor=\'rgba(239,68,68,0.4)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.12)\'">' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+      // Players
+      playersHtml +
 
       // Start button
-      '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;box-shadow:0 4px 20px rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
+      '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
         '<span style="font-size:1.5rem;">📡</span> Iniciar Partida' +
       '</button>';
   }
 
-  // Sport selection handler
+  // Sport selection handler — also resets doubles default
   window._casualSelectSport = function(key) {
     selectedSport = key;
+    var sp = sports.find(function(s) { return s.key === key; });
+    if (sp) isDoubles = sp.defaultDoubles;
+    _renderSetup();
+  };
+
+  // Doubles toggle
+  window._casualSetDoubles = function(val) {
+    isDoubles = val;
     _renderSetup();
   };
 
@@ -2393,7 +2543,8 @@ window._openCasualMatch = function() {
     var content = document.getElementById('casual-setup-content');
     if (!content) return;
 
-    var isSimple = !cfg.type || cfg.type === 'simple' || cfg.type !== 'sets';
+    var isSimple = !cfg.type || cfg.type !== 'sets';
+    var tr = cfg.tieRule || 'ask';
 
     content.innerHTML =
       '<div style="margin-bottom:1rem;">' +
@@ -2411,7 +2562,7 @@ window._openCasualMatch = function() {
           '</div>' +
         '</div>' +
 
-        // GSM options (visible only when type=sets)
+        // GSM options
         (isSimple ? '' :
         '<div style="display:flex;flex-direction:column;gap:12px;">' +
           // Sets to win
@@ -2434,16 +2585,6 @@ window._openCasualMatch = function() {
               }).join('') +
             '</div>' +
           '</div>' +
-          // Tiebreak
-          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Tiebreak</span>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-tb" ' + (cfg.tiebreakEnabled ? 'checked' : '') + ' onchange="window._casualSetCfg(\'tiebreakEnabled\',this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
-          // Super Tiebreak
-          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Super Tiebreak (set decisivo)</span>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-stb" ' + (cfg.superTiebreak ? 'checked' : '') + ' onchange="window._casualSetCfg(\'superTiebreak\',this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
           // Counting type
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
             '<span style="font-size:0.82rem;color:var(--text-bright);">Contagem</span>' +
@@ -2454,8 +2595,23 @@ window._openCasualMatch = function() {
           '</div>' +
           // Advantage rule
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Regra de vantagem (AD)</span>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-adv" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Vantagem (AD)</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // Tie rule — what happens at (games-1) x (games-1)
+          '<div style="margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">' +
+            '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Empate ' + (cfg.gamesPerSet || 6) + '×' + (cfg.gamesPerSet || 6) + ' — como desempatar?</label>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+              ['ask','extend','tiebreak','supertiebreak'].map(function(rule) {
+                var active = tr === rule;
+                var label = _tieRuleLabels[rule];
+                var desc = { ask: 'Escolher na hora do empate', extend: 'Quem fizer +1 game vence (sem vantagem de 2)', tiebreak: 'Tie-break a 7 pontos (margem de 2)', supertiebreak: 'Super tie-break a 10 pontos (margem de 2)' }[rule];
+                return '<button onclick="window._casualSetCfg(\'tieRule\',\'' + rule + '\')" style="text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;border:2px solid ' + (active ? '#c084fc' : 'rgba(255,255,255,0.08)') + ';background:' + (active ? 'rgba(192,132,252,0.1)' : 'rgba(255,255,255,0.02)') + ';">' +
+                  '<div style="font-size:0.82rem;font-weight:600;color:' + (active ? '#c084fc' : 'var(--text-bright)') + ';">' + label + '</div>' +
+                  '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">' + desc + '</div>' +
+                '</button>';
+              }).join('') +
+            '</div>' +
           '</div>' +
         '</div>'
         ) +
@@ -2471,9 +2627,7 @@ window._openCasualMatch = function() {
     } else {
       var base = _getConfig();
       if (base.type !== 'sets') {
-        // Switch to defaults for selected sport
-        var defaults = window._sportScoringDefaults || {};
-        base = defaults[selectedSport] || defaults['Beach Tennis'] || { type: 'sets', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false };
+        base = _casualDefaults[selectedSport] || _casualDefaults['Beach Tennis'];
       }
       _tempCfg = Object.assign({}, base, { type: 'sets' });
     }
@@ -2491,10 +2645,9 @@ window._openCasualMatch = function() {
   function _saveTempCfg() {
     if (!_tempCfg) return;
     try {
-      var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
-      var saveKey = selectedSport === '_simple' ? '_casual' : selectedSport;
-      prefs[saveKey] = _tempCfg;
-      localStorage.setItem('scoreplace_gsm_prefs', JSON.stringify(prefs));
+      var prefs = JSON.parse(localStorage.getItem('scoreplace_casual_prefs') || '{}');
+      prefs[selectedSport === '_simple' ? '_casual' : selectedSport] = _tempCfg;
+      localStorage.setItem('scoreplace_casual_prefs', JSON.stringify(prefs));
     } catch(e) {}
   }
 
@@ -2505,10 +2658,18 @@ window._openCasualMatch = function() {
 
   // Start the match
   window._casualStart = function() {
-    var n1 = (document.getElementById('casual-p1-name') || {}).value || 'Jogador 1';
-    var n2 = (document.getElementById('casual-p2-name') || {}).value || 'Jogador 2';
-    n1 = n1.trim() || 'Jogador 1';
-    n2 = n2.trim() || 'Jogador 2';
+    var n1, n2;
+    if (isDoubles) {
+      var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
+      var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
+      var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
+      var b2 = ((document.getElementById('casual-p2b-name') || {}).value || '').trim();
+      n1 = (a1 && b1) ? a1 + ' / ' + b1 : (a1 || b1 || 'Time 1');
+      n2 = (a2 && b2) ? a2 + ' / ' + b2 : (a2 || b2 || 'Time 2');
+    } else {
+      n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
+      n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
+    }
 
     var cfg = _getConfig();
 
@@ -2533,27 +2694,24 @@ window._openCasualMatch = function() {
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;';
 
   overlay.innerHTML =
-    // Header
     '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
       '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:1.3rem;">📡</span>' +
         '<div>' +
-          '<div style="font-size:0.95rem;font-weight:800;color:#f87171;">Partida Casual</div>' +
+          '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">Partida Casual</div>' +
           '<div style="font-size:0.68rem;color:var(--text-muted);">Sem torneio — placar ao vivo</div>' +
         '</div>' +
       '</div>' +
       '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
     '</div>' +
-    // Content
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1.5rem 1rem;-webkit-overflow-scrolling:touch;"></div>';
 
   document.body.appendChild(overlay);
   _renderSetup();
 
-  // Auto-focus player 2 name after render
   setTimeout(function() {
-    var p2El = document.getElementById('casual-p2-name');
-    if (p2El && !p2El.value) p2El.focus();
+    var el = isDoubles ? document.getElementById('casual-p2a-name') : document.getElementById('casual-p2-name');
+    if (el && !el.value) el.focus();
   }, 300);
 };
 

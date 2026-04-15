@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.35-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Partida Casual</b> — Novo botão "📡 Partida Casual" no dashboard para jogar sem criar torneio. Tela de setup com seleção de modalidade, nomes dos jogadores, resumo da configuração e engrenagem para ajustar regras (sets, games, tiebreak, contagem). Inicia placar ao vivo com as regras do esporte selecionado. Histórico salvo no localStorage.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.36-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Partida Casual v2</b> — Botão azul claro. Toggle Single/Dupla (padrão dupla no Beach Tennis e Padel, 4 campos de nome). Default: 1 set, 6 games, contagem 15-30-40. No empate (ex: 5×5), o jogador escolhe: prorrogar +1 game, tie-break 7pts ou super tie-break 10pts. Opção configurável na engrenagem.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
