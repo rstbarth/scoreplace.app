@@ -1741,6 +1741,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var existing = document.getElementById('live-scoring-overlay');
   if (existing) existing.remove();
 
+  // ── Parse player names (doubles: "Ana/Bruno" → ["Ana","Bruno"]) ──
+  var p1Players = p1Name.indexOf('/') > 0 ? p1Name.split('/').map(function(s){return s.trim();}) : [p1Name];
+  var p2Players = p2Name.indexOf('/') > 0 ? p2Name.split('/').map(function(s){return s.trim();}) : [p2Name];
+  var isDoubles = p1Players.length > 1 || p2Players.length > 1;
+
   // ── State ──
   var state = {
     sets: [], // Array of { gamesP1, gamesP2, tiebreak: { p1, p2 } | null }
@@ -1761,8 +1766,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
     advantageRule: useSets ? (sc.advantageRule === true) : false,
     isFixedSet: useSets && sc.fixedSet === true,
     fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0,
-    tieRule: sc.tieRule || null, // 'extend'|'tiebreak'|'supertiebreak'|'ask'|null (null = standard 2-game lead)
-    tieRulePending: false // true when waiting for user choice at tie
+    tieRule: sc.tieRule || null, // 'extend'|'tiebreak'|'ask'|null (null = standard 2-game lead)
+    tieRulePending: false, // true when waiting for user choice at tie
+    // Serve tracking
+    servingTeam: 0,     // 1 or 2 (0 = not yet chosen)
+    serverP1: 0,        // Index into p1Players of who serves for team 1
+    serverP2: 0,        // Index into p2Players of who serves for team 2
+    serveConfigured: false, // true after initial serve selection
+    totalGamesPlayed: 0  // total games completed (for serve rotation)
   };
 
   // Initialize first set
@@ -2028,6 +2039,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         else cs.gamesP2++;
         state.currentGameP1 = 0;
         state.currentGameP2 = 0;
+        state.totalGamesPlayed++;
 
         // Check if set is won
         var setResult = _checkSetWon();
@@ -2166,10 +2178,100 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (typeof window._maybeFinishElimination === 'function') window._maybeFinishElimination(t);
   }
 
+  // ── Serve tracking helpers ──
+  // Calculate who is currently serving based on total games played + tiebreak points
+  function _getCurrentServer() {
+    if (!state.serveConfigured || state.servingTeam === 0) return null;
+    // In tiebreak: serves alternate every 2 points (first server gets 1, then 2 each)
+    if (state.isTiebreak || _isDecidingSet()) {
+      var totalPts = state.currentGameP1 + state.currentGameP2;
+      // First point: whoever's turn it is. Then every 2 points, switch.
+      var tbServeOffset = (totalPts === 0) ? 0 : Math.floor((totalPts + 1) / 2);
+      var teamOffset = (state.totalGamesPlayed + tbServeOffset) % 2;
+      var servTeam = teamOffset === 0 ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
+      // In doubles: rotate server within team
+      var players = servTeam === 1 ? p1Players : p2Players;
+      if (players.length > 1) {
+        var teamGames = 0;
+        // Count how many times this team served so far
+        for (var sg = 0; sg < state.totalGamesPlayed + tbServeOffset; sg++) {
+          var sTeam = ((sg % 2) === 0) ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
+          if (sTeam === servTeam) teamGames++;
+        }
+        var baseIdx = servTeam === 1 ? state.serverP1 : state.serverP2;
+        var serverIdx = (baseIdx + teamGames) % players.length;
+        return { team: servTeam, name: players[serverIdx] };
+      }
+      return { team: servTeam, name: players[0] };
+    }
+    // Normal games: alternate every game
+    var teamOffset2 = state.totalGamesPlayed % 2;
+    var servTeam2 = teamOffset2 === 0 ? state.servingTeam : (state.servingTeam === 1 ? 2 : 1);
+    var players2 = servTeam2 === 1 ? p1Players : p2Players;
+    if (players2.length > 1) {
+      // In doubles: each player serves alternate games for their team
+      var teamServeCount = Math.floor(state.totalGamesPlayed / 2);
+      var baseIdx2 = servTeam2 === 1 ? state.serverP1 : state.serverP2;
+      var serverIdx2 = (baseIdx2 + teamServeCount) % players2.length;
+      return { team: servTeam2, name: players2[serverIdx2] };
+    }
+    return { team: servTeam2, name: players2[0] };
+  }
+
+  // Show serve picker dialog (before first point)
+  function _showServePicker() {
+    var container = document.getElementById('live-score-content');
+    if (!container) return;
+    // Build buttons for each player across both teams
+    var btns = '';
+    for (var i = 0; i < p1Players.length; i++) {
+      btns += '<button onclick="window._liveSetServer(1,' + i + ')" style="padding:14px 16px;border-radius:12px;border:2px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.08);cursor:pointer;text-align:center;width:100%;">' +
+        '<div style="font-size:0.92rem;font-weight:700;color:#3b82f6;">' + window._safeHtml(p1Players[i]) + '</div>' +
+        (isDoubles ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">Time 1</div>' : '') +
+      '</button>';
+    }
+    for (var j = 0; j < p2Players.length; j++) {
+      btns += '<button onclick="window._liveSetServer(2,' + j + ')" style="padding:14px 16px;border-radius:12px;border:2px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);cursor:pointer;text-align:center;width:100%;">' +
+        '<div style="font-size:0.92rem;font-weight:700;color:#ef4444;">' + window._safeHtml(p2Players[j]) + '</div>' +
+        (isDoubles ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">Time 2</div>' : '') +
+      '</button>';
+    }
+    container.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.5rem;gap:1.5rem;">' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:1.5rem;margin-bottom:6px;">🏐</div>' +
+          '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">Quem começa sacando?</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Toque no nome de quem vai sacar primeiro</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;">' + btns + '</div>' +
+        '<button onclick="window._liveSetServer(0,0)" style="font-size:0.72rem;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:8px;">Pular (não rastrear saque)</button>' +
+      '</div>';
+  }
+
+  window._liveSetServer = function(team, playerIdx) {
+    if (team === 0) {
+      // Skip serve tracking
+      state.serveConfigured = true;
+      state.servingTeam = 0;
+    } else {
+      state.serveConfigured = true;
+      state.servingTeam = team;
+      if (team === 1) state.serverP1 = playerIdx;
+      else state.serverP2 = playerIdx;
+    }
+    _render();
+  };
+
   // ── Render function ──
   function _render() {
     var container = document.getElementById('live-score-content');
     if (!container) return;
+
+    // If serve not yet configured, show picker first
+    if (!state.serveConfigured && !state.isFinished) {
+      _showServePicker();
+      return;
+    }
 
     // Sets display
     var setsDisplay = '';
@@ -2177,10 +2279,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       for (var i = 0; i < state.sets.length; i++) {
         var s = state.sets[i];
         var isCurrent = (i === state.sets.length - 1) && !state.isFinished;
-        var tbStr = s.tiebreak ? '<span style="font-size:0.55rem;color:#888;vertical-align:super;">(' + s.tiebreak.p1 + '-' + s.tiebreak.p2 + ')</span>' : '';
-        setsDisplay += '<div style="display:inline-flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:6px;background:' + (isCurrent ? 'rgba(0,0,0,0.08)' : 'transparent') + ';min-width:40px;">' +
-          '<div style="font-size:0.55rem;color:#999;margin-bottom:1px;">Set ' + (i + 1) + '</div>' +
-          '<div style="font-size:0.95rem;font-weight:800;color:#222;">' + s.gamesP1 + ' - ' + s.gamesP2 + tbStr + '</div>' +
+        var tbStr = s.tiebreak ? '<span style="font-size:0.55rem;color:var(--text-muted);vertical-align:super;">(' + s.tiebreak.p1 + '-' + s.tiebreak.p2 + ')</span>' : '';
+        setsDisplay += '<div style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 8px;border-radius:6px;background:' + (isCurrent ? 'rgba(255,255,255,0.06)' : 'transparent') + ';min-width:36px;">' +
+          '<div style="font-size:0.5rem;color:var(--text-muted);margin-bottom:1px;">Set ' + (i + 1) + '</div>' +
+          '<div style="font-size:0.85rem;font-weight:800;color:var(--text-bright);">' + s.gamesP1 + '-' + s.gamesP2 + tbStr + '</div>' +
         '</div>';
       }
     }
@@ -2189,109 +2291,125 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var gameLabel = '';
     var p1Display, p2Display;
     if (state.isFinished) {
-      gameLabel = state.winner === 1 ? window._safeHtml(p1Name.split('/')[0].trim().split(' ')[0]) + ' venceu!' : window._safeHtml(p2Name.split('/')[0].trim().split(' ')[0]) + ' venceu!';
+      gameLabel = state.winner === 1 ? window._safeHtml(p1Players[0].split(' ')[0]) + ' venceu!' : window._safeHtml(p2Players[0].split(' ')[0]) + ' venceu!';
       p1Display = '✓';
       p2Display = '✓';
     } else if (!useSets || state.isFixedSet) {
-      gameLabel = state.isFixedSet ? 'Set Fixo' : 'Placar';
+      gameLabel = state.isFixedSet ? 'SET FIXO' : 'PLACAR';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
     } else if (_isDecidingSet()) {
-      gameLabel = 'Super Tie-break';
+      gameLabel = 'SUPER TIE-BREAK';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
     } else if (state.isTiebreak) {
-      gameLabel = 'Tie-break';
+      gameLabel = 'TIE-BREAK';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
     } else {
-      gameLabel = 'Game';
+      gameLabel = 'GAME';
       p1Display = _formatGamePoint(state.currentGameP1, state.currentGameP2, false);
       p2Display = _formatGamePoint(state.currentGameP2, state.currentGameP1, false);
     }
 
-    // Games display for current set
+    // Games in current set
     var gamesRow = '';
     if (useSets && !state.isFixedSet && !state.isFinished) {
       var cs = _currentSet();
-      gamesRow = '<div style="font-size:0.7rem;color:#666;text-align:center;margin-top:2px;">Games: ' + cs.gamesP1 + ' - ' + cs.gamesP2 + '</div>';
+      gamesRow = '<div style="font-size:0.72rem;color:var(--text-muted);text-align:center;margin-top:4px;">Games: ' + cs.gamesP1 + ' – ' + cs.gamesP2 + '</div>';
     }
 
-    // Serving indicator
-    var servingHtml = '';
-    if ((state.isTiebreak || _isDecidingSet()) && !state.isFinished) {
-      var totalPts = state.currentGameP1 + state.currentGameP2;
-      var serving = (totalPts === 0) ? 1 : (Math.floor((totalPts - 1) / 2) % 2 === 0 ? 2 : 1);
-      servingHtml = '<div style="text-align:center;font-size:0.68rem;color:#b45309;margin-bottom:6px;">🏓 Saque: ' + (serving === 1 ? window._safeHtml(p1Name.split('/')[0].trim().split(' ')[0]) : window._safeHtml(p2Name.split('/')[0].trim().split(' ')[0])) + '</div>';
+    // Serving info
+    var serverInfo = _getCurrentServer();
+    var serveBall1 = '', serveBall2 = '';
+    if (serverInfo && !state.isFinished) {
+      if (serverInfo.team === 1) serveBall1 = ' 🏐';
+      else serveBall2 = ' 🏐';
     }
 
-    // Arrow button builder
+    // Short names for display
+    var p1Short = p1Players.map(function(n){return window._safeHtml(n.split(' ')[0]);}).join(' / ');
+    var p2Short = p2Players.map(function(n){return window._safeHtml(n.split(' ')[0]);}).join(' / ');
+
+    // Serve name display (below score board)
+    var serveNameHtml = '';
+    if (serverInfo && !state.isFinished) {
+      serveNameHtml = '<div style="text-align:center;margin-top:10px;font-size:0.72rem;color:var(--text-muted);">🏐 Saque: <span style="color:' + (serverInfo.team === 1 ? '#3b82f6' : '#ef4444') + ';font-weight:700;">' + window._safeHtml(serverInfo.name) + '</span></div>';
+    }
+
+    // Arrow button builder — larger, full-width tap targets
     var _upBtn = function(player) {
-      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:12px 0;border:none;cursor:pointer;background:linear-gradient(180deg,#e0e0e0 0%,#c8c8c8 100%);color:#333;font-size:1.3rem;font-weight:900;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;box-shadow:0 1px 3px rgba(0,0,0,0.15);active:scale(0.95);" ontouchstart="this.style.background=\'#bbb\'" ontouchend="this.style.background=\'\'">▲</button>';
+      var clr = player === 1 ? '#3b82f6' : '#ef4444';
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="flex:1;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2rem;font-weight:900;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:60px;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
     };
     var _downBtn = function(player) {
-      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:6px 0;border:none;cursor:pointer;background:linear-gradient(180deg,#d0d0d0 0%,#b8b8b8 100%);color:#888;font-size:0.75rem;font-weight:700;border-radius:0 0 8px 8px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;border-top:1px solid rgba(0,0,0,0.08);" ontouchstart="this.style.background=\'#aaa\'" ontouchend="this.style.background=\'\'">▼</button>';
+      return '<button onclick="window._liveScoreMinus(' + player + ')" style="flex:0 0 auto;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.85rem;font-weight:700;border-radius:0 0 12px 12px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:32px;border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
     };
 
     // Finish button
     var finishBtn = '';
     if (state.isFinished) {
-      finishBtn = '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:12px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
-        'background:linear-gradient(135deg,#10b981,#059669);color:white;margin-top:1.5rem;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>';
+      finishBtn = '<div style="padding:0 1rem 1rem;flex-shrink:0;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:12px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+        'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button></div>';
     } else if (!useSets) {
-      finishBtn = '<button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
-        'background:rgba(16,185,129,0.1);color:#10b981;margin-top:1.5rem;">Encerrar Partida</button>';
+      finishBtn = '<div style="padding:0 1rem 1rem;flex-shrink:0;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
+        'background:rgba(16,185,129,0.1);color:#10b981;">Encerrar Partida</button></div>';
     }
 
-    // ── WHITE SCOREBOARD LAYOUT ──
-    // Side by side: [P1 name + ▲▼] | [Score Board] | [P2 name + ▲▼]
+    // ── FULLSCREEN LAYOUT ──
+    // Dark background fills screen. White board only around score numbers.
+    // Structure: [sets row] [names+arrows on sides] [WHITE SCORE BOARD center] [games row] [serve] [finish]
     container.innerHTML =
-      // Sets history row (on the white board)
-      '<div style="background:#fff;border-radius:16px;padding:1.25rem 1rem;box-shadow:0 4px 24px rgba(0,0,0,0.25),0 0 0 1px rgba(0,0,0,0.05);color:#111;max-width:500px;margin:0 auto;width:100%;">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
 
-        // Sets history
-        (setsDisplay ? '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e5e5;">' + setsDisplay + '</div>' : '') +
+        // Sets history row (top)
+        (setsDisplay ? '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;">' + setsDisplay + '</div>' : '') +
 
         // Game label
-        servingHtml +
-        '<div style="text-align:center;font-size:0.72rem;font-weight:700;color:' + (state.isFinished ? '#059669' : state.isTiebreak || _isDecidingSet() ? '#7c3aed' : '#555') + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:0.5rem;">' + gameLabel + '</div>' +
+        '<div style="text-align:center;font-size:0.7rem;font-weight:700;color:' + (state.isFinished ? '#10b981' : state.isTiebreak || _isDecidingSet() ? '#c084fc' : 'var(--text-muted)') + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">' + gameLabel + '</div>' +
 
-        // Main scoreboard: side-by-side
-        '<div style="display:flex;align-items:stretch;gap:0;">' +
+        // Main area: [P1 side] [SCORE BOARD] [P2 side]
+        '<div style="display:flex;align-items:center;width:100%;max-width:600px;gap:8px;">' +
 
-          // Left: Player 1 — name + arrow buttons
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">' +
-            '<div style="font-size:0.78rem;font-weight:700;color:#333;text-align:center;min-height:2.4em;display:flex;align-items:center;justify-content:center;padding:0 4px;word-break:break-word;line-height:1.2;">' + window._safeHtml(p1Name) + '</div>' +
+          // Left column: P1 name + buttons (stacked)
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;">' +
+            '<div style="font-size:0.85rem;font-weight:700;color:#3b82f6;text-align:center;word-break:break-word;line-height:1.25;padding:0 2px;">' + p1Short + serveBall1 + '</div>' +
             (state.isFinished ? '' :
-            '<div style="width:60px;">' + _upBtn(1) + _downBtn(1) + '</div>'
+              '<div style="width:100%;max-width:80px;display:flex;flex-direction:column;">' + _upBtn(1) + _downBtn(1) + '</div>'
             ) +
-            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:#999;">Sets: ' + _setsWon(1) + '</div>' : '') +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:var(--text-muted);">Sets: ' + _setsWon(1) + '</div>' : '') +
           '</div>' +
 
-          // Center: Score display
-          '<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;min-width:100px;">' +
-            '<div style="display:flex;align-items:baseline;gap:6px;">' +
-              '<span style="font-size:3.5rem;font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
-              '<span style="font-size:1.5rem;font-weight:400;color:#999;">:</span>' +
-              '<span style="font-size:3.5rem;font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
+          // Center: WHITE SCORE BOARD — only the numbers
+          '<div style="flex:0 0 auto;background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;min-width:140px;">' +
+            '<div style="display:flex;align-items:baseline;gap:8px;">' +
+              '<span style="font-size:clamp(3rem,12vw,5rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
+              '<span style="font-size:clamp(1.2rem,4vw,2rem);font-weight:400;color:#999;">:</span>' +
+              '<span style="font-size:clamp(3rem,12vw,5rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
             '</div>' +
-            gamesRow +
+            gamesRow.replace(/color:var\(--text-muted\)/g, 'color:#888') +
           '</div>' +
 
-          // Right: Player 2 — name + arrow buttons
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">' +
-            '<div style="font-size:0.78rem;font-weight:700;color:#333;text-align:center;min-height:2.4em;display:flex;align-items:center;justify-content:center;padding:0 4px;word-break:break-word;line-height:1.2;">' + window._safeHtml(p2Name) + '</div>' +
+          // Right column: P2 name + buttons (stacked)
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;">' +
+            '<div style="font-size:0.85rem;font-weight:700;color:#ef4444;text-align:center;word-break:break-word;line-height:1.25;padding:0 2px;">' + serveBall2 + p2Short + '</div>' +
             (state.isFinished ? '' :
-            '<div style="width:60px;">' + _upBtn(2) + _downBtn(2) + '</div>'
+              '<div style="width:100%;max-width:80px;display:flex;flex-direction:column;">' + _upBtn(2) + _downBtn(2) + '</div>'
             ) +
-            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:#999;">Sets: ' + _setsWon(2) + '</div>' : '') +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:var(--text-muted);">Sets: ' + _setsWon(2) + '</div>' : '') +
           '</div>' +
 
-        '</div>' + // end main scoreboard flex
+        '</div>' + // end main flex
 
-      '</div>' + // end white board
+        // Serve info
+        serveNameHtml +
 
-      finishBtn;
+      '</div>'; // end full container
+
+    // Append finish button outside the centered container (at bottom)
+    if (finishBtn) {
+      container.insertAdjacentHTML('beforeend', finishBtn);
+    }
   }
 
   // ── Global handlers (attached to window for onclick access) ──
@@ -2341,6 +2459,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.isFinished = false;
         state.winner = null;
         state.tieRulePending = false;
+        state.totalGamesPlayed = 0;
+        state.serveConfigured = false;
+        state.servingTeam = 0;
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
         _render();

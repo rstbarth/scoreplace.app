@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Scoreboard fullscreen + Saque</b> — Placar branco apenas nos números (fundo escuro preenche a tela). Escala automática com clamp() para qualquer tamanho de tela. Antes do primeiro ponto, tela "Quem começa sacando?" com todos os jogadores. Indicador 🏐 ao lado do nome de quem saca, alterna a cada game (tiebreak: a cada 2 pontos). Duplas: rotação automática de servidor dentro do time. Nomes em azul (time 1) e vermelho (time 2). Botões ▲/▼ coloridos por time.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Empate corrigido</b> — Pergunta de desempate agora aparece em 5×5 (não 6×6), pois é o primeiro momento onde vantagem de 2 games é impossível. Opções: Prorrogar (com vantagem de 2) ou Tie-break. Se prorrogar e empatar de novo (6×6, 7×7...), pergunta novamente.</p>' +
         '</div>' +
