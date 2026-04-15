@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.42-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Ordem de saque drag-and-drop</b> — Cards arrastáveis com alça de arrasto, badge numérico, nome do jogador e botão ✏️ para editar. Nomes genéricos (Parceiro, Adversário 1...) preenchidos automaticamente quando vazios. Suporte completo a touch e mouse. Arrastar e soltar troca posições na ordem de saque.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Scoreboard redesenhado</b> — Nomes empilhados (um por linha) com 🏐 ao lado do sacador. Sets no centro do cabeçalho. Nomes editáveis (toque para alterar). Defaults: "Eu/Adversário" (singles), "Parceiro/Adversário 1-2" (duplas). Ordem de saque proposta no início com todos os jogadores em cores dos times — toque para trocar posições, confirma ou pula.</p>' +
         '</div>' +
