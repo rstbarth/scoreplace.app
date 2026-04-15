@@ -1747,8 +1747,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var isDoubles = p1Players.length > 1 || p2Players.length > 1 || !!(opts && opts.isDoubles);
   // Default names when empty
   if (isDoubles) {
-    if (p1Players.length === 0) p1Players = ['Parceiro', 'Parceiro 2'];
-    if (p1Players.length === 1) p1Players.push('Parceiro 2');
+    if (p1Players.length === 0) p1Players = ['Eu', 'Parceiro'];
+    if (p1Players.length === 1) p1Players.push('Parceiro');
     if (p2Players.length === 0) p2Players = ['Adversário 1', 'Adversário 2'];
     if (p2Players.length === 1) p2Players.push('Adversário 2');
   } else {
@@ -2880,14 +2880,14 @@ window._openCasualMatch = function() {
             // Team 1
             '<div style="flex:1;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:10px;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#60a5fa;margin-bottom:6px;text-align:center;">Time 1</div>' +
-              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1A" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
-              '<input type="text" id="casual-p1b-name" placeholder="Jogador 1B" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Eu" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p1b-name" placeholder="Parceiro" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '</div>' +
             // Team 2
             '<div style="flex:1;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#f87171;margin-bottom:6px;text-align:center;">Time 2</div>' +
-              '<input type="text" id="casual-p2a-name" placeholder="Jogador 2A" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
-              '<input type="text" id="casual-p2b-name" placeholder="Jogador 2B" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p2a-name" placeholder="Adversário 1" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p2b-name" placeholder="Adversário 2" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '</div>' +
           '</div>' +
         '</div>';

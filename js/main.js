@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Ordem de saque 4 jogadores</b> — Duplas agora sempre mostram 4 cards na ordem de saque (Parceiro, Parceiro 2, Adversário 1, Adversário 2) mesmo sem nomes preenchidos. Ícone do esporte correto (🎾 beach tennis/tênis, 🥒 pickleball, 🏓 mesa, 🏸 padel) substituiu 🏐. Flag isDoubles passada da tela casual para garantir detecção correta.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Nomes consistentes</b> — Placeholders da tela casual e ordem de saque alinhados: Eu, Parceiro, Adversário 1, Adversário 2. Ícone do esporte correto (🎾/🥒/🏓/🏸). Duplas sempre mostram 4 cards mesmo sem nomes preenchidos.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
