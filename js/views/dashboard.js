@@ -1051,8 +1051,9 @@ function renderDashboard(container) {
 
   // Show/hide Pro button based on plan (element is now inside hero box)
   var proBtn = document.getElementById('btn-upgrade-pro');
-  if (proBtn && typeof window._isPro === 'function') {
-    proBtn.style.display = window._isPro() ? 'none' : 'inline-flex';
+  if (proBtn) {
+    var isPro = typeof window._isPro === 'function' && window._isPro();
+    proBtn.style.display = isPro ? 'none' : 'inline-flex';
   }
 
   // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───

@@ -3020,33 +3020,27 @@ window._openScanQR = function() {
   // Try extracting room code from URL or raw code
   function _extractRoomCode(text) {
     text = (text || '').trim();
-    // URL pattern: #casual/ABCDEF
     var urlMatch = text.match(/#casual\/([A-Za-z0-9]{4,8})/);
     if (urlMatch) return urlMatch[1].toUpperCase();
-    // Plain code (4-8 alphanumeric)
     var plain = text.replace(/[^A-Za-z0-9]/g, '');
     if (plain.length >= 4 && plain.length <= 8) return plain.toUpperCase();
     return null;
   }
 
-  // Check BarcodeDetector support
-  var hasBarcodeAPI = typeof window.BarcodeDetector !== 'undefined';
-
   // Build UI
   ov.innerHTML =
-    '<div style="text-align:center;max-width:420px;width:100%;">' +
+    '<div style="display:flex;flex-direction:column;align-items:center;max-width:420px;width:100%;">' +
       '<div style="font-size:1.4rem;font-weight:800;color:#a855f7;margin-bottom:4px;">📷 Escanear QR Code</div>' +
       '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:clamp(1rem,3vh,1.5rem);">Aponte a câmera para o QR code ou digite o código da sala</div>' +
 
       // Camera viewfinder
-      '<div id="scan-qr-camera-box" style="position:relative;width:100%;max-width:300px;aspect-ratio:1;margin:0 auto clamp(0.8rem,2vh,1.2rem);border-radius:16px;overflow:hidden;background:#111;border:2px solid rgba(168,85,247,0.3);">' +
+      '<div id="scan-qr-camera-box" style="position:relative;width:min(80vw,300px);aspect-ratio:1;margin-bottom:clamp(0.8rem,2vh,1.2rem);border-radius:16px;overflow:hidden;background:#111;border:2px solid rgba(168,85,247,0.3);">' +
         '<video id="scan-qr-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none;"></video>' +
         '<canvas id="scan-qr-canvas" style="display:none;"></canvas>' +
         '<div id="scan-qr-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">' +
           '<div style="font-size:2.5rem;">📷</div>' +
           '<div style="font-size:0.78rem;color:var(--text-muted);">Iniciando câmera...</div>' +
         '</div>' +
-        // Scan frame corners
         '<div style="position:absolute;top:12px;left:12px;width:24px;height:24px;border-top:3px solid #a855f7;border-left:3px solid #a855f7;border-radius:4px 0 0 0;"></div>' +
         '<div style="position:absolute;top:12px;right:12px;width:24px;height:24px;border-top:3px solid #a855f7;border-right:3px solid #a855f7;border-radius:0 4px 0 0;"></div>' +
         '<div style="position:absolute;bottom:12px;left:12px;width:24px;height:24px;border-bottom:3px solid #a855f7;border-left:3px solid #a855f7;border-radius:0 0 0 4px;"></div>' +
@@ -3054,14 +3048,14 @@ window._openScanQR = function() {
       '</div>' +
 
       // Divider
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:clamp(0.6rem,2vh,1rem);max-width:300px;margin-left:auto;margin-right:auto;">' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:clamp(0.6rem,2vh,1rem);width:min(80vw,300px);">' +
         '<div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>' +
         '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">OU DIGITE O CÓDIGO</span>' +
         '<div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>' +
       '</div>' +
 
       // Manual code input
-      '<div style="display:flex;gap:8px;max-width:300px;margin:0 auto clamp(0.8rem,2vh,1.2rem);">' +
+      '<div style="display:flex;gap:8px;width:min(80vw,300px);margin-bottom:clamp(0.8rem,2vh,1.2rem);">' +
         '<input type="text" id="scan-qr-code-input" placeholder="Ex: ABC123" maxlength="8" style="flex:1;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.06);border:2px solid rgba(168,85,247,0.25);color:var(--text-bright);font-size:1.2rem;font-weight:800;letter-spacing:4px;text-align:center;text-transform:uppercase;outline:none;font-family:monospace;" onfocus="this.style.borderColor=\'rgba(168,85,247,0.6)\'" onblur="this.style.borderColor=\'rgba(168,85,247,0.25)\'" />' +
         '<button id="scan-qr-go-btn" style="padding:14px 20px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;color:white;font-size:1rem;font-weight:700;cursor:pointer;flex-shrink:0;">Entrar</button>' +
       '</div>' +
@@ -3092,49 +3086,82 @@ window._openScanQR = function() {
     if (e.key === 'Enter') _tryManualCode();
   });
 
-  // Start camera scanner
+  // Start camera scanner — uses jsQR library (works on all browsers)
+  // or BarcodeDetector as primary, with jsQR fallback
   var video = document.getElementById('scan-qr-video');
   var canvas = document.getElementById('scan-qr-canvas');
   var placeholder = document.getElementById('scan-qr-placeholder');
+  var hasBarcodeAPI = typeof window.BarcodeDetector !== 'undefined';
 
-  if (!hasBarcodeAPI) {
-    // No BarcodeDetector — show camera-off message, rely on manual
-    placeholder.innerHTML =
-      '<div style="font-size:2rem;">⌨️</div>' +
-      '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Scanner indisponível neste navegador.<br>Digite o código da sala abaixo.</div>';
-    return;
+  function _startScanning(decodeMethod) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
+      _scanStream = stream;
+      video.srcObject = stream;
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+
+      var ctx = canvas.getContext('2d');
+      _scanInterval = setInterval(function() {
+        if (_scanFound || !video.videoWidth) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        decodeMethod(canvas, ctx);
+      }, 300);
+    }).catch(function(err) {
+      console.warn('Camera access denied:', err);
+      placeholder.innerHTML =
+        '<div style="font-size:2rem;">🚫</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Câmera não disponível.<br>Digite o código da sala abaixo.</div>';
+    });
   }
 
-  // Start camera
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
-    _scanStream = stream;
-    video.srcObject = stream;
-    video.style.display = 'block';
-    placeholder.style.display = 'none';
+  function _onDetected(rawValue) {
+    if (_scanFound) return;
+    var code = _extractRoomCode(rawValue);
+    if (code) {
+      if (typeof showNotification === 'function') showNotification('QR detectado!', 'Entrando na sala ' + code + '...', 'success');
+      _navigateToRoom(code);
+    }
+  }
 
+  if (hasBarcodeAPI) {
+    // Use native BarcodeDetector (Chrome Android, etc.)
     var detector = new BarcodeDetector({ formats: ['qr_code'] });
-    var ctx = canvas.getContext('2d');
-
-    _scanInterval = setInterval(function() {
-      if (_scanFound || !video.videoWidth) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      detector.detect(canvas).then(function(barcodes) {
-        if (_scanFound || !barcodes || barcodes.length === 0) return;
-        var code = _extractRoomCode(barcodes[0].rawValue);
-        if (code) {
-          if (typeof showNotification === 'function') showNotification('QR detectado!', 'Entrando na sala ' + code + '...', 'success');
-          _navigateToRoom(code);
-        }
+    _startScanning(function(cvs) {
+      detector.detect(cvs).then(function(barcodes) {
+        if (barcodes && barcodes.length > 0) _onDetected(barcodes[0].rawValue);
       }).catch(function() {});
-    }, 350);
-  }).catch(function(err) {
-    console.warn('Camera access denied:', err);
+    });
+  } else if (window.jsQR) {
+    // jsQR already loaded
+    _startScanning(function(cvs, ctx) {
+      var imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+      var qr = window.jsQR(imageData.data, cvs.width, cvs.height, { inversionAttempts: 'dontInvert' });
+      if (qr && qr.data) _onDetected(qr.data);
+    });
+  } else {
+    // Load jsQR from CDN then start
     placeholder.innerHTML =
-      '<div style="font-size:2rem;">🚫</div>' +
-      '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Câmera não disponível.<br>Digite o código da sala abaixo.</div>';
-  });
+      '<div style="font-size:2.5rem;">📷</div>' +
+      '<div style="font-size:0.78rem;color:var(--text-muted);">Carregando scanner...</div>';
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.onload = function() {
+      _startScanning(function(cvs, ctx) {
+        var imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+        var qr = window.jsQR(imageData.data, cvs.width, cvs.height, { inversionAttempts: 'dontInvert' });
+        if (qr && qr.data) _onDetected(qr.data);
+      });
+    };
+    script.onerror = function() {
+      // jsQR failed to load and no BarcodeDetector — manual only
+      placeholder.innerHTML =
+        '<div style="font-size:2rem;">⌨️</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Scanner indisponível.<br>Digite o código da sala abaixo.</div>';
+    };
+    document.head.appendChild(script);
+  }
 };
 
 // ─── Casual Match Setup Screen ──────────────────────────────────────────────

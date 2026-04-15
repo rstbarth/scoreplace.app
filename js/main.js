@@ -720,8 +720,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.52-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Scanner QR universal</b> — Scanner agora funciona em todos os browsers (Chrome, Safari, Firefox) via biblioteca jsQR. Câmera com viewfinder e detecção automática de QR codes. Fallback para BarcodeDetector nativo quando disponível. Botão Pro restaurado na dashboard.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.51-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Escanear QR Code</b> — Novo botão "📷 Escanear QR" na dashboard para entrar em partidas casuais. Abre câmera com BarcodeDetector API para leitura automática do QR code, com fallback para digitação manual do código da sala. QR code do convite centralizado na tela.</p>' +
+        '<p><b>Escanear QR Code</b> — Novo botão "📷 Escanear QR" na dashboard para entrar em partidas casuais. Câmera com scanner de QR code + digitação manual do código da sala. QR code do convite centralizado na tela.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
