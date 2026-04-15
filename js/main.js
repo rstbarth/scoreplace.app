@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.57-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Lobby de partida casual</b> — Ao escanear QR ou digitar código, jogador entra automaticamente na partida e vê lobby com participantes em tempo real. Refresh automático a cada 3s detecta novos jogadores e início da partida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.56-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Firestore rules para partidas casuais</b> — Collection casualMatches agora com regras de leitura/escrita no Firestore. Corrige "Partida não encontrada" ao escanear QR ou digitar código da sala.</p>' +
         '</div>' +

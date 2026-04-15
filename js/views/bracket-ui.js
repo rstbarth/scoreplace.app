@@ -3612,6 +3612,7 @@ window._openCasualMatch = function() {
           scoring: cfg,
           isDoubles: isDoubles,
           players: players,
+          participants: [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }],
           playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
           roomCode: roomCode,
           status: 'waiting',
@@ -3680,6 +3681,30 @@ window._openCasualMatch = function() {
   // Start the match (directly opens live scoring)
   window._casualStart = async function() {
     var players = _buildPlayers();
+
+    // Enrich player names from lobby participants (people who joined via QR/code)
+    if (_sessionDocId && typeof window.FirestoreDB !== 'undefined') {
+      try {
+        var freshMatch = await window.FirestoreDB.loadCasualMatch(_sessionRoomCode);
+        if (freshMatch && Array.isArray(freshMatch.participants)) {
+          var lobbyNames = freshMatch.participants.map(function(p) { return p.displayName ? p.displayName.split(' ')[0] : ''; }).filter(function(n) { return !!n; });
+          // Fill empty player slots with lobby participant names
+          var usedLobby = 0;
+          for (var pi = 0; pi < players.length; pi++) {
+            var defaultNames = ['Jogador 1', 'Jogador 2', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+            var isDefault = !players[pi].name || defaultNames.indexOf(players[pi].name) !== -1;
+            if (isDefault && usedLobby < lobbyNames.length) {
+              players[pi].name = lobbyNames[usedLobby];
+              if (freshMatch.participants[usedLobby]) players[pi].uid = freshMatch.participants[usedLobby].uid || null;
+              usedLobby++;
+            } else if (!isDefault) {
+              // Already has a custom name — try to match with a lobby participant
+              usedLobby++;
+            }
+          }
+        }
+      } catch(e) {}
+    }
 
     // Auto-shuffle teams if enabled (Fisher-Yates on 4 players, assign teams)
     if (isDoubles && autoShuffle && players.length === 4) {
@@ -3786,6 +3811,7 @@ window._openCasualMatch = function() {
       scoring: _getConfig(),
       isDoubles: isDoubles,
       players: [],
+      participants: [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }],
       playerUids: [cu.uid],
       roomCode: _sessionRoomCode,
       status: 'waiting',
@@ -3907,105 +3933,140 @@ window._renderCasualJoin = function(container, roomCode) {
       return;
     }
 
-    // Status: waiting — show join UI
-    function _renderWaiting() {
-      var team1 = players.filter(function(p) { return p.team === 1; });
-      var team2 = players.filter(function(p) { return p.team === 2; });
-      var isLoggedIn = !!(cu && cu.uid);
+    // Status: waiting — auto-join + lobby
+    var participants = Array.isArray(match.participants) ? match.participants : [];
+    var isLoggedIn = !!(cu && cu.uid);
+    var _lobbyInterval = null;
+
+    function _renderLobby() {
       var myUid = isLoggedIn ? cu.uid : null;
-      var alreadyClaimed = myUid && players.some(function(p) { return p.uid === myUid; });
+      var alreadyJoined = myUid && participants.some(function(p) { return p.uid === myUid; });
+      var isCreator = myUid && match.createdBy === myUid;
+      var totalNeeded = match.isDoubles ? 4 : 2;
 
       var html =
         '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
-          '<div style="font-size:2rem;margin-bottom:0.3rem;">📡</div>' +
-          '<div style="font-size:1.2rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">Partida Casual</div>' +
-          '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + '</div>' +
+          '<div style="font-size:2.5rem;margin-bottom:0.5rem;">📡</div>' +
+          '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">Partida Casual</div>' +
+          '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + (match.isDoubles ? ' · Dupla' : ' · Single') + '</div>' +
           '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">Criada por ' + _safe(creatorName) + '</div>';
 
-      // Team panels
-      html += '<div style="display:flex;gap:12px;margin-bottom:1.5rem;">';
+      // Participants list
+      html += '<div style="margin-bottom:1.5rem;">' +
+        '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Jogadores na sala · ' + participants.length + '/' + totalNeeded + '</div>';
 
-      // Team 1
-      html += '<div style="flex:1;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:1rem;">' +
-        '<div style="font-size:0.75rem;font-weight:700;color:#3b82f6;margin-bottom:0.6rem;">Time 1</div>';
-      for (var i = 0; i < team1.length; i++) {
-        var p = team1[i];
-        var claimed = !!p.uid;
-        var isMySlot = myUid && p.uid === myUid;
-        html += '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid ' + (claimed ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)') + ';">' +
-          '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(p.name) + (isMySlot ? ' <span style="color:#22c55e;font-size:0.72rem;">(Você)</span>' : '') + '</div>' +
-          (claimed ? '<div style="font-size:0.68rem;color:#22c55e;">✓ Confirmado' + (p.displayName ? ' — ' + _safe(p.displayName) : '') + '</div>' :
-            (isLoggedIn && !alreadyClaimed ?
-              '<button onclick="window._claimCasualSlot(\'' + _safe(docId) + '\',' + p.slot + ')" style="margin-top:4px;padding:6px 12px;border-radius:8px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:0.75rem;font-weight:600;cursor:pointer;">🙋 Sou eu!</button>' :
-              '<div style="font-size:0.68rem;color:var(--text-muted);">Aguardando jogador...</div>')) +
+      for (var i = 0; i < participants.length; i++) {
+        var pp = participants[i];
+        var isMe = myUid && pp.uid === myUid;
+        var isHost = pp.uid === match.createdBy;
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;' +
+          'background:' + (isMe ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)') + ';' +
+          'border:1px solid ' + (isMe ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)') + ';">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((pp.displayName || 'J')[0].toUpperCase()) + '</div>' +
+          '<div style="flex:1;text-align:left;">' +
+            '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(pp.displayName || 'Jogador') +
+              (isMe ? ' <span style="color:#22c55e;font-size:0.68rem;">(Você)</span>' : '') +
+              (isHost ? ' <span style="color:#fbbf24;font-size:0.68rem;">👑</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:1rem;">✅</div>' +
+        '</div>';
+      }
+
+      // Empty slots
+      for (var j = participants.length; j < totalNeeded; j++) {
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted);flex-shrink:0;">?</div>' +
+          '<div style="flex:1;text-align:left;">' +
+            '<div style="font-size:0.82rem;color:var(--text-muted);">Aguardando jogador...</div>' +
+          '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);">⏳</div>' +
         '</div>';
       }
       html += '</div>';
 
-      // Team 2
-      html += '<div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:14px;padding:1rem;">' +
-        '<div style="font-size:0.75rem;font-weight:700;color:#ef4444;margin-bottom:0.6rem;">Time 2</div>';
-      for (var j = 0; j < team2.length; j++) {
-        var p2 = team2[j];
-        var claimed2 = !!p2.uid;
-        var isMySlot2 = myUid && p2.uid === myUid;
-        html += '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid ' + (claimed2 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)') + ';">' +
-          '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(p2.name) + (isMySlot2 ? ' <span style="color:#22c55e;font-size:0.72rem;">(Você)</span>' : '') + '</div>' +
-          (claimed2 ? '<div style="font-size:0.68rem;color:#22c55e;">✓ Confirmado' + (p2.displayName ? ' — ' + _safe(p2.displayName) : '') + '</div>' :
-            (isLoggedIn && !alreadyClaimed ?
-              '<button onclick="window._claimCasualSlot(\'' + _safe(docId) + '\',' + p2.slot + ')" style="margin-top:4px;padding:6px 12px;border-radius:8px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:0.75rem;font-weight:600;cursor:pointer;">🙋 Sou eu!</button>' :
-              '<div style="font-size:0.68rem;color:var(--text-muted);">Aguardando jogador...</div>')) +
-        '</div>';
-      }
-      html += '</div>';
-      html += '</div>'; // flex row
-
+      // Status messages
       if (!isLoggedIn) {
         html += '<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
           '<div style="font-size:0.85rem;color:#fbbf24;font-weight:600;margin-bottom:0.3rem;">Faça login para participar</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);">Entre com sua conta Google para confirmar sua presença na partida.</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);">Entre com sua conta Google para entrar na partida.</div>' +
           '<button class="btn btn-primary" onclick="if(typeof handleGoogleLogin===\'function\')handleGoogleLogin();" style="margin-top:0.6rem;">Login com Google</button>' +
         '</div>';
-      } else if (alreadyClaimed) {
-        html += '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
-          '<div style="font-size:0.85rem;color:#22c55e;font-weight:600;">✓ Você está confirmado nesta partida!</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.3rem;">Aguarde o organizador iniciar o jogo.</div>' +
+      } else if (alreadyJoined) {
+        html += '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">' +
+          '<div style="font-size:1.3rem;">✅</div>' +
+          '<div>' +
+            '<div style="font-size:0.85rem;color:#22c55e;font-weight:700;">Você está na partida!</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Aguarde o organizador iniciar o jogo' + (participants.length < totalNeeded ? ' (' + (totalNeeded - participants.length) + ' vaga' + (totalNeeded - participants.length > 1 ? 's' : '') + ' restante' + (totalNeeded - participants.length > 1 ? 's' : '') + ')' : '') + '</div>' +
+          '</div>' +
         '</div>';
       }
 
-      html += '<button class="btn btn-outline" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
+      // Animated waiting indicator
+      html += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;margin-bottom:1rem;">' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out infinite;"></div>' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.3s infinite;"></div>' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.6s infinite;"></div>' +
+        '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px;">Atualizando automaticamente</span>' +
+      '</div>' +
+      '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
+
+      html += '<button class="btn btn-outline" onclick="window._casualLobbyCleanup();window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
       html += '</div>';
 
       container.innerHTML = html;
     }
 
-    _renderWaiting();
+    // Auto-join: add logged-in user to match participants
+    async function _autoJoin() {
+      if (!isLoggedIn || !docId) return;
+      var alreadyIn = participants.some(function(p) { return p.uid === cu.uid; });
+      if (alreadyIn) return;
+      var ok = await window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '');
+      if (ok) {
+        participants.push({ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() });
+        _renderLobby();
+        if (typeof showNotification === 'function') showNotification('Entrou na partida!', 'Aguarde o organizador iniciar.', 'success');
+      }
+    }
 
-    // Claim slot handler
-    window._claimCasualSlot = async function(dId, slotIdx) {
-      if (!cu || !cu.uid) {
-        showNotification('Login necessário', 'Faça login para participar.', 'warning');
-        return;
-      }
-      var success = await window.FirestoreDB.claimCasualSlot(dId, slotIdx, cu.uid, cu.displayName || '');
-      if (success) {
-        showNotification('Confirmado!', 'Você reservou sua vaga.', 'success');
-        // Refresh data
-        var updated = await window.FirestoreDB.loadCasualMatch(roomCode);
-        if (updated) {
-          players = Array.isArray(updated.players) ? updated.players : [];
-          _renderWaiting();
-        }
-      } else {
-        showNotification('Vaga indisponível', 'Esta vaga já foi reservada por outro jogador.', 'warning');
-        // Refresh anyway
-        var updated2 = await window.FirestoreDB.loadCasualMatch(roomCode);
-        if (updated2) {
-          players = Array.isArray(updated2.players) ? updated2.players : [];
-          _renderWaiting();
-        }
-      }
-    };
+    // Periodic refresh to see new players and detect match start
+    function _startLobbyRefresh() {
+      _lobbyInterval = setInterval(async function() {
+        try {
+          var fresh = await window.FirestoreDB.loadCasualMatch(roomCode);
+          if (!fresh) return;
+          // Match started? Switch to live scoring
+          if (fresh.status === 'active') {
+            _casualLobbyCleanup();
+            var pp = Array.isArray(fresh.players) ? fresh.players : [];
+            var p1n = pp.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; }).join(' / ');
+            var p2n = pp.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
+            window._openLiveScoring(null, null, {
+              casual: true, scoring: fresh.scoring || {}, p1Name: p1n, p2Name: p2n,
+              title: fresh.sport || 'Partida Casual', sportName: fresh.sport || '',
+              isDoubles: fresh.isDoubles || false, casualDocId: fresh._docId,
+              roomCode: roomCode, players: pp
+            });
+            if (typeof showNotification === 'function') showNotification('Partida iniciada!', '', 'success');
+            return;
+          }
+          // Update participants list
+          participants = Array.isArray(fresh.participants) ? fresh.participants : [];
+          _renderLobby();
+        } catch(e) {}
+      }, 3000);
+    }
+
+    // Cleanup on leave
+    function _casualLobbyCleanup() {
+      if (_lobbyInterval) { clearInterval(_lobbyInterval); _lobbyInterval = null; }
+    }
+    window._casualLobbyCleanup = _casualLobbyCleanup;
+
+    _renderLobby();
+    _autoJoin();
+    _startLobbyRefresh();
   }).catch(function(err) {
     console.error('Error loading casual match:', err);
     container.innerHTML =

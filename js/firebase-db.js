@@ -534,6 +534,30 @@ window.FirestoreDB = {
     }
   },
 
+  // Join a casual match — add user to participants list (idempotent)
+  async joinCasualMatch(docId, uid, displayName) {
+    if (!this.db || !docId || !uid) return false;
+    try {
+      var docRef = this.db.collection('casualMatches').doc(docId);
+      return this.db.runTransaction(async function(transaction) {
+        var doc = await transaction.get(docRef);
+        if (!doc.exists) return false;
+        var data = doc.data();
+        var participants = Array.isArray(data.participants) ? data.participants.slice() : [];
+        var playerUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
+        // Already joined?
+        if (playerUids.indexOf(uid) !== -1) return true;
+        participants.push({ uid: uid, displayName: displayName || '', joinedAt: new Date().toISOString() });
+        playerUids.push(uid);
+        transaction.update(docRef, { participants: participants, playerUids: playerUids });
+        return true;
+      });
+    } catch (e) {
+      console.error('Erro ao entrar na partida casual:', e);
+      return false;
+    }
+  },
+
   async loadUserCasualMatches(uid) {
     if (!this.db || !uid) return [];
     try {
