@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Nomes consistentes</b> — Placeholders da tela casual e ordem de saque alinhados: Eu, Parceiro, Adversário 1, Adversário 2. Ícone do esporte correto (🎾/🥒/🏓/🏸). Duplas sempre mostram 4 cards mesmo sem nomes preenchidos.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Placar ao vivo redesenhado</b> — Pontos em 2 placas brancas separadas (uma por time) com fonte gigante responsiva. Games em box destacado abaixo das placas com cores dos times. Nomes maiores com ícone do esporte ao lado do sacador. Tudo escalado para telas grandes e pequenas.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

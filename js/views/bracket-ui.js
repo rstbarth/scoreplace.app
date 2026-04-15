@@ -2540,17 +2540,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     // Games in current set
-    var gamesRow = '';
-    if (useSets && !state.isFixedSet && !state.isFinished) {
+    var gamesP1Str = '', gamesP2Str = '';
+    var showGamesBox = useSets && !state.isFixedSet && !state.isFinished;
+    if (showGamesBox) {
       var cs = _currentSet();
-      gamesRow = '<div style="font-size:0.72rem;color:#888;text-align:center;margin-top:4px;">Games: ' + cs.gamesP1 + ' – ' + cs.gamesP2 + '</div>';
+      gamesP1Str = String(cs.gamesP1);
+      gamesP2Str = String(cs.gamesP2);
     }
 
     // Serving info
     var serverInfo = _getCurrentServer();
 
     // Build stacked player name list with serve icon inline
-    // Each player on its own line; 🏐 next to the server; click to edit
     var _buildNameStack = function(team) {
       var players = team === 1 ? p1Players : p2Players;
       var clr = team === 1 ? '#3b82f6' : '#ef4444';
@@ -2559,70 +2560,87 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
         var shortName = window._safeHtml(pn.split(' ')[0]);
-        var servIcon = isServing ? ' <span style="font-size:0.7rem;">' + _sportBall + '</span>' : '';
-        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;font-size:0.82rem;font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + shortName + servIcon + '</div>';
+        var servIcon = isServing ? ' <span style="font-size:0.85rem;">' + _sportBall + '</span>' : '';
+        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;font-size:clamp(0.95rem,3.5vw,1.2rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + shortName + servIcon + '</div>';
       }
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:0 2px;">' + lines + '</div>';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:0 4px;">' + lines + '</div>';
     };
 
     // Arrow button builder
     var _upBtn = function(player) {
       var clr = player === 1 ? '#3b82f6' : '#ef4444';
-      return '<button onclick="window._liveScorePoint(' + player + ')" style="flex:1;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2rem;font-weight:900;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:56px;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2.2rem;font-weight:900;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:62px;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
     };
     var _downBtn = function(player) {
-      return '<button onclick="window._liveScoreMinus(' + player + ')" style="flex:0 0 auto;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.8rem;font-weight:700;border-radius:0 0 12px 12px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:28px;border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
+      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.85rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:32px;border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
     };
 
     // Finish button
     var finishBtn = '';
     if (state.isFinished) {
-      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:12px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
         'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button></div>';
     } else if (!useSets) {
-      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
+      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:14px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
         'background:rgba(16,185,129,0.1);color:#10b981;">Encerrar Partida</button></div>';
     }
 
     // ── FULLSCREEN LAYOUT ──
-    // Dark bg fills screen. White board only around score numbers.
-    // Names stacked per player. Sets in header. Serve icon inline with name.
+    // 2-column score plates, names above each plate, arrows below.
+    // Games box centered below the score plates.
+
+    // Game label color
+    var labelClr = state.isFinished ? '#10b981' : (state.isTiebreak || _isDecidingSet() ? '#c084fc' : 'var(--text-muted)');
+
     container.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
 
-        // Game label
-        '<div style="text-align:center;font-size:0.68rem;font-weight:700;color:' + (state.isFinished ? '#10b981' : state.isTiebreak || _isDecidingSet() ? '#c084fc' : 'var(--text-muted)') + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">' + gameLabel + '</div>' +
+        // Game label (GAME / TIE-BREAK / etc)
+        '<div style="text-align:center;font-size:clamp(0.7rem,2.5vw,0.85rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(8px,2vh,16px);">' + gameLabel + '</div>' +
 
-        // Main area: [P1 names + arrows] [WHITE SCORE] [P2 names + arrows]
-        '<div style="display:flex;align-items:center;width:100%;max-width:600px;gap:6px;">' +
+        // Two-column score plates
+        '<div style="display:flex;align-items:stretch;width:100%;max-width:500px;gap:clamp(10px,3vw,20px);justify-content:center;">' +
 
-          // Left column: P1 stacked names + buttons
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;overflow:hidden;">' +
+          // P1 column: names → white plate → arrows
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,14px);max-width:220px;">' +
             _buildNameStack(1) +
-            (state.isFinished ? '' :
-              '<div style="width:100%;max-width:80px;display:flex;flex-direction:column;">' + _upBtn(1) + _downBtn(1) + '</div>'
-            ) +
-          '</div>' +
-
-          // Center: WHITE SCORE BOARD — only the numbers
-          '<div style="flex:0 0 auto;background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;min-width:130px;">' +
-            '<div style="display:flex;align-items:baseline;gap:8px;">' +
-              '<span style="font-size:clamp(3rem,12vw,5rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
-              '<span style="font-size:clamp(1.2rem,4vw,2rem);font-weight:400;color:#999;">:</span>' +
-              '<span style="font-size:clamp(3rem,12vw,5rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
+            // White score plate
+            '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(12px,4vh,28px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;">' +
+              '<span style="font-size:clamp(4rem,18vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
             '</div>' +
-            gamesRow +
-          '</div>' +
-
-          // Right column: P2 stacked names + buttons
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;overflow:hidden;">' +
-            _buildNameStack(2) +
             (state.isFinished ? '' :
-              '<div style="width:100%;max-width:80px;display:flex;flex-direction:column;">' + _upBtn(2) + _downBtn(2) + '</div>'
+              '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(1) + _downBtn(1) + '</div>'
             ) +
           '</div>' +
 
-        '</div>' + // end main flex
+          // P2 column: names → white plate → arrows
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,14px);max-width:220px;">' +
+            _buildNameStack(2) +
+            // White score plate
+            '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(12px,4vh,28px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;">' +
+              '<span style="font-size:clamp(4rem,18vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
+            '</div>' +
+            (state.isFinished ? '' :
+              '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(2) + _downBtn(2) + '</div>'
+            ) +
+          '</div>' +
+
+        '</div>' + // end two-column
+
+        // Games box below score plates
+        (showGamesBox ?
+          '<div style="margin-top:clamp(10px,3vh,20px);display:flex;align-items:center;gap:clamp(8px,3vw,16px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(8px,2vh,14px) clamp(20px,6vw,40px);">' +
+            '<div style="display:flex;flex-direction:column;align-items:center;">' +
+              '<span style="font-size:0.6rem;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+              '<span style="font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1.2;">' + gamesP1Str + '</span>' +
+            '</div>' +
+            '<span style="font-size:clamp(1rem,3vw,1.5rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
+            '<div style="display:flex;flex-direction:column;align-items:center;">' +
+              '<span style="font-size:0.6rem;font-weight:600;color:#f87171;text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+              '<span style="font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1.2;">' + gamesP2Str + '</span>' +
+            '</div>' +
+          '</div>'
+        : '') +
 
       '</div>'; // end full container
 
