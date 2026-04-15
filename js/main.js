@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.51-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Escanear QR Code</b> — Novo botão "📷 Escanear QR" na dashboard para entrar em partidas casuais. Abre câmera com BarcodeDetector API para leitura automática do QR code, com fallback para digitação manual do código da sala. QR code do convite centralizado na tela.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Convite casual reestruturado</b> — Botão "📲 Convidar" na tela de configuração gera QR code centralizado em tela cheia antes de iniciar a partida. Botão "🔀 Sortear Duplas" embaralha jogadores entre times (Fisher-Yates). Fluxo: montar times → convidar → iniciar.</p>' +
         '</div>' +
