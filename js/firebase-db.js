@@ -535,7 +535,8 @@ window.FirestoreDB = {
   },
 
   // Join a casual match — add user to participants list (idempotent)
-  async joinCasualMatch(docId, uid, displayName) {
+  // Join a casual match — add user to participants list (idempotent)
+  async joinCasualMatch(docId, uid, displayName, photoURL) {
     if (!this.db || !docId || !uid) return false;
     try {
       var docRef = this.db.collection('casualMatches').doc(docId);
@@ -547,13 +548,35 @@ window.FirestoreDB = {
         var playerUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
         // Already joined?
         if (playerUids.indexOf(uid) !== -1) return true;
-        participants.push({ uid: uid, displayName: displayName || '', joinedAt: new Date().toISOString() });
+        participants.push({ uid: uid, displayName: displayName || '', photoURL: photoURL || '', joinedAt: new Date().toISOString() });
         playerUids.push(uid);
         transaction.update(docRef, { participants: participants, playerUids: playerUids });
         return true;
       });
     } catch (e) {
       console.error('Erro ao entrar na partida casual:', e);
+      return false;
+    }
+  },
+
+  // Leave a casual match — remove user from participants
+  async leaveCasualMatch(docId, uid) {
+    if (!this.db || !docId || !uid) return false;
+    try {
+      var docRef = this.db.collection('casualMatches').doc(docId);
+      return this.db.runTransaction(async function(transaction) {
+        var doc = await transaction.get(docRef);
+        if (!doc.exists) return false;
+        var data = doc.data();
+        var participants = Array.isArray(data.participants) ? data.participants.slice() : [];
+        var playerUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
+        participants = participants.filter(function(p) { return p.uid !== uid; });
+        playerUids = playerUids.filter(function(u) { return u !== uid; });
+        transaction.update(docRef, { participants: participants, playerUids: playerUids });
+        return true;
+      });
+    } catch (e) {
+      console.error('Erro ao sair da partida casual:', e);
       return false;
     }
   },

@@ -3208,8 +3208,10 @@ window._openCasualMatch = function() {
   var autoShuffle = true;
   var isMisto = false;
   var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
-  var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }] : [];
+  var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
   var _setupRefreshInterval = null;
+  // Team assignments for drag-and-drop (keyed by uid): { uid: 1 or 2 }
+  var _teamAssignments = {};
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual)
   var _casualDefaults = {
@@ -3245,6 +3247,16 @@ window._openCasualMatch = function() {
     return parts.join(' · ');
   }
 
+  // Build avatar HTML for a participant (photo or initial fallback)
+  function _avatarHtml(pp, size) {
+    var sz = size || 32;
+    if (pp.photoURL) {
+      return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+        '<div style="display:none;width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:' + (sz * 0.45) + 'px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
+    }
+    return '<div style="width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:' + (sz * 0.45) + 'px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
+  }
+
   // Build lobby HTML showing participants who joined
   function _buildLobbyHtml() {
     var totalNeeded = isDoubles ? 4 : 2;
@@ -3264,7 +3276,7 @@ window._openCasualMatch = function() {
       var isHost = pp.uid === (cu ? cu.uid : '');
       h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;' +
         'background:' + (isMe ? 'rgba(34,197,94,0.06)' : 'transparent') + ';">' +
-        '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>' +
+        _avatarHtml(pp, 28) +
         '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml(pp.displayName || 'Jogador') +
           (isHost ? ' <span style="font-size:0.65rem;color:#fbbf24;">👑</span>' : '') +
           (isMe ? ' <span style="font-size:0.62rem;color:#22c55e;">(Você)</span>' : '') +
@@ -3365,22 +3377,55 @@ window._openCasualMatch = function() {
           '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar a partida</div>' +
         '</div>';
     } else if (isDoubles && !autoShuffle) {
-      // Sortear OFF: manual team assignment
+      // Sortear OFF: drag-and-drop team building with lobby participants
+      var team1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
+      var team2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
+      var unassigned = _lobbyParticipants.filter(function(p) { return !_teamAssignments[p.uid]; });
+
+      function _ddCard(pp, canRemove) {
+        var uid = pp.uid || '';
+        return '<div draggable="true" data-casual-uid="' + window._safeHtml(uid) + '" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);margin-bottom:4px;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;">' +
+          _avatarHtml(pp, 26) +
+          '<span style="font-size:0.8rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml((pp.displayName || 'Jogador').split(' ')[0]) + '</span>' +
+          (canRemove ? '<button onclick="window._casualUnassign(\'' + window._safeHtml(uid) + '\')" style="background:none;border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;">✕</button>' : '') +
+        '</div>';
+      }
+
+      var emptySlot = '<div style="padding:10px;border-radius:10px;border:1px dashed rgba(255,255,255,0.1);margin-bottom:4px;text-align:center;">' +
+        '<span style="font-size:0.72rem;color:var(--text-muted);">Arraste aqui</span></div>';
+
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
-          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Duplas</label>' +
-          '<div style="display:flex;gap:12px;">' +
-            '<div style="flex:1;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:10px;">' +
+          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Monte as Duplas</label>' +
+
+          // Unassigned pool
+          (unassigned.length > 0 ?
+            '<div id="casual-pool" style="margin-bottom:10px;padding:8px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);min-height:42px;">' +
+              '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;text-align:center;">Sem time</div>' +
+              unassigned.map(function(p) { return _ddCard(p, false); }).join('') +
+            '</div>' : '') +
+
+          // Team drop zones
+          '<div style="display:flex;gap:10px;">' +
+            '<div id="casual-team1-zone" data-team="1" style="flex:1;background:rgba(59,130,246,0.06);border:2px solid rgba(59,130,246,0.2);border-radius:12px;padding:8px;min-height:90px;transition:border-color 0.15s;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#60a5fa;margin-bottom:6px;text-align:center;">Time 1</div>' +
-              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
-              '<input type="text" id="casual-p1b-name" placeholder="Parceiro" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              (team1.length > 0 ? team1.map(function(p) { return _ddCard(p, true); }).join('') : emptySlot) +
+              (team1.length === 1 ? emptySlot : '') +
             '</div>' +
-            '<div style="flex:1;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px;">' +
+            '<div id="casual-team2-zone" data-team="2" style="flex:1;background:rgba(239,68,68,0.06);border:2px solid rgba(239,68,68,0.2);border-radius:12px;padding:8px;min-height:90px;transition:border-color 0.15s;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#f87171;margin-bottom:6px;text-align:center;">Time 2</div>' +
-              '<input type="text" id="casual-p2a-name" placeholder="Adversário 1" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
-              '<input type="text" id="casual-p2b-name" placeholder="Adversário 2" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              (team2.length > 0 ? team2.map(function(p) { return _ddCard(p, true); }).join('') : emptySlot) +
+              (team2.length === 1 ? emptySlot : '') +
             '</div>' +
           '</div>' +
+
+          // Hidden inputs for _buildPlayers compatibility
+          '<input type="hidden" id="casual-p1a-name" value="' + window._safeHtml(team1[0] ? (team1[0].displayName || '').split(' ')[0] : '') + '">' +
+          '<input type="hidden" id="casual-p1b-name" value="' + window._safeHtml(team1[1] ? (team1[1].displayName || '').split(' ')[0] : '') + '">' +
+          '<input type="hidden" id="casual-p2a-name" value="' + window._safeHtml(team2[0] ? (team2[0].displayName || '').split(' ')[0] : '') + '">' +
+          '<input type="hidden" id="casual-p2b-name" value="' + window._safeHtml(team2[1] ? (team2[1].displayName || '').split(' ')[0] : '') + '">' +
+
+          '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste ou toque nos jogadores para mover entre times</div>' +
         '</div>';
     } else {
       // Singles
@@ -3439,7 +3484,115 @@ window._openCasualMatch = function() {
       '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
         '<span style="font-size:1.5rem;">📡</span> Iniciar Partida' +
       '</button>';
+
+    // Attach drag-and-drop for team building (Sortear OFF + Doubles)
+    if (isDoubles && !autoShuffle) {
+      setTimeout(function() { _setupDragDrop(); }, 30);
+    }
   }
+
+  // Drag-and-drop + touch support for team building
+  var _dragUid = null;
+  function _setupDragDrop() {
+    var zones = [document.getElementById('casual-team1-zone'), document.getElementById('casual-team2-zone')];
+    var pool = document.getElementById('casual-pool');
+    var cards = document.querySelectorAll('[data-casual-uid]');
+
+    // Desktop drag events
+    cards.forEach(function(card) {
+      card.addEventListener('dragstart', function(e) {
+        _dragUid = card.getAttribute('data-casual-uid');
+        card.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', function() {
+        card.style.opacity = '1';
+        _dragUid = null;
+      });
+      // Tap-to-cycle: unassigned → team1 → team2 → unassigned
+      card.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') return; // Don't trigger on ✕ button
+        var uid = card.getAttribute('data-casual-uid');
+        var cur = _teamAssignments[uid] || 0;
+        var team1Count = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; }).length;
+        var team2Count = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; }).length;
+        if (cur === 0) _teamAssignments[uid] = (team1Count <= team2Count) ? 1 : 2;
+        else if (cur === 1) { if (team2Count < 2) _teamAssignments[uid] = 2; else delete _teamAssignments[uid]; }
+        else { delete _teamAssignments[uid]; }
+        _renderSetup();
+      });
+    });
+
+    zones.forEach(function(zone) {
+      if (!zone) return;
+      zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = zone.dataset.team === '1' ? '#3b82f6' : '#ef4444'; });
+      zone.addEventListener('dragleave', function() { zone.style.borderColor = zone.dataset.team === '1' ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)'; });
+      zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.style.borderColor = zone.dataset.team === '1' ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)';
+        if (!_dragUid) return;
+        var teamNum = parseInt(zone.dataset.team);
+        var teamCount = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === teamNum; }).length;
+        if (teamCount >= 2) return; // Max 2 per team
+        _teamAssignments[_dragUid] = teamNum;
+        _dragUid = null;
+        _renderSetup();
+      });
+    });
+
+    if (pool) {
+      pool.addEventListener('dragover', function(e) { e.preventDefault(); });
+      pool.addEventListener('drop', function(e) {
+        e.preventDefault();
+        if (_dragUid) { delete _teamAssignments[_dragUid]; _dragUid = null; _renderSetup(); }
+      });
+    }
+
+    // Touch drag support (mobile)
+    var _touchUid = null, _touchGhost = null;
+    cards.forEach(function(card) {
+      card.addEventListener('touchstart', function(e) {
+        _touchUid = card.getAttribute('data-casual-uid');
+      }, { passive: true });
+      card.addEventListener('touchmove', function(e) {
+        if (!_touchUid) return;
+        e.preventDefault();
+        if (!_touchGhost) {
+          _touchGhost = card.cloneNode(true);
+          _touchGhost.style.cssText = 'position:fixed;z-index:200000;opacity:0.8;pointer-events:none;width:' + card.offsetWidth + 'px;';
+          document.body.appendChild(_touchGhost);
+        }
+        var t = e.touches[0];
+        _touchGhost.style.left = (t.clientX - 40) + 'px';
+        _touchGhost.style.top = (t.clientY - 20) + 'px';
+      }, { passive: false });
+      card.addEventListener('touchend', function(e) {
+        if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
+        if (!_touchUid) return;
+        var t = e.changedTouches[0];
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        // Walk up to find zone
+        var zone = null;
+        var node = el;
+        while (node) {
+          if (node.dataset && node.dataset.team) { zone = node; break; }
+          node = node.parentElement;
+        }
+        if (zone) {
+          var teamNum = parseInt(zone.dataset.team);
+          var teamCount = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === teamNum; }).length;
+          if (teamCount < 2) { _teamAssignments[_touchUid] = teamNum; _renderSetup(); }
+        }
+        _touchUid = null;
+      });
+    });
+  }
+
+  // Unassign player from team
+  window._casualUnassign = function(uid) {
+    delete _teamAssignments[uid];
+    _renderSetup();
+  };
 
   // Track if config screen is open
   var _configOpen = false;
@@ -3637,7 +3790,20 @@ window._openCasualMatch = function() {
   function _buildPlayers() {
     var players = [];
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (isDoubles) {
+    if (isDoubles && !autoShuffle) {
+      // Use drag-and-drop team assignments from lobby participants
+      var t1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
+      var t2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
+      var slot = 0;
+      for (var i = 0; i < 2; i++) {
+        var pp = t1[i];
+        players.push({ slot: slot++, name: pp ? (pp.displayName || '').split(' ')[0] || 'Jogador' : 'Jogador', team: 1, uid: pp ? pp.uid : null });
+      }
+      for (var j = 0; j < 2; j++) {
+        var pp2 = t2[j];
+        players.push({ slot: slot++, name: pp2 ? (pp2.displayName || '').split(' ')[0] || 'Jogador' : 'Jogador', team: 2, uid: pp2 ? pp2.uid : null });
+      }
+    } else if (isDoubles) {
       var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
       var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
       var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
@@ -3680,7 +3846,7 @@ window._openCasualMatch = function() {
           scoring: cfg,
           isDoubles: isDoubles,
           players: players,
-          participants: [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }],
+          participants: [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }],
           playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
           roomCode: roomCode,
           status: 'waiting',
@@ -3881,7 +4047,7 @@ window._openCasualMatch = function() {
       scoring: _getConfig(),
       isDoubles: isDoubles,
       players: [],
-      participants: [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }],
+      participants: [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }],
       playerUids: [cu.uid],
       roomCode: _sessionRoomCode,
       status: 'waiting',
@@ -4068,17 +4234,21 @@ window._renderCasualJoin = function(container, roomCode) {
         var pp = participants[i];
         var isMe = myUid && pp.uid === myUid;
         var isHost = pp.uid === match.createdBy;
+        var avatarH = pp.photoURL ?
+          '<img src="' + _safe(pp.photoURL) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+          '<div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((pp.displayName || 'J')[0].toUpperCase()) + '</div>' :
+          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
         html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;' +
           'background:' + (isMe ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)') + ';' +
           'border:1px solid ' + (isMe ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)') + ';">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((pp.displayName || 'J')[0].toUpperCase()) + '</div>' +
+          avatarH +
           '<div style="flex:1;text-align:left;">' +
             '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(pp.displayName || 'Jogador') +
               (isMe ? ' <span style="color:#22c55e;font-size:0.68rem;">(Você)</span>' : '') +
               (isHost ? ' <span style="color:#fbbf24;font-size:0.68rem;">👑</span>' : '') +
             '</div>' +
           '</div>' +
-          '<div style="font-size:1rem;">✅</div>' +
+          (isMe && !isHost ? '<button onclick="window._casualLeaveMatch()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">Sair</button>' : '<div style="font-size:1rem;">✅</div>') +
         '</div>';
       }
 
@@ -4131,9 +4301,9 @@ window._renderCasualJoin = function(container, roomCode) {
       if (!isLoggedIn || !docId) return;
       var alreadyIn = participants.some(function(p) { return p.uid === cu.uid; });
       if (alreadyIn) return;
-      var ok = await window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '');
+      var ok = await window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '', cu.photoURL || '');
       if (ok) {
-        participants.push({ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() });
+        participants.push({ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() });
         _renderLobby();
         if (typeof showNotification === 'function') showNotification('Entrou na partida!', 'Aguarde o organizador iniciar.', 'success');
       }
@@ -4166,6 +4336,15 @@ window._renderCasualJoin = function(container, roomCode) {
         } catch(e) {}
       }, 3000);
     }
+
+    // Leave match handler
+    window._casualLeaveMatch = async function() {
+      if (!cu || !cu.uid || !docId) return;
+      _casualLobbyCleanup();
+      await window.FirestoreDB.leaveCasualMatch(docId, cu.uid);
+      if (typeof showNotification === 'function') showNotification('Saiu da partida', '', 'info');
+      window.location.hash = '#dashboard';
+    };
 
     // Cleanup on leave
     function _casualLobbyCleanup() {
