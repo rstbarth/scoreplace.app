@@ -3791,8 +3791,9 @@ window._openCasualMatch = function() {
       status: 'waiting',
       result: null
     }).then(function(docId) {
-      if (docId) _sessionDocId = docId;
-    }).catch(function() {});
+      if (docId) { _sessionDocId = docId; console.log('[Casual] Saved to Firestore, docId:', docId, 'roomCode:', _sessionRoomCode); }
+      else console.warn('[Casual] saveCasualMatch returned null — check Firestore rules for casualMatches collection');
+    }).catch(function(e) { console.error('[Casual] Auto-save failed:', e); });
   }
 
   setTimeout(function() {

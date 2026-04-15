@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.56-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Firestore rules para partidas casuais</b> — Collection casualMatches agora com regras de leitura/escrita no Firestore. Corrige "Partida não encontrada" ao escanear QR ou digitar código da sala.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Casual redesenhado</b> — Toggle Sortear Duplas (padrão ON): participantes sem time, sorteados ao iniciar. Toggle Misto (padrão OFF). Campo "Código da sala" para entrar na sala de um amigo. Partida salva no Firestore ao abrir setup (QR funciona imediatamente). Ícone fallback no perfil da topbar.</p>' +
         '</div>' +
