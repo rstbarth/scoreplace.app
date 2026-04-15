@@ -1744,7 +1744,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // ── Parse player names (doubles: "Ana/Bruno" → ["Ana","Bruno"]) ──
   var p1Players = p1Name.indexOf('/') > 0 ? p1Name.split('/').map(function(s){return s.trim();}).filter(Boolean) : (p1Name.trim() ? [p1Name.trim()] : []);
   var p2Players = p2Name.indexOf('/') > 0 ? p2Name.split('/').map(function(s){return s.trim();}).filter(Boolean) : (p2Name.trim() ? [p2Name.trim()] : []);
-  var isDoubles = p1Players.length > 1 || p2Players.length > 1;
+  var isDoubles = p1Players.length > 1 || p2Players.length > 1 || !!(opts && opts.isDoubles);
   // Default names when empty
   if (isDoubles) {
     if (p1Players.length === 0) p1Players = ['Parceiro', 'Parceiro 2'];
@@ -1755,6 +1755,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (p1Players.length === 0) p1Players = ['Eu'];
     if (p2Players.length === 0) p2Players = ['Adversário'];
   }
+
+  // Sport emoji for serve picker
+  var _sportBall = '🎾'; // default
+  (function() {
+    var sn = isCasual ? (opts.sportName || '') : (t && t.sport ? t.sport : '');
+    var lower = sn.toLowerCase();
+    if (lower.indexOf('pickleball') !== -1) _sportBall = '🥒';
+    else if (lower.indexOf('mesa') !== -1 || lower.indexOf('ping') !== -1) _sportBall = '🏓';
+    else if (lower.indexOf('padel') !== -1 || lower.indexOf('badminton') !== -1) _sportBall = '🏸';
+    else if (lower.indexOf('beach') !== -1 || lower.indexOf('tênis') !== -1 || lower.indexOf('tenis') !== -1) _sportBall = '🎾';
+    else if (lower.indexOf('simples') !== -1 || lower.indexOf('simple') !== -1) _sportBall = '🏅';
+  })();
 
   // ── State ──
   var state = {
@@ -2311,7 +2323,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     container.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.25rem;gap:1rem;">' +
         '<div style="text-align:center;">' +
-          '<div style="font-size:1.4rem;margin-bottom:3px;">🏐</div>' +
+          '<div style="font-size:1.4rem;margin-bottom:3px;">' + _sportBall + '</div>' +
           '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">Arraste para reordenar · ✏️ para editar nome</div>' +
         '</div>' +
@@ -2547,7 +2559,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
         var shortName = window._safeHtml(pn.split(' ')[0]);
-        var servIcon = isServing ? ' <span style="font-size:0.7rem;">🏐</span>' : '';
+        var servIcon = isServing ? ' <span style="font-size:0.7rem;">' + _sportBall + '</span>' : '';
         lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;font-size:0.82rem;font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + shortName + servIcon + '</div>';
       }
       return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:0 2px;">' + lines + '</div>';
@@ -3065,8 +3077,8 @@ window._openCasualMatch = function() {
       var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
       var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
       var b2 = ((document.getElementById('casual-p2b-name') || {}).value || '').trim();
-      n1 = (a1 && b1) ? a1 + ' / ' + b1 : (a1 || b1 || 'Time 1');
-      n2 = (a2 && b2) ? a2 + ' / ' + b2 : (a2 || b2 || 'Time 2');
+      n1 = (a1 || '') + ' / ' + (b1 || '');
+      n2 = (a2 || '') + ' / ' + (b2 || '');
     } else {
       n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
       n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
@@ -3085,7 +3097,8 @@ window._openCasualMatch = function() {
       p1Name: n1,
       p2Name: n2,
       title: 'Partida Casual',
-      sportName: selectedSport === '_simple' ? 'Placar Simples' : selectedSport
+      sportName: selectedSport === '_simple' ? 'Placar Simples' : selectedSport,
+      isDoubles: isDoubles
     });
   };
 
