@@ -1,6 +1,13 @@
 
 // ─── Bracket / Standings View ───────────────────────────────────────────────
 
+// Helper: check if a result entry role is active (backward compat: string or array)
+window._resultEntryIncludes = function(t, role) {
+  var re = t && t.resultEntry || 'organizer';
+  if (Array.isArray(re)) return re.indexOf(role) !== -1;
+  return re === role;
+};
+
 // "Só meus jogos" toggle — hides non-user match cards
 window._showOnlyMyMatches = false;
 window._toggleMyMatches = function(checked) {
@@ -48,7 +55,7 @@ function renderBracket(container, tournamentId, isInline) {
   }).catch(function() {});
 
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
-  const canEnterResult = isOrg || t.resultEntry === 'players' || t.resultEntry === 'referee';
+  const canEnterResult = isOrg || window._resultEntryIncludes(t, 'players') || window._resultEntryIncludes(t, 'referee');
   const isLiga = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
   const isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
   const isDupla = t.format === 'Dupla Eliminatória';
@@ -1279,6 +1286,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }
   }
 
+  // "Ao Vivo" button: shown on user's own undecided matches when players can launch results
+  const liveBtn = (_isMyMatch && !isDecided && !isByeMatch && !hasTBD && window._resultEntryIncludes(t, 'players'))
+    ? `<button onclick="window._openLiveScoring('${_esc(tId)}','${_esc(m.id)}')"
+        style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
+        onmouseover="this.style.background='rgba(239,68,68,0.3)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'"
+        title="Placar ao vivo">📡 Ao Vivo</button>`
+    : '';
+
   // User's own matches: indigo border + glow (distinct from amber partial)
   if (_isMyMatch) {
     cardBorder = 'rgba(99,102,241,0.6)';
@@ -1288,7 +1303,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:${_isMyMatch ? 'rgba(99,102,241,0.06)' : 'var(--bg-card)'};border:${_isMyMatch ? '2px' : '1px'} solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:${_isMyMatch ? '0 0 20px rgba(99,102,241,0.25),0 0 8px rgba(99,102,241,0.12),0 4px 12px rgba(0,0,0,0.15)' : matchReady ? '0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15)' : matchPartial ? '0 0 10px rgba(245,158,11,0.1),0 4px 12px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.15)'};${hasTBD ? 'opacity:0.6;' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${headerConfirmBtn}${headerEditBtn}</div>
+        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${liveBtn}${headerConfirmBtn}${headerEditBtn}</div>
       </div>
       ${p1Row}
       ${vsRow}

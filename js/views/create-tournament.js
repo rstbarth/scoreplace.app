@@ -541,13 +541,22 @@ function setupCreateTournamentModal() {
                 </div>
               </div>
 
-              <!-- Lançamento de Resultados -->
+              <!-- Lançamento de Resultados (toggles não-excludentes) -->
               <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #60a5fa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">📋 Lançamento de Resultados</p>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;" id="result-entry-buttons">
-                  <button type="button" class="result-entry-btn result-entry-active" data-value="organizer" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#60a5fa;font-weight:600;text-align:center;">Organizador</button>
-                  <button type="button" class="result-entry-btn" data-value="players" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Jogadores</button>
-                  <button type="button" class="result-entry-btn" data-value="referee" onclick="window._selectResultEntry(this)" style="flex:1;min-width:120px;padding:8px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Árbitro</button>
+                <div id="result-entry-buttons" style="display:flex;flex-direction:column;gap:8px;">
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">📋</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Organizador</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Organizador e co-organizadores lançam resultados.</div></div></div>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-organizer" checked onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏓</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Jogadores</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores lançam pelo celular com placar ao vivo. Adversário confirma.</div></div></div>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-players" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🧑‍⚖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Árbitro</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Árbitro designado pelo organizador lança os resultados.</div></div></div>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-referee" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                  </div>
                 </div>
                 <div id="result-entry-desc" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Apenas o organizador (e co-organizadores) podem lançar resultados das partidas.</div>
                 <input type="hidden" id="select-result-entry" value="organizer">
@@ -908,34 +917,47 @@ function setupCreateTournamentModal() {
     window._syncEnrollToggles();
   };
 
-  // ── Result Entry Selection ──
-  var _resultEntryDescs = {
-    'organizer': 'Apenas o organizador (e co-organizadores) podem lançar resultados das partidas.',
-    'players': 'Os próprios jogadores lançam os resultados. O adversário precisa confirmar o placar.',
-    'referee': 'Um árbitro designado pelo organizador lança os resultados das partidas.'
-  };
-  window._selectResultEntry = function(btn) {
-    var value = btn.getAttribute('data-value');
-    var btns = document.querySelectorAll('#result-entry-buttons .result-entry-btn');
-    btns.forEach(function(b) {
-      if (b.getAttribute('data-value') === value) {
-        b.classList.add('result-entry-active');
-        b.style.border = '2px solid #3b82f6';
-        b.style.background = 'rgba(59,130,246,0.15)';
-        b.style.color = '#60a5fa';
-        b.style.fontWeight = '600';
-      } else {
-        b.classList.remove('result-entry-active');
-        b.style.border = '2px solid rgba(255,255,255,0.18)';
-        b.style.background = 'rgba(255,255,255,0.06)';
-        b.style.color = 'var(--text-main)';
-        b.style.fontWeight = '500';
-      }
-    });
+  // ── Result Entry Toggles (non-exclusive, multiple can be active) ──
+  window._syncResultEntryToggles = function() {
+    var org = document.getElementById('re-toggle-organizer');
+    var plr = document.getElementById('re-toggle-players');
+    var ref = document.getElementById('re-toggle-referee');
+    if (!org || !plr || !ref) return;
+
+    // Prevent all-off: if none checked, re-check organizer
+    if (!org.checked && !plr.checked && !ref.checked) {
+      org.checked = true;
+    }
+
+    // Build array of active roles
+    var active = [];
+    if (org.checked) active.push('organizer');
+    if (plr.checked) active.push('players');
+    if (ref.checked) active.push('referee');
+
+    // Save to hidden input (single value as string, multiple as JSON array)
     var hidden = document.getElementById('select-result-entry');
-    if (hidden) hidden.value = value;
+    if (hidden) hidden.value = active.length === 1 ? active[0] : JSON.stringify(active);
+
+    // Build combined description
+    var parts = [];
+    if (org.checked) parts.push('Organizador e co-organizadores');
+    if (plr.checked) parts.push('Jogadores (com confirmação do adversário e placar ao vivo)');
+    if (ref.checked) parts.push('Árbitro designado');
     var descEl = document.getElementById('result-entry-desc');
-    if (descEl) descEl.textContent = _resultEntryDescs[value] || '';
+    if (descEl) descEl.textContent = parts.length ? 'Quem lança: ' + parts.join(' + ') + '.' : '';
+  };
+  // Legacy compat wrapper
+  window._selectResultEntry = function(btn) {
+    var value = btn && btn.getAttribute ? btn.getAttribute('data-value') : null;
+    if (!value) return;
+    var org = document.getElementById('re-toggle-organizer');
+    var plr = document.getElementById('re-toggle-players');
+    var ref = document.getElementById('re-toggle-referee');
+    if (value === 'organizer' && org) org.checked = true;
+    if (value === 'players' && plr) plr.checked = true;
+    if (value === 'referee' && ref) ref.checked = true;
+    window._syncResultEntryToggles();
   };
 
   // ── W.O. Scope sync (mutually exclusive toggles) ──
@@ -2697,9 +2719,16 @@ function setupCreateTournamentModal() {
     document.getElementById('late-toggle-standby').checked = _lateEnroll === 'standby';
     document.getElementById('late-toggle-expand').checked = _lateEnroll === 'expand';
     window._syncLateEnrollment();
-    document.getElementById('select-result-entry').value = t.resultEntry || 'organizer';
-    var _reBtn = document.querySelector('#result-entry-buttons .result-entry-btn[data-value="' + (t.resultEntry || 'organizer') + '"]');
-    if (_reBtn) window._selectResultEntry(_reBtn);
+    // Restore result entry toggles (backward compat: string or array)
+    var _reVal = t.resultEntry || 'organizer';
+    var _reArr = Array.isArray(_reVal) ? _reVal : [_reVal];
+    var _reOrg = document.getElementById('re-toggle-organizer');
+    var _rePlr = document.getElementById('re-toggle-players');
+    var _reRef = document.getElementById('re-toggle-referee');
+    if (_reOrg) _reOrg.checked = _reArr.indexOf('organizer') !== -1;
+    if (_rePlr) _rePlr.checked = _reArr.indexOf('players') !== -1;
+    if (_reRef) _reRef.checked = _reArr.indexOf('referee') !== -1;
+    window._syncResultEntryToggles();
 
     // Venue / Courts / Time
     document.getElementById('tourn-venue').value = t.venue || '';
@@ -2914,7 +2943,11 @@ function setupCreateTournamentModal() {
         const teamSizeVal = parseInt(document.getElementById('tourn-team-size').value) || 1;
         const maxPartsVal = parseInt(document.getElementById('tourn-max-participants').value) || null;
         const autoCloseVal = document.getElementById('tourn-auto-close').checked;
-        const resultEntryVal = document.getElementById('select-result-entry').value || 'organizer';
+        var _reRaw = document.getElementById('select-result-entry').value || 'organizer';
+        var resultEntryVal;
+        try { resultEntryVal = JSON.parse(_reRaw); } catch(e) { resultEntryVal = _reRaw; }
+        // Normalize single-element array to string for backward compat
+        if (Array.isArray(resultEntryVal) && resultEntryVal.length === 1) resultEntryVal = resultEntryVal[0];
         const isPublicVal = document.getElementById('tourn-public').value === 'true';
 
         // Venue / Courts / Time
