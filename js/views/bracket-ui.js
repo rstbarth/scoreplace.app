@@ -2496,25 +2496,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return;
     }
 
-    // ── Update sets display in header ──
-    var setsHeaderEl = document.getElementById('live-sets-header');
-    if (setsHeaderEl) {
-      var setsHtml = '';
-      if (useSets && !state.isFixedSet) {
-        for (var si = 0; si < state.sets.length; si++) {
-          var ss = state.sets[si];
-          var isCurSet = (si === state.sets.length - 1) && !state.isFinished;
-          var tbS = ss.tiebreak ? '<sup style="font-size:0.45rem;color:#888;">(' + ss.tiebreak.p1 + '-' + ss.tiebreak.p2 + ')</sup>' : '';
-          setsHtml += '<div style="padding:2px 6px;border-radius:4px;background:' + (isCurSet ? 'rgba(255,255,255,0.1)' : 'transparent') + ';text-align:center;">' +
-            '<div style="font-size:0.45rem;color:var(--text-muted);">S' + (si + 1) + '</div>' +
-            '<div style="font-size:0.75rem;font-weight:800;color:var(--text-bright);">' + ss.gamesP1 + '-' + ss.gamesP2 + tbS + '</div>' +
-          '</div>';
-        }
-      }
-      setsHeaderEl.innerHTML = setsHtml ? '<div style="display:flex;gap:2px;align-items:center;">' + setsHtml + '</div>' : '';
-    }
-
-    // Current game display
+    // Current game display — no "GAME" label, only special states
     var gameLabel = '';
     var p1Display, p2Display;
     if (state.isFinished) {
@@ -2522,7 +2504,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       p1Display = '✓';
       p2Display = '✓';
     } else if (!useSets || state.isFixedSet) {
-      gameLabel = state.isFixedSet ? 'SET FIXO' : 'PLACAR';
+      gameLabel = '';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
     } else if (_isDecidingSet()) {
@@ -2534,7 +2516,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
     } else {
-      gameLabel = 'GAME';
+      gameLabel = '';
       p1Display = _formatGamePoint(state.currentGameP1, state.currentGameP2, false);
       p2Display = _formatGamePoint(state.currentGameP2, state.currentGameP1, false);
     }
@@ -2546,6 +2528,22 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var cs = _currentSet();
       gamesP1Str = String(cs.gamesP1);
       gamesP2Str = String(cs.gamesP2);
+    }
+
+    // Sets display — inline above plates
+    var setsRow = '';
+    if (useSets && !state.isFixedSet) {
+      var setPills = '';
+      for (var si = 0; si < state.sets.length; si++) {
+        var ss = state.sets[si];
+        var isCurSet = (si === state.sets.length - 1) && !state.isFinished;
+        var tbS = ss.tiebreak ? '<sup style="font-size:0.5rem;color:#888;">(' + ss.tiebreak.p1 + '-' + ss.tiebreak.p2 + ')</sup>' : '';
+        setPills += '<div style="padding:3px 8px;border-radius:6px;background:' + (isCurSet ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)') + ';text-align:center;">' +
+          '<span style="font-size:0.55rem;color:var(--text-muted);margin-right:3px;">S' + (si + 1) + '</span>' +
+          '<span style="font-size:0.85rem;font-weight:800;color:var(--text-bright);">' + ss.gamesP1 + '-' + ss.gamesP2 + tbS + '</span>' +
+        '</div>';
+      }
+      setsRow = '<div style="display:flex;gap:4px;align-items:center;justify-content:center;margin-bottom:clamp(4px,1.5vh,10px);">' + setPills + '</div>';
     }
 
     // Serving info
@@ -2586,63 +2584,98 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     // ── FULLSCREEN LAYOUT ──
-    // 2-column score plates, names above each plate, arrows below.
-    // Games box centered below the score plates.
+    // Portrait: names above plates, games below.
+    // Landscape (wider than tall): names on outer sides, games between plates.
+    // Detect via JS — CSS media queries won't work for inline styles.
+    var isLandscape = window.innerWidth > window.innerHeight;
 
-    // Game label color
-    var labelClr = state.isFinished ? '#10b981' : (state.isTiebreak || _isDecidingSet() ? '#c084fc' : 'var(--text-muted)');
+    // Game label color (only for special states)
+    var labelClr = state.isFinished ? '#10b981' : '#c084fc';
 
-    container.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
-
-        // Game label (GAME / TIE-BREAK / etc)
-        '<div style="text-align:center;font-size:clamp(0.7rem,2.5vw,0.85rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(8px,2vh,16px);">' + gameLabel + '</div>' +
-
-        // Two-column score plates
-        '<div style="display:flex;align-items:stretch;width:100%;max-width:500px;gap:clamp(10px,3vw,20px);justify-content:center;">' +
-
-          // P1 column: names → white plate → arrows
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,14px);max-width:220px;">' +
-            _buildNameStack(1) +
-            // White score plate
-            '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(12px,4vh,28px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;">' +
-              '<span style="font-size:clamp(4rem,18vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
-            '</div>' +
-            (state.isFinished ? '' :
-              '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(1) + _downBtn(1) + '</div>'
-            ) +
+    // Games center column (used between plates in landscape, below in portrait)
+    var gamesCenter = '';
+    if (showGamesBox) {
+      gamesCenter =
+        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(6px,1.5vh,12px) clamp(10px,2vw,20px);">' +
+          '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+          '<div style="display:flex;align-items:center;gap:clamp(6px,2vw,12px);">' +
+            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP1Str + '</span>' +
+            '<span style="font-size:clamp(0.9rem,2vw,1.3rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
+            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP2Str + '</span>' +
           '</div>' +
+        '</div>';
+    }
 
-          // P2 column: names → white plate → arrows
-          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,14px);max-width:220px;">' +
-            _buildNameStack(2) +
-            // White score plate
-            '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(12px,4vh,28px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;">' +
-              '<span style="font-size:clamp(4rem,18vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
+    // Score plate builder
+    var _buildPlate = function(player) {
+      var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
+      var display = player === 1 ? p1Display : p2Display;
+      return '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(10px,3vh,24px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+        '<span style="font-size:clamp(3.5rem,15vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+      '</div>';
+    };
+
+    // Buttons column builder
+    var _buildBtns = function(player) {
+      if (state.isFinished) return '';
+      return '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(player) + _downBtn(player) + '</div>';
+    };
+
+    if (isLandscape) {
+      // ── LANDSCAPE: [Names P1] [Plate+Btns P1] [Games] [Plate+Btns P2] [Names P2] ──
+      container.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
+          // Sets row
+          setsRow +
+          // Special label (TIE-BREAK, winner)
+          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,8px);">' + gameLabel + '</div>' : '') +
+          // Main row
+          '<div style="display:flex;align-items:center;width:100%;max-width:800px;gap:clamp(6px,1.5vw,14px);justify-content:center;">' +
+            // P1 names (left side)
+            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(1) + '</div>' +
+            // P1 plate + buttons
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
+              _buildPlate(1) +
+              _buildBtns(1) +
             '</div>' +
-            (state.isFinished ? '' :
-              '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(2) + _downBtn(2) + '</div>'
-            ) +
+            // Games center
+            (showGamesBox ? gamesCenter : '<div style="width:clamp(8px,2vw,16px);"></div>') +
+            // P2 plate + buttons
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
+              _buildPlate(2) +
+              _buildBtns(2) +
+            '</div>' +
+            // P2 names (right side)
+            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(2) + '</div>' +
           '</div>' +
-
-        '</div>' + // end two-column
-
-        // Games box below score plates
-        (showGamesBox ?
-          '<div style="margin-top:clamp(10px,3vh,20px);display:flex;align-items:center;gap:clamp(8px,3vw,16px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(8px,2vh,14px) clamp(20px,6vw,40px);">' +
-            '<div style="display:flex;flex-direction:column;align-items:center;">' +
-              '<span style="font-size:0.6rem;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;">Games</span>' +
-              '<span style="font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1.2;">' + gamesP1Str + '</span>' +
+        '</div>';
+    } else {
+      // ── PORTRAIT: names above plates, games below ──
+      container.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
+          // Sets row
+          setsRow +
+          // Special label (TIE-BREAK, winner)
+          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(6px,1.5vh,12px);">' + gameLabel + '</div>' : '') +
+          // Two-column score plates
+          '<div style="display:flex;align-items:stretch;width:100%;max-width:500px;gap:clamp(10px,3vw,20px);justify-content:center;">' +
+            // P1 column: names → plate → arrows
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vh,12px);max-width:220px;">' +
+              _buildNameStack(1) +
+              _buildPlate(1) +
+              _buildBtns(1) +
             '</div>' +
-            '<span style="font-size:clamp(1rem,3vw,1.5rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
-            '<div style="display:flex;flex-direction:column;align-items:center;">' +
-              '<span style="font-size:0.6rem;font-weight:600;color:#f87171;text-transform:uppercase;letter-spacing:1px;">Games</span>' +
-              '<span style="font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1.2;">' + gamesP2Str + '</span>' +
+            // P2 column: names → plate → arrows
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vh,12px);max-width:220px;">' +
+              _buildNameStack(2) +
+              _buildPlate(2) +
+              _buildBtns(2) +
             '</div>' +
-          '</div>'
-        : '') +
-
-      '</div>'; // end full container
+          '</div>' +
+          // Games box below
+          (showGamesBox ? '<div style="margin-top:clamp(8px,2vh,16px);">' + gamesCenter + '</div>' : '') +
+        '</div>';
+    }
 
     // Append finish button at bottom
     if (finishBtn) {
@@ -2748,8 +2781,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<div style="font-size:0.6rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(isCasual ? casualTitle : (t && t.name || matchLabel)) + '</div>' +
       '</div>' +
     '</div>' +
-    // Center: Sets display (updated by _render)
-    '<div id="live-sets-header" style="flex:1;display:flex;justify-content:center;align-items:center;min-width:0;"></div>' +
+    // Spacer
+    '<div style="flex:1;"></div>' +
     // Right: Reset + Close
     '<div style="display:flex;gap:6px;align-items:center;flex:0 0 auto;">' +
       '<button onclick="window._liveScoreReset()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">↺</button>' +
@@ -2779,6 +2812,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (ov) ov.remove();
     }
   };
+
+  // Re-render on orientation/resize change for landscape layout
+  var _resizeTimer = null;
+  var _onResize = function() {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(function() {
+      if (document.getElementById('live-scoring-overlay')) _render();
+    }, 150);
+  };
+  window.addEventListener('resize', _onResize);
 
   // Initial render
   _render();
