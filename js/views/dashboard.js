@@ -998,9 +998,15 @@ function renderDashboard(container) {
       </div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
-        <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; width: min(75vw, 340px); min-height: 78px; font-size: 1.35rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
-          ${_t('dashboard.newTournament')}
-        </button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;width:100%;max-width:600px;">
+          <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:min(55vw,240px); min-height: 78px; font-size: 1.35rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
+            ${_t('dashboard.newTournament')}
+          </button>
+          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#dc2626,#ef4444); color: #ffffff; flex:0 0 auto;min-width:min(30vw,140px); min-height: 78px; font-size: 1rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
+            <span style="font-size:1.5rem;">📡</span>
+            <span>Partida Casual</span>
+          </button>
+        </div>
         <div style="display: flex; gap: 10px; justify-content: center;">
           <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showSupportModal()">💚 ${_t('common.support')}</button>
           <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>

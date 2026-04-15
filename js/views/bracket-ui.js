@@ -1718,17 +1718,23 @@ window._advanceMonarchToElimination = function(tId) {
 // ─── Live Scoring Overlay (full-screen, point-by-point) ─────────────────────
 // Opens when player clicks "📡 Ao Vivo" on their own match card.
 // Supports both simple scoring and GSM (Game-Set-Match) with tennis rules.
+// Also supports casual mode: _openLiveScoring(null, null, { scoring, p1Name, p2Name, title })
 
-window._openLiveScoring = function(tId, matchId) {
-  var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-  if (!t) return;
-  var m = _findMatch(t, matchId);
-  if (!m) return;
+window._openLiveScoring = function(tId, matchId, opts) {
+  var isCasual = !!(opts && opts.casual);
+  var t = null, m = null;
+  if (!isCasual) {
+    t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+    if (!t) return;
+    m = _findMatch(t, matchId);
+    if (!m) return;
+  }
 
-  var sc = t.scoring || {};
+  var sc = isCasual ? (opts.scoring || {}) : (t.scoring || {});
   var useSets = sc.type === 'sets';
-  var p1Name = m.p1 || 'Jogador 1';
-  var p2Name = m.p2 || 'Jogador 2';
+  var p1Name = isCasual ? (opts.p1Name || 'Jogador 1') : (m.p1 || 'Jogador 1');
+  var p2Name = isCasual ? (opts.p2Name || 'Jogador 2') : (m.p2 || 'Jogador 2');
+  var casualTitle = isCasual ? (opts.title || 'Partida Casual') : '';
   var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Remove existing overlay
@@ -1988,6 +1994,34 @@ window._openLiveScoring = function(tId, matchId) {
 
   // Save result to match
   function _saveResult() {
+    if (isCasual) {
+      // Casual mode: just show result and close
+      var winnerName = state.winner === 1 ? p1Name : (state.winner === 2 ? p2Name : 'Empate');
+      var ov = document.getElementById('live-scoring-overlay');
+      if (ov) ov.remove();
+      // Build summary for casual
+      var summary = '';
+      if (useSets) {
+        for (var si = 0; si < state.sets.length; si++) {
+          var ss = state.sets[si];
+          summary += ss.gamesP1 + '-' + ss.gamesP2;
+          if (ss.tiebreak) summary += '(' + ss.tiebreak.p1 + '-' + ss.tiebreak.p2 + ')';
+          if (si < state.sets.length - 1) summary += '  ';
+        }
+      } else {
+        summary = state.currentGameP1 + ' × ' + state.currentGameP2;
+      }
+      showNotification('Partida encerrada', winnerName + (state.winner === 0 ? '' : ' venceu!') + ' — ' + summary, 'success');
+      // Save to casual match history in localStorage
+      try {
+        var hist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
+        hist.unshift({ p1: p1Name, p2: p2Name, winner: winnerName, summary: summary, date: new Date().toISOString(), sport: opts.sportName || '' });
+        if (hist.length > 50) hist = hist.slice(0, 50);
+        localStorage.setItem('scoreplace_casual_history', JSON.stringify(hist));
+      } catch(e) {}
+      return;
+    }
+
     if (useSets) {
       // Save as GSM sets data
       m.sets = state.sets.map(function(s) {
@@ -2177,16 +2211,22 @@ window._openLiveScoring = function(tId, matchId) {
       '<span style="font-size:1.2rem;">📡</span>' +
       '<div>' +
         '<div style="font-size:0.9rem;font-weight:800;color:#f87171;">AO VIVO</div>' +
-        '<div style="font-size:0.68rem;color:var(--text-muted);">' + window._safeHtml(t.name || 'Torneio') + '</div>' +
+        '<div style="font-size:0.68rem;color:var(--text-muted);">' + window._safeHtml(isCasual ? casualTitle : (t && t.name || 'Torneio')) + '</div>' +
       '</div>' +
     '</div>' +
     '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
   '</div>';
 
   // Match info bar
-  var matchLabel = m.roundIndex !== undefined ? 'Rodada ' + (m.roundIndex + 1) : (m.round || '');
+  var matchLabel = isCasual ? (opts.sportName || 'Partida Casual') : (m.roundIndex !== undefined ? 'Rodada ' + (m.roundIndex + 1) : (m.round || ''));
+  var scoringSummary = '';
+  if (useSets) {
+    scoringSummary = sc.setsToWin + ' set' + (sc.setsToWin > 1 ? 's' : '') + ' · ' + sc.gamesPerSet + ' games' + (sc.tiebreakEnabled ? ' · TB ' + sc.tiebreakPoints : '') + (sc.superTiebreak ? ' · Super TB' : '');
+    if (sc.fixedSet) scoringSummary = 'Set Fixo ' + (sc.fixedSetGames || sc.gamesPerSet) + ' games';
+  }
   var infoHtml = '<div style="text-align:center;padding:8px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;">' +
     '<span style="font-size:0.72rem;color:var(--text-muted);">' + window._safeHtml(matchLabel) + '</span>' +
+    (scoringSummary ? '<div style="font-size:0.65rem;color:var(--text-muted);opacity:0.7;margin-top:2px;">' + window._safeHtml(scoringSummary) + '</div>' : '') +
   '</div>';
 
   // Content area
@@ -2214,6 +2254,307 @@ window._openLiveScoring = function(tId, matchId) {
 
   // Initial render
   _render();
+};
+
+// ─── Casual Match Setup Screen ──────────────────────────────────────────────
+// Opens from dashboard "Partida Casual" button. Shows sport picker, player
+// names, scoring config summary + gear icon, then launches live scoring.
+
+window._openCasualMatch = function() {
+  // Remove existing
+  var existing = document.getElementById('casual-match-overlay');
+  if (existing) existing.remove();
+
+  // Detect user's preferred sport
+  var cu = window.AppStore && window.AppStore.currentUser;
+  var userSport = '';
+  if (cu && cu.preferredSports) {
+    // Take first sport from comma-separated list
+    userSport = cu.preferredSports.split(',')[0].trim();
+  }
+
+  // Available sports (same as create-tournament)
+  var sports = [
+    { key: 'Beach Tennis', icon: '🎾', label: 'Beach Tennis' },
+    { key: 'Pickleball', icon: '🥒', label: 'Pickleball' },
+    { key: 'Tênis', icon: '🎾', label: 'Tênis' },
+    { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa' },
+    { key: 'Padel', icon: '🏸', label: 'Padel' },
+    { key: '_simple', icon: '🏅', label: 'Placar Simples' }
+  ];
+
+  // Resolve initial sport (match user pref to available options)
+  var initialSport = '_simple';
+  for (var si = 0; si < sports.length; si++) {
+    if (userSport && userSport.toLowerCase().indexOf(sports[si].key.toLowerCase()) !== -1) {
+      initialSport = sports[si].key;
+      break;
+    }
+    if (userSport && sports[si].key.toLowerCase().indexOf(userSport.toLowerCase().replace(/[^\w\u00C0-\u024F]/gu, '')) !== -1) {
+      initialSport = sports[si].key;
+      break;
+    }
+  }
+
+  // State
+  var selectedSport = initialSport;
+  var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
+  var p2Name = '';
+
+  function _getConfig() {
+    if (selectedSport === '_simple') return { type: 'simple' };
+    // Check user's saved GSM prefs first
+    try {
+      var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
+      if (prefs[selectedSport]) return prefs[selectedSport];
+    } catch(e) {}
+    // Fallback to sport defaults
+    var defaults = window._sportScoringDefaults || {};
+    return defaults[selectedSport] || defaults['_default'] || { type: 'simple' };
+  }
+
+  function _configSummary() {
+    var cfg = _getConfig();
+    if (cfg.type === 'simple' || !cfg.type || cfg.type !== 'sets') return 'Placar livre (sem sets/games)';
+    var parts = [];
+    parts.push(cfg.setsToWin + ' set' + (cfg.setsToWin > 1 ? 's' : '') + ' para vencer');
+    parts.push(cfg.gamesPerSet + ' games/set');
+    if (cfg.tiebreakEnabled) parts.push('TB ' + (cfg.tiebreakPoints || 7) + ' pts');
+    if (cfg.superTiebreak) parts.push('Super TB ' + (cfg.superTiebreakPoints || 10) + ' pts');
+    if (cfg.countingType === 'tennis') parts.push('Contagem tênis (15-30-40)');
+    if (cfg.advantageRule) parts.push('Vantagem (AD)');
+    if (cfg.fixedSet) parts.push('Set fixo ' + (cfg.fixedSetGames || cfg.gamesPerSet) + ' games');
+    return parts.join(' · ');
+  }
+
+  function _renderSetup() {
+    var content = document.getElementById('casual-setup-content');
+    if (!content) return;
+
+    // Sport buttons
+    var sportBtns = '';
+    for (var i = 0; i < sports.length; i++) {
+      var sp = sports[i];
+      var isActive = sp.key === selectedSport;
+      sportBtns += '<button onclick="window._casualSelectSport(\'' + sp.key.replace(/'/g, "\\'") + '\')" style="' +
+        'padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;' +
+        'border:2px solid ' + (isActive ? '#fbbf24' : 'rgba(255,255,255,0.12)') + ';' +
+        'background:' + (isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)') + ';' +
+        'color:' + (isActive ? '#fbbf24' : 'var(--text-muted)') + ';font-weight:' + (isActive ? '700' : '500') + ';' +
+        '">' + sp.icon + ' ' + sp.label + '</button>';
+    }
+
+    content.innerHTML =
+      // Sport picker
+      '<div style="margin-bottom:1.5rem;">' +
+        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Modalidade</label>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + sportBtns + '</div>' +
+      '</div>' +
+
+      // Config summary + gear
+      '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px 16px;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:0.72rem;font-weight:600;color:#818cf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Configuração do Jogo</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-bright);" id="casual-config-summary">' + window._safeHtml(_configSummary()) + '</div>' +
+        '</div>' +
+        '<button onclick="window._casualOpenConfig()" style="width:42px;height:42px;border-radius:50%;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#818cf8;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Configurar">⚙️</button>' +
+      '</div>' +
+
+      // Player names
+      '<div style="margin-bottom:1.5rem;">' +
+        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,0.2);color:#60a5fa;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">1</div>' +
+            '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Nome do jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.4)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.12)\'">' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.2);color:#f87171;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">2</div>' +
+            '<input type="text" id="casual-p2-name" value="' + window._safeHtml(p2Name) + '" placeholder="Nome do jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor=\'rgba(239,68,68,0.4)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.12)\'">' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Start button
+      '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;box-shadow:0 4px 20px rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
+        '<span style="font-size:1.5rem;">📡</span> Iniciar Partida' +
+      '</button>';
+  }
+
+  // Sport selection handler
+  window._casualSelectSport = function(key) {
+    selectedSport = key;
+    _renderSetup();
+  };
+
+  // Config gear handler — opens inline config editor
+  window._casualOpenConfig = function() {
+    var cfg = _getConfig();
+    var content = document.getElementById('casual-setup-content');
+    if (!content) return;
+
+    var isSimple = !cfg.type || cfg.type === 'simple' || cfg.type !== 'sets';
+
+    content.innerHTML =
+      '<div style="margin-bottom:1rem;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">' +
+          '<div style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">⚙️ Configuração</div>' +
+          '<button onclick="window._casualCloseConfig()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+        '</div>' +
+
+        // Scoring type
+        '<div style="margin-bottom:1rem;">' +
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Tipo de Placar</label>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button onclick="window._casualSetType(\'simple\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (isSimple ? '#10b981' : 'rgba(255,255,255,0.12)') + ';background:' + (isSimple ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isSimple ? '#10b981' : 'var(--text-muted)') + ';">Simples</button>' +
+            '<button onclick="window._casualSetType(\'sets\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (!isSimple ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (!isSimple ? 'rgba(129,140,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (!isSimple ? '#818cf8' : 'var(--text-muted)') + ';">Game Set Match</button>' +
+          '</div>' +
+        '</div>' +
+
+        // GSM options (visible only when type=sets)
+        (isSimple ? '' :
+        '<div style="display:flex;flex-direction:column;gap:12px;">' +
+          // Sets to win
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Sets para vencer</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              [1,2,3].map(function(n) {
+                var active = (cfg.setsToWin || 1) === n;
+                return '<button onclick="window._casualSetCfg(\'setsToWin\',' + n + ')" style="width:36px;height:36px;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;border:1px solid ' + (active ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (active ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (active ? '#818cf8' : 'var(--text-muted)') + ';">' + n + '</button>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+          // Games per set
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Games/set</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              [4,6,8,11].map(function(n) {
+                var active = (cfg.gamesPerSet || 6) === n;
+                return '<button onclick="window._casualSetCfg(\'gamesPerSet\',' + n + ')" style="width:36px;height:36px;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;border:1px solid ' + (active ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (active ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (active ? '#818cf8' : 'var(--text-muted)') + ';">' + n + '</button>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+          // Tiebreak
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Tiebreak</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-tb" ' + (cfg.tiebreakEnabled ? 'checked' : '') + ' onchange="window._casualSetCfg(\'tiebreakEnabled\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // Super Tiebreak
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Super Tiebreak (set decisivo)</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-stb" ' + (cfg.superTiebreak ? 'checked' : '') + ' onchange="window._casualSetCfg(\'superTiebreak\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // Counting type
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Contagem</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              '<button onclick="window._casualSetCfg(\'countingType\',\'tennis\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType === 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType === 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType === 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">15-30-40</button>' +
+              '<button onclick="window._casualSetCfg(\'countingType\',\'numeric\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType !== 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">1-2-3</button>' +
+            '</div>' +
+          '</div>' +
+          // Advantage rule
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Regra de vantagem (AD)</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" id="casual-cfg-adv" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+        '</div>'
+        ) +
+      '</div>';
+  };
+
+  // Temp config object for editing
+  var _tempCfg = null;
+
+  window._casualSetType = function(type) {
+    if (type === 'simple') {
+      _tempCfg = { type: 'simple' };
+    } else {
+      var base = _getConfig();
+      if (base.type !== 'sets') {
+        // Switch to defaults for selected sport
+        var defaults = window._sportScoringDefaults || {};
+        base = defaults[selectedSport] || defaults['Beach Tennis'] || { type: 'sets', setsToWin: 1, gamesPerSet: 6, tiebreakEnabled: true, tiebreakPoints: 7, tiebreakMargin: 2, superTiebreak: false, superTiebreakPoints: 10, countingType: 'tennis', advantageRule: false };
+      }
+      _tempCfg = Object.assign({}, base, { type: 'sets' });
+    }
+    _saveTempCfg();
+    window._casualOpenConfig();
+  };
+
+  window._casualSetCfg = function(key, value) {
+    if (!_tempCfg) _tempCfg = Object.assign({}, _getConfig());
+    _tempCfg[key] = value;
+    _saveTempCfg();
+    window._casualOpenConfig();
+  };
+
+  function _saveTempCfg() {
+    if (!_tempCfg) return;
+    try {
+      var prefs = JSON.parse(localStorage.getItem('scoreplace_gsm_prefs') || '{}');
+      var saveKey = selectedSport === '_simple' ? '_casual' : selectedSport;
+      prefs[saveKey] = _tempCfg;
+      localStorage.setItem('scoreplace_gsm_prefs', JSON.stringify(prefs));
+    } catch(e) {}
+  }
+
+  window._casualCloseConfig = function() {
+    _tempCfg = null;
+    _renderSetup();
+  };
+
+  // Start the match
+  window._casualStart = function() {
+    var n1 = (document.getElementById('casual-p1-name') || {}).value || 'Jogador 1';
+    var n2 = (document.getElementById('casual-p2-name') || {}).value || 'Jogador 2';
+    n1 = n1.trim() || 'Jogador 1';
+    n2 = n2.trim() || 'Jogador 2';
+
+    var cfg = _getConfig();
+
+    // Close setup overlay
+    var ov = document.getElementById('casual-match-overlay');
+    if (ov) ov.remove();
+
+    // Open live scoring in casual mode
+    window._openLiveScoring(null, null, {
+      casual: true,
+      scoring: cfg,
+      p1Name: n1,
+      p2Name: n2,
+      title: 'Partida Casual',
+      sportName: selectedSport === '_simple' ? 'Placar Simples' : selectedSport
+    });
+  };
+
+  // Build overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'casual-match-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;';
+
+  overlay.innerHTML =
+    // Header
+    '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:1.3rem;">📡</span>' +
+        '<div>' +
+          '<div style="font-size:0.95rem;font-weight:800;color:#f87171;">Partida Casual</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);">Sem torneio — placar ao vivo</div>' +
+        '</div>' +
+      '</div>' +
+      '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
+    '</div>' +
+    // Content
+    '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1.5rem 1rem;-webkit-overflow-scrolling:touch;"></div>';
+
+  document.body.appendChild(overlay);
+  _renderSetup();
+
+  // Auto-focus player 2 name after render
+  setTimeout(function() {
+    var p2El = document.getElementById('casual-p2-name');
+    if (p2El && !p2El.value) p2El.focus();
+  }, 300);
 };
 
 // _closeRound is in bracket-logic.js

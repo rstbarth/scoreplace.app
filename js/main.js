@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.35-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Partida Casual</b> — Novo botão "📡 Partida Casual" no dashboard para jogar sem criar torneio. Tela de setup com seleção de modalidade, nomes dos jogadores, resumo da configuração e engrenagem para ajustar regras (sets, games, tiebreak, contagem). Inicia placar ao vivo com as regras do esporte selecionado. Histórico salvo no localStorage.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Placar Ao Vivo</b> — Jogadores lançam resultado ponto a ponto em tela inteira. Botão "📡 Ao Vivo" nos jogos próprios. Suporta Game-Set-Match (tênis: 15-30-40-AD, tiebreak, super tiebreak) e placar simples. Toggles não-excludentes na criação permitem Organizador + Jogadores + Árbitro simultâneos.</p>' +
         '</div>' +
