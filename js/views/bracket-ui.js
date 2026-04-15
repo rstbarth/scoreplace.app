@@ -3516,7 +3516,7 @@ window._openCasualMatch = function() {
     }
 
     var casualUrl = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + roomCode;
-    var qrSize = Math.min(280, Math.floor(window.innerWidth * 0.55));
+    var qrSize = 300;
     var qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize + '&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=10';
 
     var qrOv = document.createElement('div');
@@ -3524,18 +3524,16 @@ window._openCasualMatch = function() {
     qrOv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100003;display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box;';
 
     qrOv.innerHTML =
-      '<div style="text-align:center;max-width:400px;width:100%;">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:400px;">' +
         '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:3px;">📲 Convidar Jogadores</div>' +
         '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:clamp(0.8rem,3vh,1.5rem);">Peça para escanear o QR code ou envie o código</div>' +
-        // QR code — centered and large
-        '<div style="display:flex;justify-content:center;margin:0 auto clamp(0.6rem,2vh,1rem);">' +
-          '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:' + qrSize + 'px;height:' + qrSize + 'px;border-radius:14px;display:block;" />' +
-        '</div>' +
+        // QR code — centered
+        '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:min(70vw,280px);height:min(70vw,280px);border-radius:14px;margin-bottom:clamp(0.6rem,2vh,1rem);" />' +
         // Room code
         '<div style="font-size:clamp(1.8rem,7vw,2.5rem);font-weight:900;letter-spacing:8px;color:#fbbf24;font-family:monospace;margin-bottom:4px;">' + window._safeHtml(roomCode) + '</div>' +
         '<div style="font-size:0.65rem;color:var(--text-muted);word-break:break-all;margin-bottom:clamp(0.6rem,2vh,1rem);">' + window._safeHtml(casualUrl) + '</div>' +
         // Share buttons
-        '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);max-width:320px;margin-left:auto;margin-right:auto;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);width:100%;max-width:320px;">' +
           '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar</button>' +
           '<a href="https://wa.me/?text=' + encodeURIComponent('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
         '</div>' +
