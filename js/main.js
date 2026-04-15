@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Saque progressivo</b> — Ordem de saque definida game a game: no 1° game, escolha qualquer jogador; no 2° game (duplas), escolha quem saca do outro time; games 3-4 preenchidos automaticamente. Singles: auto após 1° pick. Indicador 🏐 no nome do sacador. Tiebreak: alterna a cada 2 pontos. Opção "Pular" para não rastrear saque.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Scoreboard redesenhado</b> — Nomes empilhados (um por linha) com 🏐 ao lado do sacador. Sets no centro do cabeçalho. Nomes editáveis (toque para alterar). Defaults: "Eu/Adversário" (singles), "Parceiro/Adversário 1-2" (duplas). Ordem de saque proposta no início com todos os jogadores em cores dos times — toque para trocar posições, confirma ou pula.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
