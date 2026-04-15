@@ -1801,6 +1801,39 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
 
+  // If joining an active match, try to load initial liveState from Firestore immediately
+  var _initDocId = isCasual && opts ? opts.casualDocId : null;
+  if (_initDocId && window.FirestoreDB && window.FirestoreDB.db) {
+    (function() {
+      try {
+        window.FirestoreDB.db.collection('casualMatches').doc(_initDocId).get().then(function(doc) {
+          if (doc.exists && doc.data().liveState && doc.data().liveState._ts) {
+            var remote = doc.data().liveState;
+            // Apply remote state
+            state.sets = remote.sets || state.sets;
+            state.currentGameP1 = remote.currentGameP1 != null ? remote.currentGameP1 : 0;
+            state.currentGameP2 = remote.currentGameP2 != null ? remote.currentGameP2 : 0;
+            state.isTiebreak = !!remote.isTiebreak;
+            state.isFinished = !!remote.isFinished;
+            state.winner = remote.winner != null ? remote.winner : null;
+            state.tieRulePending = !!remote.tieRulePending;
+            state.totalGamesPlayed = remote.totalGamesPlayed || 0;
+            state.tieRule = remote.tieRule || state.tieRule;
+            if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) state.serveOrder = remote.serveOrder;
+            state.serveSkipped = !!remote.serveSkipped;
+            if (Array.isArray(remote.p1Players)) {
+              for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
+            }
+            if (Array.isArray(remote.p2Players)) {
+              for (var j = 0; j < remote.p2Players.length && j < p2Players.length; j++) p2Players[j] = remote.p2Players[j];
+            }
+            _render();
+          }
+        });
+      } catch(e) {}
+    })();
+  }
+
   // Check if this is the deciding set (super tiebreak)
   function _isDecidingSet() {
     var totalSets = state.setsToWin * 2 - 1;
@@ -2113,18 +2146,23 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Save result to match
   function _saveResult() {
     if (isCasual) {
-      // Casual mode: just show result and close
+      // Casual mode: show result, save to Firestore, and close
       var winnerName = state.winner === 1 ? p1Name : (state.winner === 2 ? p2Name : 'Empate');
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
       // Build summary for casual
       var summary = '';
+      var setsData = null;
       if (useSets) {
+        setsData = [];
         for (var si = 0; si < state.sets.length; si++) {
           var ss = state.sets[si];
           summary += ss.gamesP1 + '-' + ss.gamesP2;
           if (ss.tiebreak) summary += '(' + ss.tiebreak.p1 + '-' + ss.tiebreak.p2 + ')';
           if (si < state.sets.length - 1) summary += '  ';
+          var setEntry = { gamesP1: ss.gamesP1, gamesP2: ss.gamesP2 };
+          if (ss.tiebreak) setEntry.tiebreak = { pointsP1: ss.tiebreak.p1, pointsP2: ss.tiebreak.p2 };
+          setsData.push(setEntry);
         }
       } else {
         summary = state.currentGameP1 + ' × ' + state.currentGameP2;
@@ -2137,6 +2175,26 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (hist.length > 50) hist = hist.slice(0, 50);
         localStorage.setItem('scoreplace_casual_history', JSON.stringify(hist));
       } catch(e) {}
+      // Save to Firestore if we have a doc ID
+      var _casualDocId = opts && opts.casualDocId;
+      if (_casualDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
+        var resultData = {
+          winner: state.winner, // 1, 2, or 0
+          summary: summary,
+          p1Score: useSets ? null : state.currentGameP1,
+          p2Score: useSets ? null : state.currentGameP2
+        };
+        if (setsData) resultData.sets = setsData;
+        // Collect all uids from players for indexed query
+        var casualPlayers = (opts.players || []).slice();
+        var playerUids = casualPlayers.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; });
+        window.FirestoreDB.updateCasualMatch(_casualDocId, {
+          status: 'finished',
+          finishedAt: new Date().toISOString(),
+          result: resultData,
+          playerUids: playerUids
+        });
+      }
       return;
     }
 
@@ -2681,6 +2739,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (finishBtn) {
       container.insertAdjacentHTML('beforeend', finishBtn);
     }
+
+    // Sync state to Firestore for real-time collaboration
+    _syncLiveState();
   }
 
   // ── Edit player name inline ──
@@ -2705,6 +2766,97 @@ window._openLiveScoring = function(tId, matchId, opts) {
       }
     );
   };
+
+  // ── Firestore real-time sync for casual matches ──
+  var _casualDocId = isCasual && opts ? opts.casualDocId : null;
+  var _syncTimer = null;
+  var _isRemoteUpdate = false; // true when receiving from Firestore
+  var _unsubFirestore = null;
+
+  // Serialize state for Firestore
+  function _serializeState() {
+    return {
+      sets: JSON.parse(JSON.stringify(state.sets)),
+      currentGameP1: state.currentGameP1,
+      currentGameP2: state.currentGameP2,
+      isTiebreak: state.isTiebreak,
+      isFinished: state.isFinished,
+      winner: state.winner,
+      tieRulePending: state.tieRulePending,
+      totalGamesPlayed: state.totalGamesPlayed,
+      serveOrder: state.serveOrder.map(function(s) { return { team: s.team, name: s.name }; }),
+      serveSkipped: state.serveSkipped,
+      tieRule: state.tieRule,
+      p1Players: p1Players.slice(),
+      p2Players: p2Players.slice(),
+      _ts: Date.now() // timestamp for conflict resolution
+    };
+  }
+
+  // Apply remote state from Firestore
+  function _applyRemoteState(remote) {
+    if (!remote || !remote._ts) return;
+    state.sets = remote.sets || state.sets;
+    state.currentGameP1 = remote.currentGameP1 != null ? remote.currentGameP1 : state.currentGameP1;
+    state.currentGameP2 = remote.currentGameP2 != null ? remote.currentGameP2 : state.currentGameP2;
+    state.isTiebreak = !!remote.isTiebreak;
+    state.isFinished = !!remote.isFinished;
+    state.winner = remote.winner != null ? remote.winner : state.winner;
+    state.tieRulePending = !!remote.tieRulePending;
+    state.totalGamesPlayed = remote.totalGamesPlayed || 0;
+    state.tieRule = remote.tieRule || state.tieRule;
+    if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) {
+      state.serveOrder = remote.serveOrder;
+    }
+    state.serveSkipped = !!remote.serveSkipped;
+    // Update player names if changed remotely
+    if (Array.isArray(remote.p1Players)) {
+      for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
+    }
+    if (Array.isArray(remote.p2Players)) {
+      for (var j = 0; j < remote.p2Players.length && j < p2Players.length; j++) p2Players[j] = remote.p2Players[j];
+    }
+  }
+
+  // Sync local state to Firestore (debounced 300ms)
+  function _syncLiveState() {
+    if (!_casualDocId || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    if (_isRemoteUpdate) return; // Don't echo back remote updates
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function() {
+      window.FirestoreDB.updateCasualMatch(_casualDocId, { liveState: _serializeState() });
+    }, 300);
+  }
+
+  // Listen for Firestore changes (real-time)
+  function _startFirestoreListener() {
+    if (!_casualDocId || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    try {
+      _unsubFirestore = window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId)
+        .onSnapshot(function(doc) {
+          if (!doc.exists) return;
+          var data = doc.data();
+          if (!data.liveState || !data.liveState._ts) return;
+          // Only apply if remote timestamp is newer than ours
+          var localTs = _lastSyncTs || 0;
+          if (data.liveState._ts > localTs) {
+            _isRemoteUpdate = true;
+            _applyRemoteState(data.liveState);
+            _lastSyncTs = data.liveState._ts;
+            _render();
+            _isRemoteUpdate = false;
+          }
+        });
+    } catch(e) {
+      console.warn('[LiveScore] Firestore listener error:', e);
+    }
+  }
+  var _lastSyncTs = 0;
+
+  // Start listener if we have a casual doc
+  if (_casualDocId) {
+    _startFirestoreListener();
+  }
 
   // ── Global handlers (attached to window for onclick access) ──
   window._liveScorePoint = function(player) { _addPoint(player); };
@@ -2798,18 +2950,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   // Close handler
   window._closeLiveScoring = function() {
+    var _cleanup = function() {
+      if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+      window.removeEventListener('resize', _onResize);
+      var ov = document.getElementById('live-scoring-overlay');
+      if (ov) ov.remove();
+    };
     if (!state.isFinished && (state.currentGameP1 > 0 || state.currentGameP2 > 0 || state.sets.length > 1)) {
       showConfirmDialog(
         'Sair do placar ao vivo?',
         'O progresso será perdido.',
-        function() {
-          var ov = document.getElementById('live-scoring-overlay');
-          if (ov) ov.remove();
-        }
+        _cleanup
       );
     } else {
-      var ov = document.getElementById('live-scoring-overlay');
-      if (ov) ov.remove();
+      _cleanup();
     }
   };
 
@@ -3130,37 +3284,133 @@ window._openCasualMatch = function() {
     _renderSetup();
   };
 
-  // Start the match
-  window._casualStart = function() {
-    var n1, n2;
+  // Generate a 6-char alphanumeric room code
+  function _generateRoomCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = '';
+    for (var i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+  }
+
+  // Build players array from form inputs
+  function _buildPlayers() {
+    var players = [];
+    var cu = window.AppStore && window.AppStore.currentUser;
     if (isDoubles) {
       var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
       var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
       var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
       var b2 = ((document.getElementById('casual-p2b-name') || {}).value || '').trim();
-      n1 = (a1 || '') + ' / ' + (b1 || '');
-      n2 = (a2 || '') + ' / ' + (b2 || '');
+      players.push({ slot: 0, name: a1 || 'Jogador 1', team: 1, uid: (cu && a1 && a1 === ((cu.displayName || '').split(' ')[0])) ? cu.uid : null });
+      players.push({ slot: 1, name: b1 || 'Parceiro', team: 1, uid: null });
+      players.push({ slot: 2, name: a2 || 'Adversário 1', team: 2, uid: null });
+      players.push({ slot: 3, name: b2 || 'Adversário 2', team: 2, uid: null });
     } else {
-      n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
-      n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
+      var n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
+      var n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
+      players.push({ slot: 0, name: n1, team: 1, uid: (cu && cu.uid) ? cu.uid : null });
+      players.push({ slot: 1, name: n2, team: 2, uid: null });
+    }
+    return players;
+  }
+
+  // Start the match
+  window._casualStart = async function() {
+    var players = _buildPlayers();
+    var n1, n2;
+    if (isDoubles) {
+      n1 = players[0].name + ' / ' + players[1].name;
+      n2 = players[2].name + ' / ' + players[3].name;
+    } else {
+      n1 = players[0].name;
+      n2 = players[1].name;
     }
 
     var cfg = _getConfig();
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var roomCode = _generateRoomCode();
+    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
 
-    // Close setup overlay
-    var ov = document.getElementById('casual-match-overlay');
-    if (ov) ov.remove();
+    // Save pending match to Firestore
+    var casualDocId = null;
+    if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
+      try {
+        var matchData = {
+          createdBy: cu.uid,
+          createdByName: cu.displayName || '',
+          createdAt: new Date().toISOString(),
+          sport: sportLabel,
+          scoring: cfg,
+          isDoubles: isDoubles,
+          players: players,
+          playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
+          roomCode: roomCode,
+          status: 'waiting',
+          result: null
+        };
+        casualDocId = await window.FirestoreDB.saveCasualMatch(matchData);
+      } catch (e) {
+        console.warn('Casual match Firestore save failed:', e);
+      }
+    }
 
-    // Open live scoring in casual mode
-    window._openLiveScoring(null, null, {
-      casual: true,
-      scoring: cfg,
-      p1Name: n1,
-      p2Name: n2,
-      title: 'Partida Casual',
-      sportName: selectedSport === '_simple' ? 'Placar Simples' : selectedSport,
-      isDoubles: isDoubles
-    });
+    // Show QR invite overlay before starting
+    var setupOv = document.getElementById('casual-match-overlay');
+    if (setupOv) setupOv.remove();
+
+    var qrOv = document.createElement('div');
+    qrOv.id = 'casual-qr-overlay';
+    qrOv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:100003;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;box-sizing:border-box;';
+
+    var casualUrl = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + roomCode;
+    var qrImgUrl = window._qrCodeUrl ? window._qrCodeUrl(casualUrl, 200) : 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=10';
+
+    qrOv.innerHTML =
+      '<div style="text-align:center;max-width:360px;width:100%;">' +
+        '<div style="font-size:1.5rem;font-weight:800;color:#38bdf8;margin-bottom:4px;">Convidar Jogadores</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.2rem;">Peça para escanear o QR code ou envie o código</div>' +
+        '<div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:1.2rem;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.1);">' +
+          '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:200px;height:200px;border-radius:12px;margin-bottom:0.8rem;" />' +
+          '<div style="font-size:2rem;font-weight:900;letter-spacing:6px;color:#fbbf24;font-family:monospace;margin-bottom:0.5rem;">' + window._safeHtml(roomCode) + '</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);word-break:break-all;">' + window._safeHtml(casualUrl) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:1rem;">' +
+          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/'/g, "\\'") + '\');window.showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar Link</button>' +
+          '<a href="' + window._safeHtml((window._whatsappShareUrl ? window._whatsappShareUrl('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) : '#')) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
+        '</div>' +
+        '<button id="casual-qr-start-btn" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);">▶️ Iniciar Partida</button>' +
+        '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="margin-top:8px;padding:10px 20px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer;">Cancelar</button>' +
+      '</div>';
+
+    document.body.appendChild(qrOv);
+
+    // "Iniciar" button starts the match
+    var startBtn = document.getElementById('casual-qr-start-btn');
+    if (startBtn) {
+      startBtn.onclick = function() {
+        var qrOvEl = document.getElementById('casual-qr-overlay');
+        if (qrOvEl) qrOvEl.remove();
+
+        // Update Firestore status to active
+        if (casualDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
+          window.FirestoreDB.updateCasualMatch(casualDocId, { status: 'active' });
+        }
+
+        // Open live scoring in casual mode
+        window._openLiveScoring(null, null, {
+          casual: true,
+          scoring: cfg,
+          p1Name: n1,
+          p2Name: n2,
+          title: 'Partida Casual',
+          sportName: sportLabel,
+          isDoubles: isDoubles,
+          casualDocId: casualDocId,
+          roomCode: roomCode,
+          players: players
+        });
+      };
+    }
   };
 
   // Build overlay
@@ -3188,6 +3438,222 @@ window._openCasualMatch = function() {
     var el = isDoubles ? document.getElementById('casual-p2a-name') : document.getElementById('casual-p2-name');
     if (el && !el.value) el.focus();
   }, 300);
+};
+
+// ─── Casual Match Join Screen (route: #casual/{roomCode}) ─────────────────────
+window._renderCasualJoin = function(container, roomCode) {
+  if (!container) return;
+  var _safe = window._safeHtml || function(s) { return s; };
+
+  container.innerHTML =
+    '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;">' +
+      '<div style="text-align:center;">' +
+        '<div style="font-size:2rem;margin-bottom:1rem;">⏳</div>' +
+        '<p style="color:var(--text-muted);font-size:0.9rem;">Carregando partida...</p>' +
+      '</div>' +
+    '</div>';
+
+  if (typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.db) {
+    container.innerHTML =
+      '<div style="text-align:center;padding:3rem 1rem;">' +
+        '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Conexão indisponível</div>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;">Não foi possível conectar ao servidor. Tente novamente.</p>' +
+        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+      '</div>';
+    return;
+  }
+
+  window.FirestoreDB.loadCasualMatch(roomCode).then(function(match) {
+    if (!match) {
+      container.innerHTML =
+        '<div style="text-align:center;padding:3rem 1rem;">' +
+          '<div style="font-size:2.5rem;margin-bottom:1rem;">❌</div>' +
+          '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Partida não encontrada</div>' +
+          '<p style="color:var(--text-muted);font-size:0.85rem;">O código <strong>' + _safe(roomCode) + '</strong> não corresponde a nenhuma partida.</p>' +
+          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+        '</div>';
+      return;
+    }
+
+    var players = Array.isArray(match.players) ? match.players : [];
+    var sportName = match.sport || 'Partida Casual';
+    var creatorName = match.createdByName || 'Alguém';
+    var docId = match._docId;
+    var cu = window.AppStore && window.AppStore.currentUser;
+
+    if (match.status === 'finished') {
+      // Show result
+      var result = match.result || {};
+      var winnerTeam = result.winner;
+      var winnerLabel = '';
+      if (winnerTeam === 1) {
+        winnerLabel = players.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; }).join(' / ');
+      } else if (winnerTeam === 2) {
+        winnerLabel = players.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
+      } else {
+        winnerLabel = 'Empate';
+      }
+      container.innerHTML =
+        '<div style="text-align:center;padding:2rem 1rem;max-width:500px;margin:0 auto;">' +
+          '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🏆</div>' +
+          '<div style="font-size:1.2rem;font-weight:800;color:#fbbf24;margin-bottom:0.3rem;">Partida Encerrada</div>' +
+          '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">' + _safe(sportName) + '</div>' +
+          '<div style="background:var(--bg-darker);border-radius:14px;padding:1.2rem;margin-bottom:1rem;">' +
+            '<div style="display:flex;justify-content:center;align-items:center;gap:1rem;margin-bottom:0.8rem;">' +
+              '<div style="text-align:center;flex:1;">' +
+                '<div style="font-size:0.95rem;font-weight:700;color:' + (winnerTeam === 1 ? '#22c55e' : 'var(--text-bright)') + ';">' + _safe(players.filter(function(p){return p.team===1;}).map(function(p){return p.name;}).join(' / ')) + '</div>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);">Time 1</div>' +
+              '</div>' +
+              '<div style="font-size:1.5rem;font-weight:900;color:var(--text-muted);">vs</div>' +
+              '<div style="text-align:center;flex:1;">' +
+                '<div style="font-size:0.95rem;font-weight:700;color:' + (winnerTeam === 2 ? '#22c55e' : 'var(--text-bright)') + ';">' + _safe(players.filter(function(p){return p.team===2;}).map(function(p){return p.name;}).join(' / ')) + '</div>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);">Time 2</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;letter-spacing:1px;">' + _safe(result.summary || '') + '</div>' +
+            (winnerTeam !== 0 ? '<div style="font-size:0.82rem;color:#22c55e;margin-top:0.4rem;font-weight:600;">🏆 ' + _safe(winnerLabel) + '</div>' : '') +
+          '</div>' +
+          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">Ir ao Dashboard</button>' +
+        '</div>';
+      return;
+    }
+
+    if (match.status === 'active') {
+      // Open the live scoring overlay in real-time mode so all players can see and interact
+      var p1Names = players.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; });
+      var p2Names = players.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; });
+      var p1Str = p1Names.join(' / ');
+      var p2Str = p2Names.join(' / ');
+      var sc = match.scoring || {};
+      window._openLiveScoring(null, null, {
+        casual: true,
+        scoring: sc,
+        p1Name: p1Str,
+        p2Name: p2Str,
+        title: sportName,
+        sportName: sportName,
+        isDoubles: match.isDoubles || false,
+        casualDocId: docId,
+        roomCode: roomCode,
+        players: players
+      });
+      // Show a brief toast so user knows they joined
+      if (typeof showNotification === 'function') {
+        showNotification('Ao Vivo', 'Conectado à partida de ' + _safe(creatorName) + '.', 'success');
+      }
+      return;
+    }
+
+    // Status: waiting — show join UI
+    function _renderWaiting() {
+      var team1 = players.filter(function(p) { return p.team === 1; });
+      var team2 = players.filter(function(p) { return p.team === 2; });
+      var isLoggedIn = !!(cu && cu.uid);
+      var myUid = isLoggedIn ? cu.uid : null;
+      var alreadyClaimed = myUid && players.some(function(p) { return p.uid === myUid; });
+
+      var html =
+        '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
+          '<div style="font-size:2rem;margin-bottom:0.3rem;">📡</div>' +
+          '<div style="font-size:1.2rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">Partida Casual</div>' +
+          '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">Criada por ' + _safe(creatorName) + '</div>';
+
+      // Team panels
+      html += '<div style="display:flex;gap:12px;margin-bottom:1.5rem;">';
+
+      // Team 1
+      html += '<div style="flex:1;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:1rem;">' +
+        '<div style="font-size:0.75rem;font-weight:700;color:#3b82f6;margin-bottom:0.6rem;">Time 1</div>';
+      for (var i = 0; i < team1.length; i++) {
+        var p = team1[i];
+        var claimed = !!p.uid;
+        var isMySlot = myUid && p.uid === myUid;
+        html += '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid ' + (claimed ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)') + ';">' +
+          '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(p.name) + (isMySlot ? ' <span style="color:#22c55e;font-size:0.72rem;">(Você)</span>' : '') + '</div>' +
+          (claimed ? '<div style="font-size:0.68rem;color:#22c55e;">✓ Confirmado' + (p.displayName ? ' — ' + _safe(p.displayName) : '') + '</div>' :
+            (isLoggedIn && !alreadyClaimed ?
+              '<button onclick="window._claimCasualSlot(\'' + _safe(docId) + '\',' + p.slot + ')" style="margin-top:4px;padding:6px 12px;border-radius:8px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:0.75rem;font-weight:600;cursor:pointer;">🙋 Sou eu!</button>' :
+              '<div style="font-size:0.68rem;color:var(--text-muted);">Aguardando jogador...</div>')) +
+        '</div>';
+      }
+      html += '</div>';
+
+      // Team 2
+      html += '<div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:14px;padding:1rem;">' +
+        '<div style="font-size:0.75rem;font-weight:700;color:#ef4444;margin-bottom:0.6rem;">Time 2</div>';
+      for (var j = 0; j < team2.length; j++) {
+        var p2 = team2[j];
+        var claimed2 = !!p2.uid;
+        var isMySlot2 = myUid && p2.uid === myUid;
+        html += '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid ' + (claimed2 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)') + ';">' +
+          '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(p2.name) + (isMySlot2 ? ' <span style="color:#22c55e;font-size:0.72rem;">(Você)</span>' : '') + '</div>' +
+          (claimed2 ? '<div style="font-size:0.68rem;color:#22c55e;">✓ Confirmado' + (p2.displayName ? ' — ' + _safe(p2.displayName) : '') + '</div>' :
+            (isLoggedIn && !alreadyClaimed ?
+              '<button onclick="window._claimCasualSlot(\'' + _safe(docId) + '\',' + p2.slot + ')" style="margin-top:4px;padding:6px 12px;border-radius:8px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:0.75rem;font-weight:600;cursor:pointer;">🙋 Sou eu!</button>' :
+              '<div style="font-size:0.68rem;color:var(--text-muted);">Aguardando jogador...</div>')) +
+        '</div>';
+      }
+      html += '</div>';
+      html += '</div>'; // flex row
+
+      if (!isLoggedIn) {
+        html += '<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
+          '<div style="font-size:0.85rem;color:#fbbf24;font-weight:600;margin-bottom:0.3rem;">Faça login para participar</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);">Entre com sua conta Google para confirmar sua presença na partida.</div>' +
+          '<button class="btn btn-primary" onclick="if(typeof handleGoogleLogin===\'function\')handleGoogleLogin();" style="margin-top:0.6rem;">Login com Google</button>' +
+        '</div>';
+      } else if (alreadyClaimed) {
+        html += '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
+          '<div style="font-size:0.85rem;color:#22c55e;font-weight:600;">✓ Você está confirmado nesta partida!</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.3rem;">Aguarde o organizador iniciar o jogo.</div>' +
+        '</div>';
+      }
+
+      html += '<button class="btn btn-outline" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    _renderWaiting();
+
+    // Claim slot handler
+    window._claimCasualSlot = async function(dId, slotIdx) {
+      if (!cu || !cu.uid) {
+        showNotification('Login necessário', 'Faça login para participar.', 'warning');
+        return;
+      }
+      var success = await window.FirestoreDB.claimCasualSlot(dId, slotIdx, cu.uid, cu.displayName || '');
+      if (success) {
+        showNotification('Confirmado!', 'Você reservou sua vaga.', 'success');
+        // Refresh data
+        var updated = await window.FirestoreDB.loadCasualMatch(roomCode);
+        if (updated) {
+          players = Array.isArray(updated.players) ? updated.players : [];
+          _renderWaiting();
+        }
+      } else {
+        showNotification('Vaga indisponível', 'Esta vaga já foi reservada por outro jogador.', 'warning');
+        // Refresh anyway
+        var updated2 = await window.FirestoreDB.loadCasualMatch(roomCode);
+        if (updated2) {
+          players = Array.isArray(updated2.players) ? updated2.players : [];
+          _renderWaiting();
+        }
+      }
+    };
+  }).catch(function(err) {
+    console.error('Error loading casual match:', err);
+    container.innerHTML =
+      '<div style="text-align:center;padding:3rem 1rem;">' +
+        '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Erro ao carregar</div>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;">Não foi possível carregar a partida. Verifique o código e tente novamente.</p>' +
+        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+      '</div>';
+  });
 };
 
 // _closeRound is in bracket-logic.js

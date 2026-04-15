@@ -467,5 +467,93 @@ window.FirestoreDB = {
     } catch (e) {
       console.error('Erro ao excluir template:', e);
     }
+  },
+
+  // ---- Casual Matches ----
+
+  async saveCasualMatch(matchData) {
+    if (!this.db) return null;
+    try {
+      var clean = this._cleanUndefined(matchData);
+      var ref = await this.db.collection('casualMatches').add(clean);
+      return ref.id;
+    } catch (e) {
+      console.error('Erro ao salvar partida casual:', e);
+      return null;
+    }
+  },
+
+  async loadCasualMatch(roomCode) {
+    if (!this.db || !roomCode) return null;
+    try {
+      var snap = await this.db.collection('casualMatches')
+        .where('roomCode', '==', roomCode).limit(1).get();
+      if (snap.empty) return null;
+      var doc = snap.docs[0];
+      var data = doc.data();
+      data._docId = doc.id;
+      return data;
+    } catch (e) {
+      console.error('Erro ao carregar partida casual:', e);
+      return null;
+    }
+  },
+
+  async updateCasualMatch(docId, updates) {
+    if (!this.db || !docId) return;
+    try {
+      var clean = this._cleanUndefined(updates);
+      await this.db.collection('casualMatches').doc(docId).update(clean);
+    } catch (e) {
+      console.error('Erro ao atualizar partida casual:', e);
+    }
+  },
+
+  async claimCasualSlot(docId, slotIndex, uid, displayName) {
+    if (!this.db || !docId) return false;
+    try {
+      var docRef = this.db.collection('casualMatches').doc(docId);
+      var self = this;
+      return this.db.runTransaction(async function(transaction) {
+        var doc = await transaction.get(docRef);
+        if (!doc.exists) return false;
+        var data = doc.data();
+        var players = Array.isArray(data.players) ? data.players.slice() : [];
+        if (slotIndex < 0 || slotIndex >= players.length) return false;
+        if (players[slotIndex].uid) return false; // Already claimed
+        // Check user hasn't already claimed another slot
+        var alreadyClaimed = players.some(function(p) { return p.uid === uid; });
+        if (alreadyClaimed) return false;
+        players[slotIndex] = Object.assign({}, players[slotIndex], { uid: uid, displayName: displayName });
+        transaction.update(docRef, { players: players });
+        return true;
+      });
+    } catch (e) {
+      console.error('Erro ao reservar vaga casual:', e);
+      return false;
+    }
+  },
+
+  async loadUserCasualMatches(uid) {
+    if (!this.db || !uid) return [];
+    try {
+      var snap = await this.db.collection('casualMatches')
+        .where('playerUids', 'array-contains', uid)
+        .where('status', '==', 'finished')
+        .get();
+      var matches = [];
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        data._docId = doc.id;
+        matches.push(data);
+      });
+      matches.sort(function(a, b) {
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+      return matches;
+    } catch (e) {
+      console.error('Erro ao carregar partidas casuais:', e);
+      return [];
+    }
   }
 };

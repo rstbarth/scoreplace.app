@@ -1894,7 +1894,85 @@ function _populatePlayerStats() {
     html += '</div>';
   }
 
+  // ── Casual match stats section ──
+  // Load from localStorage first (instant), then try Firestore for linked matches
+  var casualHtml = '';
+  try {
+    var casualHist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
+    var casualWins = 0, casualLosses = 0, casualTotal = casualHist.length;
+    var p1Lower = displayName;
+    for (var ci = 0; ci < casualHist.length; ci++) {
+      var ch = casualHist[ci];
+      if (ch.winner && ch.winner.toLowerCase() === p1Lower) casualWins++;
+      else if (ch.winner && ch.winner !== 'Empate') casualLosses++;
+    }
+    if (casualTotal > 0) {
+      casualHtml += '<div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:12px;">';
+      casualHtml += '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:8px;">📡 Partidas Casuais</div>';
+      casualHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;margin-bottom:8px;">';
+      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:var(--primary-color);">' + casualTotal + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Partidas</div></div>';
+      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:#22c55e;">' + casualWins + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Vitórias</div></div>';
+      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:#ef4444;">' + casualLosses + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Derrotas</div></div>';
+      casualHtml += '</div>';
+
+      // Last 5 casual matches
+      var maxCasual = Math.min(casualTotal, 5);
+      casualHtml += '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Últimas partidas</div>';
+      for (var ck = 0; ck < maxCasual; ck++) {
+        var cm = casualHist[ck];
+        var cmDate = cm.date ? new Date(cm.date) : null;
+        var cmDateStr = cmDate ? (cmDate.getDate() + '/' + (cmDate.getMonth()+1)) : '';
+        var cmWon = cm.winner && cm.winner.toLowerCase() === p1Lower;
+        var cmDraw = cm.winner === 'Empate';
+        var resultIcon = cmWon ? '✅' : (cmDraw ? '🤝' : '❌');
+        var safeSport = window._safeHtml ? window._safeHtml(cm.sport || '') : (cm.sport || '');
+        var safeP2 = window._safeHtml ? window._safeHtml(cm.p2 || '') : (cm.p2 || '');
+        var safeSummary = window._safeHtml ? window._safeHtml(cm.summary || '') : (cm.summary || '');
+        casualHtml += '<div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;font-size:0.75rem;background:rgba(255,255,255,0.02);margin-bottom:3px;">' +
+          '<span style="flex-shrink:0;width:18px;text-align:center;">' + resultIcon + '</span>' +
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">vs ' + safeP2 + '</span>' +
+          '<span style="flex-shrink:0;font-size:0.68rem;color:var(--text-muted);">' + safeSport + '</span>' +
+          '<span style="flex-shrink:0;font-size:0.68rem;color:var(--text-muted);min-width:30px;text-align:right;">' + safeSummary + '</span>' +
+          '<span style="flex-shrink:0;font-size:0.65rem;color:var(--text-muted);min-width:28px;text-align:right;">' + cmDateStr + '</span>' +
+        '</div>';
+      }
+      if (casualTotal > maxCasual) {
+        casualHtml += '<div style="text-align:center;font-size:0.68rem;color:var(--text-muted);padding:2px;">e mais ' + (casualTotal - maxCasual) + ' partida' + ((casualTotal - maxCasual) > 1 ? 's' : '') + '...</div>';
+      }
+      casualHtml += '</div>';
+    }
+  } catch(e) {}
+
+  // Also try loading from Firestore (async, will append when ready)
+  html += casualHtml;
   el.innerHTML = html;
+
+  // Async: load Firestore casual stats and merge with localStorage
+  if (cu && cu.uid && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
+    window.FirestoreDB.loadUserCasualMatches(cu.uid).then(function(firestoreMatches) {
+      if (!firestoreMatches || firestoreMatches.length === 0) return;
+      var fsWins = 0, fsLosses = 0, fsDraws = 0;
+      for (var fi = 0; fi < firestoreMatches.length; fi++) {
+        var fm = firestoreMatches[fi];
+        var fPlayers = Array.isArray(fm.players) ? fm.players : [];
+        var mySlot = fPlayers.find(function(p) { return p.uid === cu.uid; });
+        if (!mySlot || !fm.result) continue;
+        var myTeam = mySlot.team;
+        if (fm.result.winner === myTeam) fsWins++;
+        else if (fm.result.winner === 0) fsDraws++;
+        else fsLosses++;
+      }
+      // Update the casual stats section if it exists
+      var statsEl = document.getElementById('profile-stats-content');
+      if (!statsEl) return;
+      var fsSection = document.getElementById('casual-firestore-stats');
+      if (fsSection) return; // Already rendered
+      var fHtml = '<div id="casual-firestore-stats" style="margin-top:4px;font-size:0.72rem;color:var(--text-muted);text-align:center;">' +
+        '☁️ Partidas vinculadas: ' + firestoreMatches.length + ' (' + fsWins + 'V / ' + fsLosses + 'D' + (fsDraws > 0 ? ' / ' + fsDraws + 'E' : '') + ')' +
+      '</div>';
+      statsEl.insertAdjacentHTML('beforeend', fHtml);
+    }).catch(function() {});
+  }
 }
 
 // ─── Auto-detect & fix stale participant names ─────────────────────────────���

@@ -116,6 +116,14 @@ function initRouter() {
       case 'notifications':
         renderNotifications(viewContainer);
         break;
+      case 'casual':
+        if (cleanParam && typeof window._renderCasualJoin === 'function') {
+          window._renderCasualJoin(viewContainer, cleanParam);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');
