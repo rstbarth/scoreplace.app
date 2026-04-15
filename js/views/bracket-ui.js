@@ -2191,12 +2191,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       for (var i = 0; i < state.sets.length; i++) {
         var s = state.sets[i];
         var isCurrent = (i === state.sets.length - 1) && !state.isFinished;
-        var bg = isCurrent ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)';
-        var border = isCurrent ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)';
-        var tbStr = s.tiebreak ? '<span style="font-size:0.6rem;color:#c084fc;vertical-align:super;">(' + s.tiebreak.p1 + '-' + s.tiebreak.p2 + ')</span>' : '';
-        setsDisplay += '<div style="display:inline-flex;flex-direction:column;align-items:center;padding:6px 10px;border-radius:8px;background:' + bg + ';border:1px solid ' + border + ';min-width:44px;">' +
-          '<div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:2px;">' + (i + 1) + '</div>' +
-          '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);">' + s.gamesP1 + '-' + s.gamesP2 + tbStr + '</div>' +
+        var tbStr = s.tiebreak ? '<span style="font-size:0.55rem;color:#888;vertical-align:super;">(' + s.tiebreak.p1 + '-' + s.tiebreak.p2 + ')</span>' : '';
+        setsDisplay += '<div style="display:inline-flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:6px;background:' + (isCurrent ? 'rgba(0,0,0,0.08)' : 'transparent') + ';min-width:40px;">' +
+          '<div style="font-size:0.55rem;color:#999;margin-bottom:1px;">Set ' + (i + 1) + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:800;color:#222;">' + s.gamesP1 + ' - ' + s.gamesP2 + tbStr + '</div>' +
         '</div>';
       }
     }
@@ -2205,11 +2203,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var gameLabel = '';
     var p1Display, p2Display;
     if (state.isFinished) {
-      gameLabel = state.winner === 1 ? p1Name + ' venceu!' : p2Name + ' venceu!';
+      gameLabel = state.winner === 1 ? window._safeHtml(p1Name.split('/')[0].trim().split(' ')[0]) + ' venceu!' : window._safeHtml(p2Name.split('/')[0].trim().split(' ')[0]) + ' venceu!';
       p1Display = '✓';
       p2Display = '✓';
     } else if (!useSets || state.isFixedSet) {
-      // Simple or fixed set: show raw points
       gameLabel = state.isFixedSet ? 'Set Fixo' : 'Placar';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
@@ -2227,55 +2224,86 @@ window._openLiveScoring = function(tId, matchId, opts) {
       p2Display = _formatGamePoint(state.currentGameP2, state.currentGameP1, false);
     }
 
-    // Serving indicator (for tiebreak: alternates every 2 points after first)
-    var servingHtml = '';
-    if (state.isTiebreak || _isDecidingSet()) {
-      var totalPts = state.currentGameP1 + state.currentGameP2;
-      // First point: server, then alternate every 2
-      var serving = (totalPts === 0) ? 1 : (Math.floor((totalPts - 1) / 2) % 2 === 0 ? 2 : 1);
-      servingHtml = '<div style="text-align:center;font-size:0.72rem;color:#fbbf24;margin-bottom:4px;">🏓 Saque: ' + (serving === 1 ? window._safeHtml(p1Name.split(' ')[0]) : window._safeHtml(p2Name.split(' ')[0])) + '</div>';
+    // Games display for current set
+    var gamesRow = '';
+    if (useSets && !state.isFixedSet && !state.isFinished) {
+      var cs = _currentSet();
+      gamesRow = '<div style="font-size:0.7rem;color:#666;text-align:center;margin-top:2px;">Games: ' + cs.gamesP1 + ' - ' + cs.gamesP2 + '</div>';
     }
+
+    // Serving indicator
+    var servingHtml = '';
+    if ((state.isTiebreak || _isDecidingSet()) && !state.isFinished) {
+      var totalPts = state.currentGameP1 + state.currentGameP2;
+      var serving = (totalPts === 0) ? 1 : (Math.floor((totalPts - 1) / 2) % 2 === 0 ? 2 : 1);
+      servingHtml = '<div style="text-align:center;font-size:0.68rem;color:#b45309;margin-bottom:6px;">🏓 Saque: ' + (serving === 1 ? window._safeHtml(p1Name.split('/')[0].trim().split(' ')[0]) : window._safeHtml(p2Name.split('/')[0].trim().split(' ')[0])) + '</div>';
+    }
+
+    // Arrow button builder
+    var _upBtn = function(player) {
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:12px 0;border:none;cursor:pointer;background:linear-gradient(180deg,#e0e0e0 0%,#c8c8c8 100%);color:#333;font-size:1.3rem;font-weight:900;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;box-shadow:0 1px 3px rgba(0,0,0,0.15);active:scale(0.95);" ontouchstart="this.style.background=\'#bbb\'" ontouchend="this.style.background=\'\'">▲</button>';
+    };
+    var _downBtn = function(player) {
+      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:6px 0;border:none;cursor:pointer;background:linear-gradient(180deg,#d0d0d0 0%,#b8b8b8 100%);color:#888;font-size:0.75rem;font-weight:700;border-radius:0 0 8px 8px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;border-top:1px solid rgba(0,0,0,0.08);" ontouchstart="this.style.background=\'#aaa\'" ontouchend="this.style.background=\'\'">▼</button>';
+    };
 
     // Finish button
     var finishBtn = '';
     if (state.isFinished) {
-      finishBtn = '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
-        'background:linear-gradient(135deg,#10b981,#059669);color:white;margin-top:1rem;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>';
+      finishBtn = '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:12px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+        'background:linear-gradient(135deg,#10b981,#059669);color:white;margin-top:1.5rem;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>';
     } else if (!useSets) {
-      // Simple mode: allow finishing any time with a confirm button
-      finishBtn = '<button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:14px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
-        'background:rgba(16,185,129,0.1);color:#10b981;margin-top:1rem;">Encerrar Partida</button>';
+      finishBtn = '<button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
+        'background:rgba(16,185,129,0.1);color:#10b981;margin-top:1.5rem;">Encerrar Partida</button>';
     }
 
+    // ── WHITE SCOREBOARD LAYOUT ──
+    // Side by side: [P1 name + ▲▼] | [Score Board] | [P2 name + ▲▼]
     container.innerHTML =
-      // Sets row
-      (setsDisplay ? '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;">' + setsDisplay + '</div>' : '') +
+      // Sets history row (on the white board)
+      '<div style="background:#fff;border-radius:16px;padding:1.25rem 1rem;box-shadow:0 4px 24px rgba(0,0,0,0.25),0 0 0 1px rgba(0,0,0,0.05);color:#111;max-width:500px;margin:0 auto;width:100%;">' +
 
-      // Game label
-      servingHtml +
-      '<div style="text-align:center;font-size:0.78rem;font-weight:600;color:' + (state.isFinished ? '#10b981' : state.isTiebreak || _isDecidingSet() ? '#c084fc' : '#60a5fa') + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;">' + gameLabel + '</div>' +
+        // Sets history
+        (setsDisplay ? '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e5e5;">' + setsDisplay + '</div>' : '') +
 
-      // Player rows with scores and buttons
-      '<div style="display:flex;flex-direction:column;gap:12px;">' +
-        // Player 1
-        '<div style="display:flex;align-items:center;gap:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:14px;padding:12px 16px;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Name) + '</div>' +
-            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.72rem;color:var(--text-muted);">Sets: ' + _setsWon(1) + '</div>' : '') +
+        // Game label
+        servingHtml +
+        '<div style="text-align:center;font-size:0.72rem;font-weight:700;color:' + (state.isFinished ? '#059669' : state.isTiebreak || _isDecidingSet() ? '#7c3aed' : '#555') + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:0.5rem;">' + gameLabel + '</div>' +
+
+        // Main scoreboard: side-by-side
+        '<div style="display:flex;align-items:stretch;gap:0;">' +
+
+          // Left: Player 1 — name + arrow buttons
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">' +
+            '<div style="font-size:0.78rem;font-weight:700;color:#333;text-align:center;min-height:2.4em;display:flex;align-items:center;justify-content:center;padding:0 4px;word-break:break-word;line-height:1.2;">' + window._safeHtml(p1Name) + '</div>' +
+            (state.isFinished ? '' :
+            '<div style="width:60px;">' + _upBtn(1) + _downBtn(1) + '</div>'
+            ) +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:#999;">Sets: ' + _setsWon(1) + '</div>' : '') +
           '</div>' +
-          '<div style="font-size:2.5rem;font-weight:900;color:#60a5fa;min-width:60px;text-align:center;font-variant-numeric:tabular-nums;">' + p1Display + '</div>' +
-          (state.isFinished ? '' : '<button onclick="window._liveScorePoint(1)" style="width:64px;height:64px;border-radius:50%;font-size:2rem;font-weight:900;border:none;cursor:pointer;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;box-shadow:0 4px 16px rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.92)\'" ontouchend="this.style.transform=\'scale(1)\'">+</button>') +
-        '</div>' +
-        // Player 2
-        '<div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:14px;padding:12px 16px;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Name) + '</div>' +
-            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.72rem;color:var(--text-muted);">Sets: ' + _setsWon(2) + '</div>' : '') +
+
+          // Center: Score display
+          '<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;min-width:100px;">' +
+            '<div style="display:flex;align-items:baseline;gap:6px;">' +
+              '<span style="font-size:3.5rem;font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p1Display + '</span>' +
+              '<span style="font-size:1.5rem;font-weight:400;color:#999;">:</span>' +
+              '<span style="font-size:3.5rem;font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + p2Display + '</span>' +
+            '</div>' +
+            gamesRow +
           '</div>' +
-          '<div style="font-size:2.5rem;font-weight:900;color:#f87171;min-width:60px;text-align:center;font-variant-numeric:tabular-nums;">' + p2Display + '</div>' +
-          (state.isFinished ? '' : '<button onclick="window._liveScorePoint(2)" style="width:64px;height:64px;border-radius:50%;font-size:2rem;font-weight:900;border:none;cursor:pointer;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;box-shadow:0 4px 16px rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.92)\'" ontouchend="this.style.transform=\'scale(1)\'">+</button>') +
-        '</div>' +
-      '</div>' +
+
+          // Right: Player 2 — name + arrow buttons
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">' +
+            '<div style="font-size:0.78rem;font-weight:700;color:#333;text-align:center;min-height:2.4em;display:flex;align-items:center;justify-content:center;padding:0 4px;word-break:break-word;line-height:1.2;">' + window._safeHtml(p2Name) + '</div>' +
+            (state.isFinished ? '' :
+            '<div style="width:60px;">' + _upBtn(2) + _downBtn(2) + '</div>'
+            ) +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.6rem;color:#999;">Sets: ' + _setsWon(2) + '</div>' : '') +
+          '</div>' +
+
+        '</div>' + // end main scoreboard flex
+
+      '</div>' + // end white board
 
       finishBtn;
   }
@@ -2296,6 +2324,44 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
+  // Minus handler: subtract a point (correction)
+  window._liveScoreMinus = function(player) {
+    if (state.isFinished) return;
+    if (state.tieRulePending) return;
+    if (player === 1) {
+      if (state.currentGameP1 > 0) state.currentGameP1--;
+    } else {
+      if (state.currentGameP2 > 0) state.currentGameP2--;
+    }
+    // For fixed set, sync back to the set object
+    if (state.isFixedSet) {
+      var cs = _currentSet();
+      cs.gamesP1 = state.currentGameP1;
+      cs.gamesP2 = state.currentGameP2;
+    }
+    _render();
+  };
+
+  // Reset handler: zero all points, restart from scratch
+  window._liveScoreReset = function() {
+    showConfirmDialog(
+      'Resetar placar?',
+      'Todos os pontos marcados serão zerados.',
+      function() {
+        state.sets = [{ gamesP1: 0, gamesP2: 0, tiebreak: null }];
+        state.currentGameP1 = 0;
+        state.currentGameP2 = 0;
+        state.isTiebreak = false;
+        state.isFinished = false;
+        state.winner = null;
+        state.tieRulePending = false;
+        // Reset tieRule to original value from scoring config
+        state.tieRule = sc.tieRule || null;
+        _render();
+      }
+    );
+  };
+
   // ── Build overlay ──
   var overlay = document.createElement('div');
   overlay.id = 'live-scoring-overlay';
@@ -2311,7 +2377,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<div style="font-size:0.68rem;color:var(--text-muted);">' + window._safeHtml(isCasual ? casualTitle : (t && t.name || 'Torneio')) + '</div>' +
       '</div>' +
     '</div>' +
-    '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
+    '<div style="display:flex;gap:8px;align-items:center;">' +
+      '<button onclick="window._liveScoreReset()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:10px;padding:8px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">↺ Resetar</button>' +
+      '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
+    '</div>' +
   '</div>';
 
   // Match info bar
