@@ -3201,10 +3201,10 @@ window._openCasualMatch = function() {
     }
   }
 
-  // State
+  // State — default to doubles ON
   var selectedSport = initialSport;
-  var isDoubles = sports.find(function(s) { return s.key === initialSport; });
-  isDoubles = isDoubles ? isDoubles.defaultDoubles : false;
+  var spMatch = sports.find(function(s) { return s.key === initialSport; });
+  var isDoubles = spMatch ? spMatch.defaultDoubles : true;
   var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual)
@@ -3258,14 +3258,14 @@ window._openCasualMatch = function() {
         '">' + sp.icon + ' ' + sp.label + '</button>';
     }
 
-    // Singles / Doubles toggle
+    // Singles / Doubles toggle switch
     var modeToggle =
-      '<div style="margin-bottom:1.5rem;">' +
-        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Modo</label>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button onclick="window._casualSetDoubles(false)" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.85rem;font-weight:600;border:2px solid ' + (!isDoubles ? '#38bdf8' : 'rgba(255,255,255,0.12)') + ';background:' + (!isDoubles ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (!isDoubles ? '#38bdf8' : 'var(--text-muted)') + ';">👤 Single</button>' +
-          '<button onclick="window._casualSetDoubles(true)" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.85rem;font-weight:600;border:2px solid ' + (isDoubles ? '#38bdf8' : 'rgba(255,255,255,0.12)') + ';background:' + (isDoubles ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isDoubles ? '#38bdf8' : 'var(--text-muted)') + ';">👥 Dupla</button>' +
+      '<div style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:1.1rem;">' + (isDoubles ? '👥' : '👤') + '</span>' +
+          '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + (isDoubles ? 'Dupla' : 'Single') + '</span>' +
         '</div>' +
+        '<label class="toggle-switch" style="--toggle-on-bg:#38bdf8;"><input type="checkbox" ' + (isDoubles ? 'checked' : '') + ' onchange="window._casualSetDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
       '</div>';
 
     // Player names
@@ -3328,10 +3328,20 @@ window._openCasualMatch = function() {
       // Players
       playersHtml +
 
-      // Invite + Shuffle buttons (doubles only shows shuffle)
+      // Inline QR code for quick invite
+      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent((window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + _sessionRoomCode) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:80px;height:80px;border-radius:10px;flex-shrink:0;" />' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:0.72rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Código da Sala</div>' +
+          '<div style="font-size:1.4rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+          '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">Peça para escanear o QR ou compartilhe o código</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Action buttons row
       '<div style="display:flex;gap:8px;margin-bottom:1rem;">' +
-        '<button onclick="window._casualInvite()" style="flex:1;padding:12px;border-radius:12px;font-size:0.88rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:6px;">📲 Convidar</button>' +
-        (isDoubles ? '<button onclick="window._casualShuffle()" style="flex:1;padding:12px;border-radius:12px;font-size:0.88rem;font-weight:700;border:1px solid rgba(251,191,36,0.3);cursor:pointer;background:rgba(251,191,36,0.1);color:#fbbf24;display:flex;align-items:center;justify-content:center;gap:6px;">🔀 Sortear Duplas</button>' : '') +
+        '<button onclick="window._casualInvite()" style="flex:1;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:5px;">📲 Convidar</button>' +
+        (isDoubles ? '<button onclick="window._casualShuffle()" style="flex:1;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(251,191,36,0.3);cursor:pointer;background:rgba(251,191,36,0.1);color:#fbbf24;display:flex;align-items:center;justify-content:center;gap:5px;">🔀 Sortear</button>' : '') +
       '</div>' +
 
       // Start button
@@ -3504,7 +3514,8 @@ window._openCasualMatch = function() {
   }
 
   // Room code state for this session (persists across invite/start)
-  var _sessionRoomCode = null;
+  // Generate immediately so QR can be shown on setup screen
+  var _sessionRoomCode = _generateRoomCode();
   var _sessionDocId = null;
 
   // Invite players via QR code (from setup screen, BEFORE starting)
@@ -3514,8 +3525,6 @@ window._openCasualMatch = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
 
-    // Generate room code once per session
-    if (!_sessionRoomCode) _sessionRoomCode = _generateRoomCode();
     var roomCode = _sessionRoomCode;
 
     // Save to Firestore if not saved yet
@@ -3612,7 +3621,6 @@ window._openCasualMatch = function() {
 
     // If not yet saved to Firestore, save now
     if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
-      if (!_sessionRoomCode) _sessionRoomCode = _generateRoomCode();
       try {
         _sessionDocId = await window.FirestoreDB.saveCasualMatch({
           createdBy: cu.uid,
