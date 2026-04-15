@@ -1861,8 +1861,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.isFixedSet) return 0; // Handled in _checkGameWon
     if (_isDecidingSet()) return 0; // handled by tiebreak game
 
-    // tieRule logic: what happens when tied at g-g
-    if (state.tieRule && cs.gamesP1 === g && cs.gamesP2 === g) {
+    // tieRule logic: at (g-1)-(g-1) and every subsequent tie, ask or apply rule
+    // e.g. at 5-5 in a 6-game set, 2-game lead is impossible with 1 more game
+    if (state.tieRule && cs.gamesP1 === cs.gamesP2 && cs.gamesP1 >= g - 1) {
       var rule = state.tieRule;
       if (rule === 'ask' && !state.tieRulePending) {
         // Pause and ask the user
@@ -1871,8 +1872,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         return -2; // Signal: paused, waiting for user choice
       }
       if (rule === 'extend') {
-        // Already at g-g, next game wins (no 2-game lead)
-        // This is handled below — we just don't enter tiebreak
+        // Prorrogar: play on with 2-game lead required
+        // Don't enter tiebreak, just continue — standard 2-game lead check below
       }
       if (rule === 'tiebreak') {
         state.isTiebreak = true;
@@ -1889,16 +1890,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       }
     }
 
-    // tieRule 'extend': at (g+1) vs g, the (g+1) player wins
+    // tieRule 'extend': standard 2-game lead — whoever reaches 2 games ahead wins
     if (state.tieRule === 'extend') {
-      if (cs.gamesP1 > g && cs.gamesP1 > cs.gamesP2) return 1;
-      if (cs.gamesP2 > g && cs.gamesP2 > cs.gamesP1) return 2;
-      // Still tied or nobody reached g+1 yet — play on
-      if (cs.gamesP1 <= g && cs.gamesP2 <= g) {
-        // Not at tie yet, standard check: first to g wins
-        if (cs.gamesP1 >= g && cs.gamesP1 > cs.gamesP2) return 1;
-        if (cs.gamesP2 >= g && cs.gamesP2 > cs.gamesP1) return 2;
-      }
+      if (cs.gamesP1 >= g && cs.gamesP1 - cs.gamesP2 >= 2) return 1;
+      if (cs.gamesP2 >= g && cs.gamesP2 - cs.gamesP1 >= 2) return 2;
       return 0;
     }
 
@@ -1920,27 +1915,23 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Dialog shown when tieRule is 'ask' and games are tied
   function _showTieRuleDialog() {
     var cs = _currentSet();
-    var g = state.gamesPerSet;
+    var tiedAt = cs.gamesP1; // Both are equal
     var dialogHtml =
       '<div id="tie-rule-dialog" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10;padding:1rem;">' +
         '<div style="background:var(--bg-card,#1e293b);border-radius:16px;border:1px solid rgba(192,132,252,0.3);padding:1.5rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
           '<div style="text-align:center;margin-bottom:1rem;">' +
             '<div style="font-size:1.5rem;margin-bottom:4px;">⚖️</div>' +
-            '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Empate ' + g + ' × ' + g + '</div>' +
+            '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Empate ' + tiedAt + ' × ' + tiedAt + '</div>' +
             '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Como desempatar?</div>' +
           '</div>' +
           '<div style="display:flex;flex-direction:column;gap:8px;">' +
             '<button onclick="window._liveResolveTie(\'extend\')" style="padding:14px;border-radius:12px;border:2px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);cursor:pointer;text-align:left;">' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#10b981;">Prorrogar +1 game</div>' +
-              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Quem fizer o próximo game vence o set</div>' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#10b981;">Prorrogar</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Continuar até vantagem de 2 games</div>' +
             '</button>' +
             '<button onclick="window._liveResolveTie(\'tiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(192,132,252,0.3);background:rgba(192,132,252,0.08);cursor:pointer;text-align:left;">' +
               '<div style="font-size:0.88rem;font-weight:700;color:#c084fc;">Tie-break (7 pts)</div>' +
               '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Tie-break a 7 pontos com margem de 2</div>' +
-            '</button>' +
-            '<button onclick="window._liveResolveTie(\'supertiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);cursor:pointer;text-align:left;">' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#fbbf24;">Super tie-break (10 pts)</div>' +
-              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Super tie-break a 10 pontos com margem de 2</div>' +
             '</button>' +
           '</div>' +
         '</div>' +
@@ -1959,17 +1950,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (dialog) dialog.remove();
 
     if (rule === 'extend') {
-      state.tieRule = 'extend';
-      // No tiebreak — just play on, next game wins
+      // Prorrogar: play on with 2-game lead required
+      // Keep tieRule as 'ask' so it re-triggers if they tie again (e.g. 6-6, 7-7)
+      state.tieRule = 'ask';
     } else if (rule === 'tiebreak') {
       state.tieRule = 'tiebreak';
       state.isTiebreak = true;
-      state.currentGameP1 = 0;
-      state.currentGameP2 = 0;
-    } else if (rule === 'supertiebreak') {
-      state.tieRule = 'supertiebreak';
-      state.isTiebreak = true;
-      state.tiebreakPoints = state.superTiebreakPoints || 10;
       state.currentGameP1 = 0;
       state.currentGameP2 = 0;
     }
@@ -2483,7 +2469,7 @@ window._openCasualMatch = function() {
     return _casualDefaults[selectedSport] || { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:false, tieRule:'ask' };
   }
 
-  var _tieRuleLabels = { 'ask': 'Perguntar no jogo', 'extend': 'Prorrogar +1 game', 'tiebreak': 'Tie-break 7pts', 'supertiebreak': 'Super tie-break 10pts' };
+  var _tieRuleLabels = { 'ask': 'Perguntar no jogo', 'extend': 'Prorrogar (vantagem de 2)', 'tiebreak': 'Tie-break 7pts', 'supertiebreak': 'Super tie-break 10pts' };
 
   function _configSummary() {
     var cfg = _getConfig();
@@ -2669,12 +2655,12 @@ window._openCasualMatch = function() {
           '</div>' +
           // Tie rule — what happens at (games-1) x (games-1)
           '<div style="margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">' +
-            '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Empate ' + (cfg.gamesPerSet || 6) + '×' + (cfg.gamesPerSet || 6) + ' — como desempatar?</label>' +
+            '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Empate ' + ((cfg.gamesPerSet || 6) - 1) + '×' + ((cfg.gamesPerSet || 6) - 1) + ' — como desempatar?</label>' +
             '<div style="display:flex;flex-direction:column;gap:6px;">' +
-              ['ask','extend','tiebreak','supertiebreak'].map(function(rule) {
+              ['ask','extend','tiebreak'].map(function(rule) {
                 var active = tr === rule;
                 var label = _tieRuleLabels[rule];
-                var desc = { ask: 'Escolher na hora do empate', extend: 'Quem fizer +1 game vence (sem vantagem de 2)', tiebreak: 'Tie-break a 7 pontos (margem de 2)', supertiebreak: 'Super tie-break a 10 pontos (margem de 2)' }[rule];
+                var desc = { ask: 'Escolher na hora do empate', extend: 'Continuar até vantagem de 2 games', tiebreak: 'Tie-break a 7 pontos (margem de 2)' }[rule];
                 return '<button onclick="window._casualSetCfg(\'tieRule\',\'' + rule + '\')" style="text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;border:2px solid ' + (active ? '#c084fc' : 'rgba(255,255,255,0.08)') + ';background:' + (active ? 'rgba(192,132,252,0.1)' : 'rgba(255,255,255,0.02)') + ';">' +
                   '<div style="font-size:0.82rem;font-weight:600;color:' + (active ? '#c084fc' : 'var(--text-bright)') + ';">' + label + '</div>' +
                   '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">' + desc + '</div>' +

@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Empate corrigido</b> — Pergunta de desempate agora aparece em 5×5 (não 6×6), pois é o primeiro momento onde vantagem de 2 games é impossível. Opções: Prorrogar (com vantagem de 2) ou Tie-break. Se prorrogar e empatar de novo (6×6, 7×7...), pergunta novamente.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.37-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Scoreboard redesenhado</b> — Placar ao vivo com estética de placa branca, letras pretas, times lado a lado. Seta ▲ para marcar ponto e ▼ menor para corrigir. Botão Resetar no header zera todo o placar. Botão Fechar com confirmação.</p>' +
         '</div>' +
