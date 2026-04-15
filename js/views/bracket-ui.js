@@ -1715,4 +1715,505 @@ window._advanceMonarchToElimination = function(tId) {
   _rerenderBracket(tId);
 };
 
+// ─── Live Scoring Overlay (full-screen, point-by-point) ─────────────────────
+// Opens when player clicks "📡 Ao Vivo" on their own match card.
+// Supports both simple scoring and GSM (Game-Set-Match) with tennis rules.
+
+window._openLiveScoring = function(tId, matchId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+  if (!t) return;
+  var m = _findMatch(t, matchId);
+  if (!m) return;
+
+  var sc = t.scoring || {};
+  var useSets = sc.type === 'sets';
+  var p1Name = m.p1 || 'Jogador 1';
+  var p2Name = m.p2 || 'Jogador 2';
+  var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
+
+  // Remove existing overlay
+  var existing = document.getElementById('live-scoring-overlay');
+  if (existing) existing.remove();
+
+  // ── State ──
+  var state = {
+    sets: [], // Array of { gamesP1, gamesP2, tiebreak: { p1, p2 } | null }
+    currentGameP1: 0,  // Points in current game
+    currentGameP2: 0,
+    isTiebreak: false,  // Currently in tiebreak within a set
+    isFinished: false,
+    winner: null,
+    // GSM config
+    setsToWin: useSets ? (sc.setsToWin || 1) : 1,
+    gamesPerSet: useSets ? (sc.gamesPerSet || 6) : 1,
+    tiebreakEnabled: useSets ? (sc.tiebreakEnabled !== false) : false,
+    tiebreakPoints: useSets ? (sc.tiebreakPoints || 7) : 7,
+    tiebreakMargin: useSets ? (sc.tiebreakMargin || 2) : 2,
+    superTiebreak: useSets ? (sc.superTiebreak === true) : false,
+    superTiebreakPoints: useSets ? (sc.superTiebreakPoints || 10) : 10,
+    countingType: useSets ? (sc.countingType || 'numeric') : 'numeric',
+    advantageRule: useSets ? (sc.advantageRule === true) : false,
+    isFixedSet: useSets && sc.fixedSet === true,
+    fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0
+  };
+
+  // Initialize first set
+  state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
+
+  // Check if this is the deciding set (super tiebreak)
+  function _isDecidingSet() {
+    var totalSets = state.setsToWin * 2 - 1;
+    return state.superTiebreak && state.sets.length === totalSets;
+  }
+
+  // Get current set
+  function _currentSet() {
+    return state.sets[state.sets.length - 1];
+  }
+
+  // Count sets won
+  function _setsWon(player) {
+    var count = 0;
+    for (var i = 0; i < state.sets.length - 1; i++) { // Exclude current set
+      var s = state.sets[i];
+      if (player === 1 && s.gamesP1 > s.gamesP2) count++;
+      if (player === 2 && s.gamesP2 > s.gamesP1) count++;
+    }
+    return count;
+  }
+
+  // Format game points for display
+  function _formatGamePoint(pts, oppPts, isTb) {
+    if (isTb) return String(pts);
+    if (state.countingType === 'tennis' && !state.isFixedSet) {
+      // Tennis counting: 0, 15, 30, 40, AD
+      if (pts >= 3 && oppPts >= 3) {
+        if (state.advantageRule) {
+          if (pts === oppPts) return '40';
+          if (pts > oppPts) return 'AD';
+          return '40';
+        }
+        return '40'; // No advantage: sudden death at deuce
+      }
+      var map = [0, 15, 30, 40];
+      return String(pts < 4 ? map[pts] : 40);
+    }
+    return String(pts);
+  }
+
+  // Check if game is won
+  function _checkGameWon() {
+    var p1 = state.currentGameP1;
+    var p2 = state.currentGameP2;
+
+    if (state.isTiebreak || _isDecidingSet()) {
+      // Tiebreak rules
+      var tbPts = _isDecidingSet() ? state.superTiebreakPoints : state.tiebreakPoints;
+      var margin = state.tiebreakMargin || 2;
+      if (p1 >= tbPts && p1 - p2 >= margin) return 1;
+      if (p2 >= tbPts && p2 - p1 >= margin) return 2;
+      return 0;
+    }
+
+    if (state.isFixedSet) {
+      // Fixed set: just count points, no game concept within
+      var total = state.fixedSetGames;
+      if (p1 + p2 >= total) {
+        return p1 > p2 ? 1 : (p2 > p1 ? 2 : 0);
+      }
+      return 0;
+    }
+
+    if (state.countingType === 'tennis') {
+      // Tennis game rules: need 4 points and lead by 2 (or no advantage)
+      if (p1 >= 4 && p2 >= 4) {
+        if (!state.advantageRule) {
+          // Sudden death at deuce: whoever scored last wins
+          return p1 > p2 ? 1 : 2;
+        }
+        if (p1 - p2 >= 2) return 1;
+        if (p2 - p1 >= 2) return 2;
+        return 0;
+      }
+      if (p1 >= 4 && p1 - p2 >= 2) return 1;
+      if (p2 >= 4 && p2 - p1 >= 2) return 2;
+      return 0;
+    }
+
+    // Numeric: first to gamesPerSet... no, that's set level. For simple numeric games,
+    // each "point" IS a game directly
+    return 0;
+  }
+
+  // Check if set is won
+  function _checkSetWon() {
+    var cs = _currentSet();
+    var g = state.gamesPerSet;
+
+    if (state.isFixedSet) {
+      // Fixed set: game IS the set
+      return 0; // Handled in _checkGameWon
+    }
+
+    if (_isDecidingSet()) {
+      // Super tiebreak set: won via tiebreak points
+      return 0; // handled by tiebreak game
+    }
+
+    // Standard set: first to 'g' games with 2-game lead, or tiebreak at g-g
+    if (cs.gamesP1 >= g && cs.gamesP1 - cs.gamesP2 >= 2) return 1;
+    if (cs.gamesP2 >= g && cs.gamesP2 - cs.gamesP1 >= 2) return 2;
+
+    // Tiebreak trigger: at g-g
+    if (state.tiebreakEnabled && cs.gamesP1 === g && cs.gamesP2 === g) {
+      state.isTiebreak = true;
+      state.currentGameP1 = 0;
+      state.currentGameP2 = 0;
+      return -1; // Signal: entering tiebreak
+    }
+
+    return 0;
+  }
+
+  // Check if match is won
+  function _checkMatchWon() {
+    if (_setsWon(1) >= state.setsToWin) return 1;
+    if (_setsWon(2) >= state.setsToWin) return 2;
+    return 0;
+  }
+
+  // Add point to player
+  function _addPoint(player) {
+    if (state.isFinished) return;
+
+    if (player === 1) state.currentGameP1++;
+    else state.currentGameP2++;
+
+    if (!useSets || state.isFixedSet) {
+      // Simple scoring or fixed set: each tap is 1 point
+      if (state.isFixedSet) {
+        var cs = _currentSet();
+        if (player === 1) cs.gamesP1 = state.currentGameP1;
+        else cs.gamesP2 = state.currentGameP2;
+        // Check if fixed set is done
+        if (state.currentGameP1 + state.currentGameP2 >= state.fixedSetGames) {
+          if (state.currentGameP1 === state.currentGameP2 && state.tiebreakEnabled) {
+            // Tie in fixed set → go to tiebreak
+            state.isTiebreak = true;
+            state.currentGameP1 = 0;
+            state.currentGameP2 = 0;
+          } else {
+            var winner = state.currentGameP1 > state.currentGameP2 ? 1 : 2;
+            _finishSet(winner);
+          }
+        }
+      } else if (!useSets) {
+        // Simple mode: just track score
+        _render();
+        return;
+      }
+      _render();
+      return;
+    }
+
+    // GSM: check if game is won
+    var gameWinner = _checkGameWon();
+    if (gameWinner > 0) {
+      // Game won — add to set games
+      var cs = _currentSet();
+      if (state.isTiebreak) {
+        // Tiebreak won → set is won by this player
+        cs.tiebreak = { p1: state.currentGameP1, p2: state.currentGameP2 };
+        if (gameWinner === 1) cs.gamesP1++;
+        else cs.gamesP2++;
+        state.isTiebreak = false;
+        _finishSet(gameWinner);
+      } else if (_isDecidingSet()) {
+        // Super tiebreak won
+        cs.tiebreak = { p1: state.currentGameP1, p2: state.currentGameP2 };
+        if (gameWinner === 1) cs.gamesP1++;
+        else cs.gamesP2++;
+        _finishSet(gameWinner);
+      } else {
+        // Normal game won
+        if (gameWinner === 1) cs.gamesP1++;
+        else cs.gamesP2++;
+        state.currentGameP1 = 0;
+        state.currentGameP2 = 0;
+
+        // Check if set is won
+        var setResult = _checkSetWon();
+        if (setResult > 0) {
+          _finishSet(setResult);
+        }
+        // setResult === -1 means we entered tiebreak, already handled
+      }
+    }
+
+    _render();
+  }
+
+  function _finishSet(setWinner) {
+    state.currentGameP1 = 0;
+    state.currentGameP2 = 0;
+    state.isTiebreak = false;
+
+    // Check match winner
+    var matchWinner = _checkMatchWon();
+    if (matchWinner > 0 || (!useSets && state.isFixedSet)) {
+      // For fixed set: check directly
+      if (state.isFixedSet) matchWinner = setWinner;
+      state.isFinished = true;
+      state.winner = matchWinner;
+    } else {
+      // Start new set
+      state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
+    }
+  }
+
+  // Undo last point
+  function _undoPoint() {
+    // Simple undo: remove last point. For complex GSM state, we use a history approach.
+    // For now, decrement the higher score or last-incremented
+    if (state.isFinished) return;
+    // Cannot undo if both are 0 in current game
+    if (state.currentGameP1 === 0 && state.currentGameP2 === 0) {
+      // Try to undo a set (go back to previous set's last game)
+      // This is complex — for MVP, just ignore
+      return;
+    }
+    // We need to track history for proper undo. For MVP, just warn.
+    showNotification('Desfazer', 'Use o botão — para corrigir o placar manualmente.', 'info');
+  }
+
+  // Save result to match
+  function _saveResult() {
+    if (useSets) {
+      // Save as GSM sets data
+      m.sets = state.sets.map(function(s) {
+        var setData = { gamesP1: s.gamesP1, gamesP2: s.gamesP2 };
+        if (s.tiebreak) setData.tiebreak = { pointsP1: s.tiebreak.p1, pointsP2: s.tiebreak.p2 };
+        if (state.isFixedSet) setData.fixedSet = true;
+        return setData;
+      });
+      var totalSetsP1 = 0, totalSetsP2 = 0, totalGamesP1 = 0, totalGamesP2 = 0;
+      for (var i = 0; i < state.sets.length; i++) {
+        var s = state.sets[i];
+        if (s.gamesP1 > s.gamesP2) totalSetsP1++;
+        else if (s.gamesP2 > s.gamesP1) totalSetsP2++;
+        totalGamesP1 += s.gamesP1;
+        totalGamesP2 += s.gamesP2;
+      }
+      m.setsWonP1 = totalSetsP1;
+      m.setsWonP2 = totalSetsP2;
+      m.scoreP1 = totalSetsP1;
+      m.scoreP2 = totalSetsP2;
+      m.totalGamesP1 = totalGamesP1;
+      m.totalGamesP2 = totalGamesP2;
+      if (state.isFixedSet) {
+        m.fixedSet = true;
+        m.scoreP1 = totalGamesP1;
+        m.scoreP2 = totalGamesP2;
+      }
+    } else {
+      // Simple scoring
+      m.scoreP1 = state.currentGameP1;
+      m.scoreP2 = state.currentGameP2;
+    }
+
+    if (state.winner === 1) m.winner = m.p1;
+    else if (state.winner === 2) m.winner = m.p2;
+    else if (state.currentGameP1 === state.currentGameP2) {
+      m.winner = 'draw';
+      m.draw = true;
+    } else {
+      m.winner = state.currentGameP1 > state.currentGameP2 ? m.p1 : m.p2;
+    }
+    m.liveScored = true;
+
+    // Save & sync
+    window.AppStore.syncImmediate(tId);
+    if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
+      window.FirestoreDB.saveTournament(t);
+    }
+
+    // Close overlay
+    var ov = document.getElementById('live-scoring-overlay');
+    if (ov) ov.remove();
+
+    showNotification('Resultado salvo', m.winner === 'draw' ? 'Empate!' : (m.winner + ' venceu!'), 'success');
+    _rerenderBracket(tId, matchId);
+
+    // Auto-advance etc.
+    if (typeof window._advanceWinner === 'function') window._advanceWinner(t, m);
+    if (typeof window._maybeFinishElimination === 'function') window._maybeFinishElimination(t);
+  }
+
+  // ── Render function ──
+  function _render() {
+    var container = document.getElementById('live-score-content');
+    if (!container) return;
+
+    // Sets display
+    var setsDisplay = '';
+    if (useSets && !state.isFixedSet) {
+      for (var i = 0; i < state.sets.length; i++) {
+        var s = state.sets[i];
+        var isCurrent = (i === state.sets.length - 1) && !state.isFinished;
+        var bg = isCurrent ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)';
+        var border = isCurrent ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)';
+        var tbStr = s.tiebreak ? '<span style="font-size:0.6rem;color:#c084fc;vertical-align:super;">(' + s.tiebreak.p1 + '-' + s.tiebreak.p2 + ')</span>' : '';
+        setsDisplay += '<div style="display:inline-flex;flex-direction:column;align-items:center;padding:6px 10px;border-radius:8px;background:' + bg + ';border:1px solid ' + border + ';min-width:44px;">' +
+          '<div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:2px;">' + (i + 1) + '</div>' +
+          '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);">' + s.gamesP1 + '-' + s.gamesP2 + tbStr + '</div>' +
+        '</div>';
+      }
+    }
+
+    // Current game display
+    var gameLabel = '';
+    var p1Display, p2Display;
+    if (state.isFinished) {
+      gameLabel = state.winner === 1 ? p1Name + ' venceu!' : p2Name + ' venceu!';
+      p1Display = '✓';
+      p2Display = '✓';
+    } else if (!useSets || state.isFixedSet) {
+      // Simple or fixed set: show raw points
+      gameLabel = state.isFixedSet ? 'Set Fixo' : 'Placar';
+      p1Display = String(state.currentGameP1);
+      p2Display = String(state.currentGameP2);
+    } else if (_isDecidingSet()) {
+      gameLabel = 'Super Tie-break';
+      p1Display = String(state.currentGameP1);
+      p2Display = String(state.currentGameP2);
+    } else if (state.isTiebreak) {
+      gameLabel = 'Tie-break';
+      p1Display = String(state.currentGameP1);
+      p2Display = String(state.currentGameP2);
+    } else {
+      gameLabel = 'Game';
+      p1Display = _formatGamePoint(state.currentGameP1, state.currentGameP2, false);
+      p2Display = _formatGamePoint(state.currentGameP2, state.currentGameP1, false);
+    }
+
+    // Serving indicator (for tiebreak: alternates every 2 points after first)
+    var servingHtml = '';
+    if (state.isTiebreak || _isDecidingSet()) {
+      var totalPts = state.currentGameP1 + state.currentGameP2;
+      // First point: server, then alternate every 2
+      var serving = (totalPts === 0) ? 1 : (Math.floor((totalPts - 1) / 2) % 2 === 0 ? 2 : 1);
+      servingHtml = '<div style="text-align:center;font-size:0.72rem;color:#fbbf24;margin-bottom:4px;">🏓 Saque: ' + (serving === 1 ? window._safeHtml(p1Name.split(' ')[0]) : window._safeHtml(p2Name.split(' ')[0])) + '</div>';
+    }
+
+    // Finish button
+    var finishBtn = '';
+    if (state.isFinished) {
+      finishBtn = '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+        'background:linear-gradient(135deg,#10b981,#059669);color:white;margin-top:1rem;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>';
+    } else if (!useSets) {
+      // Simple mode: allow finishing any time with a confirm button
+      finishBtn = '<button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:14px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
+        'background:rgba(16,185,129,0.1);color:#10b981;margin-top:1rem;">Encerrar Partida</button>';
+    }
+
+    container.innerHTML =
+      // Sets row
+      (setsDisplay ? '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;">' + setsDisplay + '</div>' : '') +
+
+      // Game label
+      servingHtml +
+      '<div style="text-align:center;font-size:0.78rem;font-weight:600;color:' + (state.isFinished ? '#10b981' : state.isTiebreak || _isDecidingSet() ? '#c084fc' : '#60a5fa') + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;">' + gameLabel + '</div>' +
+
+      // Player rows with scores and buttons
+      '<div style="display:flex;flex-direction:column;gap:12px;">' +
+        // Player 1
+        '<div style="display:flex;align-items:center;gap:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:14px;padding:12px 16px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Name) + '</div>' +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.72rem;color:var(--text-muted);">Sets: ' + _setsWon(1) + '</div>' : '') +
+          '</div>' +
+          '<div style="font-size:2.5rem;font-weight:900;color:#60a5fa;min-width:60px;text-align:center;font-variant-numeric:tabular-nums;">' + p1Display + '</div>' +
+          (state.isFinished ? '' : '<button onclick="window._liveScorePoint(1)" style="width:64px;height:64px;border-radius:50%;font-size:2rem;font-weight:900;border:none;cursor:pointer;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;box-shadow:0 4px 16px rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.92)\'" ontouchend="this.style.transform=\'scale(1)\'">+</button>') +
+        '</div>' +
+        // Player 2
+        '<div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:14px;padding:12px 16px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Name) + '</div>' +
+            (useSets && !state.isFixedSet && !state.isFinished ? '<div style="font-size:0.72rem;color:var(--text-muted);">Sets: ' + _setsWon(2) + '</div>' : '') +
+          '</div>' +
+          '<div style="font-size:2.5rem;font-weight:900;color:#f87171;min-width:60px;text-align:center;font-variant-numeric:tabular-nums;">' + p2Display + '</div>' +
+          (state.isFinished ? '' : '<button onclick="window._liveScorePoint(2)" style="width:64px;height:64px;border-radius:50%;font-size:2rem;font-weight:900;border:none;cursor:pointer;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;box-shadow:0 4px 16px rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.92)\'" ontouchend="this.style.transform=\'scale(1)\'">+</button>') +
+        '</div>' +
+      '</div>' +
+
+      finishBtn;
+  }
+
+  // ── Global handlers (attached to window for onclick access) ──
+  window._liveScorePoint = function(player) { _addPoint(player); };
+  window._liveScoreSave = _saveResult;
+  window._liveScoreFinish = function() {
+    // For simple scoring: finish and set winner
+    if (state.currentGameP1 === state.currentGameP2 && state.currentGameP1 === 0) {
+      showNotification('Placar vazio', 'Marque pelo menos um ponto antes de encerrar.', 'warning');
+      return;
+    }
+    state.isFinished = true;
+    if (state.currentGameP1 > state.currentGameP2) state.winner = 1;
+    else if (state.currentGameP2 > state.currentGameP1) state.winner = 2;
+    else state.winner = 0; // draw
+    _render();
+  };
+
+  // ── Build overlay ──
+  var overlay = document.createElement('div');
+  overlay.id = 'live-scoring-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;';
+
+  // Header
+  var headerBg = 'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)';
+  var headerHtml = '<div style="background:' + headerBg + ';padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
+    '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<span style="font-size:1.2rem;">📡</span>' +
+      '<div>' +
+        '<div style="font-size:0.9rem;font-weight:800;color:#f87171;">AO VIVO</div>' +
+        '<div style="font-size:0.68rem;color:var(--text-muted);">' + window._safeHtml(t.name || 'Torneio') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
+  '</div>';
+
+  // Match info bar
+  var matchLabel = m.roundIndex !== undefined ? 'Rodada ' + (m.roundIndex + 1) : (m.round || '');
+  var infoHtml = '<div style="text-align:center;padding:8px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;">' +
+    '<span style="font-size:0.72rem;color:var(--text-muted);">' + window._safeHtml(matchLabel) + '</span>' +
+  '</div>';
+
+  // Content area
+  overlay.innerHTML = headerHtml + infoHtml +
+    '<div id="live-score-content" style="flex:1;overflow-y:auto;padding:1.5rem 1rem;display:flex;flex-direction:column;justify-content:center;-webkit-overflow-scrolling:touch;"></div>';
+
+  document.body.appendChild(overlay);
+
+  // Close handler
+  window._closeLiveScoring = function() {
+    if (!state.isFinished && (state.currentGameP1 > 0 || state.currentGameP2 > 0 || state.sets.length > 1)) {
+      showConfirmDialog(
+        'Sair do placar ao vivo?',
+        'O progresso será perdido.',
+        function() {
+          var ov = document.getElementById('live-scoring-overlay');
+          if (ov) ov.remove();
+        }
+      );
+    } else {
+      var ov = document.getElementById('live-scoring-overlay');
+      if (ov) ov.remove();
+    }
+  };
+
+  // Initial render
+  _render();
+};
+
 // _closeRound is in bracket-logic.js

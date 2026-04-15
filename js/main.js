@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.33-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Lançamento de resultados: toggles não-excludentes</b> — Organizador pode habilitar múltiplas formas simultâneas de lançamento (Organizador, Jogadores, Árbitro). Botão "📡 Ao Vivo" nos jogos próprios do jogador quando modo Jogadores está ativo.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Placar Ao Vivo</b> — Jogadores lançam resultado ponto a ponto em tela inteira. Botão "📡 Ao Vivo" nos jogos próprios. Suporta Game-Set-Match (tênis: 15-30-40-AD, tiebreak, super tiebreak) e placar simples. Toggles não-excludentes na criação permitem Organizador + Jogadores + Árbitro simultâneos.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
