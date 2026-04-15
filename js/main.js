@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Lobby bidirecional</b> — Tela do organizador agora mostra participantes que entraram via QR/código em tempo real. Nomes preenchidos automaticamente nos inputs. Notificação ao organizador quando alguém entra.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.57-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Lobby de partida casual</b> — Ao escanear QR ou digitar código, jogador entra automaticamente na partida e vê lobby com participantes em tempo real. Refresh automático a cada 3s detecta novos jogadores e início da partida.</p>' +
         '</div>' +

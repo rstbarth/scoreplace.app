@@ -3208,6 +3208,8 @@ window._openCasualMatch = function() {
   var autoShuffle = true;
   var isMisto = false;
   var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
+  var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', joinedAt: new Date().toISOString() }] : [];
+  var _setupRefreshInterval = null;
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual)
   var _casualDefaults = {
@@ -3241,6 +3243,69 @@ window._openCasualMatch = function() {
     var tr = cfg.tieRule || 'ask';
     parts.push('Empate: ' + (_tieRuleLabels[tr] || tr));
     return parts.join(' · ');
+  }
+
+  // Build lobby HTML showing participants who joined
+  function _buildLobbyHtml() {
+    var totalNeeded = isDoubles ? 4 : 2;
+    var count = _lobbyParticipants.length;
+    var myUid = cu ? cu.uid : null;
+    if (count <= 1) return ''; // Only the creator — nothing to show yet
+
+    var h = '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:12px;padding:10px 12px;">' +
+      '<div style="font-size:0.72rem;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">' +
+        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;animation:casualPulse 1.5s ease-in-out infinite;"></span>' +
+        'Na sala · ' + count + '/' + totalNeeded +
+      '</div>' +
+      '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
+    for (var i = 0; i < _lobbyParticipants.length; i++) {
+      var pp = _lobbyParticipants[i];
+      var isMe = myUid && pp.uid === myUid;
+      var isHost = pp.uid === (cu ? cu.uid : '');
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;' +
+        'background:' + (isMe ? 'rgba(34,197,94,0.06)' : 'transparent') + ';">' +
+        '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>' +
+        '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml(pp.displayName || 'Jogador') +
+          (isHost ? ' <span style="font-size:0.65rem;color:#fbbf24;">👑</span>' : '') +
+          (isMe ? ' <span style="font-size:0.62rem;color:#22c55e;">(Você)</span>' : '') +
+        '</div>' +
+        '<span style="font-size:0.75rem;">✅</span>' +
+      '</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  // Update only the lobby section without re-rendering the whole setup (preserves input values)
+  function _updateLobbySection() {
+    var section = document.getElementById('casual-lobby-section');
+    if (section) section.innerHTML = _buildLobbyHtml();
+    // Also fill empty player inputs with lobby participant names
+    _fillInputsFromLobby();
+  }
+
+  // Fill player name inputs with lobby participants' displayNames
+  function _fillInputsFromLobby() {
+    if (_lobbyParticipants.length <= 1) return;
+    var names = _lobbyParticipants.map(function(p) { return p.displayName ? p.displayName.split(' ')[0] : ''; }).filter(function(n) { return !!n; });
+    if (isDoubles) {
+      var inputs = [
+        document.getElementById('casual-p1a-name'),
+        document.getElementById('casual-p1b-name'),
+        document.getElementById('casual-p2a-name'),
+        document.getElementById('casual-p2b-name')
+      ];
+      for (var i = 0; i < inputs.length && i < names.length; i++) {
+        if (inputs[i] && (!inputs[i].value || inputs[i].value === inputs[i].placeholder)) {
+          inputs[i].value = names[i];
+        }
+      }
+    } else {
+      var inp1 = document.getElementById('casual-p1-name');
+      var inp2 = document.getElementById('casual-p2-name');
+      if (inp1 && names[0] && (!inp1.value || inp1.value === inp1.placeholder)) inp1.value = names[0];
+      if (inp2 && names[1] && (!inp2.value || inp2.value === inp2.placeholder)) inp2.value = names[1];
+    }
   }
 
   function _renderSetup() {
@@ -3347,6 +3412,9 @@ window._openCasualMatch = function() {
 
       // Players
       playersHtml +
+
+      // Lobby: participants who joined via QR/code
+      '<div id="casual-lobby-section" style="margin-bottom:1rem;">' + _buildLobbyHtml() + '</div>' +
 
       // Inline QR code + room code for quick invite
       '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:12px;">' +
@@ -3680,6 +3748,8 @@ window._openCasualMatch = function() {
 
   // Start the match (directly opens live scoring)
   window._casualStart = async function() {
+    // Stop lobby refresh
+    if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
     var players = _buildPlayers();
 
     // Enrich player names from lobby participants (people who joined via QR/code)
@@ -3821,6 +3891,45 @@ window._openCasualMatch = function() {
       else console.warn('[Casual] saveCasualMatch returned null — check Firestore rules for casualMatches collection');
     }).catch(function(e) { console.error('[Casual] Auto-save failed:', e); });
   }
+
+  // Start polling for new participants joining the room
+  function _startSetupRefresh() {
+    if (_setupRefreshInterval) return;
+    _setupRefreshInterval = setInterval(function() {
+      if (!_sessionDocId || !_sessionRoomCode) return;
+      if (!document.getElementById('casual-match-overlay')) {
+        // Overlay closed — stop polling
+        clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; return;
+      }
+      window.FirestoreDB.loadCasualMatch(_sessionRoomCode).then(function(fresh) {
+        if (!fresh) return;
+        var newParts = Array.isArray(fresh.participants) ? fresh.participants : [];
+        if (newParts.length !== _lobbyParticipants.length) {
+          _lobbyParticipants = newParts;
+          _updateLobbySection();
+          if (newParts.length > 1) {
+            var latest = newParts[newParts.length - 1];
+            if (latest && latest.uid !== (cu ? cu.uid : '')) {
+              if (typeof showNotification === 'function') showNotification('Novo jogador!', (latest.displayName || 'Alguém') + ' entrou na sala.', 'success');
+            }
+          }
+        }
+      }).catch(function() {});
+    }, 3000);
+  }
+
+  // Start refresh after save
+  setTimeout(function() { _startSetupRefresh(); }, 2000);
+
+  // Cleanup on overlay close
+  var origClose = overlay.querySelector('button');
+  if (origClose) {
+    var origOnclick = origClose.getAttribute('onclick') || '';
+    origClose.setAttribute('onclick', 'if(window._casualSetupCleanup)window._casualSetupCleanup();' + origOnclick);
+  }
+  window._casualSetupCleanup = function() {
+    if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
+  };
 
   setTimeout(function() {
     var el = isDoubles ? document.getElementById('casual-p2a-name') : document.getElementById('casual-p2-name');
