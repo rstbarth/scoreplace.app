@@ -720,6 +720,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Convite casual reestruturado</b> — Botão "📲 Convidar" na tela de configuração gera QR code centralizado em tela cheia antes de iniciar a partida. Botão "🔀 Sortear Duplas" embaralha jogadores entre times (Fisher-Yates). Fluxo: montar times → convidar → iniciar.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.49-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Partida Casual compartilhada</b> — Convide jogadores presencialmente via QR code e código de sala. Jogadores cadastrados podem reivindicar vagas. Placar ao vivo em tempo real — todos os participantes veem e podem marcar pontos simultaneamente via Firestore. Estatísticas de partidas casuais salvas no perfil. Rota #casual/{code} para acesso direto.</p>' +
         '</div>' +

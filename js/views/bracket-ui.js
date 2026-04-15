@@ -3145,6 +3145,12 @@ window._openCasualMatch = function() {
       // Players
       playersHtml +
 
+      // Invite + Shuffle buttons (doubles only shows shuffle)
+      '<div style="display:flex;gap:8px;margin-bottom:1rem;">' +
+        '<button onclick="window._casualInvite()" style="flex:1;padding:12px;border-radius:12px;font-size:0.88rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:6px;">📲 Convidar</button>' +
+        (isDoubles ? '<button onclick="window._casualShuffle()" style="flex:1;padding:12px;border-radius:12px;font-size:0.88rem;font-weight:700;border:1px solid rgba(251,191,36,0.3);cursor:pointer;background:rgba(251,191,36,0.1);color:#fbbf24;display:flex;align-items:center;justify-content:center;gap:6px;">🔀 Sortear Duplas</button>' : '') +
+      '</div>' +
+
       // Start button
       '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
         '<span style="font-size:1.5rem;">📡</span> Iniciar Partida' +
@@ -3314,7 +3320,100 @@ window._openCasualMatch = function() {
     return players;
   }
 
-  // Start the match
+  // Room code state for this session (persists across invite/start)
+  var _sessionRoomCode = null;
+  var _sessionDocId = null;
+
+  // Invite players via QR code (from setup screen, BEFORE starting)
+  window._casualInvite = async function() {
+    var players = _buildPlayers();
+    var cfg = _getConfig();
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
+
+    // Generate room code once per session
+    if (!_sessionRoomCode) _sessionRoomCode = _generateRoomCode();
+    var roomCode = _sessionRoomCode;
+
+    // Save to Firestore if not saved yet
+    if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
+      try {
+        _sessionDocId = await window.FirestoreDB.saveCasualMatch({
+          createdBy: cu.uid,
+          createdByName: cu.displayName || '',
+          createdAt: new Date().toISOString(),
+          sport: sportLabel,
+          scoring: cfg,
+          isDoubles: isDoubles,
+          players: players,
+          playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
+          roomCode: roomCode,
+          status: 'waiting',
+          result: null
+        });
+      } catch (e) { console.warn('Casual invite save failed:', e); }
+    } else if (_sessionDocId) {
+      // Update existing with current players/config
+      try {
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, { players: players, scoring: cfg, isDoubles: isDoubles });
+      } catch(e) {}
+    }
+
+    var casualUrl = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + roomCode;
+    var qrSize = Math.min(280, Math.floor(window.innerWidth * 0.55));
+    var qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize + '&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=10';
+
+    var qrOv = document.createElement('div');
+    qrOv.id = 'casual-qr-overlay';
+    qrOv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100003;display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box;';
+
+    qrOv.innerHTML =
+      '<div style="text-align:center;max-width:400px;width:100%;">' +
+        '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:3px;">📲 Convidar Jogadores</div>' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:clamp(0.8rem,3vh,1.5rem);">Peça para escanear o QR code ou envie o código</div>' +
+        // QR code — centered and large
+        '<div style="margin:0 auto clamp(0.6rem,2vh,1rem);">' +
+          '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:' + qrSize + 'px;height:' + qrSize + 'px;border-radius:14px;" />' +
+        '</div>' +
+        // Room code
+        '<div style="font-size:clamp(1.8rem,7vw,2.5rem);font-weight:900;letter-spacing:8px;color:#fbbf24;font-family:monospace;margin-bottom:4px;">' + window._safeHtml(roomCode) + '</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted);word-break:break-all;margin-bottom:clamp(0.6rem,2vh,1rem);">' + window._safeHtml(casualUrl) + '</div>' +
+        // Share buttons
+        '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);max-width:320px;margin-left:auto;margin-right:auto;">' +
+          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar</button>' +
+          '<a href="https://wa.me/?text=' + encodeURIComponent('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
+        '</div>' +
+        // Back button
+        '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="padding:12px 28px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+      '</div>';
+
+    document.body.appendChild(qrOv);
+  };
+
+  // Shuffle players across teams (random draw)
+  window._casualShuffle = function() {
+    var inputs = [
+      document.getElementById('casual-p1a-name'),
+      document.getElementById('casual-p1b-name'),
+      document.getElementById('casual-p2a-name'),
+      document.getElementById('casual-p2b-name')
+    ];
+    // Collect current names
+    var names = inputs.map(function(el) { return el ? (el.value || '').trim() : ''; });
+    // Filter out empty, fill with defaults
+    var defaults = ['Eu', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+    for (var i = 0; i < 4; i++) { if (!names[i]) names[i] = defaults[i]; }
+    // Fisher-Yates shuffle
+    for (var j = names.length - 1; j > 0; j--) {
+      var k = Math.floor(Math.random() * (j + 1));
+      var tmp = names[j]; names[j] = names[k]; names[k] = tmp;
+    }
+    // Apply back to inputs
+    for (var m = 0; m < 4; m++) { if (inputs[m]) inputs[m].value = names[m]; }
+    if (typeof showNotification === 'function') showNotification('Duplas sorteadas!', names[0] + ' + ' + names[1] + '  vs  ' + names[2] + ' + ' + names[3], 'success');
+  };
+
+  // Start the match (directly opens live scoring)
   window._casualStart = async function() {
     var players = _buildPlayers();
     var n1, n2;
@@ -3328,14 +3427,13 @@ window._openCasualMatch = function() {
 
     var cfg = _getConfig();
     var cu = window.AppStore && window.AppStore.currentUser;
-    var roomCode = _generateRoomCode();
     var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
 
-    // Save pending match to Firestore
-    var casualDocId = null;
-    if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
+    // If not yet saved to Firestore, save now
+    if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
+      if (!_sessionRoomCode) _sessionRoomCode = _generateRoomCode();
       try {
-        var matchData = {
+        _sessionDocId = await window.FirestoreDB.saveCasualMatch({
           createdBy: cu.uid,
           createdByName: cu.displayName || '',
           createdAt: new Date().toISOString(),
@@ -3344,73 +3442,37 @@ window._openCasualMatch = function() {
           isDoubles: isDoubles,
           players: players,
           playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
-          roomCode: roomCode,
-          status: 'waiting',
+          roomCode: _sessionRoomCode,
+          status: 'active',
           result: null
-        };
-        casualDocId = await window.FirestoreDB.saveCasualMatch(matchData);
-      } catch (e) {
-        console.warn('Casual match Firestore save failed:', e);
-      }
-    }
-
-    // Show QR invite overlay before starting
-    var setupOv = document.getElementById('casual-match-overlay');
-    if (setupOv) setupOv.remove();
-
-    var qrOv = document.createElement('div');
-    qrOv.id = 'casual-qr-overlay';
-    qrOv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:100003;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;box-sizing:border-box;';
-
-    var casualUrl = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + roomCode;
-    var qrImgUrl = window._qrCodeUrl ? window._qrCodeUrl(casualUrl, 200) : 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=10';
-
-    qrOv.innerHTML =
-      '<div style="text-align:center;max-width:360px;width:100%;">' +
-        '<div style="font-size:1.5rem;font-weight:800;color:#38bdf8;margin-bottom:4px;">Convidar Jogadores</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.2rem;">Peça para escanear o QR code ou envie o código</div>' +
-        '<div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:1.2rem;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.1);">' +
-          '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:200px;height:200px;border-radius:12px;margin-bottom:0.8rem;" />' +
-          '<div style="font-size:2rem;font-weight:900;letter-spacing:6px;color:#fbbf24;font-family:monospace;margin-bottom:0.5rem;">' + window._safeHtml(roomCode) + '</div>' +
-          '<div style="font-size:0.72rem;color:var(--text-muted);word-break:break-all;">' + window._safeHtml(casualUrl) + '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:1rem;">' +
-          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/'/g, "\\'") + '\');window.showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar Link</button>' +
-          '<a href="' + window._safeHtml((window._whatsappShareUrl ? window._whatsappShareUrl('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) : '#')) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
-        '</div>' +
-        '<button id="casual-qr-start-btn" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);">▶️ Iniciar Partida</button>' +
-        '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="margin-top:8px;padding:10px 20px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer;">Cancelar</button>' +
-      '</div>';
-
-    document.body.appendChild(qrOv);
-
-    // "Iniciar" button starts the match
-    var startBtn = document.getElementById('casual-qr-start-btn');
-    if (startBtn) {
-      startBtn.onclick = function() {
-        var qrOvEl = document.getElementById('casual-qr-overlay');
-        if (qrOvEl) qrOvEl.remove();
-
-        // Update Firestore status to active
-        if (casualDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
-          window.FirestoreDB.updateCasualMatch(casualDocId, { status: 'active' });
-        }
-
-        // Open live scoring in casual mode
-        window._openLiveScoring(null, null, {
-          casual: true,
-          scoring: cfg,
-          p1Name: n1,
-          p2Name: n2,
-          title: 'Partida Casual',
-          sportName: sportLabel,
-          isDoubles: isDoubles,
-          casualDocId: casualDocId,
-          roomCode: roomCode,
-          players: players
         });
-      };
+      } catch (e) { console.warn('Casual start save failed:', e); }
+    } else if (_sessionDocId) {
+      // Update existing match to active with current players
+      try {
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, { status: 'active', players: players, scoring: cfg, isDoubles: isDoubles });
+      } catch(e) {}
     }
+
+    // Close setup overlay
+    var ov = document.getElementById('casual-match-overlay');
+    if (ov) ov.remove();
+    var qrOv = document.getElementById('casual-qr-overlay');
+    if (qrOv) qrOv.remove();
+
+    // Open live scoring
+    window._openLiveScoring(null, null, {
+      casual: true,
+      scoring: cfg,
+      p1Name: n1,
+      p2Name: n2,
+      title: 'Partida Casual',
+      sportName: sportLabel,
+      isDoubles: isDoubles,
+      casualDocId: _sessionDocId,
+      roomCode: _sessionRoomCode,
+      players: players
+    });
   };
 
   // Build overlay
