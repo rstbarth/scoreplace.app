@@ -720,7 +720,7 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Placar ao vivo redesenhado</b> — 2 placas brancas separadas com fonte gigante. Games em box abaixo. Bola do sacador à esquerda do nome. Singles usa "Adversário 1". Nomes consistentes em todas as telas.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +

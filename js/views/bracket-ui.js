@@ -2759,7 +2759,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   // Content area (no info bar — sets are in header now)
   overlay.innerHTML = headerHtml +
-    '<div id="live-score-content" style="flex:1;overflow-y:auto;padding:1rem 0.75rem;display:flex;flex-direction:column;justify-content:center;-webkit-overflow-scrolling:touch;"></div>';
+    '<div id="live-score-content" style="flex:1;overflow:hidden;padding:0.5rem 0.5rem;display:flex;flex-direction:column;justify-content:center;"></div>';
 
   document.body.appendChild(overlay);
 
