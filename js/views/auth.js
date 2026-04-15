@@ -957,7 +957,8 @@ async function simulateLoginSuccess(user) {
 
     btnLogin.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
-        '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;">' +
+        '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+        '<div style="display:none;width:32px;height:32px;border-radius:50%;background:var(--primary-color);color:white;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;">👤</div>' +
         '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + _sh(displayFirstName) + '</span>' +
       '</div>' +
       '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +

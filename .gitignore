@@ -2,3 +2,4 @@
 .claude/
 *.backup
 outputs/
+functions/node_modules/

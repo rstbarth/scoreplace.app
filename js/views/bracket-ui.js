@@ -3201,10 +3201,12 @@ window._openCasualMatch = function() {
     }
   }
 
-  // State — default to doubles ON
+  // State — default to doubles ON, sortear ON, misto OFF
   var selectedSport = initialSport;
   var spMatch = sports.find(function(s) { return s.key === initialSport; });
   var isDoubles = spMatch ? spMatch.defaultDoubles : true;
+  var autoShuffle = true;
+  var isMisto = false;
   var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual)
@@ -3245,43 +3247,69 @@ window._openCasualMatch = function() {
     var content = document.getElementById('casual-setup-content');
     if (!content) return;
 
-    // Sport buttons
-    var sportBtns = '';
-    for (var i = 0; i < sports.length; i++) {
-      var sp = sports[i];
-      var isActive = sp.key === selectedSport;
-      sportBtns += '<button onclick="window._casualSelectSport(\'' + sp.key.replace(/'/g, "\\'") + '\')" style="' +
-        'padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;' +
-        'border:2px solid ' + (isActive ? '#fbbf24' : 'rgba(255,255,255,0.12)') + ';' +
-        'background:' + (isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)') + ';' +
-        'color:' + (isActive ? '#fbbf24' : 'var(--text-muted)') + ';font-weight:' + (isActive ? '700' : '500') + ';' +
-        '">' + sp.icon + ' ' + sp.label + '</button>';
+    // Sport label for config summary
+    var sportIcon = '';
+    var sportLabel = selectedSport;
+    for (var si = 0; si < sports.length; si++) {
+      if (sports[si].key === selectedSport) { sportIcon = sports[si].icon; sportLabel = sports[si].label; break; }
     }
 
-    // Singles / Doubles toggle switch
-    var modeToggle =
-      '<div style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;">' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<span style="font-size:1.1rem;">' + (isDoubles ? '👥' : '👤') + '</span>' +
-          '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + (isDoubles ? 'Dupla' : 'Single') + '</span>' +
-        '</div>' +
-        '<label class="toggle-switch" style="--toggle-on-bg:#38bdf8;"><input type="checkbox" ' + (isDoubles ? 'checked' : '') + ' onchange="window._casualSetDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
-      '</div>';
+    // Toggles: Sortear + Misto (only for doubles)
+    var togglesHtml = '';
+    if (isDoubles) {
+      togglesHtml =
+        '<div style="margin-bottom:1.2rem;display:flex;flex-direction:column;gap:8px;">' +
+          // Sortear toggle
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-size:1rem;">🔀</span>' +
+              '<div>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">Sortear Duplas</span>' +
+                '<div style="font-size:0.65rem;color:var(--text-muted);">Times definidos ao iniciar</div>' +
+              '</div>' +
+            '</div>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#fbbf24;"><input type="checkbox" ' + (autoShuffle ? 'checked' : '') + ' onchange="window._casualSetShuffle(this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // Misto toggle
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(192,132,252,0.05);border:1px solid rgba(192,132,252,0.12);">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-size:1rem;">⚤</span>' +
+              '<div>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">Misto</span>' +
+                '<div style="font-size:0.65rem;color:var(--text-muted);">Duplas com homem e mulher</div>' +
+              '</div>' +
+            '</div>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#c084fc;"><input type="checkbox" ' + (isMisto ? 'checked' : '') + ' onchange="window._casualSetMisto(this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+        '</div>';
+    }
 
     // Player names
     var playersHtml = '';
-    if (isDoubles) {
+    if (isDoubles && autoShuffle) {
+      // Sortear ON: 4 players without team assignment
       playersHtml =
-        '<div style="margin-bottom:1.5rem;">' +
+        '<div style="margin-bottom:1.2rem;">' +
+          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Participantes</label>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '<input type="text" id="casual-p1b-name" placeholder="Jogador 2" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '<input type="text" id="casual-p2a-name" placeholder="Jogador 3" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '<input type="text" id="casual-p2b-name" placeholder="Jogador 4" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+          '</div>' +
+          '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar a partida</div>' +
+        '</div>';
+    } else if (isDoubles && !autoShuffle) {
+      // Sortear OFF: manual team assignment
+      playersHtml =
+        '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Duplas</label>' +
           '<div style="display:flex;gap:12px;">' +
-            // Team 1
             '<div style="flex:1;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:10px;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#60a5fa;margin-bottom:6px;text-align:center;">Time 1</div>' +
-              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Eu" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
+              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
               '<input type="text" id="casual-p1b-name" placeholder="Parceiro" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '</div>' +
-            // Team 2
             '<div style="flex:1;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px;">' +
               '<div style="font-size:0.72rem;font-weight:700;color:#f87171;margin-bottom:6px;text-align:center;">Time 2</div>' +
               '<input type="text" id="casual-p2a-name" placeholder="Adversário 1" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:0.85rem;font-weight:600;outline:none;margin-bottom:6px;box-sizing:border-box;">' +
@@ -3290,58 +3318,53 @@ window._openCasualMatch = function() {
           '</div>' +
         '</div>';
     } else {
+      // Singles
       playersHtml =
-        '<div style="margin-bottom:1.5rem;">' +
+        '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;">' +
-            '<div style="display:flex;align-items:center;gap:10px;">' +
-              '<div style="width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,0.2);color:#60a5fa;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">1</div>' +
-              '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
-            '</div>' +
-            '<div style="display:flex;align-items:center;gap:10px;">' +
-              '<div style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.2);color:#f87171;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">2</div>' +
-              '<input type="text" id="casual-p2-name" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
-            '</div>' +
+          '<div style="display:flex;gap:10px;">' +
+            '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '<input type="text" id="casual-p2-name" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
           '</div>' +
         '</div>';
     }
 
+    var casualUrl = (window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + _sessionRoomCode;
+
     content.innerHTML =
-      // Sport picker
-      '<div style="margin-bottom:1.5rem;">' +
-        '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Modalidade</label>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + sportBtns + '</div>' +
-      '</div>' +
-
-      // Singles/Doubles
-      modeToggle +
-
-      // Config summary + gear
-      '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px 16px;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;">' +
+      // Config summary: sport + mode + scoring in one compact row
+      '<div onclick="window._casualOpenConfig()" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:10px 14px;margin-bottom:1.2rem;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
+        '<div style="font-size:1.3rem;flex-shrink:0;">' + sportIcon + '</div>' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:0.72rem;font-weight:600;color:#818cf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Configuração do Jogo</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-bright);">' + window._safeHtml(_configSummary()) + '</div>' +
+          '<div style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + window._safeHtml(sportLabel) + ' · ' + (isDoubles ? 'Dupla' : 'Single') + '</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + window._safeHtml(_configSummary()) + '</div>' +
         '</div>' +
-        '<button onclick="window._casualOpenConfig()" style="width:42px;height:42px;border-radius:50%;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#818cf8;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Configurar">⚙️</button>' +
+        '<div style="color:#818cf8;font-size:1.1rem;flex-shrink:0;">⚙️</div>' +
       '</div>' +
+
+      // Toggles: Sortear, Misto (doubles only)
+      togglesHtml +
 
       // Players
       playersHtml +
 
-      // Inline QR code for quick invite
-      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;">' +
-        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent((window.SCOREPLACE_URL || 'https://scoreplace.app') + '/#casual/' + _sessionRoomCode) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:80px;height:80px;border-radius:10px;flex-shrink:0;" />' +
+      // Inline QR code + room code for quick invite
+      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:12px;">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;" />' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:0.72rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Código da Sala</div>' +
-          '<div style="font-size:1.4rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">Peça para escanear o QR ou compartilhe o código</div>' +
+          '<div style="font-size:0.68rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Código da Sala</div>' +
+          '<div style="font-size:1.3rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+          '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:2px;">Peça para escanear ou compartilhe</div>' +
         '</div>' +
       '</div>' +
 
-      // Action buttons row
-      '<div style="display:flex;gap:8px;margin-bottom:1rem;">' +
-        '<button onclick="window._casualInvite()" style="flex:1;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:5px;">📲 Convidar</button>' +
-        (isDoubles ? '<button onclick="window._casualShuffle()" style="flex:1;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(251,191,36,0.3);cursor:pointer;background:rgba(251,191,36,0.1);color:#fbbf24;display:flex;align-items:center;justify-content:center;gap:5px;">🔀 Sortear</button>' : '') +
+      // Convidar button
+      '<button onclick="window._casualInvite()" style="width:100%;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:0.8rem;">📲 Convidar (copiar link / WhatsApp)</button>' +
+
+      // Join room input
+      '<div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;">' +
+        '<input type="text" id="casual-join-code" placeholder="Código da sala de um amigo" maxlength="8" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.9rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;" />' +
+        '<button onclick="window._casualJoinRoom()" style="padding:10px 16px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">Entrar</button>' +
       '</div>' +
 
       // Start button
@@ -3350,22 +3373,54 @@ window._openCasualMatch = function() {
       '</button>';
   }
 
+  // Track if config screen is open
+  var _configOpen = false;
+
   // Sport selection handler — also resets doubles default
   window._casualSelectSport = function(key) {
     selectedSport = key;
     var sp = sports.find(function(s) { return s.key === key; });
     if (sp) isDoubles = sp.defaultDoubles;
-    _renderSetup();
+    if (_configOpen) window._casualOpenConfig();
+    else _renderSetup();
   };
 
   // Doubles toggle
   window._casualSetDoubles = function(val) {
     isDoubles = val;
+    if (_configOpen) window._casualOpenConfig();
+    else _renderSetup();
+  };
+
+  // Shuffle toggle
+  window._casualSetShuffle = function(val) {
+    autoShuffle = val;
     _renderSetup();
+  };
+
+  // Misto toggle
+  window._casualSetMisto = function(val) {
+    isMisto = val;
+  };
+
+  // Join a friend's room by code
+  window._casualJoinRoom = function() {
+    var inp = document.getElementById('casual-join-code');
+    if (!inp) return;
+    var code = (inp.value || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (code.length >= 4) {
+      var ov = document.getElementById('casual-match-overlay');
+      if (ov) ov.remove();
+      window.location.hash = '#casual/' + code;
+    } else {
+      inp.style.borderColor = '#ef4444';
+      setTimeout(function() { inp.style.borderColor = 'rgba(255,255,255,0.12)'; }, 1000);
+    }
   };
 
   // Config gear handler — opens inline config editor
   window._casualOpenConfig = function() {
+    _configOpen = true;
     var cfg = _getConfig();
     var content = document.getElementById('casual-setup-content');
     if (!content) return;
@@ -3373,11 +3428,39 @@ window._openCasualMatch = function() {
     var isSimple = !cfg.type || cfg.type !== 'sets';
     var tr = cfg.tieRule || 'ask';
 
+    // Sport buttons for config screen
+    var cfgSportBtns = '';
+    for (var csi = 0; csi < sports.length; csi++) {
+      var csp = sports[csi];
+      var csActive = csp.key === selectedSport;
+      cfgSportBtns += '<button onclick="window._casualSelectSport(\'' + csp.key.replace(/'/g, "\\'") + '\')" style="' +
+        'padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;' +
+        'border:2px solid ' + (csActive ? '#fbbf24' : 'rgba(255,255,255,0.12)') + ';' +
+        'background:' + (csActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)') + ';' +
+        'color:' + (csActive ? '#fbbf24' : 'var(--text-muted)') + ';font-weight:' + (csActive ? '700' : '500') + ';' +
+        '">' + csp.icon + ' ' + csp.label + '</button>';
+    }
+
     content.innerHTML =
       '<div style="margin-bottom:1rem;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">' +
           '<div style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">⚙️ Configuração</div>' +
           '<button onclick="window._casualCloseConfig()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+        '</div>' +
+
+        // Sport picker
+        '<div style="margin-bottom:1rem;">' +
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Modalidade</label>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + cfgSportBtns + '</div>' +
+        '</div>' +
+
+        // Dupla toggle
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.12);margin-bottom:1rem;">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:1rem;">' + (isDoubles ? '👥' : '👤') + '</span>' +
+            '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + (isDoubles ? 'Dupla' : 'Single') + '</span>' +
+          '</div>' +
+          '<label class="toggle-switch" style="--toggle-on-bg:#38bdf8;"><input type="checkbox" ' + (isDoubles ? 'checked' : '') + ' onchange="window._casualSetDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
         '</div>' +
 
         // Scoring type
@@ -3420,25 +3503,15 @@ window._openCasualMatch = function() {
               '<button onclick="window._casualSetCfg(\'countingType\',\'numeric\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType !== 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">1-2-3</button>' +
             '</div>' +
           '</div>' +
-          // Advantage rule
+          // Tie-break toggle (default ON)
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Vantagem (AD)</span>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Tie-break</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.tieRule === 'tiebreak' || cfg.tiebreakEnabled ? 'checked' : '') + ' onchange="window._casualSetCfg(\'tieRule\',this.checked?\'tiebreak\':\'ask\');window._casualSetCfg(\'tiebreakEnabled\',this.checked)"><span class="toggle-slider"></span></label>' +
           '</div>' +
-          // Tie rule — what happens at (games-1) x (games-1)
-          '<div style="margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">' +
-            '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Empate ' + ((cfg.gamesPerSet || 6) - 1) + '×' + ((cfg.gamesPerSet || 6) - 1) + ' — como desempatar?</label>' +
-            '<div style="display:flex;flex-direction:column;gap:6px;">' +
-              ['ask','extend','tiebreak'].map(function(rule) {
-                var active = tr === rule;
-                var label = _tieRuleLabels[rule];
-                var desc = { ask: 'Escolher na hora do empate', extend: 'Continuar até vantagem de 2 games', tiebreak: 'Tie-break a 7 pontos (margem de 2)' }[rule];
-                return '<button onclick="window._casualSetCfg(\'tieRule\',\'' + rule + '\')" style="text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;border:2px solid ' + (active ? '#c084fc' : 'rgba(255,255,255,0.08)') + ';background:' + (active ? 'rgba(192,132,252,0.1)' : 'rgba(255,255,255,0.02)') + ';">' +
-                  '<div style="font-size:0.82rem;font-weight:600;color:' + (active ? '#c084fc' : 'var(--text-bright)') + ';">' + label + '</div>' +
-                  '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">' + desc + '</div>' +
-                '</button>';
-              }).join('') +
-            '</div>' +
+          // 2-point advantage toggle
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">Vantagem de 2 pontos</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
           '</div>' +
         '</div>'
         ) +
@@ -3479,6 +3552,7 @@ window._openCasualMatch = function() {
   }
 
   window._casualCloseConfig = function() {
+    _configOpen = false;
     _tempCfg = null;
     _renderSetup();
   };
@@ -3606,10 +3680,26 @@ window._openCasualMatch = function() {
   // Start the match (directly opens live scoring)
   window._casualStart = async function() {
     var players = _buildPlayers();
+
+    // Auto-shuffle teams if enabled (Fisher-Yates on 4 players, assign teams)
+    if (isDoubles && autoShuffle && players.length === 4) {
+      for (var j = players.length - 1; j > 0; j--) {
+        var k = Math.floor(Math.random() * (j + 1));
+        var tmp = players[j]; players[j] = players[k]; players[k] = tmp;
+      }
+      players[0].team = 1; players[0].slot = 0;
+      players[1].team = 1; players[1].slot = 1;
+      players[2].team = 2; players[2].slot = 2;
+      players[3].team = 2; players[3].slot = 3;
+      if (typeof showNotification === 'function') showNotification('Duplas sorteadas!', players[0].name + ' + ' + players[1].name + '  vs  ' + players[2].name + ' + ' + players[3].name, 'success');
+    }
+
     var n1, n2;
     if (isDoubles) {
-      n1 = players[0].name + ' / ' + players[1].name;
-      n2 = players[2].name + ' / ' + players[3].name;
+      var t1 = players.filter(function(p) { return p.team === 1; });
+      var t2 = players.filter(function(p) { return p.team === 2; });
+      n1 = t1.map(function(p) { return p.name; }).join(' / ');
+      n2 = t2.map(function(p) { return p.name; }).join(' / ');
     } else {
       n1 = players[0].name;
       n2 = players[1].name;
@@ -3684,6 +3774,26 @@ window._openCasualMatch = function() {
 
   document.body.appendChild(overlay);
   _renderSetup();
+
+  // Auto-save to Firestore immediately so QR code works before clicking anything
+  if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
+    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
+    window.FirestoreDB.saveCasualMatch({
+      createdBy: cu.uid,
+      createdByName: cu.displayName || '',
+      createdAt: new Date().toISOString(),
+      sport: sportLabel,
+      scoring: _getConfig(),
+      isDoubles: isDoubles,
+      players: [],
+      playerUids: [cu.uid],
+      roomCode: _sessionRoomCode,
+      status: 'waiting',
+      result: null
+    }).then(function(docId) {
+      if (docId) _sessionDocId = docId;
+    }).catch(function() {});
+  }
 
   setTimeout(function() {
     var el = isDoubles ? document.getElementById('casual-p2a-name') : document.getElementById('casual-p2-name');
