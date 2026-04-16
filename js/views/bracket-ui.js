@@ -3911,8 +3911,8 @@ window._openCasualMatch = function() {
           '</div>' +
           // Join room input row
           '<div style="display:flex;gap:4px;align-items:center;">' +
-            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="8" style="flex:1;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;min-width:0;" />' +
-            '<button onclick="window._casualJoinRoom()" style="padding:6px 10px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
+            '<input type="text" id="casual-join-code" placeholder="CÓDIGO" maxlength="6" style="width:6.5ch;padding:5px 6px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:content-box;" />' +
+            '<button onclick="window._casualJoinRoom()" style="padding:5px 8px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.68rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
