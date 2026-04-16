@@ -1,33 +1,31 @@
-window.SCOREPLACE_VERSION = '0.10.91-alpha';
+window.SCOREPLACE_VERSION = '0.10.92-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
+// Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
+// If remote version differs, nukes SW caches, unregisters old SW, and reloads.
 (function() {
-  // Fetch index.html fresh (bypass cache) and extract version from store.js
-  // Only check once per session, after a small delay
-  var checked = sessionStorage.getItem('_versionChecked');
-  if (!checked) {
-    setTimeout(function() {
-      sessionStorage.setItem('_versionChecked', '1');
-      fetch('/js/store.js?_t=' + Date.now(), { cache: 'no-store' }).then(function(r) {
-        return r.text();
-      }).then(function(txt) {
-        var m = txt.match(/SCOREPLACE_VERSION\s*=\s*'([^']+)'/);
-        if (m && m[1] && m[1] !== window.SCOREPLACE_VERSION) {
-          console.log('[AutoUpdate] New version available:', m[1], '(current:', window.SCOREPLACE_VERSION + ')');
-          // Clear all SW caches and reload
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-            }).then(function() {
-              window.location.reload();
-            });
-          } else {
-            window.location.reload();
-          }
-        }
-      }).catch(function() {});
-    }, 3000);
-  }
+  setTimeout(function() {
+    fetch('/js/store.js?_t=' + Date.now(), { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('fetch failed');
+      return r.text();
+    }).then(function(txt) {
+      var m = txt.match(/SCOREPLACE_VERSION\s*=\s*'([^']+)'/);
+      if (m && m[1] && m[1] !== window.SCOREPLACE_VERSION) {
+        console.log('[AutoUpdate] New version:', m[1], '(running:', window.SCOREPLACE_VERSION + '). Updating...');
+        // 1. Nuke all SW caches
+        var p1 = ('caches' in window) ? caches.keys().then(function(keys) {
+          return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }) : Promise.resolve();
+        // 2. Unregister all service workers
+        var p2 = ('serviceWorker' in navigator) ? navigator.serviceWorker.getRegistrations().then(function(regs) {
+          return Promise.all(regs.map(function(r) { return r.unregister(); }));
+        }) : Promise.resolve();
+        Promise.all([p1, p2]).then(function() {
+          window.location.reload();
+        });
+      }
+    }).catch(function() {});
+  }, 1000);
 })();
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
