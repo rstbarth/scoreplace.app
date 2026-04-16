@@ -3500,27 +3500,32 @@ window._openCasualMatch = function() {
         '</div>';
       }
 
-      var cardsHtml =
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-          _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
-        '</div>';
+      var cardsHtml;
+      if (_teamsFormed) {
+        // Teams formed: T1 stacked left, T2 stacked right
+        var _t1Idxs = [], _t2Idxs = [];
+        for (var _gi = 0; _gi < 4; _gi++) {
+          if (_teamAssignments[_gi] === 1) _t1Idxs.push(_gi);
+          else _t2Idxs.push(_gi);
+        }
+        cardsHtml =
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            _buildSetupCard(_t1Idxs[0]) + _buildSetupCard(_t2Idxs[0]) +
+            _buildSetupCard(_t1Idxs[1]) + _buildSetupCard(_t2Idxs[1]) +
+          '</div>';
+      } else {
+        cardsHtml =
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
+          '</div>';
+      }
 
       var subtitle;
       if (autoShuffle) {
         subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar</div>';
       } else if (_teamsFormed) {
-        // Show team names
-        var _t1Names = [], _t2Names = [];
-        for (var _ti = 0; _ti < 4; _ti++) {
-          var _nm = inputValues[_ti] || inputPlaceholders[_ti];
-          if (_teamAssignments[_ti] === 1) _t1Names.push(_nm);
-          else _t2Names.push(_nm);
-        }
-        subtitle = '<div style="font-size:0.7rem;margin-top:6px;text-align:center;">' +
-          '<span style="color:#60a5fa;font-weight:700;">' + window._safeHtml(_t1Names.join(' + ')) + '</span>' +
-          '<span style="color:var(--text-muted);"> vs </span>' +
-          '<span style="color:#f87171;font-weight:700;">' + window._safeHtml(_t2Names.join(' + ')) + '</span>' +
-          ' <span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;font-size:0.6rem;text-decoration:underline;margin-left:4px;">desfazer</span>' +
+        subtitle = '<div style="font-size:0.65rem;margin-top:6px;text-align:center;">' +
+          '<span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;text-decoration:underline;">desfazer</span>' +
           '</div>';
       } else {
         subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>';
