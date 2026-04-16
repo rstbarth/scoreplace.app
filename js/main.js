@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fechar e Resetar sempre disponíveis</b> — Botão Fechar sempre confirma "Deseja abandonar a partida casual?" antes de sair. Resetar confirma "Deseja reiniciar a contagem?" antes de zerar. Ambos funcionam em qualquer estado da partida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Games visíveis em portrait</b> — Box de games movido para acima das placas de placar em portrait, garantindo visibilidade em qualquer tamanho de tela. Corrigido bug de variáveis leftTeam/rightTeam usadas antes da declaração (cores dos games ignoravam lado da quadra).</p>' +
         '</div>' +

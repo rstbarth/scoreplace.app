@@ -3299,11 +3299,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
-  // Reset handler: zero all points, restart from scratch
+  // Reset handler: zero all points, restart from scratch — always available
   window._liveScoreReset = function() {
     showConfirmDialog(
-      'Resetar placar?',
-      'Todos os pontos marcados serão zerados.',
+      'Reiniciar contagem?',
+      'Deseja reiniciar a contagem? Todos os pontos marcados serão zerados.',
       function() {
         state.sets = [{ gamesP1: 0, gamesP2: 0, tiebreak: null }];
         state.currentGameP1 = 0;
@@ -3355,7 +3355,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   document.body.appendChild(overlay);
 
-  // Close handler
+  // Close handler — always confirms before leaving
   window._closeLiveScoring = function() {
     var _cleanup = function() {
       if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
@@ -3363,15 +3363,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
     };
-    if (!state.isFinished && (state.currentGameP1 > 0 || state.currentGameP2 > 0 || state.sets.length > 1)) {
-      showConfirmDialog(
-        'Sair do placar ao vivo?',
-        'O progresso será perdido.',
-        _cleanup
-      );
-    } else {
-      _cleanup();
-    }
+    showConfirmDialog(
+      'Abandonar partida?',
+      'Deseja abandonar a partida casual?',
+      _cleanup
+    );
   };
 
   // Re-render on orientation/resize change for landscape layout
