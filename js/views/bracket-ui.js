@@ -3379,12 +3379,22 @@ window._openCasualMatch = function() {
     // Player names
     var playersHtml = '';
     if (isDoubles && autoShuffle) {
-      // Sortear ON: 4 players without team assignment
+      // Sortear ON: 4 players without team assignment — first field shows current user with avatar
+      var _cuAvatarSmall = '';
+      if (cu && cu.photoURL) {
+        _cuAvatarSmall = '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;position:absolute;left:8px;top:50%;transform:translateY(-50%);border:1.5px solid rgba(56,189,248,0.3);" onerror="this.style.display=\'none\'">';
+      } else if (cu && cu.displayName) {
+        _cuAvatarSmall = '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;position:absolute;left:8px;top:50%;transform:translateY(-50%);">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>';
+      }
+      var _hasAvatar = !!(cu && (cu.photoURL || cu.displayName));
+      var _inputPadLeft = _hasAvatar ? 'padding-left:38px;' : '';
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Participantes</label>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '<div style="position:relative;">' + _cuAvatarSmall +
+              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 12px;' + _inputPadLeft + 'border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '</div>' +
             '<input type="text" id="casual-p1b-name" placeholder="Jogador 2" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '<input type="text" id="casual-p2a-name" placeholder="Jogador 3" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '<input type="text" id="casual-p2b-name" placeholder="Jogador 4" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
@@ -3443,12 +3453,21 @@ window._openCasualMatch = function() {
           '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste ou toque nos jogadores para mover entre times</div>' +
         '</div>';
     } else {
-      // Singles
+      // Singles — show current user avatar next to their input
+      var _cuAvatarSingles = '';
+      if (cu && cu.photoURL) {
+        _cuAvatarSingles = '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;position:absolute;left:10px;top:50%;transform:translateY(-50%);border:1.5px solid rgba(59,130,246,0.3);" onerror="this.style.display=\'none\'">';
+      } else if (cu && cu.displayName) {
+        _cuAvatarSingles = '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:700;position:absolute;left:10px;top:50%;transform:translateY(-50%);">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>';
+      }
+      var _hasSinglesAvatar = !!(cu && (cu.photoURL || cu.displayName));
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
           '<div style="display:flex;gap:10px;">' +
-            '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
+              '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '</div>' +
             '<input type="text" id="casual-p2-name" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
           '</div>' +
         '</div>';
@@ -3823,32 +3842,37 @@ window._openCasualMatch = function() {
       var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
       var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
       var b2 = ((document.getElementById('casual-p2b-name') || {}).value || '').trim();
-      // Try to match input names with lobby participants to get their photoURL
-      var _findLobbyPhoto = function(name) {
-        if (!name) return null;
+      // Try to match input names with lobby participants to get their uid+photoURL
+      var _findLobbyMatch = function(name) {
+        if (!name) return { uid: null, photoURL: null };
         for (var li = 0; li < _lobbyParticipants.length; li++) {
           var lp = _lobbyParticipants[li];
-          if (lp.displayName && lp.displayName.split(' ')[0] === name) return lp.photoURL || null;
+          if (lp.displayName && (lp.displayName.split(' ')[0] === name || lp.displayName === name)) return { uid: lp.uid || null, photoURL: lp.photoURL || null };
         }
-        return null;
+        return { uid: null, photoURL: null };
       };
-      players.push({ slot: 0, name: a1 || 'Jogador 1', team: 1, uid: (cu && a1 && a1 === ((cu.displayName || '').split(' ')[0])) ? cu.uid : null, photoURL: (cu && a1 && a1 === ((cu.displayName || '').split(' ')[0])) ? cu.photoURL || null : _findLobbyPhoto(a1) });
-      players.push({ slot: 1, name: b1 || 'Parceiro', team: 1, uid: null, photoURL: _findLobbyPhoto(b1) });
-      players.push({ slot: 2, name: a2 || 'Adversário 1', team: 2, uid: null, photoURL: _findLobbyPhoto(a2) });
-      players.push({ slot: 3, name: b2 || 'Adversário 2', team: 2, uid: null, photoURL: _findLobbyPhoto(b2) });
+      var _findLobbyPhoto = function(name) { return _findLobbyMatch(name).photoURL; };
+      // Current user match: check first name or full displayName
+      var _cuFirstName = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
+      var _isCuName = function(name) { return cu && name && (name === _cuFirstName || name === cu.displayName); };
+      players.push({ slot: 0, name: a1 || 'Jogador 1', team: 1, uid: _isCuName(a1) ? cu.uid : _findLobbyMatch(a1).uid, photoURL: _isCuName(a1) ? cu.photoURL || null : _findLobbyPhoto(a1) });
+      players.push({ slot: 1, name: b1 || 'Parceiro', team: 1, uid: _isCuName(b1) ? cu.uid : _findLobbyMatch(b1).uid, photoURL: _isCuName(b1) ? cu.photoURL || null : _findLobbyPhoto(b1) });
+      players.push({ slot: 2, name: a2 || 'Adversário 1', team: 2, uid: _isCuName(a2) ? cu.uid : _findLobbyMatch(a2).uid, photoURL: _isCuName(a2) ? cu.photoURL || null : _findLobbyPhoto(a2) });
+      players.push({ slot: 3, name: b2 || 'Adversário 2', team: 2, uid: _isCuName(b2) ? cu.uid : _findLobbyMatch(b2).uid, photoURL: _isCuName(b2) ? cu.photoURL || null : _findLobbyPhoto(b2) });
     } else {
       var n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
       var n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
-      var _findLobbyPhoto2 = function(name) {
-        if (!name) return null;
+      var _findLobbyMatch2 = function(name) {
+        if (!name) return { uid: null, photoURL: null };
         for (var li = 0; li < _lobbyParticipants.length; li++) {
           var lp = _lobbyParticipants[li];
-          if (lp.displayName && lp.displayName.split(' ')[0] === name) return lp.photoURL || null;
+          if (lp.displayName && (lp.displayName.split(' ')[0] === name || lp.displayName === name)) return { uid: lp.uid || null, photoURL: lp.photoURL || null };
         }
-        return null;
+        return { uid: null, photoURL: null };
       };
       players.push({ slot: 0, name: n1, team: 1, uid: (cu && cu.uid) ? cu.uid : null, photoURL: cu ? cu.photoURL || null : null });
-      players.push({ slot: 1, name: n2, team: 2, uid: null, photoURL: _findLobbyPhoto2(n2) });
+      var _n2Match = _findLobbyMatch2(n2);
+      players.push({ slot: 1, name: n2, team: 2, uid: _n2Match.uid, photoURL: _n2Match.photoURL });
     }
     return players;
   }
@@ -4062,11 +4086,16 @@ window._openCasualMatch = function() {
 
   overlay.innerHTML =
     '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<span style="font-size:1.3rem;">📡</span>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        (cu && cu.photoURL ?
+          '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(56,189,248,0.4);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+          '<div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
+        : cu ?
+          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
+        : '<span style="font-size:1.3rem;">📡</span>') +
         '<div>' +
           '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">Partida Casual</div>' +
-          '<div style="font-size:0.68rem;color:var(--text-muted);">Sem torneio — placar ao vivo</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : 'Sem torneio — placar ao vivo') + '</div>' +
         '</div>' +
       '</div>' +
       '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +

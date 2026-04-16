@@ -764,6 +764,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.66-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Perfil consistente na Partida Casual</b> — Foto e nome do usuário logado exibidos de forma consistente em TODAS as telas: header do setup com avatar e nome completo, inputs de jogador com avatar inline, e matching robusto de perfil (uid + primeiro nome + displayName completo) para fotos no placar ao vivo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Partida Casual completa + Manual atualizado</b> — Placar ao vivo ponto a ponto em tela cheia (sets, games, tie-break, prorrogação). Lobby em tempo real via QR Code e código de sala. Montagem de times por drag-and-drop ou sorteio automático. Fotos de perfil em todas as telas. Ordem de saque com slots fixos por time e correção durante a partida. Empate oferece Prorrogar ou Tie-break. Badge ⭐ PRO e 📊 Estatísticas na dashboard. Nova seção "Partida Casual" no manual de ajuda. 8 novas dicas contextuais para partidas casuais (152 total).</p>' +
         '</div>' +
