@@ -1747,12 +1747,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var isDoubles = p1Players.length > 1 || p2Players.length > 1 || !!(opts && opts.isDoubles);
   // Default names when empty
   if (isDoubles) {
-    if (p1Players.length === 0) p1Players = ['Eu', 'Parceiro'];
+    if (p1Players.length === 0) p1Players = ['Jogador 1', 'Parceiro'];
     if (p1Players.length === 1) p1Players.push('Parceiro');
     if (p2Players.length === 0) p2Players = ['Adversário 1', 'Adversário 2'];
     if (p2Players.length === 1) p2Players.push('Adversário 2');
   } else {
-    if (p1Players.length === 0) p1Players = ['Eu'];
+    if (p1Players.length === 0) p1Players = ['Jogador 1'];
     if (p2Players.length === 0) p2Players = ['Adversário 1'];
   }
 
@@ -2627,21 +2627,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
       gamesP2Str = String(cs.gamesP2);
     }
 
-    // Sets display — inline above plates
+    // Sets display — suppressed (already shown in the games box below)
     var setsRow = '';
-    if (useSets && !state.isFixedSet) {
-      var setPills = '';
-      for (var si = 0; si < state.sets.length; si++) {
-        var ss = state.sets[si];
-        var isCurSet = (si === state.sets.length - 1) && !state.isFinished;
-        var tbS = ss.tiebreak ? '<sup style="font-size:0.5rem;color:#888;">(' + ss.tiebreak.p1 + '-' + ss.tiebreak.p2 + ')</sup>' : '';
-        setPills += '<div style="padding:3px 8px;border-radius:6px;background:' + (isCurSet ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)') + ';text-align:center;">' +
-          '<span style="font-size:0.55rem;color:var(--text-muted);margin-right:3px;">S' + (si + 1) + '</span>' +
-          '<span style="font-size:0.85rem;font-weight:800;color:var(--text-bright);">' + ss.gamesP1 + '-' + ss.gamesP2 + tbS + '</span>' +
-        '</div>';
-      }
-      setsRow = '<div style="display:flex;gap:4px;align-items:center;justify-content:center;margin-bottom:clamp(4px,1.5vh,10px);">' + setPills + '</div>';
-    }
 
     // Serving info
     var serverInfo = _getCurrentServer();
@@ -2661,13 +2648,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:0 4px;">' + lines + '</div>';
     };
 
-    // Arrow button builder
+    // Arrow button builder — larger in portrait for easier tapping
     var _upBtn = function(player) {
       var clr = player === 1 ? '#3b82f6' : '#ef4444';
-      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2.2rem;font-weight:900;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:62px;box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2.6rem;font-weight:900;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(68px,12vh,100px);box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
     };
     var _downBtn = function(player) {
-      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.85rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:32px;border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
+      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:1rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(36px,5vh,50px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
     };
 
     // Finish button
@@ -2703,12 +2690,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '</div>';
     }
 
-    // Score plate builder
+    // Score plate builder — larger padding and font for portrait mobile
     var _buildPlate = function(player) {
       var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
       var display = player === 1 ? p1Display : p2Display;
-      return '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(10px,3vh,24px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
-        '<span style="font-size:clamp(3.5rem,15vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+      return '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(16px,5vh,36px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+        '<span style="font-size:clamp(4rem,18vw,8rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
       '</div>';
     };
 
@@ -2777,6 +2764,21 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Append finish button at bottom
     if (finishBtn) {
       container.insertAdjacentHTML('beforeend', finishBtn);
+    }
+
+    // Show persistent tie-break button during Prorrogação (extend mode)
+    if (state.tieRule === 'extend' && !state.isFinished && !state.isTiebreak) {
+      var cs = _currentSet();
+      var tbLabel = cs.gamesP1 === cs.gamesP2 && cs.gamesP1 >= state.gamesPerSet - 1
+        ? 'Ir para Tie-break (' + cs.gamesP1 + '×' + cs.gamesP2 + ')'
+        : 'Tie-break';
+      container.insertAdjacentHTML('beforeend',
+        '<div style="padding:0 1rem 1rem;flex-shrink:0;">' +
+          '<button onclick="window._liveResolveTie(\'tiebreak\')" style="width:100%;padding:12px;border-radius:12px;font-size:0.85rem;font-weight:700;border:2px solid rgba(192,132,252,0.3);cursor:pointer;' +
+          'background:rgba(192,132,252,0.08);color:#c084fc;transition:background 0.2s;">' +
+          '⚡ ' + tbLabel +
+        '</button></div>'
+      );
     }
 
     // Sync state to Firestore for real-time collaboration
@@ -3939,7 +3941,7 @@ window._openCasualMatch = function() {
     // Collect current names
     var names = inputs.map(function(el) { return el ? (el.value || '').trim() : ''; });
     // Filter out empty, fill with defaults
-    var defaults = ['Eu', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+    var defaults = ['Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
     for (var i = 0; i < 4; i++) { if (!names[i]) names[i] = defaults[i]; }
     // Fisher-Yates shuffle
     for (var j = names.length - 1; j > 0; j--) {
@@ -3966,7 +3968,7 @@ window._openCasualMatch = function() {
           // Fill empty player slots with lobby participant names
           var usedLobby = 0;
           for (var pi = 0; pi < players.length; pi++) {
-            var defaultNames = ['Jogador 1', 'Jogador 2', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+            var defaultNames = ['Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
             var isDefault = !players[pi].name || defaultNames.indexOf(players[pi].name) !== -1;
             if (isDefault && usedLobby < lobbyNames.length) {
               players[pi].name = lobbyNames[usedLobby];
