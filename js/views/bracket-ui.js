@@ -3297,7 +3297,8 @@ window._openCasualMatch = function() {
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
   var _setupRefreshInterval = null;
-  // Team assignments for drag-and-drop (keyed by uid): { uid: 1 or 2 }
+  // Team assignments for drag-and-drop (keyed by card index 0-3): { idx: 1 or 2 }
+  // When empty, no teams formed yet. When set, idx→1 = Team 1 (blue), idx→2 = Team 2 (red).
   var _teamAssignments = {};
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual)
@@ -3464,30 +3465,38 @@ window._openCasualMatch = function() {
         return '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
       }
 
-      // When Sortear OFF and teams formed, show team color on cards
-      var _teamsFormed = false;
-      var team1 = [], team2 = [];
-      if (!autoShuffle) {
-        team1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
-        team2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
-        _teamsFormed = team1.length === 2 && team2.length === 2;
-      }
+      // Check if teams are formed (Sortear OFF drag-and-drop)
+      var _teamsFormed = !autoShuffle && _teamAssignments[0] !== undefined && _teamAssignments[1] !== undefined && _teamAssignments[2] !== undefined && _teamAssignments[3] !== undefined;
 
-      // Card style — when Sortear OFF, cards are draggable to form teams
-      var _cardStyle = 'display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);box-sizing:border-box;';
-      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
-      var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
+      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
 
-      // Setup screen: always neutral cards (no team colors). Teams decided later.
+      // Setup screen: neutral cards, or team-colored when teams formed via drag-and-drop
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
       var inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
       var inputValues = [p1Name, '', '', ''];
 
+      // Preserve input values across re-renders (drag-and-drop triggers _renderSetup)
+      for (var _ii = 0; _ii < inputIds.length; _ii++) {
+        var _el = document.getElementById(inputIds[_ii]);
+        if (_el) inputValues[_ii] = _el.value;
+      }
+
       function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
-        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);box-sizing:border-box;">' +
+        var team = _teamAssignments[ci]; // 1, 2, or undefined
+        var bg, bdr, textClr;
+        if (_teamsFormed && team === 1) {
+          bg = 'rgba(59,130,246,0.10)'; bdr = 'rgba(59,130,246,0.35)'; textClr = '#60a5fa';
+        } else if (_teamsFormed && team === 2) {
+          bg = 'rgba(239,68,68,0.10)'; bdr = 'rgba(239,68,68,0.35)'; textClr = '#f87171';
+        } else {
+          bg = 'rgba(255,255,255,0.04)'; bdr = 'rgba(255,255,255,0.12)'; textClr = 'var(--text-bright)';
+        }
+        var isDraggable = !autoShuffle;
+        var dragStyle = isDraggable ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;' : '';
+        return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
-          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
+          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + 'color:' + textClr + ';">' +
         '</div>';
       }
 
@@ -3496,9 +3505,26 @@ window._openCasualMatch = function() {
           _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
         '</div>';
 
-      var subtitle = autoShuffle
-        ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar</div>'
-        : '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Você + Jogador 2 vs Jogador 3 + Jogador 4</div>';
+      var subtitle;
+      if (autoShuffle) {
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar</div>';
+      } else if (_teamsFormed) {
+        // Show team names
+        var _t1Names = [], _t2Names = [];
+        for (var _ti = 0; _ti < 4; _ti++) {
+          var _nm = inputValues[_ti] || inputPlaceholders[_ti];
+          if (_teamAssignments[_ti] === 1) _t1Names.push(_nm);
+          else _t2Names.push(_nm);
+        }
+        subtitle = '<div style="font-size:0.7rem;margin-top:6px;text-align:center;">' +
+          '<span style="color:#60a5fa;font-weight:700;">' + window._safeHtml(_t1Names.join(' + ')) + '</span>' +
+          '<span style="color:var(--text-muted);"> vs </span>' +
+          '<span style="color:#f87171;font-weight:700;">' + window._safeHtml(_t2Names.join(' + ')) + '</span>' +
+          ' <span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;font-size:0.6rem;text-decoration:underline;margin-left:4px;">desfazer</span>' +
+          '</div>';
+      } else {
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>';
+      }
 
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
@@ -3581,76 +3607,80 @@ window._openCasualMatch = function() {
     }
   }
 
-  // Drag-and-drop to form teams: drag player A onto player B → "Formar time?"
-  // Once confirmed, A+B = team 1, remaining = team 2
-  var _teamDragUid = null;
+  // Drag-and-drop to form teams: drag player A onto player B → they become Team 1
+  // Remaining two automatically become Team 2. Current user always ends in Team 1.
+  var _teamDragIdx = null;
   var _teamDragGhost = null;
 
   function _setupDragDrop() {
-    var cards = document.querySelectorAll('[data-casual-uid]');
+    var cards = document.querySelectorAll('[data-casual-idx]');
     if (!cards.length) return;
 
-    // Helper: form team from two uids
-    function _formTeam(uid1, uid2) {
-      // Find display names for confirm dialog
-      var p1 = _lobbyParticipants.find(function(p) { return p.uid === uid1; });
-      var p2 = _lobbyParticipants.find(function(p) { return p.uid === uid2; });
-      if (!p1 || !p2 || uid1 === uid2) return;
-      var n1 = p1.displayName || 'Jogador';
-      var n2 = p2.displayName || 'Jogador';
-      showConfirmDialog('Formar time?', n1 + ' + ' + n2, function() {
-        // These two become team 1; remaining become team 2
-        _teamAssignments = {};
-        _teamAssignments[uid1] = 1;
-        _teamAssignments[uid2] = 1;
-        for (var li = 0; li < _lobbyParticipants.length; li++) {
-          var luid = _lobbyParticipants[li].uid;
-          if (luid !== uid1 && luid !== uid2) _teamAssignments[luid] = 2;
+    // Helper: form team from two card indices
+    function _formTeam(idx1, idx2) {
+      if (idx1 === idx2) return;
+      // Ensure current user (card 0) is always on Team 1
+      // If user card is in the pair → that pair is Team 1
+      // If user card is NOT in the pair → the pair is Team 2, user's pair is Team 1
+      var userInPair = (idx1 === 0 || idx2 === 0);
+      _teamAssignments = {};
+      if (userInPair) {
+        _teamAssignments[idx1] = 1;
+        _teamAssignments[idx2] = 1;
+        for (var i = 0; i < 4; i++) {
+          if (i !== idx1 && i !== idx2) _teamAssignments[i] = 2;
         }
-        _renderSetup();
-      });
+      } else {
+        // Dragged pair does NOT include user → they become Team 2, user's side = Team 1
+        _teamAssignments[idx1] = 2;
+        _teamAssignments[idx2] = 2;
+        for (var j = 0; j < 4; j++) {
+          if (j !== idx1 && j !== idx2) _teamAssignments[j] = 1;
+        }
+      }
+      _renderSetup();
     }
 
     // Desktop drag events
     cards.forEach(function(card) {
       card.addEventListener('dragstart', function(e) {
-        _teamDragUid = card.getAttribute('data-casual-uid');
+        _teamDragIdx = parseInt(card.getAttribute('data-casual-idx'));
         card.style.opacity = '0.4';
         e.dataTransfer.effectAllowed = 'move';
       });
       card.addEventListener('dragend', function() {
         card.style.opacity = '1';
-        _teamDragUid = null;
-        document.querySelectorAll('[data-casual-uid]').forEach(function(c) { c.style.transform = ''; });
+        _teamDragIdx = null;
+        document.querySelectorAll('[data-casual-idx]').forEach(function(c) { c.style.transform = ''; });
       });
       card.addEventListener('dragover', function(e) {
         e.preventDefault();
-        if (!_teamDragUid) return;
-        var targetUid = card.getAttribute('data-casual-uid');
-        if (targetUid !== _teamDragUid) card.style.transform = 'scale(1.05)';
+        if (_teamDragIdx === null) return;
+        var targetIdx = parseInt(card.getAttribute('data-casual-idx'));
+        if (targetIdx !== _teamDragIdx) card.style.transform = 'scale(1.05)';
       });
       card.addEventListener('dragleave', function() { card.style.transform = ''; });
       card.addEventListener('drop', function(e) {
         e.preventDefault();
         card.style.transform = '';
-        if (!_teamDragUid) return;
-        var targetUid = card.getAttribute('data-casual-uid');
-        if (targetUid === _teamDragUid) return;
-        var srcUid = _teamDragUid;
-        _teamDragUid = null;
-        _formTeam(srcUid, targetUid);
+        if (_teamDragIdx === null) return;
+        var targetIdx = parseInt(card.getAttribute('data-casual-idx'));
+        if (targetIdx === _teamDragIdx) return;
+        var srcIdx = _teamDragIdx;
+        _teamDragIdx = null;
+        _formTeam(srcIdx, targetIdx);
       });
     });
 
     // Touch drag support (mobile)
-    var _touchUid = null;
+    var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
-        _touchUid = card.getAttribute('data-casual-uid');
+        _touchIdx = parseInt(card.getAttribute('data-casual-idx'));
         card.style.opacity = '0.6';
       }, { passive: true });
       card.addEventListener('touchmove', function(e) {
-        if (!_touchUid) return;
+        if (_touchIdx === null) return;
         e.preventDefault();
         if (!_teamDragGhost) {
           _teamDragGhost = card.cloneNode(true);
@@ -3661,12 +3691,12 @@ window._openCasualMatch = function() {
         _teamDragGhost.style.left = (t.clientX - 40) + 'px';
         _teamDragGhost.style.top = (t.clientY - 20) + 'px';
         // Highlight card under finger
-        document.querySelectorAll('[data-casual-uid]').forEach(function(c) { c.style.transform = ''; });
+        document.querySelectorAll('[data-casual-idx]').forEach(function(c) { c.style.transform = ''; });
         var el = document.elementFromPoint(t.clientX, t.clientY);
         var target = el;
         while (target) {
-          if (target.dataset && target.dataset.casualUid !== undefined) {
-            if (target.dataset.casualUid !== _touchUid) target.style.transform = 'scale(1.05)';
+          if (target.dataset && target.dataset.casualIdx !== undefined) {
+            if (parseInt(target.dataset.casualIdx) !== _touchIdx) target.style.transform = 'scale(1.05)';
             break;
           }
           target = target.parentElement;
@@ -3675,25 +3705,25 @@ window._openCasualMatch = function() {
       card.addEventListener('touchend', function(e) {
         card.style.opacity = '1';
         if (_teamDragGhost) { _teamDragGhost.remove(); _teamDragGhost = null; }
-        document.querySelectorAll('[data-casual-uid]').forEach(function(c) { c.style.transform = ''; });
-        if (!_touchUid) return;
+        document.querySelectorAll('[data-casual-idx]').forEach(function(c) { c.style.transform = ''; });
+        if (_touchIdx === null) return;
         var t = e.changedTouches[0];
         var el = document.elementFromPoint(t.clientX, t.clientY);
         var target = el;
         while (target) {
-          if (target.dataset && target.dataset.casualUid !== undefined) {
-            var targetUid = target.dataset.casualUid;
-            if (targetUid !== _touchUid) {
-              var srcUid = _touchUid;
-              _touchUid = null;
-              _formTeam(srcUid, targetUid);
+          if (target.dataset && target.dataset.casualIdx !== undefined) {
+            var targetIdx = parseInt(target.dataset.casualIdx);
+            if (targetIdx !== _touchIdx) {
+              var srcIdx = _touchIdx;
+              _touchIdx = null;
+              _formTeam(srcIdx, targetIdx);
               return;
             }
             break;
           }
           target = target.parentElement;
         }
-        _touchUid = null;
+        _touchIdx = null;
       });
     });
   }
@@ -3918,11 +3948,14 @@ window._openCasualMatch = function() {
       // Current user match: check first name or full displayName
       var _cuFirstName = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
       var _isCuName = function(name) { return cu && name && (name === _cuFirstName || name === cu.displayName); };
-      // Generic defaults — renamed to Parceiro/Adversário after team assignment
-      players.push({ slot: 0, name: a1 || 'Jogador 1', team: 1, uid: _isCuName(a1) ? cu.uid : _findLobbyMatch(a1).uid, photoURL: _isCuName(a1) ? cu.photoURL || null : _findLobbyPhoto(a1) });
-      players.push({ slot: 1, name: b1 || 'Jogador 2', team: 1, uid: _isCuName(b1) ? cu.uid : _findLobbyMatch(b1).uid, photoURL: _isCuName(b1) ? cu.photoURL || null : _findLobbyPhoto(b1) });
-      players.push({ slot: 2, name: a2 || 'Jogador 3', team: 2, uid: _isCuName(a2) ? cu.uid : _findLobbyMatch(a2).uid, photoURL: _isCuName(a2) ? cu.photoURL || null : _findLobbyPhoto(a2) });
-      players.push({ slot: 3, name: b2 || 'Jogador 4', team: 2, uid: _isCuName(b2) ? cu.uid : _findLobbyMatch(b2).uid, photoURL: _isCuName(b2) ? cu.photoURL || null : _findLobbyPhoto(b2) });
+      // Team assignment: use drag-and-drop assignments if available, else default (0,1=T1, 2,3=T2)
+      var names = [a1 || 'Jogador 1', b1 || 'Jogador 2', a2 || 'Jogador 3', b2 || 'Jogador 4'];
+      var hasTeamDnD = _teamAssignments[0] !== undefined;
+      for (var pi = 0; pi < 4; pi++) {
+        var nm = names[pi];
+        var tm = hasTeamDnD ? _teamAssignments[pi] : (pi < 2 ? 1 : 2);
+        players.push({ slot: pi, name: nm, team: tm, uid: _isCuName(nm) ? cu.uid : _findLobbyMatch(nm).uid, photoURL: _isCuName(nm) ? cu.photoURL || null : _findLobbyPhoto(nm) });
+      }
     } else {
       var n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
       var n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
