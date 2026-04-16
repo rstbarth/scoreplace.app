@@ -3897,22 +3897,24 @@ window._openCasualMatch = function() {
       // Lobby: participants who joined via QR/code
       '<div id="casual-lobby-section" style="margin-bottom:0.6rem;">' + _buildLobbyHtml() + '</div>' +
 
-      // Inline QR code + room code + Convidar button in one compact box
-      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:10px;margin-bottom:0.6rem;display:flex;align-items:center;gap:10px;">' +
-        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:64px;height:64px;border-radius:10px;flex-shrink:0;" />' +
-        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
-          '<div>' +
-            '<div style="font-size:0.62rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Código da Sala</div>' +
-            '<div style="font-size:1.2rem;font-weight:900;letter-spacing:4px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+      // Inline QR code + room code + Convidar + Join room — all in one box
+      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:10px;margin-bottom:0.6rem;display:flex;gap:10px;">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:64px;height:64px;border-radius:10px;flex-shrink:0;align-self:center;" />' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
+          // Room code + Convidar row
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:0.58rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;">Sala</div>' +
+              '<div style="font-size:1.1rem;font-weight:900;letter-spacing:4px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+            '</div>' +
+            '<button onclick="window._casualInvite()" style="padding:5px 10px;border-radius:8px;font-size:0.68rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">📲 Convidar</button>' +
           '</div>' +
-          '<button onclick="window._casualInvite()" style="padding:5px 10px;border-radius:8px;font-size:0.7rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;align-self:flex-start;-webkit-tap-highlight-color:transparent;white-space:nowrap;">📲 Convidar</button>' +
+          // Join room input row
+          '<div style="display:flex;gap:4px;align-items:center;">' +
+            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="8" style="flex:1;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;min-width:0;" />' +
+            '<button onclick="window._casualJoinRoom()" style="padding:6px 10px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
+          '</div>' +
         '</div>' +
-      '</div>' +
-
-      // Join room input
-      '<div style="display:flex;gap:6px;margin-bottom:0.6rem;align-items:center;">' +
-        '<input type="text" id="casual-join-code" placeholder="Código da sala de um amigo" maxlength="8" style="flex:1;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.82rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;" />' +
-        '<button onclick="window._casualJoinRoom()" style="padding:8px 14px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">Entrar</button>' +
       '</div>' +
 
       // Start button
