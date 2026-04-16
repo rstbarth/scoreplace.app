@@ -2334,12 +2334,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     return eligible;
   }
 
-  // Check if serve order needs to be confirmed (shown at start, before any points)
+  // Serve picker overlay no longer used — serve is set inline via draggable ball
   function _needsServePick() {
-    if (state.serveSkipped || state.isFinished) return false;
-    if (state.serveOrder.length >= serveSlots) return false; // Already confirmed
-    // Only show at the very start (no games played, no points)
-    return state.totalGamesPlayed === 0 && state.currentGameP1 === 0 && state.currentGameP2 === 0;
+    return false;
   }
 
   // Auto-fill serve slot if only 1 eligible player
@@ -2621,6 +2618,53 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
+  // Auto-confirm serve order from proposed order (no separate picker screen)
+  if (state.serveOrder.length === 0 && !state.serveSkipped && _proposedOrder.length >= serveSlots) {
+    state.serveOrder = _proposedOrder.map(function(p) { return { team: p.team, name: p.name }; });
+  }
+
+  // Set 1st server by dragging ball to a player name (inline, on the live scoring screen)
+  // Before game 1: any player can be set as 1st server → auto-sets 3rd (teammate)
+  // Before game 2: only the other team's players → sets 2nd server → auto-sets 4th
+  // After game 2: locked
+  window._liveSetServer = function(team, playerIdx) {
+    var players = team === 1 ? p1Players : p2Players;
+    var name = players[playerIdx];
+    if (!name) return;
+
+    if (state.totalGamesPlayed === 0) {
+      // Setting 1st server: this player + teammate fills slots 0,2. Other team fills 1,3.
+      var teammate = null;
+      var teamAll = team === 1 ? p1Players : p2Players;
+      for (var i = 0; i < teamAll.length; i++) {
+        if (teamAll[i] !== name) { teammate = teamAll[i]; break; }
+      }
+      var otherTeam = team === 1 ? 2 : 1;
+      var opponents = otherTeam === 1 ? p1Players.slice() : p2Players.slice();
+      state.serveOrder = [
+        { team: team, name: name },
+        { team: otherTeam, name: opponents[0] || 'Oponente 1' },
+        { team: team, name: teammate || 'Parceiro' },
+        { team: otherTeam, name: opponents[1] || 'Oponente 2' }
+      ];
+    } else if (state.totalGamesPlayed === 1) {
+      // Setting 2nd server: must be from the other team (the team that serves 2nd)
+      // serveOrder[1] is the 2nd server. Swap if the chosen player is currently at [3].
+      if (state.serveOrder.length >= 4 && state.serveOrder[1].team === team) {
+        // This player should serve 2nd, their teammate serves 4th
+        var otherPlayer = null;
+        var teamP = team === 1 ? p1Players : p2Players;
+        for (var j = 0; j < teamP.length; j++) {
+          if (teamP[j] !== name) { otherPlayer = teamP[j]; break; }
+        }
+        state.serveOrder[1] = { team: team, name: name };
+        state.serveOrder[3] = { team: team, name: otherPlayer || state.serveOrder[3].name };
+      }
+    }
+    // After game 2: ignore (locked)
+    _render();
+  };
+
   // ── Render function ──
   function _render() {
     var container = document.getElementById('live-score-content');
@@ -2679,28 +2723,40 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var serverInfo = _getCurrentServer();
 
     // Build stacked player names in team box (bracket-style)
-    // Serve ball LEFT of avatar, full name (never truncated), each player in individual box
+    // Serve ball inside team box, left of the serving player's row, draggable to change server
+    var _canDragServe = !state.isFinished && !state.serveSkipped && isDoubles && state.totalGamesPlayed < 2;
     var _buildNameStack = function(team) {
       var players = team === 1 ? p1Players : p2Players;
       var clr = team === 1 ? '#3b82f6' : '#ef4444';
-      var bgClr = team === 1 ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
-      var bdrClr = team === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
+      var bgClr = team === 1 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)';
+      var bdrClr = team === 1 ? 'rgba(59,130,246,0.30)' : 'rgba(239,68,68,0.30)';
       var cards = '';
       for (var ni = 0; ni < players.length; ni++) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
         var fullName = window._safeHtml(pn);
-        var avatar = _liveAvatarHtml(pn, 24);
-        var servBall = isServing ? '<span style="font-size:0.7rem;flex-shrink:0;">' + _sportBall + '</span>' : '';
+        var avatar = _liveAvatarHtml(pn, 26);
+
+        // Serve ball: shown for the current server. Draggable when serve can still be changed.
+        var servBall = '';
+        if (isServing) {
+          var dragAttr = _canDragServe ? ' draggable="true" data-serve-ball="true"' : '';
+          var dragStyle = _canDragServe ? 'cursor:grab;' : '';
+          servBall = '<span' + dragAttr + ' style="font-size:0.85rem;flex-shrink:0;' + dragStyle + 'filter:drop-shadow(0 0 4px rgba(255,200,0,0.6));">' + _sportBall + '</span>';
+        }
+
+        // Drop target: each player row is a drop target for the serve ball
+        var dropAttr = _canDragServe ? ' data-serve-drop="' + team + '-' + ni + '"' : '';
+
         // Individual player box
-        cards += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
+        cards += '<div' + dropAttr + ' onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform 0.15s,background 0.15s;">' +
           servBall +
           avatar +
-          '<span style="font-size:clamp(0.72rem,2.2vw,0.88rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:nowrap;">' + fullName + '</span>' +
+          '<span style="font-size:clamp(0.75rem,2.5vw,0.92rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:nowrap;">' + fullName + '</span>' +
         '</div>';
       }
       // Team box wrapping all players
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:10px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + '</div>';
+      return '<div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:8px 10px;border-radius:12px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + '</div>';
     };
 
     // Arrow button builder — extra large for easy tapping
@@ -2831,6 +2887,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
       setTimeout(function() { _setupCourtSwapDrag(); }, 30);
     }
 
+    // Attach serve ball drag-and-drop (change server inline)
+    if (_canDragServe) {
+      setTimeout(function() { _setupServeBallDrag(); }, 40);
+    }
+
     // Append finish button at bottom
     if (finishBtn) {
       container.insertAdjacentHTML('beforeend', finishBtn);
@@ -2934,6 +2995,107 @@ window._openLiveScoring = function(tId, matchId, opts) {
         }
         _touchSide = null;
       });
+    });
+  }
+
+  // ── Serve ball drag-and-drop (inline server change) ──
+  var _serveBallDragging = false;
+  var _serveBallGhost = null;
+
+  function _setupServeBallDrag() {
+    var ball = document.querySelector('[data-serve-ball]');
+    if (!ball) return;
+    var drops = document.querySelectorAll('[data-serve-drop]');
+
+    // Desktop drag from ball
+    ball.addEventListener('dragstart', function(e) {
+      _serveBallDragging = true;
+      e.dataTransfer.effectAllowed = 'move';
+      // Highlight valid drop targets
+      drops.forEach(function(d) {
+        var parts = d.getAttribute('data-serve-drop').split('-');
+        var dropTeam = parseInt(parts[0]);
+        var canDrop = (state.totalGamesPlayed === 0) || (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam === state.serveOrder[1].team);
+        if (canDrop) d.style.background = 'rgba(255,200,0,0.15)';
+      });
+    });
+    ball.addEventListener('dragend', function() {
+      _serveBallDragging = false;
+      drops.forEach(function(d) { d.style.background = ''; d.style.transform = ''; });
+    });
+
+    // Drop targets
+    drops.forEach(function(drop) {
+      drop.addEventListener('dragover', function(e) {
+        if (!_serveBallDragging) return;
+        e.preventDefault();
+        drop.style.transform = 'scale(1.05)';
+      });
+      drop.addEventListener('dragleave', function() { drop.style.transform = ''; });
+      drop.addEventListener('drop', function(e) {
+        e.preventDefault();
+        drop.style.transform = '';
+        if (!_serveBallDragging) return;
+        _serveBallDragging = false;
+        var parts = drop.getAttribute('data-serve-drop').split('-');
+        var dropTeam = parseInt(parts[0]);
+        var dropIdx = parseInt(parts[1]);
+        // Validate: game 0 = any, game 1 = other team only
+        if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) return;
+        window._liveSetServer(dropTeam, dropIdx);
+      });
+    });
+
+    // Touch drag from ball
+    var _ballTouch = false;
+    ball.addEventListener('touchstart', function(e) {
+      _ballTouch = true;
+      e.preventDefault();
+    }, { passive: false });
+    ball.addEventListener('touchmove', function(e) {
+      if (!_ballTouch) return;
+      e.preventDefault();
+      if (!_serveBallGhost) {
+        _serveBallGhost = document.createElement('div');
+        _serveBallGhost.style.cssText = 'position:fixed;z-index:200000;font-size:1.5rem;pointer-events:none;filter:drop-shadow(0 0 8px rgba(255,200,0,0.8));';
+        _serveBallGhost.textContent = _sportBall;
+        document.body.appendChild(_serveBallGhost);
+      }
+      var t = e.touches[0];
+      _serveBallGhost.style.left = (t.clientX - 15) + 'px';
+      _serveBallGhost.style.top = (t.clientY - 15) + 'px';
+      // Highlight drop target under finger
+      drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
+      var el = document.elementFromPoint(t.clientX, t.clientY);
+      var target = el;
+      while (target) {
+        if (target.dataset && target.dataset.serveDrop !== undefined) {
+          target.style.transform = 'scale(1.05)';
+          target.style.background = 'rgba(255,200,0,0.15)';
+          break;
+        }
+        target = target.parentElement;
+      }
+    }, { passive: false });
+    ball.addEventListener('touchend', function(e) {
+      if (_serveBallGhost) { _serveBallGhost.remove(); _serveBallGhost = null; }
+      drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
+      if (!_ballTouch) return;
+      _ballTouch = false;
+      var t = e.changedTouches[0];
+      var el = document.elementFromPoint(t.clientX, t.clientY);
+      var target = el;
+      while (target) {
+        if (target.dataset && target.dataset.serveDrop !== undefined) {
+          var parts = target.dataset.serveDrop.split('-');
+          var dropTeam = parseInt(parts[0]);
+          var dropIdx = parseInt(parts[1]);
+          if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) break;
+          window._liveSetServer(dropTeam, dropIdx);
+          return;
+        }
+        target = target.parentElement;
+      }
     });
   }
 
