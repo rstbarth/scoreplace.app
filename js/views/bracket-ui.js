@@ -2784,58 +2784,56 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<span style="font-size:0.7rem;font-weight:700;color:#f87171;min-width:28px;">' + (winTeam === 2 ? winPct : losePct) + '%</span>' +
       '</div>';
 
+      // Build restart section (with shuffle toggle for doubles)
+      var restartSection = '';
+      if (isDoubles) {
+        restartSection =
+          '<div style="display:flex;flex-direction:column;gap:8px;width:100%;">' +
+            '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>' +
+            '<label class="toggle-switch" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
+              '<span style="font-size:0.82rem;font-weight:600;color:var(--text-bright);">Sortear duplas</span>' +
+              '<input type="checkbox" id="chk-shuffle-teams" style="width:40px;height:22px;accent-color:#818cf8;cursor:pointer;" />' +
+            '</label>' +
+          '</div>';
+      } else {
+        restartSection =
+          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
+      }
+
+      // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
       container.innerHTML =
-        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:clamp(8px,2vh,20px) clamp(12px,3vw,24px);">' +
+        '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;">' +
           // Trophy + winner label
-          '<div style="font-size:clamp(2.5rem,8vw,4rem);margin-bottom:clamp(4px,1vh,10px);">🏆</div>' +
-          '<div style="text-align:center;margin-bottom:clamp(6px,1.5vh,14px);">' +
+          '<div style="font-size:clamp(2rem,7vw,3.5rem);margin-bottom:clamp(2px,0.8vh,8px);">🏆</div>' +
+          '<div style="text-align:center;margin-bottom:clamp(4px,1vh,10px);">' +
             '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Vencedor</div>' +
             winNamesHtml +
           '</div>' +
           // Score
-          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:clamp(6px,1.5vh,12px);">' +
+          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:clamp(4px,1vh,10px);">' +
             scoreSummary +
           '</div>' +
           // Defeated
-          '<div style="text-align:center;margin-bottom:clamp(8px,2vh,16px);opacity:0.7;">' +
+          '<div style="text-align:center;margin-bottom:clamp(6px,1.5vh,12px);opacity:0.7;">' +
             '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">vs </span>' +
             loseNamesHtml +
           '</div>' +
           // Percentage bar
           pctBar +
           // Stats
-          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,16px);margin-top:clamp(10px,2.5vh,20px);width:100%;max-width:340px;padding:clamp(8px,2vh,14px) 0;border-top:1px solid rgba(255,255,255,0.06);">' +
+          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,16px);margin-top:clamp(8px,2vh,16px);width:100%;max-width:340px;padding:clamp(6px,1.5vh,12px) 0;border-top:1px solid rgba(255,255,255,0.06);">' +
             (elapsedStr ? _stat('⏱', 'Duração', elapsedStr) : '') +
             _stat('🎯', 'Pontos', totalPts) +
             _stat('📊', 'Aproveit.', winPct + '%') +
             (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', state.totalGamesPlayed) : '') +
           '</div>' +
-        '</div>';
-
-      // Append action buttons: Confirm + Restart with shuffle toggle
-      var restartSection = '';
-      if (isDoubles) {
-        restartSection =
-          '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" style="flex:1;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Recomeçar</button>' +
-            '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();">' +
-              '<input type="checkbox" id="chk-shuffle-teams" style="width:18px;height:18px;accent-color:#818cf8;cursor:pointer;" />' +
-              '<span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);">Sortear duplas</span>' +
-            '</label>' +
-          '</div>';
-      } else {
-        restartSection =
-          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Recomeçar</button>';
-      }
-      container.insertAdjacentHTML('beforeend',
-        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:0.5rem;">' +
-          '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
-          'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
         '</div>' +
-        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:1rem;">' +
+        // Action buttons pinned at bottom
+        '<div style="flex-shrink:0;padding:8px 1rem 12px;display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-top:1px solid rgba(255,255,255,0.06);">' +
+          '<button onclick="window._liveScoreSave()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;' +
+          'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
           restartSection +
-        '</div>'
-      );
+        '</div>';
       _syncLiveState();
       return;
     }
