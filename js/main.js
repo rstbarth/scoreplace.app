@@ -828,8 +828,8 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.4-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Fechar e Resetar sempre disponíveis</b> — Botão Fechar sempre confirma "Deseja abandonar a partida casual?" antes de sair. Resetar confirma "Deseja reiniciar a contagem?" antes de zerar. Ambos funcionam em qualquer estado da partida.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.5-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Tela de resultado com estatísticas</b> — Ao encerrar a partida, exibe tela dedicada com troféu, dupla vencedora, placar final (sets/games), barra de aproveitamento, duração, total de pontos e games jogados. Substitui os antigos checkmarks. Tempo de partida rastreado automaticamente (sincronizado entre dispositivos). Fechar e Resetar sempre disponíveis com confirmação.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

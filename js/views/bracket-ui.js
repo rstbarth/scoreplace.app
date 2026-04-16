@@ -1834,6 +1834,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
   };
   var serveSlots = isDoubles ? 4 : 2; // total rotation length
   var _courtLeft = 1; // Which team is on the left side of the court (1 or 2)
+  var _matchStartTime = null; // Timestamp when first point is scored
+  var _matchEndTime = null;   // Timestamp when match finishes
 
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
@@ -1859,6 +1861,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) state.serveOrder = remote.serveOrder;
             state.serveSkipped = !!remote.serveSkipped;
             if (remote.courtLeft) _courtLeft = remote.courtLeft;
+            if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
+            if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
             if (Array.isArray(remote.p1Players)) {
               for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
             }
@@ -2076,6 +2080,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.tieRulePending) return; // Waiting for tie resolution dialog
     if (_needsServePick()) return; // Waiting for serve selection
 
+    // Track match start time on first point
+    if (!_matchStartTime) _matchStartTime = Date.now();
+
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
 
@@ -2157,6 +2164,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (state.isFixedSet) matchWinner = setWinner;
       state.isFinished = true;
       state.winner = matchWinner;
+      _matchEndTime = Date.now();
     } else {
       // Start new set
       state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
@@ -2684,14 +2692,139 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return;
     }
 
+    // ── FINISHED STATE: render result summary instead of plates ──
+    if (state.isFinished) {
+      var winTeam = state.winner; // 1 or 2
+      var winPlayers = winTeam === 1 ? p1Players : p2Players;
+      var losePlayers = winTeam === 1 ? p2Players : p1Players;
+      var winClr = winTeam === 1 ? '#3b82f6' : '#ef4444';
+      var loseClr = winTeam === 1 ? '#ef4444' : '#3b82f6';
+
+      // Build score summary
+      var scoreSummary = '';
+      if (useSets && !state.isFixedSet) {
+        // Sets summary: "6-4  3-6  7-6(5)"
+        var setsP1 = 0, setsP2 = 0, totalGP1 = 0, totalGP2 = 0;
+        for (var si = 0; si < state.sets.length; si++) {
+          var ss = state.sets[si];
+          if (ss.gamesP1 > ss.gamesP2) setsP1++; else if (ss.gamesP2 > ss.gamesP1) setsP2++;
+          totalGP1 += ss.gamesP1; totalGP2 += ss.gamesP2;
+          var setClr = ss.gamesP1 > ss.gamesP2 ? '#60a5fa' : (ss.gamesP2 > ss.gamesP1 ? '#f87171' : 'var(--text-muted)');
+          scoreSummary += '<span style="font-size:clamp(1.3rem,4vw,2rem);font-weight:900;color:' + setClr + ';font-variant-numeric:tabular-nums;">' + ss.gamesP1 + '-' + ss.gamesP2;
+          if (ss.tiebreak) scoreSummary += '<sup style="font-size:0.55em;font-weight:600;">(' + Math.min(ss.tiebreak.p1, ss.tiebreak.p2) + ')</sup>';
+          scoreSummary += '</span>';
+          if (si < state.sets.length - 1) scoreSummary += '<span style="color:rgba(255,255,255,0.15);margin:0 clamp(4px,1vw,8px);">·</span>';
+        }
+      } else {
+        // Simple or fixed set score
+        var scP1 = state.isFixedSet ? state.sets[0].gamesP1 : state.currentGameP1;
+        var scP2 = state.isFixedSet ? state.sets[0].gamesP2 : state.currentGameP2;
+        scoreSummary = '<span style="font-size:clamp(1.8rem,6vw,3rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;">' + scP1 + '</span>' +
+          '<span style="color:rgba(255,255,255,0.25);margin:0 8px;font-size:1.2rem;">×</span>' +
+          '<span style="font-size:clamp(1.8rem,6vw,3rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;">' + scP2 + '</span>';
+      }
+
+      // Elapsed time
+      var elapsedStr = '';
+      if (_matchStartTime) {
+        var endT = _matchEndTime || Date.now();
+        var elapsedMs = endT - _matchStartTime;
+        var mins = Math.floor(elapsedMs / 60000);
+        var secs = Math.floor((elapsedMs % 60000) / 1000);
+        if (mins >= 60) {
+          var hrs = Math.floor(mins / 60);
+          elapsedStr = hrs + 'h' + String(mins % 60).padStart(2, '0') + 'min';
+        } else {
+          elapsedStr = mins + 'min' + String(secs).padStart(2, '0') + 's';
+        }
+      }
+
+      // Total points
+      var totalPtsP1 = 0, totalPtsP2 = 0;
+      for (var pi = 0; pi < state.sets.length; pi++) {
+        var ps = state.sets[pi];
+        totalPtsP1 += ps.gamesP1; totalPtsP2 += ps.gamesP2;
+        if (ps.tiebreak) { totalPtsP1 += ps.tiebreak.p1; totalPtsP2 += ps.tiebreak.p2; }
+      }
+      var totalPts = totalPtsP1 + totalPtsP2;
+
+      // Win percentage
+      var winPct = totalPts > 0 ? Math.round((winTeam === 1 ? totalPtsP1 : totalPtsP2) / totalPts * 100) : 50;
+      var losePct = 100 - winPct;
+
+      // Winner names display
+      var winNamesHtml = '';
+      for (var wi = 0; wi < winPlayers.length; wi++) {
+        winNamesHtml += '<div style="display:flex;align-items:center;gap:6px;">' + _liveAvatarHtml(winPlayers[wi], 28) +
+          '<span style="font-size:clamp(0.9rem,3vw,1.1rem);font-weight:700;color:#fff;">' + window._safeHtml(winPlayers[wi]) + '</span></div>';
+      }
+      // Loser names display
+      var loseNamesHtml = '';
+      for (var li = 0; li < losePlayers.length; li++) {
+        loseNamesHtml += '<span style="font-size:0.8rem;color:var(--text-muted);">' + window._safeHtml(losePlayers[li]) + '</span>';
+        if (li < losePlayers.length - 1) loseNamesHtml += '<span style="color:rgba(255,255,255,0.15);margin:0 4px;">/</span>';
+      }
+
+      // Stats row builder
+      var _stat = function(icon, label, value) {
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0;">' +
+          '<span style="font-size:1.1rem;">' + icon + '</span>' +
+          '<span style="font-size:clamp(0.95rem,3vw,1.2rem);font-weight:800;color:#fff;">' + value + '</span>' +
+          '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</span>' +
+        '</div>';
+      };
+
+      // Percentage bar
+      var pctBar = '<div style="width:100%;display:flex;align-items:center;gap:6px;">' +
+        '<span style="font-size:0.7rem;font-weight:700;color:#60a5fa;min-width:28px;text-align:right;">' + (winTeam === 1 ? winPct : losePct) + '%</span>' +
+        '<div style="flex:1;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.08);display:flex;">' +
+          '<div style="width:' + (winTeam === 1 ? winPct : losePct) + '%;background:#60a5fa;border-radius:3px 0 0 3px;transition:width 0.5s;"></div>' +
+          '<div style="width:' + (winTeam === 1 ? losePct : winPct) + '%;background:#f87171;border-radius:0 3px 3px 0;transition:width 0.5s;"></div>' +
+        '</div>' +
+        '<span style="font-size:0.7rem;font-weight:700;color:#f87171;min-width:28px;">' + (winTeam === 2 ? winPct : losePct) + '%</span>' +
+      '</div>';
+
+      container.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:clamp(8px,2vh,20px) clamp(12px,3vw,24px);">' +
+          // Trophy + winner label
+          '<div style="font-size:clamp(2.5rem,8vw,4rem);margin-bottom:clamp(4px,1vh,10px);">🏆</div>' +
+          '<div style="text-align:center;margin-bottom:clamp(6px,1.5vh,14px);">' +
+            '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Vencedor</div>' +
+            winNamesHtml +
+          '</div>' +
+          // Score
+          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:clamp(6px,1.5vh,12px);">' +
+            scoreSummary +
+          '</div>' +
+          // Defeated
+          '<div style="text-align:center;margin-bottom:clamp(8px,2vh,16px);opacity:0.7;">' +
+            '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">vs </span>' +
+            loseNamesHtml +
+          '</div>' +
+          // Percentage bar
+          pctBar +
+          // Stats
+          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,16px);margin-top:clamp(10px,2.5vh,20px);width:100%;max-width:340px;padding:clamp(8px,2vh,14px) 0;border-top:1px solid rgba(255,255,255,0.06);">' +
+            (elapsedStr ? _stat('⏱', 'Duração', elapsedStr) : '') +
+            _stat('🎯', 'Pontos', totalPts) +
+            _stat('📊', 'Aproveit.', winPct + '%') +
+            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', state.totalGamesPlayed) : '') +
+          '</div>' +
+        '</div>';
+
+      // Append confirm button
+      container.insertAdjacentHTML('beforeend',
+        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:1rem;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+        'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button></div>'
+      );
+      _syncLiveState();
+      return;
+    }
+
     // Current game display — no "GAME" label, only special states
     var gameLabel = '';
     var p1Display, p2Display;
-    if (state.isFinished) {
-      gameLabel = state.winner === 1 ? window._safeHtml(p1Players[0]) + ' venceu!' : window._safeHtml(p2Players[0]) + ' venceu!';
-      p1Display = '✓';
-      p2Display = '✓';
-    } else if (!useSets || state.isFixedSet) {
+    if (!useSets || state.isFixedSet) {
       gameLabel = '';
       p1Display = String(state.currentGameP1);
       p2Display = String(state.currentGameP2);
@@ -2770,12 +2903,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:1rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(36px,5vh,50px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
     };
 
-    // Finish button
+    // Finish button (isFinished handled above with early return)
     var finishBtn = '';
-    if (state.isFinished) {
-      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
-        'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button></div>';
-    } else if (!useSets) {
+    if (!useSets) {
       finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:14px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
         'background:rgba(16,185,129,0.1);color:#10b981;">Encerrar Partida</button></div>';
     }
@@ -3195,6 +3325,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
       courtLeft: _courtLeft,
       p1Players: p1Players.slice(),
       p2Players: p2Players.slice(),
+      matchStartTime: _matchStartTime,
+      matchEndTime: state.isFinished ? (_matchEndTime || Date.now()) : null,
       _ts: Date.now() // timestamp for conflict resolution
     };
   }
@@ -3216,6 +3348,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
     state.serveSkipped = !!remote.serveSkipped;
     if (remote.courtLeft) _courtLeft = remote.courtLeft;
+    if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
+    if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
     // Update player names if changed remotely
     if (Array.isArray(remote.p1Players)) {
       for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
@@ -3318,6 +3452,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.servePending = false;
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
+        _matchStartTime = null;
+        _matchEndTime = null;
         _render();
       }
     );
