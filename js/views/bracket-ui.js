@@ -2788,16 +2788,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Game label color (only for special states)
     var labelClr = state.isFinished ? '#10b981' : '#c084fc';
 
-    // Games center column (used between plates in landscape, below in portrait)
+    // Games center column — colors follow court sides (left team color left, right team color right)
+    var _gamesLeftStr = leftTeam === 1 ? gamesP1Str : gamesP2Str;
+    var _gamesRightStr = rightTeam === 1 ? gamesP1Str : gamesP2Str;
+    var _gamesLeftClr = leftTeam === 1 ? '#60a5fa' : '#f87171';
+    var _gamesRightClr = rightTeam === 1 ? '#60a5fa' : '#f87171';
     var gamesCenter = '';
     if (showGamesBox) {
       gamesCenter =
-        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(6px,1.5vh,12px) clamp(10px,2vw,20px);">' +
+        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(4px,1vh,10px) clamp(10px,2vw,20px);">' +
           '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
           '<div style="display:flex;align-items:center;gap:clamp(6px,2vw,12px);">' +
-            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP1Str + '</span>' +
+            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
             '<span style="font-size:clamp(0.9rem,2vw,1.3rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
-            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP2Str + '</span>' +
+            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
           '</div>' +
         '</div>';
     }
@@ -2851,16 +2855,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (state.isFinished) return '';
         return '<div style="width:100%;display:flex;flex-direction:column;">' + _lsUpBtn(player) + _lsDownBtn(player) + '</div>';
       };
-      // Landscape games box — smaller
+      // Landscape games box — smaller, colors follow court sides
       var lsGamesCenter = '';
       if (showGamesBox) {
         lsGamesCenter =
           '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:clamp(4px,1vh,8px) clamp(6px,1.5vw,14px);">' +
             '<span style="font-size:0.45rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
             '<div style="display:flex;align-items:center;gap:clamp(4px,1vw,8px);">' +
-              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP1Str + '</span>' +
+              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
               '<span style="font-size:clamp(0.7rem,1.5vw,1rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
-              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP2Str + '</span>' +
+              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
             '</div>' +
           '</div>';
       }
@@ -2898,29 +2902,29 @@ window._openLiveScoring = function(tId, matchId, opts) {
     } else {
       // ── PORTRAIT: two columns with team-colored backgrounds, draggable to swap sides ──
       container.innerHTML =
-        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;gap:0;padding:clamp(6px,1.5vh,16px) 0 0 0;">' +
           // Sets row
           setsRow +
           // Special label (TIE-BREAK, winner)
-          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(6px,1.5vh,12px);">' + gameLabel + '</div>' : '') +
+          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,10px);">' + gameLabel + '</div>' : '') +
           // Two-column score plates with team-colored backgrounds
-          '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;">' +
+          '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;flex:1;min-height:0;">' +
             // Left column
-            '<div class="court-side" data-court-side="left" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);padding:clamp(6px,1.5vh,12px) clamp(4px,1vw,8px);border-radius:14px;background:' + leftBg + ';border:1px solid ' + leftBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
+            '<div class="court-side" data-court-side="left" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(3px,0.8vh,6px);padding:clamp(4px,1vh,10px) clamp(4px,1vw,8px);border-radius:14px;background:' + leftBg + ';border:1px solid ' + leftBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
               _buildNameStack(leftTeam) +
               _buildPlate(leftTeam) +
               _buildBtns(leftTeam) +
             '</div>' +
             // Right column
-            '<div class="court-side" data-court-side="right" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);padding:clamp(6px,1.5vh,12px) clamp(4px,1vw,8px);border-radius:14px;background:' + rightBg + ';border:1px solid ' + rightBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
+            '<div class="court-side" data-court-side="right" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(3px,0.8vh,6px);padding:clamp(4px,1vh,10px) clamp(4px,1vw,8px);border-radius:14px;background:' + rightBg + ';border:1px solid ' + rightBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
               _buildNameStack(rightTeam) +
               _buildPlate(rightTeam) +
               _buildBtns(rightTeam) +
             '</div>' +
           '</div>' +
           swapHint +
-          // Games box below
-          (showGamesBox ? '<div style="margin-top:clamp(8px,2vh,16px);">' + gamesCenter + '</div>' : '') +
+          // Games box below — compact
+          (showGamesBox ? '<div style="margin-top:clamp(4px,1vh,10px);flex-shrink:0;">' + gamesCenter + '</div>' : '') +
         '</div>';
 
       // Attach court-side drag-and-drop (swap sides)

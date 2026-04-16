@@ -828,8 +828,12 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Games refletem lado da quadra</b> — Cores dos games agora acompanham qual time está em cada lado (ao trocar lados, os números trocam também). Layout portrait sobe para caber tudo sem cortar o box de games. Gaps e paddings reduzidos para otimizar espaço vertical.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.0-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Partida Casual v2</b> — Box unificado: QR code maior (88px), código da sala, Convidar, campo "Sala de um amigo" e botão Entrar em um único bloco compacto. Input e botão com mesma altura (2.2rem). Landscape otimizado com placas, games e botões proporcionais ao viewport. Sync em tempo real entre dispositivos (tema e sala casual via Firestore onSnapshot). Sem zoom/scroll nas telas de partida.</p>' +
+        '<p><b>Partida Casual v2</b> — Box unificado: QR code maior (88px), código da sala, Convidar, campo "Sala de um amigo" e botão Entrar em um único bloco compacto. Landscape otimizado. Sync em tempo real entre dispositivos (tema e sala casual via Firestore onSnapshot). Sem zoom/scroll nas telas de partida.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.92-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
