@@ -3478,73 +3478,27 @@ window._openCasualMatch = function() {
       var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
       var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
 
-      // Build the 4 input cards
+      // Setup screen: always neutral cards (no team colors). Teams decided later.
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
+      var inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
       var inputValues = [p1Name, '', '', ''];
-
-      // Sortear ON: 4 neutral cards (no team colors, generic placeholders)
-      // Sortear OFF: team-colored cards (User+Parceiro = T1 blue, Adversários = T2 red)
-      var inputPlaceholders, cardTeams;
-      if (autoShuffle) {
-        inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
-        cardTeams = [0, 0, 0, 0]; // neutral — no team yet
-      } else {
-        inputPlaceholders = [p1Name || 'Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
-        cardTeams = [1, 1, 2, 2]; // fixed teams
-      }
 
       function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
-        var tm = cardTeams[ci];
-        var cardBg, cardBdr;
-        if (tm === 1) { cardBg = 'rgba(59,130,246,0.10)'; cardBdr = 'rgba(59,130,246,0.30)'; }
-        else if (tm === 2) { cardBg = 'rgba(239,68,68,0.10)'; cardBdr = 'rgba(239,68,68,0.30)'; }
-        else { cardBg = 'rgba(255,255,255,0.04)'; cardBdr = 'rgba(255,255,255,0.12)'; }
-        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;">' +
+        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);box-sizing:border-box;">' +
           avatar +
           '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
         '</div>';
       }
 
-      // Layout: Sortear OFF = two columns (T1 left, T2 right); Sortear ON = 2x2 grid
-      var cardsHtml;
-      if (autoShuffle) {
-        cardsHtml =
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
-          '</div>';
-      } else {
-        cardsHtml =
-          '<div style="display:flex;gap:8px;">' +
-            '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
-              _buildSetupCard(0) + _buildSetupCard(1) +
-            '</div>' +
-            '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
-              _buildSetupCard(2) + _buildSetupCard(3) +
-            '</div>' +
-          '</div>';
-      }
+      var cardsHtml =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+          _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
+        '</div>';
 
-      // Subtitle text
-      var subtitle = '';
-      if (autoShuffle) {
-        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar a partida</div>';
-      } else if (_teamsFormed) {
-        subtitle =
-          '<div style="margin-top:10px;display:flex;gap:8px;">' +
-            '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);text-align:center;">' +
-              '<div style="font-size:0.65rem;font-weight:700;color:#60a5fa;margin-bottom:2px;">Time 1</div>' +
-              '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team1.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
-            '</div>' +
-            '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);text-align:center;">' +
-              '<div style="font-size:0.65rem;font-weight:700;color:#f87171;margin-bottom:2px;">Time 2</div>' +
-              '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team2.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div style="text-align:center;margin-top:6px;"><button onclick="window._casualResetTeams()" style="padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Refazer times</button></div>';
-      } else {
-        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>';
-      }
+      var subtitle = autoShuffle
+        ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar</div>'
+        : '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Você + Jogador 2 vs Jogador 3 + Jogador 4</div>';
 
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
@@ -3977,10 +3931,11 @@ window._openCasualMatch = function() {
       // Current user match: check first name or full displayName
       var _cuFirstName = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
       var _isCuName = function(name) { return cu && name && (name === _cuFirstName || name === cu.displayName); };
+      // Generic defaults — renamed to Parceiro/Adversário after team assignment
       players.push({ slot: 0, name: a1 || 'Jogador 1', team: 1, uid: _isCuName(a1) ? cu.uid : _findLobbyMatch(a1).uid, photoURL: _isCuName(a1) ? cu.photoURL || null : _findLobbyPhoto(a1) });
-      players.push({ slot: 1, name: b1 || 'Parceiro', team: 1, uid: _isCuName(b1) ? cu.uid : _findLobbyMatch(b1).uid, photoURL: _isCuName(b1) ? cu.photoURL || null : _findLobbyPhoto(b1) });
-      players.push({ slot: 2, name: a2 || 'Adversário 1', team: 2, uid: _isCuName(a2) ? cu.uid : _findLobbyMatch(a2).uid, photoURL: _isCuName(a2) ? cu.photoURL || null : _findLobbyPhoto(a2) });
-      players.push({ slot: 3, name: b2 || 'Adversário 2', team: 2, uid: _isCuName(b2) ? cu.uid : _findLobbyMatch(b2).uid, photoURL: _isCuName(b2) ? cu.photoURL || null : _findLobbyPhoto(b2) });
+      players.push({ slot: 1, name: b1 || 'Jogador 2', team: 1, uid: _isCuName(b1) ? cu.uid : _findLobbyMatch(b1).uid, photoURL: _isCuName(b1) ? cu.photoURL || null : _findLobbyPhoto(b1) });
+      players.push({ slot: 2, name: a2 || 'Jogador 3', team: 2, uid: _isCuName(a2) ? cu.uid : _findLobbyMatch(a2).uid, photoURL: _isCuName(a2) ? cu.photoURL || null : _findLobbyPhoto(a2) });
+      players.push({ slot: 3, name: b2 || 'Jogador 4', team: 2, uid: _isCuName(b2) ? cu.uid : _findLobbyMatch(b2).uid, photoURL: _isCuName(b2) ? cu.photoURL || null : _findLobbyPhoto(b2) });
     } else {
       var n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
       var n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
@@ -4157,6 +4112,17 @@ window._openCasualMatch = function() {
         if (!players[ni].name || defaultNames.indexOf(players[ni].name) !== -1) {
           if (players[ni].team === 1) players[ni].name = 'Parceiro';
           else players[ni].name = ni === 2 ? 'Adversário 1' : 'Adversário 2';
+        }
+      }
+    }
+
+    // Sortear OFF: teams fixed from setup (0,1=T1, 2,3=T2). Rename unnamed to role names.
+    if (isDoubles && !autoShuffle && players.length === 4) {
+      var defNames = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      for (var ri = 0; ri < 4; ri++) {
+        if (!players[ri].name || defNames.indexOf(players[ri].name) !== -1) {
+          if (players[ri].team === 1) players[ri].name = 'Parceiro';
+          else players[ri].name = ri === 2 ? 'Adversário 1' : 'Adversário 2';
         }
       }
     }
