@@ -3909,10 +3909,10 @@ window._openCasualMatch = function() {
             '</div>' +
             '<button onclick="window._casualInvite()" style="padding:5px 10px;border-radius:8px;font-size:0.68rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">📲 Convidar</button>' +
           '</div>' +
-          // Join room input row
-          '<div style="display:flex;gap:4px;align-items:center;">' +
-            '<input type="text" id="casual-join-code" placeholder="CÓDIGO" maxlength="6" style="width:6.5ch;padding:5px 6px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:content-box;" />' +
-            '<button onclick="window._casualJoinRoom()" style="padding:5px 8px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.68rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
+          // Join room input row — input left, button right-aligned
+          '<div style="display:flex;gap:4px;align-items:stretch;">' +
+            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="6" style="flex:1;min-width:0;padding:0 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;height:1.8rem;line-height:1.8rem;box-sizing:border-box;" />' +
+            '<button onclick="window._casualJoinRoom()" style="padding:0 10px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;height:1.8rem;line-height:1.8rem;">Entrar</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
