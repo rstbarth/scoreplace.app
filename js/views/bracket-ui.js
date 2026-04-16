@@ -1914,8 +1914,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return 0;
     }
 
-    // Numeric: first to gamesPerSet... no, that's set level. For simple numeric games,
-    // each "point" IS a game directly
+    // Numeric counting: each point IS a game — always return winner after 1 point
+    if (p1 > p2) return 1;
+    if (p2 > p1) return 2;
     return 0;
   }
 
@@ -1982,8 +1983,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
   function _showTieRuleDialog() {
     var cs = _currentSet();
     var tiedAt = cs.gamesP1; // Both are equal
-    var dialogHtml =
-      '<div id="tie-rule-dialog" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10;padding:1rem;">' +
+    var contentEl = document.getElementById('live-score-content');
+    if (!contentEl) return;
+    contentEl.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;">' +
         '<div style="background:var(--bg-card,#1e293b);border-radius:16px;border:1px solid rgba(192,132,252,0.3);padding:1.5rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
           '<div style="text-align:center;margin-bottom:1rem;">' +
             '<div style="font-size:1.5rem;margin-bottom:4px;">⚖️</div>' +
@@ -2002,23 +2005,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>' +
         '</div>' +
       '</div>';
-    var contentEl = document.getElementById('live-score-content');
-    if (contentEl) {
-      contentEl.style.position = 'relative';
-      contentEl.insertAdjacentHTML('beforeend', dialogHtml);
-    }
   }
 
   // Handler for tie rule dialog choice
   window._liveResolveTie = function(rule) {
     state.tieRulePending = false;
-    var dialog = document.getElementById('tie-rule-dialog');
-    if (dialog) dialog.remove();
 
     if (rule === 'extend') {
       // Prorrogar: play on with 2-game lead required
-      // Keep tieRule as 'ask' so it re-triggers if they tie again (e.g. 6-6, 7-7)
-      state.tieRule = 'ask';
+      // Keep tieRule as 'extend' so standard 2-game lead check applies
+      state.tieRule = 'extend';
     } else if (rule === 'tiebreak') {
       state.tieRule = 'tiebreak';
       state.isTiebreak = true;
@@ -2396,6 +2392,47 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _setupServeDragDrop();
   }
 
+  // Swap two serve positions and enforce team alternation (A-B-A-B)
+  // When a player is moved, the rest of the order is adjusted so
+  // no team ever serves twice in a row.
+  function _swapServeAndEnforceAlternation(srcIdx, tgtIdx) {
+    // Simple swap first
+    var moved = _proposedOrder[srcIdx];
+    _proposedOrder.splice(srcIdx, 1);
+    _proposedOrder.splice(tgtIdx, 0, moved);
+
+    // Now enforce alternation: the team at position 0 defines "even = teamA, odd = teamB"
+    // Walk through and fix any violations
+    if (_proposedOrder.length <= 2) return; // Singles: A-B always valid
+
+    var teamA = _proposedOrder[0].team;
+    var teamB = teamA === 1 ? 2 : 1;
+
+    // Build pools of players per team from current order
+    var poolA = _proposedOrder.filter(function(p) { return p.team === teamA; });
+    var poolB = _proposedOrder.filter(function(p) { return p.team === teamB; });
+    var aIdx = 0, bIdx = 0;
+    var newOrder = [];
+
+    for (var i = 0; i < _proposedOrder.length; i++) {
+      var needTeam = (i % 2 === 0) ? teamA : teamB;
+      if (needTeam === teamA && aIdx < poolA.length) {
+        newOrder.push(poolA[aIdx++]);
+      } else if (needTeam === teamB && bIdx < poolB.length) {
+        newOrder.push(poolB[bIdx++]);
+      } else {
+        // Fallback: use whatever is left
+        if (aIdx < poolA.length) newOrder.push(poolA[aIdx++]);
+        else if (bIdx < poolB.length) newOrder.push(poolB[bIdx++]);
+      }
+    }
+
+    // Replace proposed order
+    for (var j = 0; j < newOrder.length; j++) {
+      _proposedOrder[j] = newOrder[j];
+    }
+  }
+
   // Drag-and-drop for serve order cards
   function _setupServeDragDrop() {
     var list = document.getElementById('serve-order-list');
@@ -2428,9 +2465,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
           card.style.boxShadow = '';
           var targetIdx = parseInt(card.getAttribute('data-idx'));
           if (dragSrcIdx !== -1 && dragSrcIdx !== targetIdx) {
-            var temp = _proposedOrder[dragSrcIdx];
-            _proposedOrder[dragSrcIdx] = _proposedOrder[targetIdx];
-            _proposedOrder[targetIdx] = temp;
+            _swapServeAndEnforceAlternation(dragSrcIdx, targetIdx);
             _showServePickerOverlay();
           }
         });
@@ -2496,9 +2531,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
           touchClone = null;
           card.style.opacity = '1';
           if (targetIdx !== -1 && targetIdx !== dragSrcIdx) {
-            var temp = _proposedOrder[dragSrcIdx];
-            _proposedOrder[dragSrcIdx] = _proposedOrder[targetIdx];
-            _proposedOrder[targetIdx] = temp;
+            _swapServeAndEnforceAlternation(dragSrcIdx, targetIdx);
             _showServePickerOverlay();
           }
           dragSrcIdx = -1;
@@ -2551,6 +2584,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Check if we need a serve pick before continuing
     if (_needsServePick()) {
       _showServePickerOverlay();
+      return;
+    }
+
+    // Show tie rule dialog if pending (must render AFTER the full UI, not via insertAdjacentHTML)
+    if (state.tieRulePending) {
+      _showTieRuleDialog();
       return;
     }
 
