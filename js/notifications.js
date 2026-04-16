@@ -177,7 +177,7 @@ function showNotification(title, message, type = 'info') {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      z-index: 9999;
+      z-index: 100011;
     `;
     document.body.appendChild(container);
   }
@@ -248,7 +248,7 @@ function showConfirmDialog(title, message, onConfirm, onCancel, options = {}) {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100000;
+    z-index: 100010;
   `;
 
   const colors = {
@@ -342,7 +342,7 @@ function showAlertDialog(title, message, onOk, options = {}) {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100000;
+    z-index: 100010;
   `;
 
   const colors = {
@@ -423,7 +423,7 @@ function showInputDialog(title, message, onSubmit, options = {}) {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100000;
+    z-index: 100010;
   `;
 
   dialog.innerHTML = `
@@ -522,7 +522,7 @@ function showMultiInputDialog(title, items, onSubmit, options = {}) {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100000;
+    z-index: 100010;
   `;
 
   const inputsHtml = items.map((item, i) => `
