@@ -2382,7 +2382,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
   })();
 
-  // Rebuild proposed order from current team data respecting _firstServeTeam
+  // Rebuild proposed order: ensure strict T-T alternation from _firstServeTeam
   function _rebuildProposedOrder() {
     var tA = _firstServeTeam;
     var tB = tA === 1 ? 2 : 1;
@@ -2397,9 +2397,41 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _proposedOrder = newOrder;
   }
 
+  // Apply a serve drag: player at fromIdx dragged to toIdx.
+  // The dragged player lands at toIdx. Their team fills same-parity slots (0,2 or 1,3).
+  // The other team fills opposite-parity slots. Alternation always enforced.
+  function _applyServeDrag(fromIdx, toIdx) {
+    if (_proposedOrder.length < 4) return;
+    var dragged = _proposedOrder[fromIdx];
+    var dragTeam = dragged.team;
+    // Find teammate and opponents (preserving current order)
+    var teammate = null;
+    var opponents = [];
+    for (var i = 0; i < _proposedOrder.length; i++) {
+      if (i === fromIdx) continue;
+      if (_proposedOrder[i].team === dragTeam) teammate = _proposedOrder[i];
+      else opponents.push(_proposedOrder[i]);
+    }
+    if (!teammate || opponents.length < 2) return;
+    // Target parity determines which slots this team occupies
+    var parity = toIdx % 2; // 0 → even slots (0,2), 1 → odd slots (1,3)
+    var teamSlots = parity === 0 ? [0, 2] : [1, 3];
+    var otherSlots = parity === 0 ? [1, 3] : [0, 2];
+    var newOrder = [null, null, null, null];
+    // Dragged player at target, teammate at the other same-parity slot
+    newOrder[toIdx] = dragged;
+    newOrder[teamSlots[0] === toIdx ? teamSlots[1] : teamSlots[0]] = teammate;
+    // Opponents fill opposite-parity slots (preserve their relative order)
+    newOrder[otherSlots[0]] = opponents[0];
+    newOrder[otherSlots[1]] = opponents[1];
+    _proposedOrder = newOrder;
+    _firstServeTeam = _proposedOrder[0].team;
+    _showServePickerOverlay();
+  }
+
   // ── Serve order picker ──
   // Simple vertical list of 4 cards in serve order. Drag to swap.
-  // Hidden rule: alternation T1-T2-T1-T2 always enforced after any swap.
+  // Rule: alternation T1-T2-T1-T2 always enforced after any drag.
   var _serveDragIdx = null;
   var _serveDragGhost = null;
 
@@ -2439,14 +2471,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
     setTimeout(function() { _setupServeDragDrop(); }, 30);
   }
 
-  // After any drag swap, enforce alternation: the dragged player's position
-  // determines their team's serve slots. Teammate auto-fills the other slot.
-  function _applyAlternation() {
-    // Swap in _proposedOrder already done. Now rebuild to enforce T1-T2-T1-T2.
-    _rebuildProposedOrder();
-    _showServePickerOverlay();
-  }
-
   function _setupServeDragDrop() {
     var cards = document.querySelectorAll('[data-serve-idx]');
     if (!cards.length) return;
@@ -2461,7 +2485,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       card.addEventListener('dragend', function() {
         card.style.opacity = '1';
         _serveDragIdx = null;
-        document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; c.style.boxShadow = ''; });
+        document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; });
       });
       card.addEventListener('dragover', function(e) {
         e.preventDefault();
@@ -2476,11 +2500,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (_serveDragIdx === null) return;
         var tgt = parseInt(card.getAttribute('data-serve-idx'));
         if (tgt !== _serveDragIdx) {
-          var tmp = _proposedOrder[_serveDragIdx];
-          _proposedOrder[_serveDragIdx] = _proposedOrder[tgt];
-          _proposedOrder[tgt] = tmp;
+          var src = _serveDragIdx;
           _serveDragIdx = null;
-          _applyAlternation();
+          _applyServeDrag(src, tgt);
         }
       });
     });
@@ -2527,11 +2549,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           if (targ.dataset && targ.dataset.serveIdx !== undefined) {
             var ti = parseInt(targ.dataset.serveIdx);
             if (ti !== _touchIdx) {
-              var tmp = _proposedOrder[_touchIdx];
-              _proposedOrder[_touchIdx] = _proposedOrder[ti];
-              _proposedOrder[ti] = tmp;
+              var src = _touchIdx;
               _touchIdx = null;
-              _applyAlternation();
+              _applyServeDrag(src, ti);
               return;
             }
             break;
