@@ -3900,20 +3900,7 @@ window._openCasualMatch = function() {
   function _buildPlayers() {
     var players = [];
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (isDoubles && !autoShuffle) {
-      // Use drag-and-drop team assignments from lobby participants
-      var t1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
-      var t2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
-      var slot = 0;
-      for (var i = 0; i < 2; i++) {
-        var pp = t1[i];
-        players.push({ slot: slot++, name: pp ? (pp.displayName || 'Jogador') : 'Jogador', team: 1, uid: pp ? pp.uid : null, photoURL: pp ? pp.photoURL || null : null });
-      }
-      for (var j = 0; j < 2; j++) {
-        var pp2 = t2[j];
-        players.push({ slot: slot++, name: pp2 ? (pp2.displayName || 'Jogador') : 'Jogador', team: 2, uid: pp2 ? pp2.uid : null, photoURL: pp2 ? pp2.photoURL || null : null });
-      }
-    } else if (isDoubles) {
+    if (isDoubles) {
       var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
       var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
       var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
