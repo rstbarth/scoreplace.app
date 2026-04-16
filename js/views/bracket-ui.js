@@ -2703,10 +2703,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding:0 4px;">' + lines + swapBtn + '</div>';
     };
 
-    // Arrow button builder — larger in portrait for easier tapping
+    // Arrow button builder — extra large for easy tapping
     var _upBtn = function(player) {
       var clr = player === 1 ? '#3b82f6' : '#ef4444';
-      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2.6rem;font-weight:900;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(68px,12vh,100px);box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:3.2rem;font-weight:900;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(80px,15vh,120px);box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
     };
     var _downBtn = function(player) {
       return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:1rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(36px,5vh,50px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
@@ -2745,12 +2745,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '</div>';
     }
 
-    // Score plate builder — larger padding and font for portrait mobile
+    // Score plate builder — extra large for visibility from afar
     var _buildPlate = function(player) {
       var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
       var display = player === 1 ? p1Display : p2Display;
-      return '<div style="width:100%;background:#fff;border-radius:16px;padding:clamp(16px,5vh,36px) 8px;box-shadow:0 4px 28px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
-        '<span style="font-size:clamp(4rem,18vw,8rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+      return '<div style="width:100%;background:#fff;border-radius:18px;padding:clamp(22px,7vh,48px) 8px;box-shadow:0 6px 36px rgba(0,0,0,0.5),0 0 0 4px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+        '<span style="font-size:clamp(5.5rem,24vw,12rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
       '</div>';
     };
 
@@ -2797,15 +2797,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(6px,1.5vh,12px);">' + gameLabel + '</div>' : '') +
           // Two-column score plates
-          '<div style="display:flex;align-items:stretch;width:100%;max-width:500px;gap:clamp(10px,3vw,20px);justify-content:center;">' +
+          '<div style="display:flex;align-items:stretch;width:100%;max-width:600px;gap:clamp(8px,2.5vw,16px);justify-content:center;">' +
             // P1 column: names → plate → arrows
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vh,12px);max-width:220px;">' +
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:260px;">' +
               _buildNameStack(1) +
               _buildPlate(1) +
               _buildBtns(1) +
             '</div>' +
             // P2 column: names → plate → arrows
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vh,12px);max-width:220px;">' +
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:260px;">' +
               _buildNameStack(2) +
               _buildPlate(2) +
               _buildBtns(2) +
