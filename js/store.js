@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.93-alpha';
+window.SCOREPLACE_VERSION = '0.10.94-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -727,6 +727,10 @@ window.AppStore = {
       this._notifUnsubscribe();
       this._notifUnsubscribe = null;
     }
+    if (this._profileUnsubscribe) {
+      this._profileUnsubscribe();
+      this._profileUnsubscribe = null;
+    }
   },
 
   // Real-time listener for user notifications — fires on new/updated notifications
@@ -766,6 +770,37 @@ window.AppStore = {
         }
       }, function(err) {
         console.warn('Notifications listener error:', err);
+      });
+  },
+
+  // Real-time listener for user profile — syncs theme and prefs across devices
+  startProfileListener() {
+    if (this._profileUnsubscribe) return; // Already listening
+    if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+    var cu = this.currentUser;
+    if (!cu || !cu.uid) return;
+
+    var store = this;
+    var isFirst = true;
+    this._profileUnsubscribe = window.FirestoreDB.db
+      .collection('users').doc(cu.uid)
+      .onSnapshot(function(doc) {
+        // Skip the initial snapshot (profile already loaded)
+        if (isFirst) { isFirst = false; return; }
+        if (!doc.exists) return;
+        var data = doc.data();
+        // Sync theme in real-time across all logged-in devices
+        if (data.theme && window._themeOrder.indexOf(data.theme) !== -1) {
+          var currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          if (data.theme !== currentTheme) {
+            document.documentElement.setAttribute('data-theme', data.theme);
+            try { localStorage.setItem('scoreplace_theme', data.theme); } catch (e) {}
+            window._applyThemeIcon(data.theme);
+            if (store.currentUser) store.currentUser.theme = data.theme;
+          }
+        }
+      }, function(err) {
+        console.warn('Profile listener error:', err);
       });
   },
 

@@ -913,6 +913,10 @@ async function simulateLoginSuccess(user) {
   if (window.AppStore.startNotificationsListener) {
     window.AppStore.startNotificationsListener();
   }
+  // Start real-time listener for user profile (theme sync across devices)
+  if (window.AppStore.startProfileListener) {
+    window.AppStore.startProfileListener();
+  }
 
   // Check tournament reminders and nearby tournaments (delayed to let data load)
   setTimeout(function() {
