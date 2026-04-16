@@ -240,6 +240,18 @@
     { id: 'profile-hints-toggle', selector: '[onclick*="hintSystem"]', text: 'Ative ou desative as dicas visuais que aparecem quando você fica parado.', context: 'global', priority: 3, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // CASUAL MATCH
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'casual-start', area: 'casual', selector: '#btn-casual-match', text: 'Jogue uma partida rápida sem criar torneio. Escolha esporte, defina se é single ou dupla e convide jogadores por QR code.', priority: 4 },
+    { id: 'casual-sport', area: 'casual', selector: '.casual-sport-btn', text: 'Cada esporte tem pontuação padrão diferente (sets, games, tie-break). Toque na engrenagem ⚙️ para personalizar.', priority: 3 },
+    { id: 'casual-doubles', area: 'casual', selector: '#casual-toggle-doubles', text: 'Ative para jogar em duplas (4 jogadores). Desative para single (2 jogadores).', priority: 3 },
+    { id: 'casual-shuffle', area: 'casual', selector: '#casual-toggle-shuffle', text: 'Sortear ON = duplas aleatórias ao iniciar. OFF = monte os times manualmente arrastando jogadores.', priority: 3 },
+    { id: 'casual-invite', area: 'casual', selector: '.casual-invite-btn', text: 'Convide jogadores presentes mostrando o QR Code ou compartilhando o código da sala de 6 caracteres.', priority: 4 },
+    { id: 'casual-lobby', area: 'casual', selector: '.casual-lobby-section', text: 'O lobby mostra quem já entrou na partida em tempo real. Atualizações automáticas a cada 3 segundos.', priority: 2 },
+    { id: 'casual-serve', area: 'casual', selector: '.serve-card', text: 'Defina a ordem de saque. Use ⇅ para trocar qual jogador do time saca primeiro. A alternância entre times é automática.', priority: 3 },
+    { id: 'casual-tiebreak', area: 'casual', selector: '[onclick*="liveResolveTie"]', text: 'No empate, escolha Prorrogar (vantagem de 2 games) ou Tie-break. Na prorrogação, o botão Tie-break fica disponível para ativar a qualquer momento.', priority: 3 },
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // META
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'hints-meta', selector: '#btn-login', text: 'Essas dicas aparecem quando você fica parado. Para desativá-las, clique "Desativar dicas" aqui embaixo — ou reative no seu Perfil quando quiser.', context: 'global', priority: 2, position: 'bottom' }

@@ -418,6 +418,35 @@
         '</div>'
     },
     {
+      id: 'partida-casual',
+      title: 'Partida Casual',
+      icon: '📡',
+      content: '<p>Jogue partidas avulsas com placar ao vivo em tela cheia — sem precisar criar um torneio.</p>' +
+        '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Como funciona</div>' +
+          '<p><b>1. Abrir</b> — Botão "📡 Partida Casual" na dashboard ou menu.</p>' +
+          '<p><b>2. Configurar</b> — Escolha esporte, single/dupla, pontuação (sets, games, tie-break). Configurações salvas por esporte.</p>' +
+          '<p><b>3. Convidar</b> — QR Code ou código da sala (6 caracteres). Jogadores logados entram automaticamente no lobby.</p>' +
+          '<p><b>4. Montar times</b> — "Sortear" ON = duplas aleatórias ao iniciar. OFF = arraste jogadores para Time 1 / Time 2.</p>' +
+          '<p><b>5. Jogar</b> — Placar ao vivo em tela cheia. Todos os participantes veem e podem marcar pontos em tempo real.</p>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Placar ao Vivo</div>' +
+          '<p><b>Pontuação</b> — Toque ▲ para marcar ponto, ▼ para corrigir. Placares grandes para fácil visualização.</p>' +
+          '<p><b>Sets/Games</b> — Automático: ao completar games, avança set. Empate (ex: 5×5) oferece Prorrogar ou Tie-break.</p>' +
+          '<p><b>Prorrogação</b> — Continua até vantagem de 2 games. Botão "⚡ Tie-break" disponível a qualquer momento para mudar de ideia.</p>' +
+          '<p><b>Ordem de saque</b> — Definida antes da partida. Botão "⇅" troca sacador dentro do time. Botão "⇅ Trocar" durante o jogo para corrigir.</p>' +
+          '<p><b>Nomes editáveis</b> — Toque no nome para alterar. Fotos de perfil exibidas para jogadores logados.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Lobby e Compartilhamento</div>' +
+          '<p><b>Código da sala</b> — 6 caracteres. Digite na dashboard ("📷 Escanear QR") ou acesse #casual/CODIGO.</p>' +
+          '<p><b>Lobby em tempo real</b> — Organizador e participantes veem quem já entrou. Atualização automática a cada 3s.</p>' +
+          '<p><b>Sair</b> — Qualquer participante pode sair da partida a qualquer momento (exceto o criador).</p>' +
+          '<p><b>Resultado</b> — Ao finalizar, confirme o resultado. Estatísticas salvas no perfil.</p>' +
+        '</div>'
+    },
+    {
       id: 'desempate',
       title: _t('help.tiebreak'),
       icon: '⚖️',
@@ -450,7 +479,7 @@
       title: _t('help.hints'),
       icon: '💡',
       content: '<p>O scoreplace.app exibe <b>dicas visuais contextuais</b> quando você fica parado por alguns segundos. Elas aparecem como balões com seta apontando para o elemento. Clique "Entendi" para dispensar ou "Desativar dicas" para parar.</p>' +
-        '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Você pode reativar as dicas no seu Perfil. São 144 dicas ao todo, organizadas por área:</p>' +
+        '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Você pode reativar as dicas no seu Perfil. São 152 dicas ao todo, organizadas por área:</p>' +
 
         // ── Global / Topbar ──
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
@@ -629,6 +658,21 @@
           '</p>' +
         '</div>' +
 
+        // ── Partida Casual ──
+        '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#38bdf8;margin-bottom:8px;">📡 Partida Casual (8)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Partida Casual</b> — Jogue sem criar torneio<br>' +
+            '• <b>Esporte</b> — Pontuação ajustada por modalidade<br>' +
+            '• <b>Single/Dupla</b> — Toggle na configuração<br>' +
+            '• <b>Sortear Duplas</b> — ON = aleatório, OFF = arrastar<br>' +
+            '• <b>QR Code / Código</b> — Convide jogadores presentes<br>' +
+            '• <b>Lobby</b> — Veja quem entrou em tempo real<br>' +
+            '• <b>Ordem de saque</b> — ⇅ troca sacador no time<br>' +
+            '• <b>Tie-break</b> — Ative a qualquer momento na prorrogação' +
+          '</p>' +
+        '</div>' +
+
         // ── Bracket ──
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">🏅 Chaveamento / Classificação (15)</div>' +
@@ -720,64 +764,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.64-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Ordem de saque redesenhada</b> — Slots de time fixos (cores nunca mudam). Botão "⇅" troca sacador dentro do time. Botão "Time X saca primeiro" define quem inicia. Botão "⇅ Trocar" no placar permite corrigir sacador durante a partida. Badge Pro e estatísticas na dashboard.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Correções live scoring</b> — Fix: empate 5-5 travava (dialog era destruído pelo render). Agora dialog de tie-break é full-screen. Fix: contagem numérica nunca avançava games. Saques: reordenar agora mantém alternância obrigatória A-B-A-B entre times.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.59-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Drag-and-drop + avatares + sair</b> — Sortear OFF: arraste jogadores para Time 1/Time 2 (drag desktop + touch mobile + toque para ciclar). Avatares do perfil Google nos lobbies. Botão "Sair" para participantes.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Lobby bidirecional</b> — Tela do organizador agora mostra participantes que entraram via QR/código em tempo real. Nomes preenchidos automaticamente nos inputs. Notificação ao organizador quando alguém entra.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.57-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Lobby de partida casual</b> — Ao escanear QR ou digitar código, jogador entra automaticamente na partida e vê lobby com participantes em tempo real. Refresh automático a cada 3s detecta novos jogadores e início da partida.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.56-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Firestore rules para partidas casuais</b> — Collection casualMatches agora com regras de leitura/escrita no Firestore. Corrige "Partida não encontrada" ao escanear QR ou digitar código da sala.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Casual redesenhado</b> — Toggle Sortear Duplas (padrão ON): participantes sem time, sorteados ao iniciar. Toggle Misto (padrão OFF). Campo "Código da sala" para entrar na sala de um amigo. Partida salva no Firestore ao abrir setup (QR funciona imediatamente). Ícone fallback no perfil da topbar.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.51-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Escanear QR Code</b> — Novo botão "📷 Escanear QR" na dashboard para entrar em partidas casuais. Câmera com scanner de QR code + digitação manual do código da sala. QR code do convite centralizado na tela.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Convite casual reestruturado</b> — Botão "📲 Convidar" na tela de configuração gera QR code centralizado em tela cheia antes de iniciar a partida. Botão "🔀 Sortear Duplas" embaralha jogadores entre times (Fisher-Yates). Fluxo: montar times → convidar → iniciar.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.49-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Partida Casual compartilhada</b> — Convide jogadores presencialmente via QR code e código de sala. Jogadores cadastrados podem reivindicar vagas. Placar ao vivo em tempo real — todos os participantes veem e podem marcar pontos simultaneamente via Firestore. Estatísticas de partidas casuais salvas no perfil. Rota #casual/{code} para acesso direto.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Scoreboard redesenhado</b> — Nomes empilhados (um por linha) com 🏐 ao lado do sacador. Sets no centro do cabeçalho. Nomes editáveis (toque para alterar). Defaults: "Eu/Adversário" (singles), "Parceiro/Adversário 1-2" (duplas). Ordem de saque proposta no início com todos os jogadores em cores dos times — toque para trocar posições, confirma ou pula.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Empate corrigido</b> — Pergunta de desempate agora aparece em 5×5 (não 6×6), pois é o primeiro momento onde vantagem de 2 games é impossível. Opções: Prorrogar (com vantagem de 2) ou Tie-break. Se prorrogar e empatar de novo (6×6, 7×7...), pergunta novamente.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.37-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Scoreboard redesenhado</b> — Placar ao vivo com estética de placa branca, letras pretas, times lado a lado. Seta ▲ para marcar ponto e ▼ menor para corrigir. Botão Resetar no header zera todo o placar. Botão Fechar com confirmação.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.36-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Partida Casual v2</b> — Botão azul claro. Toggle Single/Dupla (padrão dupla no Beach Tennis e Padel, 4 campos de nome). Default: 1 set, 6 games, contagem 15-30-40. No empate (ex: 5×5), o jogador escolhe: prorrogar +1 game, tie-break 7pts ou super tie-break 10pts. Opção configurável na engrenagem.</p>' +
-        '</div>' +
-        '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Placar Ao Vivo</b> — Jogadores lançam resultado ponto a ponto em tela inteira. Botão "📡 Ao Vivo" nos jogos próprios. Suporta Game-Set-Match (tênis: 15-30-40-AD, tiebreak, super tiebreak) e placar simples. Toggles não-excludentes na criação permitem Organizador + Jogadores + Árbitro simultâneos.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Partida Casual completa + Manual atualizado</b> — Placar ao vivo ponto a ponto em tela cheia (sets, games, tie-break, prorrogação). Lobby em tempo real via QR Code e código de sala. Montagem de times por drag-and-drop ou sorteio automático. Fotos de perfil em todas as telas. Ordem de saque com slots fixos por time e correção durante a partida. Empate oferece Prorrogar ou Tie-break. Badge ⭐ PRO e 📊 Estatísticas na dashboard. Nova seção "Partida Casual" no manual de ajuda. 8 novas dicas contextuais para partidas casuais (152 total).</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.25-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
