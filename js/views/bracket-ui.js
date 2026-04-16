@@ -3292,7 +3292,7 @@ window._openCasualMatch = function() {
   var selectedSport = initialSport;
   var spMatch = sports.find(function(s) { return s.key === initialSport; });
   var isDoubles = spMatch ? spMatch.defaultDoubles : true;
-  var autoShuffle = true;
+  var autoShuffle = false;
   var isMisto = false;
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
@@ -3478,39 +3478,52 @@ window._openCasualMatch = function() {
       var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
       var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
 
-      // Build the 4 input cards in two columns (Team 1 left, Team 2 right)
-      // to match live scoring layout: user/parceiro stacked left, adversários stacked right
+      // Build the 4 input cards
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
-      var inputPlaceholders = [p1Name || 'Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
       var inputValues = [p1Name, '', '', ''];
-      var cardTeams = [1, 1, 2, 2]; // fixed team assignment by position
-      // Build individual card HTML
+
+      // Sortear ON: 4 neutral cards (no team colors, generic placeholders)
+      // Sortear OFF: team-colored cards (User+Parceiro = T1 blue, Adversários = T2 red)
+      var inputPlaceholders, cardTeams;
+      if (autoShuffle) {
+        inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+        cardTeams = [0, 0, 0, 0]; // neutral — no team yet
+      } else {
+        inputPlaceholders = [p1Name || 'Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+        cardTeams = [1, 1, 2, 2]; // fixed teams
+      }
+
       function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
-        var isTeam1 = cardTeams[ci] === 1;
-        var cardBg = isTeam1 ? 'rgba(59,130,246,0.10)' : 'rgba(239,68,68,0.10)';
-        var cardBdr = isTeam1 ? 'rgba(59,130,246,0.30)' : 'rgba(239,68,68,0.30)';
-        if (!autoShuffle && _lobbyParticipants[ci]) {
-          var assignedTeam = _teamAssignments[_lobbyParticipants[ci].uid] || 0;
-          if (assignedTeam === 1) { cardBg = 'rgba(59,130,246,0.15)'; cardBdr = 'rgba(59,130,246,0.4)'; }
-          else if (assignedTeam === 2) { cardBg = 'rgba(239,68,68,0.15)'; cardBdr = 'rgba(239,68,68,0.4)'; }
-        }
-        var dragAttrs = !autoShuffle && _lobbyParticipants[ci] ? ' draggable="true" data-casual-uid="' + window._safeHtml(_lobbyParticipants[ci].uid || '') + '"' : '';
-        return '<div' + dragAttrs + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;' + (!autoShuffle && _lobbyParticipants[ci] ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;' : '') + '">' +
+        var tm = cardTeams[ci];
+        var cardBg, cardBdr;
+        if (tm === 1) { cardBg = 'rgba(59,130,246,0.10)'; cardBdr = 'rgba(59,130,246,0.30)'; }
+        else if (tm === 2) { cardBg = 'rgba(239,68,68,0.10)'; cardBdr = 'rgba(239,68,68,0.30)'; }
+        else { cardBg = 'rgba(255,255,255,0.04)'; cardBdr = 'rgba(255,255,255,0.12)'; }
+        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;">' +
           avatar +
           '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
         '</div>';
       }
-      // Two-column layout: left = Team 1 (cards 0,1 stacked), right = Team 2 (cards 2,3 stacked)
-      var cardsHtml =
-        '<div style="display:flex;gap:8px;">' +
-          '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
-            _buildSetupCard(0) + _buildSetupCard(1) +
-          '</div>' +
-          '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
-            _buildSetupCard(2) + _buildSetupCard(3) +
-          '</div>' +
-        '</div>';
+
+      // Layout: Sortear OFF = two columns (T1 left, T2 right); Sortear ON = 2x2 grid
+      var cardsHtml;
+      if (autoShuffle) {
+        cardsHtml =
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            _buildSetupCard(0) + _buildSetupCard(1) + _buildSetupCard(2) + _buildSetupCard(3) +
+          '</div>';
+      } else {
+        cardsHtml =
+          '<div style="display:flex;gap:8px;">' +
+            '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
+              _buildSetupCard(0) + _buildSetupCard(1) +
+            '</div>' +
+            '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
+              _buildSetupCard(2) + _buildSetupCard(3) +
+            '</div>' +
+          '</div>';
+      }
 
       // Subtitle text
       var subtitle = '';
@@ -4115,8 +4128,38 @@ window._openCasualMatch = function() {
       } catch(e) {}
     }
 
-    // Teams are FIXED from setup screen: slots 0,1 = Team 1, slots 2,3 = Team 2.
-    // No shuffle — team assignments from setup are sacred.
+    // Sortear ON: randomly assign 4 players into 2 teams. User always stays on Team 1.
+    // Unnamed players get labeled based on which team they land on.
+    // Sortear OFF: teams are fixed from setup (slots 0,1=T1, slots 2,3=T2) — no shuffle.
+    if (isDoubles && autoShuffle && players.length === 4) {
+      // Fisher-Yates shuffle
+      for (var j = players.length - 1; j > 0; j--) {
+        var k = Math.floor(Math.random() * (j + 1));
+        var tmp = players[j]; players[j] = players[k]; players[k] = tmp;
+      }
+      // Assign teams by position
+      players[0].team = 1; players[1].team = 1;
+      players[2].team = 2; players[3].team = 2;
+      // Ensure current user is in Team 1
+      var cuUid = cu && cu.uid;
+      if (cuUid) {
+        for (var si = 2; si < 4; si++) {
+          if (players[si].uid === cuUid) {
+            var swp = players[0]; players[0] = players[si]; players[si] = swp;
+            players[0].team = 1; players[si].team = 2;
+            break;
+          }
+        }
+      }
+      // Name unnamed players based on their team role
+      var defaultNames = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      for (var ni = 0; ni < 4; ni++) {
+        if (!players[ni].name || defaultNames.indexOf(players[ni].name) !== -1) {
+          if (players[ni].team === 1) players[ni].name = 'Parceiro';
+          else players[ni].name = ni === 2 ? 'Adversário 1' : 'Adversário 2';
+        }
+      }
+    }
 
     var n1, n2;
     if (isDoubles) {
