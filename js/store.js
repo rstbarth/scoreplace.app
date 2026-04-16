@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.92-alpha';
+window.SCOREPLACE_VERSION = '0.10.93-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -509,6 +509,14 @@ window._toggleTheme = function() {
   html.setAttribute('data-theme', next);
   try { localStorage.setItem('scoreplace_theme', next); } catch (e) {}
   window._applyThemeIcon(next);
+  // Sync theme to Firestore so other devices pick it up
+  try {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var uid = cu && (cu.uid || cu.email);
+    if (uid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+      window.FirestoreDB.saveUserProfile(uid, { theme: next }).catch(function() {});
+    }
+  } catch (e) {}
 };
 
 window._applyThemeIcon = function(theme) {
@@ -814,6 +822,17 @@ window.AppStore = {
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
+        // Theme sync across devices
+        if (profile.theme && window._themeOrder.indexOf(profile.theme) !== -1) {
+          this.currentUser.theme = profile.theme;
+          // Apply remote theme if different from local
+          var localTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          if (profile.theme !== localTheme) {
+            document.documentElement.setAttribute('data-theme', profile.theme);
+            try { localStorage.setItem('scoreplace_theme', profile.theme); } catch (e) {}
+            window._applyThemeIcon(profile.theme);
+          }
+        }
         // Plan fields
         if (profile.plan) this.currentUser.plan = profile.plan;
         if (profile.planExpiresAt) this.currentUser.planExpiresAt = profile.planExpiresAt;

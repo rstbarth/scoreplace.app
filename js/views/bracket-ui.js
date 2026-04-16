@@ -3282,7 +3282,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // ── Build overlay ──
   var overlay = document.createElement('div');
   overlay.id = 'live-scoring-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   // Header — 3-column: [AO VIVO + info] [Sets display center] [Reset + Close]
   var headerBg = 'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)';
@@ -3858,18 +3858,17 @@ window._openCasualMatch = function() {
       // Lobby: participants who joined via QR/code
       '<div id="casual-lobby-section" style="margin-bottom:1rem;">' + _buildLobbyHtml() + '</div>' +
 
-      // Inline QR code + room code for quick invite
+      // Inline QR code + room code + Convidar button in one compact box
       '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:12px;">' +
         '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;" />' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:0.68rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Código da Sala</div>' +
-          '<div style="font-size:1.3rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
-          '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:2px;">Peça para escanear ou compartilhe</div>' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+          '<div>' +
+            '<div style="font-size:0.68rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Código da Sala</div>' +
+            '<div style="font-size:1.3rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+          '</div>' +
+          '<button onclick="window._casualInvite()" style="padding:7px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:4px;-webkit-tap-highlight-color:transparent;">📲 Convidar</button>' +
         '</div>' +
       '</div>' +
-
-      // Convidar button
-      '<button onclick="window._casualInvite()" style="width:100%;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.1);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:0.8rem;">📲 Convidar (copiar link / WhatsApp)</button>' +
 
       // Join room input
       '<div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;">' +
@@ -4491,7 +4490,7 @@ window._openCasualMatch = function() {
   // Build overlay
   var overlay = document.createElement('div');
   overlay.id = 'casual-match-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   overlay.innerHTML =
     '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
@@ -4512,6 +4511,21 @@ window._openCasualMatch = function() {
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1.5rem 1rem;-webkit-overflow-scrolling:touch;"></div>';
 
   document.body.appendChild(overlay);
+  // Prevent body scroll and pinch-zoom while casual overlay is open
+  document.body.style.overflow = 'hidden';
+  var _metaVp = document.querySelector('meta[name="viewport"]');
+  var _origVpContent = _metaVp ? _metaVp.getAttribute('content') : '';
+  if (_metaVp) _metaVp.setAttribute('content', 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no');
+  // Restore on close
+  var _ovObs = new MutationObserver(function(muts) {
+    if (!document.getElementById('casual-match-overlay') && !document.getElementById('live-scoring-overlay')) {
+      document.body.style.overflow = '';
+      if (_metaVp && _origVpContent) _metaVp.setAttribute('content', _origVpContent);
+      _ovObs.disconnect();
+    }
+  });
+  _ovObs.observe(document.body, { childList: true });
+
   _renderSetup();
 
   // Auto-save to Firestore immediately so QR code works before clicking anything
