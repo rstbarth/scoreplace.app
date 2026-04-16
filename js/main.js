@@ -764,8 +764,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.66-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Perfil consistente na Partida Casual</b> — Foto e nome do usuário logado exibidos de forma consistente em TODAS as telas: header do setup com avatar e nome completo, inputs de jogador com avatar inline, e matching robusto de perfil (uid + primeiro nome + displayName completo) para fotos no placar ao vivo.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.67-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Nome completo do perfil em todas as telas</b> — Nome completo do perfil (não mais só primeiro nome) exibido em todas as telas da partida casual: setup, lobby, drag-and-drop de times, ordem de saque e placar ao vivo. Botões ⇅ de troca de sacador maiores com melhor alvo de toque. Avatar + nome no header e inputs.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

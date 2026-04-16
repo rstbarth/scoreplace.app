@@ -2429,7 +2429,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<div style="font-size:0.6rem;color:var(--text-muted);">Time ' + p.team + '</div>' +
           '</div>' +
           // Swap within team button
-          (showSwap ? '<button onclick="event.stopPropagation();window._liveSwapTeamServe(' + p.team + ')" style="padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:' + clr + ';font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;" title="Trocar sacador do time">⇅</button>' : '') +
+          (showSwap ? '<button onclick="event.stopPropagation();window._liveSwapTeamServe(' + p.team + ')" style="padding:8px 14px;border-radius:10px;background:' + clr + '22;border:2px solid ' + clr + '55;color:' + clr + ';font-size:0.9rem;font-weight:800;cursor:pointer;flex-shrink:0;white-space:nowrap;-webkit-tap-highlight-color:transparent;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;" title="Trocar sacador do time" ontouchstart="this.style.transform=\'scale(0.92)\'" ontouchend="this.style.transform=\'\'">⇅</button>' : '') +
           // Edit name button
           '<div onclick="event.stopPropagation();window._liveEditServeCard(' + i + ')" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:0.7rem;">✏️</div>' +
         '</div>';
@@ -2555,7 +2555,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var gameLabel = '';
     var p1Display, p2Display;
     if (state.isFinished) {
-      gameLabel = state.winner === 1 ? window._safeHtml(p1Players[0].split(' ')[0]) + ' venceu!' : window._safeHtml(p2Players[0].split(' ')[0]) + ' venceu!';
+      gameLabel = state.winner === 1 ? window._safeHtml(p1Players[0]) + ' venceu!' : window._safeHtml(p2Players[0]) + ' venceu!';
       p1Display = '✓';
       p2Display = '✓';
     } else if (!useSets || state.isFixedSet) {
@@ -2601,12 +2601,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
       for (var ni = 0; ni < players.length; ni++) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
-        var shortName = window._safeHtml(pn.split(' ')[0]);
+        var shortName = window._safeHtml(pn.length > 12 ? pn.split(' ')[0] : pn);
         var servIcon = isServing ? '<span style="font-size:0.75rem;">' + _sportBall + '</span> ' : '';
         var avatar = _liveAvatarHtml(pn, 26);
-        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;justify-content:center;">' +
+        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;justify-content:center;" title="' + window._safeHtml(pn) + '">' +
           avatar +
-          '<div style="font-size:clamp(0.85rem,3vw,1.05rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">' + servIcon + shortName + '</div>' +
+          '<div style="font-size:clamp(0.85rem,3vw,1.05rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">' + servIcon + shortName + '</div>' +
         '</div>';
       }
       // Swap server button for doubles (allows correcting server mid-game)
@@ -3222,7 +3222,7 @@ window._openCasualMatch = function() {
   var isDoubles = spMatch ? spMatch.defaultDoubles : true;
   var autoShuffle = true;
   var isMisto = false;
-  var p1Name = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
+  var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
   var _setupRefreshInterval = null;
   // Team assignments for drag-and-drop (keyed by uid): { uid: 1 or 2 }
@@ -3314,7 +3314,7 @@ window._openCasualMatch = function() {
   // Fill player name inputs with lobby participants' displayNames
   function _fillInputsFromLobby() {
     if (_lobbyParticipants.length <= 1) return;
-    var names = _lobbyParticipants.map(function(p) { return p.displayName ? p.displayName.split(' ')[0] : ''; }).filter(function(n) { return !!n; });
+    var names = _lobbyParticipants.map(function(p) { return p.displayName || ''; }).filter(function(n) { return !!n; });
     if (isDoubles) {
       var inputs = [
         document.getElementById('casual-p1a-name'),
@@ -3411,7 +3411,7 @@ window._openCasualMatch = function() {
         var uid = pp.uid || '';
         return '<div draggable="true" data-casual-uid="' + window._safeHtml(uid) + '" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);margin-bottom:4px;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;">' +
           _avatarHtml(pp, 26) +
-          '<span style="font-size:0.8rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml((pp.displayName || 'Jogador').split(' ')[0]) + '</span>' +
+          '<span style="font-size:0.8rem;font-weight:600;color:var(--text-bright);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(pp.displayName || 'Jogador') + '</span>' +
           (canRemove ? '<button onclick="window._casualUnassign(\'' + window._safeHtml(uid) + '\')" style="background:none;border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;">✕</button>' : '') +
         '</div>';
       }
@@ -3445,10 +3445,10 @@ window._openCasualMatch = function() {
           '</div>' +
 
           // Hidden inputs for _buildPlayers compatibility
-          '<input type="hidden" id="casual-p1a-name" value="' + window._safeHtml(team1[0] ? (team1[0].displayName || '').split(' ')[0] : '') + '">' +
-          '<input type="hidden" id="casual-p1b-name" value="' + window._safeHtml(team1[1] ? (team1[1].displayName || '').split(' ')[0] : '') + '">' +
-          '<input type="hidden" id="casual-p2a-name" value="' + window._safeHtml(team2[0] ? (team2[0].displayName || '').split(' ')[0] : '') + '">' +
-          '<input type="hidden" id="casual-p2b-name" value="' + window._safeHtml(team2[1] ? (team2[1].displayName || '').split(' ')[0] : '') + '">' +
+          '<input type="hidden" id="casual-p1a-name" value="' + window._safeHtml(team1[0] ? (team1[0].displayName || '') : '') + '">' +
+          '<input type="hidden" id="casual-p1b-name" value="' + window._safeHtml(team1[1] ? (team1[1].displayName || '') : '') + '">' +
+          '<input type="hidden" id="casual-p2a-name" value="' + window._safeHtml(team2[0] ? (team2[0].displayName || '') : '') + '">' +
+          '<input type="hidden" id="casual-p2b-name" value="' + window._safeHtml(team2[1] ? (team2[1].displayName || '') : '') + '">' +
 
           '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste ou toque nos jogadores para mover entre times</div>' +
         '</div>';
@@ -3831,11 +3831,11 @@ window._openCasualMatch = function() {
       var slot = 0;
       for (var i = 0; i < 2; i++) {
         var pp = t1[i];
-        players.push({ slot: slot++, name: pp ? (pp.displayName || '').split(' ')[0] || 'Jogador' : 'Jogador', team: 1, uid: pp ? pp.uid : null, photoURL: pp ? pp.photoURL || null : null });
+        players.push({ slot: slot++, name: pp ? (pp.displayName || 'Jogador') : 'Jogador', team: 1, uid: pp ? pp.uid : null, photoURL: pp ? pp.photoURL || null : null });
       }
       for (var j = 0; j < 2; j++) {
         var pp2 = t2[j];
-        players.push({ slot: slot++, name: pp2 ? (pp2.displayName || '').split(' ')[0] || 'Jogador' : 'Jogador', team: 2, uid: pp2 ? pp2.uid : null, photoURL: pp2 ? pp2.photoURL || null : null });
+        players.push({ slot: slot++, name: pp2 ? (pp2.displayName || 'Jogador') : 'Jogador', team: 2, uid: pp2 ? pp2.uid : null, photoURL: pp2 ? pp2.photoURL || null : null });
       }
     } else if (isDoubles) {
       var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
@@ -3979,7 +3979,7 @@ window._openCasualMatch = function() {
       try {
         var freshMatch = await window.FirestoreDB.loadCasualMatch(_sessionRoomCode);
         if (freshMatch && Array.isArray(freshMatch.participants)) {
-          var lobbyNames = freshMatch.participants.map(function(p) { return p.displayName ? p.displayName.split(' ')[0] : ''; }).filter(function(n) { return !!n; });
+          var lobbyNames = freshMatch.participants.map(function(p) { return p.displayName || ''; }).filter(function(n) { return !!n; });
           // Fill empty player slots with lobby participant names
           var usedLobby = 0;
           for (var pi = 0; pi < players.length; pi++) {
