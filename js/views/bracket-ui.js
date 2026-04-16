@@ -3468,79 +3468,87 @@ window._openCasualMatch = function() {
         '</div>';
     }
 
-    // Player names
+    // Player names — same 4-card grid for both Sortear ON and OFF
     var playersHtml = '';
-    if (isDoubles && autoShuffle) {
-      // Sortear ON: 4 players without team assignment — first field shows current user with avatar
-      var _cuAvatarSmall = '';
-      if (cu && cu.photoURL) {
-        _cuAvatarSmall = '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;position:absolute;left:8px;top:50%;transform:translateY(-50%);border:1.5px solid rgba(56,189,248,0.3);" onerror="this.style.display=\'none\'">';
-      } else if (cu && cu.displayName) {
-        _cuAvatarSmall = '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;position:absolute;left:8px;top:50%;transform:translateY(-50%);">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>';
+    if (isDoubles) {
+      // Build avatar helper for input cards
+      function _inputAvatar(idx) {
+        // idx 0 = current user, others = lobby participants if available
+        var pp = null;
+        if (idx === 0 && cu) pp = { displayName: cu.displayName, photoURL: cu.photoURL };
+        else if (idx < _lobbyParticipants.length) pp = _lobbyParticipants[idx];
+        if (!pp || (!pp.photoURL && !pp.displayName)) return '';
+        if (pp.photoURL) {
+          return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\'">';
+        }
+        return '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
       }
-      var _hasAvatar = !!(cu && (cu.photoURL || cu.displayName));
-      var _inputPadLeft = _hasAvatar ? 'padding-left:38px;' : '';
+
+      // When Sortear OFF and teams formed, show team color on cards
+      var _teamsFormed = false;
+      var team1 = [], team2 = [];
+      if (!autoShuffle) {
+        team1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
+        team2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
+        _teamsFormed = team1.length === 2 && team2.length === 2;
+      }
+
+      // Card style — when Sortear OFF, cards are draggable to form teams
+      var _cardStyle = 'display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);box-sizing:border-box;';
+      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
+      var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
+
+      // Build the 4 input cards
+      var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
+      var inputPlaceholders = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      var inputValues = [p1Name, '', '', ''];
+      var cardsHtml = '';
+      for (var ci = 0; ci < 4; ci++) {
+        var avatar = _inputAvatar(ci);
+        // When Sortear OFF, add team color if assigned
+        var cardBg = 'rgba(255,255,255,0.06)';
+        var cardBdr = 'rgba(255,255,255,0.12)';
+        if (!autoShuffle && _lobbyParticipants[ci]) {
+          var assignedTeam = _teamAssignments[_lobbyParticipants[ci].uid] || 0;
+          if (assignedTeam === 1) { cardBg = 'rgba(59,130,246,0.12)'; cardBdr = 'rgba(59,130,246,0.35)'; }
+          else if (assignedTeam === 2) { cardBg = 'rgba(239,68,68,0.12)'; cardBdr = 'rgba(239,68,68,0.35)'; }
+        }
+        var dragAttrs = !autoShuffle && _lobbyParticipants[ci] ? ' draggable="true" data-casual-uid="' + window._safeHtml(_lobbyParticipants[ci].uid || '') + '"' : '';
+        cardsHtml +=
+          '<div' + dragAttrs + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;' + (!autoShuffle && _lobbyParticipants[ci] ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;' : '') + '">' +
+            avatar +
+            '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
+          '</div>';
+      }
+
+      // Subtitle text
+      var subtitle = '';
+      if (autoShuffle) {
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar a partida</div>';
+      } else if (_teamsFormed) {
+        subtitle =
+          '<div style="margin-top:10px;display:flex;gap:8px;">' +
+            '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);text-align:center;">' +
+              '<div style="font-size:0.65rem;font-weight:700;color:#60a5fa;margin-bottom:2px;">Time 1</div>' +
+              '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team1.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
+            '</div>' +
+            '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);text-align:center;">' +
+              '<div style="font-size:0.65rem;font-weight:700;color:#f87171;margin-bottom:2px;">Time 2</div>' +
+              '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team2.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:center;margin-top:6px;"><button onclick="window._casualResetTeams()" style="padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Refazer times</button></div>';
+      } else {
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>';
+      }
+
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Participantes</label>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            '<div style="position:relative;">' + _cuAvatarSmall +
-              '<input type="text" id="casual-p1a-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 12px;' + _inputPadLeft + 'border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
-            '</div>' +
-            '<input type="text" id="casual-p1b-name" placeholder="Jogador 2" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
-            '<input type="text" id="casual-p2a-name" placeholder="Jogador 3" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
-            '<input type="text" id="casual-p2b-name" placeholder="Jogador 4" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+          '<div id="casual-team-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            cardsHtml +
           '</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar a partida</div>' +
-        '</div>';
-    } else if (isDoubles && !autoShuffle) {
-      // Sortear OFF: drag player onto another to form a team
-      // Once a team is formed, both teams are set (remaining 2 form the other team)
-      var _teamsFormed = false;
-      var team1 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 1; });
-      var team2 = _lobbyParticipants.filter(function(p) { return _teamAssignments[p.uid] === 2; });
-      _teamsFormed = team1.length === 2 && team2.length === 2;
-
-      function _ddCard(pp) {
-        var uid = pp.uid || '';
-        var teamNum = _teamAssignments[uid] || 0;
-        var teamClr = teamNum === 1 ? 'rgba(59,130,246,0.15)' : teamNum === 2 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)';
-        var teamBdr = teamNum === 1 ? 'rgba(59,130,246,0.4)' : teamNum === 2 ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)';
-        var teamLabel = teamNum === 1 ? ' <span style="font-size:0.6rem;color:#60a5fa;font-weight:700;">Time 1</span>' : teamNum === 2 ? ' <span style="font-size:0.6rem;color:#f87171;font-weight:700;">Time 2</span>' : '';
-        return '<div draggable="true" data-casual-uid="' + window._safeHtml(uid) + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:' + teamClr + ';border:2px solid ' + teamBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;">' +
-          '<div style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0;opacity:0.5;">☰</div>' +
-          _avatarHtml(pp, 30) +
-          '<span style="font-size:0.85rem;font-weight:600;color:var(--text-bright);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(pp.displayName || 'Jogador') + teamLabel + '</span>' +
-        '</div>';
-      }
-
-      playersHtml =
-        '<div style="margin-bottom:1.2rem;">' +
-          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Monte as Duplas</label>' +
-          '<div id="casual-team-cards" style="display:flex;flex-direction:column;gap:8px;">' +
-            _lobbyParticipants.map(function(p) { return _ddCard(p); }).join('') +
-          '</div>' +
-          (_teamsFormed ?
-            '<div style="margin-top:10px;display:flex;gap:8px;">' +
-              '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);text-align:center;">' +
-                '<div style="font-size:0.65rem;font-weight:700;color:#60a5fa;margin-bottom:2px;">Time 1</div>' +
-                '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team1.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
-              '</div>' +
-              '<div style="flex:1;padding:8px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);text-align:center;">' +
-                '<div style="font-size:0.65rem;font-weight:700;color:#f87171;margin-bottom:2px;">Time 2</div>' +
-                '<div style="font-size:0.78rem;color:var(--text-bright);font-weight:600;">' + team2.map(function(p) { return window._safeHtml(p.displayName || 'Jogador'); }).join(' + ') + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="text-align:center;margin-top:6px;"><button onclick="window._casualResetTeams()" style="padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Refazer times</button></div>'
-          :
-            '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>'
-          ) +
-
-          // Hidden inputs for _buildPlayers compatibility
-          '<input type="hidden" id="casual-p1a-name" value="' + window._safeHtml(team1[0] ? (team1[0].displayName || '') : '') + '">' +
-          '<input type="hidden" id="casual-p1b-name" value="' + window._safeHtml(team1[1] ? (team1[1].displayName || '') : '') + '">' +
-          '<input type="hidden" id="casual-p2a-name" value="' + window._safeHtml(team2[0] ? (team2[0].displayName || '') : '') + '">' +
-          '<input type="hidden" id="casual-p2b-name" value="' + window._safeHtml(team2[1] ? (team2[1].displayName || '') : '') + '">' +
+          subtitle +
         '</div>';
     } else {
       // Singles — show current user avatar next to their input
