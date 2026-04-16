@@ -2677,30 +2677,36 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Serving info
     var serverInfo = _getCurrentServer();
 
-    // Build stacked player name list with avatar + serve icon + swap button
+    // Build stacked player names in team box (bracket-style)
+    // Serve ball LEFT of avatar, full name (never truncated), each player in individual box
     var _buildNameStack = function(team) {
       var players = team === 1 ? p1Players : p2Players;
       var clr = team === 1 ? '#3b82f6' : '#ef4444';
-      var lines = '';
+      var bgClr = team === 1 ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
+      var bdrClr = team === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
+      var cards = '';
       var isDoublesMatch = p1Players.length > 1 || p2Players.length > 1;
       var hasServeOrder = state.serveOrder && state.serveOrder.length > 0 && !state.serveSkipped;
       for (var ni = 0; ni < players.length; ni++) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
-        var shortName = window._safeHtml(pn.length > 12 ? pn.split(' ')[0] : pn);
-        var servIcon = isServing ? '<span style="font-size:0.75rem;">' + _sportBall + '</span> ' : '';
-        var avatar = _liveAvatarHtml(pn, 26);
-        lines += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;justify-content:center;" title="' + window._safeHtml(pn) + '">' +
+        var fullName = window._safeHtml(pn);
+        var avatar = _liveAvatarHtml(pn, 24);
+        var servBall = isServing ? '<span style="font-size:0.7rem;flex-shrink:0;">' + _sportBall + '</span>' : '';
+        // Individual player box
+        cards += '<div onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
+          servBall +
           avatar +
-          '<div style="font-size:clamp(0.85rem,3vw,1.05rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">' + servIcon + shortName + '</div>' +
+          '<span style="font-size:clamp(0.72rem,2.2vw,0.88rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:nowrap;">' + fullName + '</span>' +
         '</div>';
       }
-      // Swap server button for doubles (allows correcting server mid-game)
+      // Swap server button for doubles (mid-game correction)
       var swapBtn = '';
       if (isDoublesMatch && hasServeOrder && !state.isFinished && players.length > 1) {
-        swapBtn = '<button onclick="event.stopPropagation();window._liveSwapServerInTeam(' + team + ')" style="margin-top:2px;padding:2px 8px;border-radius:6px;border:1px solid ' + clr + '44;background:' + clr + '15;color:' + clr + ';font-size:0.6rem;font-weight:700;cursor:pointer;white-space:nowrap;" title="Trocar sacador">⇅ Trocar</button>';
+        swapBtn = '<button onclick="event.stopPropagation();window._liveSwapServerInTeam(' + team + ')" style="margin-top:2px;padding:2px 8px;border-radius:6px;border:1px solid ' + clr + '44;background:' + clr + '15;color:' + clr + ';font-size:0.6rem;font-weight:700;cursor:pointer;white-space:nowrap;">⇅ Trocar sacador</button>';
       }
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding:0 4px;">' + lines + swapBtn + '</div>';
+      // Team box wrapping all players
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:10px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + swapBtn + '</div>';
     };
 
     // Arrow button builder — extra large for easy tapping
