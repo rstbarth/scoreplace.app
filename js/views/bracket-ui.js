@@ -2397,11 +2397,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _proposedOrder = newOrder;
   }
 
-  // Show serve order picker
-  // The serve order ALWAYS alternates teams: T1-T2-T1-T2 (or T2-T1-T2-T1).
-  // User chooses: (a) which team serves first, (b) which player within each team serves first.
-  // Dragging a card onto another card from the SAME team swaps who serves 1st/3rd (or 2nd/4th).
-  // Cross-team drags are ignored (alternation is sacred).
+  // ── Serve order picker ──
+  // Simple vertical list of 4 cards in serve order. Drag to swap.
+  // Hidden rule: alternation T1-T2-T1-T2 always enforced after any swap.
   var _serveDragIdx = null;
   var _serveDragGhost = null;
 
@@ -2409,201 +2407,141 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var container = document.getElementById('live-score-content');
     if (!container) return;
 
-    // Always enforce T1-T2-T1-T2 alternation
+    // Enforce alternation
     _rebuildProposedOrder();
 
-    // Separate players by team for the two-column layout
-    var tA = _firstServeTeam;
-    var tB = tA === 1 ? 2 : 1;
-    var teamA = _proposedOrder.filter(function(p) { return p.team === tA; });
-    var teamB = _proposedOrder.filter(function(p) { return p.team === tB; });
-
-    // Build team column: two player cards stacked with a swap button
-    function _teamColumn(teamPlayers, teamNum) {
-      var clr = teamNum === 1 ? '#3b82f6' : '#ef4444';
-      var bgClr = teamNum === 1 ? 'rgba(59,130,246,0.10)' : 'rgba(239,68,68,0.10)';
-      var bdrClr = teamNum === 1 ? 'rgba(59,130,246,0.35)' : 'rgba(239,68,68,0.35)';
-      var html = '<div style="flex:1;display:flex;flex-direction:column;gap:6px;border:1px solid ' + bdrClr + ';border-radius:14px;padding:10px 8px;background:' + bgClr + ';">';
-      // Team header
-      html += '<div style="text-align:center;font-size:0.65rem;font-weight:700;color:' + clr + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Time ' + teamNum + '</div>';
-      for (var i = 0; i < teamPlayers.length; i++) {
-        var p = teamPlayers[i];
-        var servePos = (teamNum === tA) ? (i * 2 + 1) : (i * 2 + 2);
-        // Player card — draggable within team
-        html +=
-          '<div class="serve-card" draggable="true" data-serve-team="' + teamNum + '" data-serve-tidx="' + i + '" style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;">' +
-            '<div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.1);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:800;flex-shrink:0;">' + servePos + 'º</div>' +
-            '<div style="flex-shrink:0;">' + _liveAvatarHtml(p.name, 28) + '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:0.85rem;font-weight:700;color:' + clr + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p.name) + '</div>' +
-            '</div>' +
-            '<div onclick="event.stopPropagation();window._liveEditServeCard(' + _proposedOrder.indexOf(p) + ')" style="width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:0.6rem;">✏️</div>' +
-          '</div>';
-        // Swap button between the two players
-        if (i === 0 && teamPlayers.length > 1) {
-          html += '<div style="text-align:center;"><button onclick="window._liveSwapTeamServe(' + teamNum + ')" style="padding:3px 12px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.65rem;font-weight:600;cursor:pointer;">⇅ trocar</button></div>';
-        }
-      }
-      html += '</div>';
-      return html;
+    // Build 4 cards in serve order
+    var cardsHtml = '';
+    for (var i = 0; i < _proposedOrder.length; i++) {
+      var p = _proposedOrder[i];
+      var clr = p.team === 1 ? '#3b82f6' : '#ef4444';
+      var bgClr = p.team === 1 ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
+      var bdrClr = p.team === 1 ? 'rgba(59,130,246,0.30)' : 'rgba(239,68,68,0.30)';
+      cardsHtml +=
+        '<div class="serve-card" draggable="true" data-serve-idx="' + i + '" style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;border:1px solid ' + bdrClr + ';background:' + bgClr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,box-shadow 0.15s;">' +
+          '<div style="color:var(--text-muted);font-size:0.85rem;flex-shrink:0;opacity:0.4;">☰</div>' +
+          '<div style="width:24px;height:24px;border-radius:50%;background:' + clr + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (i + 1) + '</div>' +
+          _liveAvatarHtml(p.name, 32) +
+          '<div style="flex:1;min-width:0;font-size:0.95rem;font-weight:700;color:' + clr + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p.name) + '</div>' +
+        '</div>';
     }
-
-    // Summary: full serve sequence
-    var seqHtml = '';
-    for (var si = 0; si < _proposedOrder.length; si++) {
-      var sp = _proposedOrder[si];
-      var sClr = sp.team === 1 ? '#60a5fa' : '#f87171';
-      if (si > 0) seqHtml += '<span style="color:var(--text-muted);font-size:0.6rem;"> → </span>';
-      seqHtml += '<span style="color:' + sClr + ';font-weight:700;font-size:0.7rem;">' + window._safeHtml(sp.name.split(' ')[0]) + '</span>';
-    }
-    seqHtml += '<span style="color:var(--text-muted);font-size:0.6rem;"> → repete</span>';
-
-    // Toggle first-serve team button
-    var firstTeamClr = _firstServeTeam === 1 ? '#3b82f6' : '#ef4444';
-    var firstTeamLabel = 'Time ' + _firstServeTeam + ' saca primeiro';
 
     container.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.25rem;gap:0.8rem;">' +
-        '<div style="text-align:center;">' +
-          '<div style="font-size:1.4rem;margin-bottom:3px;">' + _sportBall + '</div>' +
-          '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
-          '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;">Toque ⇅ para trocar quem saca primeiro no time</div>' +
-        '</div>' +
-        // Toggle which team serves first
-        '<button onclick="window._liveToggleFirstTeam()" style="padding:8px 18px;border-radius:10px;border:2px solid ' + firstTeamClr + ';background:rgba(0,0,0,0.2);cursor:pointer;color:' + firstTeamClr + ';font-size:0.82rem;font-weight:700;">' + _sportBall + ' ' + firstTeamLabel + '</button>' +
-        // Two team columns side by side
-        '<div style="display:flex;gap:10px;width:100%;max-width:400px;">' +
-          _teamColumn(teamA, tA) +
-          _teamColumn(teamB, tB) +
-        '</div>' +
-        // Serve sequence summary
-        '<div style="text-align:center;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);width:100%;max-width:400px;">' +
-          '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Sequência</div>' +
-          seqHtml +
-        '</div>' +
-        '<div style="display:flex;gap:10px;margin-top:4px;">' +
-          '<button onclick="window._liveConfirmServeOrder()" style="padding:12px 28px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:0.9rem;font-weight:700;box-shadow:0 2px 12px rgba(16,185,129,0.3);">✓ Confirmar</button>' +
-          '<button onclick="window._liveSkipServe()" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:0.8rem;font-weight:600;">Pular</button>' +
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.5rem;gap:1.2rem;">' +
+        '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
+        '<div id="serve-order-list" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:360px;">' + cardsHtml + '</div>' +
+        '<div style="display:flex;gap:12px;">' +
+          '<button onclick="window._liveConfirmServeOrder()" style="padding:14px 32px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:0.95rem;font-weight:700;box-shadow:0 2px 12px rgba(16,185,129,0.3);">Iniciar Partida</button>' +
+          '<button onclick="window._liveSkipServe()" style="padding:14px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:0.85rem;font-weight:600;">Pular</button>' +
         '</div>' +
       '</div>';
 
-    // Attach drag-and-drop handlers (within same team only)
     setTimeout(function() { _setupServeDragDrop(); }, 30);
   }
 
-  // Swap which player serves first within a team
-  window._liveSwapTeamServe = function(teamNum) {
-    var teamPlayers = _proposedOrder.filter(function(p) { return p.team === teamNum; });
-    if (teamPlayers.length < 2) return;
-    // Find their indices in _proposedOrder and swap
-    var idx0 = _proposedOrder.indexOf(teamPlayers[0]);
-    var idx1 = _proposedOrder.indexOf(teamPlayers[1]);
-    var tmp = _proposedOrder[idx0];
-    _proposedOrder[idx0] = _proposedOrder[idx1];
-    _proposedOrder[idx1] = tmp;
+  // After any drag swap, enforce alternation: the dragged player's position
+  // determines their team's serve slots. Teammate auto-fills the other slot.
+  function _applyAlternation() {
+    // Swap in _proposedOrder already done. Now rebuild to enforce T1-T2-T1-T2.
+    _rebuildProposedOrder();
     _showServePickerOverlay();
-  };
+  }
 
-  // Drag-and-drop for serve order — swap within same team only
   function _setupServeDragDrop() {
-    var cards = document.querySelectorAll('[data-serve-team]');
+    var cards = document.querySelectorAll('[data-serve-idx]');
     if (!cards.length) return;
 
-    // Desktop drag events
+    // Desktop drag
     cards.forEach(function(card) {
       card.addEventListener('dragstart', function(e) {
-        _serveDragIdx = card.getAttribute('data-serve-team') + '-' + card.getAttribute('data-serve-tidx');
+        _serveDragIdx = parseInt(card.getAttribute('data-serve-idx'));
         card.style.opacity = '0.4';
         e.dataTransfer.effectAllowed = 'move';
       });
       card.addEventListener('dragend', function() {
         card.style.opacity = '1';
         _serveDragIdx = null;
-        document.querySelectorAll('[data-serve-team]').forEach(function(c) { c.style.transform = ''; });
+        document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; c.style.boxShadow = ''; });
       });
       card.addEventListener('dragover', function(e) {
         e.preventDefault();
-        if (!_serveDragIdx) return;
-        var srcTeam = _serveDragIdx.split('-')[0];
-        var tgtTeam = card.getAttribute('data-serve-team');
-        if (srcTeam === tgtTeam && _serveDragIdx !== tgtTeam + '-' + card.getAttribute('data-serve-tidx')) {
-          card.style.transform = 'scale(1.03)';
-        }
+        if (_serveDragIdx === null) return;
+        var tgt = parseInt(card.getAttribute('data-serve-idx'));
+        if (tgt !== _serveDragIdx) card.style.transform = 'scale(1.04)';
       });
       card.addEventListener('dragleave', function() { card.style.transform = ''; });
       card.addEventListener('drop', function(e) {
         e.preventDefault();
         card.style.transform = '';
-        if (!_serveDragIdx) return;
-        var srcTeam = _serveDragIdx.split('-')[0];
-        var tgtTeam = card.getAttribute('data-serve-team');
-        if (srcTeam === tgtTeam) {
-          window._liveSwapTeamServe(parseInt(srcTeam));
+        if (_serveDragIdx === null) return;
+        var tgt = parseInt(card.getAttribute('data-serve-idx'));
+        if (tgt !== _serveDragIdx) {
+          var tmp = _proposedOrder[_serveDragIdx];
+          _proposedOrder[_serveDragIdx] = _proposedOrder[tgt];
+          _proposedOrder[tgt] = tmp;
+          _serveDragIdx = null;
+          _applyAlternation();
         }
-        _serveDragIdx = null;
       });
     });
 
-    // Touch drag support (mobile)
-    var _touchData = null;
+    // Touch drag (mobile)
+    var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
-        _touchData = { team: card.getAttribute('data-serve-team'), tidx: card.getAttribute('data-serve-tidx') };
+        _touchIdx = parseInt(card.getAttribute('data-serve-idx'));
         card.style.opacity = '0.6';
       }, { passive: true });
       card.addEventListener('touchmove', function(e) {
-        if (!_touchData) return;
+        if (_touchIdx === null) return;
         e.preventDefault();
         if (!_serveDragGhost) {
           _serveDragGhost = card.cloneNode(true);
-          _serveDragGhost.style.cssText = 'position:fixed;z-index:200000;opacity:0.85;pointer-events:none;width:' + card.offsetWidth + 'px;box-shadow:0 8px 30px rgba(0,0,0,0.5);border-radius:10px;';
+          _serveDragGhost.style.cssText = 'position:fixed;z-index:200000;opacity:0.85;pointer-events:none;width:' + card.offsetWidth + 'px;box-shadow:0 8px 30px rgba(0,0,0,0.5);border-radius:12px;';
           document.body.appendChild(_serveDragGhost);
         }
         var t = e.touches[0];
         _serveDragGhost.style.left = (t.clientX - 40) + 'px';
         _serveDragGhost.style.top = (t.clientY - 20) + 'px';
-        document.querySelectorAll('[data-serve-team]').forEach(function(c) { c.style.transform = ''; });
+        document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; });
         var el = document.elementFromPoint(t.clientX, t.clientY);
-        var target = el;
-        while (target) {
-          if (target.dataset && target.dataset.serveTeam !== undefined) {
-            if (target.dataset.serveTeam === _touchData.team && target.dataset.serveTidx !== _touchData.tidx) {
-              target.style.transform = 'scale(1.03)';
-            }
+        var targ = el;
+        while (targ) {
+          if (targ.dataset && targ.dataset.serveIdx !== undefined) {
+            var ti = parseInt(targ.dataset.serveIdx);
+            if (ti !== _touchIdx) targ.style.transform = 'scale(1.04)';
             break;
           }
-          target = target.parentElement;
+          targ = targ.parentElement;
         }
       }, { passive: false });
       card.addEventListener('touchend', function(e) {
         card.style.opacity = '1';
         if (_serveDragGhost) { _serveDragGhost.remove(); _serveDragGhost = null; }
-        document.querySelectorAll('[data-serve-team]').forEach(function(c) { c.style.transform = ''; });
-        if (!_touchData) return;
+        document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; });
+        if (_touchIdx === null) return;
         var t = e.changedTouches[0];
         var el = document.elementFromPoint(t.clientX, t.clientY);
-        var target = el;
-        while (target) {
-          if (target.dataset && target.dataset.serveTeam !== undefined) {
-            if (target.dataset.serveTeam === _touchData.team && target.dataset.serveTidx !== _touchData.tidx) {
-              window._liveSwapTeamServe(parseInt(_touchData.team));
-              _touchData = null;
+        var targ = el;
+        while (targ) {
+          if (targ.dataset && targ.dataset.serveIdx !== undefined) {
+            var ti = parseInt(targ.dataset.serveIdx);
+            if (ti !== _touchIdx) {
+              var tmp = _proposedOrder[_touchIdx];
+              _proposedOrder[_touchIdx] = _proposedOrder[ti];
+              _proposedOrder[ti] = tmp;
+              _touchIdx = null;
+              _applyAlternation();
               return;
             }
             break;
           }
-          target = target.parentElement;
+          targ = targ.parentElement;
         }
-        _touchData = null;
+        _touchIdx = null;
       });
     });
   }
-
-  // Toggle which team serves first
-  window._liveToggleFirstTeam = function() {
-    _firstServeTeam = _firstServeTeam === 1 ? 2 : 1;
-    _showServePickerOverlay();
-  };
 
   // Swap server within a team during the match (mid-game correction)
   window._liveSwapServerInTeam = function(team) {
