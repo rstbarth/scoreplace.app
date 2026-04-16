@@ -2831,7 +2831,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var swapHint = !state.isFinished ? '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.5;margin-top:4px;">← arraste para trocar lado →</div>' : '';
 
     if (isLandscape) {
-      // ── LANDSCAPE: [Names P1] [Plate+Btns P1] [Games] [Plate+Btns P2] [Names P2] ──
+      // ── LANDSCAPE: [Names+Btns Left] [Plate Left] [Games] [Plate Right] [Names+Btns Right] ──
+      // Buttons below names for better screen usage on phone sideways
       container.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
           // Sets row
@@ -2839,21 +2840,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,8px);">' + gameLabel + '</div>' : '') +
           // Main row
-          '<div style="display:flex;align-items:center;width:100%;max-width:800px;gap:clamp(6px,1.5vw,14px);justify-content:center;">' +
-            // Left column
-            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(leftTeam) + '</div>' +
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
-              _buildPlate(leftTeam) +
+          '<div style="display:flex;align-items:center;width:100%;max-width:900px;gap:clamp(4px,1vw,10px);justify-content:center;padding:0 4px;">' +
+            // Left column: names + buttons stacked
+            '<div style="flex:0 0 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;">' +
+              _buildNameStack(leftTeam) +
               _buildBtns(leftTeam) +
             '</div>' +
+            // Left plate (score only, no buttons)
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:200px;">' +
+              _buildPlate(leftTeam) +
+            '</div>' +
             // Games center
-            (showGamesBox ? gamesCenter : '<div style="width:clamp(8px,2vw,16px);"></div>') +
-            // Right column
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
+            (showGamesBox ? gamesCenter : '<div style="width:clamp(6px,1.5vw,12px);"></div>') +
+            // Right plate (score only, no buttons)
+            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:200px;">' +
               _buildPlate(rightTeam) +
+            '</div>' +
+            // Right column: names + buttons stacked
+            '<div style="flex:0 0 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;">' +
+              _buildNameStack(rightTeam) +
               _buildBtns(rightTeam) +
             '</div>' +
-            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(rightTeam) + '</div>' +
           '</div>' +
         '</div>';
     } else {
