@@ -2459,10 +2459,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
     setTimeout(function() { _setupServeDragDrop(); }, 30);
   }
 
-  // Drag-and-drop for serve order reordering
+  // Drag-and-drop for serve order — only swap within same team (preserves T1-T2-T1-T2 alternation)
   function _setupServeDragDrop() {
     var cards = document.querySelectorAll('[data-serve-idx]');
     if (!cards.length) return;
+
+    function _canSwap(srcIdx, tgtIdx) {
+      // Only allow swap if both belong to the same team
+      return _proposedOrder[srcIdx] && _proposedOrder[tgtIdx] &&
+        _proposedOrder[srcIdx].team === _proposedOrder[tgtIdx].team &&
+        srcIdx !== tgtIdx;
+    }
 
     // Desktop drag events
     cards.forEach(function(card) {
@@ -2474,14 +2481,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
       card.addEventListener('dragend', function() {
         card.style.opacity = '1';
         _serveDragIdx = null;
-        // Reset all highlights
         document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; });
       });
       card.addEventListener('dragover', function(e) {
         e.preventDefault();
         if (_serveDragIdx === null) return;
         var targetIdx = parseInt(card.getAttribute('data-serve-idx'));
-        if (targetIdx !== _serveDragIdx) card.style.transform = 'scale(1.03)';
+        if (_canSwap(_serveDragIdx, targetIdx)) card.style.transform = 'scale(1.03)';
       });
       card.addEventListener('dragleave', function() { card.style.transform = ''; });
       card.addEventListener('drop', function(e) {
@@ -2489,8 +2495,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         card.style.transform = '';
         if (_serveDragIdx === null) return;
         var targetIdx = parseInt(card.getAttribute('data-serve-idx'));
-        if (targetIdx === _serveDragIdx) return;
-        // Swap positions in _proposedOrder
+        if (!_canSwap(_serveDragIdx, targetIdx)) { _serveDragIdx = null; return; }
         var tmp = _proposedOrder[_serveDragIdx];
         _proposedOrder[_serveDragIdx] = _proposedOrder[targetIdx];
         _proposedOrder[targetIdx] = tmp;
@@ -2517,13 +2522,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var t = e.touches[0];
         _serveDragGhost.style.left = (t.clientX - 40) + 'px';
         _serveDragGhost.style.top = (t.clientY - 20) + 'px';
-        // Highlight card under finger
+        // Highlight only same-team cards under finger
         document.querySelectorAll('[data-serve-idx]').forEach(function(c) { c.style.transform = ''; });
         var el = document.elementFromPoint(t.clientX, t.clientY);
         var target = el;
         while (target) {
           if (target.dataset && target.dataset.serveIdx !== undefined) {
-            if (parseInt(target.dataset.serveIdx) !== _touchIdx) target.style.transform = 'scale(1.03)';
+            var tgtIdx = parseInt(target.dataset.serveIdx);
+            if (_canSwap(_touchIdx, tgtIdx)) target.style.transform = 'scale(1.03)';
             break;
           }
           target = target.parentElement;
@@ -2540,7 +2546,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         while (target) {
           if (target.dataset && target.dataset.serveIdx !== undefined) {
             var targetIdx = parseInt(target.dataset.serveIdx);
-            if (targetIdx !== _touchIdx) {
+            if (_canSwap(_touchIdx, targetIdx)) {
               var tmp = _proposedOrder[_touchIdx];
               _proposedOrder[_touchIdx] = _proposedOrder[targetIdx];
               _proposedOrder[targetIdx] = tmp;
@@ -3498,20 +3504,23 @@ window._openCasualMatch = function() {
       var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
       var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
 
-      // Build the 4 input cards
+      // Build the 4 input cards — always show team colors:
+      // Cards 0,1 = Team 1 (blue: user + parceiro), Cards 2,3 = Team 2 (red: adversários)
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
-      var inputPlaceholders = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      var inputPlaceholders = [p1Name || 'Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
       var inputValues = [p1Name, '', '', ''];
+      var cardTeams = [1, 1, 2, 2]; // fixed team assignment by position
       var cardsHtml = '';
       for (var ci = 0; ci < 4; ci++) {
         var avatar = _inputAvatar(ci);
-        // When Sortear OFF, add team color if assigned
-        var cardBg = 'rgba(255,255,255,0.06)';
-        var cardBdr = 'rgba(255,255,255,0.12)';
+        var isTeam1 = cardTeams[ci] === 1;
+        var cardBg = isTeam1 ? 'rgba(59,130,246,0.10)' : 'rgba(239,68,68,0.10)';
+        var cardBdr = isTeam1 ? 'rgba(59,130,246,0.30)' : 'rgba(239,68,68,0.30)';
+        // When Sortear OFF + drag-drop teams formed, override with assigned teams
         if (!autoShuffle && _lobbyParticipants[ci]) {
           var assignedTeam = _teamAssignments[_lobbyParticipants[ci].uid] || 0;
-          if (assignedTeam === 1) { cardBg = 'rgba(59,130,246,0.12)'; cardBdr = 'rgba(59,130,246,0.35)'; }
-          else if (assignedTeam === 2) { cardBg = 'rgba(239,68,68,0.12)'; cardBdr = 'rgba(239,68,68,0.35)'; }
+          if (assignedTeam === 1) { cardBg = 'rgba(59,130,246,0.15)'; cardBdr = 'rgba(59,130,246,0.4)'; }
+          else if (assignedTeam === 2) { cardBg = 'rgba(239,68,68,0.15)'; cardBdr = 'rgba(239,68,68,0.4)'; }
         }
         var dragAttrs = !autoShuffle && _lobbyParticipants[ci] ? ' draggable="true" data-casual-uid="' + window._safeHtml(_lobbyParticipants[ci].uid || '') + '"' : '';
         cardsHtml +=
