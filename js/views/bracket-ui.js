@@ -1858,6 +1858,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             state.tieRule = remote.tieRule || state.tieRule;
             if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) state.serveOrder = remote.serveOrder;
             state.serveSkipped = !!remote.serveSkipped;
+            if (remote.courtLeft) _courtLeft = remote.courtLeft;
             if (Array.isArray(remote.p1Players)) {
               for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
             }
@@ -3147,6 +3148,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       serveOrder: state.serveOrder.map(function(s) { return { team: s.team, name: s.name }; }),
       serveSkipped: state.serveSkipped,
       tieRule: state.tieRule,
+      courtLeft: _courtLeft,
       p1Players: p1Players.slice(),
       p2Players: p2Players.slice(),
       _ts: Date.now() // timestamp for conflict resolution
@@ -3169,6 +3171,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       state.serveOrder = remote.serveOrder;
     }
     state.serveSkipped = !!remote.serveSkipped;
+    if (remote.courtLeft) _courtLeft = remote.courtLeft;
     // Update player names if changed remotely
     if (Array.isArray(remote.p1Players)) {
       for (var i = 0; i < remote.p1Players.length && i < p1Players.length; i++) p1Players[i] = remote.p1Players[i];
