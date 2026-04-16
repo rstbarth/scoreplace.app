@@ -3094,13 +3094,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Show persistent tie-break button during Prorrogação (extend mode)
     if (state.tieRule === 'extend' && !state.isFinished && !state.isTiebreak) {
       var cs = _currentSet();
-      var tbLabel = cs.gamesP1 === cs.gamesP2 && cs.gamesP1 >= state.gamesPerSet - 1
+      var isReady = cs.gamesP1 === cs.gamesP2 && cs.gamesP1 >= state.gamesPerSet - 1;
+      var tbLabel = isReady
         ? 'Ir para Tie-break (' + cs.gamesP1 + '×' + cs.gamesP2 + ')'
         : 'Tie-break';
+      // More prominent when games are tied at or past deuce
+      var tbStyle = isReady
+        ? 'width:100%;padding:16px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 4px 20px rgba(139,92,246,0.45);transition:transform 0.1s;animation:tb-pulse 1.5s ease-in-out infinite;'
+        : 'width:100%;padding:12px;border-radius:12px;font-size:0.85rem;font-weight:700;border:2px solid rgba(192,132,252,0.3);cursor:pointer;background:rgba(192,132,252,0.08);color:#c084fc;transition:background 0.2s;';
       container.insertAdjacentHTML('beforeend',
+        '<style>@keyframes tb-pulse{0%,100%{box-shadow:0 4px 20px rgba(139,92,246,0.45)}50%{box-shadow:0 4px 30px rgba(139,92,246,0.7),0 0 40px rgba(139,92,246,0.25)}}</style>' +
         '<div style="padding:0 1rem 1rem;flex-shrink:0;">' +
-          '<button onclick="window._liveResolveTie(\'tiebreak\')" style="width:100%;padding:12px;border-radius:12px;font-size:0.85rem;font-weight:700;border:2px solid rgba(192,132,252,0.3);cursor:pointer;' +
-          'background:rgba(192,132,252,0.08);color:#c084fc;transition:background 0.2s;">' +
+          '<button onclick="window._liveResolveTie(\'tiebreak\')" style="' + tbStyle + '">' +
           '⚡ ' + tbLabel +
         '</button></div>'
       );
