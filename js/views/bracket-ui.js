@@ -4142,6 +4142,7 @@ window._openCasualMatch = function() {
     }
 
     // Auto-shuffle teams if enabled (Fisher-Yates on 4 players, assign teams)
+    // Guarantee: current user always stays in Team 1 (blue)
     if (isDoubles && autoShuffle && players.length === 4) {
       for (var j = players.length - 1; j > 0; j--) {
         var k = Math.floor(Math.random() * (j + 1));
@@ -4151,6 +4152,18 @@ window._openCasualMatch = function() {
       players[1].team = 1; players[1].slot = 1;
       players[2].team = 2; players[2].slot = 2;
       players[3].team = 2; players[3].slot = 3;
+      // Ensure current user is in Team 1 — if they ended up in slot 2 or 3, swap to slot 0
+      var cuUid = cu && cu.uid;
+      if (cuUid) {
+        for (var si = 2; si < 4; si++) {
+          if (players[si].uid === cuUid) {
+            var swp = players[0]; players[0] = players[si]; players[si] = swp;
+            players[0].team = 1; players[0].slot = 0;
+            players[si].team = 2; players[si].slot = si;
+            break;
+          }
+        }
+      }
       if (typeof showNotification === 'function') showNotification('Duplas sorteadas!', players[0].name + ' + ' + players[1].name + '  vs  ' + players[2].name + ' + ' + players[3].name, 'success');
     }
 
