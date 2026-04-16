@@ -3504,31 +3504,39 @@ window._openCasualMatch = function() {
       var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;color:var(--text-bright);font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
       var _dragAttr = !autoShuffle ? ' draggable="true" style="' + _cardStyle + 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;"' : ' style="' + _cardStyle + '"';
 
-      // Build the 4 input cards — always show team colors:
-      // Cards 0,1 = Team 1 (blue: user + parceiro), Cards 2,3 = Team 2 (red: adversários)
+      // Build the 4 input cards in two columns (Team 1 left, Team 2 right)
+      // to match live scoring layout: user/parceiro stacked left, adversários stacked right
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
       var inputPlaceholders = [p1Name || 'Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
       var inputValues = [p1Name, '', '', ''];
       var cardTeams = [1, 1, 2, 2]; // fixed team assignment by position
-      var cardsHtml = '';
-      for (var ci = 0; ci < 4; ci++) {
+      // Build individual card HTML
+      function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
         var isTeam1 = cardTeams[ci] === 1;
         var cardBg = isTeam1 ? 'rgba(59,130,246,0.10)' : 'rgba(239,68,68,0.10)';
         var cardBdr = isTeam1 ? 'rgba(59,130,246,0.30)' : 'rgba(239,68,68,0.30)';
-        // When Sortear OFF + drag-drop teams formed, override with assigned teams
         if (!autoShuffle && _lobbyParticipants[ci]) {
           var assignedTeam = _teamAssignments[_lobbyParticipants[ci].uid] || 0;
           if (assignedTeam === 1) { cardBg = 'rgba(59,130,246,0.15)'; cardBdr = 'rgba(59,130,246,0.4)'; }
           else if (assignedTeam === 2) { cardBg = 'rgba(239,68,68,0.15)'; cardBdr = 'rgba(239,68,68,0.4)'; }
         }
         var dragAttrs = !autoShuffle && _lobbyParticipants[ci] ? ' draggable="true" data-casual-uid="' + window._safeHtml(_lobbyParticipants[ci].uid || '') + '"' : '';
-        cardsHtml +=
-          '<div' + dragAttrs + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;' + (!autoShuffle && _lobbyParticipants[ci] ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;' : '') + '">' +
-            avatar +
-            '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
-          '</div>';
+        return '<div' + dragAttrs + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + cardBg + ';border:1px solid ' + cardBdr + ';box-sizing:border-box;' + (!autoShuffle && _lobbyParticipants[ci] ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,border-color 0.15s;' : '') + '">' +
+          avatar +
+          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + '">' +
+        '</div>';
       }
+      // Two-column layout: left = Team 1 (cards 0,1 stacked), right = Team 2 (cards 2,3 stacked)
+      var cardsHtml =
+        '<div style="display:flex;gap:8px;">' +
+          '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
+            _buildSetupCard(0) + _buildSetupCard(1) +
+          '</div>' +
+          '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
+            _buildSetupCard(2) + _buildSetupCard(3) +
+          '</div>' +
+        '</div>';
 
       // Subtitle text
       var subtitle = '';
@@ -3554,7 +3562,7 @@ window._openCasualMatch = function() {
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Participantes</label>' +
-          '<div id="casual-team-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+          '<div id="casual-team-cards">' +
             cardsHtml +
           '</div>' +
           subtitle +
