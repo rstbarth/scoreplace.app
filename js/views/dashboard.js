@@ -656,6 +656,8 @@ function renderDashboard(container) {
 
   var _t = window._t || function(k) { return k; };
   const userName = (window.AppStore.currentUser && window.AppStore.currentUser.displayName) ? window.AppStore.currentUser.displayName.split(' ')[0] : _t('common.guest');
+  const _userIsPro = typeof window._isPro === 'function' && window._isPro();
+  const _proBadge = _userIsPro ? ' <span style="display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.55rem;font-weight:800;padding:2px 8px;border-radius:20px;vertical-align:middle;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(245,158,11,0.3);position:relative;top:-2px;">⭐ PRO</span>' : '';
 
   // Initialize filter state
   if (!window._dashFilter) window._dashFilter = 'todos';
@@ -993,8 +995,9 @@ function renderDashboard(container) {
         position: relative;
     ">
 
-      <div style="margin-bottom: 1rem; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
-        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700;">${_t('dashboard.welcome', {name: userName})}</h2>
+      <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; text-align: left;">
+        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700; flex:1;">${_t('dashboard.welcome', {name: userName})}${_proBadge}</h2>
+        ${window.AppStore.currentUser ? '<button onclick="if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + window._safeHtml((window.AppStore.currentUser.displayName || '').replace(/'/g, "\\'")) + '\')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#fff;font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.25)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><span style="font-size:1rem;">📊</span> Estatísticas</button>' : ''}
       </div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">

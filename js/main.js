@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Avatares no live scoring</b> — Foto de perfil do Google exibida ao lado do nome de cada jogador no placar ao vivo, ordem de saque e todas as telas. Placares e botões maiores em celular retrato. Contagem de sets acima suprimida. Botão Tie-break permanente durante prorrogação.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Badge Pro + Estatísticas na dashboard</b> — Usuários Pro recebem badge "⭐ PRO" ao lado do nome na saudação. Botão "📊 Estatísticas" na hero box abre estatísticas pessoais do jogador. Avatares no live scoring, placares maiores em retrato, tie-break durante prorrogação.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
