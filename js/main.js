@@ -828,8 +828,8 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.6-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Fix: botões Fechar/Resetar funcionando</b> — Diálogos de confirmação (showConfirmDialog, showAlertDialog, showInputDialog) tinham z-index menor que o overlay de placar ao vivo, ficando invisíveis por trás. Elevados para z-index 100010. Toasts de notificação também elevados para aparecer sobre o placar. Tela de resultado com troféu, estatísticas, duração e aproveitamento.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Recomeçar partida + sortear duplas</b> — Tela de resultado agora exibe botão "Recomeçar" abaixo de "Confirmar Resultado". Em duplas, checkbox "Sortear duplas" embaralha os 4 jogadores em novas duplas aleatórias (Fisher-Yates). Fix: diálogos de confirmação elevados acima do overlay (z-index 100010). Tela de resultado com troféu, estatísticas e aproveitamento.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

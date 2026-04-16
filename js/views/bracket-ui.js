@@ -2812,10 +2812,29 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>' +
         '</div>';
 
-      // Append confirm button
+      // Append action buttons: Confirm + Restart with shuffle toggle
+      var restartSection = '';
+      if (isDoubles) {
+        restartSection =
+          '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+            '<button onclick="window._liveScoreRestart()" style="flex:1;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Recomeçar</button>' +
+            '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();">' +
+              '<input type="checkbox" id="chk-shuffle-teams" style="width:18px;height:18px;accent-color:#818cf8;cursor:pointer;" />' +
+              '<span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);">Sortear duplas</span>' +
+            '</label>' +
+          '</div>';
+      } else {
+        restartSection =
+          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Recomeçar</button>';
+      }
       container.insertAdjacentHTML('beforeend',
-        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:1rem;"><button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
-        'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button></div>'
+        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:0.5rem;">' +
+          '<button onclick="window._liveScoreSave()" style="width:100%;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;' +
+          'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
+        '</div>' +
+        '<div style="padding:0 1rem;flex-shrink:0;padding-bottom:1rem;">' +
+          restartSection +
+        '</div>'
       );
       _syncLiveState();
       return;
@@ -3454,6 +3473,51 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
         _matchEndTime = null;
+        _render();
+      }
+    );
+  };
+
+  // Restart handler: reset score and optionally re-shuffle teams
+  window._liveScoreRestart = function() {
+    var shuffleChk = document.getElementById('chk-shuffle-teams');
+    var shouldShuffle = shuffleChk && shuffleChk.checked;
+    showConfirmDialog(
+      'Recomeçar partida?',
+      shouldShuffle ? 'As duplas serão re-sorteadas e a contagem zerada.' : 'A contagem será zerada e uma nova partida começará.',
+      function() {
+        // Shuffle teams if requested
+        if (shouldShuffle && isDoubles) {
+          var allPlayers = p1Players.concat(p2Players);
+          // Fisher-Yates shuffle
+          for (var fi = allPlayers.length - 1; fi > 0; fi--) {
+            var fj = Math.floor(Math.random() * (fi + 1));
+            var tmp = allPlayers[fi]; allPlayers[fi] = allPlayers[fj]; allPlayers[fj] = tmp;
+          }
+          // Split into two teams
+          var half = Math.ceil(allPlayers.length / 2);
+          p1Players.length = 0; p2Players.length = 0;
+          for (var si = 0; si < allPlayers.length; si++) {
+            if (si < half) p1Players.push(allPlayers[si]);
+            else p2Players.push(allPlayers[si]);
+          }
+        }
+        // Reset state
+        state.sets = [{ gamesP1: 0, gamesP2: 0, tiebreak: null }];
+        state.currentGameP1 = 0;
+        state.currentGameP2 = 0;
+        state.isTiebreak = false;
+        state.isFinished = false;
+        state.winner = null;
+        state.tieRulePending = false;
+        state.totalGamesPlayed = 0;
+        state.serveOrder = [];
+        state.serveSkipped = false;
+        state.servePending = false;
+        state.tieRule = sc.tieRule || null;
+        _matchStartTime = null;
+        _matchEndTime = null;
+        _courtLeft = 1;
         _render();
       }
     );
