@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Games visíveis em portrait</b> — Box de games movido para acima das placas de placar em portrait, garantindo visibilidade em qualquer tamanho de tela. Corrigido bug de variáveis leftTeam/rightTeam usadas antes da declaração (cores dos games ignoravam lado da quadra).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: partida de 1 set não encerrava</b> — Partidas configuradas com 1 set (ex: Beach Tennis 1×6) não encerravam após o primeiro set, iniciando incorretamente um segundo set. Causa: _setsWon() excluía sempre o último set da contagem. Corrigido com parâmetro includeAll em _setsWon e _checkMatchWon. Tie-break agora aparece corretamente em prorrogação de 1 set.</p>' +
         '</div>' +

@@ -2789,6 +2789,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Game label color (only for special states)
     var labelClr = state.isFinished ? '#10b981' : '#c084fc';
 
+    // Court sides state: which team is on left vs right (swappable)
+    var leftTeam = _courtLeft; // 1 or 2
+    var rightTeam = leftTeam === 1 ? 2 : 1;
+
     // Games center column — colors follow court sides (left team color left, right team color right)
     var _gamesLeftStr = leftTeam === 1 ? gamesP1Str : gamesP2Str;
     var _gamesRightStr = rightTeam === 1 ? gamesP1Str : gamesP2Str;
@@ -2821,10 +2825,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (state.isFinished) return '';
       return '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(player) + _downBtn(player) + '</div>';
     };
-
-    // Court sides state: which team is on left vs right (swappable)
-    var leftTeam = _courtLeft; // 1 or 2
-    var rightTeam = leftTeam === 1 ? 2 : 1;
 
     // Column backgrounds with team color at 50% opacity
     var leftBg = leftTeam === 1 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)';
@@ -2903,11 +2903,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
     } else {
       // ── PORTRAIT: two columns with team-colored backgrounds, draggable to swap sides ──
       container.innerHTML =
-        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;gap:0;padding:clamp(6px,1.5vh,16px) 0 0 0;">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;gap:0;padding:clamp(4px,1vh,12px) 0 0 0;">' +
           // Sets row
           setsRow +
           // Special label (TIE-BREAK, winner)
-          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,10px);">' + gameLabel + '</div>' : '') +
+          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(2px,0.5vh,6px);">' + gameLabel + '</div>' : '') +
+          // Games box — above plates for guaranteed visibility
+          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(4px,1vh,8px);">' + gamesCenter + '</div>' : '') +
           // Two-column score plates with team-colored backgrounds
           '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;flex:1;min-height:0;">' +
             // Left column
@@ -2924,8 +2926,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '</div>' +
           '</div>' +
           swapHint +
-          // Games box below — compact
-          (showGamesBox ? '<div style="margin-top:clamp(4px,1vh,10px);flex-shrink:0;">' + gamesCenter + '</div>' : '') +
         '</div>';
 
       // Attach court-side drag-and-drop (swap sides)
