@@ -2832,34 +2832,66 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
     if (isLandscape) {
       // ── LANDSCAPE: [Names+Btns Left] [Plate Left] [Games] [Plate Right] [Names+Btns Right] ──
-      // Buttons below names for better screen usage on phone sideways
+      // Landscape-specific builders with smaller sizes to fit phone screen
+      var _lsPlate = function(player) {
+        var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
+        var display = player === 1 ? p1Display : p2Display;
+        return '<div style="width:100%;background:#fff;border-radius:14px;padding:clamp(10px,4vh,28px) 4px;box-shadow:0 4px 24px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+          '<span style="font-size:clamp(3.5rem,14vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+        '</div>';
+      };
+      var _lsUpBtn = function(player) {
+        var clr = player === 1 ? '#3b82f6' : '#ef4444';
+        return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2rem;font-weight:900;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(44px,10vh,70px);box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+      };
+      var _lsDownBtn = function(player) {
+        return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.8rem;font-weight:700;border-radius:0 0 10px 10px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(24px,4vh,36px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
+      };
+      var _lsBtns = function(player) {
+        if (state.isFinished) return '';
+        return '<div style="width:100%;display:flex;flex-direction:column;">' + _lsUpBtn(player) + _lsDownBtn(player) + '</div>';
+      };
+      // Landscape games box — smaller
+      var lsGamesCenter = '';
+      if (showGamesBox) {
+        lsGamesCenter =
+          '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:clamp(4px,1vh,8px) clamp(6px,1.5vw,14px);">' +
+            '<span style="font-size:0.45rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+            '<div style="display:flex;align-items:center;gap:clamp(4px,1vw,8px);">' +
+              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:#60a5fa;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP1Str + '</span>' +
+              '<span style="font-size:clamp(0.7rem,1.5vw,1rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
+              '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:#f87171;font-variant-numeric:tabular-nums;line-height:1;">' + gamesP2Str + '</span>' +
+            '</div>' +
+          '</div>';
+      }
+
       container.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
           // Sets row
           setsRow +
           // Special label (TIE-BREAK, winner)
-          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,8px);">' + gameLabel + '</div>' : '') +
-          // Main row
-          '<div style="display:flex;align-items:center;width:100%;max-width:900px;gap:clamp(4px,1vw,10px);justify-content:center;padding:0 4px;">' +
+          (gameLabel ? '<div style="text-align:center;font-size:clamp(0.6rem,1.5vw,0.75rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(2px,0.5vh,6px);">' + gameLabel + '</div>' : '') +
+          // Main row — 5 columns with constrained widths
+          '<div style="display:flex;align-items:center;width:100%;gap:clamp(4px,0.8vw,8px);justify-content:center;padding:0 6px;">' +
             // Left column: names + buttons stacked
-            '<div style="flex:0 0 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;">' +
+            '<div style="flex:0 1 auto;min-width:0;max-width:22vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
               _buildNameStack(leftTeam) +
-              _buildBtns(leftTeam) +
+              _lsBtns(leftTeam) +
             '</div>' +
-            // Left plate (score only, no buttons)
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:200px;">' +
-              _buildPlate(leftTeam) +
+            // Left plate
+            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:28vw;">' +
+              _lsPlate(leftTeam) +
             '</div>' +
             // Games center
-            (showGamesBox ? gamesCenter : '<div style="width:clamp(6px,1.5vw,12px);"></div>') +
-            // Right plate (score only, no buttons)
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:200px;">' +
-              _buildPlate(rightTeam) +
+            (showGamesBox ? lsGamesCenter : '<div style="width:clamp(4px,1vw,10px);"></div>') +
+            // Right plate
+            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:28vw;">' +
+              _lsPlate(rightTeam) +
             '</div>' +
             // Right column: names + buttons stacked
-            '<div style="flex:0 0 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;">' +
+            '<div style="flex:0 1 auto;min-width:0;max-width:22vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
               _buildNameStack(rightTeam) +
-              _buildBtns(rightTeam) +
+              _lsBtns(rightTeam) +
             '</div>' +
           '</div>' +
         '</div>';
