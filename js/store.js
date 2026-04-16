@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.10.95-alpha';
+window.SCOREPLACE_VERSION = '0.10.96-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -797,6 +797,14 @@ window.AppStore = {
             try { localStorage.setItem('scoreplace_theme', data.theme); } catch (e) {}
             window._applyThemeIcon(data.theme);
             if (store.currentUser) store.currentUser.theme = data.theme;
+          }
+        }
+        // Sync active casual room — navigate other devices to the same match
+        if (data.activeCasualRoom) {
+          var currentHash = window.location.hash || '';
+          var alreadyOnCasual = currentHash.indexOf('#casual/') === 0 || document.getElementById('casual-match-overlay') || document.getElementById('live-scoring-overlay');
+          if (!alreadyOnCasual) {
+            window.location.hash = '#casual/' + data.activeCasualRoom;
           }
         }
       }, function(err) {

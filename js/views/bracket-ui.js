@@ -3706,9 +3706,9 @@ window._openCasualMatch = function() {
     var togglesHtml = '';
     if (isDoubles) {
       togglesHtml =
-        '<div style="margin-bottom:1.2rem;display:flex;flex-direction:column;gap:8px;">' +
+        '<div style="margin-bottom:0.8rem;display:flex;flex-direction:column;gap:6px;">' +
           // Sortear toggle
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:12px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);">' +
             '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-size:1rem;">🔀</span>' +
               '<div>' +
@@ -3719,7 +3719,7 @@ window._openCasualMatch = function() {
             '<label class="toggle-switch" style="--toggle-on-bg:#fbbf24;"><input type="checkbox" ' + (autoShuffle ? 'checked' : '') + ' onchange="window._casualSetShuffle(this.checked)"><span class="toggle-slider"></span></label>' +
           '</div>' +
           // Misto toggle
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(192,132,252,0.05);border:1px solid rgba(192,132,252,0.12);">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:12px;background:rgba(192,132,252,0.05);border:1px solid rgba(192,132,252,0.12);">' +
             '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-size:1rem;">⚤</span>' +
               '<div>' +
@@ -3751,7 +3751,7 @@ window._openCasualMatch = function() {
       // Check if teams are formed (Sortear OFF drag-and-drop)
       var _teamsFormed = !autoShuffle && _teamAssignments[0] !== undefined && _teamAssignments[1] !== undefined && _teamAssignments[2] !== undefined && _teamAssignments[3] !== undefined;
 
-      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.88rem;font-weight:600;outline:none;min-width:0;';
+      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.82rem;font-weight:600;outline:none;min-width:0;width:0;';
 
       // Setup screen: neutral cards, or team-colored when teams formed via drag-and-drop
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
@@ -3777,7 +3777,7 @@ window._openCasualMatch = function() {
         }
         var isDraggable = !autoShuffle;
         var dragStyle = isDraggable ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;' : '';
-        return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
+        return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
           '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + 'color:' + textClr + ';">' +
         '</div>';
@@ -3815,8 +3815,8 @@ window._openCasualMatch = function() {
       }
 
       playersHtml =
-        '<div style="margin-bottom:1.2rem;">' +
-          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Participantes</label>' +
+        '<div style="margin-bottom:0.8rem;">' +
+          '<label style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Participantes</label>' +
           '<div id="casual-team-cards">' +
             cardsHtml +
           '</div>' +
@@ -3847,7 +3847,7 @@ window._openCasualMatch = function() {
 
     content.innerHTML =
       // Config summary: sport + mode + scoring in one compact row
-      '<div onclick="window._casualOpenConfig()" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:10px 14px;margin-bottom:1.2rem;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
+      '<div onclick="window._casualOpenConfig()" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:8px 12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:10px;cursor:pointer;">' +
         '<div style="font-size:1.3rem;flex-shrink:0;">' + sportIcon + '</div>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + window._safeHtml(sportLabel) + ' · ' + (isDoubles ? 'Dupla' : 'Single') + '</div>' +
@@ -3863,29 +3863,29 @@ window._openCasualMatch = function() {
       playersHtml +
 
       // Lobby: participants who joined via QR/code
-      '<div id="casual-lobby-section" style="margin-bottom:1rem;">' + _buildLobbyHtml() + '</div>' +
+      '<div id="casual-lobby-section" style="margin-bottom:0.6rem;">' + _buildLobbyHtml() + '</div>' +
 
       // Inline QR code + room code + Convidar button in one compact box
-      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:12px;">' +
-        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;" />' +
-        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+      '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:14px;padding:10px;margin-bottom:0.6rem;display:flex;align-items:center;gap:10px;">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(casualUrl) + '&bgcolor=1a1e2e&color=ffffff&margin=4" alt="QR" style="width:64px;height:64px;border-radius:10px;flex-shrink:0;" />' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
           '<div>' +
-            '<div style="font-size:0.68rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Código da Sala</div>' +
-            '<div style="font-size:1.3rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
+            '<div style="font-size:0.62rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Código da Sala</div>' +
+            '<div style="font-size:1.2rem;font-weight:900;letter-spacing:4px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
           '</div>' +
-          '<button onclick="window._casualInvite()" style="padding:7px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:4px;-webkit-tap-highlight-color:transparent;">📲 Convidar</button>' +
+          '<button onclick="window._casualInvite()" style="padding:5px 10px;border-radius:8px;font-size:0.7rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;align-self:flex-start;-webkit-tap-highlight-color:transparent;white-space:nowrap;">📲 Convidar</button>' +
         '</div>' +
       '</div>' +
 
       // Join room input
-      '<div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;">' +
-        '<input type="text" id="casual-join-code" placeholder="Código da sala de um amigo" maxlength="8" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.9rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;" />' +
-        '<button onclick="window._casualJoinRoom()" style="padding:10px 16px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">Entrar</button>' +
+      '<div style="display:flex;gap:6px;margin-bottom:0.6rem;align-items:center;">' +
+        '<input type="text" id="casual-join-code" placeholder="Código da sala de um amigo" maxlength="8" style="flex:1;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.82rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;" />' +
+        '<button onclick="window._casualJoinRoom()" style="padding:8px 14px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">Entrar</button>' +
       '</div>' +
 
       // Start button
-      '<button onclick="window._casualStart()" style="width:100%;padding:18px;border-radius:14px;font-size:1.15rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
-        '<span style="font-size:1.5rem;">📡</span> Iniciar Partida' +
+      '<button onclick="window._casualStart()" style="width:100%;padding:14px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
+        '<span style="font-size:1.3rem;">📡</span> Iniciar Partida' +
       '</button>';
 
     // Attach drag-and-drop for team building (Sortear OFF + Doubles)
@@ -4515,7 +4515,7 @@ window._openCasualMatch = function() {
       '</div>' +
       '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
     '</div>' +
-    '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1.5rem 1rem;-webkit-overflow-scrolling:touch;"></div>';
+    '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 
   document.body.appendChild(overlay);
   // Prevent body scroll and pinch-zoom while casual overlay is open
@@ -4529,6 +4529,14 @@ window._openCasualMatch = function() {
       document.body.style.overflow = '';
       if (_metaVp && _origVpContent) _metaVp.setAttribute('content', _origVpContent);
       _ovObs.disconnect();
+      // Clear active casual room from profile
+      try {
+        var _cu = window.AppStore && window.AppStore.currentUser;
+        var _uid = _cu && (_cu.uid || _cu.email);
+        if (_uid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+          window.FirestoreDB.saveUserProfile(_uid, { activeCasualRoom: null }).catch(function() {});
+        }
+      } catch (e) {}
     }
   });
   _ovObs.observe(document.body, { childList: true });
@@ -4555,6 +4563,8 @@ window._openCasualMatch = function() {
       if (docId) { _sessionDocId = docId; console.log('[Casual] Saved to Firestore, docId:', docId, 'roomCode:', _sessionRoomCode); }
       else console.warn('[Casual] saveCasualMatch returned null — check Firestore rules for casualMatches collection');
     }).catch(function(e) { console.error('[Casual] Auto-save failed:', e); });
+    // Save active room to user profile so other devices can join
+    window.FirestoreDB.saveUserProfile(cu.uid, { activeCasualRoom: _sessionRoomCode }).catch(function() {});
   }
 
   // Start polling for new participants joining the room
