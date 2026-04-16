@@ -720,8 +720,8 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
-        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Badge Pro + Estatísticas na dashboard</b> — Usuários Pro recebem badge "⭐ PRO" ao lado do nome na saudação. Botão "📊 Estatísticas" na hero box abre estatísticas pessoais do jogador. Avatares no live scoring, placares maiores em retrato, tie-break durante prorrogação.</p>' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.64-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Ordem de saque redesenhada</b> — Slots de time fixos (cores nunca mudam). Botão "⇅" troca sacador dentro do time. Botão "Time X saca primeiro" define quem inicia. Botão "⇅ Trocar" no placar permite corrigir sacador durante a partida. Badge Pro e estatísticas na dashboard.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

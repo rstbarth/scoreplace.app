@@ -2369,8 +2369,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
     return state.serveOrder[idx] || null;
   }
 
-  // Proposed serve order — alternating teams: P1[0], P2[0], P1[1], P2[1]
+  // Proposed serve order — alternating teams: T1[0], T2[0], T1[1], T2[1]
+  // Team slots are FIXED (even = firstTeam, odd = secondTeam).
+  // Only which player within a team occupies the slot can be swapped.
   var _proposedOrder = [];
+  var _firstServeTeam = 1; // Which team serves first (can be toggled)
   (function() {
     var maxLen = Math.max(p1Players.length, p2Players.length);
     for (var i = 0; i < maxLen; i++) {
@@ -2379,10 +2382,28 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
   })();
 
-  // Show serve order with drag-and-drop reorderable cards + editable names
+  // Rebuild proposed order from current team data respecting _firstServeTeam
+  function _rebuildProposedOrder() {
+    var tA = _firstServeTeam;
+    var tB = tA === 1 ? 2 : 1;
+    var playersA = _proposedOrder.filter(function(p) { return p.team === tA; });
+    var playersB = _proposedOrder.filter(function(p) { return p.team === tB; });
+    var newOrder = [];
+    var maxLen = Math.max(playersA.length, playersB.length);
+    for (var i = 0; i < maxLen; i++) {
+      if (i < playersA.length) newOrder.push(playersA[i]);
+      if (i < playersB.length) newOrder.push(playersB[i]);
+    }
+    _proposedOrder = newOrder;
+  }
+
+  // Show serve order picker — team slots are fixed, tap "⇅" to swap within team
   function _showServePickerOverlay() {
     var container = document.getElementById('live-score-content');
     if (!container) return;
+
+    // Ensure order reflects current _firstServeTeam
+    _rebuildProposedOrder();
 
     // Build the order cards
     var orderCards = '';
@@ -2391,193 +2412,85 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var clr = p.team === 1 ? '#3b82f6' : '#ef4444';
       var bgClr = p.team === 1 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)';
       var bdrClr = p.team === 1 ? 'rgba(59,130,246,0.4)' : 'rgba(239,68,68,0.4)';
+      // Only show swap button if this team has >1 player (doubles)
+      var teamPlayers = _proposedOrder.filter(function(pp) { return pp.team === p.team; });
+      var showSwap = teamPlayers.length > 1;
       orderCards +=
-        '<div class="serve-card" data-idx="' + i + '" draggable="true" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:2px solid ' + bdrClr + ';background:' + bgClr + ';cursor:grab;transition:transform 0.15s,box-shadow 0.15s;touch-action:none;user-select:none;-webkit-user-select:none;">' +
-          // Drag handle
-          '<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;opacity:0.5;padding:0 2px;">' +
-            '<div style="width:14px;height:2px;background:' + clr + ';border-radius:1px;"></div>' +
-            '<div style="width:14px;height:2px;background:' + clr + ';border-radius:1px;"></div>' +
-            '<div style="width:14px;height:2px;background:' + clr + ';border-radius:1px;"></div>' +
-          '</div>' +
-          // Avatar + number badge
+        '<div class="serve-card" data-idx="' + i + '" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:2px solid ' + bdrClr + ';background:' + bgClr + ';transition:transform 0.15s;user-select:none;-webkit-user-select:none;">' +
+          // Serve position number
+          '<div style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.1);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;flex-shrink:0;">' + (i + 1) + 'º</div>' +
+          // Avatar
           '<div style="position:relative;flex-shrink:0;">' +
             _liveAvatarHtml(p.name, 30) +
-            '<div style="position:absolute;bottom:-2px;right:-4px;width:16px;height:16px;border-radius:50%;background:' + clr + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:800;border:1.5px solid #1e293b;">' + (i + 1) + '</div>' +
           '</div>' +
           // Name (editable)
           '<div style="flex:1;min-width:0;">' +
             '<div style="font-size:0.92rem;font-weight:700;color:' + clr + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p.name) + '</div>' +
+            '<div style="font-size:0.6rem;color:var(--text-muted);">Time ' + p.team + '</div>' +
           '</div>' +
-          // Edit button
+          // Swap within team button
+          (showSwap ? '<button onclick="event.stopPropagation();window._liveSwapTeamServe(' + p.team + ')" style="padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:' + clr + ';font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;" title="Trocar sacador do time">⇅</button>' : '') +
+          // Edit name button
           '<div onclick="event.stopPropagation();window._liveEditServeCard(' + i + ')" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:0.7rem;">✏️</div>' +
         '</div>';
     }
+
+    // Toggle first-serve team button
+    var firstTeamClr = _firstServeTeam === 1 ? '#3b82f6' : '#ef4444';
+    var firstTeamLabel = 'Time ' + _firstServeTeam + ' saca primeiro';
 
     container.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.25rem;gap:1rem;">' +
         '<div style="text-align:center;">' +
           '<div style="font-size:1.4rem;margin-bottom:3px;">' + _sportBall + '</div>' +
           '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
-          '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">Arraste para reordenar · ✏️ para editar nome</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">⇅ troca sacador do time · ✏️ edita nome</div>' +
         '</div>' +
+        // Toggle which team serves first
+        '<button onclick="window._liveToggleFirstTeam()" style="padding:8px 18px;border-radius:10px;border:2px solid ' + firstTeamClr + ';background:rgba(0,0,0,0.2);cursor:pointer;color:' + firstTeamClr + ';font-size:0.82rem;font-weight:700;">' + _sportBall + ' ' + firstTeamLabel + '</button>' +
         '<div id="serve-order-list" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;">' + orderCards + '</div>' +
         '<div style="display:flex;gap:10px;margin-top:6px;">' +
           '<button onclick="window._liveConfirmServeOrder()" style="padding:12px 28px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:0.9rem;font-weight:700;box-shadow:0 2px 12px rgba(16,185,129,0.3);">✓ Confirmar</button>' +
           '<button onclick="window._liveSkipServe()" style="padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:0.8rem;font-weight:600;">Pular</button>' +
         '</div>' +
       '</div>';
-
-    // Setup drag-and-drop (touch + mouse)
-    _setupServeDragDrop();
   }
 
-  // Swap two serve positions and enforce team alternation (A-B-A-B)
-  // When a player is moved, the rest of the order is adjusted so
-  // no team ever serves twice in a row.
-  function _swapServeAndEnforceAlternation(srcIdx, tgtIdx) {
-    // Simple swap first
-    var moved = _proposedOrder[srcIdx];
-    _proposedOrder.splice(srcIdx, 1);
-    _proposedOrder.splice(tgtIdx, 0, moved);
+  // Toggle which team serves first
+  window._liveToggleFirstTeam = function() {
+    _firstServeTeam = _firstServeTeam === 1 ? 2 : 1;
+    _showServePickerOverlay();
+  };
 
-    // Now enforce alternation: the team at position 0 defines "even = teamA, odd = teamB"
-    // Walk through and fix any violations
-    if (_proposedOrder.length <= 2) return; // Singles: A-B always valid
-
-    var teamA = _proposedOrder[0].team;
-    var teamB = teamA === 1 ? 2 : 1;
-
-    // Build pools of players per team from current order
-    var poolA = _proposedOrder.filter(function(p) { return p.team === teamA; });
-    var poolB = _proposedOrder.filter(function(p) { return p.team === teamB; });
-    var aIdx = 0, bIdx = 0;
-    var newOrder = [];
-
+  // Swap which player from a team serves first (within the same team)
+  window._liveSwapTeamServe = function(team) {
+    var teamPlayers = [];
     for (var i = 0; i < _proposedOrder.length; i++) {
-      var needTeam = (i % 2 === 0) ? teamA : teamB;
-      if (needTeam === teamA && aIdx < poolA.length) {
-        newOrder.push(poolA[aIdx++]);
-      } else if (needTeam === teamB && bIdx < poolB.length) {
-        newOrder.push(poolB[bIdx++]);
-      } else {
-        // Fallback: use whatever is left
-        if (aIdx < poolA.length) newOrder.push(poolA[aIdx++]);
-        else if (bIdx < poolB.length) newOrder.push(poolB[bIdx++]);
-      }
+      if (_proposedOrder[i].team === team) teamPlayers.push(i);
     }
+    if (teamPlayers.length < 2) return;
+    // Rotate: move first to last within the team's slots
+    var first = _proposedOrder[teamPlayers[0]];
+    var second = _proposedOrder[teamPlayers[1]];
+    _proposedOrder[teamPlayers[0]] = second;
+    _proposedOrder[teamPlayers[1]] = first;
+    _showServePickerOverlay();
+  };
 
-    // Replace proposed order
-    for (var j = 0; j < newOrder.length; j++) {
-      _proposedOrder[j] = newOrder[j];
+  // Swap server within a team during the match (mid-game correction)
+  window._liveSwapServerInTeam = function(team) {
+    if (!state.serveOrder || state.serveOrder.length === 0) return;
+    var teamIdxs = [];
+    for (var i = 0; i < state.serveOrder.length; i++) {
+      if (state.serveOrder[i].team === team) teamIdxs.push(i);
     }
-  }
-
-  // Drag-and-drop for serve order cards
-  function _setupServeDragDrop() {
-    var list = document.getElementById('serve-order-list');
-    if (!list) return;
-    var cards = list.querySelectorAll('.serve-card');
-    var dragSrc = null;
-    var dragSrcIdx = -1;
-    var touchClone = null;
-    var touchOffsetY = 0;
-
-    // ── Mouse drag ──
-    for (var ci = 0; ci < cards.length; ci++) {
-      (function(card) {
-        card.addEventListener('dragstart', function(e) {
-          dragSrc = card;
-          dragSrcIdx = parseInt(card.getAttribute('data-idx'));
-          card.style.opacity = '0.4';
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        card.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          card.style.boxShadow = '0 0 0 2px #fbbf24';
-        });
-        card.addEventListener('dragleave', function() {
-          card.style.boxShadow = '';
-        });
-        card.addEventListener('drop', function(e) {
-          e.preventDefault();
-          card.style.boxShadow = '';
-          var targetIdx = parseInt(card.getAttribute('data-idx'));
-          if (dragSrcIdx !== -1 && dragSrcIdx !== targetIdx) {
-            _swapServeAndEnforceAlternation(dragSrcIdx, targetIdx);
-            _showServePickerOverlay();
-          }
-        });
-        card.addEventListener('dragend', function() {
-          card.style.opacity = '1';
-          dragSrc = null;
-          dragSrcIdx = -1;
-        });
-
-        // ── Touch drag ──
-        card.addEventListener('touchstart', function(e) {
-          if (e.target.closest('[onclick*="_liveEditServeCard"]')) return; // Don't drag on edit btn
-          dragSrcIdx = parseInt(card.getAttribute('data-idx'));
-          var touch = e.touches[0];
-          var rect = card.getBoundingClientRect();
-          touchOffsetY = touch.clientY - rect.top;
-          // Create floating clone
-          touchClone = card.cloneNode(true);
-          touchClone.style.position = 'fixed';
-          touchClone.style.left = rect.left + 'px';
-          touchClone.style.top = rect.top + 'px';
-          touchClone.style.width = rect.width + 'px';
-          touchClone.style.zIndex = '999';
-          touchClone.style.opacity = '0.9';
-          touchClone.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)';
-          touchClone.style.transform = 'scale(1.04)';
-          touchClone.style.pointerEvents = 'none';
-          document.body.appendChild(touchClone);
-          card.style.opacity = '0.3';
-        }, { passive: true });
-
-        card.addEventListener('touchmove', function(e) {
-          if (!touchClone) return;
-          e.preventDefault();
-          var touch = e.touches[0];
-          touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
-          // Highlight card under finger
-          var allCards = list.querySelectorAll('.serve-card');
-          for (var k = 0; k < allCards.length; k++) {
-            var r = allCards[k].getBoundingClientRect();
-            if (touch.clientY > r.top && touch.clientY < r.bottom) {
-              allCards[k].style.boxShadow = '0 0 0 2px #fbbf24';
-            } else {
-              allCards[k].style.boxShadow = '';
-            }
-          }
-        }, { passive: false });
-
-        card.addEventListener('touchend', function(e) {
-          if (!touchClone) return;
-          // Find drop target
-          var touch = e.changedTouches[0];
-          var allCards = list.querySelectorAll('.serve-card');
-          var targetIdx = -1;
-          for (var k = 0; k < allCards.length; k++) {
-            allCards[k].style.boxShadow = '';
-            var r = allCards[k].getBoundingClientRect();
-            if (touch.clientY > r.top && touch.clientY < r.bottom) {
-              targetIdx = parseInt(allCards[k].getAttribute('data-idx'));
-            }
-          }
-          document.body.removeChild(touchClone);
-          touchClone = null;
-          card.style.opacity = '1';
-          if (targetIdx !== -1 && targetIdx !== dragSrcIdx) {
-            _swapServeAndEnforceAlternation(dragSrcIdx, targetIdx);
-            _showServePickerOverlay();
-          }
-          dragSrcIdx = -1;
-        });
-      })(cards[ci]);
-    }
-  }
+    if (teamIdxs.length < 2) return;
+    // Swap the two entries for this team
+    var tmp = state.serveOrder[teamIdxs[0]];
+    state.serveOrder[teamIdxs[0]] = state.serveOrder[teamIdxs[1]];
+    state.serveOrder[teamIdxs[1]] = tmp;
+    _render();
+  };
 
   // Edit name on a serve card
   window._liveEditServeCard = function(idx) {
@@ -2678,11 +2591,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Serving info
     var serverInfo = _getCurrentServer();
 
-    // Build stacked player name list with avatar + serve icon
+    // Build stacked player name list with avatar + serve icon + swap button
     var _buildNameStack = function(team) {
       var players = team === 1 ? p1Players : p2Players;
       var clr = team === 1 ? '#3b82f6' : '#ef4444';
       var lines = '';
+      var isDoublesMatch = p1Players.length > 1 || p2Players.length > 1;
+      var hasServeOrder = state.serveOrder && state.serveOrder.length > 0 && !state.serveSkipped;
       for (var ni = 0; ni < players.length; ni++) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
@@ -2694,7 +2609,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '<div style="font-size:clamp(0.85rem,3vw,1.05rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.7)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">' + servIcon + shortName + '</div>' +
         '</div>';
       }
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding:0 4px;">' + lines + '</div>';
+      // Swap server button for doubles (allows correcting server mid-game)
+      var swapBtn = '';
+      if (isDoublesMatch && hasServeOrder && !state.isFinished && players.length > 1) {
+        swapBtn = '<button onclick="event.stopPropagation();window._liveSwapServerInTeam(' + team + ')" style="margin-top:2px;padding:2px 8px;border-radius:6px;border:1px solid ' + clr + '44;background:' + clr + '15;color:' + clr + ';font-size:0.6rem;font-weight:700;cursor:pointer;white-space:nowrap;" title="Trocar sacador">⇅ Trocar</button>';
+      }
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding:0 4px;">' + lines + swapBtn + '</div>';
     };
 
     // Arrow button builder — larger in portrait for easier tapping
