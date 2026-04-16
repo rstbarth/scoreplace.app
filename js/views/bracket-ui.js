@@ -1833,6 +1833,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     totalGamesPlayed: 0  // total games completed (for serve rotation)
   };
   var serveSlots = isDoubles ? 4 : 2; // total rotation length
+  var _courtLeft = 1; // Which team is on the left side of the court (1 or 2)
 
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
@@ -2685,8 +2686,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var bgClr = team === 1 ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
       var bdrClr = team === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
       var cards = '';
-      var isDoublesMatch = p1Players.length > 1 || p2Players.length > 1;
-      var hasServeOrder = state.serveOrder && state.serveOrder.length > 0 && !state.serveSkipped;
       for (var ni = 0; ni < players.length; ni++) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
@@ -2700,13 +2699,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '<span style="font-size:clamp(0.72rem,2.2vw,0.88rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:nowrap;">' + fullName + '</span>' +
         '</div>';
       }
-      // Swap server button for doubles (mid-game correction)
-      var swapBtn = '';
-      if (isDoublesMatch && hasServeOrder && !state.isFinished && players.length > 1) {
-        swapBtn = '<button onclick="event.stopPropagation();window._liveSwapServerInTeam(' + team + ')" style="margin-top:2px;padding:2px 8px;border-radius:6px;border:1px solid ' + clr + '44;background:' + clr + '15;color:' + clr + ';font-size:0.6rem;font-weight:700;cursor:pointer;white-space:nowrap;">⇅ Trocar sacador</button>';
-      }
       // Team box wrapping all players
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:10px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + swapBtn + '</div>';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:10px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + '</div>';
     };
 
     // Arrow button builder — extra large for easy tapping
@@ -2766,60 +2760,75 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return '<div style="width:100%;display:flex;flex-direction:column;">' + _upBtn(player) + _downBtn(player) + '</div>';
     };
 
+    // Court sides state: which team is on left vs right (swappable)
+    var leftTeam = _courtLeft; // 1 or 2
+    var rightTeam = leftTeam === 1 ? 2 : 1;
+
+    // Column backgrounds with team color at 50% opacity
+    var leftBg = leftTeam === 1 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)';
+    var rightBg = rightTeam === 1 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)';
+    var leftBdr = leftTeam === 1 ? 'rgba(59,130,246,0.20)' : 'rgba(239,68,68,0.20)';
+    var rightBdr = rightTeam === 1 ? 'rgba(59,130,246,0.20)' : 'rgba(239,68,68,0.20)';
+
+    // Swap hint (only shown when not finished)
+    var swapHint = !state.isFinished ? '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.5;margin-top:4px;">← arraste para trocar lado →</div>' : '';
+
     if (isLandscape) {
       // ── LANDSCAPE: [Names P1] [Plate+Btns P1] [Games] [Plate+Btns P2] [Names P2] ──
       container.innerHTML =
-        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
           // Sets row
           setsRow +
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(4px,1vh,8px);">' + gameLabel + '</div>' : '') +
           // Main row
           '<div style="display:flex;align-items:center;width:100%;max-width:800px;gap:clamp(6px,1.5vw,14px);justify-content:center;">' +
-            // P1 names (left side)
-            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(1) + '</div>' +
-            // P1 plate + buttons
+            // Left column
+            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(leftTeam) + '</div>' +
             '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
-              _buildPlate(1) +
-              _buildBtns(1) +
+              _buildPlate(leftTeam) +
+              _buildBtns(leftTeam) +
             '</div>' +
             // Games center
             (showGamesBox ? gamesCenter : '<div style="width:clamp(8px,2vw,16px);"></div>') +
-            // P2 plate + buttons
+            // Right column
             '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:200px;">' +
-              _buildPlate(2) +
-              _buildBtns(2) +
+              _buildPlate(rightTeam) +
+              _buildBtns(rightTeam) +
             '</div>' +
-            // P2 names (right side)
-            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(2) + '</div>' +
+            '<div style="flex:0 0 auto;min-width:0;">' + _buildNameStack(rightTeam) + '</div>' +
           '</div>' +
         '</div>';
     } else {
-      // ── PORTRAIT: names above plates, games below ──
+      // ── PORTRAIT: two columns with team-colored backgrounds, draggable to swap sides ──
       container.innerHTML =
-        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0 0.5rem;">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
           // Sets row
           setsRow +
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(6px,1.5vh,12px);">' + gameLabel + '</div>' : '') +
-          // Two-column score plates
-          '<div style="display:flex;align-items:stretch;width:100%;max-width:600px;gap:clamp(8px,2.5vw,16px);justify-content:center;">' +
-            // P1 column: names → plate → arrows
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:260px;">' +
-              _buildNameStack(1) +
-              _buildPlate(1) +
-              _buildBtns(1) +
+          // Two-column score plates with team-colored backgrounds
+          '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;">' +
+            // Left column
+            '<div class="court-side" data-court-side="left" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);padding:clamp(6px,1.5vh,12px) clamp(4px,1vw,8px);border-radius:14px;background:' + leftBg + ';border:1px solid ' + leftBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
+              _buildNameStack(leftTeam) +
+              _buildPlate(leftTeam) +
+              _buildBtns(leftTeam) +
             '</div>' +
-            // P2 column: names → plate → arrows
-            '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);max-width:260px;">' +
-              _buildNameStack(2) +
-              _buildPlate(2) +
-              _buildBtns(2) +
+            // Right column
+            '<div class="court-side" data-court-side="right" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);padding:clamp(6px,1.5vh,12px) clamp(4px,1vw,8px);border-radius:14px;background:' + rightBg + ';border:1px solid ' + rightBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
+              _buildNameStack(rightTeam) +
+              _buildPlate(rightTeam) +
+              _buildBtns(rightTeam) +
             '</div>' +
           '</div>' +
+          swapHint +
           // Games box below
           (showGamesBox ? '<div style="margin-top:clamp(8px,2vh,16px);">' + gamesCenter + '</div>' : '') +
         '</div>';
+
+      // Attach court-side drag-and-drop (swap sides)
+      setTimeout(function() { _setupCourtSwapDrag(); }, 30);
     }
 
     // Append finish button at bottom
@@ -2844,6 +2853,88 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
     // Sync state to Firestore for real-time collaboration
     _syncLiveState();
+  }
+
+  // ── Court side swap drag-and-drop ──
+  var _courtDragSide = null;
+  var _courtDragGhost = null;
+
+  function _setupCourtSwapDrag() {
+    var sides = document.querySelectorAll('.court-side');
+    if (sides.length < 2) return;
+
+    sides.forEach(function(side) {
+      // Desktop drag
+      side.addEventListener('dragstart', function(e) {
+        _courtDragSide = side.getAttribute('data-court-side');
+        side.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      side.addEventListener('dragend', function() {
+        side.style.opacity = '1';
+        _courtDragSide = null;
+        sides.forEach(function(s) { s.style.transform = ''; });
+      });
+      side.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        if (!_courtDragSide) return;
+        var targetSide = side.getAttribute('data-court-side');
+        if (targetSide !== _courtDragSide) side.style.transform = 'scale(1.02)';
+      });
+      side.addEventListener('dragleave', function() { side.style.transform = ''; });
+      side.addEventListener('drop', function(e) {
+        e.preventDefault();
+        side.style.transform = '';
+        if (!_courtDragSide) return;
+        var targetSide = side.getAttribute('data-court-side');
+        if (targetSide !== _courtDragSide) {
+          _courtDragSide = null;
+          _courtLeft = _courtLeft === 1 ? 2 : 1;
+          _render();
+        }
+      });
+
+      // Touch drag
+      var _touchSide = null;
+      side.addEventListener('touchstart', function(e) {
+        _touchSide = side.getAttribute('data-court-side');
+        side.style.opacity = '0.6';
+      }, { passive: true });
+      side.addEventListener('touchmove', function(e) {
+        if (!_touchSide) return;
+        e.preventDefault();
+        if (!_courtDragGhost) {
+          _courtDragGhost = document.createElement('div');
+          _courtDragGhost.style.cssText = 'position:fixed;z-index:200000;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;';
+          _courtDragGhost.textContent = '⇄';
+          document.body.appendChild(_courtDragGhost);
+        }
+        var t = e.touches[0];
+        _courtDragGhost.style.left = (t.clientX - 30) + 'px';
+        _courtDragGhost.style.top = (t.clientY - 30) + 'px';
+      }, { passive: false });
+      side.addEventListener('touchend', function(e) {
+        side.style.opacity = '1';
+        if (_courtDragGhost) { _courtDragGhost.remove(); _courtDragGhost = null; }
+        if (!_touchSide) return;
+        var t = e.changedTouches[0];
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        var target = el;
+        while (target) {
+          if (target.classList && target.classList.contains('court-side')) {
+            if (target.getAttribute('data-court-side') !== _touchSide) {
+              _touchSide = null;
+              _courtLeft = _courtLeft === 1 ? 2 : 1;
+              _render();
+              return;
+            }
+            break;
+          }
+          target = target.parentElement;
+        }
+        _touchSide = null;
+      });
+    });
   }
 
   // ── Edit player name inline ──
