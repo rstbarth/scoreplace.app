@@ -1883,10 +1883,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
     return state.sets[state.sets.length - 1];
   }
 
-  // Count sets won
-  function _setsWon(player) {
+  // Count sets won (includeAll=true counts the current/last set too — used when set just finished)
+  function _setsWon(player, includeAll) {
     var count = 0;
-    for (var i = 0; i < state.sets.length - 1; i++) { // Exclude current set
+    var limit = includeAll ? state.sets.length : state.sets.length - 1;
+    for (var i = 0; i < limit; i++) {
       var s = state.sets[i];
       if (player === 1 && s.gamesP1 > s.gamesP2) count++;
       if (player === 2 && s.gamesP2 > s.gamesP1) count++;
@@ -2062,10 +2063,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
-  // Check if match is won
+  // Check if match is won (called from _finishSet, so include the just-finished set)
   function _checkMatchWon() {
-    if (_setsWon(1) >= state.setsToWin) return 1;
-    if (_setsWon(2) >= state.setsToWin) return 2;
+    if (_setsWon(1, true) >= state.setsToWin) return 1;
+    if (_setsWon(2, true) >= state.setsToWin) return 2;
     return 0;
   }
 
