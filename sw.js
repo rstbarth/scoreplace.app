@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.10.90';
+var CACHE_NAME = 'scoreplace-v0.10.91';
 var STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -108,6 +108,13 @@ var NO_CACHE_PATTERNS = [
   'maps.googleapis.com',
   'openweathermap.org'
 ];
+
+// Listen for skip waiting message from the page
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // Install: pre-cache static assets
 self.addEventListener('install', function(event) {

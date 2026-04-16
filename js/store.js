@@ -1,4 +1,34 @@
-window.SCOREPLACE_VERSION = '0.10.90-alpha';
+window.SCOREPLACE_VERSION = '0.10.91-alpha';
+
+// ─── Auto-update: check if a newer version is deployed and force reload ────
+(function() {
+  // Fetch index.html fresh (bypass cache) and extract version from store.js
+  // Only check once per session, after a small delay
+  var checked = sessionStorage.getItem('_versionChecked');
+  if (!checked) {
+    setTimeout(function() {
+      sessionStorage.setItem('_versionChecked', '1');
+      fetch('/js/store.js?_t=' + Date.now(), { cache: 'no-store' }).then(function(r) {
+        return r.text();
+      }).then(function(txt) {
+        var m = txt.match(/SCOREPLACE_VERSION\s*=\s*'([^']+)'/);
+        if (m && m[1] && m[1] !== window.SCOREPLACE_VERSION) {
+          console.log('[AutoUpdate] New version available:', m[1], '(current:', window.SCOREPLACE_VERSION + ')');
+          // Clear all SW caches and reload
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+            }).then(function() {
+              window.location.reload();
+            });
+          } else {
+            window.location.reload();
+          }
+        }
+      }).catch(function() {});
+    }, 3000);
+  }
+})();
 
 // ─── Live countdown ticker ─────────────────────────────────────────────────
 // Updates all elements with data-countdown-target every second
