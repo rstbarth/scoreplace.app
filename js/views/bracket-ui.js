@@ -2400,13 +2400,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Show serve order picker — drag-and-drop to reorder
   var _serveDragIdx = null; // index being dragged
   var _serveDragGhost = null; // touch ghost element
+  var _servePickerInitialized = false;
 
   function _showServePickerOverlay() {
     var container = document.getElementById('live-score-content');
     if (!container) return;
 
-    // Ensure order reflects current _firstServeTeam
-    _rebuildProposedOrder();
+    // Only rebuild alternation on first show; after user drag-swaps, preserve their order
+    if (!_servePickerInitialized) {
+      _rebuildProposedOrder();
+      _servePickerInitialized = true;
+    }
 
     // Build the order cards (draggable)
     var orderCards = '';
@@ -2465,10 +2469,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (!cards.length) return;
 
     function _canSwap(srcIdx, tgtIdx) {
-      // Only allow swap if both belong to the same team
-      return _proposedOrder[srcIdx] && _proposedOrder[tgtIdx] &&
-        _proposedOrder[srcIdx].team === _proposedOrder[tgtIdx].team &&
-        srcIdx !== tgtIdx;
+      return _proposedOrder[srcIdx] && _proposedOrder[tgtIdx] && srcIdx !== tgtIdx;
     }
 
     // Desktop drag events
@@ -2566,6 +2567,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Toggle which team serves first
   window._liveToggleFirstTeam = function() {
     _firstServeTeam = _firstServeTeam === 1 ? 2 : 1;
+    _servePickerInitialized = false; // force rebuild for new team order
     _showServePickerOverlay();
   };
 
