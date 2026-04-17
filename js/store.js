@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.11.27-alpha';
+window.SCOREPLACE_VERSION = '0.11.28-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -238,7 +238,8 @@ window._toggleHamburger = function(btn) {
   // Push back-header (Voltar) down so it appears below the dropdown
   window._adjustBackHeaderForHamburger();
 
-  // Close on click outside
+  // Close on click outside — remove first to prevent accumulation on rapid open
+  document.removeEventListener('click', window._hamburgerOutsideClick);
   setTimeout(function() {
     document.addEventListener('click', window._hamburgerOutsideClick);
   }, 10);

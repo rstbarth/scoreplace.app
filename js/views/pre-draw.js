@@ -47,8 +47,8 @@ function renderPreDraw(container, tournamentId) {
               <span style="font-weight:700; color:var(--text-bright);" id="cat-label-${window._safeHtml(catName)}">${window._safeHtml(catName)}</span>
             </div>
             <div style="display:flex; gap:4px;">
-              <button class="btn btn-ghost btn-micro" title="Renomear categoria" onclick="window._renameCat('${catName.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')">✏️</button>
-              ${activeCats.length > 1 ? `<button class="btn btn-ghost btn-micro" title="Fundir com outra categoria" onclick="window._mergeCat('${catName.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')">🔀</button>` : ''}
+              <button class="btn btn-ghost btn-micro" title="Renomear categoria" onclick="window._renameCat('${catName.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')">✏️</button>
+              ${activeCats.length > 1 ? `<button class="btn btn-ghost btn-micro" title="Fundir com outra categoria" onclick="window._mergeCat('${catName.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')">🔀</button>` : ''}
             </div>
           </div>
           <div class="predraw-list" data-cat="${catName}" style="padding: 0.75rem; min-height: 80px; display:flex; flex-direction:column; gap:6px;"

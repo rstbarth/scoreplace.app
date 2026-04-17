@@ -166,7 +166,8 @@ window.FirestoreDB = {
       var snap = await this.db.collection('tournaments').get();
       var tournaments = [];
       snap.forEach(function(doc) {
-        tournaments.push(doc.data());
+        var d = doc.data();
+        if (d) tournaments.push(d);
       });
       // Torneios carregados do Firestore
       return tournaments;

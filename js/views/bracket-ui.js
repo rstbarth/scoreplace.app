@@ -4972,7 +4972,7 @@ window._openCasualMatch = function() {
     for (var csi = 0; csi < sports.length; csi++) {
       var csp = sports[csi];
       var csActive = csp.key === selectedSport;
-      cfgSportBtns += '<button onclick="window._casualSelectSport(\'' + csp.key.replace(/'/g, "\\'") + '\')" style="' +
+      cfgSportBtns += '<button onclick="window._casualSelectSport(\'' + csp.key.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="' +
         'padding:8px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;' +
         'border:2px solid ' + (csActive ? '#fbbf24' : 'rgba(255,255,255,0.12)') + ';' +
         'background:' + (csActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)') + ';' +
@@ -5230,7 +5230,7 @@ window._openCasualMatch = function() {
         '<div style="font-size:0.65rem;color:var(--text-muted);word-break:break-all;margin-bottom:clamp(0.6rem,2vh,1rem);">' + window._safeHtml(casualUrl) + '</div>' +
         // Share buttons
         '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);width:100%;max-width:320px;">' +
-          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar</button>' +
+          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar</button>' +
           '<a href="https://wa.me/?text=' + encodeURIComponent('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
         '</div>' +
         // Back button

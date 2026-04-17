@@ -1061,7 +1061,7 @@ function _teamAvatarHtml(teamName) {
     const fontSize = members.length > 1 ? '0.78rem' : '0.85rem';
     html += `<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">` +
       `<img src="${photoSrc}" ${onerror} data-player-name="${window._safeHtml(name)}" style="width:${size};height:${size};border-radius:50%;flex-shrink:0;object-fit:cover;">` +
-      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:2px;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(name, window._currentBracketTournament) : window._safeHtml(name)}</span>` +
+      `<span style="font-weight:600;font-size:${fontSize};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:2px;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver estatísticas de ${window._safeHtml(name)}">${typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(name, window._currentBracketTournament) : window._safeHtml(name)}</span>` +
     `</div>`;
   });
   if (members.length > 1) html += '</div>';
@@ -1086,7 +1086,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:1.1rem;">${_soIcon}</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:0.82rem;font-weight:700;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" onclick="if(window._showPlayerStats)window._showPlayerStats('${window._safeHtml(String(m.p1).replace(/'/g, "\\'"))}','${String(tId).replace(/'/g, "\\'")}')">${window._safeHtml(m.p1)}</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" onclick="if(window._showPlayerStats)window._showPlayerStats('${window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/'/g, "\\'"))}','${String(tId).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">${window._safeHtml(m.p1)}</div>
             <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">${_soDetail}</div>
           </div>
         </div>
@@ -1533,7 +1533,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
