@@ -1830,7 +1830,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     serveOrder: [],      // [{team:1|2, name:'Ana'}, ...] rotation cycle (2 for singles, 4 for doubles)
     serveSkipped: false, // user chose to skip serve tracking
     servePending: false, // true when waiting for user to pick a server
-    totalGamesPlayed: 0  // total games completed (for serve rotation)
+    totalGamesPlayed: 0, // total games completed (for serve rotation)
+    gameLog: []          // [{winner:1|2, serverName, serverTeam}] per completed normal game
   };
   var serveSlots = isDoubles ? 4 : 2; // total rotation length
   var _courtLeft = 1; // Which team is on the left side of the court (1 or 2)
@@ -1860,6 +1861,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             state.tieRule = remote.tieRule || state.tieRule;
             if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) state.serveOrder = remote.serveOrder;
             state.serveSkipped = !!remote.serveSkipped;
+            if (Array.isArray(remote.gameLog)) state.gameLog = remote.gameLog.slice();
             if (remote.courtLeft) _courtLeft = remote.courtLeft;
             if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
             if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
@@ -2132,7 +2134,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
         else cs.gamesP2++;
         _finishSet(gameWinner);
       } else {
-        // Normal game won
+        // Normal game won — log server and winner for stats
+        var _srvIdx = state.serveOrder.length > 0 ? (state.totalGamesPlayed % state.serveOrder.length) : -1;
+        var _srvEntry = _srvIdx >= 0 ? state.serveOrder[_srvIdx] : null;
+        state.gameLog.push({
+          winner: gameWinner,
+          serverName: _srvEntry ? _srvEntry.name : null,
+          serverTeam: _srvEntry ? _srvEntry.team : null
+        });
         if (gameWinner === 1) cs.gamesP1++;
         else cs.gamesP2++;
         state.currentGameP1 = 0;
@@ -2758,31 +2767,113 @@ window._openLiveScoring = function(tId, matchId, opts) {
         winNamesHtml += '<div style="display:flex;align-items:center;gap:6px;">' + _liveAvatarHtml(winPlayers[wi], 28) +
           '<span style="font-size:clamp(0.9rem,3vw,1.1rem);font-weight:700;color:#fff;">' + window._safeHtml(winPlayers[wi]) + '</span></div>';
       }
-      // Loser names display
+      // Loser names display — compact with avatars
       var loseNamesHtml = '';
       for (var li = 0; li < losePlayers.length; li++) {
-        loseNamesHtml += '<span style="font-size:0.8rem;color:var(--text-muted);">' + window._safeHtml(losePlayers[li]) + '</span>';
-        if (li < losePlayers.length - 1) loseNamesHtml += '<span style="color:rgba(255,255,255,0.15);margin:0 4px;">/</span>';
+        loseNamesHtml += '<div style="display:flex;align-items:center;gap:6px;">' + _liveAvatarHtml(losePlayers[li], 24) +
+          '<span style="font-size:clamp(0.82rem,2.6vw,0.98rem);font-weight:600;color:rgba(255,255,255,0.75);">' + window._safeHtml(losePlayers[li]) + '</span></div>';
       }
 
-      // Stats row builder
+      // Per-player serve stats computed from gameLog
+      var _servePct = function(playerName) {
+        if (!state.gameLog || state.gameLog.length === 0) return null;
+        var served = 0, held = 0;
+        for (var gi = 0; gi < state.gameLog.length; gi++) {
+          var g = state.gameLog[gi];
+          if (g.serverName === playerName) {
+            served++;
+            if (g.winner === g.serverTeam) held++;
+          }
+        }
+        if (served === 0) return null;
+        return { pct: Math.round(held / served * 100), held: held, served: served };
+      };
+
+      // Build per-player serve stat rows (one chip per player)
+      var _buildPlayerServeRow = function(players, accentClr) {
+        var chips = '';
+        for (var pi = 0; pi < players.length; pi++) {
+          var pn = players[pi];
+          var s = _servePct(pn);
+          var valTxt = s ? (s.pct + '%') : '—';
+          var subTxt = s ? (s.held + '/' + s.served) : 'sem dados';
+          chips +=
+            '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
+              '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + window._safeHtml(pn) + '</span>' +
+              '<span style="font-size:clamp(1rem,3.5vw,1.3rem);font-weight:900;color:' + accentClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + valTxt + '</span>' +
+              '<span style="font-size:0.55rem;color:var(--text-muted);">' + subTxt + '</span>' +
+            '</div>';
+        }
+        return '<div style="display:flex;align-items:stretch;justify-content:center;gap:6px;width:100%;">' + chips + '</div>';
+      };
+
+      // Team stats row builder (icon + value + label)
       var _stat = function(icon, label, value) {
         return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0;">' +
-          '<span style="font-size:1.1rem;">' + icon + '</span>' +
-          '<span style="font-size:clamp(0.95rem,3vw,1.2rem);font-weight:800;color:#fff;">' + value + '</span>' +
+          '<span style="font-size:1rem;">' + icon + '</span>' +
+          '<span style="font-size:clamp(0.9rem,2.8vw,1.1rem);font-weight:800;color:#fff;">' + value + '</span>' +
           '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</span>' +
         '</div>';
       };
 
-      // Percentage bar
-      var pctBar = '<div style="width:100%;display:flex;align-items:center;gap:6px;">' +
-        '<span style="font-size:0.7rem;font-weight:700;color:#60a5fa;min-width:28px;text-align:right;">' + (winTeam === 1 ? winPct : losePct) + '%</span>' +
-        '<div style="flex:1;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.08);display:flex;">' +
-          '<div style="width:' + (winTeam === 1 ? winPct : losePct) + '%;background:#60a5fa;border-radius:3px 0 0 3px;transition:width 0.5s;"></div>' +
-          '<div style="width:' + (winTeam === 1 ? losePct : winPct) + '%;background:#f87171;border-radius:0 3px 3px 0;transition:width 0.5s;"></div>' +
-        '</div>' +
-        '<span style="font-size:0.7rem;font-weight:700;color:#f87171;min-width:28px;">' + (winTeam === 2 ? winPct : losePct) + '%</span>' +
-      '</div>';
+      // Team-level stats
+      var winTeamPts = winTeam === 1 ? totalPtsP1 : totalPtsP2;
+      var loseTeamPts = winTeam === 1 ? totalPtsP2 : totalPtsP1;
+      var winTeamGames = 0, loseTeamGames = 0;
+      for (var gli = 0; gli < state.gameLog.length; gli++) {
+        if (state.gameLog[gli].winner === winTeam) winTeamGames++;
+        else loseTeamGames++;
+      }
+      var winSets = 0, loseSets = 0;
+      for (var sii = 0; sii < state.sets.length; sii++) {
+        var _ss = state.sets[sii];
+        if (_ss.gamesP1 > _ss.gamesP2) { if (winTeam === 1) winSets++; else loseSets++; }
+        else if (_ss.gamesP2 > _ss.gamesP1) { if (winTeam === 2) winSets++; else loseSets++; }
+      }
+
+      var hasServeData = state.gameLog && state.gameLog.length > 0 && !state.serveSkipped;
+
+      // Winner section: label + names + score + team stats + per-player serve %
+      var winnerSection =
+        '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,16px) clamp(10px,2vw,16px);border-radius:14px;background:linear-gradient(180deg,rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.14),rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.04));border:1px solid rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.35);display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vh,10px);">' +
+          '<div style="font-size:clamp(1.8rem,6vw,2.8rem);line-height:1;">🏆</div>' +
+          '<div style="font-size:0.6rem;font-weight:800;color:' + winClr + ';text-transform:uppercase;letter-spacing:2px;">Vencedor</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' + winNamesHtml + '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0;">' + scoreSummary + '</div>' +
+          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,12px);width:100%;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.08);">' +
+            (useSets && !state.isFixedSet ? _stat('🏅', 'Sets', winSets) : '') +
+            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', winTeamGames) : '') +
+            _stat('🎯', 'Pontos', winTeamPts) +
+          '</div>' +
+          (hasServeData ? (
+            '<div style="width:100%;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:6px;">' +
+              '<div style="text-align:center;font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Aproveitamento de Saque</div>' +
+              _buildPlayerServeRow(winPlayers, winClr) +
+            '</div>'
+          ) : '') +
+        '</div>';
+
+      // Loser section: subtle styling, similar structure
+      var loserSection =
+        '<div style="width:100%;max-width:380px;padding:clamp(8px,1.8vh,14px) clamp(10px,2vw,16px);border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);opacity:0.92;">' +
+          '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;">Perdedor</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">' + loseNamesHtml + '</div>' +
+          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,12px);width:100%;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.06);">' +
+            (useSets && !state.isFixedSet ? _stat('🏅', 'Sets', loseSets) : '') +
+            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', loseTeamGames) : '') +
+            _stat('🎯', 'Pontos', loseTeamPts) +
+          '</div>' +
+          (hasServeData ? (
+            '<div style="width:100%;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:6px;">' +
+              '<div style="text-align:center;font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Aproveitamento de Saque</div>' +
+              _buildPlayerServeRow(losePlayers, loseClr) +
+            '</div>'
+          ) : '') +
+        '</div>';
+
+      var durationRow = elapsedStr
+        ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;color:var(--text-muted);"><span>⏱</span><span style="font-weight:700;color:var(--text-bright);">' + elapsedStr + '</span><span>de jogo</span></div>'
+        : '';
 
       // Build restart section (with shuffle toggle for doubles)
       var restartSection = '';
@@ -2802,31 +2893,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
       // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
       container.innerHTML =
-        '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;">' +
-          // Trophy + winner label
-          '<div style="font-size:clamp(2rem,7vw,3.5rem);margin-bottom:clamp(2px,0.8vh,8px);">🏆</div>' +
-          '<div style="text-align:center;margin-bottom:clamp(4px,1vh,10px);">' +
-            '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Vencedor</div>' +
-            winNamesHtml +
-          '</div>' +
-          // Score
-          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:clamp(4px,1vh,10px);">' +
-            scoreSummary +
-          '</div>' +
-          // Defeated
-          '<div style="text-align:center;margin-bottom:clamp(6px,1.5vh,12px);opacity:0.7;">' +
-            '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">vs </span>' +
-            loseNamesHtml +
-          '</div>' +
-          // Percentage bar
-          pctBar +
-          // Stats
-          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,16px);margin-top:clamp(8px,2vh,16px);width:100%;max-width:340px;padding:clamp(6px,1.5vh,12px) 0;border-top:1px solid rgba(255,255,255,0.06);">' +
-            (elapsedStr ? _stat('⏱', 'Duração', elapsedStr) : '') +
-            _stat('🎯', 'Pontos', totalPts) +
-            _stat('📊', 'Aproveit.', winPct + '%') +
-            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', state.totalGamesPlayed) : '') +
-          '</div>' +
+        '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;gap:clamp(8px,1.5vh,14px);">' +
+          // Winner section on top
+          winnerSection +
+          // Loser section below
+          loserSection +
+          // Duration
+          durationRow +
         '</div>' +
         // Action buttons pinned at bottom
         '<div style="flex-shrink:0;padding:8px 1rem 12px;display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-top:1px solid rgba(255,255,255,0.06);">' +
@@ -3343,6 +3416,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       totalGamesPlayed: state.totalGamesPlayed,
       serveOrder: state.serveOrder.map(function(s) { return { team: s.team, name: s.name }; }),
       serveSkipped: state.serveSkipped,
+      gameLog: Array.isArray(state.gameLog) ? state.gameLog.slice() : [],
       tieRule: state.tieRule,
       courtLeft: _courtLeft,
       p1Players: p1Players.slice(),
@@ -3369,6 +3443,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       state.serveOrder = remote.serveOrder;
     }
     state.serveSkipped = !!remote.serveSkipped;
+    if (Array.isArray(remote.gameLog)) state.gameLog = remote.gameLog.slice();
     if (remote.courtLeft) _courtLeft = remote.courtLeft;
     if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
     if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
@@ -3472,6 +3547,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.serveOrder = [];
         state.serveSkipped = false;
         state.servePending = false;
+        state.gameLog = [];
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
@@ -3517,6 +3593,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.serveOrder = [];
         state.serveSkipped = false;
         state.servePending = false;
+        state.gameLog = [];
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
         _matchEndTime = null;
