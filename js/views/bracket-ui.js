@@ -1734,7 +1734,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var useSets = sc.type === 'sets';
   var p1Name = isCasual ? (opts.p1Name || '') : (m.p1 || '');
   var p2Name = isCasual ? (opts.p2Name || '') : (m.p2 || '');
-  var casualTitle = isCasual ? (opts.title || 'Partida Casual') : '';
+  var casualTitle = isCasual ? (opts.title || (typeof _t === 'function' ? _t('casual.title') : 'Partida Casual')) : '';
   var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
   // Remove existing overlay
@@ -4522,7 +4522,7 @@ window._openCasualMatch = function() {
     var h = '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:12px;padding:10px 12px;">' +
       '<div style="font-size:0.72rem;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">' +
         '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;animation:casualPulse 1.5s ease-in-out infinite;"></span>' +
-        'Na sala · ' + count + '/' + totalNeeded +
+        _t('casual.inRoom', {count: count, total: totalNeeded}) +
       '</div>' +
       '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
     for (var i = 0; i < _lobbyParticipants.length; i++) {
@@ -4532,9 +4532,9 @@ window._openCasualMatch = function() {
       h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;' +
         'background:' + (isMe ? 'rgba(34,197,94,0.06)' : 'transparent') + ';">' +
         _avatarHtml(pp, 28) +
-        '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml(pp.displayName || 'Jogador') +
+        '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml(pp.displayName || _t('casual.playerFallback')) +
           (isHost ? ' <span style="font-size:0.65rem;color:#fbbf24;">👑</span>' : '') +
-          (isMe ? ' <span style="font-size:0.62rem;color:#22c55e;">(Você)</span>' : '') +
+          (isMe ? ' <span style="font-size:0.62rem;color:#22c55e;">(' + _t('casual.you') + ')</span>' : '') +
         '</div>' +
         '<span style="font-size:0.75rem;">✅</span>' +
       '</div>';
@@ -4596,8 +4596,8 @@ window._openCasualMatch = function() {
             '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-size:1rem;">🔀</span>' +
               '<div>' +
-                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">Sortear Duplas</span>' +
-                '<div style="font-size:0.65rem;color:var(--text-muted);">Times definidos ao iniciar</div>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + _t('casual.shuffleTeams') + '</span>' +
+                '<div style="font-size:0.65rem;color:var(--text-muted);">' + _t('casual.shuffleSubtitle') + '</div>' +
               '</div>' +
             '</div>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#fbbf24;"><input type="checkbox" ' + (autoShuffle ? 'checked' : '') + ' onchange="window._casualSetShuffle(this.checked)"><span class="toggle-slider"></span></label>' +
@@ -4607,8 +4607,8 @@ window._openCasualMatch = function() {
             '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-size:1rem;">⚤</span>' +
               '<div>' +
-                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">Misto</span>' +
-                '<div style="font-size:0.65rem;color:var(--text-muted);">Duplas com homem e mulher</div>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + _t('casual.mixed') + '</span>' +
+                '<div style="font-size:0.65rem;color:var(--text-muted);">' + _t('casual.mixedSubtitle') + '</div>' +
               '</div>' +
             '</div>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#c084fc;"><input type="checkbox" ' + (isMisto ? 'checked' : '') + ' onchange="window._casualSetMisto(this.checked)"><span class="toggle-slider"></span></label>' +
@@ -4689,18 +4689,18 @@ window._openCasualMatch = function() {
 
       var subtitle;
       if (autoShuffle) {
-        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">As duplas serão sorteadas ao iniciar</div>';
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">' + _t('casual.shuffleOnStart') + '</div>';
       } else if (_teamsFormed) {
         subtitle = '<div style="font-size:0.65rem;margin-top:6px;text-align:center;">' +
-          '<span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;text-decoration:underline;">desfazer</span>' +
+          '<span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;text-decoration:underline;">' + _t('casual.undo') + '</span>' +
           '</div>';
       } else {
-        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">Arraste um jogador sobre outro para formar dupla</div>';
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">' + _t('casual.dragToForm') + '</div>';
       }
 
       playersHtml =
         '<div style="margin-bottom:0.8rem;">' +
-          '<label style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Participantes</label>' +
+          '<label style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">' + _t('casual.participants') + '</label>' +
           '<div id="casual-team-cards">' +
             cardsHtml +
           '</div>' +
@@ -4717,7 +4717,7 @@ window._openCasualMatch = function() {
       var _hasSinglesAvatar = !!(cu && (cu.photoURL || cu.displayName));
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
-          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">Jogadores</label>' +
+          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">' + _t('casual.players') + '</label>' +
           '<div style="display:flex;gap:10px;">' +
             '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
               '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
@@ -4734,7 +4734,7 @@ window._openCasualMatch = function() {
       '<div onclick="window._casualOpenConfig()" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:8px 12px;margin-bottom:0.8rem;display:flex;align-items:center;gap:10px;cursor:pointer;">' +
         '<div style="font-size:1.3rem;flex-shrink:0;">' + sportIcon + '</div>' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + window._safeHtml(sportLabel) + ' · ' + (isDoubles ? 'Dupla' : 'Single') + '</div>' +
+          '<div style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + window._safeHtml(sportLabel) + ' · ' + (isDoubles ? _t('casual.doubles') : _t('casual.single')) + '</div>' +
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + window._safeHtml(_configSummary()) + '</div>' +
         '</div>' +
         '<div style="color:#818cf8;font-size:1.1rem;flex-shrink:0;">⚙️</div>' +
@@ -4756,22 +4756,22 @@ window._openCasualMatch = function() {
           // Room code + Convidar row
           '<div style="display:flex;align-items:center;gap:8px;">' +
             '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:0.6rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;">Sua Sala</div>' +
+              '<div style="font-size:0.6rem;font-weight:600;color:#a855f7;text-transform:uppercase;letter-spacing:1px;">' + _t('casual.yourRoom') + '</div>' +
               '<div style="font-size:1.25rem;font-weight:900;letter-spacing:5px;color:#fbbf24;font-family:monospace;">' + window._safeHtml(_sessionRoomCode) + '</div>' +
             '</div>' +
-            '<button onclick="window._casualInvite()" style="padding:6px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">📲 Convidar</button>' +
+            '<button onclick="window._casualInvite()" style="padding:6px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">📲 ' + _t('casual.invite') + '</button>' +
           '</div>' +
           // Join room input row — input left, button right-aligned, same height (44px matches mobile button min-height)
           '<div style="display:flex;gap:4px;align-items:stretch;min-height:44px;">' +
-            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="6" style="flex:1;min-width:0;min-height:44px;padding:0 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:border-box;" />' +
-            '<button onclick="window._casualJoinRoom()" style="padding:0 12px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
+            '<input type="text" id="casual-join-code" placeholder="' + _t('casual.joinRoomPlaceholder') + '" maxlength="6" style="flex:1;min-width:0;min-height:44px;padding:0 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:border-box;" />' +
+            '<button onclick="window._casualJoinRoom()" style="padding:0 12px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">' + _t('casual.join') + '</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
 
       // Start button
       '<button onclick="window._casualStart()" style="width:100%;padding:14px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
-        '<span style="font-size:1.3rem;">📡</span> Iniciar Partida' +
+        '<span style="font-size:1.3rem;">📡</span> ' + _t('casual.startMatch') +
       '</button>';
 
     // Attach drag-and-drop for team building (Sortear OFF + Doubles)
@@ -4983,13 +4983,13 @@ window._openCasualMatch = function() {
     content.innerHTML =
       '<div style="margin-bottom:1rem;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">' +
-          '<div style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">⚙️ Configuração</div>' +
-          '<button onclick="window._casualCloseConfig()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+          '<div style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">⚙️ ' + _t('casual.config') + '</div>' +
+          '<button onclick="window._casualCloseConfig()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">← ' + _t('casual.back') + '</button>' +
         '</div>' +
 
         // Sport picker
         '<div style="margin-bottom:1rem;">' +
-          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Modalidade</label>' +
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">' + _t('casual.sport') + '</label>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + cfgSportBtns + '</div>' +
         '</div>' +
 
@@ -4997,16 +4997,16 @@ window._openCasualMatch = function() {
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.12);margin-bottom:1rem;">' +
           '<div style="display:flex;align-items:center;gap:8px;">' +
             '<span style="font-size:1rem;">' + (isDoubles ? '👥' : '👤') + '</span>' +
-            '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + (isDoubles ? 'Dupla' : 'Single') + '</span>' +
+            '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + (isDoubles ? _t('casual.doubles') : _t('casual.single')) + '</span>' +
           '</div>' +
           '<label class="toggle-switch" style="--toggle-on-bg:#38bdf8;"><input type="checkbox" ' + (isDoubles ? 'checked' : '') + ' onchange="window._casualSetDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
         '</div>' +
 
         // Scoring type
         '<div style="margin-bottom:1rem;">' +
-          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">Tipo de Placar</label>' +
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">' + _t('casual.scoreType') + '</label>' +
           '<div style="display:flex;gap:8px;">' +
-            '<button onclick="window._casualSetType(\'simple\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (isSimple ? '#10b981' : 'rgba(255,255,255,0.12)') + ';background:' + (isSimple ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isSimple ? '#10b981' : 'var(--text-muted)') + ';">Simples</button>' +
+            '<button onclick="window._casualSetType(\'simple\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (isSimple ? '#10b981' : 'rgba(255,255,255,0.12)') + ';background:' + (isSimple ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isSimple ? '#10b981' : 'var(--text-muted)') + ';">' + _t('casual.simple') + '</button>' +
             '<button onclick="window._casualSetType(\'sets\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (!isSimple ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (!isSimple ? 'rgba(129,140,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (!isSimple ? '#818cf8' : 'var(--text-muted)') + ';">Game Set Match</button>' +
           '</div>' +
         '</div>' +
@@ -5016,7 +5016,7 @@ window._openCasualMatch = function() {
         '<div style="display:flex;flex-direction:column;gap:12px;">' +
           // Sets to win
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Sets para vencer</span>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.setsToWin') + '</span>' +
             '<div style="display:flex;gap:4px;">' +
               [1,2,3].map(function(n) {
                 var active = (cfg.setsToWin || 1) === n;
@@ -5026,7 +5026,7 @@ window._openCasualMatch = function() {
           '</div>' +
           // Games per set
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Games/set</span>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.gamesPerSet') + '</span>' +
             '<div style="display:flex;gap:4px;">' +
               [4,6,8,11].map(function(n) {
                 var active = (cfg.gamesPerSet || 6) === n;
@@ -5036,7 +5036,7 @@ window._openCasualMatch = function() {
           '</div>' +
           // Counting type
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Contagem</span>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.counting') + '</span>' +
             '<div style="display:flex;gap:4px;">' +
               '<button onclick="window._casualSetCfg(\'countingType\',\'tennis\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType === 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType === 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType === 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">15-30-40</button>' +
               '<button onclick="window._casualSetCfg(\'countingType\',\'numeric\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType !== 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">1-2-3</button>' +
@@ -5049,7 +5049,7 @@ window._openCasualMatch = function() {
           '</div>' +
           // 2-point advantage toggle
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">Vantagem de 2 pontos</span>' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.advantage') + '</span>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
           '</div>' +
         '</div>'
@@ -5221,8 +5221,8 @@ window._openCasualMatch = function() {
 
     qrOv.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:400px;">' +
-        '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:3px;">📲 Convidar Jogadores</div>' +
-        '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:clamp(0.8rem,3vh,1.5rem);">Peça para escanear o QR code ou envie o código</div>' +
+        '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:3px;">📲 ' + _t('casual.invitePlayers') + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:clamp(0.8rem,3vh,1.5rem);">' + _t('casual.inviteInstructions') + '</div>' +
         // QR code — centered
         '<img src="' + window._safeHtml(qrImgUrl) + '" alt="QR Code" style="width:min(70vw,280px);height:min(70vw,280px);border-radius:14px;margin-bottom:clamp(0.6rem,2vh,1rem);" />' +
         // Room code
@@ -5230,11 +5230,11 @@ window._openCasualMatch = function() {
         '<div style="font-size:0.65rem;color:var(--text-muted);word-break:break-all;margin-bottom:clamp(0.6rem,2vh,1rem);">' + window._safeHtml(casualUrl) + '</div>' +
         // Share buttons
         '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);width:100%;max-width:320px;">' +
-          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(\'Link copiado!\',\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 Copiar</button>' +
-          '<a href="https://wa.me/?text=' + encodeURIComponent('Partida casual de ' + sportLabel + '! Entre com o código ' + roomCode + ': ' + casualUrl) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
+          '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(_t(\'casual.linkCopied\'),\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 ' + _t('casual.copyLink') + '</button>' +
+          '<a href="https://wa.me/?text=' + encodeURIComponent(_t('casual.whatsappMsg', {sport: sportLabel, code: roomCode, url: casualUrl})) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
         '</div>' +
         // Back button
-        '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="padding:12px 28px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+        '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="padding:12px 28px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;">← ' + _t('casual.back') + '</button>' +
       '</div>';
 
     document.body.appendChild(qrOv);
@@ -5260,7 +5260,7 @@ window._openCasualMatch = function() {
     }
     // Apply back to inputs
     for (var m = 0; m < 4; m++) { if (inputs[m]) inputs[m].value = names[m]; }
-    if (typeof showNotification === 'function') showNotification('Duplas sorteadas!', names[0] + ' + ' + names[1] + '  vs  ' + names[2] + ' + ' + names[3], 'success');
+    if (typeof showNotification === 'function') showNotification(_t('casual.teamShuffled'), names[0] + ' + ' + names[1] + '  vs  ' + names[2] + ' + ' + names[3], 'success');
   };
 
   // Start the match (directly opens live scoring)
@@ -5396,7 +5396,7 @@ window._openCasualMatch = function() {
       scoring: cfg,
       p1Name: n1,
       p2Name: n2,
-      title: 'Partida Casual',
+      title: _t('casual.title'),
       sportName: sportLabel,
       isDoubles: isDoubles,
       casualDocId: _sessionDocId,
@@ -5420,11 +5420,11 @@ window._openCasualMatch = function() {
           '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
         : '<span style="font-size:1.3rem;">📡</span>') +
         '<div>' +
-          '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">Partida Casual</div>' +
-          '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : 'Sem torneio — placar ao vivo') + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : _t('casual.subtitle')) + '</div>' +
         '</div>' +
       '</div>' +
-      '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
+      '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
     '</div>' +
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 
@@ -5496,7 +5496,7 @@ window._openCasualMatch = function() {
           if (newParts.length > 1) {
             var latest = newParts[newParts.length - 1];
             if (latest && latest.uid !== (cu ? cu.uid : '')) {
-              if (typeof showNotification === 'function') showNotification('Novo jogador!', (latest.displayName || 'Alguém') + ' entrou na sala.', 'success');
+              if (typeof showNotification === 'function') showNotification(_t('casual.newPlayer'), _t('casual.playerJoinedRoom', {name: latest.displayName || _t('casual.someone')}), 'success');
             }
           }
         }
@@ -5532,7 +5532,7 @@ window._renderCasualJoin = function(container, roomCode) {
     '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;">' +
       '<div style="text-align:center;">' +
         '<div style="font-size:2rem;margin-bottom:1rem;">⏳</div>' +
-        '<p style="color:var(--text-muted);font-size:0.9rem;">Carregando partida...</p>' +
+        '<p style="color:var(--text-muted);font-size:0.9rem;">' + _t('casual.loading') + '</p>' +
       '</div>' +
     '</div>';
 
@@ -5540,9 +5540,9 @@ window._renderCasualJoin = function(container, roomCode) {
     container.innerHTML =
       '<div style="text-align:center;padding:3rem 1rem;">' +
         '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
-        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Conexão indisponível</div>' +
-        '<p style="color:var(--text-muted);font-size:0.85rem;">Não foi possível conectar ao servidor. Tente novamente.</p>' +
-        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.offline') + '</div>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.offlineMsg') + '</p>' +
+        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
       '</div>';
     return;
   }
@@ -5552,16 +5552,16 @@ window._renderCasualJoin = function(container, roomCode) {
       container.innerHTML =
         '<div style="text-align:center;padding:3rem 1rem;">' +
           '<div style="font-size:2.5rem;margin-bottom:1rem;">❌</div>' +
-          '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Partida não encontrada</div>' +
-          '<p style="color:var(--text-muted);font-size:0.85rem;">O código <strong>' + _safe(roomCode) + '</strong> não corresponde a nenhuma partida.</p>' +
-          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+          '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.notFound') + '</div>' +
+          '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.notFoundMsg', {code: _safe(roomCode)}) + '</p>' +
+          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
         '</div>';
       return;
     }
 
     var players = Array.isArray(match.players) ? match.players : [];
-    var sportName = match.sport || 'Partida Casual';
-    var creatorName = match.createdByName || 'Alguém';
+    var sportName = match.sport || _t('casual.title');
+    var creatorName = match.createdByName || _t('casual.someone');
     var docId = match._docId;
     var cu = window.AppStore && window.AppStore.currentUser;
 
@@ -5575,29 +5575,29 @@ window._renderCasualJoin = function(container, roomCode) {
       } else if (winnerTeam === 2) {
         winnerLabel = players.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
       } else {
-        winnerLabel = 'Empate';
+        winnerLabel = _t('casual.draw');
       }
       container.innerHTML =
         '<div style="text-align:center;padding:2rem 1rem;max-width:500px;margin:0 auto;">' +
           '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🏆</div>' +
-          '<div style="font-size:1.2rem;font-weight:800;color:#fbbf24;margin-bottom:0.3rem;">Partida Encerrada</div>' +
+          '<div style="font-size:1.2rem;font-weight:800;color:#fbbf24;margin-bottom:0.3rem;">' + _t('casual.closed') + '</div>' +
           '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">' + _safe(sportName) + '</div>' +
           '<div style="background:var(--bg-darker);border-radius:14px;padding:1.2rem;margin-bottom:1rem;">' +
             '<div style="display:flex;justify-content:center;align-items:center;gap:1rem;margin-bottom:0.8rem;">' +
               '<div style="text-align:center;flex:1;">' +
                 '<div style="font-size:0.95rem;font-weight:700;color:' + (winnerTeam === 1 ? '#22c55e' : 'var(--text-bright)') + ';">' + _safe(players.filter(function(p){return p.team===1;}).map(function(p){return p.name;}).join(' / ')) + '</div>' +
-                '<div style="font-size:0.7rem;color:var(--text-muted);">Time 1</div>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);">' + _t('casual.team', {n: '1'}) + '</div>' +
               '</div>' +
               '<div style="font-size:1.5rem;font-weight:900;color:var(--text-muted);">vs</div>' +
               '<div style="text-align:center;flex:1;">' +
                 '<div style="font-size:0.95rem;font-weight:700;color:' + (winnerTeam === 2 ? '#22c55e' : 'var(--text-bright)') + ';">' + _safe(players.filter(function(p){return p.team===2;}).map(function(p){return p.name;}).join(' / ')) + '</div>' +
-                '<div style="font-size:0.7rem;color:var(--text-muted);">Time 2</div>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);">' + _t('casual.team', {n: '2'}) + '</div>' +
               '</div>' +
             '</div>' +
             '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;letter-spacing:1px;">' + _safe(result.summary || '') + '</div>' +
             (winnerTeam !== 0 ? '<div style="font-size:0.82rem;color:#22c55e;margin-top:0.4rem;font-weight:600;">🏆 ' + _safe(winnerLabel) + '</div>' : '') +
           '</div>' +
-          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">Ir ao Dashboard</button>' +
+          '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">' + _t('casual.goToDashboard') + '</button>' +
         '</div>';
       return;
     }
@@ -5623,7 +5623,7 @@ window._renderCasualJoin = function(container, roomCode) {
       });
       // Show a brief toast so user knows they joined
       if (typeof showNotification === 'function') {
-        showNotification('Ao Vivo', 'Conectado à partida de ' + _safe(creatorName) + '.', 'success');
+        showNotification(_t('casual.liveTitle'), _t('casual.liveConnectedMsg', {name: _safe(creatorName)}), 'success');
       }
       return;
     }
@@ -5642,13 +5642,13 @@ window._renderCasualJoin = function(container, roomCode) {
       var html =
         '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
           '<div style="font-size:2.5rem;margin-bottom:0.5rem;">📡</div>' +
-          '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">Partida Casual</div>' +
-          '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + (match.isDoubles ? ' · Dupla' : ' · Single') + '</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">Criada por ' + _safe(creatorName) + '</div>';
+          '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">' + _t('casual.title') + '</div>' +
+          '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>';
 
       // Participants list
       html += '<div style="margin-bottom:1.5rem;">' +
-        '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Jogadores na sala · ' + participants.length + '/' + totalNeeded + '</div>';
+        '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">' + _t('casual.playersInRoom', {count: participants.length, total: totalNeeded}) + '</div>';
 
       for (var i = 0; i < participants.length; i++) {
         var pp = participants[i];
@@ -5663,12 +5663,12 @@ window._renderCasualJoin = function(container, roomCode) {
           'border:1px solid ' + (isMe ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)') + ';">' +
           avatarH +
           '<div style="flex:1;text-align:left;">' +
-            '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(pp.displayName || 'Jogador') +
-              (isMe ? ' <span style="color:#22c55e;font-size:0.68rem;">(Você)</span>' : '') +
+            '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(pp.displayName || _t('casual.playerFallback')) +
+              (isMe ? ' <span style="color:#22c55e;font-size:0.68rem;">(' + _t('casual.you') + ')</span>' : '') +
               (isHost ? ' <span style="color:#fbbf24;font-size:0.68rem;">👑</span>' : '') +
             '</div>' +
           '</div>' +
-          (isMe && !isHost ? '<button onclick="window._casualLeaveMatch()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">Sair</button>' : '<div style="font-size:1rem;">✅</div>') +
+          (isMe && !isHost ? '<button onclick="window._casualLeaveMatch()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;">' + _t('casual.leave') + '</button>' : '<div style="font-size:1rem;">✅</div>') +
         '</div>';
       }
 
@@ -5677,7 +5677,7 @@ window._renderCasualJoin = function(container, roomCode) {
         html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);">' +
           '<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted);flex-shrink:0;">?</div>' +
           '<div style="flex:1;text-align:left;">' +
-            '<div style="font-size:0.82rem;color:var(--text-muted);">Aguardando jogador...</div>' +
+            '<div style="font-size:0.82rem;color:var(--text-muted);">' + _t('casual.waitingPlayer') + '</div>' +
           '</div>' +
           '<div style="font-size:0.7rem;color:var(--text-muted);">⏳</div>' +
         '</div>';
@@ -5707,12 +5707,12 @@ window._renderCasualJoin = function(container, roomCode) {
               '<span style="font-size:0.8rem;font-weight:700;color:' + clr + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(mp.name || '—') + '</span></div>';
           }).join('');
           return '<div style="flex:1;min-width:0;padding:10px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';display:flex;flex-direction:column;gap:5px;">' +
-            '<div style="font-size:0.55rem;font-weight:800;color:' + clr + ';text-transform:uppercase;letter-spacing:1px;text-align:center;">Time ' + (team === t1 ? '1' : '2') + '</div>' +
+            '<div style="font-size:0.55rem;font-weight:800;color:' + clr + ';text-transform:uppercase;letter-spacing:1px;text-align:center;">' + _t('casual.team', {n: team === t1 ? '1' : '2'}) + '</div>' +
             chips +
           '</div>';
         };
         html += '<div style="margin-bottom:1.2rem;">' +
-          '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">⚔ Times formados</div>' +
+          '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">' + _t('casual.teamsFormed') + '</div>' +
           '<div style="display:flex;gap:8px;align-items:stretch;">' +
             _teamCard(t1, '#60a5fa', 'rgba(59,130,246,0.08)', 'rgba(59,130,246,0.25)') +
             '<div style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:var(--text-muted);">VS</div>' +
@@ -5724,16 +5724,16 @@ window._renderCasualJoin = function(container, roomCode) {
       // Status messages
       if (!isLoggedIn) {
         html += '<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
-          '<div style="font-size:0.85rem;color:#fbbf24;font-weight:600;margin-bottom:0.3rem;">Faça login para participar</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);">Entre com sua conta Google para entrar na partida.</div>' +
-          '<button class="btn btn-primary" onclick="if(typeof handleGoogleLogin===\'function\')handleGoogleLogin();" style="margin-top:0.6rem;">Login com Google</button>' +
+          '<div style="font-size:0.85rem;color:#fbbf24;font-weight:600;margin-bottom:0.3rem;">' + _t('casual.loginToJoin') + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);">' + _t('casual.loginToJoinMsg') + '</div>' +
+          '<button class="btn btn-primary" onclick="if(typeof handleGoogleLogin===\'function\')handleGoogleLogin();" style="margin-top:0.6rem;">' + _t('casual.loginBtn') + '</button>' +
         '</div>';
       } else if (alreadyJoined) {
         html += '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">' +
           '<div style="font-size:1.3rem;">✅</div>' +
           '<div>' +
-            '<div style="font-size:0.85rem;color:#22c55e;font-weight:700;">Você está na partida!</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Aguarde o organizador iniciar o jogo' + (participants.length < totalNeeded ? ' (' + (totalNeeded - participants.length) + ' vaga' + (totalNeeded - participants.length > 1 ? 's' : '') + ' restante' + (totalNeeded - participants.length > 1 ? 's' : '') + ')' : '') + '</div>' +
+            '<div style="font-size:0.85rem;color:#22c55e;font-weight:700;">' + _t('casual.youreIn') + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + _t('casual.waitOrganizerStart') + (participants.length < totalNeeded ? ' (' + _t(totalNeeded - participants.length > 1 ? 'casual.slotsLeft' : 'casual.slotLeft', {n: totalNeeded - participants.length}) + ')' : '') + '</div>' +
           '</div>' +
         '</div>';
       }
@@ -5743,13 +5743,13 @@ window._renderCasualJoin = function(container, roomCode) {
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out infinite;"></div>' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.3s infinite;"></div>' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.6s infinite;"></div>' +
-        '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px;">Atualizando automaticamente</span>' +
+        '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px;">' + _t('casual.autoUpdate') + '</span>' +
       '</div>' +
       '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
 
       // "Voltar ao Dashboard" now also releases the slot so the user isn't
       // silently kept in the match after navigating away.
-      html += '<button class="btn btn-outline" onclick="window._casualLeaveMatch && window._casualLeaveMatch();" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
+      html += '<button class="btn btn-outline" onclick="window._casualLeaveMatch && window._casualLeaveMatch();" style="margin-top:0.5rem;">← ' + _t('casual.backDashboard') + '</button>';
       html += '</div>';
 
       container.innerHTML = html;
@@ -5766,7 +5766,7 @@ window._renderCasualJoin = function(container, roomCode) {
       if (ok) {
         participants.push({ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() });
         _renderLobby();
-        if (typeof showNotification === 'function') showNotification('Entrou na partida!', 'Aguarde o organizador iniciar.', 'success');
+        if (typeof showNotification === 'function') showNotification(_t('casual.joinedMatch'), _t('casual.waitOrganizer'), 'success');
       }
     }
 
@@ -5785,11 +5785,11 @@ window._renderCasualJoin = function(container, roomCode) {
             var p2n = pp.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
             window._openLiveScoring(null, null, {
               casual: true, scoring: fresh.scoring || {}, p1Name: p1n, p2Name: p2n,
-              title: fresh.sport || 'Partida Casual', sportName: fresh.sport || '',
+              title: fresh.sport || _t('casual.title'), sportName: fresh.sport || '',
               isDoubles: fresh.isDoubles || false, casualDocId: fresh._docId,
               roomCode: roomCode, players: pp
             });
-            if (typeof showNotification === 'function') showNotification('Partida iniciada!', '', 'success');
+            if (typeof showNotification === 'function') showNotification(_t('casual.matchStarted'), '', 'success');
             return;
           }
           // Update participants and keep match snapshot in sync so the lobby
@@ -5818,7 +5818,7 @@ window._renderCasualJoin = function(container, roomCode) {
           if (p && typeof p.catch === 'function') p.catch(function(){});
         } catch(e) {}
       }
-      if (typeof showNotification === 'function') showNotification('Saiu da partida', '', 'info');
+      if (typeof showNotification === 'function') showNotification(_t('casual.leftMatch'), '', 'info');
       // Navigate immediately so the user isn't stuck on the lobby
       try { window.location.hash = '#dashboard'; } catch(e) {}
     };
@@ -5837,9 +5837,9 @@ window._renderCasualJoin = function(container, roomCode) {
     container.innerHTML =
       '<div style="text-align:center;padding:3rem 1rem;">' +
         '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
-        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">Erro ao carregar</div>' +
-        '<p style="color:var(--text-muted);font-size:0.85rem;">Não foi possível carregar a partida. Verifique o código e tente novamente.</p>' +
-        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">Ir ao Dashboard</button>' +
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.loadError') + '</div>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.loadErrorMsg') + '</p>' +
+        '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
       '</div>';
   });
 };
