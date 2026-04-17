@@ -97,7 +97,7 @@ function handleGoogleLogin() {
 
   if (isLocalFile) {
     // Offline/Local development mode - simulate login
-    showNotification('Autenticação Simulada', 'Login com Google simulado localmente.', 'info');
+    showNotification(_t('auth.simLogin'), _t('auth.simLoginMsg'), 'info');
     simulateLoginSuccess({
       uid: 'local_user',
       displayName: 'Organizador Teste',
@@ -109,15 +109,15 @@ function handleGoogleLogin() {
 
   // Real Firebase authentication
   if (!authProvider) {
-    showNotification('Erro', 'Firebase não foi inicializado corretamente.', 'error');
+    showNotification(_t('auth.error'), _t('auth.firebaseError'), 'error');
     return;
   }
 
-  showNotification('Conectando...', 'Abrindo popup do Google...', 'info');
+  showNotification(_t('auth.connecting'), _t('auth.connectingMsg'), 'info');
   firebase.auth().signInWithPopup(authProvider)
     .then(function(result) {
       var user = result.user;
-      showNotification('Login Realizado', 'Bem-vindo(a), ' + user.displayName + '!', 'success');
+      showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName}), 'success');
 
       // Save auth provider to Firestore
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
@@ -137,13 +137,13 @@ function handleGoogleLogin() {
     .catch(function(error) {
       console.error('Firebase auth error:', error);
       if (error.code === 'auth/popup-blocked') {
-        showNotification('Popup Bloqueado', 'Permita popups para este site nas configurações do navegador.', 'error');
+        showNotification(_t('auth.popupBlocked'), _t('auth.popupBlockedMsg'), 'error');
       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         // User cancelled, no need for error
       } else if (_handleAccountLinking(error, 'Google')) {
         // handled
       } else {
-        showNotification('Erro no Auth', 'Não foi possível realizar o login com Google.', 'error');
+        showNotification(_t('auth.googleError'), _t('auth.googleErrorMsg'), 'error');
       }
     });
 }
@@ -158,14 +158,14 @@ function _handleAccountLinking(error, providerName) {
   var email = error.customData ? error.customData.email : (error.email || '');
   var pendingCred = error.credential || null;
   if (!email) {
-    showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente outro método de login.', 'warning');
+    showNotification(_t('auth.accountExists'), _t('auth.accountExistsMsg'), 'warning');
     return true;
   }
 
   // Fetch which providers are linked to this email
   firebase.auth().fetchSignInMethodsForEmail(email).then(function(methods) {
     if (!methods || methods.length === 0) {
-      showNotification('Erro', 'Não foi possível identificar o método de login existente.', 'error');
+      showNotification(_t('auth.error'), _t('auth.identifyError'), 'error');
       return;
     }
     var existingProvider = methods[0]; // e.g. 'google.com', 'password', 'emailLink', 'phone'
@@ -184,13 +184,13 @@ function _handleAccountLinking(error, providerName) {
     }
 
     showNotification(
-      'Conta Já Existe',
-      'O e-mail ' + email + ' já está cadastrado via ' + existingName + '. Faça login com ' + existingName + ' para vincular sua conta ' + providerName + ' automaticamente.',
+      _t('auth.accountAlreadyExists'),
+      _t('auth.accountLinkMsg', {email: email, existing: existingName, newProvider: providerName}),
       'info'
     );
   }).catch(function(err) {
     console.warn('fetchSignInMethodsForEmail error:', err);
-    showNotification('Conta Existente', 'Já existe uma conta com este e-mail. Tente outro método de login.', 'warning');
+    showNotification(_t('auth.accountExists'), _t('auth.accountExistsMsg'), 'warning');
   });
   return true;
 }
@@ -204,7 +204,7 @@ function _tryLinkPendingCredential(result) {
   window._pendingLinkCredential = null;
   window._pendingLinkEmail = null;
   user.linkWithCredential(cred).then(function() {
-    showNotification('Conta Vinculada', 'Seu método de login adicional foi vinculado com sucesso!', 'success');
+    showNotification(_t('auth.accountLinked'), _t('auth.accountLinkedMsg'), 'success');
   }).catch(function(err) {
     console.warn('Account link error:', err);
     // Not critical — user is already logged in
@@ -216,7 +216,7 @@ function handleEmailLinkLogin() {
   var emailEl = document.getElementById('login-email-link');
   var email = emailEl ? emailEl.value.trim() : '';
   if (!email) {
-    showNotification('Informe o E-mail', 'Digite seu e-mail para receber o link de acesso.', 'warning');
+    showNotification(_t('auth.enterEmail'), _t('auth.enterEmailMsg'), 'warning');
     if (emailEl) emailEl.focus();
     return;
   }
@@ -226,23 +226,23 @@ function handleEmailLinkLogin() {
     handleCodeInApp: true
   };
 
-  showNotification('Enviando...', 'Enviando link de acesso para ' + email + '...', 'info');
+  showNotification(_t('auth.sending'), _t('auth.sendingLinkMsg', {email: email}), 'info');
   firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
     .then(function() {
       // Save the email locally so we can complete sign-in when user clicks the link
       window.localStorage.setItem('scoreplace_emailForSignIn', email);
-      showNotification('Link Enviado ✉️', 'Um link de acesso foi enviado para ' + email + '. Verifique sua caixa de entrada (e spam). Clique no link para entrar.', 'success');
+      showNotification(_t('auth.linkSent'), _t('auth.linkSentMsg', {email: email}), 'success');
       var modal = document.getElementById('modal-login');
       if (modal) modal.classList.remove('active');
     })
     .catch(function(error) {
       console.error('Email link send error:', error);
       if (error.code === 'auth/invalid-email') {
-        showNotification('E-mail Inválido', 'O formato do e-mail está incorreto.', 'error');
+        showNotification(_t('auth.invalidEmail'), _t('auth.invalidEmailMsg'), 'error');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'Login por link de e-mail não está habilitado. Tente outro método.', 'warning');
+        showNotification(_t('auth.notAvailable'), _t('auth.emailLinkUnavailable'), 'warning');
       } else {
-        showNotification('Erro', error.message || 'Não foi possível enviar o link.', 'error');
+        showNotification(_t('auth.error'), error.message || _t('auth.loginErrorMsg'), 'error');
       }
     });
 }
@@ -270,7 +270,7 @@ function _completeEmailLinkSignIn() {
         if (!user.displayName && email) profileData.displayName = email.split('@')[0];
         window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
       }
-      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+      showNotification(_t('auth.loginDone'), user.displayName ? _t('auth.welcomeName', {name: user.displayName}) : _t('auth.welcome'), 'success');
       // Clean the URL (remove sign-in link parameters)
       if (window.history && window.history.replaceState) {
         window.history.replaceState(null, '', window.location.pathname + '#dashboard');
@@ -280,11 +280,11 @@ function _completeEmailLinkSignIn() {
       console.error('Email link sign-in error:', error);
       window.localStorage.removeItem('scoreplace_emailForSignIn');
       if (error.code === 'auth/invalid-action-code') {
-        showNotification('Link Expirado', 'Este link de acesso já foi usado ou expirou. Solicite um novo.', 'error');
+        showNotification(_t('auth.linkExpired'), _t('auth.linkExpiredMsg'), 'error');
       } else if (error.code === 'auth/invalid-email') {
-        showNotification('E-mail Incorreto', 'O e-mail informado não corresponde ao link. Tente novamente.', 'error');
+        showNotification(_t('auth.emailMismatch'), _t('auth.emailMismatchMsg'), 'error');
       } else {
-        showNotification('Erro no Login', error.message || 'Não foi possível completar o login.', 'error');
+        showNotification(_t('auth.loginError'), error.message || _t('auth.loginErrorMsg'), 'error');
       }
     });
 }
@@ -301,7 +301,7 @@ function handlePhoneLogin() {
   var phoneEl = document.getElementById('login-phone');
   var rawPhone = phoneEl ? phoneEl.value.trim() : '';
   if (!rawPhone) {
-    showNotification('Informe o Telefone', 'Digite seu número de celular com DDD.', 'warning');
+    showNotification(_t('auth.enterPhone'), _t('auth.enterPhoneMsg'), 'warning');
     if (phoneEl) phoneEl.focus();
     return;
   }
@@ -316,19 +316,19 @@ function handlePhoneLogin() {
 
   // Validate basic format
   if (phone.length < 12 || phone.length > 15) {
-    showNotification('Número Inválido', 'Digite um número válido com DDD. Ex: (11) 99999-8888', 'warning');
+    showNotification(_t('auth.invalidPhone'), _t('auth.invalidPhoneMsg'), 'warning');
     return;
   }
 
   // Initialize reCAPTCHA if not already done
   var recaptchaContainer = document.getElementById('recaptcha-container');
   if (!recaptchaContainer) {
-    showNotification('Erro', 'Container do reCAPTCHA não encontrado.', 'error');
+    showNotification(_t('auth.error'), _t('auth.recaptchaNotFound'), 'error');
     return;
   }
 
   // Show loading
-  showNotification('Verificando...', 'Enviando código SMS para ' + phone + '...', 'info');
+  showNotification(_t('auth.verifying'), _t('auth.sendingSms', {phone: phone}), 'info');
 
   // Create invisible reCAPTCHA verifier
   if (!window._phoneRecaptchaVerifier) {
@@ -338,7 +338,7 @@ function handlePhoneLogin() {
         // reCAPTCHA solved — will proceed with phone sign-in
       },
       'expired-callback': function() {
-        showNotification('reCAPTCHA Expirado', 'Tente novamente.', 'warning');
+        showNotification(_t('auth.recaptchaExpired'), _t('auth.tryAgain'), 'warning');
         _resetPhoneRecaptcha();
       }
     });
@@ -349,21 +349,21 @@ function handlePhoneLogin() {
       window._phoneConfirmationResult = confirmationResult;
       // Show verification code input
       _showPhoneVerificationStep();
-      showNotification('Código Enviado', 'Um SMS com o código de verificação foi enviado para ' + phone + '.', 'success');
+      showNotification(_t('auth.codeSent'), _t('auth.codeSentMsg', {phone: phone}), 'success');
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
       _resetPhoneRecaptcha();
       if (error.code === 'auth/invalid-phone-number') {
-        showNotification('Número Inválido', 'O número de telefone não é válido. Verifique e tente novamente.', 'error');
+        showNotification(_t('auth.invalidPhone'), _t('auth.invalidPhoneNumber'), 'error');
       } else if (error.code === 'auth/too-many-requests') {
-        showNotification('Muitas Tentativas', 'Muitas tentativas de SMS. Aguarde alguns minutos.', 'warning');
+        showNotification(_t('auth.tooManyAttempts'), _t('auth.tooManySms'), 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'Login por telefone não está habilitado. Tente outro método.', 'warning');
+        showNotification(_t('auth.notAvailable'), _t('auth.phoneUnavailable'), 'warning');
       } else if (error.code === 'auth/captcha-check-failed') {
-        showNotification('Verificação Falhou', 'A verificação reCAPTCHA falhou. Recarregue a página e tente novamente.', 'error');
+        showNotification(_t('auth.verifyFailed'), _t('auth.verifyFailedMsg'), 'error');
       } else {
-        showNotification('Erro', error.message || 'Não foi possível enviar o SMS.', 'error');
+        showNotification(_t('auth.error'), error.message || _t('auth.loginErrorMsg'), 'error');
       }
     });
 }
@@ -381,18 +381,18 @@ function handlePhoneVerifyCode() {
   var codeEl = document.getElementById('login-phone-code');
   var code = codeEl ? codeEl.value.trim() : '';
   if (!code || code.length < 6) {
-    showNotification('Código Inválido', 'Digite o código de 6 dígitos recebido por SMS.', 'warning');
+    showNotification(_t('auth.invalidCode'), _t('auth.invalidCodeMsg'), 'warning');
     if (codeEl) codeEl.focus();
     return;
   }
 
   if (!window._phoneConfirmationResult) {
-    showNotification('Erro', 'Sessão de verificação expirada. Solicite um novo código.', 'error');
+    showNotification(_t('auth.error'), _t('auth.sessionExpiredMsg'), 'error');
     _resetPhoneLoginUI();
     return;
   }
 
-  showNotification('Verificando...', 'Confirmando código...', 'info');
+  showNotification(_t('auth.verifying'), _t('auth.confirmingCode'), 'info');
   window._phoneConfirmationResult.confirm(code)
     .then(function(result) {
       var user = result.user;
@@ -405,7 +405,7 @@ function handlePhoneVerifyCode() {
       }
       window._phoneConfirmationResult = null;
       _resetPhoneRecaptcha();
-      showNotification('Login Realizado', 'Bem-vindo(a)!', 'success');
+      showNotification(_t('auth.loginDone'), _t('auth.welcome'), 'success');
       var modal = document.getElementById('modal-login');
       if (modal) modal.classList.remove('active');
       _resetPhoneLoginUI();
@@ -413,12 +413,12 @@ function handlePhoneVerifyCode() {
     .catch(function(error) {
       console.error('Phone verify error:', error);
       if (error.code === 'auth/invalid-verification-code') {
-        showNotification('Código Incorreto', 'O código digitado está incorreto. Verifique e tente novamente.', 'error');
+        showNotification(_t('auth.wrongCode'), _t('auth.wrongCodeMsg'), 'error');
       } else if (error.code === 'auth/code-expired') {
-        showNotification('Código Expirado', 'O código expirou. Solicite um novo.', 'error');
+        showNotification(_t('auth.codeExpired'), _t('auth.codeExpiredMsg'), 'error');
         _resetPhoneLoginUI();
       } else {
-        showNotification('Erro', error.message || 'Não foi possível verificar o código.', 'error');
+        showNotification(_t('auth.error'), error.message || _t('auth.loginErrorMsg'), 'error');
       }
     });
 }
@@ -445,11 +445,11 @@ function handleEmailLogin() {
   var email = document.getElementById('login-email').value.trim();
   var password = document.getElementById('login-password').value;
   if (!email || !password) {
-    showNotification('Campos Obrigatórios', 'Preencha e-mail e senha.', 'warning');
+    showNotification(_t('auth.requiredFields'), _t('auth.fillEmailPassword'), 'warning');
     return;
   }
 
-  showNotification('Entrando...', 'Verificando credenciais...', 'info');
+  showNotification(_t('auth.signingIn'), _t('auth.signingInMsg'), 'info');
   firebase.auth().signInWithEmailAndPassword(email, password)
     .then(function(result) {
       var user = result.user;
@@ -458,22 +458,22 @@ function handleEmailLogin() {
         window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'password', updatedAt: new Date().toISOString() }).catch(function() {});
       }
       _tryLinkPendingCredential(result);
-      showNotification('Login Realizado', 'Bem-vindo(a)' + (user.displayName ? ', ' + user.displayName : '') + '!', 'success');
+      showNotification(_t('auth.loginDone'), user.displayName ? _t('auth.welcomeName', {name: user.displayName}) : _t('auth.welcome'), 'success');
       var modal = document.getElementById('modal-login');
       if (modal) modal.classList.remove('active');
     })
     .catch(function(error) {
       console.error('Email login error:', error);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        showNotification('Credenciais Inválidas', 'E-mail ou senha incorretos. Verifique ou crie uma conta nova.', 'error');
+        showNotification(_t('auth.invalidCreds'), _t('auth.invalidCredsMsg'), 'error');
       } else if (error.code === 'auth/wrong-password') {
-        showNotification('Senha Incorreta', 'A senha está incorreta. Tente novamente ou redefina sua senha.', 'error');
+        showNotification(_t('auth.wrongPassword'), _t('auth.wrongPasswordMsg'), 'error');
       } else if (error.code === 'auth/too-many-requests') {
-        showNotification('Muitas Tentativas', 'Muitas tentativas de login. Aguarde alguns minutos.', 'warning');
+        showNotification(_t('auth.tooManyAttempts'), _t('auth.tooManyLogin'), 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'Login por e-mail/senha não está habilitado. Tente Google ou outro método.', 'warning');
+        showNotification(_t('auth.notAvailable'), _t('auth.emailPasswordUnavailable'), 'warning');
       } else {
-        showNotification('Erro no Login', error.message || 'Não foi possível entrar.', 'error');
+        showNotification(_t('auth.loginError'), error.message || _t('auth.loginErrorMsg'), 'error');
       }
     });
 }
@@ -484,15 +484,15 @@ function handleEmailRegister() {
   var email = document.getElementById('register-email').value.trim();
   var password = document.getElementById('register-password').value;
   if (!name || !email || !password) {
-    showNotification('Campos Obrigatórios', 'Preencha nome, e-mail e senha.', 'warning');
+    showNotification(_t('auth.requiredFields'), _t('auth.fillNameEmailPassword'), 'warning');
     return;
   }
   if (password.length < 6) {
-    showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+    showNotification(_t('auth.weakPassword'), _t('auth.weakPasswordMsg'), 'warning');
     return;
   }
 
-  showNotification('Criando conta...', 'Registrando sua conta...', 'info');
+  showNotification(_t('auth.creatingAccount'), _t('auth.creatingAccountMsg'), 'info');
   // Flag to delay onAuthStateChanged until profile is updated with displayName
   window._pendingProfileUpdate = true;
   firebase.auth().createUserWithEmailAndPassword(email, password)
@@ -502,11 +502,11 @@ function handleEmailRegister() {
       return user.updateProfile({ displayName: name }).then(function() {
         // Send email verification
         user.sendEmailVerification().then(function() {
-          showNotification('Verifique seu E-mail', 'Um e-mail de verificação foi enviado para ' + email + '. Confira sua caixa de entrada (e spam).', 'info');
+          showNotification(_t('auth.verifyEmail'), _t('auth.verifyEmailMsg', {email: email}), 'info');
         }).catch(function(e) {
           console.warn('Email verification send error:', e);
         });
-        showNotification('Conta Criada!', 'Bem-vindo(a), ' + name + '!', 'success');
+        showNotification(_t('auth.accountCreated'), _t('auth.accountCreatedMsg', {name: name}), 'success');
         var modal = document.getElementById('modal-login');
         if (modal) modal.classList.remove('active');
         // Save auth provider to Firestore
@@ -533,15 +533,15 @@ function handleEmailRegister() {
       window._pendingProfileUpdate = false;
       console.error('Email register error:', error);
       if (error.code === 'auth/email-already-in-use') {
-        showNotification('E-mail em Uso', 'Já existe uma conta com este e-mail. Tente fazer login ou use "Esqueci a senha".', 'error');
+        showNotification(_t('auth.emailInUse'), _t('auth.emailInUseMsg'), 'error');
       } else if (error.code === 'auth/invalid-email') {
-        showNotification('E-mail Inválido', 'O formato do e-mail está incorreto.', 'error');
+        showNotification(_t('auth.invalidEmail'), _t('auth.invalidEmailMsg'), 'error');
       } else if (error.code === 'auth/weak-password') {
-        showNotification('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+        showNotification(_t('auth.weakPassword'), _t('auth.weakPasswordMsg'), 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'O cadastro por e-mail/senha não está habilitado. Tente Google ou outro método.', 'warning');
+        showNotification(_t('auth.notAvailable'), _t('auth.registerUnavailable'), 'warning');
       } else {
-        showNotification('Erro no Registro', error.message || 'Não foi possível criar a conta.', 'error');
+        showNotification(_t('auth.registerError'), error.message || _t('auth.registerErrorMsg'), 'error');
       }
     });
 }
@@ -551,29 +551,29 @@ function handlePasswordReset() {
   var emailEl = document.getElementById('login-email');
   var email = emailEl ? emailEl.value.trim() : '';
   if (!email) {
-    showNotification('Informe o E-mail', 'Digite seu e-mail no campo acima e clique em "Esqueci a senha" novamente.', 'info');
+    showNotification(_t('auth.enterEmail'), _t('auth.enterEmailReset'), 'info');
     if (emailEl) emailEl.focus();
     return;
   }
 
-  showNotification('Enviando...', 'Enviando e-mail de redefinição de senha...', 'info');
+  showNotification(_t('auth.sending'), _t('auth.sendingReset'), 'info');
   firebase.auth().sendPasswordResetEmail(email, {
     url: 'https://scoreplace.app/#dashboard',
     handleCodeInApp: false
   })
     .then(function() {
-      showNotification('E-mail Enviado ✉️', 'Um e-mail de redefinição de senha foi enviado para ' + email + '. Verifique sua caixa de entrada e a pasta de spam.', 'success');
+      showNotification(_t('auth.emailSent'), _t('auth.emailSentMsg', {email: email}), 'success');
     })
     .catch(function(error) {
       console.error('Password reset error:', error);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-        showNotification('E-mail Não Encontrado', 'Não existe conta cadastrada com este e-mail. Crie uma conta nova.', 'error');
+        showNotification(_t('auth.emailNotFound'), _t('auth.emailNotFoundMsg'), 'error');
       } else if (error.code === 'auth/too-many-requests') {
-        showNotification('Muitas Tentativas', 'Aguarde alguns minutos antes de solicitar novamente.', 'warning');
+        showNotification(_t('auth.tooManyAttempts'), _t('auth.tooManyReset'), 'warning');
       } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification('Não Disponível', 'Redefinição de senha por e-mail não está habilitada. Contate o suporte: scoreplace.app@gmail.com', 'warning');
+        showNotification(_t('auth.notAvailable'), _t('auth.resetUnavailable'), 'warning');
       } else {
-        showNotification('Erro', error.message || 'Não foi possível enviar o e-mail de redefinição.', 'error');
+        showNotification(_t('auth.error'), error.message || _t('auth.resetErrorMsg'), 'error');
       }
     });
 }
@@ -1103,7 +1103,7 @@ async function simulateLoginSuccess(user) {
         if (!_canEnroll) {
           // Enrollments closed — just navigate to tournament without enrolling
           if (typeof showNotification === 'function') {
-            showNotification('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', 'warning');
+            showNotification(_t('auth.enrollClosed'), _t('auth.enrollClosedMsg'), 'warning');
           }
           window.location.hash = '#tournaments/' + pendingEnrollId;
           if (typeof initRouter === 'function') initRouter();
@@ -1159,7 +1159,7 @@ async function simulateLoginSuccess(user) {
         if (window.FirestoreDB && window.FirestoreDB.enrollParticipant) {
           window.FirestoreDB.enrollParticipant(pendingEnrollId, participantObj).then(function(result) {
             if (result.enrollmentClosed) {
-              if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', 'warning');
+              if (typeof showNotification === 'function') showNotification(_t('auth.enrollClosed'), _t('auth.enrollClosedMsg'), 'warning');
               window.location.hash = '#tournaments/' + pendingEnrollId;
               if (typeof initRouter === 'function') initRouter();
               return;
@@ -1168,7 +1168,7 @@ async function simulateLoginSuccess(user) {
             t.participants = result.participants;
             var catMsg = participantObj.categories ? ' na categoria ' + (typeof window._displayCategoryName === 'function' ? window._displayCategoryName(participantObj.categories[0]) : participantObj.categories[0]) : '';
             if (typeof showNotification !== 'undefined') {
-              showNotification('Inscrito!', 'Voc\u00EA foi inscrito automaticamente no torneio "' + t.name + '"' + catMsg + '.', 'success');
+              showNotification(_t('auth.enrolled'), _t('auth.enrolledMsg', {name: t.name, cat: catMsg}), 'success');
             }
             // Auto-amizade: apenas com quem convidou (ref no link)
             if (_inviteRefUid) {
@@ -1205,7 +1205,7 @@ async function simulateLoginSuccess(user) {
         window.location.hash = '#tournaments/' + pendingEnrollId;
         if (typeof initRouter === 'function') initRouter();
         if (_enrollAttempts >= 20 && typeof showNotification === 'function') {
-          showNotification('Inscrição Pendente', 'Não foi possível completar a inscrição automática. Tente se inscrever manualmente na página do torneio.', 'warning');
+          showNotification(_t('auth.enrollPending'), _t('auth.enrollPendingMsg'), 'warning');
         }
       }
       // Clear flag after auto-enroll attempt completes (success or fallback)
@@ -1411,7 +1411,7 @@ function handleLogout() {
   }
 
   // Show notification and reinitialize router
-  showNotification('Sessão Encerrada', 'Você saiu da sua conta', 'info');
+  showNotification(_t('auth.loggedOut'), _t('auth.loggedOutMsg'), 'info');
   if (typeof initRouter === 'function') initRouter();
 }
 
@@ -1575,13 +1575,13 @@ window._executeDeleteAccount = async function() {
     var proBtn = document.getElementById('btn-upgrade-pro');
     if (proBtn) proBtn.style.display = 'none';
 
-    showNotification('Conta excluída', 'Sua conta e todos os seus dados foram removidos permanentemente.', 'info');
+    showNotification(_t('auth.accountDeleted'), _t('auth.accountDeletedMsg'), 'info');
     window.location.hash = '#dashboard';
     if (typeof initRouter === 'function') initRouter();
 
   } catch (err) {
     console.error('Erro ao excluir conta:', err);
-    showNotification('Erro', 'Ocorreu um erro ao excluir sua conta. Tente novamente.', 'error');
+    showNotification(_t('auth.error'), _t('auth.deleteErrorMsg'), 'error');
     if (btn) { btn.textContent = 'Excluir Conta'; btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
   }
 };
@@ -2532,7 +2532,7 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
       if (typeof window._softRefreshView === 'function') window._softRefreshView();
     });
     if (typeof showNotification !== 'undefined') {
-      showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '" em ' + modifiedTournaments.length + ' torneio(s).', 'info');
+      showNotification(_t('auth.nameUpdated'), _t('auth.nameUpdatedMsg', {old: oldName, new: newName, n: modifiedTournaments.length}), 'info');
     }
   } else {
     console.debug('[PropageName] No tournaments needed updating');
@@ -2889,7 +2889,7 @@ function setupProfileModal() {
       // Max 5 locations
       var locs = window._profileLocations || [];
       if (locs.length >= 5) {
-        if (typeof showNotification === 'function') showNotification('Limite', 'Máximo de 5 locais permitidos.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('auth.venueLimit'), _t('auth.venueLimitMsg'), 'warning');
         return;
       }
       // Avoid duplicates (within ~200m)
@@ -2897,7 +2897,7 @@ function setupProfileModal() {
         return Math.abs(l.lat - loc.lat) < 0.002 && Math.abs(l.lng - loc.lng) < 0.002;
       });
       if (isDup) {
-        if (typeof showNotification === 'function') showNotification('Local', 'Este local já foi adicionado.', 'info');
+        if (typeof showNotification === 'function') showNotification(_t('auth.venueDuplicate'), _t('auth.venueDuplicateMsg'), 'info');
         return;
       }
       locs.push({ lat: loc.lat, lng: loc.lng, label: loc.label || '' });
@@ -3099,7 +3099,7 @@ function setupProfileModal() {
 
     window._profileLocateMe = function() {
       if (!navigator.geolocation) {
-        if (typeof showNotification === 'function') showNotification('Geolocalização', 'Seu navegador não suporta geolocalização.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('auth.geoError'), _t('auth.geoNotSupported'), 'warning');
         return;
       }
       var btn = document.getElementById('profile-locate-btn');
@@ -3119,7 +3119,7 @@ function setupProfileModal() {
         },
         function(err) {
           if (btn) { btn.disabled = false; btn.textContent = '📍'; }
-          if (typeof showNotification === 'function') showNotification('Geolocalização', 'Não foi possível obter sua localização. Verifique as permissões do navegador.', 'warning');
+          if (typeof showNotification === 'function') showNotification(_t('auth.geoError'), _t('auth.geoFailed'), 'warning');
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
@@ -3254,7 +3254,7 @@ function setupProfileModal() {
       }
 
       document.getElementById('modal-profile').classList.remove('active');
-      if (typeof showNotification !== 'undefined') showNotification('Perfil Atualizado', 'Suas informações foram salvas com sucesso.', 'success');
+      if (typeof showNotification !== 'undefined') showNotification(_t('auth.profileUpdated'), _t('auth.profileUpdatedMsg'), 'success');
 
       // Trigger a re-render if we're on the dashboard
       var container = document.getElementById('view-container');
