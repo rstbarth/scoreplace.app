@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auditoria de segurança — XSS em nomes de jogadores na lista de participantes</b> — Nomes de jogadores individuais e membros de equipe no participants.js agora passam por <code>_safeHtml()</code> antes de serem injetados em atributos <code>title</code>, <code>data-player-name</code> e no conteúdo do span. Corrige potencial XSS via nome contendo <code>&lt;</code>, <code>&gt;</code> ou <code>&quot;</code>. Complementa a correção de escaping de onclick da v0.11.29.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.29-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria de segurança — escaping completo em participants.js e host-transfer.js</b> — Três variáveis de escape de nome de jogador em participants.js (_nmSafe, _pSafe, safeP) e o tId em host-transfer.js passaram a escapar barra invertida antes de aspas simples. Completa a varredura de todos os onclick handlers do codebase — agora todos os arquivos JS seguem o padrão correto: escapar \\\\ antes de \'.</p>' +
         '</div>' +
