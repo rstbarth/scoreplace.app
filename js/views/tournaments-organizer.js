@@ -3,9 +3,10 @@
 window._cloneTournament = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
     if (!t || !window.AppStore.currentUser) return;
+    var _t = window._t || function(k) { return k; };
 
     var newT = {
-        name: t.name + ' (cópia)',
+        name: t.name + _t('org.cloneSuffixFull'),
         sport: t.sport,
         format: t.format,
         isPublic: t.isPublic,
@@ -52,7 +53,6 @@ window._cloneTournament = function(tournamentId) {
     }
 
     window.AppStore.addTournament(newT);
-    var _t = window._t || function(k) { return k; };
     if (typeof showNotification === 'function') showNotification(_t('org.clonedTitle'), '"' + newT.name + '" ' + _t('org.clonedMsg'), 'success');
     // Navigate to the new tournament
     setTimeout(function() {
@@ -254,6 +254,7 @@ window._checkTournamentReminders = async function() {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var tournaments = window.AppStore.tournaments || [];
+    var _t = window._t || function(k) { return k; };
 
     for (var i = 0; i < tournaments.length; i++) {
         var t = tournaments[i];
@@ -278,15 +279,15 @@ window._checkTournamentReminders = async function() {
         var reminderLevel = 'all';
         if (diffDays === 7) {
             reminderKey = 'reminder_7d_' + t.id;
-            reminderMsg = 'Faltam 7 dias para o torneio "' + t.name + '"! Prepare-se!';
+            reminderMsg = _t('org.reminder7d', {name: t.name});
             reminderLevel = 'all';
         } else if (diffDays === 2) {
             reminderKey = 'reminder_2d_' + t.id;
-            reminderMsg = 'Faltam 2 dias para o torneio "' + t.name + '"!';
+            reminderMsg = _t('org.reminder2d', {name: t.name});
             reminderLevel = 'important';
         } else if (diffDays === 0) {
             reminderKey = 'reminder_0d_' + t.id;
-            reminderMsg = 'Hoje é o dia do torneio "' + t.name + '"! Boa sorte!';
+            reminderMsg = _t('org.reminder0d', {name: t.name});
             reminderLevel = 'fundamental';
         }
 
@@ -337,6 +338,7 @@ window._checkNearbyTournaments = async function() {
     var NEARBY_RADIUS_KM = 15; // notify if tournament is within 15km
     var tournaments = window.AppStore.tournaments || [];
     var uid = cu.uid || cu.email;
+    var _t = window._t || function(k) { return k; };
 
     for (var i = 0; i < tournaments.length; i++) {
         var t = tournaments[i];
@@ -383,7 +385,7 @@ window._checkNearbyTournaments = async function() {
 
             await window._sendUserNotification(uid, {
                 type: 'tournament_nearby',
-                message: 'Novo torneio perto de você: "' + t.name + '"' + (t.venue ? ' em ' + t.venue : '') + '. Inscrições abertas!',
+                message: _t('org.nearbyMsg', {name: t.name, venuePart: t.venue ? ' em ' + t.venue : ''}),
                 tournamentId: String(t.id),
                 tournamentName: t.name || '',
                 level: 'all'
@@ -473,7 +475,7 @@ window._confirmSendComm = async function(tId) {
     }
 
     var cu = window.AppStore.currentUser;
-    var fullMsg = '📢 Comunicado do organizador — "' + t.name + '": ' + message;
+    var fullMsg = _t('org.commFullMsg', {name: t.name, message: message});
 
     var result = await window._notifyTournamentParticipants(t, {
         type: 'organizer_communication',

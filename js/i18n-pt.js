@@ -994,6 +994,12 @@ window._translations['pt'] = {
   'org.msgRequiredDesc': 'Digite uma mensagem para enviar.',
   'org.commSentTitle': 'Comunicado Enviado!',
   'org.commSentMsg': 'Notificações enviadas para os inscritos do torneio.',
+  'org.cloneSuffixFull': ' (cópia)',
+  'org.reminder7d': 'Faltam 7 dias para o torneio "{name}"! Prepare-se!',
+  'org.reminder2d': 'Faltam 2 dias para o torneio "{name}"!',
+  'org.reminder0d': 'Hoje é o dia do torneio "{name}"! Boa sorte!',
+  'org.nearbyMsg': 'Novo torneio perto de você: "{name}"{venuePart}. Inscrições abertas!',
+  'org.commFullMsg': '📢 Comunicado do organizador — "{name}": {message}',
 
   // Host transfer / co-host
   'org.organization': 'Organização',
