@@ -1285,7 +1285,7 @@ function setupCreateTournamentModal() {
   window._clearTournamentLogo = function() {
     var preview = document.getElementById('logo-preview');
     var hidden = document.getElementById('tourn-logo-data');
-    if (preview) preview.innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:4px;">Sem logo</span>';
+    if (preview) preview.innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:4px;">' + _t('create.noLogo') + '</span>';
     if (hidden) hidden.value = '';
     // Reset lock
     window._logoLocked = false;
@@ -1561,11 +1561,11 @@ function setupCreateTournamentModal() {
     if (!toggle || !hiddenEl) return;
     if (toggle.checked) {
       hiddenEl.value = 'public';
-      if (label) label.innerHTML = '🌐 Aberto ao Público';
+      if (label) label.innerHTML = _t('create.accessOpen');
       if (desc) desc.textContent = _t('create.openDesc');
     } else {
       hiddenEl.value = 'members';
-      if (label) label.innerHTML = '🔒 Acesso Restrito';
+      if (label) label.innerHTML = _t('create.accessRestricted');
       if (desc) desc.textContent = _t('create.restrictedDesc');
     }
   };
@@ -1668,7 +1668,7 @@ function setupCreateTournamentModal() {
 
     // Wait for library
     if (!_placesLibLoaded) {
-      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#94a3b8; font-size:0.8rem;">Carregando API do Google...</div>';
+      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#94a3b8; font-size:0.8rem;">' + _t('create.loadingPlaces') + '</div>';
       suggestionsDiv.style.display = 'block';
       return;
     }
@@ -1685,7 +1685,7 @@ function setupCreateTournamentModal() {
       var suggestions = result.suggestions || [];
 
       if (suggestions.length === 0) {
-        suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#94a3b8; font-size:0.8rem;">Nenhum resultado encontrado</div>';
+        suggestionsDiv.innerHTML = '<div style="padding:10px 14px; color:#94a3b8; font-size:0.8rem;">' + _t('create.noResults') + '</div>';
         suggestionsDiv.style.display = 'block';
         return;
       }
@@ -1852,7 +1852,7 @@ function setupCreateTournamentModal() {
     container.style.display = 'block';
 
     if (!window.google || !window.google.maps) {
-      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">' + _t('create.mapUnavailable') + '</div>';
       return;
     }
 
@@ -1886,7 +1886,7 @@ function setupCreateTournamentModal() {
       });
     } catch (e) {
       console.warn('[venue-create-map] init error:', e);
-      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">' + _t('create.mapUnavailable') + '</div>';
     }
   };
 
@@ -1999,7 +1999,7 @@ function setupCreateTournamentModal() {
           // Check if date is within 5 days
           if (startTs - now > 5 * 24 * 60 * 60 * 1000) {
             weatherDiv.style.display = 'block';
-            weatherContent.innerHTML = '<div style="font-size:0.8rem; color:#cbd5e1;">Previsão disponível apenas para os próximos 5 dias</div>';
+            weatherContent.innerHTML = '<div style="font-size:0.8rem; color:#cbd5e1;">' + _t('create.weatherFuture') + '</div>';
             return;
           }
 
@@ -2373,8 +2373,8 @@ function setupCreateTournamentModal() {
     // Case 2: No participant count and no time window → just show slot info
     if (n < 2) {
       box.style.display = 'block';
-      document.getElementById('duration-estimate-text').textContent = slotTime + ' min por partida';
-      document.getElementById('duration-estimate-detail').innerHTML = 'Chamada: ' + callTime + 'min + Aquecimento: ' + warmup + 'min + Jogo: ' + gameDur + 'min';
+      document.getElementById('duration-estimate-text').textContent = _t('create.minPerMatch', { n: slotTime });
+      document.getElementById('duration-estimate-detail').innerHTML = _t('create.durationDetail', { call: callTime, warmup: warmup, game: gameDur });
       return;
     }
 

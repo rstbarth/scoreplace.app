@@ -1065,6 +1065,17 @@ window._translations['pt'] = {
   'auth.profileUpdated': 'Perfil Atualizado',
   'auth.profileUpdatedMsg': 'Suas informações foram salvas com sucesso.',
 
+  // Create tournament inline UI
+  'create.noLogo': 'Sem logo',
+  'create.accessOpen': '🌐 Aberto ao Público',
+  'create.accessRestricted': '🔒 Acesso Restrito',
+  'create.loadingPlaces': 'Carregando API do Google...',
+  'create.noResults': 'Nenhum resultado encontrado',
+  'create.mapUnavailable': 'Mapa indisponível',
+  'create.weatherFuture': 'Previsão disponível apenas para os próximos 5 dias',
+  'create.minPerMatch': '{n} min por partida',
+  'create.durationDetail': 'Chamada: {call}min + Aquecimento: {warmup}min + Jogo: {game}min',
+
   // Bracket-UI additional
   'bui.tiebreak': 'Tie-break!',
   'bui.updated': '🔄 Atualizado',

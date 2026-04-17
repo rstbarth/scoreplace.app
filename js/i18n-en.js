@@ -1065,6 +1065,17 @@ window._translations['en'] = {
   'auth.profileUpdated': 'Profile Updated',
   'auth.profileUpdatedMsg': 'Your information was saved successfully.',
 
+  // Create tournament inline UI
+  'create.noLogo': 'No logo',
+  'create.accessOpen': '🌐 Open to Public',
+  'create.accessRestricted': '🔒 Restricted Access',
+  'create.loadingPlaces': 'Loading Google API...',
+  'create.noResults': 'No results found',
+  'create.mapUnavailable': 'Map unavailable',
+  'create.weatherFuture': 'Forecast available only for the next 5 days',
+  'create.minPerMatch': '{n} min per match',
+  'create.durationDetail': 'Call: {call}min + Warmup: {warmup}min + Game: {game}min',
+
   // Bracket-UI additional
   'bui.tiebreak': 'Tie-break!',
   'bui.updated': '🔄 Updated',

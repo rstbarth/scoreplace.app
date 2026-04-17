@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>i18n completo — inline HTML em create-tournament</b> — 9 strings inline conectadas ao <code>_t()</code>: Sem logo, 🌐 Aberto ao Público, 🔒 Acesso Restrito, Carregando API do Google, Nenhum resultado encontrado, Mapa indisponível (2x), Previsão apenas para próximos 5 dias, X min por partida (com interpolação), detalhe de duração Chamada/Aquecimento/Jogo (com 3 interpolações). 9 novas chaves <code>create.*</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>i18n completo — labels descritivos e UI</b> — strings descritivas de interface conectadas ao <code>_t()</code> em 3 arquivos. bracket-ui.js: <code>Tie-break!</code> e <code>🔄 Atualizado</code>. tournaments-draw-prep.js: <code>Encerrada</code> (countdown de enquete) e <code>Jogadores em Espera</code>. create-tournament.js: 11 strings — tipos de jogo (simples/duplas/misto), visibilidade (público/privado), acesso (aberto/restrito), dica de quadras, título de editar torneio, labels de tie-break com interpolação, descrição de games fixos. 19 novas chaves: <code>bui.*</code> (2), <code>predraw.*</code> (2), <code>create.*</code> (9).</p>' +
         '</div>' +
