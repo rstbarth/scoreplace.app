@@ -959,6 +959,8 @@ async function simulateLoginSuccess(user) {
     var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
     var _sh = typeof window._safeHtml === 'function' ? window._safeHtml : function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
+    // Use inline onclick so the handler survives cloneNode(true) into the hamburger dropdown
+    btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
     btnLogin.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
         '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
@@ -968,77 +970,68 @@ async function simulateLoginSuccess(user) {
       '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>' +
       '</div>';
-
-    // Clone and replace to clear old event listeners
-    var newBtn = btnLogin.cloneNode(true);
-    btnLogin.parentNode.replaceChild(newBtn, btnLogin);
-
-    // Add click handler for profile modal
-    newBtn.addEventListener('click', function(e) {
-      if (e.target.closest('[title="Sair da Conta"]')) {
-        e.stopPropagation();
-        handleLogout();
-      } else {
-        document.getElementById('profile-avatar').src = photoUrl;
-        document.getElementById('profile-avatar').style.display = 'block';
-
-        var cu = window.AppStore.currentUser;
-        document.getElementById('profile-edit-name').value = cu.displayName || 'Usuário';
-        document.getElementById('profile-edit-gender').value = cu.gender || '';
-        document.getElementById('profile-edit-birthdate').value = cu.birthDate || '';
-        document.getElementById('profile-edit-city').value = cu.city || '';
-        document.getElementById('profile-edit-sports').value = cu.preferredSports || '';
-        document.getElementById('profile-edit-category').value = cu.defaultCategory || '';
-
-        // Phone: set country + formatted display
-        var phoneCountrySel = document.getElementById('profile-phone-country');
-        var phoneInput = document.getElementById('profile-edit-phone');
-        if (phoneCountrySel && cu.phoneCountry) phoneCountrySel.value = cu.phoneCountry;
-        if (phoneInput && cu.phone) {
-          var digits = (cu.phone || '').replace(/\D/g, '');
-          phoneInput.setAttribute('data-digits', digits);
-          phoneInput.value = _formatPhoneDisplay(digits, phoneCountrySel ? phoneCountrySel.value : '55');
-        }
-
-        // Toggle switches: set checked state
-        var _hintsEnabled = !(window._hintSystem && window._hintSystem.isDisabled());
-        var toggles = [
-          { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
-          { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
-          { id: 'profile-notify-email', val: cu.notifyEmail !== false },
-          { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp !== false },
-          { id: 'profile-hints-enabled', val: _hintsEnabled }
-        ];
-        toggles.forEach(function(t) {
-          var el = document.getElementById(t.id);
-          if (el) el.checked = t.val;
-        });
-
-        // Locais de preferência (mapa)
-        window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
-        // Backward compat: also keep CEPs hidden field
-        var cepsEl = document.getElementById('profile-edit-ceps');
-        if (cepsEl) cepsEl.value = cu.preferredCeps || '';
-        // Init map after modal is visible
-        setTimeout(function() { window._initProfileMap(); }, 300);
-        // Setup search listeners immediately (lazy-loads places lib on first query)
-        setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
-
-        // Notify level filter — apply to independent toggles
-        var notifyLevelVal = cu.notifyLevel || 'todas';
-        if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(notifyLevelVal);
-
-        // Sync theme buttons with current theme
-        var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
-
-        if (typeof openModal === 'function') openModal('modal-profile');
-
-        // Populate player stats after modal opens
-        setTimeout(function() { _populatePlayerStats(); }, 50);
-      }
-    });
   }
+
+  // Expose profile-open + logout dispatch as a global so the inline onclick attribute
+  // (cloned into the hamburger dropdown) keeps working. cloneNode(true) preserves
+  // `onclick` attributes but NOT addEventListener listeners — hence inline wiring.
+  window._onProfileBtnClick = function(e) {
+    try {
+      if (e && e.target && e.target.closest && e.target.closest('[title="Sair da Conta"]')) {
+        e.stopPropagation();
+        if (typeof window._closeHamburger === 'function') window._closeHamburger();
+        handleLogout();
+        return;
+      }
+      // Close hamburger before opening modal (avoids stacking focus trap issues)
+      if (typeof window._closeHamburger === 'function') window._closeHamburger();
+      window._openMyProfileModal();
+    } catch (err) { console.warn('_onProfileBtnClick error', err); }
+  };
+
+  window._openMyProfileModal = function() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
+    var photoUrl = cu.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+    var avatar = document.getElementById('profile-avatar');
+    if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
+    var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
+    _setVal('profile-edit-name', cu.displayName || 'Usuário');
+    _setVal('profile-edit-gender', cu.gender || '');
+    _setVal('profile-edit-birthdate', cu.birthDate || '');
+    _setVal('profile-edit-city', cu.city || '');
+    _setVal('profile-edit-sports', cu.preferredSports || '');
+    _setVal('profile-edit-category', cu.defaultCategory || '');
+    var phoneCountrySel = document.getElementById('profile-phone-country');
+    var phoneInput = document.getElementById('profile-edit-phone');
+    if (phoneCountrySel && cu.phoneCountry) phoneCountrySel.value = cu.phoneCountry;
+    if (phoneInput && cu.phone) {
+      var digits = (cu.phone || '').replace(/\D/g, '');
+      phoneInput.setAttribute('data-digits', digits);
+      if (typeof _formatPhoneDisplay === 'function') {
+        phoneInput.value = _formatPhoneDisplay(digits, phoneCountrySel ? phoneCountrySel.value : '55');
+      } else {
+        phoneInput.value = digits;
+      }
+    }
+    var _hintsEnabled = !(window._hintSystem && window._hintSystem.isDisabled());
+    [
+      { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
+      { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
+      { id: 'profile-notify-email', val: cu.notifyEmail !== false },
+      { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp !== false },
+      { id: 'profile-hints-enabled', val: _hintsEnabled }
+    ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
+    window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
+    var cepsEl = document.getElementById('profile-edit-ceps'); if (cepsEl) cepsEl.value = cu.preferredCeps || '';
+    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
+    if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
+    var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
+    if (typeof openModal === 'function') openModal('modal-profile');
+    setTimeout(function() { if (typeof _populatePlayerStats === 'function') _populatePlayerStats(); }, 50);
+  };
 
   // Update notification badge (immediate + periodic refresh every 30s)
   if (typeof _updateNotificationBadge === 'function') {

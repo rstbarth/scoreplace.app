@@ -1,5 +1,56 @@
 // ── Analytics & Details Functions ──
-// Show Player Stats Modal — consolidated stats across all tournaments
+
+// Resolve a photoURL for a player name by checking currentUser and friends,
+// plus looking through any matchHistory player records that carry photoURL.
+window._resolvePlayerPhoto = function(playerName, opts) {
+    opts = opts || {};
+    var n = String(playerName || '').toLowerCase().trim();
+    if (!n) return null;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var _eq = function(a, b) { return String(a || '').toLowerCase().trim() === String(b || '').toLowerCase().trim(); };
+    if (cu && (_eq(cu.displayName, playerName) || (cu.displayName && _eq(cu.displayName.split(' ')[0], playerName)))) {
+        if (cu.photoURL) return cu.photoURL;
+    }
+    var friends = (window.AppStore && Array.isArray(window.AppStore.friends)) ? window.AppStore.friends : [];
+    for (var i = 0; i < friends.length; i++) {
+        if (_eq(friends[i].displayName, playerName) && friends[i].photoURL) return friends[i].photoURL;
+    }
+    if (Array.isArray(opts.records)) {
+        for (var r = 0; r < opts.records.length; r++) {
+            var ps = opts.records[r].players || [];
+            for (var j = 0; j < ps.length; j++) {
+                if (_eq(ps[j].name, playerName) && ps[j].photoURL) return ps[j].photoURL;
+            }
+        }
+    }
+    return null;
+};
+
+// Resolve a uid for a player name. Used to load persistent matchHistory.
+window._resolvePlayerUid = function(playerName) {
+    var n = String(playerName || '').toLowerCase().trim();
+    if (!n) return null;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var _eq = function(a, b) { return String(a || '').toLowerCase().trim() === String(b || '').toLowerCase().trim(); };
+    if (cu && cu.uid && (_eq(cu.displayName, playerName) || (cu.displayName && _eq(cu.displayName.split(' ')[0], playerName)))) return cu.uid;
+    var friends = (window.AppStore && Array.isArray(window.AppStore.friends)) ? window.AppStore.friends : [];
+    for (var i = 0; i < friends.length; i++) {
+        if (_eq(friends[i].displayName, playerName) && friends[i].uid) return friends[i].uid;
+    }
+    // Fallback: search through tournament participants for a uid match
+    var ts = (window.AppStore && Array.isArray(window.AppStore.tournaments)) ? window.AppStore.tournaments : [];
+    for (var t = 0; t < ts.length; t++) {
+        var ps = Array.isArray(ts[t].participants) ? ts[t].participants : [];
+        for (var pi = 0; pi < ps.length; pi++) {
+            var p = ps[pi];
+            if (p && typeof p === 'object' && p.uid && _eq(p.displayName || p.name, playerName)) return p.uid;
+        }
+    }
+    return null;
+};
+
+// Show Player Stats Modal — consolidated stats across all tournaments + persistent
+// matchHistory (casual + tournament) so records survive deletion of the source.
 window._showPlayerStats = function(playerName, currentTournamentId) {
     if (!playerName) return;
     var safeN = window._safeHtml(playerName);
@@ -134,10 +185,18 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
         '</a>';
     }).join('');
 
+    // Resolve photo + uid (for persistent match history lookup)
+    var resolvedPhoto = window._resolvePlayerPhoto(playerName);
+    var resolvedUid = window._resolvePlayerUid(playerName);
+    var _initialChar = (playerName.charAt(0) || '?').toUpperCase();
+    var avatarHtml = resolvedPhoto
+      ? '<img src="' + window._safeHtml(resolvedPhoto) + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color,#3b82f6);margin-bottom:0.5rem;display:inline-block;" onerror="this.outerHTML=\'<div style=\\\'width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#1a1e2e;margin-bottom:0.5rem;\\\'>' + _initialChar + '</div>\'">'
+      : '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#1a1e2e;margin-bottom:0.5rem;">' + _initialChar + '</div>';
+
     modal.innerHTML = '' +
       '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>' +
       '<div style="text-align:center;margin-bottom:1.5rem;">' +
-        '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#1a1e2e;margin-bottom:0.5rem;">' + (playerName.charAt(0) || '?').toUpperCase() + '</div>' +
+        avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
         '<p style="margin:4px 0 0;font-size:0.8rem;color:var(--text-muted,#94a3b8);">' + sportsStr + '</p>' +
       '</div>' +
@@ -178,10 +237,28 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       (stats.tournamentsPlayed > 0 ? '<details style="margin-bottom:0.5rem;">' +
         '<summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-bright,#fff);padding:8px 0;">📋 Torneios Disputados (' + stats.tournamentsPlayed + ')</summary>' +
         '<div style="margin-top:8px;">' + tourListHtml + '</div>' +
-      '</details>' : '<p style="text-align:center;color:var(--text-muted,#94a3b8);font-size:0.85rem;">Nenhum torneio encontrado.</p>');
+      '</details>' : '<p style="text-align:center;color:var(--text-muted,#94a3b8);font-size:0.85rem;">Nenhum torneio encontrado.</p>') +
+      // Persistent matchHistory slot (populated async if uid is available)
+      '<div id="player-stats-persistent" style="margin-top:14px;"></div>';
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+
+    // Load persistent per-user matchHistory (casual + tournament) — survives deletion
+    if (resolvedUid && window.FirestoreDB && typeof window.FirestoreDB.loadUserMatchHistory === 'function') {
+        var slot = modal.querySelector('#player-stats-persistent');
+        if (slot) slot.innerHTML = '<div style="padding:10px;text-align:center;font-size:0.75rem;color:var(--text-muted,#94a3b8);">Carregando histórico persistente…</div>';
+        window.FirestoreDB.loadUserMatchHistory(resolvedUid).then(function(records) {
+            if (!records || !records.length) {
+                if (slot) slot.innerHTML = '';
+                return;
+            }
+            if (slot) slot.innerHTML = window._renderPersistentMatchStats(records, resolvedUid);
+        }).catch(function(e) {
+            console.warn('[player-stats] loadUserMatchHistory failed', e);
+            if (slot) slot.innerHTML = '';
+        });
+    }
 
     // ESC to close
     var _escH = function(e) {
@@ -344,5 +421,192 @@ window._buildActivityLog = function(tournamentId) {
           timelineHtml +
         '</div>' +
       '</details>' +
+    '</div>';
+};
+
+// Renders the persistent matchHistory block for a given uid's records.
+// Splits casual vs tournament, aggregates serve/receive/killer/breaks/streaks,
+// and produces head-to-head + partnership tables. Records are written per-player
+// to users/{uid}/matchHistory so they survive tournament/casual deletion.
+window._renderPersistentMatchStats = function(records, uid) {
+    var _safe = window._safeHtml || function(s) { return String(s == null ? '' : s); };
+    var casual = [], tournament = [];
+    for (var i = 0; i < records.length; i++) {
+        var r = records[i];
+        if (r.matchType === 'casual') casual.push(r);
+        else if (r.matchType === 'tournament') tournament.push(r);
+    }
+
+    function _aggregate(recs) {
+        var agg = { matches:0, wins:0, losses:0, draws:0,
+            points:0, games:0, sets:0, breaks:0, killerPoints:0,
+            servePts:0, servePtsWon:0, receivePts:0, receivePtsWon:0,
+            holdsServed:0, holdsWon:0, longestStreak:0, biggestLead:0,
+            totalDurationMs: 0, durationMatches: 0, avgPointMsSum: 0, avgPointMatches: 0 };
+        for (var i = 0; i < recs.length; i++) {
+            var r = recs[i];
+            var mySlot = (r.players || []).find(function(p) { return p.uid === uid; });
+            if (!mySlot) continue;
+            var myTeam = mySlot.team;
+            agg.matches++;
+            var w = r.winnerTeam;
+            if (w === 0) agg.draws++;
+            else if (w === myTeam) agg.wins++;
+            else agg.losses++;
+            var mine = r.stats && (myTeam === 1 ? r.stats.team1 : r.stats.team2);
+            if (mine) {
+                agg.points += mine.points || 0;
+                agg.games += mine.games || 0;
+                agg.sets += mine.sets || 0;
+                agg.breaks += mine.breaks || 0;
+                agg.killerPoints += mine.deucePtsWon || 0;
+                agg.servePts += mine.servePtsPlayed || 0;
+                agg.servePtsWon += mine.servePtsWon || 0;
+                agg.receivePts += mine.receivePtsPlayed || 0;
+                agg.receivePtsWon += mine.receivePtsWon || 0;
+                agg.holdsServed += mine.holdServed || 0;
+                agg.holdsWon += mine.held || 0;
+                if ((mine.longestStreak || 0) > agg.longestStreak) agg.longestStreak = mine.longestStreak;
+                if ((mine.biggestLead || 0) > agg.biggestLead) agg.biggestLead = mine.biggestLead;
+            }
+            if (typeof r.durationMs === 'number' && r.durationMs > 0) {
+                agg.totalDurationMs += r.durationMs; agg.durationMatches++;
+            }
+            if (r.timeStats && typeof r.timeStats.avgPointMs === 'number') {
+                agg.avgPointMsSum += r.timeStats.avgPointMs; agg.avgPointMatches++;
+            }
+        }
+        return agg;
+    }
+
+    function _computeH2hAndPartners(recs) {
+        var h2h = {}, partners = {};
+        for (var i = 0; i < recs.length; i++) {
+            var r = recs[i];
+            var ps = r.players || [];
+            var me = ps.find(function(p) { return p.uid === uid; });
+            if (!me) continue;
+            var myTeam = me.team, w = r.winnerTeam;
+            var didWin = w === myTeam, didDraw = w === 0;
+            for (var j = 0; j < ps.length; j++) {
+                var pj = ps[j];
+                if (pj === me || pj.name === me.name) continue;
+                var key = pj.uid || ('name:' + (pj.name || ''));
+                var map = pj.team === myTeam ? partners : h2h;
+                if (!map[key]) map[key] = { name: pj.name, uid: pj.uid || null, photoURL: pj.photoURL || null, played:0, wins:0, losses:0, draws:0 };
+                map[key].played++;
+                if (didDraw) map[key].draws++;
+                else if (didWin) map[key].wins++;
+                else map[key].losses++;
+            }
+        }
+        return { h2h: h2h, partners: partners };
+    }
+
+    function _fmtDuration(ms) {
+        if (!ms || ms <= 0) return '—';
+        var mins = Math.round(ms / 60000);
+        if (mins < 60) return mins + 'm';
+        var h = Math.floor(mins / 60), m = mins % 60;
+        return h + 'h' + (m > 0 ? (' ' + m + 'm') : '');
+    }
+    function _fmtPointTime(ms) {
+        if (!ms || ms <= 0) return '—';
+        var s = Math.round(ms / 1000);
+        if (s < 60) return s + 's';
+        return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+    }
+
+    function _statBox(value, label, color) {
+        return '<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 4px;text-align:center;">' +
+            '<div style="font-size:1rem;font-weight:800;color:' + (color || 'var(--text-bright,#fff)') + ';">' + value + '</div>' +
+            '<div style="font-size:0.58rem;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">' + label + '</div>' +
+        '</div>';
+    }
+
+    function _sectionHtml(title, icon, recs, accent) {
+        if (!recs.length) return '';
+        var a = _aggregate(recs);
+        var winRate = a.matches > 0 ? Math.round(a.wins / a.matches * 100) : 0;
+        var srvPct = a.servePts > 0 ? Math.round(a.servePtsWon / a.servePts * 100) : 0;
+        var recvPct = a.receivePts > 0 ? Math.round(a.receivePtsWon / a.receivePts * 100) : 0;
+        var avgDur = a.durationMatches > 0 ? a.totalDurationMs / a.durationMatches : 0;
+        var avgPt = a.avgPointMatches > 0 ? a.avgPointMsSum / a.avgPointMatches : 0;
+
+        var h = '<div style="margin-top:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
+                '<span style="font-size:0.85rem;font-weight:800;color:' + accent + ';">' + icon + ' ' + title + '</span>' +
+                '<span style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-left:auto;">' + a.matches + ' partida' + (a.matches > 1 ? 's' : '') + '</span>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
+                _statBox(a.wins, 'Vitórias', '#22c55e') +
+                _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), 'Derrotas' + (a.draws ? '/E' : ''), '#ef4444') +
+                _statBox(winRate + '%', 'Aproveit.', winRate >= 50 ? '#22c55e' : '#ef4444') +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
+                _statBox(a.sets, 'Sets') +
+                _statBox(a.games, 'Games') +
+                _statBox(a.points, 'Pontos') +
+            '</div>' +
+            (a.servePts > 0 ? (
+                '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px;">' +
+                    _statBox(srvPct + '%', 'Saque', '#60a5fa') +
+                    _statBox(recvPct + '%', 'Recep.', '#f87171') +
+                    _statBox(a.killerPoints, 'Killer', '#fbbf24') +
+                    _statBox(a.breaks, 'Quebras', '#a855f7') +
+                '</div>'
+            ) : '') +
+            ((avgDur > 0 || avgPt > 0) ? (
+                '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">' +
+                    _statBox(_fmtDuration(avgDur), 'Duração média') +
+                    _statBox(_fmtPointTime(avgPt), 'Tempo/ponto') +
+                '</div>'
+            ) : '') +
+        '</div>';
+        return h;
+    }
+
+    function _tableHtml(title, map) {
+        var arr = Object.keys(map).map(function(k) { return map[k]; });
+        if (!arr.length) return '';
+        arr.sort(function(a, b) { return b.played - a.played; });
+        var top = arr.slice(0, 5);
+        var h = '<div style="margin-top:10px;">' +
+            '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted,#94a3b8);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + title + '</div>';
+        for (var i = 0; i < top.length; i++) {
+            var e = top[i];
+            var wr = e.played > 0 ? Math.round(e.wins / e.played * 100) : 0;
+            var av = e.photoURL
+                ? '<img src="' + _safe(e.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+                : '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#fff;font-weight:700;flex-shrink:0;">' + _safe(((e.name || '?')[0] || '?').toUpperCase()) + '</div>';
+            h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:3px;">' +
+                av +
+                '<span style="flex:1;min-width:0;font-size:0.78rem;color:var(--text-color,#e5e7eb);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _safe(e.name || 'Jogador') + '</span>' +
+                '<span style="font-size:0.68rem;color:#22c55e;font-weight:700;">' + e.wins + 'V</span>' +
+                '<span style="font-size:0.68rem;color:#ef4444;font-weight:700;">' + e.losses + 'D</span>' +
+                (e.draws ? '<span style="font-size:0.68rem;color:var(--text-muted,#94a3b8);font-weight:700;">' + e.draws + 'E</span>' : '') +
+                '<span style="font-size:0.7rem;color:' + (wr >= 50 ? '#22c55e' : '#ef4444') + ';font-weight:800;min-width:36px;text-align:right;">' + wr + '%</span>' +
+            '</div>';
+        }
+        h += '</div>';
+        return h;
+    }
+
+    var casualAgg = _computeH2hAndPartners(casual);
+    var tournAgg = _computeH2hAndPartners(tournament);
+
+    return '<div style="border-top:1px solid var(--border-color,rgba(255,255,255,0.1));padding-top:10px;">' +
+        '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Dados persistentes — preservados mesmo se o torneio ou partida casual for apagado.</div>' +
+        _sectionHtml('Partidas Casuais', '📡', casual, '#38bdf8') +
+        _sectionHtml('Torneios', '🏆', tournament, '#fbbf24') +
+        (Object.keys(casualAgg.h2h).length + Object.keys(tournAgg.h2h).length + Object.keys(casualAgg.partners).length + Object.keys(tournAgg.partners).length > 0
+            ? '<div style="margin-top:14px;">' +
+                _tableHtml('⚔ Confrontos diretos (casuais)', casualAgg.h2h) +
+                _tableHtml('⚔ Confrontos diretos (torneios)', tournAgg.h2h) +
+                _tableHtml('🤝 Parcerias (casuais)', casualAgg.partners) +
+                _tableHtml('🤝 Parcerias (torneios)', tournAgg.partners) +
+              '</div>'
+            : '') +
     '</div>';
 };
