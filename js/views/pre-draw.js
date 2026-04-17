@@ -248,7 +248,7 @@ function renderPreDraw(container, tournamentId) {
         _reRenderPreDrawColumns(tId);
       },
       null,
-      { type: 'info', confirmText: 'Fundir', cancelText: 'Cancelar' }
+      { type: 'info', confirmText: _t('btn.mergeFuse'), cancelText: _t('btn.cancel') }
     );
   };
 

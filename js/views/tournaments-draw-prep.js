@@ -976,8 +976,8 @@ window.showLotteryIncompletePanel = function (tId) {
         },
         {
             type: 'info',
-            confirmText: 'Sorteio Direto',
-            cancelText: 'Mini-Repescagem (Play-off)',
+            confirmText: _t('btn.directDraw'),
+            cancelText: _t('btn.playoff'),
             message: '<b>Sorteio Direto:</b> Completa as vagas aleatoriamente.<br><b>Mini-Repescagem:</b> Jogadores disputam as vagas em partidas rápidas.'
         }
     );
@@ -1295,7 +1295,7 @@ window._handleOddOption = function (tId, option) {
                 window.generateDrawFunction(tId);
             },
             null,
-            { type: 'danger', confirmText: 'Remover', cancelText: 'Cancelar' }
+            { type: 'danger', confirmText: _t('btn.remove'), cancelText: _t('btn.cancel') }
         );
     } else if (option === 'poll') {
         var el4 = document.getElementById('odd-entries-panel');
@@ -1864,7 +1864,7 @@ window._checkPollNotifications = function(t) {
         function() {
             window._showPollVotingDialog(String(t.id), activePoll.id);
         },
-        { type: 'info', confirmText: 'Votar Agora', cancelText: 'Depois', showCancel: true }
+        { type: 'info', confirmText: _t('btn.voteNow'), cancelText: _t('btn.later'), showCancel: true }
     );
 
     // Persist read status
@@ -2207,7 +2207,7 @@ window._handleP2Option = function (tId, option) {
                 window.generateDrawFunction(tId);
             },
             null,
-            { type: 'danger', confirmText: 'Remover e Continuar', cancelText: 'Cancelar' }
+            { type: 'danger', confirmText: _t('btn.removeAndContinue'), cancelText: _t('btn.cancel') }
         );
         return;
     }
@@ -2351,7 +2351,7 @@ window.finishTournament = function(tId) {
             showNotification(_t('draw.finishDone'), _t('draw.finishDoneMsg', { name: t.name }), 'success');
         },
         null,
-        { type: 'warning', confirmText: 'Encerrar Torneio', cancelText: 'Cancelar' }
+        { type: 'warning', confirmText: _t('btn.finishTourn'), cancelText: _t('btn.cancel') }
     );
 };
 

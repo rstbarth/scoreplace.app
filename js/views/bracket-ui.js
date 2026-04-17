@@ -155,7 +155,7 @@ window._substituteFromStandby = function (tId) {
         showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentPlayer}), 'success');
         _rerenderBracket(tId);
       }, null,
-      { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' }
+      { type: 'warning', confirmText: _t('bui.subWoConfirm'), cancelText: _t('btn.cancel') }
     );
 
   } else {
@@ -215,7 +215,7 @@ window._substituteFromStandby = function (tId) {
         showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentTeam}), 'success');
         _rerenderBracket(tId);
       }, null,
-      { type: 'warning', confirmText: 'Desclassificar e Substituir', cancelText: 'Cancelar' }
+      { type: 'warning', confirmText: _t('btn.dqSub'), cancelText: _t('btn.cancel') }
     );
   }
 };
@@ -1031,7 +1031,7 @@ window._editResult = function (tId, matchId) {
       _rerenderBracket(tId);
     },
     null,
-    { type: 'warning', confirmText: 'Apagar e Reeditar', cancelText: 'Cancelar' }
+    { type: 'warning', confirmText: _t('btn.deleteReedit'), cancelText: _t('btn.cancel') }
   );
 };
 

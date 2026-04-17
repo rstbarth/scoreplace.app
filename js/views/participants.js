@@ -389,7 +389,7 @@ window._declareAbsent = function (tId, playerName) {
       _reRenderParticipants();
 
     }
-  }, null, { type: 'warning', confirmText: confirmBtn, cancelText: 'Esperar mais' });
+  }, null, { type: 'warning', confirmText: confirmBtn, cancelText: _t('btn.waitMore') });
 };
 
 function renderParticipants(container, tournamentId) {

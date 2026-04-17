@@ -446,7 +446,7 @@ window._fixOrphanedMatchNames = function(t) {
                         msg += ' Use a edição inline (clique no nome) para corrigir.';
                     }
                     if (typeof showNotification === 'function') {
-                        showNotification('⚠️ Participante sem partida', msg, 'warning', 10000);
+                        showNotification(_t('utils.noMatch'), msg, 'warning', 10000);
                     }
                 });
             }

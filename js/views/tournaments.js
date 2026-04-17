@@ -89,7 +89,7 @@ function renderTournaments(container, tournamentId = null) {
                     }
                 },
                 null,
-                { type: 'warning', confirmText: 'Encerrar e Sortear', cancelText: 'Manter Aberto' }
+                { type: 'warning', confirmText: _t('btn.finishAndDraw'), cancelText: _t('btn.keepOpen') }
             );
         } else {
             _startDraw();
@@ -321,7 +321,7 @@ function renderTournaments(container, tournamentId = null) {
                     }
                 },
                 null,
-                { type: 'danger', confirmText: 'Remover', cancelText: 'Cancelar' }
+                { type: 'danger', confirmText: _t('btn.remove'), cancelText: _t('btn.cancel') }
             );
         };
         window.removeParticipantSetupDone = true;
@@ -364,7 +364,7 @@ function renderTournaments(container, tournamentId = null) {
                     }
                 },
                 null,
-                { type: 'warning', confirmText: 'Desfazer', cancelText: 'Manter Equipe' }
+                { type: 'warning', confirmText: _t('btn.undo'), cancelText: _t('btn.keepTeam') }
             );
         };
         window.splitParticipantSetupDone = true;

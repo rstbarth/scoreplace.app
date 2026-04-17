@@ -920,7 +920,7 @@ window._closeRound = function (tId, roundIdx) {
       `Há ${unfinished.length} partida(s) sem resultado. Encerrar mesmo assim?`,
       () => _doCloseRound(t, tId, roundIdx),
       null,
-      { type: 'warning', confirmText: 'Encerrar mesmo assim', cancelText: 'Voltar' }
+      { type: 'warning', confirmText: _t('btn.finishAnyway'), cancelText: _t('btn.back') }
     );
     return;
   }

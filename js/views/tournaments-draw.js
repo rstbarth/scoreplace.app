@@ -1315,7 +1315,7 @@ window.handleDropTeam = function (e, targetIdx) {
                 }
             },
             null,
-            { type: 'info', confirmText: 'Agrupar', cancelText: 'Manter Separados' }
+            { type: 'info', confirmText: _t('btn.group'), cancelText: _t('btn.keepSeparate') }
         );
 
     } catch (err) { console.error(err); }

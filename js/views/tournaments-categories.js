@@ -1046,7 +1046,7 @@ function _confirmMergeCategories(tId, sourceCat, targetCat) {
         function() {
             _executeMerge(tId, sourceCat, targetCat, mergedName);
         },
-        { type: 'warning', confirmText: 'Mesclar', cancelText: 'Cancelar', showCancel: true }
+        { type: 'warning', confirmText: _t('btn.merge'), cancelText: _t('btn.cancel'), showCancel: true }
     );
 }
 
@@ -1164,7 +1164,7 @@ function _removeParticipantFromCategory(tId, pIdx, category) {
         function() {
             _executeRemoveFromCategory(tId, pIdx, category);
         },
-        { type: 'warning', confirmText: 'Remover', cancelText: 'Cancelar', showCancel: true }
+        { type: 'warning', confirmText: _t('btn.remove'), cancelText: _t('btn.cancel'), showCancel: true }
     );
 }
 
@@ -1243,7 +1243,7 @@ function _unmergeCategoryAction(tId, catName) {
             function() {
                 _executeUnmerge(tId, mergeIdx);
             },
-            { type: 'warning', confirmText: 'Desmesclar', cancelText: 'Cancelar', showCancel: true }
+            { type: 'warning', confirmText: _t('btn.unmerge'), cancelText: _t('btn.cancel'), showCancel: true }
         );
         return;
     }
@@ -1289,7 +1289,7 @@ function _unmergeCategoryAction(tId, catName) {
         function() {
             _executeInferredUnmerge(tId, catName, inferredCats);
         },
-        { type: 'warning', confirmText: 'Desmesclar', cancelText: 'Cancelar', showCancel: true }
+        { type: 'warning', confirmText: _t('btn.unmerge'), cancelText: _t('btn.cancel'), showCancel: true }
     );
 }
 
