@@ -3154,22 +3154,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       }
 
-      // Restart button: only visible to registered users who played in the match
+      // Restart section: visible to all users on the match screen.
       var restartSection = '';
-      if (_isViewerInMatch) {
-        if (isDoubles) {
-          restartSection =
-            '<div style="display:flex;align-items:stretch;gap:8px;width:100%;">' +
-              '<button onclick="window._liveScoreRestart()" style="flex:1;min-width:0;padding:13px 10px;border-radius:12px;font-size:0.92rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar Novamente</button>' +
-              '<label class="toggle-switch" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;">' +
-                '<span style="font-size:0.7rem;font-weight:600;color:var(--text-bright);line-height:1.15;max-width:70px;">Re-sortear duplas</span>' +
-                '<input type="checkbox" id="chk-shuffle-teams" style="width:36px;height:20px;accent-color:#818cf8;cursor:pointer;flex-shrink:0;" />' +
-              '</label>' +
-            '</div>';
-        } else {
-          restartSection =
-            '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
-        }
+      if (isDoubles) {
+        restartSection =
+          '<div style="display:flex;align-items:stretch;gap:8px;width:100%;">' +
+            '<button onclick="window._liveScoreRestart()" style="flex:1;min-width:0;padding:13px 10px;border-radius:12px;font-size:0.92rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar Novamente</button>' +
+            '<label class="toggle-switch" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;">' +
+              '<span style="font-size:0.7rem;font-weight:600;color:var(--text-bright);line-height:1.15;max-width:70px;">Re-sortear duplas</span>' +
+              '<input type="checkbox" id="chk-shuffle-teams" style="width:36px;height:20px;accent-color:#818cf8;cursor:pointer;flex-shrink:0;" />' +
+            '</label>' +
+          '</div>';
+      } else {
+        restartSection =
+          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
       }
 
       // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
@@ -3186,8 +3184,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Duration
           durationRow +
         '</div>' +
-        // Action buttons pinned at bottom
-        '<div style="flex-shrink:0;padding:8px 1rem 12px;display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-top:1px solid rgba(255,255,255,0.06);">' +
+        // Action buttons pinned at bottom — padding accounts for the device safe-area
+        // (e.g. iOS home-indicator) so the buttons never get cropped by the browser chrome.
+        '<div style="flex-shrink:0;padding:8px 1rem calc(12px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-top:1px solid rgba(255,255,255,0.06);">' +
           '<button onclick="window._liveScoreSave()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;' +
           'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
           restartSection +
@@ -3902,9 +3901,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
   };
 
   // ── Build overlay ──
+  // Use dynamic viewport (100dvh) so mobile browsers' shrinking/expanding URL
+  // bar never crops the pinned bottom action buttons.
   var overlay = document.createElement('div');
   overlay.id = 'live-scoring-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   // Header — 3-column: [AO VIVO + info] [Sets display center] [Reset + Close]
   var headerBg = 'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)';

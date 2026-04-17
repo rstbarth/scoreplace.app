@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.19-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botões da tela de vitória sem cortes no navegador</b> — Overlay agora usa 100dvh (altura dinâmica do viewport) para respeitar o URL bar que aparece/desaparece em Safari e Chrome mobile. O rodapé com Confirmar Resultado, Jogar Novamente e toggle Re-sortear duplas agora tem padding-bottom = 12px + env(safe-area-inset-bottom), garantindo que o home-indicator (iPhone X+) e a barra do navegador não cobrem os botões. Também removido o gate de "usuário envolvido" — os botões aparecem para todos os usuários na tela de resultado.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Botão Sair do lobby agora funciona de verdade</b> — Ao clicar Sair (ou Voltar ao Dashboard) no lobby da partida casual, o handler agora: (1) marca _hasLeft para bloquear auto-join concorrente, (2) para o interval de refresh, (3) libera a vaga no Firestore (fire-and-forget) e (4) navega imediatamente para o dashboard — o usuário não fica mais preso no lobby esperando Firestore responder.</p>' +
         '</div>' +
