@@ -3075,81 +3075,85 @@ window._openLiveScoring = function(tId, matchId, opts) {
         ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;color:var(--text-muted);"><span>⏱</span><span style="font-weight:700;color:var(--text-bright);">' + elapsedStr + '</span><span>de jogo</span></div>'
         : '';
 
-      // Momentum graph (point-by-point cumulative diff)
+      // Momentum graph: two cumulative lines (P1 blue, P2 red) with progressive draw animation
       var momentumSection = '';
       if (state.pointLog && state.pointLog.length >= 2) {
         var pts = state.pointLog;
-        var width = 320, height = 120, padX = 10, padY = 14;
-        var innerW = width - padX * 2, innerH = height - padY * 2;
-        var diffs = [], maxD = 0, minD = 0, setEnds = [], cum = 0;
+        var width = 320, height = 140, padX = 26, padY = 18, padB = 22;
+        var innerW = width - padX * 2, innerH = height - padY - padB;
+        var p1Cum = [], p2Cum = [], setEnds = [], p1 = 0, p2 = 0;
         for (var gi = 0; gi < pts.length; gi++) {
-          cum += pts[gi].team === 1 ? 1 : -1;
-          diffs.push(cum);
-          if (cum > maxD) maxD = cum;
-          if (cum < minD) minD = cum;
+          if (pts[gi].team === 1) p1++; else p2++;
+          p1Cum.push(p1); p2Cum.push(p2);
           if (pts[gi].endSet) setEnds.push(gi);
         }
-        var range = Math.max(maxD, -minD, 1);
-        var cxFn = function(i) { return padX + (pts.length === 1 ? innerW / 2 : i / (pts.length - 1) * innerW); };
-        var cyFn = function(diff) { return padY + innerH / 2 - (diff / range) * (innerH / 2 - 4); };
-        var baseline = cyFn(0);
-        // Paths: team 1 area (above baseline, diff > 0), team 2 area (below, diff < 0)
-        var aboveArea = 'M ' + cxFn(0) + ' ' + baseline;
-        var belowArea = 'M ' + cxFn(0) + ' ' + baseline;
-        var lineD = 'M ' + cxFn(0) + ' ' + cyFn(0);
-        for (var ki = 0; ki < diffs.length; ki++) {
-          var xxp = cxFn(ki);
-          var yActual = cyFn(diffs[ki]);
-          var yAbove = diffs[ki] > 0 ? yActual : baseline;
-          var yBelow = diffs[ki] < 0 ? yActual : baseline;
-          aboveArea += ' L ' + xxp + ' ' + yAbove;
-          belowArea += ' L ' + xxp + ' ' + yBelow;
-          lineD += ' L ' + xxp + ' ' + yActual;
+        var maxY = Math.max(p1, p2, 1);
+        var xOf = function(i) { return padX + (pts.length === 1 ? innerW / 2 : i / (pts.length - 1) * innerW); };
+        var yOf = function(v) { return padY + innerH - (v / maxY) * innerH; };
+        // Build polyline points
+        var p1Pts = '', p2Pts = '';
+        for (var j = 0; j < pts.length; j++) {
+          p1Pts += xOf(j).toFixed(1) + ',' + yOf(p1Cum[j]).toFixed(1) + ' ';
+          p2Pts += xOf(j).toFixed(1) + ',' + yOf(p2Cum[j]).toFixed(1) + ' ';
         }
-        aboveArea += ' L ' + cxFn(diffs.length - 1) + ' ' + baseline + ' Z';
-        belowArea += ' L ' + cxFn(diffs.length - 1) + ' ' + baseline + ' Z';
-        // Set boundary lines
+        // Horizontal grid lines with Y-axis labels
+        var grid = '';
+        var gridStep = maxY <= 10 ? 2 : (maxY <= 30 ? 5 : 10);
+        for (var gv = 0; gv <= maxY; gv += gridStep) {
+          var gy = yOf(gv).toFixed(1);
+          grid += '<line x1="' + padX + '" y1="' + gy + '" x2="' + (width - padX) + '" y2="' + gy + '" stroke="rgba(255,255,255,0.05)" stroke-width="1" />';
+          grid += '<text x="' + (padX - 5) + '" y="' + (parseFloat(gy) + 3) + '" fill="rgba(255,255,255,0.4)" font-size="8" text-anchor="end" font-family="monospace">' + gv + '</text>';
+        }
+        // Set boundaries (vertical dashed lines with S1/S2 labels at top)
         var setLines = '';
         for (var si2 = 0; si2 < setEnds.length; si2++) {
-          var sx = cxFn(setEnds[si2]);
-          setLines += '<line x1="' + sx.toFixed(1) + '" y1="' + padY + '" x2="' + sx.toFixed(1) + '" y2="' + (height - padY) + '" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="3,3" />';
-          setLines += '<text x="' + sx.toFixed(1) + '" y="' + (padY - 3) + '" fill="rgba(255,255,255,0.45)" font-size="8" text-anchor="middle" font-family="monospace">S' + (si2 + 1) + '</text>';
+          var sx = xOf(setEnds[si2]).toFixed(1);
+          setLines += '<line x1="' + sx + '" y1="' + padY + '" x2="' + sx + '" y2="' + (height - padB) + '" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,3" />';
+          setLines += '<text x="' + sx + '" y="' + (padY - 5) + '" fill="rgba(255,255,255,0.55)" font-size="9" text-anchor="middle" font-family="monospace" font-weight="700">S' + (si2 + 1) + '</text>';
         }
-        // Peak and trough markers
-        var peakIdx = 0, troughIdx = 0;
-        for (var pi2 = 0; pi2 < diffs.length; pi2++) {
-          if (diffs[pi2] > diffs[peakIdx]) peakIdx = pi2;
-          if (diffs[pi2] < diffs[troughIdx]) troughIdx = pi2;
-        }
-        var markers = '';
-        if (maxD > 0) markers += '<circle cx="' + cxFn(peakIdx).toFixed(1) + '" cy="' + cyFn(maxD).toFixed(1) + '" r="3.5" fill="#60a5fa" stroke="#fff" stroke-width="1.5" />';
-        if (minD < 0) markers += '<circle cx="' + cxFn(troughIdx).toFixed(1) + '" cy="' + cyFn(minD).toFixed(1) + '" r="3.5" fill="#f87171" stroke="#fff" stroke-width="1.5" />';
-        // Final point marker
-        var lastX = cxFn(diffs.length - 1).toFixed(1);
-        var lastY = cyFn(diffs[diffs.length - 1]).toFixed(1);
-        markers += '<circle cx="' + lastX + '" cy="' + lastY + '" r="4" fill="#fbbf24" stroke="#fff" stroke-width="1.5" />';
-
-        var p1Label = p1Players.length > 1 ? p1Players.join(' / ') : (p1Players[0] || 'Dupla 1');
-        var p2Label = p2Players.length > 1 ? p2Players.join(' / ') : (p2Players[0] || 'Dupla 2');
+        // Final score labels at end of each line
+        var endX = xOf(pts.length - 1).toFixed(1);
+        var p1EndY = yOf(p1).toFixed(1);
+        var p2EndY = yOf(p2).toFixed(1);
+        var p1Label = p1Players.length > 1 ? p1Players.join(' / ') : (p1Players[0] || 'Time 1');
+        var p2Label = p2Players.length > 1 ? p2Players.join(' / ') : (p2Players[0] || 'Time 2');
+        // Unique animation name — re-triggers the CSS animation every time the finish state renders
+        var animId = 'mom-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
 
         momentumSection =
-          '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,14px) clamp(8px,1.5vw,12px);border-radius:14px;background:linear-gradient(180deg,rgba(59,130,246,0.04),rgba(239,68,68,0.04));border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;">' +
+          '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,14px) clamp(8px,1.5vw,12px);border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10);display:flex;flex-direction:column;gap:8px;">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;">' +
               '<div style="font-size:0.6rem;font-weight:800;color:#fbbf24;text-transform:uppercase;letter-spacing:1.5px;">📈 Momentum da Partida</div>' +
-              '<div style="font-size:0.58rem;color:var(--text-muted);font-weight:600;">' + pts.length + ' pts</div>' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<div style="font-size:0.58rem;color:var(--text-muted);font-weight:600;">' + pts.length + ' pts</div>' +
+                '<button id="mom-replay-btn" style="padding:3px 8px;border-radius:6px;font-size:0.6rem;font-weight:700;border:1px solid rgba(251,191,36,0.35);cursor:pointer;background:rgba(251,191,36,0.1);color:#fbbf24;">↻ Replay</button>' +
+              '</div>' +
             '</div>' +
+            '<style>' +
+              '@keyframes ' + animId + ' { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }' +
+              '@keyframes ' + animId + '-pop { 0%,80%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }' +
+              '.' + animId + '-line { stroke-dasharray: 100; stroke-dashoffset: 100; animation: ' + animId + ' 2.8s cubic-bezier(0.4,0,0.2,1) forwards; }' +
+              '.' + animId + '-dot { transform-origin: center; transform-box: fill-box; animation: ' + animId + '-pop 3s ease-out forwards; }' +
+            '</style>' +
             '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" style="max-width:' + width + 'px;display:block;margin:0 auto;overflow:visible;">' +
-              '<line x1="' + padX + '" y1="' + baseline.toFixed(1) + '" x2="' + (width - padX) + '" y2="' + baseline.toFixed(1) + '" stroke="rgba(255,255,255,0.25)" stroke-width="1" />' +
-              '<path d="' + aboveArea + '" fill="#3b82f6" fill-opacity="0.45" />' +
-              '<path d="' + belowArea + '" fill="#ef4444" fill-opacity="0.45" />' +
-              '<path d="' + lineD + '" fill="none" stroke="#fde68a" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />' +
+              grid +
               setLines +
-              markers +
+              // Baseline (x-axis)
+              '<line x1="' + padX + '" y1="' + (height - padB) + '" x2="' + (width - padX) + '" y2="' + (height - padB) + '" stroke="rgba(255,255,255,0.3)" stroke-width="1" />' +
+              // P1 line (blue)
+              '<polyline class="' + animId + '-line" points="' + p1Pts + '" pathLength="100" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(59,130,246,0.5));" />' +
+              // P2 line (red)
+              '<polyline class="' + animId + '-line" points="' + p2Pts + '" pathLength="100" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(239,68,68,0.5));" />' +
+              // End markers (appear after animation finishes)
+              '<circle class="' + animId + '-dot" cx="' + endX + '" cy="' + p1EndY + '" r="4.5" fill="#3b82f6" stroke="#fff" stroke-width="1.8" />' +
+              '<circle class="' + animId + '-dot" cx="' + endX + '" cy="' + p2EndY + '" r="4.5" fill="#ef4444" stroke="#fff" stroke-width="1.8" />' +
+              // Final score labels next to end markers
+              '<text class="' + animId + '-dot" x="' + (parseFloat(endX) + 8) + '" y="' + (parseFloat(p1EndY) + 3) + '" fill="#60a5fa" font-size="10" font-weight="700" font-family="monospace">' + p1 + '</text>' +
+              '<text class="' + animId + '-dot" x="' + (parseFloat(endX) + 8) + '" y="' + (parseFloat(p2EndY) + 3) + '" fill="#f87171" font-size="10" font-weight="700" font-family="monospace">' + p2 + '</text>' +
             '</svg>' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px;font-size:0.58rem;">' +
-              '<span style="display:flex;align-items:center;gap:4px;color:#60a5fa;font-weight:700;"><span style="width:8px;height:8px;border-radius:2px;background:#3b82f6;"></span><span style="color:var(--text-muted);">+ ' + window._safeHtml(p1Label) + '</span></span>' +
-              '<span style="color:var(--text-muted);font-size:0.55rem;">0</span>' +
-              '<span style="display:flex;align-items:center;gap:4px;color:#f87171;font-weight:700;"><span style="color:var(--text-muted);">' + window._safeHtml(p2Label) + ' −</span><span style="width:8px;height:8px;border-radius:2px;background:#ef4444;"></span></span>' +
+            '<div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:0 4px;font-size:0.6rem;">' +
+              '<span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:3px;border-radius:2px;background:#3b82f6;"></span><span style="color:#60a5fa;font-weight:700;">' + window._safeHtml(p1Label) + '</span></span>' +
+              '<span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:3px;border-radius:2px;background:#ef4444;"></span><span style="color:#f87171;font-weight:700;">' + window._safeHtml(p2Label) + '</span></span>' +
             '</div>' +
           '</div>';
       }
@@ -3191,6 +3195,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
           'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
           restartSection +
         '</div>';
+      // Wire up Replay button — re-renders the finish view to re-trigger the SVG draw animation
+      setTimeout(function() {
+        var replayBtn = document.getElementById('mom-replay-btn');
+        if (replayBtn) {
+          replayBtn.addEventListener('click', function() {
+            _render();
+          });
+        }
+      }, 0);
       _syncLiveState();
       return;
     }
