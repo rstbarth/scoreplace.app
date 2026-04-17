@@ -7,9 +7,9 @@ function renderPreDraw(container, tournamentId) {
   if (!t) {
     container.innerHTML = `
       <div class="card" style="text-align:center; padding: 3rem;">
-        <h3 style="color: var(--text-bright);">Torneio não encontrado</h3>
-        <p class="text-muted">Selecione um torneio para acessar a Janela Pré-Sorteio.</p>
-        <a href="#dashboard" class="btn btn-primary" style="margin-top:1rem; display:inline-block;">Ir para o Dashboard</a>
+        <h3 style="color: var(--text-bright);">${_t('predraw.notFound')}</h3>
+        <p class="text-muted">${_t('predraw.notFoundMsg')}</p>
+        <a href="#dashboard" class="btn btn-primary" style="margin-top:1rem; display:inline-block;">${_t('btn.goDashboard')}</a>
       </div>`;
     return;
   }
@@ -56,7 +56,7 @@ function renderPreDraw(container, tournamentId) {
             ondragover="event.preventDefault(); event.dataTransfer.dropEffect='move';"
             ondrop="window._dropToCategory(event, '${catName.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')" >
             ${players.length === 0
-              ? `<div class="text-muted" style="text-align:center; padding:1rem; font-size:0.85rem; border: 1px dashed rgba(255,255,255,0.1); border-radius:8px;">Arraste inscritos aqui</div>`
+              ? `<div class="text-muted" style="text-align:center; padding:1rem; font-size:0.85rem; border: 1px dashed rgba(255,255,255,0.1); border-radius:8px;">${_t('predraw.emptyDrop')}</div>`
               : players.map((p, i) => `
                 <div class="predraw-card" draggable="true" data-player-idx="${p.idx}" data-cat="${catName}"
                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 12px; cursor: grab; display:flex; align-items:center; justify-content:space-between; gap:8px; transition: all 0.15s;"
@@ -78,7 +78,7 @@ function renderPreDraw(container, tournamentId) {
   const standbyHtml = catMap['Standby'].length > 0 ? `
     <div style="margin-top: 1.5rem;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.75rem;">
-        <h4 style="margin:0; color: var(--text-muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">Lista de Espera (${catMap['Standby'].length})</h4>
+        <h4 style="margin:0; color: var(--text-muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">${_t('predraw.standbySection', {count: catMap['Standby'].length})}</h4>
       </div>
       <div class="predraw-list" data-cat="Standby" style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem; display:flex; flex-wrap:wrap; gap:6px; min-height:48px;"
         ondragover="event.preventDefault();" ondrop="window._dropToCategory(event, 'Standby')">
@@ -94,20 +94,20 @@ function renderPreDraw(container, tournamentId) {
     <div class="sticky-back-header">
       <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Voltar
+        ${_t('btn.back')}
       </button>
     </div>
 
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap; gap:1rem;">
       <div>
-        <h2 style="margin:0;">Janela Pré-Sorteio</h2>
-        <p class="text-muted" style="margin:4px 0 0;">${window._safeHtml(t.name)} — ${formatLabel} — ${totalParticipants} inscrito(s)</p>
+        <h2 style="margin:0;">${_t('predraw.title')}</h2>
+        <p class="text-muted" style="margin:4px 0 0;">${window._safeHtml(t.name)} — ${formatLabel} — ${_t('predraw.enrolledCount', {n: totalParticipants})}</p>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-secondary" onclick="window._addCategoryCol('${window._safeHtml(t.id)}')">+ Categoria</button>
+        <button class="btn btn-secondary" onclick="window._addCategoryCol('${window._safeHtml(t.id)}')">${_t('predraw.addCategory')}</button>
         <button class="btn btn-primary" onclick="window._runPreDrawConfirm('${window._safeHtml(t.id)}')">
           <svg style="margin-right:0.5rem;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          Rodar Sorteio Oficial
+          ${_t('predraw.runDraw')}
         </button>
       </div>
     </div>
@@ -115,11 +115,11 @@ function renderPreDraw(container, tournamentId) {
     <!-- Painel de info -->
     <div style="display:flex; gap:12px; margin-bottom:1.5rem; flex-wrap:wrap;">
       <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:0.75rem 1.25rem; flex:1; min-width:140px;">
-        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Total Inscritos</div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${_t('predraw.statEnrolled')}</div>
         <div style="font-size:1.5rem; font-weight:800; color:var(--text-bright);">${totalParticipants}</div>
       </div>
       <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:0.75rem 1.25rem; flex:1; min-width:140px;">
-        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Categorias</div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${_t('predraw.statCategories')}</div>
         <div style="font-size:1.5rem; font-weight:800; color:var(--text-bright);">${cats.length}</div>
       </div>
       ${isElim ? (() => {
@@ -128,26 +128,26 @@ function renderPreDraw(container, tournamentId) {
         let lo = 1; while (lo * 2 <= n) lo *= 2;
         const hi = lo * 2;
         const status = isPow2
-          ? `<div style="font-size:0.85rem; font-weight:700; color:#4ade80;">✓ Potência de 2 exata</div>`
-          : `<div style="font-size:0.75rem; color:#fbbf24; margin-top:2px;">Faltam ${hi - n} ou sobram ${n - lo}</div>`;
+          ? `<div style="font-size:0.85rem; font-weight:700; color:#4ade80;">${_t('predraw.pow2Exact')}</div>`
+          : `<div style="font-size:0.75rem; color:#fbbf24; margin-top:2px;">${_t('predraw.pow2Gap', {gap: hi - n, excess: n - lo})}</div>`;
         return `
           <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:0.75rem 1.25rem; flex:1; min-width:140px;">
-            <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Chaveamento</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${_t('predraw.statBracket')}</div>
             ${status}
           </div>`;
       })() : ''}
       <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:0.75rem 1.25rem; flex:1; min-width:140px;">
-        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Resultado lançado por</div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${_t('predraw.statResultBy')}</div>
         <div style="font-size:0.85rem; font-weight:600; color:var(--text-bright);">${
-          t.resultEntry === 'players' ? 'Jogadores' :
-          t.resultEntry === 'referee' ? 'Árbitro' : 'Organizador'
+          t.resultEntry === 'players' ? _t('predraw.resultPlayers') :
+          t.resultEntry === 'referee' ? _t('predraw.resultReferee') : _t('predraw.resultOrganizer')
         }</div>
       </div>
     </div>
 
     <!-- Alterar formato antes do sorteio -->
     <div style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.15); border-radius:12px; padding:1rem; margin-bottom:1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-      <span style="font-size:0.85rem; color:#818cf8; font-weight:600;">Alterar formato antes do sorteio:</span>
+      <span style="font-size:0.85rem; color:#818cf8; font-weight:600;">${_t('predraw.changeFormat')}</span>
       <select id="predraw-format-select" style="background:var(--bg-card); color:var(--text-bright); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:6px 12px; font-size:0.85rem;" onchange="window._preDrawChangeFormat('${t.id}', this.value)">
         <option value="Eliminatórias Simples" ${t.format === 'Eliminatórias Simples' ? 'selected' : ''}>Eliminatórias Simples</option>
         <option value="Dupla Eliminatória" ${t.format === 'Dupla Eliminatória' ? 'selected' : ''}>Dupla Eliminatória</option>
@@ -214,8 +214,8 @@ function renderPreDraw(container, tournamentId) {
 
   window._renameCat = function (oldName) {
     showInputDialog(
-      'Renomear Categoria',
-      `Novo nome para a categoria "${oldName}":`,
+      _t('predraw.renameCatTitle'),
+      _t('predraw.renameCatMsg', {name: oldName}),
       (newName) => {
         if (!newName || newName === oldName) return;
         const pd = window._preDraw;
@@ -238,8 +238,9 @@ function renderPreDraw(container, tournamentId) {
     if (otherCats.length === 0) return;
 
     showConfirmDialog(
-      'Fundir Categorias',
-      `Mover todos os inscritos de "${srcCat}" para outra categoria e remover "${srcCat}".<br><br>Selecione a categoria destino abaixo antes de confirmar:<br><select id="merge-target-select" style="margin-top:8px; background:var(--bg-card); color:var(--text-bright); border:1px solid var(--border-color); border-radius:8px; padding:6px 12px; width:100%;">${otherCats.map(c => `<option value="${c}">${c}</option>`).join('')}</select>`,
+      _t('predraw.mergeCatTitle'),
+      _t('predraw.mergeCatMsg', {src: srcCat}) +
+      `<select id="merge-target-select" style="margin-top:8px; background:var(--bg-card); color:var(--text-bright); border:1px solid var(--border-color); border-radius:8px; padding:6px 12px; width:100%;">${otherCats.map(c => `<option value="${c}">${c}</option>`).join('')}</select>`,
       () => {
         const target = document.getElementById('merge-target-select')?.value || otherCats[0];
         pd.catMap[target] = [...(pd.catMap[target] || []), ...(pd.catMap[srcCat] || [])];
@@ -254,8 +255,8 @@ function renderPreDraw(container, tournamentId) {
 
   window._addCategoryCol = function (tId) {
     showInputDialog(
-      'Nova Categoria',
-      'Nome da nova categoria:',
+      _t('predraw.newCatTitle'),
+      _t('predraw.newCatMsg'),
       (name) => {
         if (!name) return;
         const pd = window._preDraw;
@@ -267,7 +268,7 @@ function renderPreDraw(container, tournamentId) {
         pd.cats.push(name);
         _reRenderPreDrawColumns(tId);
       },
-      { placeholder: 'Ex: C, FUN, Iniciantes...' }
+      { placeholder: _t('predraw.newCatPlaceholder') }
     );
   };
 
