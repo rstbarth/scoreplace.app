@@ -1815,23 +1815,30 @@ function _populatePlayerStats() {
 
   // User header (avatar + name) shown at the top of the stats block — gives
   // immediate context about whose stats are being displayed, matching the
-  // profile header style.
-  var _safeHtml = window._safeHtml || function(s) { return s; };
-  var _userName = cu.displayName || cu.email || 'Você';
-  var _avatarHtml;
-  if (cu.photoURL) {
-    _avatarHtml = '<img src="' + _safeHtml(cu.photoURL) + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-      '<div style="display:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safeHtml((_userName || '?')[0].toUpperCase()) + '</div>';
-  } else {
-    _avatarHtml = '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safeHtml((_userName || '?')[0].toUpperCase()) + '</div>';
-  }
-  var headerHtml = '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;margin-bottom:10px;border-bottom:1px solid var(--border-color);">' +
-    _avatarHtml +
-    '<div style="flex:1;min-width:0;text-align:left;">' +
-      '<div style="font-size:0.95rem;font-weight:800;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safeHtml(_userName) + '</div>' +
-      '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safeHtml(cu.email || '') + '</div>' +
-    '</div>' +
-  '</div>';
+  // profile header style. Wrapped in try/catch so any rendering issue with the
+  // avatar/fallback never blocks the rest of the stats flow or the profile modal.
+  var headerHtml = '';
+  try {
+    var _safer = (typeof window._safeHtml === 'function')
+      ? window._safeHtml
+      : function(s) { return String(s == null ? '' : s); };
+    var _userName = cu.displayName || cu.email || 'Você';
+    var _initial = _userName.charAt(0) ? _userName.charAt(0).toUpperCase() : '?';
+    var _avatarHtml;
+    if (cu.photoURL) {
+      _avatarHtml = '<img src="' + _safer(cu.photoURL) + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+        '<div style="display:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
+    } else {
+      _avatarHtml = '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
+    }
+    headerHtml = '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;margin-bottom:10px;border-bottom:1px solid var(--border-color);">' +
+      _avatarHtml +
+      '<div style="flex:1;min-width:0;text-align:left;">' +
+        '<div style="font-size:0.95rem;font-weight:800;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(_userName) + '</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(cu.email || '') + '</div>' +
+      '</div>' +
+    '</div>';
+  } catch (e) { console.warn('[profile-stats] header render failed', e); headerHtml = ''; }
 
   // Render stats
   if (stats.tournamentsParticipated === 0) {
