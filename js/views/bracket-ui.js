@@ -2242,6 +2242,134 @@ window._openLiveScoring = function(tId, matchId, opts) {
     showNotification('Desfazer', 'Use o botão — para corrigir o placar manualmente.', 'info');
   }
 
+  // Build a self-contained record of this finished match and persist it to each
+  // registered player's matchHistory subcollection so the stats survive deletion
+  // of the tournament / casual match. Used by both casual and tournament paths.
+  function _buildAndPersistMatchRecord(extraContext) {
+    if (typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.saveUserMatchRecords) return;
+    var pts = state.pointLog || [];
+    var gmL = state.gameLog || [];
+    var team = { 1: { points:0, games:0, sets:0, holdServed:0, held:0, longestStreak:0, biggestLead:0,
+                      servePtsPlayed:0, servePtsWon:0, receivePtsPlayed:0, receivePtsWon:0,
+                      deucePtsPlayed:0, deucePtsWon:0, breaks:0 },
+                 2: { points:0, games:0, sets:0, holdServed:0, held:0, longestStreak:0, biggestLead:0,
+                      servePtsPlayed:0, servePtsWon:0, receivePtsPlayed:0, receivePtsWon:0,
+                      deucePtsPlayed:0, deucePtsWon:0, breaks:0 } };
+    var curStreak = { 1:0, 2:0 }, cum = 0;
+    for (var i = 0; i < pts.length; i++) {
+      var pt = pts[i];
+      team[pt.team].points++;
+      if (pt.team === 1) { curStreak[1]++; curStreak[2]=0; cum++; }
+      else { curStreak[2]++; curStreak[1]=0; cum--; }
+      if (curStreak[pt.team] > team[pt.team].longestStreak) team[pt.team].longestStreak = curStreak[pt.team];
+      if (cum > team[1].biggestLead) team[1].biggestLead = cum;
+      if (-cum > team[2].biggestLead) team[2].biggestLead = -cum;
+      if (pt.serverTeam === 1 || pt.serverTeam === 2) {
+        var srvT = pt.serverTeam, recT = srvT === 1 ? 2 : 1;
+        team[srvT].servePtsPlayed++; team[recT].receivePtsPlayed++;
+        if (pt.team === srvT) team[srvT].servePtsWon++;
+        else team[recT].receivePtsWon++;
+        if (!pt.isTiebreak && pt.p1Before === 3 && pt.p2Before === 3) {
+          team[1].deucePtsPlayed++; team[2].deucePtsPlayed++;
+          team[pt.team].deucePtsWon++;
+        }
+      }
+    }
+    for (var g = 0; g < gmL.length; g++) {
+      var ge = gmL[g];
+      team[ge.winner].games++;
+      if (ge.serverTeam && ge.winner !== ge.serverTeam) team[ge.winner].breaks++;
+    }
+    for (var s = 0; s < state.sets.length; s++) {
+      var ss = state.sets[s];
+      if (ss.gamesP1 > ss.gamesP2) team[1].sets++;
+      else if (ss.gamesP2 > ss.gamesP1) team[2].sets++;
+    }
+    // Per-player stats
+    var plrs = {};
+    var allNames = p1Players.concat(p2Players);
+    for (var pi = 0; pi < allNames.length; pi++) {
+      plrs[allNames[pi]] = { name: allNames[pi], team: pi < p1Players.length ? 1 : 2,
+        served:0, held:0, longestHoldStreak:0, _streak:0, servePtsPlayed:0, servePtsWon:0 };
+    }
+    for (var gg = 0; gg < gmL.length; gg++) {
+      var en = gmL[gg];
+      if (!en.serverName || !plrs[en.serverName]) continue;
+      var sp = plrs[en.serverName];
+      sp.served++;
+      if (en.winner === en.serverTeam) {
+        sp.held++; sp._streak++;
+        if (sp._streak > sp.longestHoldStreak) sp.longestHoldStreak = sp._streak;
+      } else sp._streak = 0;
+    }
+    for (var pj = 0; pj < pts.length; pj++) {
+      var p2pt = pts[pj];
+      if (!p2pt.server || !plrs[p2pt.server]) continue;
+      plrs[p2pt.server].servePtsPlayed++;
+      if (p2pt.team === p2pt.serverTeam) plrs[p2pt.server].servePtsWon++;
+    }
+    // Strip internal flags before persisting
+    Object.keys(plrs).forEach(function(k) { delete plrs[k]._streak; });
+
+    // Player list with uid/photo (for each registered participant)
+    var recordPlayers = [];
+    for (var k = 0; k < allNames.length; k++) {
+      var nm = allNames[k];
+      var meta = _playerMeta[nm] || {};
+      recordPlayers.push({
+        name: nm,
+        team: k < p1Players.length ? 1 : 2,
+        uid: meta.uid || null,
+        photoURL: meta.photoURL || null
+      });
+    }
+
+    // Build score summary string (e.g. "6-4 3-6 7-6")
+    var scoreSummaryStr = '';
+    if (useSets && !state.isFixedSet) {
+      for (var si2 = 0; si2 < state.sets.length; si2++) {
+        var _ss = state.sets[si2];
+        scoreSummaryStr += _ss.gamesP1 + '-' + _ss.gamesP2;
+        if (_ss.tiebreak) scoreSummaryStr += '(' + Math.min(_ss.tiebreak.p1, _ss.tiebreak.p2) + ')';
+        if (si2 < state.sets.length - 1) scoreSummaryStr += ' ';
+      }
+    } else {
+      var sP1 = state.isFixedSet && state.sets[0] ? state.sets[0].gamesP1 : state.currentGameP1;
+      var sP2 = state.isFixedSet && state.sets[0] ? state.sets[0].gamesP2 : state.currentGameP2;
+      scoreSummaryStr = sP1 + '-' + sP2;
+    }
+
+    var startT = _matchStartTime || null;
+    var endT = _matchEndTime || Date.now();
+    var ctx = extraContext || {};
+    var record = {
+      matchId: ctx.matchId || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 1e6)),
+      matchType: ctx.matchType || (isCasual ? 'casual' : 'tournament'),
+      tournamentId: ctx.tournamentId || null,
+      tournamentName: ctx.tournamentName || null,
+      sport: ctx.sport || (opts && opts.sportName) || '',
+      isDoubles: isDoubles,
+      finishedAt: new Date(endT).toISOString(),
+      startedAt: startT ? new Date(startT).toISOString() : null,
+      durationMs: startT ? (endT - startT) : null,
+      players: recordPlayers,
+      playerUids: recordPlayers.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
+      winnerTeam: state.winner || 0,
+      scoreSummary: scoreSummaryStr,
+      sets: state.sets.map(function(_s) {
+        var e = { gamesP1: _s.gamesP1, gamesP2: _s.gamesP2 };
+        if (_s.tiebreak) e.tiebreak = _s.tiebreak;
+        return e;
+      }),
+      stats: { team1: team[1], team2: team[2] },
+      playerStats: plrs
+    };
+    try {
+      var p = window.FirestoreDB.saveUserMatchRecords(record);
+      if (p && typeof p.catch === 'function') p.catch(function(){});
+    } catch(e) {}
+  }
+
   // Save result to match
   function _saveResult() {
     if (isCasual) {
@@ -2294,6 +2422,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
           playerUids: playerUids
         });
       }
+      // Persist detailed stats in each registered player's account so they
+      // survive even after the casual match doc is deleted/expired.
+      _buildAndPersistMatchRecord({
+        matchId: _casualDocId ? ('casual_' + _casualDocId) : null,
+        matchType: 'casual',
+        sport: opts && opts.sportName
+      });
       return;
     }
 
@@ -2345,6 +2480,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
       window.FirestoreDB.saveTournament(t);
     }
+
+    // Persist detailed tournament match stats in each registered participant's
+    // account so their per-user history outlives the tournament.
+    _buildAndPersistMatchRecord({
+      matchId: 'tourn_' + (t && t.id ? t.id : 'x') + '_' + (m && m.id ? m.id : 'x'),
+      matchType: 'tournament',
+      tournamentId: t && t.id ? t.id : null,
+      tournamentName: t && t.name ? t.name : null,
+      sport: t && t.sport ? t.sport : ''
+    });
 
     // Close overlay
     var ov = document.getElementById('live-scoring-overlay');
