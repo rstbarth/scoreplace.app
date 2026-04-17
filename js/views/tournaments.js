@@ -1688,7 +1688,7 @@ function renderTournaments(container, tournamentId = null) {
                     }
 
                     return `
-                      <div class="participant-card" data-participant-name="${pName.replace(/"/g, '&quot;')}" data-merge-name="${pName.replace(/"/g, '&quot;')}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                      <div class="participant-card" data-participant-name="${window._safeHtml(pName)}" data-merge-name="${window._safeHtml(pName)}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                           <div style="position:absolute;right:8px;top:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
                           <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
                               <div style="display:flex;align-items:center;gap:12px;">

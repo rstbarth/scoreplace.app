@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.31-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Auditoria de segurança — XSS em atributos data- dos cards de participante</b> — Os atributos <code>data-participant-name</code> e <code>data-merge-name</code> nos cards de participante em tournaments.js usavam apenas <code>replace(/"/g, \'&amp;quot;\')</code>, deixando <code>&amp;</code>, <code>&lt;</code> e <code>&gt;</code> sem escape. Substituído por <code>_safeHtml()</code> para escape completo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Auditoria de segurança — XSS em nomes de jogadores na lista de participantes</b> — Nomes de jogadores individuais e membros de equipe no participants.js agora passam por <code>_safeHtml()</code> antes de serem injetados em atributos <code>title</code>, <code>data-player-name</code> e no conteúdo do span. Corrige potencial XSS via nome contendo <code>&lt;</code>, <code>&gt;</code> ou <code>&quot;</code>. Complementa a correção de escaping de onclick da v0.11.29.</p>' +
         '</div>' +
