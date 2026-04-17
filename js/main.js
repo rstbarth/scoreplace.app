@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.18-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botão Sair do lobby agora funciona de verdade</b> — Ao clicar Sair (ou Voltar ao Dashboard) no lobby da partida casual, o handler agora: (1) marca _hasLeft para bloquear auto-join concorrente, (2) para o interval de refresh, (3) libera a vaga no Firestore (fire-and-forget) e (4) navega imediatamente para o dashboard — o usuário não fica mais preso no lobby esperando Firestore responder.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.17-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Times formados visíveis no lobby</b> — Quando o organizador monta os times na tela de setup (via drag-and-drop ou renomeia jogadores), as mudanças são sincronizadas no Firestore em tempo real (debounced). Os outros usuários cadastrados que já estão na sala passam a ver "⚔ Times formados" com Time 1 vs Time 2 em vez de só "Aguardando jogador". Auto-refresh agora atualiza o snapshot completo da partida (não só participants).</p>' +
         '</div>' +

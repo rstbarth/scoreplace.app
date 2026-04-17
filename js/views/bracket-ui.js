@@ -5492,7 +5492,9 @@ window._renderCasualJoin = function(container, roomCode) {
       '</div>' +
       '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
 
-      html += '<button class="btn btn-outline" onclick="window._casualLobbyCleanup();window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
+      // "Voltar ao Dashboard" now also releases the slot so the user isn't
+      // silently kept in the match after navigating away.
+      html += '<button class="btn btn-outline" onclick="window._casualLeaveMatch && window._casualLeaveMatch();" style="margin-top:0.5rem;">← Voltar ao Dashboard</button>';
       html += '</div>';
 
       container.innerHTML = html;
@@ -5500,10 +5502,12 @@ window._renderCasualJoin = function(container, roomCode) {
 
     // Auto-join: add logged-in user to match participants
     async function _autoJoin() {
+      if (_hasLeft) return;
       if (!isLoggedIn || !docId) return;
       var alreadyIn = participants.some(function(p) { return p.uid === cu.uid; });
       if (alreadyIn) return;
       var ok = await window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '', cu.photoURL || '');
+      if (_hasLeft) return; // User left while the request was in flight
       if (ok) {
         participants.push({ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() });
         _renderLobby();
@@ -5514,6 +5518,7 @@ window._renderCasualJoin = function(container, roomCode) {
     // Periodic refresh to see new players and detect match start
     function _startLobbyRefresh() {
       _lobbyInterval = setInterval(async function() {
+        if (_hasLeft) return;
         try {
           var fresh = await window.FirestoreDB.loadCasualMatch(roomCode);
           if (!fresh) return;
@@ -5541,13 +5546,26 @@ window._renderCasualJoin = function(container, roomCode) {
       }, 3000);
     }
 
-    // Leave match handler
-    window._casualLeaveMatch = async function() {
-      if (!cu || !cu.uid || !docId) return;
+    // Flag so an in-flight _autoJoin doesn't re-add the user right after they leave
+    var _hasLeft = false;
+
+    // Leave match handler — releases the slot, stops refresh, and navigates to dashboard
+    // regardless of how the leave request resolves (user must never stay stuck).
+    window._casualLeaveMatch = function() {
+      if (_hasLeft) return;
+      _hasLeft = true;
       _casualLobbyCleanup();
-      await window.FirestoreDB.leaveCasualMatch(docId, cu.uid);
+      var userUid = cu && cu.uid;
+      // Fire-and-forget leave so the user isn't blocked by a slow Firestore round-trip
+      if (userUid && docId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
+        try {
+          var p = window.FirestoreDB.leaveCasualMatch(docId, userUid);
+          if (p && typeof p.catch === 'function') p.catch(function(){});
+        } catch(e) {}
+      }
       if (typeof showNotification === 'function') showNotification('Saiu da partida', '', 'info');
-      window.location.hash = '#dashboard';
+      // Navigate immediately so the user isn't stuck on the lobby
+      try { window.location.hash = '#dashboard'; } catch(e) {}
     };
 
     // Cleanup on leave
