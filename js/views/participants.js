@@ -258,21 +258,21 @@ window._declareAbsent = function (tId, playerName) {
   let confirmTitle, confirmMsg, confirmBtn;
 
   if (hasStandby && isIndividualWO) {
-    confirmTitle = 'Declarar Ausência';
-    confirmMsg = `Declarar ${playerName} como ausente no Jogo ${friendlyNum}?\n\nO parceiro permanece. O próximo da lista de espera substituirá apenas ${playerName}.`;
-    confirmBtn = 'Substituir Individual';
+    confirmTitle = _t('participants.declareAbsence');
+    confirmMsg = _t('participants.absenceMsgIndStandby', {player: playerName, num: friendlyNum});
+    confirmBtn = _t('participants.btnSubstInd');
   } else if (hasStandby) {
-    confirmTitle = 'Declarar Ausência';
-    confirmMsg = `Declarar ${playerName} (${teamName}) como ausente no Jogo ${friendlyNum}?\n\nHá jogadores na lista de espera. O próximo da fila será promovido para substituir.`;
-    confirmBtn = 'Substituir da Lista de Espera';
+    confirmTitle = _t('participants.declareAbsence');
+    confirmMsg = _t('participants.absenceMsgTeamStandby', {player: playerName, team: teamName, num: friendlyNum});
+    confirmBtn = _t('participants.btnSubstStandby');
   } else if (isIndividualWO) {
-    confirmTitle = 'Declarar Ausência';
-    confirmMsg = `Declarar ${playerName} como ausente no Jogo ${friendlyNum}?\n\nO parceiro permanece. Marque presença de alguém na lista de espera para poder substituir.`;
-    confirmBtn = 'Marcar Ausente';
+    confirmTitle = _t('participants.declareAbsence');
+    confirmMsg = _t('participants.absenceMsgIndNoStandby', {player: playerName, num: friendlyNum});
+    confirmBtn = _t('participants.btnMarkAbsent');
   } else {
-    confirmTitle = 'Declarar Ausência — W.O.';
-    confirmMsg = `Declarar ${playerName} (${teamName}) como ausente no Jogo ${friendlyNum}?\n\nNão há lista de espera. ${opponent || 'O adversário'} vencerá por W.O. e avançará.`;
-    confirmBtn = 'Confirmar W.O.';
+    confirmTitle = _t('participants.declareAbsenceWO');
+    confirmMsg = _t('participants.absenceMsgWO', {player: playerName, team: teamName, num: friendlyNum, opponent: opponent || _t('common.opponent')});
+    confirmBtn = _t('participants.btnConfirmWO');
   }
 
   showConfirmDialog(confirmTitle, confirmMsg, function () {
@@ -722,24 +722,24 @@ function renderParticipants(container, tournamentId) {
 
       // Label de tipo: origem da equipe
       const teamOrigins = t.teamOrigins || {};
-      let teamLabel = 'Inscrição Individual';
+      let teamLabel = _t('participants.teamIndividual');
       if (isTeam) {
           const origin = teamOrigins[pName];
-          if (origin === 'inscrita') teamLabel = 'Equipe Inscrita';
-          else if (origin === 'sorteada') teamLabel = 'Equipe Sorteada';
-          else if (origin === 'formada') teamLabel = 'Equipe Formada';
-          else teamLabel = 'Equipe Formada';
+          if (origin === 'inscrita') teamLabel = _t('tourn.teamEnrolled');
+          else if (origin === 'sorteada') teamLabel = _t('tourn.teamDrawn');
+          else if (origin === 'formada') teamLabel = _t('tourn.teamFormed');
+          else teamLabel = _t('tourn.teamFormed');
       }
       const typeText = teamLabel + vipBadge;
 
       let actionsDiv = '';
       let dragProps = '';
       if (isOrg && !drawDone) {
-        const vipBtn = `<button class="btn btn-micro" title="${isVip ? 'Remover VIP' : 'Marcar como VIP'}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
-        const delBtn = `<button class="btn btn-micro" title="Remover" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px dashed #ef4444;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', ${idx});">🗑️</button>`;
+        const vipBtn = `<button class="btn btn-micro" title="${isVip ? _t('tourn.removeVip') : _t('tourn.markVip')}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
+        const delBtn = `<button class="btn btn-micro" title="${_t('btn.remove')}" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px dashed #ef4444;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', ${idx});">🗑️</button>`;
         let splitBtn = '';
         if (pName.includes('/')) {
-          splitBtn = `<button class="btn btn-micro" title="Desfazer Equipe" style="background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px dashed #0ea5e9;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', ${idx});">✂️</button>`;
+          splitBtn = `<button class="btn btn-micro" title="${_t('participants.splitTeam')}" style="background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px dashed #0ea5e9;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.splitParticipantFunction('${t.id}', ${idx});">✂️</button>`;
         }
         actionsDiv = `<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:6px;">${vipBtn}${splitBtn}${delBtn}</div>`;
         dragProps = `draggable="true" ondragstart="window.handleDragStart(event, ${idx}, '${t.id}')" ondragend="window.handleDragEnd(event)" ondragover="window.handleDragOver(event)" ondragenter="window.handleDragEnter(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDropTeam(event, ${idx})"`;
@@ -783,9 +783,9 @@ function renderParticipants(container, tournamentId) {
   // ── "Iniciar Torneio" banner (after draw, before start) ──
   const startBanner = (isOrg && drawDone && !t.tournamentStarted) ? `
     <div style="margin-bottom:1.5rem;padding:20px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:2px solid rgba(16,185,129,0.4);border-radius:16px;text-align:center;">
-        <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.</p>
+        <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;">${_t('participants.drawDoneMsg')}</p>
         <button class="btn btn-success btn-cta hover-lift" onclick="window._startTournament('${tId}')">
-            ▶ Iniciar Torneio
+            ▶ ${_t('participants.startTournament')}
         </button>
     </div>` : '';
 
@@ -793,7 +793,7 @@ function renderParticipants(container, tournamentId) {
   const startedBadge = t.tournamentStarted ? `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;">
         <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>
-        <span style="font-size:0.85rem;font-weight:700;color:#4ade80;">Torneio em andamento — marque a presença abaixo</span>
+        <span style="font-size:0.85rem;font-weight:700;color:#4ade80;">${_t('participants.inProgressBadge')}</span>
     </div>` : '';
 
   // Ready matches banner (check-in: jogos prontos para chamar)
@@ -813,7 +813,7 @@ function renderParticipants(container, tournamentId) {
           <h2 style="margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_t('participants.title')} — ${window._safeHtml(t.name)}</h2>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;">
-          <span class="badge badge-info" style="font-size:0.65rem;">${t.format || 'Eliminatórias'}</span>
+          <span class="badge badge-info" style="font-size:0.65rem;">${t.format || _t('participants.defaultFormat')}</span>
           <span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.65rem;">${individualCount}</span>
         </div>
       </div>

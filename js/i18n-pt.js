@@ -313,6 +313,21 @@ window._translations['pt'] = {
   'participants.vip': 'Cabeca de Chave',
   'participants.present': 'Presente',
   'participants.absent': 'Ausente',
+  'participants.declareAbsenceWO': 'Declarar Ausência — W.O.',
+  'participants.absenceMsgIndStandby': 'Declarar {player} como ausente no Jogo {num}?\n\nO parceiro permanece. O próximo da lista de espera substituirá apenas {player}.',
+  'participants.absenceMsgTeamStandby': 'Declarar {player} ({team}) como ausente no Jogo {num}?\n\nHá jogadores na lista de espera. O próximo da fila será promovido para substituir.',
+  'participants.absenceMsgIndNoStandby': 'Declarar {player} como ausente no Jogo {num}?\n\nO parceiro permanece. Marque presença de alguém na lista de espera para poder substituir.',
+  'participants.absenceMsgWO': 'Declarar {player} ({team}) como ausente no Jogo {num}?\n\nNão há lista de espera. {opponent} vencerá por W.O. e avançará.',
+  'participants.btnSubstInd': 'Substituir Individual',
+  'participants.btnSubstStandby': 'Substituir da Lista de Espera',
+  'participants.btnMarkAbsent': 'Marcar Ausente',
+  'participants.btnConfirmWO': 'Confirmar W.O.',
+  'participants.teamIndividual': 'Inscrição Individual',
+  'participants.splitTeam': 'Desfazer Equipe',
+  'participants.drawDoneMsg': 'Sorteio realizado. Inicie o torneio para habilitar a chamada de presença.',
+  'participants.inProgressBadge': 'Torneio em andamento — marque a presença abaixo',
+  'participants.startTournament': 'Iniciar Torneio',
+  'participants.defaultFormat': 'Eliminatórias',
 
   // Favorites
   'fav.add': 'Adicionar aos favoritos',
@@ -438,6 +453,7 @@ window._translations['pt'] = {
   'common.or': 'ou',
   'common.support': 'Apoie',
   'common.pro': 'Pro',
+  'common.opponent': 'O adversário',
 
   // Notifications view
   'notif.title': 'Notificações',

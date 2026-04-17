@@ -313,6 +313,21 @@ window._translations['en'] = {
   'participants.vip': 'Seeded',
   'participants.present': 'Present',
   'participants.absent': 'Absent',
+  'participants.declareAbsenceWO': 'Declare Absence — W.O.',
+  'participants.absenceMsgIndStandby': 'Declare {player} absent for Game {num}?\n\nPartner stays. The next player on the waitlist will substitute only {player}.',
+  'participants.absenceMsgTeamStandby': 'Declare {player} ({team}) absent for Game {num}?\n\nThere are players on the waitlist. The next in line will be promoted to substitute.',
+  'participants.absenceMsgIndNoStandby': 'Declare {player} absent for Game {num}?\n\nPartner stays. Mark someone on the waitlist as present to substitute.',
+  'participants.absenceMsgWO': 'Declare {player} ({team}) absent for Game {num}?\n\nNo waitlist available. {opponent} will win by W.O. and advance.',
+  'participants.btnSubstInd': 'Substitute Individual',
+  'participants.btnSubstStandby': 'Substitute from Waitlist',
+  'participants.btnMarkAbsent': 'Mark Absent',
+  'participants.btnConfirmWO': 'Confirm W.O.',
+  'participants.teamIndividual': 'Individual Enrollment',
+  'participants.splitTeam': 'Undo Team',
+  'participants.drawDoneMsg': 'Draw completed. Start the tournament to enable roll call.',
+  'participants.inProgressBadge': 'Tournament in progress — mark attendance below',
+  'participants.startTournament': 'Start Tournament',
+  'participants.defaultFormat': 'Single Elimination',
 
   // Favorites
   'fav.add': 'Add to favorites',
@@ -438,6 +453,7 @@ window._translations['en'] = {
   'common.or': 'or',
   'common.support': 'Support',
   'common.pro': 'Pro',
+  'common.opponent': 'The opponent',
 
   // Notifications view
   'notif.title': 'Notifications',
