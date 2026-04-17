@@ -2901,14 +2901,14 @@ function setupCreateTournamentModal() {
       try {
         const editId = document.getElementById('edit-tournament-id').value;
         const name = document.getElementById('tourn-name').value.trim();
-        if (!name) { showAlertDialog('Nome Obrigatório', 'Preencha o nome do torneio.', null, { type: 'warning' }); return; }
+        if (!name) { showAlertDialog(window._t('create.nameRequired'), window._t('create.nameRequiredMsg'), null, { type: 'warning' }); return; }
 
         // Impede nome duplicado (ignora o próprio torneio em edição)
         const nomeDuplicado = window.AppStore.tournaments.some(function(t) {
           if (editId && String(t.id) === String(editId)) return false;
           return t.name && t.name.trim().toLowerCase() === name.toLowerCase();
         });
-        if (nomeDuplicado) { showAlertDialog('Nome Duplicado', 'Já existe um torneio com este nome. Escolha outro nome.', null, { type: 'warning' }); return; }
+        if (nomeDuplicado) { showAlertDialog(window._t('create.nameDupe'), window._t('create.nameDupeMsg'), null, { type: 'warning' }); return; }
 
         const formatValue = document.getElementById('select-formato').value;
         const drawModeValue = document.getElementById('draw-mode').value;
@@ -2972,7 +2972,7 @@ function setupCreateTournamentModal() {
           const _startD = new Date(startDateVal);
           const _endD = new Date(endDateVal);
           if (_endD <= _startD) {
-            showAlertDialog('Datas Inválidas', 'A data/hora de fim deve ser posterior à data/hora de início.', null, { type: 'warning' });
+            showAlertDialog(window._t('create.datesInvalid'), window._t('create.datesInvalidMsg'), null, { type: 'warning' });
             return;
           }
         }
@@ -2980,7 +2980,7 @@ function setupCreateTournamentModal() {
           const _regD = new Date(regDateVal);
           const _startD2 = new Date(startDateVal);
           if (_regD >= _startD2) {
-            showAlertDialog('Prazo de Inscrição Inválido', 'O prazo de inscrição deve ser anterior ao início do torneio.', null, { type: 'warning' });
+            showAlertDialog(window._t('create.deadlineInvalid'), window._t('create.deadlineInvalidMsg'), null, { type: 'warning' });
             return;
           }
         }

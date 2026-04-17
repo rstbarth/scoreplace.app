@@ -220,7 +220,7 @@ function renderPreDraw(container, tournamentId) {
         if (!newName || newName === oldName) return;
         const pd = window._preDraw;
         if (pd.catMap[newName]) {
-          showAlertDialog('Já existe', `Já existe uma categoria com o nome "${newName}".`, null, { type: 'warning' });
+          showAlertDialog(_t('predraw.catExistsTitle'), _t('predraw.catExistsNameMsg', { name: newName }), null, { type: 'warning' });
           return;
         }
         pd.catMap[newName] = pd.catMap[oldName];
@@ -260,7 +260,7 @@ function renderPreDraw(container, tournamentId) {
         if (!name) return;
         const pd = window._preDraw;
         if (pd.catMap[name]) {
-          showAlertDialog('Já existe', `Já existe uma categoria "${name}".`, null, { type: 'warning' });
+          showAlertDialog(_t('predraw.catExistsTitle'), _t('predraw.catExistsSingleMsg', { name: name }), null, { type: 'warning' });
           return;
         }
         pd.catMap[name] = [];

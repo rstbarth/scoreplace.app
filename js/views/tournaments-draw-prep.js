@@ -2059,7 +2059,7 @@ window._reopenPoll = function(tId, pollId) {
     if (!poll) return;
 
     if (typeof showInputDialog === 'function') {
-        showInputDialog('Reabrir Enquete', 'Novo prazo em horas:', '48', function(val) {
+        showInputDialog(_t('draw.reopenPollTitle'), _t('draw.reopenPollPrompt'), '48', function(val) {
             var hours = parseInt(val) || 48;
             if (hours < 1) hours = 1;
             if (hours > 168) hours = 168;
@@ -2387,11 +2387,11 @@ window.toggleRegistrationStatus = function (tId) {
         // Impedir reabertura se já houve sorteio
         var hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
         if (hasDraw) {
-            if (typeof showAlertDialog === 'function') showAlertDialog('Não Permitido', 'Não é possível reabrir inscrições após o sorteio ter sido realizado.', null, { type: 'warning' });
+            if (typeof showAlertDialog === 'function') showAlertDialog(_t('draw.notAllowedTitle'), _t('draw.cantReopenAfterDraw'), null, { type: 'warning' });
             return;
         }
         if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
-        showConfirmDialog('Reabrir Inscrições', 'Deseja reabrir as inscrições do torneio "' + window._safeHtml(t.name || '') + '"?' + (t.activePollId ? ' A enquete ativa será encerrada.' : ''), function() {
+        showConfirmDialog(_t('draw.reopenEnrollTitle'), _t('draw.reopenEnrollMsg', { name: window._safeHtml(t.name || '') }) + (t.activePollId ? _t('draw.reopenEnrollPollSuffix') : ''), function() {
             t.status = 'open';
             delete t._pollSuspended;
             // Auto-close active poll when reopening inscriptions
@@ -2426,7 +2426,7 @@ window.toggleRegistrationStatus = function (tId) {
     // Verificar número de inscritos para todos os formatos
     var arr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
     if (arr.length < 2) {
-        if (typeof showAlertDialog === 'function') showAlertDialog('Inscritos Insuficientes', 'São necessários pelo menos 2 participantes para encerrar as inscrições.', null, { type: 'warning' });
+        if (typeof showAlertDialog === 'function') showAlertDialog(_t('draw.tooFewTitle'), _t('draw.tooFewCloseMsg'), null, { type: 'warning' });
         return;
     }
 
@@ -2466,7 +2466,7 @@ window.toggleRegistrationStatus = function (tId) {
 
     // Confirmar antes de encerrar
     if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
-    showConfirmDialog('Encerrar Inscrições', 'Deseja encerrar as inscrições do torneio "' + window._safeHtml(t.name || '') + '"? Novos participantes não poderão se inscrever.', function() {
+    showConfirmDialog(_t('draw.closeEnrollTitle'), _t('draw.closeEnrollMsg', { name: window._safeHtml(t.name || '') }), function() {
         t.status = 'closed';
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
         // Notify participants about closed enrollments

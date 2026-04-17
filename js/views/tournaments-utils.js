@@ -56,7 +56,7 @@ window._executeMerge = function(sourceName, targetName, tId) {
     var msg = 'Mesclar participantes?\n\n"' + oldName + '" sera substituido por "' + newName + '" em todas as partidas, times e classificacoes.\n\nEsta acao nao pode ser desfeita.';
 
     if (typeof showConfirmDialog === 'function') {
-        showConfirmDialog('🔗 Mesclar Participantes', msg, function() {
+        showConfirmDialog(_t('utils.mergePartsTitle'), msg, function() {
             if (typeof window._propagateNameChange === 'function') {
                 window._propagateNameChange(oldName, newName);
             }

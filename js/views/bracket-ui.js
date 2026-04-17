@@ -173,7 +173,7 @@ window._substituteFromStandby = function (tId) {
       // Need to form a team from individual standby players
       consumeCount = Math.min(teamSize, standby.length);
       if (consumeCount < teamSize) {
-        showAlertDialog('Jogadores Insuficientes', `São necessários ${teamSize} jogadores para formar um time, mas só há ${standby.length} na lista de espera.`, null, { type: 'warning' });
+        showAlertDialog(_t('bui.tooFewSubTitle'), _t('bui.tooFewSubMsg', { teamSize: teamSize, n: standby.length }), null, { type: 'warning' });
         return;
       }
       replacementName = standby.slice(0, teamSize).map(p => getName(p)).join(' / ');
@@ -284,7 +284,7 @@ window._autoSubstituteWO = function(tId) {
     var newTeamName = newMembers.join(' / ');
     var partnerName = oldEntry.split(' / ').map(function(n) { return n.trim(); }).find(function(n) { return n !== absentMemberName; }) || '';
 
-    showConfirmDialog('Substituir W.O.',
+    showConfirmDialog(_t('bui.subWoTitle'),
       '<div style="text-align:left;line-height:1.8;">' +
         '<div><strong style="color:#ef4444;">W.O.:</strong> ' + window._safeHtml(absentMemberName) + '</div>' +
         '<div><strong style="color:#60a5fa;">Parceiro:</strong> ' + window._safeHtml(partnerName) + ' <span style="color:#9ca3af;">(permanece)</span></div>' +
@@ -330,10 +330,10 @@ window._autoSubstituteWO = function(tId) {
         showNotification(_t('sub.done'), _t('sub.donePartnerMsg', {name: replacementName, absent: absentMemberName, partner: partnerName}), 'success');
         var container = document.getElementById('view-container');
         if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
-      }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
+      }, null, { type: 'warning', confirmText: _t('bui.subWoConfirm'), cancelText: _t('btn.cancel') });
   } else {
     // Individual player — replace entire entry
-    showConfirmDialog('Substituir W.O.',
+    showConfirmDialog(_t('bui.subWoTitle'),
       '<div style="text-align:left;line-height:1.8;">' +
         '<div><strong style="color:#ef4444;">W.O.:</strong> ' + window._safeHtml(absentMemberName) + '</div>' +
         '<div><strong style="color:#4ade80;">Substituto:</strong> ' + window._safeHtml(replacementName) + '</div>' +
@@ -365,7 +365,7 @@ window._autoSubstituteWO = function(tId) {
         showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentMemberName}), 'success');
         var container = document.getElementById('view-container');
         if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
-      }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
+      }, null, { type: 'warning', confirmText: _t('bui.subWoConfirm'), cancelText: _t('btn.cancel') });
   }
 };
 
@@ -1116,7 +1116,7 @@ window._shareMatchResult = function(tId, matchId) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function() {
         if (typeof window.showAlertDialog === 'function') {
-          window.showAlertDialog('📋 Resultado copiado!', 'Cole no WhatsApp, Instagram ou onde quiser.');
+          window.showAlertDialog(_t('bui.resultCopiedTitle'), _t('bui.resultCopiedMsg'));
         }
       }).catch(function() {});
     }
@@ -1270,7 +1270,7 @@ window._tvBuildAttendance = function(t) {
 window._tvMode = function(tId) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
   if (!t) {
-    if (typeof showAlertDialog === 'function') showAlertDialog('Torneio Não Encontrado', 'O torneio foi removido ou não está acessível.', null, { type: 'warning' });
+    if (typeof showAlertDialog === 'function') showAlertDialog(_t('bui.tournNotFoundTitle'), _t('bui.tournNotFoundAlertMsg'), null, { type: 'warning' });
     return;
   }
   var safeName = window._safeHtml ? window._safeHtml(t.name) : t.name;
@@ -1482,7 +1482,7 @@ window._showPlayerHistory = function(tId, playerName) {
   }
 
   if (matches.length === 0) {
-    showAlertDialog('Confrontos — ' + playerName, 'Nenhuma partida encontrada.', null, { type: 'info' });
+    showAlertDialog(_t('bui.h2hTitle', { name: playerName }), _t('bui.h2hEmpty'), null, { type: 'info' });
     return;
   }
 
@@ -1524,7 +1524,7 @@ window._showPlayerHistory = function(tId, playerName) {
     '<th style="padding:6px 10px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Resultado</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 
-  showAlertDialog('Confrontos — ' + playerName, summary + tableHtml, null, { type: 'info' });
+  showAlertDialog(_t('bui.h2hTitle', { name: playerName }), summary + tableHtml, null, { type: 'info' });
 };
 
 window._saveGroupResult = window._saveResultInline; // Reuse existing inline save
@@ -1664,7 +1664,7 @@ window._advanceMonarchToElimination = function(tId) {
   });
 
   if (qualifiedPlayers.length < 2) {
-    showAlertDialog('Insuficiente', 'Precisa de pelo menos 2 classificados para a eliminatoria.', null, { type: 'warning' });
+    showAlertDialog(_t('bui.tooFewAdvanceTitle'), _t('bui.tooFewAdvanceMsg'), null, { type: 'warning' });
     return;
   }
 

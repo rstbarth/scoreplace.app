@@ -119,7 +119,7 @@ window._dashEnroll = function(tId) {
                  (Array.isArray(t.groups) && t.groups.length > 0);
   var _aberto = (t.status !== 'closed' && t.status !== 'finished' && !_sorteio) || _ligaOpen;
   if (!_aberto) {
-    if (typeof showAlertDialog === 'function') showAlertDialog('Inscrições Encerradas', 'As inscrições deste torneio já foram encerradas.', null, { type: 'warning' });
+    if (typeof showAlertDialog === 'function') showAlertDialog(window._t('auth.enrollClosed'), window._t('auth.enrollClosedMsg'), null, { type: 'warning' });
     return;
   }
 

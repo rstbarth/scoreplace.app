@@ -103,8 +103,8 @@ window.generateDrawFunction = function (tId) {
             });
         }
         if (_hasResults) {
-            showAlertDialog('Sorteio já realizado',
-                'Este torneio já possui partidas com resultados registrados. Refazer o sorteio apagará todos os resultados. Esta ação não pode ser desfeita.',
+            showAlertDialog(_t('draw.alreadyDoneTitle'),
+                _t('draw.alreadyDoneMsg'),
                 function() {
                     // User confirmed — allow redraw by clearing existing data
                     t.matches = [];
@@ -113,13 +113,13 @@ window.generateDrawFunction = function (tId) {
                     t.standings = null;
                     window.generateDrawFunction(tId);
                 },
-                { type: 'danger', confirmText: 'Refazer Sorteio', cancelText: 'Cancelar' }
+                { type: 'danger', confirmText: _t('draw.alreadyDoneConfirm'), cancelText: _t('btn.cancel') }
             );
             return;
         }
         // Draw exists but no results yet — warn but lighter
-        showAlertDialog('Refazer Sorteio?',
-            'O sorteio já foi realizado. Deseja refazer? As partidas atuais serão substituídas.',
+        showAlertDialog(_t('draw.redrawTitle'),
+            _t('draw.redrawMsg'),
             function() {
                 t.matches = [];
                 t.rounds = [];
@@ -127,7 +127,7 @@ window.generateDrawFunction = function (tId) {
                 t.standings = null;
                 window.generateDrawFunction(tId);
             },
-            { type: 'warning', confirmText: 'Refazer', cancelText: 'Manter Atual' }
+            { type: 'warning', confirmText: _t('draw.redrawConfirm'), cancelText: _t('draw.redrawCancel') }
         );
         return;
     }
@@ -180,7 +180,7 @@ window.generateDrawFunction = function (tId) {
         const info = window.checkPowerOf2(t);
         if (info.count < 2) {
             const _label = (info.teamSize > 1) ? 'times' : 'participantes';
-            showAlertDialog('Inscritos Insuficientes', `São necessários pelo menos 2 ${_label} para realizar o sorteio.`, null, { type: 'warning' });
+            showAlertDialog(_t('draw.tooFewTitle'), _t('draw.tooFewDrawMsg', { label: _label }), null, { type: 'warning' });
             return;
         }
         if (!info.isPowerOf2) {
@@ -203,15 +203,14 @@ window.generateDrawFunction = function (tId) {
                 return typeof p === 'string' ? p : (p.displayName || p.name || '?');
             }).slice(0, 5).join(', ');
             var _extra = _noCat.length > 5 ? ' e mais ' + (_noCat.length - 5) + '...' : '';
-            showAlertDialog('Participantes sem Categoria',
-                _noCat.length + ' participante(s) ainda não têm categoria atribuída: ' + _names + _extra +
-                '\n\nUse o Gerenciador de Categorias para atribuir antes do sorteio, ou prossiga (serão incluídos na primeira categoria).',
+            showAlertDialog(_t('draw.noCatTitle'),
+                _t('draw.noCatMsg', { n: _noCat.length, names: _names, extra: _extra }),
                 function() {
                     // User chose to proceed anyway — continue draw
                     t._skipCatValidation = true;
                     window.generateDrawFunction(tId);
                 },
-                { type: 'warning', confirmText: 'Prosseguir', cancelText: 'Voltar' }
+                { type: 'warning', confirmText: _t('draw.noCatConfirm'), cancelText: _t('btn.back') }
             );
             if (!t._skipCatValidation) return;
             delete t._skipCatValidation;
@@ -1278,13 +1277,13 @@ window.handleDropTeam = function (e, targetIdx) {
         if (!t) return;
 
         if (t.enrollmentMode === 'individual') {
-            showAlertDialog('Modo Individual', 'A regra deste torneo está configurada como Modo Individual. Formar times ou duplas manualmente viola os parâmetros estabelecidos para este torneo.', null, { type: 'warning' });
+            showAlertDialog(_t('draw.soloModeTitle'), _t('draw.soloModeMsg'), null, { type: 'warning' });
             return;
         }
 
         showConfirmDialog(
-            'Agrupar Participantes',
-            'Deseja agrupar esses dois inscritos em um único time/dupla para o sorteio?',
+            _t('draw.groupPartsTitle'),
+            _t('draw.groupPartsMsg'),
             () => {
                 let arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
 
