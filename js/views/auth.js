@@ -2189,7 +2189,7 @@ window._autoFixStaleNames = async function(forceTournamentId) {
   var tournamentsToScan = forceTournamentId
     ? window.AppStore.tournaments.filter(function(t) { return t.id === forceTournamentId; })
     : window.AppStore.tournaments;
-  console.log('[AutoFixNames] Scanning ' + tournamentsToScan.length + ' tournaments...');
+  console.debug('[AutoFixNames] Scanning ' + tournamentsToScan.length + ' tournaments...');
 
   var uidMap = {};
   var emailMap = {};
@@ -2241,7 +2241,7 @@ window._autoFixStaleNames = async function(forceTournamentId) {
 
   var uids = Object.keys(uidMap);
   var emails = Object.keys(emailMap);
-  console.log('[AutoFixNames] Found ' + uids.length + ' UIDs and ' + emails.length + ' emails to check');
+  console.debug('[AutoFixNames] Found ' + uids.length + ' UIDs and ' + emails.length + ' emails to check');
   if (uids.length === 0 && emails.length === 0) return;
 
   var profileMap = {};
@@ -2375,7 +2375,7 @@ window._autoFixStaleNames = async function(forceTournamentId) {
   });
 
   if (Object.keys(_prevNameMap).length > 0) {
-    console.log('[AutoFixNames] Previous display names found:', Object.keys(_prevNameMap));
+    console.debug('[AutoFixNames] Previous display names found:', Object.keys(_prevNameMap));
     // Scan ALL tournament data for these old names
     tournamentsToScan.forEach(function(t) {
       var parts = Array.isArray(t.participants) ? t.participants : [];
@@ -2414,13 +2414,13 @@ window._autoFixStaleNames = async function(forceTournamentId) {
   }
 
   if (fixes.length > 0) {
-    console.log('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
+    console.debug('[AutoFixNames] Fixing ' + fixes.length + ' stale name(s):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
     fixes.forEach(function(f) {
       window._propagateNameChange(f.oldName, f.newName, f.uid, f.email);
     });
     setTimeout(function() { if (typeof window._softRefreshView === 'function') window._softRefreshView(); }, 500);
   } else {
-    console.log('[AutoFixNames] All names up to date');
+    console.debug('[AutoFixNames] All names up to date');
   }
 };
 
@@ -2428,7 +2428,7 @@ window._autoFixStaleNames = async function(forceTournamentId) {
 window._propagateNameChange = function _propagateNameChange(oldName, newName, targetUid, targetEmail) {
   if (!oldName || !newName || oldName === newName) return;
   if (!window.AppStore || !Array.isArray(window.AppStore.tournaments)) return;
-  console.log('[PropageName] "' + oldName + '" → "' + newName + '" (uid=' + (targetUid || 'none') + ', email=' + (targetEmail || 'none') + ')');
+  console.debug('[PropageName] "' + oldName + '" → "' + newName + '" (uid=' + (targetUid || 'none') + ', email=' + (targetEmail || 'none') + ')');
 
   var user = window.AppStore.currentUser;
   var matchUid = targetUid || (user ? user.uid : null);
@@ -2522,20 +2522,20 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
   });
 
   if (modifiedTournaments.length > 0 && window.FirestoreDB && window.FirestoreDB.saveTournament) {
-    console.log('[PropageName] Saving ' + modifiedTournaments.length + ' tournament(s) to Firestore');
+    console.debug('[PropageName] Saving ' + modifiedTournaments.length + ' tournament(s) to Firestore');
     var savePromises = modifiedTournaments.map(function(t) {
       t.updatedAt = new Date().toISOString();
       return window.FirestoreDB.saveTournament(t).catch(function(err) { console.warn('[PropageName] Save error for ' + t.id + ':', err); });
     });
     Promise.all(savePromises).then(function() {
-      console.log('[PropageName] All saves complete, refreshing UI');
+      console.debug('[PropageName] All saves complete, refreshing UI');
       if (typeof window._softRefreshView === 'function') window._softRefreshView();
     });
     if (typeof showNotification !== 'undefined') {
       showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '" em ' + modifiedTournaments.length + ' torneio(s).', 'info');
     }
   } else {
-    console.log('[PropageName] No tournaments needed updating');
+    console.debug('[PropageName] No tournaments needed updating');
   }
 };
 

@@ -445,9 +445,7 @@
     // Primary: use _sendUserNotification (proven working path from tournaments-organizer.js)
     function _trySendUserNotification(uid) {
       if (typeof window._sendUserNotification === 'function') {
-        console.log('[host-transfer] Using _sendUserNotification for uid:', uid, 'type:', payload.type);
         window._sendUserNotification(uid, data).then(function() {
-          console.log('[host-transfer] _sendUserNotification succeeded for uid:', uid);
         }).catch(function(e) {
           console.warn('[host-transfer] _sendUserNotification failed, trying direct write:', e);
           _sendDirect(uid);
@@ -458,10 +456,8 @@
     }
 
     function _sendDirect(uid) {
-      console.log('[host-transfer] Sending notification directly to uid:', uid, 'type:', payload.type);
       if (window.FirestoreDB && window.FirestoreDB.addNotification) {
         window.FirestoreDB.addNotification(uid, payload).then(function() {
-          console.log('[host-transfer] Notification written successfully for uid:', uid);
         }).catch(function(e) {
           console.error('[host-transfer] addNotification FAILED for uid:', uid, e);
         });
@@ -478,12 +474,10 @@
 
     function _lookupByEmail(email, fallbackName) {
       if (!window.FirestoreDB || !window.FirestoreDB.db) return;
-      console.log('[host-transfer] Looking up uid for email:', email);
       window.FirestoreDB.db.collection('users').where('email', '==', email).limit(1).get().then(function(snap) {
         if (!snap.empty) {
           _resolveAndSend(snap.docs[0].id);
         } else if (fallbackName) {
-          console.log('[host-transfer] Email not found, trying displayName:', fallbackName);
           window.FirestoreDB.db.collection('users').where('displayName', '==', fallbackName).limit(1).get().then(function(snap2) {
             if (!snap2.empty) {
               _resolveAndSend(snap2.docs[0].id);

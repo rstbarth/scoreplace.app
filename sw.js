@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.11.32';
+var CACHE_NAME = 'scoreplace-v0.11.33';
 var STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -92,7 +92,7 @@ var STATIC_ASSETS = [
   '/js/views/tournaments-draw-prep.js',
   '/js/views/tournaments-draw.js',
   '/js/views/landing.js',
-  '/js/views/result-modal.js',
+
   '/js/views/enroll-modal.js',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg'

@@ -76,7 +76,7 @@ window._executeMerge = function(sourceName, targetName, tId) {
             }
             if (_removeIdx !== -1) {
                 parts.splice(_removeIdx, 1);
-                console.log('[Merge] Removed duplicate at index ' + _removeIdx);
+                console.debug('[Merge] Removed duplicate at index ' + _removeIdx);
             }
 
             t.updatedAt = new Date().toISOString();
@@ -327,7 +327,7 @@ window._deduplicateParticipants = function(t) {
 
     if (removedCount > 0) {
         t.participants = deduped;
-        console.log('[Dedup] Removed ' + removedCount + ' duplicate participant(s) from tournament ' + (t.name || t.id));
+        console.debug('[Dedup] Removed ' + removedCount + ' duplicate participant(s) from tournament ' + (t.name || t.id));
     }
     return removedCount;
 };
@@ -389,7 +389,7 @@ window._fixOrphanedMatchNames = function(t) {
     });
 
     if (unaccounted.length === 0) return 0;
-    console.log('[FixOrphans] Phantom objects (not in draw):', phantoms, 'Unaccounted team members:', unaccounted);
+    console.debug('[FixOrphans] Phantom objects (not in draw):', phantoms, 'Unaccounted team members:', unaccounted);
 
     // 4. Try to pair phantoms with unaccounted names
     var fixes = [];
@@ -423,7 +423,7 @@ window._fixOrphanedMatchNames = function(t) {
                     if (pFirstChar !== uFirstChar) { allMatch = false; break; }
                 }
                 if (allMatch) {
-                    console.log('[FixOrphans] Initials match: "' + uName + '" → "' + phantom + '"');
+                    console.debug('[FixOrphans] Initials match: "' + uName + '" → "' + phantom + '"');
                     fixes.push({ oldName: uName, newName: phantom });
                     _usedPhantoms[phantom] = true;
                     _usedUnaccounted[uName] = true;
@@ -454,7 +454,7 @@ window._fixOrphanedMatchNames = function(t) {
     }
 
     // 5. Apply fixes using _propagateNameChange
-    console.log('[FixOrphans] Applying ' + fixes.length + ' fix(es):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
+    console.debug('[FixOrphans] Applying ' + fixes.length + ' fix(es):', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }));
     var fixCount = 0;
     fixes.forEach(function(f) {
         if (typeof window._propagateNameChange === 'function') {
@@ -485,7 +485,7 @@ window._fixOrphanedMatchNames = function(t) {
                         });
                         if (inTeam) {
                             parts.splice(i, 1);
-                            console.log('[FixOrphans] Removed duplicate object "' + nm + '" (now in team string)');
+                            console.debug('[FixOrphans] Removed duplicate object "' + nm + '" (now in team string)');
                         }
                     }
                 }
