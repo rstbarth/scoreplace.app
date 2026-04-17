@@ -89,6 +89,19 @@ function initRouter() {
       case '':
       case 'dashboard':
         renderDashboard(viewContainer);
+        // Always jump to top when entering the dashboard. Multiple attempts cover smooth-scroll
+        // cancellation, post-render layout shifts, and any late-firing restore behaviour.
+        if (!window._isSoftRefresh) {
+          var _jumpTop = function() {
+            window.scrollTo(0, 0);
+            if (document.documentElement) document.documentElement.scrollTop = 0;
+            if (document.body) document.body.scrollTop = 0;
+          };
+          _jumpTop();
+          requestAnimationFrame(_jumpTop);
+          setTimeout(_jumpTop, 50);
+          setTimeout(_jumpTop, 150);
+        }
         break;
       case 'tournament':
       case 'tournaments':

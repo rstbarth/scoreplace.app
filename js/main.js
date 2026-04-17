@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dashboard sempre no topo</b> — Ao navegar de volta para o dashboard, a página agora sempre pula instantaneamente para o topo (window + documentElement + body), cancelando qualquer smooth-scroll em andamento e cobrindo reflows pós-render.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.13-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Analytics completa de partida + cards clicáveis</b> — pointLog enriquecido com sacador, contexto do game e flag de tiebreak para cada ponto. Nova seção "Comparação dos Times" lado a lado com barras: Sets, Games, Pontos, % Pontos no Saque, % Pontos na Recepção, Games Mantidos (saque), Quebras de Saque, Killer Points (40-40), Maior Sequência, Maior Vantagem. Cards de jogador clicáveis abrem modal com estatísticas individuais detalhadas: saque por game (servidos, mantidos, aproveit., maior sequência) e por ponto (pts servidos, ganhos, % no saque).</p>' +
         '</div>' +
