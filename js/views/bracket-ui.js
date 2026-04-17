@@ -2027,11 +2027,33 @@ window._openLiveScoring = function(tId, matchId, opts) {
   }
 
   // Dialog shown when tieRule is 'ask' and games are tied
-  function _showTieRuleDialog() {
+  function _showTieRuleDialog(viewerCanDecide) {
     var cs = _currentSet();
     var tiedAt = cs.gamesP1; // Both are equal
     var contentEl = document.getElementById('live-score-content');
     if (!contentEl) return;
+    var bodyHtml;
+    if (viewerCanDecide === false) {
+      // Non-player viewers wait for one of the registered players in the match to decide
+      bodyHtml =
+        '<div style="display:flex;flex-direction:column;gap:10px;align-items:center;padding:4px 6px;">' +
+          '<div style="font-size:1.8rem;">⏳</div>' +
+          '<div style="font-size:0.9rem;font-weight:700;color:var(--text-bright);text-align:center;">Aguardando decisão dos jogadores</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);text-align:center;line-height:1.4;">Somente jogadores cadastrados envolvidos na partida podem escolher entre prorrogar ou tie-break.</div>' +
+        '</div>';
+    } else {
+      bodyHtml =
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+          '<button onclick="window._liveResolveTie(\'extend\')" style="padding:14px;border-radius:12px;border:2px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);cursor:pointer;text-align:left;">' +
+            '<div style="font-size:0.88rem;font-weight:700;color:#10b981;">Prorrogar</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Continuar até vantagem de 2 games</div>' +
+          '</button>' +
+          '<button onclick="window._liveResolveTie(\'tiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(192,132,252,0.3);background:rgba(192,132,252,0.08);cursor:pointer;text-align:left;">' +
+            '<div style="font-size:0.88rem;font-weight:700;color:#c084fc;">Tie-break (7 pts)</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Tie-break a 7 pontos com margem de 2</div>' +
+          '</button>' +
+        '</div>';
+    }
     contentEl.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;">' +
         '<div style="background:var(--bg-card,#1e293b);border-radius:16px;border:1px solid rgba(192,132,252,0.3);padding:1.5rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
@@ -2040,22 +2062,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<div style="font-size:1rem;font-weight:800;color:var(--text-bright);">Empate ' + tiedAt + ' × ' + tiedAt + '</div>' +
             '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Como desempatar?</div>' +
           '</div>' +
-          '<div style="display:flex;flex-direction:column;gap:8px;">' +
-            '<button onclick="window._liveResolveTie(\'extend\')" style="padding:14px;border-radius:12px;border:2px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);cursor:pointer;text-align:left;">' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#10b981;">Prorrogar</div>' +
-              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Continuar até vantagem de 2 games</div>' +
-            '</button>' +
-            '<button onclick="window._liveResolveTie(\'tiebreak\')" style="padding:14px;border-radius:12px;border:2px solid rgba(192,132,252,0.3);background:rgba(192,132,252,0.08);cursor:pointer;text-align:left;">' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#c084fc;">Tie-break (7 pts)</div>' +
-              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Tie-break a 7 pontos com margem de 2</div>' +
-            '</button>' +
-          '</div>' +
+          bodyHtml +
         '</div>' +
       '</div>';
   }
 
-  // Handler for tie rule dialog choice
+  // Handler for tie rule dialog choice — restricted to registered players in the match
   window._liveResolveTie = function(rule) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (cu && cu.uid) {
+      var names = p1Players.concat(p2Players);
+      var ok = false;
+      for (var i = 0; i < names.length; i++) {
+        var mm = _playerMeta[names[i]];
+        if (mm && mm.uid === cu.uid) { ok = true; break; }
+      }
+      if (!ok) { _render(); return; }
+    } else {
+      // Not logged in — can't make the decision
+      _render();
+      return;
+    }
     state.tieRulePending = false;
 
     if (rule === 'extend') {
@@ -2714,6 +2741,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var container = document.getElementById('live-score-content');
     if (!container) return;
 
+    // Determine whether the current viewer is a registered player in this match.
+    // Used to gate match-control actions (tie-rule choice, tie-break button, restart) —
+    // they must only be operable by registered users actually playing.
+    var _curUser = window.AppStore && window.AppStore.currentUser;
+    var _isViewerInMatch = false;
+    if (_curUser && _curUser.uid) {
+      var _mn = p1Players.concat(p2Players);
+      for (var _mni = 0; _mni < _mn.length; _mni++) {
+        var _mm = _playerMeta[_mn[_mni]];
+        if (_mm && _mm.uid === _curUser.uid) { _isViewerInMatch = true; break; }
+      }
+    }
+
     // Check if we need a serve pick before continuing
     if (_needsServePick()) {
       _showServePickerOverlay();
@@ -2722,7 +2762,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
     // Show tie rule dialog if pending (must render AFTER the full UI, not via insertAdjacentHTML)
     if (state.tieRulePending) {
-      _showTieRuleDialog();
+      _showTieRuleDialog(_isViewerInMatch);
       return;
     }
 
@@ -3114,20 +3154,22 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       }
 
-      // Build restart section (with shuffle toggle for doubles)
+      // Restart button: only visible to registered users who played in the match
       var restartSection = '';
-      if (isDoubles) {
-        restartSection =
-          '<div style="display:flex;flex-direction:column;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>' +
-            '<label class="toggle-switch" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
-              '<span style="font-size:0.82rem;font-weight:600;color:var(--text-bright);">Sortear duplas</span>' +
-              '<input type="checkbox" id="chk-shuffle-teams" style="width:40px;height:22px;accent-color:#818cf8;cursor:pointer;" />' +
-            '</label>' +
-          '</div>';
-      } else {
-        restartSection =
-          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
+      if (_isViewerInMatch) {
+        if (isDoubles) {
+          restartSection =
+            '<div style="display:flex;align-items:stretch;gap:8px;width:100%;">' +
+              '<button onclick="window._liveScoreRestart()" style="flex:1;min-width:0;padding:13px 10px;border-radius:12px;font-size:0.92rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar Novamente</button>' +
+              '<label class="toggle-switch" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;">' +
+                '<span style="font-size:0.7rem;font-weight:600;color:var(--text-bright);line-height:1.15;max-width:70px;">Re-sortear duplas</span>' +
+                '<input type="checkbox" id="chk-shuffle-teams" style="width:36px;height:20px;accent-color:#818cf8;cursor:pointer;flex-shrink:0;" />' +
+              '</label>' +
+            '</div>';
+        } else {
+          restartSection =
+            '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
+        }
       }
 
       // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
@@ -3410,7 +3452,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     // Show persistent tie-break button during Prorrogação (extend mode)
-    if (state.tieRule === 'extend' && !state.isFinished && !state.isTiebreak) {
+    // Only visible to registered users playing the match — others can't change the tie rule.
+    if (state.tieRule === 'extend' && !state.isFinished && !state.isTiebreak && _isViewerInMatch) {
       var cs = _currentSet();
       var isReady = cs.gamesP1 === cs.gamesP2 && cs.gamesP1 >= state.gamesPerSet - 1;
       var tbLabel = isReady

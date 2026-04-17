@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.15-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Decisões de jogo restritas aos jogadores</b> — Botão "Jogar Novamente" e toggle "Re-sortear duplas" (agora lado a lado) só aparecem para usuários cadastrados que estão jogando a partida. O mesmo vale para a escolha de prorrogar/tie-break e para o botão de ir pro tie-break durante prorrogação — não-jogadores veem "Aguardando decisão dos jogadores". Guard também no handler _liveResolveTie para impedir bypass via console. Tie-break continua a 7 pts com margem de 2 (se não houver 2 pts de vantagem, segue até ter).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.14-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Dashboard sempre no topo</b> — Ao navegar de volta para o dashboard, a página agora sempre pula instantaneamente para o topo (window + documentElement + body), cancelando qualquer smooth-scroll em andamento e cobrindo reflows pós-render.</p>' +
         '</div>' +
