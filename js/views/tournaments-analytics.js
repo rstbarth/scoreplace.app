@@ -195,68 +195,74 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
 
     modal.innerHTML = '' +
       '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>' +
-      '<div style="text-align:center;margin-bottom:1.5rem;">' +
+      '<div style="text-align:center;margin-bottom:1rem;">' +
         avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
-        '<p style="margin:4px 0 0;font-size:0.8rem;color:var(--text-muted,#94a3b8);">' + sportsStr + '</p>' +
       '</div>' +
-      // Stats grid
-      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;">' +
-        '<div style="text-align:center;padding:12px 8px;background:rgba(59,130,246,0.1);border-radius:12px;border:1px solid rgba(59,130,246,0.2);">' +
-          '<div style="font-size:1.5rem;font-weight:800;color:#60a5fa;">' + stats.tournamentsPlayed + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Torneios</div>' +
-        '</div>' +
-        '<div style="text-align:center;padding:12px 8px;background:rgba(16,185,129,0.1);border-radius:12px;border:1px solid rgba(16,185,129,0.2);">' +
-          '<div style="font-size:1.5rem;font-weight:800;color:#4ade80;">' + stats.totalWins + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Vitórias</div>' +
-        '</div>' +
-        '<div style="text-align:center;padding:12px 8px;background:rgba(239,68,68,0.1);border-radius:12px;border:1px solid rgba(239,68,68,0.2);">' +
-          '<div style="font-size:1.5rem;font-weight:800;color:#f87171;">' + stats.totalLosses + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Derrotas</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem;">' +
-        '<div style="text-align:center;padding:10px 6px;background:rgba(255,255,255,0.05);border-radius:10px;">' +
-          '<div style="font-size:1.2rem;font-weight:700;color:var(--text-bright,#fff);">' + stats.totalDraws + '</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Empates</div>' +
-        '</div>' +
-        '<div style="text-align:center;padding:10px 6px;background:rgba(255,255,255,0.05);border-radius:10px;">' +
-          '<div style="font-size:1.2rem;font-weight:700;color:var(--text-bright,#fff);">' + stats.totalMatches + '</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Partidas</div>' +
-        '</div>' +
-        '<div style="text-align:center;padding:10px 6px;background:rgba(' + (winRate >= 60 ? '16,185,129' : winRate >= 40 ? '251,191,36' : '239,68,68') + ',0.1);border-radius:10px;">' +
-          '<div style="font-size:1.2rem;font-weight:700;color:' + (winRate >= 60 ? '#4ade80' : winRate >= 40 ? '#fbbf24' : '#f87171') + ';">' + winRate + '%</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Aproveit.</div>' +
-        '</div>' +
-        '<div style="text-align:center;padding:10px 6px;background:rgba(251,191,36,0.1);border-radius:10px;">' +
-          '<div style="font-size:1.2rem;font-weight:700;color:#fbbf24;">' + stats.titles + ' 🏆</div>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Títulos</div>' +
-        '</div>' +
-      '</div>' +
-      // Tournament list
-      (stats.tournamentsPlayed > 0 ? '<details style="margin-bottom:0.5rem;">' +
-        '<summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-bright,#fff);padding:8px 0;">📋 Torneios Disputados (' + stats.tournamentsPlayed + ')</summary>' +
-        '<div style="margin-top:8px;">' + tourListHtml + '</div>' +
-      '</details>' : '<p style="text-align:center;color:var(--text-muted,#94a3b8);font-size:0.85rem;">Nenhum torneio encontrado.</p>') +
-      // Persistent matchHistory slot (populated async if uid is available)
-      '<div id="player-stats-persistent" style="margin-top:14px;"></div>';
+      // Main body: persistent matchHistory stats (primary) or legacy fallback
+      '<div id="player-stats-persistent">' +
+        (resolvedUid
+          ? '<div style="padding:24px;text-align:center;font-size:0.8rem;color:var(--text-muted,#94a3b8);">⏳ Carregando estatísticas…</div>'
+          : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml)) +
+      '</div>';
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
-    // Load persistent per-user matchHistory (casual + tournament) — survives deletion
+    // Helpers to build legacy AppStore-based stats (fallback when uid unknown)
+    function _buildLegacyStatsHtml(s, sp, wr, tList) {
+        return '<p style="text-align:center;font-size:0.75rem;color:var(--text-muted,#94a3b8);margin-bottom:12px;">' + window._safeHtml(sp) + '</p>' +
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;">' +
+            '<div style="text-align:center;padding:12px 8px;background:rgba(59,130,246,0.1);border-radius:12px;border:1px solid rgba(59,130,246,0.2);">' +
+              '<div style="font-size:1.5rem;font-weight:800;color:#60a5fa;">' + s.tournamentsPlayed + '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Torneios</div>' +
+            '</div>' +
+            '<div style="text-align:center;padding:12px 8px;background:rgba(16,185,129,0.1);border-radius:12px;border:1px solid rgba(16,185,129,0.2);">' +
+              '<div style="font-size:1.5rem;font-weight:800;color:#4ade80;">' + s.totalWins + '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Vitórias</div>' +
+            '</div>' +
+            '<div style="text-align:center;padding:12px 8px;background:rgba(239,68,68,0.1);border-radius:12px;border:1px solid rgba(239,68,68,0.2);">' +
+              '<div style="font-size:1.5rem;font-weight:800;color:#f87171;">' + s.totalLosses + '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Derrotas</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">' +
+            '<div style="text-align:center;padding:10px 6px;background:rgba(255,255,255,0.05);border-radius:10px;">' +
+              '<div style="font-size:1.2rem;font-weight:700;color:var(--text-bright,#fff);">' + s.totalDraws + '</div>' +
+              '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Empates</div>' +
+            '</div>' +
+            '<div style="text-align:center;padding:10px 6px;background:rgba(255,255,255,0.05);border-radius:10px;">' +
+              '<div style="font-size:1.2rem;font-weight:700;color:var(--text-bright,#fff);">' + s.totalMatches + '</div>' +
+              '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Partidas</div>' +
+            '</div>' +
+            '<div style="text-align:center;padding:10px 6px;background:rgba(' + (wr >= 60 ? '16,185,129' : wr >= 40 ? '251,191,36' : '239,68,68') + ',0.1);border-radius:10px;">' +
+              '<div style="font-size:1.2rem;font-weight:700;color:' + (wr >= 60 ? '#4ade80' : wr >= 40 ? '#fbbf24' : '#f87171') + ';">' + wr + '%</div>' +
+              '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Aproveit.</div>' +
+            '</div>' +
+            '<div style="text-align:center;padding:10px 6px;background:rgba(251,191,36,0.1);border-radius:10px;">' +
+              '<div style="font-size:1.2rem;font-weight:700;color:#fbbf24;">' + s.titles + ' 🏆</div>' +
+              '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-top:2px;">Títulos</div>' +
+            '</div>' +
+          '</div>' +
+          (s.tournamentsPlayed > 0
+            ? '<details><summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-bright,#fff);padding:8px 0;">📋 Torneios Disputados (' + s.tournamentsPlayed + ')</summary><div style="margin-top:8px;">' + tList + '</div></details>'
+            : '<p style="text-align:center;color:var(--text-muted,#94a3b8);font-size:0.85rem;">Nenhum histórico encontrado.</p>');
+    }
+
+    // Load persistent per-user matchHistory — primary data source, survives deletion
     if (resolvedUid && window.FirestoreDB && typeof window.FirestoreDB.loadUserMatchHistory === 'function') {
         var slot = modal.querySelector('#player-stats-persistent');
-        if (slot) slot.innerHTML = '<div style="padding:10px;text-align:center;font-size:0.75rem;color:var(--text-muted,#94a3b8);">Carregando histórico persistente…</div>';
         window.FirestoreDB.loadUserMatchHistory(resolvedUid).then(function(records) {
+            if (!slot) return;
             if (!records || !records.length) {
-                if (slot) slot.innerHTML = '';
+                // Fall back to AppStore legacy stats if matchHistory empty
+                slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
                 return;
             }
-            if (slot) slot.innerHTML = window._renderPersistentMatchStats(records, resolvedUid);
+            slot.innerHTML = window._renderPersistentMatchStats(records, resolvedUid);
         }).catch(function(e) {
             console.warn('[player-stats] loadUserMatchHistory failed', e);
-            if (slot) slot.innerHTML = '';
+            if (slot) slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
         });
     }
 
