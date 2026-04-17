@@ -17,20 +17,20 @@ function _enrollToStandby(t, tId, participantObj, callback) {
   // Check if already in standby
   var already = t.standbyParticipants.some(function(sp) { return getName(sp) === newName; });
   if (already) {
-    if (typeof showNotification !== 'undefined') showNotification('Já na espera', newName + ' já está na lista de espera.', 'info');
+    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyWaitlisted'), _t('enroll.alreadyWaitlistedMsg', { name: newName }), 'info');
     return;
   }
   // Check if already enrolled
   var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
   var alreadyEnrolled = partsArr.some(function(p) { return getName(p) === newName; });
   if (alreadyEnrolled) {
-    if (typeof showNotification !== 'undefined') showNotification('Já inscrito', newName + ' já está inscrito no torneio.', 'info');
+    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledSingle', { name: newName }), 'info');
     return;
   }
   t.standbyParticipants.push(participantObj);
   window.FirestoreDB.saveTournament(t);
-  var modeLabel = (t.lateEnrollment === 'expand') ? 'Novos confrontos podem ser gerados.' : 'Suplente na lista de espera.';
-  if (typeof showNotification !== 'undefined') showNotification('Lista de Espera', newName + ' adicionado à lista de espera. ' + modeLabel, 'success');
+  var modeLabel = (t.lateEnrollment === 'expand') ? _t('enroll.modeExpand') : _t('enroll.modeStandby');
+  if (typeof showNotification !== 'undefined') showNotification(_t('enroll.waitlistedTitle'), _t('enroll.waitlistedMsg', { name: newName, mode: modeLabel }), 'success');
   if (callback) callback();
 }
 
@@ -391,7 +391,7 @@ window.deenrollCurrentUser = function (tId) {
                         // Rollback: restore original participants and re-render
                         console.warn('Deenroll transaction error:', err);
                         t.participants = _savedParticipants;
-                        if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível cancelar a inscrição. Tente novamente.', 'error');
+                        if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.cancelError'), 'error');
                         var c2 = document.getElementById('view-container');
                         if (c2) renderTournaments(c2, window.location.hash.split('/')[1]);
                     });
@@ -442,7 +442,7 @@ window.addParticipantFunction = function (tId) {
             if (window.FirestoreDB && typeof window.FirestoreDB.enrollParticipant === 'function') {
                 window.FirestoreDB.enrollParticipant(tId, participantObj).then(function(result) {
                     if (result.alreadyEnrolled) {
-                        if (typeof showNotification !== 'undefined') showNotification('Já inscrito', pName.trim() + ' já está inscrito.', 'warning');
+                        if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledSingle', { name: pName.trim() }), 'warning');
                         return;
                     }
                     if (result.enrollmentClosed) {
@@ -452,13 +452,13 @@ window.addParticipantFunction = function (tId) {
                     t.participants = result.participants;
                     if (result.autoCloseTriggered) {
                         t.status = 'closed';
-                        if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', '"' + window._safeHtml(t.name) + '" atingiu ' + t.maxParticipants + ' inscritos e foi encerrado automaticamente.', 'success');
+                        if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
                     }
                     const container = document.getElementById('view-container');
                     if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
                 }).catch(function(err) {
                     console.warn('Add participant error:', err);
-                    if (typeof showNotification !== 'undefined') showNotification('Erro', 'Não foi possível adicionar. Tente novamente.', 'error');
+                    if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.addError'), 'error');
                 });
             } else {
                 // Fallback: non-transactional
@@ -519,7 +519,7 @@ window.addTeamFunction = function (tId) {
             window.FirestoreDB.saveTournament(t);
             if (t.autoCloseOnFull && t.maxParticipants && arr.length >= parseInt(t.maxParticipants)) {
                 t.status = 'closed'; window.FirestoreDB.saveTournament(t);
-                if (typeof showNotification !== 'undefined') showNotification('⚡ Inscrições Encerradas!', `"${window._safeHtml(t.name)}" atingiu ${t.maxParticipants} inscritos e foi encerrado automaticamente.`, 'success');
+                if (typeof showNotification !== 'undefined') showNotification(_t('enroll.autoClosedTitle'), '"' + window._safeHtml(t.name) + '" ' + _t('enroll.autoClosedMsg', { count: t.maxParticipants }), 'success');
             }
             const container = document.getElementById('view-container');
             if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
@@ -561,11 +561,10 @@ window.deleteTournamentFunction = function (tId) {
                 // Notifications run in background — don't block UI
                 if (_delTour && typeof window._notifyTournamentParticipants === 'function') {
                     var _cu = window.AppStore.currentUser;
-                    var _tFn = window._t || function(k) { return k; };
                     try {
                         window._notifyTournamentParticipants(_delTour, {
                             type: 'tournament_deleted',
-                            message: _tFn('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
+                            message: _t('notif.tournamentDeleted').replace('{name}', _delTour.name || 'Torneio'),
                             level: 'fundamental'
                         }, _cu ? _cu.email : null);
                     } catch(e) { console.warn('Delete notification error:', e); }
@@ -607,8 +606,8 @@ window._toggleLigaActive = function(tId, isActive) {
     found.ligaActive = isActive;
     window.FirestoreDB.saveTournament(t).then(function() {
       window.showNotification(
-        isActive ? '🟢 Ativado' : '🔴 Desativado',
-        isActive ? 'Você participará dos próximos sorteios.' : 'Você ficará de fora dos próximos sorteios e receberá pontuação média.',
+        isActive ? _t('enroll.ligaActive') : _t('enroll.ligaInactive'),
+        isActive ? _t('enroll.ligaActiveMsg') : _t('enroll.ligaInactiveMsg'),
         isActive ? 'success' : 'warning'
       );
       // Re-render tournament detail

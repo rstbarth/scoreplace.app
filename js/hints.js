@@ -4,6 +4,7 @@
 
 (function() {
   'use strict';
+  var _t = window._t || function(k) { return k; };
 
   var IDLE_TIMEOUT = 6000;          // ms of inactivity before showing a hint
   var HINT_DISPLAY_TIME = 10000;    // ms a hint stays visible
@@ -709,7 +710,7 @@
     window.removeEventListener('resize', _repositionActiveBalloon);
     window.removeEventListener('scroll', _repositionActiveBalloon);
     if (typeof showNotification === 'function') {
-      showNotification('Dicas Desativadas', 'Você pode reativar nas configurações do perfil.', 'info');
+      showNotification(_t('hints.disabled'), _t('hints.disabledMsg'), 'info');
     }
   }
 
@@ -719,7 +720,7 @@
     window.addEventListener('scroll', _repositionActiveBalloon, { passive: true });
     _startIdleWatch();
     if (typeof showNotification === 'function') {
-      showNotification('Dicas Ativadas', 'Dicas visuais aparecerão após alguns segundos de inatividade.', 'info');
+      showNotification(_t('hints.enabled'), _t('hints.enabledMsg'), 'info');
     }
   }
 
@@ -785,7 +786,7 @@
     _lastHintId = null;
     _saveSeen();
     if (typeof showNotification === 'function') {
-      showNotification('Dicas Resetadas', 'Todas as dicas serão exibidas novamente.', 'info');
+      showNotification(_t('hints.reset'), _t('hints.resetMsg'), 'info');
     }
   }
 

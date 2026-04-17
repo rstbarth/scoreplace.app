@@ -1,4 +1,5 @@
 // ─── Participants View ────────────────────────────────────────────────────────
+var _t = window._t || function(k) { return k; };
 
 // ── Funções globais de check-in (disponíveis para qualquer view) ──
 function _reRenderParticipants() {
@@ -55,7 +56,7 @@ window._resetCheckIn = function (tId) {
   t.absent = {};
   window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
-  if (typeof showNotification === 'function') showNotification('Chamada Reiniciada', 'Todos os check-ins e ausências foram removidos.', 'info');
+  if (typeof showNotification === 'function') showNotification(_t('participants.resetCheckin'), _t('participants.resetCheckinMsg'), 'info');
 };
 
 // ── Inline name editing for organizers ──
@@ -153,7 +154,7 @@ window._editParticipantName = function(tId, oldName) {
 
     window.FirestoreDB.saveTournament(t);
     window.AppStore.logAction(tId, 'Nome editado: "' + oldName + '" → "' + newName + '"');
-    if (typeof showNotification === 'function') showNotification('Nome Atualizado', '"' + oldName + '" → "' + newName + '"', 'success');
+    if (typeof showNotification === 'function') showNotification(_t('participants.nameUpdated'), _t('participants.nameUpdatedMsg', { old: oldName, 'new': newName }), 'success');
     _reRenderParticipants();
   };
 
@@ -183,7 +184,7 @@ window._startTournament = function (tId) {
   // Status passa a ser em andamento
   t.status = 'in_progress';
   window.AppStore.sync();
-  if (typeof showNotification === 'function') showNotification('Torneio Iniciado!', 'A presença dos participantes já pode ser registrada.', 'success');
+  if (typeof showNotification === 'function') showNotification(_t('participants.tournamentStarted'), _t('participants.tournamentStartedMsg'), 'success');
   // Re-render current view
   const hash = window.location.hash;
   const container = document.getElementById('view-container');
@@ -291,7 +292,7 @@ window._declareAbsent = function (tId, playerName) {
         if (t.checkedIn[sName]) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
       }
       if (!nextStandby) {
-        if (typeof showNotification === 'function') showNotification('Sem substituto presente', 'Nenhum jogador da lista de espera está marcado como presente.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
         return;
       }
       const nextName = typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name || nextStandby.email || '');
@@ -324,14 +325,14 @@ window._declareAbsent = function (tId, playerName) {
 
       window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
       window.AppStore.sync();
-      if (typeof showNotification === 'function') showNotification('Substituição Realizada', `${nextName} entrou no lugar de ${playerName}. ${partnerName} permanece no time.`, 'success');
+      if (typeof showNotification === 'function') showNotification(_t('sub.done'), _t('sub.donePartnerMsg', { name: nextName, absent: playerName, partner: partnerName }), 'success');
       _reRenderParticipants();
 
     } else if (isIndividualWO && !hasStandby && matchEntry) {
       // Just mark absent — no standby available, wait for organizer to add someone
       window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
       window.AppStore.sync();
-      if (typeof showNotification === 'function') showNotification('Ausência Marcada', `${playerName} marcado como ausente. Adicione alguém na lista de espera para substituir.`, 'warning');
+      if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
       _reRenderParticipants();
 
     } else if (hasStandby && matchEntry) {
@@ -346,7 +347,7 @@ window._declareAbsent = function (tId, playerName) {
         if (allPresent) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
       }
       if (!nextStandby) {
-        if (typeof showNotification === 'function') showNotification('Sem substituto presente', 'Nenhum jogador da lista de espera está marcado como presente. Marque a presença de um jogador da lista de espera primeiro.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsgLong'), 'warning');
         return;
       }
       const nextName = typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name || nextStandby.email || '');
@@ -362,7 +363,7 @@ window._declareAbsent = function (tId, playerName) {
 
       window.AppStore.logAction(tId, `Ausência: ${playerName} (${teamName}) substituído por ${nextName} da lista de espera — Jogo ${friendlyNum}`);
       window.AppStore.sync();
-      if (typeof showNotification === 'function') showNotification('Substituição Realizada', `${nextName} entrou no lugar de ${teamName} no Jogo ${friendlyNum}.`, 'success');
+      if (typeof showNotification === 'function') showNotification(_t('sub.done'), _t('sub.doneTeamMsg', { name: nextName, absent: teamName, n: friendlyNum }), 'success');
       _reRenderParticipants();
 
     } else if (matchEntry) {
@@ -384,7 +385,7 @@ window._declareAbsent = function (tId, playerName) {
 
       window.AppStore.logAction(tId, `W.O.: ${teamName} ausente — ${matchEntry.winner} vence Jogo ${friendlyNum} por W.O.`);
       window.AppStore.sync();
-      if (typeof showNotification === 'function') showNotification('W.O. Aplicado', `${matchEntry.winner} vence o Jogo ${friendlyNum} por W.O.`, 'warning');
+      if (typeof showNotification === 'function') showNotification(_t('sub.wo'), _t('sub.woMsg', { winner: matchEntry.winner, n: friendlyNum }), 'warning');
       _reRenderParticipants();
 
     }

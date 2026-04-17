@@ -17,14 +17,14 @@ function setupEnrollModal() {
                   var inp = document.getElementById('share-link-input');
                   if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(inp.value).then(function() {
-                      showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                      showNotification(window._t('share.copied'),window._t('share.copiedClipboard'),'info');
                     }).catch(function() {
                       inp.select(); document.execCommand('copy');
-                      showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                      showNotification(window._t('share.copied'),window._t('share.copiedClipboard'),'info');
                     });
                   } else {
                     inp.select(); document.execCommand('copy');
-                    showNotification('Copiado', 'Link copiado para a área de transferência.', 'info');
+                    showNotification(window._t('share.copied'),window._t('share.copiedClipboard'),'info');
                   }
                ">Copiar</button>
             </div>

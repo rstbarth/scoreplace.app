@@ -1,5 +1,6 @@
 // tournaments-draw.js — Draw generation & bracket building (extracted from tournaments.js)
 (function() {
+var _t = window._t || function(k) { return k; };
 
 window.showFinalReviewPanel = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
@@ -140,7 +141,7 @@ window.generateDrawFunction = function (tId) {
         var _dupCount = window._deduplicateParticipants(t);
         if (_dupCount > 0) {
             window.FirestoreDB.saveTournament(t);
-            showNotification('Duplicatas Removidas', _dupCount + ' participante(s) duplicado(s) foram mesclados automaticamente.', 'info');
+            showNotification(_t('tdraw.dupsRemoved'), _t('tdraw.dupsRemovedMsg', { n: _dupCount }), 'info');
         }
     }
 
@@ -254,7 +255,7 @@ window.generateDrawFunction = function (tId) {
         window.AppStore.logAction(tId, `Sorteio Realizado — ${t.format}: Rodada 1 gerada com ${_roundMatchCount} partida(s)` + (_roundSitOuts ? ` e ${_roundSitOuts} folga(s)` : ''));
 
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
-        showNotification('Torneio Iniciado', `Rodada 1 gerada com ${_roundMatchCount} partida(s)!`, 'success');
+        showNotification(_t('tdraw.started'), _t('tdraw.startedMsg', { n: _roundMatchCount }), 'success');
 
         // Notify all participants about the new round
         if (typeof window._notifyTournamentParticipants === 'function') {
@@ -315,7 +316,7 @@ window.generateDrawFunction = function (tId) {
 
         // Remainder players join last group (5-player group with more rotations) or show warning
         if (remainder > 0) {
-            showNotification('Aviso', remainder + ' jogador(es) não formam grupo de 4. Recomendamos ajustar para múltiplos de 4.', 'warning');
+            showNotification(_t('draw.warning'), _t('tdraw.monarchWarningMsg', { n: remainder }), 'warning');
         }
 
         t.groups = groups;
@@ -325,11 +326,10 @@ window.generateDrawFunction = function (tId) {
 
         // Notify participants about Rei/Rainha draw
         if (typeof window._notifyTournamentParticipants === 'function') {
-            var _tFn3 = window._t || function(k) { return k; };
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
                 level: 'important',
-                message: _tFn3('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+                message: _t('notif.drawMade').replace('{name}', t.name || 'Torneio'),
                 tournamentId: tId
             }, t.organizerEmail);
         }
@@ -477,14 +477,13 @@ window.generateDrawFunction = function (tId) {
         window.AppStore.logAction(tId, `Sorteio Realizado — ${numGroups} grupos criados com rodízio interno`);
 
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
-        showNotification('Fase de Grupos Iniciada', `${numGroups} grupos gerados!`, 'success');
+        showNotification(_t('tdraw.groupsStarted'), _t('tdraw.groupsStartedMsg', { n: numGroups }), 'success');
         // Notify participants about groups draw
         if (typeof window._notifyTournamentParticipants === 'function') {
-            var _tFn2 = window._t || function(k) { return k; };
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
                 level: 'important',
-                message: _tFn2('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+                message: _t('notif.drawMade').replace('{name}', t.name || 'Torneio'),
                 tournamentId: tId
             }, t.organizerEmail);
         }
@@ -580,7 +579,7 @@ window.generateDrawFunction = function (tId) {
 
         var _swRoundMatches = (t.rounds[0] && t.rounds[0].matches || []).filter(function(m) { return !m.isSitOut; }).length;
         if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
-        showNotification('Fase Classificatória', 'Rodada 1 de ' + t.swissRounds + ' gerada com ' + _swRoundMatches + ' partida(s). Top ' + _swLo + ' avançam para ' + (t.format || 'Eliminatórias') + '.', 'success');
+        showNotification(_t('tdraw.swissStarted'), _t('tdraw.swissStartedMsg', { rounds: t.swissRounds, n: _swRoundMatches, lo: _swLo, format: t.format || 'Eliminatórias' }), 'success');
         // Notify participants
         if (typeof window._notifyTournamentParticipants === 'function') {
             window._notifyTournamentParticipants(t, {
@@ -948,15 +947,14 @@ window.generateDrawFunction = function (tId) {
 
     if (document.getElementById('final-review-panel')) document.getElementById('final-review-panel').remove(); document.body.style.overflow = '';
 
-    showNotification('Sucesso', 'Sorteio realizado com sucesso!', 'success');
+    showNotification(_t('draw.changesSaved'), _t('tdraw.drawDone'), 'success');
 
     // Notify all participants about the draw
     if (typeof window._notifyTournamentParticipants === 'function') {
-        var _tFn = window._t || function(k) { return k; };
         window._notifyTournamentParticipants(t, {
             type: 'draw',
             level: 'important',
-            message: _tFn('notif.drawMade').replace('{name}', t.name || 'Torneio'),
+            message: _t('notif.drawMade').replace('{name}', t.name || 'Torneio'),
             tournamentId: tId
         }, t.organizerEmail);
     }

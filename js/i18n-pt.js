@@ -566,6 +566,7 @@ window._translations['pt'] = {
   'draw.reopenedWaiting': 'Aguardando novas inscrições.',
   'draw.alreadyClosed': 'Já encerrado',
   'draw.alreadyClosedMsg': 'Este torneio já está encerrado.',
+  'draw.warning': 'Aviso',
   'draw.savedLocally': 'Aviso',
   'draw.savedLocallyMsg': 'Salvo localmente. Pode demorar a sincronizar.',
   'draw.enrollReopened': 'Inscrições Reabertas',
@@ -615,6 +616,9 @@ window._translations['pt'] = {
   'bui.swissFinishedRoundsMsg': '{n} rodadas concluídas!',
   'bui.newRound': 'Nova Rodada',
   'bui.newRoundMsg': 'Rodada {n} gerada com {count} partida(s)!',
+  'bui.tournamentFinished': '🏆 Torneio Encerrado!',
+  'bui.tournamentFinishedChamp': '{name} é o campeão!',
+  'bui.tournamentFinishedMsg': 'Todas as partidas foram concluídas.',
 
   // Sharing / export
   'share.copied': 'Copiado!',
@@ -627,6 +631,7 @@ window._translations['pt'] = {
   'share.noResultsMsg': 'Nenhum resultado para exportar.',
   'share.exported': 'Exportado!',
   'share.exportedMsg': 'Arquivo CSV baixado.',
+  'share.copiedClipboard': 'Link copiado para a área de transferência.',
 
   // Tournaments draw (tournaments-draw.js)
   'tdraw.dupsRemoved': 'Duplicatas Removidas',
@@ -642,6 +647,7 @@ window._translations['pt'] = {
 
   // Categories
   'cat.merged': 'Categorias Mescladas',
+  'cat.mergedMsg': '{src} + {target} → {merged}',
   'cat.participantRemoved': 'Participante Removido',
   'cat.unmergeError': 'Não foi possível determinar as categorias originais para desmesclar.',
   'cat.unmerged': 'Mesclagem Desfeita',
@@ -669,6 +675,8 @@ window._translations['pt'] = {
   'store.paymentError': 'Não foi possível iniciar o pagamento. Tente novamente.',
   'store.saveError': 'Erro ao Salvar',
   'store.saveErrorMsg': 'Não foi possível salvar no servidor. Tente novamente.',
+  'store.notifTitle': 'Notificação',
+  'store.cohostInviteTitle': 'Convite de Organização',
 
   // Enrollment (additions to existing enroll.* namespace)
   'enroll.alreadyWaitlisted': 'Já na espera',
@@ -678,6 +686,12 @@ window._translations['pt'] = {
   'enroll.waitlistedMsg': '{name} adicionado à lista de espera. {mode}',
   'enroll.addError': 'Não foi possível adicionar. Tente novamente.',
   'enroll.cancelError': 'Não foi possível cancelar a inscrição. Tente novamente.',
+  'enroll.modeExpand': 'Novos confrontos podem ser gerados.',
+  'enroll.modeStandby': 'Suplente na lista de espera.',
+  'enroll.ligaActive': '🟢 Ativado',
+  'enroll.ligaActiveMsg': 'Você participará dos próximos sorteios.',
+  'enroll.ligaInactive': '🔴 Desativado',
+  'enroll.ligaInactiveMsg': 'Você ficará de fora dos próximos sorteios e receberá pontuação média.',
 
   // Organizer
   'org.clonedTitle': 'Torneio Clonado!',
@@ -942,5 +956,13 @@ window._translations['pt'] = {
   'auth.geoNotSupported': 'Seu navegador não suporta geolocalização.',
   'auth.geoFailed': 'Não foi possível obter sua localização. Verifique as permissões do navegador.',
   'auth.profileUpdated': 'Perfil Atualizado',
-  'auth.profileUpdatedMsg': 'Suas informações foram salvas com sucesso.'
+  'auth.profileUpdatedMsg': 'Suas informações foram salvas com sucesso.',
+
+  // Hints
+  'hints.disabled': 'Dicas Desativadas',
+  'hints.disabledMsg': 'Você pode reativar nas configurações do perfil.',
+  'hints.enabled': 'Dicas Ativadas',
+  'hints.enabledMsg': 'Dicas visuais aparecerão após alguns segundos de inatividade.',
+  'hints.reset': 'Dicas Resetadas',
+  'hints.resetMsg': 'Todas as dicas serão exibidas novamente.'
 };

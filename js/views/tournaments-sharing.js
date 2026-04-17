@@ -1,4 +1,5 @@
 // ── Sharing & Export Functions ──
+var _t = window._t || function(k) { return k; };
 
 // Copy tournament link to clipboard (with native share fallback on mobile)
 window._shareTournament = function(tournamentId) {
@@ -17,12 +18,12 @@ window._shareTournament = function(tournamentId) {
         navigator.share({ title: title, text: text, url: url }).catch(function() {
             // Fallback to clipboard
             navigator.clipboard.writeText(url).then(function() {
-                if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+                if (typeof showNotification === 'function') showNotification(_t('share.copied'), _t('share.copiedMsg'), 'success');
             });
         });
     } else {
         navigator.clipboard.writeText(url).then(function() {
-            if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+            if (typeof showNotification === 'function') showNotification(_t('share.copied'), _t('share.copiedMsg'), 'success');
         }).catch(function() {
             // Very old browser fallback
             var inp = document.createElement('input');
@@ -31,7 +32,7 @@ window._shareTournament = function(tournamentId) {
             inp.select();
             document.execCommand('copy');
             document.body.removeChild(inp);
-            if (typeof showNotification === 'function') showNotification('Copiado!', 'Link do torneio copiado.', 'success');
+            if (typeof showNotification === 'function') showNotification(_t('share.copied'), _t('share.copiedMsg'), 'success');
         });
     }
 };
@@ -106,9 +107,9 @@ window._downloadQRCode = function(tournamentId) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        if (typeof showNotification === 'function') showNotification('QR Code Salvo!', 'Imagem baixada.', 'success');
+        if (typeof showNotification === 'function') showNotification(_t('share.qrSaved'), _t('share.qrSavedMsg'), 'success');
     }).catch(function() {
-        if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível baixar o QR Code.', 'error');
+        if (typeof showNotification === 'function') showNotification(_t('auth.error'), _t('share.qrError'), 'error');
     });
 };
 
@@ -184,7 +185,7 @@ window._exportTournamentCSV = function(tournamentId) {
     }
 
     if (rows.length === 0) {
-        if (typeof showNotification === 'function') showNotification('Exportar', 'Nenhum resultado para exportar.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('share.noResults'), _t('share.noResultsMsg'), 'warning');
         return;
     }
 
@@ -218,5 +219,5 @@ window._exportTournamentCSV = function(tournamentId) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    if (typeof showNotification === 'function') showNotification('Exportado!', 'Arquivo CSV baixado.', 'success');
+    if (typeof showNotification === 'function') showNotification(_t('share.exported'), _t('share.exportedMsg'), 'success');
 };

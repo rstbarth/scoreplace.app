@@ -1,4 +1,5 @@
 // Dynamically update stat-boxes after participant/waitlist changes
+var _t = window._t || function(k) { return k; };
 window._updateStatBoxes = function(t) {
     var row = document.getElementById('stat-boxes-row');
     if (!row || !t) return;
@@ -119,7 +120,7 @@ function renderTournaments(container, tournamentId = null) {
             if (!cu) return;
             if (!cu.friends || cu.friends.length === 0) {
                 if (typeof showNotification === 'function') {
-                    showNotification('Sem amigos ainda', 'Você ainda não tem amigos na plataforma. Convide usando QR Code, WhatsApp ou link abaixo.', 'info');
+                    showNotification(_t('tourn.noFriends'), _t('tourn.noFriendsMsg'), 'info');
                 }
                 return;
             }
@@ -192,7 +193,7 @@ function renderTournaments(container, tournamentId = null) {
             var statusMsg = statusParts.length > 0 ? statusParts.join(', ') + '.' : 'Nenhum convite enviado.';
             if (statusDiv) statusDiv.textContent = statusMsg;
             if (typeof showNotification !== 'undefined') {
-                showNotification('Convites Enviados!', statusMsg, 'success');
+                showNotification(_t('tourn.invitesSent'), statusMsg, 'success');
             }
 
             // Open email with all recipients (bcc for privacy)
@@ -250,10 +251,10 @@ function renderTournaments(container, tournamentId = null) {
                 // Save directly to Firestore (sync() skips participants)
                 if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
                     window.FirestoreDB.saveTournament(t).then(function() {
-                        showNotification('Bots adicionados', qtd + ' bots adicionados ao torneio.', 'success');
+                        showNotification(_t('tourn.botsAdded'), _t('tourn.botsAddedMsg', { n: qtd }), 'success');
                     }).catch(function(err) {
                         console.error('Erro ao salvar bots:', err);
-                        showNotification('Erro', 'Falha ao salvar bots no servidor.', 'error');
+                        showNotification(_t('enroll.error'), _t('tourn.botError'), 'error');
                     });
                 }
 
@@ -298,10 +299,9 @@ function renderTournaments(container, tournamentId = null) {
 
                         // Notify removed participant
                         if (_removedP && typeof _removedP === 'object' && _removedP.uid && typeof window._sendUserNotification === 'function') {
-                            var _tFnRem = window._t || function(k) { return k; };
                             window._sendUserNotification(_removedP.uid, {
                                 type: 'participant_removed',
-                                message: _tFnRem('notif.youWereRemoved').replace('{name}', t.name || 'Torneio'),
+                                message: _t('notif.youWereRemoved').replace('{name}', t.name || 'Torneio'),
                                 tournamentId: String(t.id),
                                 tournamentName: t.name || '',
                                 level: 'fundamental'
@@ -499,10 +499,9 @@ function renderTournaments(container, tournamentId = null) {
                 // Notify participants of season end
                 if (!t._seasonFinishNotified && typeof window._notifyTournamentParticipants === 'function') {
                   t._seasonFinishNotified = true;
-                  var _tFnSeason = window._t || function(k) { return k; };
                   window._notifyTournamentParticipants(t, {
                     type: 'tournament_finished',
-                    message: _tFnSeason('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+                    message: _t('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
                     tournamentName: t.name || '',
                     level: 'important'
                   });
@@ -799,7 +798,7 @@ function renderTournaments(container, tournamentId = null) {
                          <button class="btn btn-whatsapp btn-sm hover-lift" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent('${inviteTextSafe}'), '_blank')">
                             <span style="font-size:1.1rem;">💬</span>WhatsApp
                          </button>
-                         <button class="btn btn-primary btn-sm hover-lift" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="navigator.clipboard.writeText('${inviteUrl}'); showNotification('Copiado!', 'Link copiado.', 'success')">
+                         <button class="btn btn-primary btn-sm hover-lift" style="flex-direction:column;gap:1px;padding:8px 4px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;" onclick="navigator.clipboard.writeText('${inviteUrl}'); showNotification(window._t('share.copied'),window._t('share.copiedLinkMsg'),'success')">
                             <span style="font-size:1.1rem;">🔗</span>Copiar Link
                          </button>
                       </div>
@@ -817,7 +816,7 @@ function renderTournaments(container, tournamentId = null) {
                       <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);letter-spacing:0.3px;">Convide por e-mail</div>
                       <div style="display: flex; gap: 6px; align-items: stretch; margin-top:-3px;">
                          <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.75rem; min-width: 0; box-sizing: border-box;">
-                         <button class="btn btn-indigo btn-sm hover-lift" style="font-size:0.75rem;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification('Atenção','Digite um e-mail.','warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${window._safeHtml(t.name)}') + '&body=' + encodeURIComponent('${inviteTextSafe}'), '_self'); showNotification('E-mail', 'Abrindo seu cliente de e-mail...', 'info');">E-mail</button>
+                         <button class="btn btn-indigo btn-sm hover-lift" style="font-size:0.75rem;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification(window._t('tourn.attention'),window._t('tourn.enterEmail'),'warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${window._safeHtml(t.name)}') + '&body=' + encodeURIComponent('${inviteTextSafe}'), '_self'); showNotification(window._t('tourn.emailOpening'),window._t('tourn.emailOpeningMsg'),'info');">E-mail</button>
                       </div>
 
                       <!-- Close -->

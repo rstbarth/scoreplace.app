@@ -1,4 +1,5 @@
 // ── Bracket Logic & Computation ──
+var _t = window._t || function(k) { return k; };
 
 // ── Monarch (Rei/Rainha) individual standings per group ──
 window._computeMonarchStandings = function(group) {
@@ -845,14 +846,13 @@ function _maybeFinishElimination(t) {
     if (finalMatches.length > 0 && finalMatches[0].winner) {
       _finChampion = finalMatches[0].winner;
     }
-    showNotification('🏆 Torneio Encerrado!', _finChampion ? _finChampion + ' é o campeão!' : 'Todas as partidas foram concluídas.', 'success');
+    showNotification(_t('bui.tournamentFinished'), _finChampion ? _t('bui.tournamentFinishedChamp', { name: _finChampion }) : _t('bui.tournamentFinishedMsg'), 'success');
   }
   // Notify all participants about tournament finish (idempotent guard)
   if (!t._finishNotified && typeof window._notifyTournamentParticipants === 'function') {
     t._finishNotified = true;
-    var _tFn = window._t || function(k) { return k; };
-    var _finMsg = _tFn('notif.tournamentFinished').replace('{name}', t.name || 'Torneio');
-    if (_finChampion) _finMsg += ' ' + _finChampion + ' ' + _tFn('notif.isChampion');
+    var _finMsg = _t('notif.tournamentFinished').replace('{name}', t.name || 'Torneio');
+    if (_finChampion) _finMsg += ' ' + _finChampion + ' ' + _t('notif.isChampion');
     window._notifyTournamentParticipants(t, {
       type: 'tournament_finished',
       message: _finMsg,
@@ -978,9 +978,8 @@ function _doCloseRound(t, tId, roundIdx) {
         });
       }
 
-      showNotification('Classificatória Encerrada!', 'Top ' + _targetCount + ' avançam para ' + (t.format || 'Eliminatórias') + '!', 'success');
+      showNotification(_t('bui.swissFinished'), _t('bui.swissFinishedMsg', { n: _targetCount, format: t.format || 'Eliminatórias' }), 'success');
       if (typeof window._notifyTournamentParticipants === 'function') {
-        var _tFn2a = window._t || function(k) { return k; };
         window._notifyTournamentParticipants(t, {
           type: 'swiss_to_elimination',
           message: 'Fase classificatória encerrada! Top ' + _targetCount + ' avançam para ' + (t.format || 'Eliminatórias') + '.',
@@ -992,14 +991,13 @@ function _doCloseRound(t, tId, roundIdx) {
 
     // Pure Swiss: just finish
     t.status = 'finished';
-    showNotification('Torneio Encerrado', `${maxRounds} rodadas concluídas!`, 'success');
+    showNotification(_t('bui.swissFinishedRounds'), _t('bui.swissFinishedRoundsMsg', { n: maxRounds }), 'success');
     // Notify all participants about Swiss tournament finish
     if (!t._finishNotified && typeof window._notifyTournamentParticipants === 'function') {
       t._finishNotified = true;
-      var _tFn2 = window._t || function(k) { return k; };
       window._notifyTournamentParticipants(t, {
         type: 'tournament_finished',
-        message: _tFn2('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+        message: _t('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
         level: 'important'
       });
     }
@@ -1007,7 +1005,7 @@ function _doCloseRound(t, tId, roundIdx) {
     _generateNextRound(t);
     var _newRound = t.rounds[t.rounds.length - 1];
     var _newMatchCount = (_newRound && _newRound.matches || []).filter(function(m) { return !m.isSitOut; }).length;
-    showNotification('Nova Rodada', `Rodada ${t.rounds.length} gerada com ${_newMatchCount} partida(s)!`, 'success');
+    showNotification(_t('bui.newRound'), _t('bui.newRoundMsg', { n: t.rounds.length, count: _newMatchCount }), 'success');
 
     // Notify all participants about the new round
     if (typeof window._notifyTournamentParticipants === 'function') {

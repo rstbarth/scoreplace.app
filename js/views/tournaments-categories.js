@@ -1,6 +1,7 @@
 // tournaments-categories.js — Category system (extracted from tournaments.js)
 
 (function() {
+var _t = window._t || function(k) { return k; };
 
 // ========== Category enrollment helpers ==========
 // Maps user gender to tournament gender category codes
@@ -1135,7 +1136,7 @@ function _executeMerge(tId, sourceCat, targetCat, mergedName) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification('Categorias Mescladas', sourceCat + ' + ' + targetCat + ' → ' + mergedName, 'success');
+        showNotification(_t('cat.merged'), _t('cat.mergedMsg', { src: sourceCat, target: targetCat, merged: mergedName }), 'success');
     }
 
     // Re-render the modal after a small delay to ensure data is settled
@@ -1205,7 +1206,7 @@ function _executeRemoveFromCategory(tId, pIdx, category) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification('Participante Removido', pName + ' removido de ' + window._displayCategoryName(category), 'success');
+        showNotification(_t('cat.participantRemoved'), _t('cat.removedMsg', { name: pName, cat: window._displayCategoryName(category) }), 'success');
     }
 
     // Re-render the category detail view (refreshed data)
@@ -1274,7 +1275,7 @@ function _unmergeCategoryAction(tId, catName) {
 
     if (inferredCats.length < 2) {
         if (typeof showNotification === 'function') {
-            showNotification('Erro', 'Não foi possível determinar as categorias originais para desmesclar.', 'error');
+            showNotification(_t('auth.error'), _t('cat.unmergeError'), 'error');
         }
         return;
     }
@@ -1376,7 +1377,7 @@ function _executeUnmerge(tId, mergeIdx) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification('Mesclagem Desfeita', mergedName + ' → ' + sourceCat + ' + ' + targetCat, 'success');
+        showNotification(_t('cat.unmerged'), _t('cat.unmergedMsg', { merged: mergedName, src: sourceCat, target: targetCat }), 'success');
     }
 
     // Re-render
@@ -1442,7 +1443,7 @@ function _executeInferredUnmerge(tId, mergedName, inferredCats) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification('Mesclagem Desfeita', mergedName + ' → ' + inferredCats.join(' + '), 'success');
+        showNotification(_t('cat.unmerged'), _t('cat.unmergedInferredMsg', { merged: mergedName, cats: inferredCats.join(' + ') }), 'success');
     }
 
     // Re-render
@@ -1489,7 +1490,7 @@ function _assignParticipantCategory(tId, pIdx, category) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification('Categoria Atribuída', pName + ' → ' + window._displayCategoryName(category), 'success');
+        showNotification(_t('cat.assigned'), _t('cat.assignedMsg', { name: pName, cat: window._displayCategoryName(category) }), 'success');
     }
 
     // Re-render the modal after a small delay to ensure data is settled

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.11.37-alpha';
+window.SCOREPLACE_VERSION = '0.11.38-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -397,7 +397,7 @@ window._showUpgradeModal = function(reason) {
 window._startProCheckout = async function() {
   var user = window.AppStore && window.AppStore.currentUser;
   if (!user || !user.uid) {
-    if (typeof showNotification === 'function') showNotification('Login necessário', 'Faça login para assinar o Pro.', 'warning');
+    if (typeof showNotification === 'function') showNotification(window._t('store.loginRequired'), window._t('store.loginRequiredMsg'), 'warning');
     return;
   }
   try {
@@ -420,7 +420,7 @@ window._startProCheckout = async function() {
     }
   } catch (err) {
     console.error('Checkout error:', err);
-    if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível iniciar o pagamento. Tente novamente.', 'error');
+    if (typeof showNotification === 'function') showNotification(window._t('auth.error'), window._t('store.paymentError'), 'error');
     var btn2 = document.querySelector('#modal-upgrade button');
     if (btn2) { btn2.textContent = 'Assinar Pro — R$19,90/mês'; btn2.disabled = false; }
   }
@@ -669,7 +669,7 @@ window.AppStore = {
     } catch (err) {
       console.error('syncImmediate: FAILED to save tournament ' + tournamentId, err);
       if (typeof showNotification === 'function') {
-        showNotification('Erro ao Salvar', 'Não foi possível salvar no servidor. Tente novamente.', 'error');
+        showNotification(window._t('store.saveError'), window._t('store.saveErrorMsg'), 'error');
       }
       return false;
     }
@@ -759,7 +759,7 @@ window.AppStore = {
           if (change.type === 'added') {
             var d = change.doc.data();
             if (d && !d.read && d.message && typeof showNotification === 'function') {
-              showNotification('🔔 ' + (d.type === 'cohost_invite' ? 'Convite de Organização' : 'Notificação'), d.message, 'info');
+              showNotification('🔔 ' + (d.type === 'cohost_invite' ? window._t('store.cohostInviteTitle') : window._t('store.notifTitle')), d.message, 'info');
             }
           }
         });
