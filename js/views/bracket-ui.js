@@ -2087,11 +2087,24 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Track match start time on first point
     if (!_matchStartTime) _matchStartTime = Date.now();
 
+    // Capture context BEFORE incrementing so pointLog reflects the state at which this point was contested
+    var _p1Before = state.currentGameP1;
+    var _p2Before = state.currentGameP2;
+    var _wasTiebreak = !!state.isTiebreak;
+    var _srvNow = (typeof _getCurrentServer === 'function') ? _getCurrentServer() : null;
+
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
 
-    // Log every point scored (for momentum graph on finish)
-    state.pointLog.push({ team: player });
+    // Log every point scored with rich context for analytics
+    state.pointLog.push({
+      team: player,
+      server: _srvNow ? _srvNow.name : null,
+      serverTeam: _srvNow ? _srvNow.team : null,
+      p1Before: _p1Before,
+      p2Before: _p2Before,
+      isTiebreak: _wasTiebreak
+    });
 
     if (!useSets || state.isFixedSet) {
       // Simple scoring or fixed set: each tap is 1 point
@@ -2773,114 +2786,249 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var winPct = totalPts > 0 ? Math.round((winTeam === 1 ? totalPtsP1 : totalPtsP2) / totalPts * 100) : 50;
       var losePct = 100 - winPct;
 
-      // Winner names display
-      var winNamesHtml = '';
-      for (var wi = 0; wi < winPlayers.length; wi++) {
-        winNamesHtml += '<div style="display:flex;align-items:center;gap:6px;">' + _liveAvatarHtml(winPlayers[wi], 28) +
-          '<span style="font-size:clamp(0.9rem,3vw,1.1rem);font-weight:700;color:#fff;">' + window._safeHtml(winPlayers[wi]) + '</span></div>';
-      }
-      // Loser names display — compact with avatars
-      var loseNamesHtml = '';
-      for (var li = 0; li < losePlayers.length; li++) {
-        loseNamesHtml += '<div style="display:flex;align-items:center;gap:6px;">' + _liveAvatarHtml(losePlayers[li], 24) +
-          '<span style="font-size:clamp(0.82rem,2.6vw,0.98rem);font-weight:600;color:rgba(255,255,255,0.75);">' + window._safeHtml(losePlayers[li]) + '</span></div>';
-      }
-
-      // Per-player serve stats computed from gameLog
-      var _servePct = function(playerName) {
-        if (!state.gameLog || state.gameLog.length === 0) return null;
-        var served = 0, held = 0;
-        for (var gi = 0; gi < state.gameLog.length; gi++) {
-          var g = state.gameLog[gi];
-          if (g.serverName === playerName) {
-            served++;
-            if (g.winner === g.serverTeam) held++;
+      // Compute team + per-player stats from gameLog + pointLog
+      var _computeMatchStats = function() {
+        var pts = state.pointLog || [], gmL = state.gameLog || [];
+        var teamStats = {
+          1: { points: 0, games: 0, sets: 0, holdServed: 0, held: 0, longestStreak: 0, biggestLead: 0,
+               servePtsPlayed: 0, servePtsWon: 0, receivePtsPlayed: 0, receivePtsWon: 0,
+               deucePtsPlayed: 0, deucePtsWon: 0, breaks: 0 },
+          2: { points: 0, games: 0, sets: 0, holdServed: 0, held: 0, longestStreak: 0, biggestLead: 0,
+               servePtsPlayed: 0, servePtsWon: 0, receivePtsPlayed: 0, receivePtsWon: 0,
+               deucePtsPlayed: 0, deucePtsWon: 0, breaks: 0 }
+        };
+        var curStreak = { 1: 0, 2: 0 }, cum = 0;
+        var deuceThresh = 3; // 40-40 in tennis counting (numeric points 3-3)
+        for (var i = 0; i < pts.length; i++) {
+          var pt = pts[i];
+          teamStats[pt.team].points++;
+          if (pt.team === 1) { curStreak[1]++; curStreak[2] = 0; cum++; }
+          else { curStreak[2]++; curStreak[1] = 0; cum--; }
+          if (curStreak[pt.team] > teamStats[pt.team].longestStreak) teamStats[pt.team].longestStreak = curStreak[pt.team];
+          if (cum > teamStats[1].biggestLead) teamStats[1].biggestLead = cum;
+          if (-cum > teamStats[2].biggestLead) teamStats[2].biggestLead = -cum;
+          // Serve/receive stats only for points with server context
+          if (pt.serverTeam === 1 || pt.serverTeam === 2) {
+            var srvT = pt.serverTeam;
+            var recT = srvT === 1 ? 2 : 1;
+            teamStats[srvT].servePtsPlayed++;
+            teamStats[recT].receivePtsPlayed++;
+            if (pt.team === srvT) teamStats[srvT].servePtsWon++;
+            else teamStats[recT].receivePtsWon++;
+            // Deuce (killer point): p1Before === p2Before === 3 in a normal game (not tiebreak)
+            if (!pt.isTiebreak && pt.p1Before === deuceThresh && pt.p2Before === deuceThresh) {
+              teamStats[1].deucePtsPlayed++;
+              teamStats[2].deucePtsPlayed++;
+              teamStats[pt.team].deucePtsWon++;
+            }
           }
         }
-        if (served === 0) return null;
-        return { pct: Math.round(held / served * 100), held: held, served: served };
-      };
-
-      // Build per-player serve stat rows (one chip per player)
-      var _buildPlayerServeRow = function(players, accentClr) {
-        var chips = '';
-        for (var pi = 0; pi < players.length; pi++) {
-          var pn = players[pi];
-          var s = _servePct(pn);
-          var valTxt = s ? (s.pct + '%') : '—';
-          var subTxt = s ? (s.held + '/' + s.served) : 'sem dados';
-          chips +=
-            '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
-              '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + window._safeHtml(pn) + '</span>' +
-              '<span style="font-size:clamp(1rem,3.5vw,1.3rem);font-weight:900;color:' + accentClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + valTxt + '</span>' +
-              '<span style="font-size:0.55rem;color:var(--text-muted);">' + subTxt + '</span>' +
-            '</div>';
+        for (var g = 0; g < gmL.length; g++) {
+          var ge = gmL[g];
+          teamStats[ge.winner].games++;
+          if (ge.serverTeam && ge.winner !== ge.serverTeam) {
+            // Receiving team won a game = break
+            teamStats[ge.winner].breaks++;
+          }
         }
-        return '<div style="display:flex;align-items:stretch;justify-content:center;gap:6px;width:100%;">' + chips + '</div>';
+        for (var s = 0; s < state.sets.length; s++) {
+          var ss = state.sets[s];
+          if (ss.gamesP1 > ss.gamesP2) teamStats[1].sets++;
+          else if (ss.gamesP2 > ss.gamesP1) teamStats[2].sets++;
+        }
+        var playerStats = {};
+        var allPlayers = p1Players.concat(p2Players);
+        for (var pi = 0; pi < allPlayers.length; pi++) {
+          playerStats[allPlayers[pi]] = {
+            served: 0, held: 0, team: pi < p1Players.length ? 1 : 2,
+            _streak: 0, longestHoldStreak: 0,
+            servePtsPlayed: 0, servePtsWon: 0
+          };
+        }
+        for (var gg = 0; gg < gmL.length; gg++) {
+          var entry = gmL[gg];
+          if (!entry.serverName || !playerStats[entry.serverName]) continue;
+          var psp = playerStats[entry.serverName];
+          psp.served++;
+          if (entry.winner === entry.serverTeam) {
+            psp.held++;
+            psp._streak++;
+            if (psp._streak > psp.longestHoldStreak) psp.longestHoldStreak = psp._streak;
+          } else {
+            psp._streak = 0;
+          }
+          teamStats[entry.serverTeam].holdServed++;
+          if (entry.winner === entry.serverTeam) teamStats[entry.serverTeam].held++;
+        }
+        // Per-player point-level serve stats from pointLog
+        for (var pj = 0; pj < pts.length; pj++) {
+          var ppt = pts[pj];
+          if (!ppt.server || !playerStats[ppt.server]) continue;
+          playerStats[ppt.server].servePtsPlayed++;
+          if (ppt.team === ppt.serverTeam) playerStats[ppt.server].servePtsWon++;
+        }
+        return { teamStats: teamStats, playerStats: playerStats };
       };
 
-      // Team stats row builder (icon + value + label)
-      var _stat = function(icon, label, value) {
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0;">' +
-          '<span style="font-size:1rem;">' + icon + '</span>' +
-          '<span style="font-size:clamp(0.9rem,2.8vw,1.1rem);font-weight:800;color:#fff;">' + value + '</span>' +
-          '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</span>' +
-        '</div>';
-      };
-
-      // Team-level stats
-      var winTeamPts = winTeam === 1 ? totalPtsP1 : totalPtsP2;
-      var loseTeamPts = winTeam === 1 ? totalPtsP2 : totalPtsP1;
-      var winTeamGames = 0, loseTeamGames = 0;
-      for (var gli = 0; gli < state.gameLog.length; gli++) {
-        if (state.gameLog[gli].winner === winTeam) winTeamGames++;
-        else loseTeamGames++;
-      }
-      var winSets = 0, loseSets = 0;
-      for (var sii = 0; sii < state.sets.length; sii++) {
-        var _ss = state.sets[sii];
-        if (_ss.gamesP1 > _ss.gamesP2) { if (winTeam === 1) winSets++; else loseSets++; }
-        else if (_ss.gamesP2 > _ss.gamesP1) { if (winTeam === 2) winSets++; else loseSets++; }
-      }
-
+      var _matchStats = _computeMatchStats();
+      var winT = _matchStats.teamStats[winTeam];
+      var losT = _matchStats.teamStats[winTeam === 1 ? 2 : 1];
       var hasServeData = state.gameLog && state.gameLog.length > 0 && !state.serveSkipped;
 
-      // Winner section: label + names + score + team stats + per-player serve %
-      var winnerSection =
-        '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,16px) clamp(10px,2vw,16px);border-radius:14px;background:linear-gradient(180deg,rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.14),rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.04));border:1px solid rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.35);display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vh,10px);">' +
-          '<div style="font-size:clamp(1.8rem,6vw,2.8rem);line-height:1;">🏆</div>' +
-          '<div style="font-size:0.6rem;font-weight:800;color:' + winClr + ';text-transform:uppercase;letter-spacing:2px;">Vencedor</div>' +
-          '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' + winNamesHtml + '</div>' +
-          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0;">' + scoreSummary + '</div>' +
-          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,12px);width:100%;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.08);">' +
-            (useSets && !state.isFixedSet ? _stat('🏅', 'Sets', winSets) : '') +
-            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', winTeamGames) : '') +
-            _stat('🎯', 'Pontos', winTeamPts) +
-          '</div>' +
-          (hasServeData ? (
-            '<div style="width:100%;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:6px;">' +
-              '<div style="text-align:center;font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Aproveitamento de Saque</div>' +
-              _buildPlayerServeRow(winPlayers, winClr) +
-            '</div>'
-          ) : '') +
+      // Player detail modal — called from chip onclick. Uses closure over _computeMatchStats + helpers.
+      window._showPlayerMatchStats = function(playerName) {
+        var st = _computeMatchStats();
+        var ps = st.playerStats[playerName];
+        if (!ps) return;
+        var accent = ps.team === 1 ? '#60a5fa' : '#f87171';
+        var accentBg = ps.team === 1 ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)';
+        var holdPct = ps.served > 0 ? Math.round(ps.held / ps.served * 100) : 0;
+        var teamMates = ps.team === 1 ? p1Players : p2Players;
+        var teamLabel = teamMates.join(' / ');
+        var isWinner = ps.team === winTeam;
+        // Count points scored while this player was serving (derive from gameLog + pointLog)
+        // Simplified: points team won per game × team while this player served
+        var ptsServedOn = 0, ptsWonWhileServing = 0;
+        // Walk through pointLog and reconstruct which game each point is in by tracking running game totals.
+        // For simplicity: we don't have explicit mapping, skip detailed per-point serve attribution.
+
+        var modal = document.createElement('div');
+        modal.id = 'player-match-stats-modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);z-index:100020;display:flex;align-items:center;justify-content:center;padding:1rem;';
+        var _boxStat = function(label, value, icon) {
+          return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">' +
+            '<span style="font-size:1rem;">' + icon + '</span>' +
+            '<span style="font-size:1.1rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + value + '</span>' +
+            '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
+          '</div>';
+        };
+        modal.innerHTML =
+          '<div style="background:#0f172a;border:1.5px solid ' + accent + ';border-radius:18px;max-width:380px;width:100%;padding:1.25rem;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">' +
+            // Header
+            '<div style="display:flex;align-items:center;gap:12px;">' + _liveAvatarHtml(playerName, 52) +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:1.15rem;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(playerName) + '</div>' +
+                '<div style="font-size:0.7rem;color:' + accent + ';font-weight:700;display:flex;align-items:center;gap:6px;">' +
+                  (isWinner ? '🏆 ' : '') + 'Time ' + ps.team + ' · ' + window._safeHtml(teamLabel) +
+                '</div>' +
+              '</div>' +
+              '<button onclick="document.getElementById(\'player-match-stats-modal\').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;">✕</button>' +
+            '</div>' +
+            // Serve stats grid
+            (hasServeData ? (
+              '<div style="display:flex;flex-direction:column;gap:6px;">' +
+                '<div style="font-size:0.55rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;text-align:center;">🎾 Saque · Por Game</div>' +
+                '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
+                  _boxStat('Games servidos', ps.served, '🎾') +
+                  _boxStat('Games mantidos', ps.held, '🏆') +
+                  _boxStat('Aproveit.', holdPct + '%', '📊') +
+                  _boxStat('Maior sequência', ps.longestHoldStreak, '🔥') +
+                '</div>' +
+                (ps.servePtsPlayed > 0 ? (
+                  '<div style="font-size:0.55rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;text-align:center;margin-top:4px;">🚀 Saque · Por Ponto</div>' +
+                  '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
+                    _boxStat('Pts servidos', ps.servePtsPlayed, '🎯') +
+                    _boxStat('Pts ganhos', ps.servePtsWon, '✅') +
+                    _boxStat('% no saque', (ps.servePtsPlayed > 0 ? Math.round(ps.servePtsWon / ps.servePtsPlayed * 100) : 0) + '%', '📈') +
+                  '</div>'
+                ) : '') +
+              '</div>'
+            ) : '<div style="text-align:center;font-size:0.72rem;color:var(--text-muted);padding:10px;">Sem dados de saque (tracking desativado)</div>') +
+            // Team context
+            '<div style="padding:10px;border-radius:10px;background:' + accentBg + ';border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:4px;">' +
+              '<div style="font-size:0.55rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Seu time na partida</div>' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:0.8rem;font-weight:800;color:#fff;">' +
+                '<span>' + st.teamStats[ps.team].points + ' pts · ' + st.teamStats[ps.team].games + ' games · ' + st.teamStats[ps.team].sets + ' sets</span>' +
+              '</div>' +
+            '</div>' +
+            '<button onclick="document.getElementById(\'player-match-stats-modal\').remove()" style="padding:12px;border-radius:10px;border:none;background:rgba(99,102,241,0.2);color:#818cf8;font-weight:700;cursor:pointer;font-size:0.9rem;">Fechar</button>' +
+          '</div>';
+        modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+      };
+
+      // Clickable player chip builder
+      var _playerChip = function(name, bigSize, accentClr) {
+        var sz = bigSize ? 32 : 26;
+        var fs = bigSize ? 'clamp(0.92rem,3vw,1.15rem)' : 'clamp(0.8rem,2.6vw,0.95rem)';
+        var pad = bigSize ? '8px 12px' : '6px 10px';
+        var escName = String(name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<button type="button" onclick="window._showPlayerMatchStats(\'' + escName + '\')" title="Ver estatísticas detalhadas" style="display:flex;align-items:center;gap:8px;padding:' + pad + ';border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid ' + (bigSize ? accentClr + '66' : 'rgba(255,255,255,0.10)') + ';cursor:pointer;color:#fff;font-family:inherit;transition:background 0.15s,transform 0.1s;" onmouseover="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'\'">' +
+          _liveAvatarHtml(name, sz) +
+          '<span style="font-size:' + fs + ';font-weight:700;color:#fff;white-space:nowrap;">' + window._safeHtml(name) + '</span>' +
+          '<span style="font-size:0.55rem;color:var(--text-muted);margin-left:2px;" aria-hidden="true">📊</span>' +
+        '</button>';
+      };
+
+      var winChipsHtml = '';
+      for (var wi = 0; wi < winPlayers.length; wi++) winChipsHtml += _playerChip(winPlayers[wi], true, winClr);
+      var loseChipsHtml = '';
+      for (var li = 0; li < losePlayers.length; li++) loseChipsHtml += _playerChip(losePlayers[li], false, loseClr);
+
+      // Comparative stats bar builder
+      var _compareBar = function(label, icon, winVal, losVal, fmt, maxCap) {
+        fmt = fmt || function(v) { return v; };
+        var maxV = maxCap || Math.max(winVal, losVal, 1);
+        var winPctBar = Math.round(winVal / maxV * 100);
+        var losPctBar = Math.round(losVal / maxV * 100);
+        return (
+          '<div style="display:flex;flex-direction:column;gap:4px;">' +
+            '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;">' +
+              '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + winClr + ';font-variant-numeric:tabular-nums;">' + fmt(winVal) + '</span>' +
+              '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;position:relative;">' +
+                '<div style="width:' + winPctBar + '%;background:linear-gradient(90deg,' + winClr + '44,' + winClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
+              '</div>' +
+              '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
+              '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
+                '<div style="width:' + losPctBar + '%;background:linear-gradient(90deg,' + loseClr + ',' + loseClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
+              '</div>' +
+              '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + loseClr + ';font-variant-numeric:tabular-nums;">' + fmt(losVal) + '</span>' +
+            '</div>' +
+          '</div>'
+        );
+      };
+
+      var winHoldPct = winT.holdServed > 0 ? Math.round(winT.held / winT.holdServed * 100) : 0;
+      var losHoldPct = losT.holdServed > 0 ? Math.round(losT.held / losT.holdServed * 100) : 0;
+      var winServePctPts = winT.servePtsPlayed > 0 ? Math.round(winT.servePtsWon / winT.servePtsPlayed * 100) : 0;
+      var losServePctPts = losT.servePtsPlayed > 0 ? Math.round(losT.servePtsWon / losT.servePtsPlayed * 100) : 0;
+      var winRecvPct = winT.receivePtsPlayed > 0 ? Math.round(winT.receivePtsWon / winT.receivePtsPlayed * 100) : 0;
+      var losRecvPct = losT.receivePtsPlayed > 0 ? Math.round(losT.receivePtsWon / losT.receivePtsPlayed * 100) : 0;
+      var hasPointServeData = (winT.servePtsPlayed + losT.servePtsPlayed) > 0;
+      var hasDeuceData = (winT.deucePtsPlayed + losT.deucePtsPlayed) > 0;
+
+      // Comparative stats section
+      var comparativeSection =
+        '<div style="width:100%;max-width:380px;padding:clamp(12px,2.2vh,18px);border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;gap:clamp(8px,1.6vh,14px);">' +
+          '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;">⚖ Comparação dos Times</div>' +
+          (useSets && !state.isFixedSet ? _compareBar('Sets', '🏅', winT.sets, losT.sets) : '') +
+          (state.totalGamesPlayed > 0 ? _compareBar('Games', '🎾', winT.games, losT.games) : '') +
+          _compareBar('Pontos', '🎯', winT.points, losT.points) +
+          (hasPointServeData ? _compareBar('% Pontos no Saque', '🚀', winServePctPts, losServePctPts, function(v) { return v + '%'; }, 100) : '') +
+          (hasPointServeData ? _compareBar('% Pontos na Recepção', '🎯', winRecvPct, losRecvPct, function(v) { return v + '%'; }, 100) : '') +
+          (hasServeData ? _compareBar('Games Mantidos (saque)', '📊', winHoldPct, losHoldPct, function(v) { return v + '%'; }, 100) : '') +
+          (hasServeData ? _compareBar('Quebras de Saque', '💥', winT.breaks, losT.breaks) : '') +
+          (hasDeuceData ? _compareBar('Killer Points (40-40)', '⚡', winT.deucePtsWon, losT.deucePtsWon) : '') +
+          _compareBar('Maior Sequência', '🔥', winT.longestStreak, losT.longestStreak) +
+          _compareBar('Maior Vantagem', '📈', winT.biggestLead, losT.biggestLead) +
         '</div>';
 
-      // Loser section: subtle styling, similar structure
+      // Winner section: crown + clickable chips + score
+      var winnerSection =
+        '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,16px) clamp(10px,2vw,16px);border-radius:14px;background:linear-gradient(180deg,rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.16),rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.04));border:1px solid rgba(' + (winTeam === 1 ? '59,130,246' : '239,68,68') + ',0.4);display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vh,10px);">' +
+          '<div style="font-size:clamp(1.8rem,6vw,2.8rem);line-height:1;">🏆</div>' +
+          '<div style="font-size:0.6rem;font-weight:800;color:' + winClr + ';text-transform:uppercase;letter-spacing:2px;">Vencedor</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;max-width:280px;">' + winChipsHtml + '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:4px 0 2px;">' + scoreSummary + '</div>' +
+          '<div style="font-size:0.55rem;color:var(--text-muted);text-align:center;">💡 toque nos jogadores para ver estatísticas</div>' +
+        '</div>';
+
+      // Loser section: names as clickable chips
       var loserSection =
-        '<div style="width:100%;max-width:380px;padding:clamp(8px,1.8vh,14px) clamp(10px,2vw,16px);border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);opacity:0.92;">' +
+        '<div style="width:100%;max-width:380px;padding:clamp(8px,1.8vh,14px) clamp(10px,2vw,16px);border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vh,8px);opacity:0.94;">' +
           '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;">Perdedor</div>' +
-          '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">' + loseNamesHtml + '</div>' +
-          '<div style="display:flex;align-items:stretch;justify-content:center;gap:clamp(6px,2vw,12px);width:100%;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.06);">' +
-            (useSets && !state.isFixedSet ? _stat('🏅', 'Sets', loseSets) : '') +
-            (state.totalGamesPlayed > 0 ? _stat('🎾', 'Games', loseTeamGames) : '') +
-            _stat('🎯', 'Pontos', loseTeamPts) +
-          '</div>' +
-          (hasServeData ? (
-            '<div style="width:100%;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:6px;">' +
-              '<div style="text-align:center;font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Aproveitamento de Saque</div>' +
-              _buildPlayerServeRow(losePlayers, loseClr) +
-            '</div>'
-          ) : '') +
+          '<div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;max-width:260px;">' + loseChipsHtml + '</div>' +
         '</div>';
 
       var durationRow = elapsedStr
@@ -2987,6 +3135,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;gap:clamp(8px,1.5vh,14px);">' +
           // Winner section on top
           winnerSection +
+          // Comparative team stats
+          comparativeSection +
           // Momentum graph (point-by-point)
           momentumSection +
           // Loser section below
