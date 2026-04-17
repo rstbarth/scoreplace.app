@@ -1,4 +1,5 @@
 // Normalize format: 'Ranking' → 'Liga' (unificado em v0.2.6)
+var _t = window._t || function(k) { return k; };
 // Defined at top level so it's available immediately on script load
 window._isLigaFormat = window._isLigaFormat || function(t) {
     return t && (t.format === 'Liga' || t.format === 'Ranking');
@@ -85,7 +86,7 @@ window._executeMerge = function(sourceName, targetName, tId) {
             }
             window.AppStore.logAction(tId, 'Participantes mesclados: "' + oldName + '" -> "' + newName + '"');
             if (typeof showNotification === 'function') {
-                showNotification('Participantes Mesclados', '"' + oldName + '" -> "' + newName + '"', 'success');
+                showNotification(_t('utils.partsMerged'), _t('utils.partsMergedMsg', { old: oldName, 'new': newName }), 'success');
             }
             setTimeout(function() {
                 if (typeof window._softRefreshView === 'function') window._softRefreshView();
@@ -497,7 +498,7 @@ window._fixOrphanedMatchNames = function(t) {
             window.FirestoreDB.saveTournament(t).catch(function(e) { console.warn('[FixOrphans] Save error:', e); });
         }
         if (typeof showNotification === 'function') {
-            showNotification('Nomes Corrigidos', fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }).join(', '), 'info');
+            showNotification(_t('utils.namesFixed'), fixes.map(function(f) { return '"' + f.oldName + '" → "' + f.newName + '"'; }).join(', '), 'info');
         }
     }
     return fixCount;

@@ -69,6 +69,8 @@ window._translations['pt'] = {
   'template.limitFree': 'Limite de 10 templates no plano Free. Faça upgrade para Pro!',
   'template.namePrompt': 'Nome do template:',
   'template.use': 'Usar',
+  'template.saveError': 'Erro ao salvar template',
+  'template.saveErrorMsg': 'Tente novamente.',
 
   // Tournament status
   'status.open': 'Inscrições Abertas',
@@ -296,6 +298,7 @@ window._translations['pt'] = {
   'quickCreate.sportLabel': 'Modalidade Esportiva',
   'quickCreate.create': 'Criar Torneio',
   'quickCreate.advanced': 'Detalhes Avançados',
+  'quickCreate.created': 'Torneio Criado!',
 
   // Help
   'help.title': 'Ajuda',
@@ -386,6 +389,18 @@ window._translations['pt'] = {
   'notif.tournamentStarted': 'O torneio "{name}" começou! Confira seu primeiro confronto.',
   'notif.newRound': 'Nova rodada gerada no torneio "{name}". Confira seus confrontos!',
   'notif.viewBracket': 'Ver Chaves',
+  'notif.fcmEnabled': 'Notificações Ativadas',
+  'notif.fcmEnabledMsg': 'Você receberá alertas de torneios, rodadas e resultados.',
+  'notif.fcmBlocked': 'Notificações Bloqueadas',
+  'notif.fcmBlockedMsg': 'Você pode ativar depois nas configurações do navegador.',
+
+  // Utils / Pre-draw
+  'utils.partsMerged': 'Participantes Mesclados',
+  'utils.partsMergedMsg': '"{old}" → "{new}"',
+  'utils.namesFixed': 'Nomes Corrigidos',
+  'predraw.formatChanged': 'Formato Alterado',
+  'predraw.formatChangedMsg': 'O formato foi alterado para {format}.',
+
   'profile.phoneRequired': 'Telefone necessário',
   'profile.phoneRequiredMsg': 'Para receber notificações por WhatsApp, preencha seu número de telefone no perfil.',
   'profile.emailRequired': 'Email necessário',
@@ -566,6 +581,8 @@ window._translations['pt'] = {
   'draw.reopenedWaiting': 'Aguardando novas inscrições.',
   'draw.alreadyClosed': 'Já encerrado',
   'draw.alreadyClosedMsg': 'Este torneio já está encerrado.',
+  'draw.finishDone': '🏆 Torneio Encerrado',
+  'draw.finishDoneMsg': '"{name}" foi encerrado com sucesso.',
   'draw.warning': 'Aviso',
   'draw.savedLocally': 'Aviso',
   'draw.savedLocallyMsg': 'Salvo localmente. Pode demorar a sincronizar.',

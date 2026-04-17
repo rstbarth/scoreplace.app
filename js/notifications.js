@@ -6,6 +6,7 @@
 // Browser requires user gesture (click) to grant notification permission,
 // so we show a banner prompting the user to enable notifications.
 
+var _t = window._t || function(k) { return k; };
 // Internal: register FCM token after permission is already granted
 window._registerFCMToken = async function() {
   var user = window.AppStore && window.AppStore.currentUser;
@@ -67,12 +68,12 @@ window._enablePushNotifications = async function() {
       try { localStorage.setItem('scoreplace_fcm_dismissed', 'granted'); } catch(e) {}
       await window._registerFCMToken();
       if (typeof showNotification === 'function') {
-        showNotification('Notificações Ativadas', 'Você receberá alertas de torneios, rodadas e resultados.', 'success');
+        showNotification(_t('notif.fcmEnabled'), _t('notif.fcmEnabledMsg'), 'success');
       }
     } else {
       try { localStorage.setItem('scoreplace_fcm_dismissed', 'denied'); } catch(e) {}
       if (typeof showNotification === 'function') {
-        showNotification('Notificações Bloqueadas', 'Você pode ativar depois nas configurações do navegador.', 'warning');
+        showNotification(_t('notif.fcmBlocked'), _t('notif.fcmBlockedMsg'), 'warning');
       }
     }
   } catch (err) {

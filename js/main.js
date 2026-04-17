@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.39-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>i18n completo — zero strings hardcoded em português</b> — últimos 6 arquivos conectados ao sistema <code>_t()</code>: tournaments-organizer.js (1 call, erro ao salvar template), tournaments-utils.js (2 calls, merge de participantes, correção de nomes), pre-draw.js (1 call, formato alterado), notifications.js (2 calls, FCM ativado/bloqueado), main.js (1 call, torneio criado), tournaments-draw-prep.js (1 call, torneio encerrado). Nenhuma string hardcoded em português restante em <code>showNotification</code> em todo o codebase.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.38-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>i18n completo — 10 arquivos em uma release</b> — todas as strings hardcoded em português conectadas ao sistema <code>_t()</code> em: tournaments-enrollment.js (20 calls, incl. lista de espera, cancelamento, liga ativo/inativo), tournaments-categories.js (12 calls, merge/unmerge/atribuição), participants.js (9 calls, check-in, substituição, W.O.), tournaments-sharing.js (8 calls, copiar link, QR, CSV), tournaments-draw.js (8 calls, duplicatas, torneio iniciado, grupos, suíço, sorteio), tournaments.js (10 calls, amigos, convites, bots, onclicks inline), store.js (6 calls, login Pro, pagamento, sync error, notificações), bracket-logic.js (5 calls, torneio encerrado, classificatória, nova rodada), hints.js (6 calls, ativar/desativar/resetar dicas), enroll-modal.js (3 calls, copiar link). Variáveis locais redundantes <code>_tFn/_tFn2/_tFn2a/_tFn3/_tFnRem/_tFnSeason</code> removidas. ~30 novas chaves adicionadas em <code>bui.*</code>, <code>enroll.*</code>, <code>cat.*</code>, <code>store.*</code>, <code>hints.*</code>.</p>' +
         '</div>' +
@@ -1774,7 +1778,7 @@
     try { sessionStorage.setItem('scoreplace_scroll_to_edit', '1'); } catch (e) {}
     window.location.hash = '#tournaments/' + tourData.id;
     if (typeof showNotification === 'function') {
-      showNotification('Torneio Criado!', autoName, 'success');
+      showNotification(window._t ? window._t('quickCreate.created') : 'Torneio Criado!', autoName, 'success');
     }
   });
 

@@ -1,3 +1,4 @@
+var _t = window._t || function(k) { return k; };
 function renderPreDraw(container, tournamentId) {
   // Resolve tournament ID from param or last active
   const tId = tournamentId || window._lastActiveTournamentId;
@@ -276,7 +277,7 @@ function renderPreDraw(container, tournamentId) {
     t.format = newFormat;
     window.AppStore.logAction(tId, `Formato alterado na Janela Pré-Sorteio para: ${newFormat}`);
     window.FirestoreDB.saveTournament(t);
-    showNotification('Formato Alterado', `O formato foi alterado para ${newFormat}.`, 'info');
+    showNotification(_t('predraw.formatChanged'), _t('predraw.formatChangedMsg', { format: newFormat }), 'info');
     // Re-render to update info panel
     renderPreDraw(container, tId);
   };

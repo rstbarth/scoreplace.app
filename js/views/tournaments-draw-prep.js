@@ -2348,7 +2348,7 @@ window.finishTournament = function(tId) {
             }
             const container = document.getElementById('view-container');
             if (container) renderTournaments(container, tId);
-            showNotification('🏆 Torneio Encerrado', '"' + t.name + '" foi encerrado com sucesso.', 'success');
+            showNotification(_t('draw.finishDone'), _t('draw.finishDoneMsg', { name: t.name }), 'success');
         },
         null,
         { type: 'warning', confirmText: 'Encerrar Torneio', cancelText: 'Cancelar' }

@@ -531,7 +531,7 @@ window._saveAsTemplate = function(tId) {
         } else if (result === 'limit') {
           showNotification(_t('template.limitFree'), '', 'warning');
         } else {
-          showNotification('Erro ao salvar template', 'Tente novamente.', 'error');
+          showNotification(_t('template.saveError'), _t('template.saveErrorMsg'), 'error');
         }
       })
     });

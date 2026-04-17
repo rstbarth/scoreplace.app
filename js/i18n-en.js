@@ -69,6 +69,8 @@ window._translations['en'] = {
   'template.limitFree': 'Free plan limited to 10 templates. Upgrade to Pro!',
   'template.namePrompt': 'Template name:',
   'template.use': 'Use',
+  'template.saveError': 'Error saving template',
+  'template.saveErrorMsg': 'Please try again.',
 
   // Tournament status
   'status.open': 'Open Enrollment',
@@ -296,6 +298,7 @@ window._translations['en'] = {
   'quickCreate.sportLabel': 'Sport',
   'quickCreate.create': 'Create Tournament',
   'quickCreate.advanced': 'Advanced Settings',
+  'quickCreate.created': 'Tournament Created!',
 
   // Help
   'help.title': 'Help',
@@ -386,6 +389,18 @@ window._translations['en'] = {
   'notif.tournamentStarted': 'The tournament "{name}" has started! Check your first matchup.',
   'notif.newRound': 'New round generated in "{name}". Check your matchups!',
   'notif.viewBracket': 'View Bracket',
+  'notif.fcmEnabled': 'Notifications Enabled',
+  'notif.fcmEnabledMsg': 'You will receive alerts for tournaments, rounds, and results.',
+  'notif.fcmBlocked': 'Notifications Blocked',
+  'notif.fcmBlockedMsg': 'You can enable them later in your browser settings.',
+
+  // Utils / Pre-draw
+  'utils.partsMerged': 'Participants Merged',
+  'utils.partsMergedMsg': '"{old}" → "{new}"',
+  'utils.namesFixed': 'Names Fixed',
+  'predraw.formatChanged': 'Format Changed',
+  'predraw.formatChangedMsg': 'The format was changed to {format}.',
+
   'profile.phoneRequired': 'Phone required',
   'profile.phoneRequiredMsg': 'To receive WhatsApp notifications, please add your phone number to your profile.',
   'profile.emailRequired': 'Email required',
@@ -566,6 +581,8 @@ window._translations['en'] = {
   'draw.reopenedWaiting': 'Waiting for new enrollments.',
   'draw.alreadyClosed': 'Already Closed',
   'draw.alreadyClosedMsg': 'This tournament is already closed.',
+  'draw.finishDone': '🏆 Tournament Finished',
+  'draw.finishDoneMsg': '"{name}" was successfully closed.',
   'draw.warning': 'Warning',
   'draw.savedLocally': 'Warning',
   'draw.savedLocallyMsg': 'Saved locally. May take a moment to sync.',
