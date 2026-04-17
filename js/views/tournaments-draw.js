@@ -21,8 +21,8 @@ window.showFinalReviewPanel = function (tId) {
                 <div style="display:flex;align-items:center;gap:15px;">
                     <span style="font-size:2.5rem;">🎉</span>
                     <div>
-                        <h3 style="margin:0;color:#f0fdf4;font-size:1.25rem;font-weight:800;">Tudo Pronto para o Sorteio!</h3>
-                        <p style="margin:4px 0 0;color:#bbf7d0;font-size:0.9rem;">Todas as verificações foram concluídas e resolvidas.</p>
+                        <h3 style="margin:0;color:#f0fdf4;font-size:1.25rem;font-weight:800;">${_t('tdraw.readyTitle')}</h3>
+                        <p style="margin:4px 0 0;color:#bbf7d0;font-size:0.9rem;">${_t('tdraw.readySubtitle')}</p>
                     </div>
                 </div>
             </div>
@@ -33,31 +33,31 @@ window.showFinalReviewPanel = function (tId) {
                     <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
                         <span style="color:#22c55e;font-size:1.2rem;">✅</span>
                         <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">Inscrições Encerradas</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">Nenhum novo participante pode entrar.</div>
+                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.enrollClosed')}</div>
+                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.enrollClosedDesc')}</div>
                         </div>
                     </div>
 
                     <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
                         <span style="color:#22c55e;font-size:1.2rem;">✅</span>
                         <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">Times Consolidados</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">Todos os times estão completos ou resolvidos.</div>
+                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.teamsConsolidated')}</div>
+                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.teamsConsolidatedDesc')}</div>
                         </div>
                     </div>
 
                     <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
                         <span style="color:#22c55e;font-size:1.2rem;">✅</span>
                         <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">Estrutura do Chaveamento</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">A potência de 2 foi atingida via: <b>${window._safeHtml(t.p2Resolution || 'Natural')}</b></div>
+                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.bracketStructure')}</div>
+                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.p2AchievedVia', {resolution: window._safeHtml(t.p2Resolution || 'Natural')})}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- History / Log -->
                 <div style="margin-bottom:2rem;">
-                    <h4 style="margin:0 0 10px;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">Histórico de Resoluções:</h4>
+                    <h4 style="margin:0 0 10px;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">${_t('tdraw.resolutionHistory')}</h4>
                     <div style="background:rgba(0,0,0,0.2);border-radius:16px;padding:1rem;max-height:120px;overflow-y:auto;font-family:monospace;font-size:0.8rem;color:#cbd5e1;">
                         ${(t.history || []).slice().reverse().map(log => `
                             <div style="margin-bottom:6px;display:flex;gap:10px;">
@@ -70,10 +70,10 @@ window.showFinalReviewPanel = function (tId) {
 
                 <div style="display:flex;flex-direction:column;gap:10px;">
                     <button onclick="window.generateDrawFunction('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:15px;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:10px;">
-                        <span>🎲</span> Rodar Sorteio Agora
+                        <span>🎲</span> ${_t('tdraw.rollDrawNow')}
                     </button>
                     <button onclick="document.getElementById('final-review-panel').remove();document.body.style.overflow='';" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;">
-                        Voltar e Revisar
+                        ${_t('tdraw.backAndReview')}
                     </button>
                 </div>
             </div>
@@ -261,8 +261,8 @@ window.generateDrawFunction = function (tId) {
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
                 level: 'important',
-                title: '🎲 Rodada 1 — ' + (t.name || 'Torneio'),
-                message: _roundMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
+                title: _t('tdraw.round1NotifTitle', {name: t.name || _t('dashboard.tournamentName')}),
+                message: _t('tdraw.round1NotifMsg', {count: _roundMatchCount}),
                 tournamentId: tId
             });
         }
@@ -584,8 +584,8 @@ window.generateDrawFunction = function (tId) {
             window._notifyTournamentParticipants(t, {
                 type: 'draw',
                 level: 'important',
-                title: '🎲 Classificatória — ' + (t.name || 'Torneio'),
-                message: 'Rodada 1 de ' + t.swissRounds + '. Top ' + _swLo + ' avançam para ' + (t.format || 'Eliminatórias') + '!',
+                title: _t('tdraw.swissNotifTitle', {name: t.name || _t('dashboard.tournamentName')}),
+                message: _t('tdraw.swissNotifMsg', {rounds: t.swissRounds, lo: _swLo, format: t.format || _t('participants.defaultFormat')}),
                 tournamentId: tId
             });
         }
