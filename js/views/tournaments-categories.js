@@ -553,11 +553,11 @@ window._buildTimeEstimation = function(t) {
   if (rows.length === 0) return '';
 
   // Montar HTML
-  var courtsLabel = courts > 1 ? courts + ' quadras' : '1 quadra';
+  var courtsLabel = courts > 1 ? _t('cat.nCourtsLabel', {n: courts}) : _t('cat.oneCourtLabel');
   var html = '<div style="margin-top: 8px; padding: 10px 14px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px;">';
   html += '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">';
   html += '<span style="font-size:1.1rem;">⏱️</span>';
-  html += '<span style="font-size:0.8rem; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px;">Duração Estimada</span>';
+  html += '<span style="font-size:0.8rem; font-weight:700; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px;">' + _t('cat.estimatedDuration') + '</span>';
   html += '<span style="font-size:0.65rem; color:var(--text-muted); opacity:0.7;">(' + gameDur + 'min/partida · ' + courtsLabel + ')</span>';
   html += '</div>';
 
@@ -569,10 +569,10 @@ window._buildTimeEstimation = function(t) {
     var durColor = r.highlight ? '#e2e8f0' : 'rgba(255,255,255,0.7)';
     html += '<div style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:' + bg + '; border:' + border + '; border-radius:8px; flex-wrap:wrap;">';
     html += '<span style="font-size:0.78rem; font-weight:600; color:' + labelColor + '; min-width:110px;">' + r.label + '</span>';
-    html += '<span style="font-size:0.78rem; color:var(--text-muted); opacity:0.6;">' + r.matches + ' partidas</span>';
+    html += '<span style="font-size:0.78rem; color:var(--text-muted); opacity:0.6;">' + r.matches + ' ' + _t('cat.matchesSuffix') + '</span>';
     html += '<span style="font-size:0.85rem; font-weight:700; color:' + durColor + '; margin-left:auto;">' + r.duration + '</span>';
     if (r.endTime) {
-      html += '<span style="font-size:0.72rem; color:#a5b4fc; opacity:0.8;">término ~' + r.endTime + '</span>';
+      html += '<span style="font-size:0.72rem; color:#a5b4fc; opacity:0.8;">' + _t('cat.endTimePrefix') + r.endTime + '</span>';
     }
     html += '</div>';
   });
@@ -696,8 +696,8 @@ window._openCategoryManager = function(tId) {
                     '</div>';
             }).join('');
             uncatHtml = '<div style="margin-top:1rem;padding:1rem;background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:12px;">' +
-                '<div style="font-weight:700;color:#fca5a5;font-size:0.85rem;margin-bottom:8px;">⚠️ Sem Categoria (' + uncategorized.length + ')</div>' +
-                '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Arraste para uma categoria acima para atribuir.</div>' +
+                '<div style="font-weight:700;color:#fca5a5;font-size:0.85rem;margin-bottom:8px;">' + _t('cat.noCategory', {count: uncategorized.length}) + '</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">' + _t('cat.dragToAssign') + '</div>' +
                 '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + uncatCards + '</div>' +
                 '</div>';
         }
@@ -712,7 +712,7 @@ window._openCategoryManager = function(tId) {
             '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
             '</div>' +
             '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
-            '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Arraste uma categoria sobre outra para mesclar. Arraste participantes sem categoria para atribuí-los.</div>' +
+            '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">' + _t('cat.dragInstructions') + '</div>' +
             '<div id="cat-mgr-cards">' + catRowsHtml + '</div>' +
             uncatHtml +
             '</div>' +
@@ -1039,10 +1039,8 @@ function _confirmMergeCategories(tId, sourceCat, targetCat) {
 
     var _dn = window._displayCategoryName || function(c) { return c; };
     showAlertDialog(
-        'Mesclar Categorias',
-        'Deseja mesclar <strong>' + _dn(sourceCat) + '</strong> com <strong>' + _dn(targetCat) + '</strong>?<br><br>' +
-        'A nova categoria será: <strong>' + _dn(mergedName) + '</strong><br><br>' +
-        'Todos os participantes de ambas as categorias serão movidos para a nova categoria.',
+        _t('cat.mergeDialogTitle'),
+        _t('cat.mergeDialogMsg', {src: _dn(sourceCat), target: _dn(targetCat), merged: _dn(mergedName)}),
         function() {
             _executeMerge(tId, sourceCat, targetCat, mergedName);
         },
@@ -1158,9 +1156,8 @@ function _removeParticipantFromCategory(tId, pIdx, category) {
     var pName = p.displayName || p.name || 'Sem nome';
 
     showAlertDialog(
-        'Remover da Categoria',
-        'Deseja remover <strong>' + pName + '</strong> da categoria <strong>' + window._displayCategoryName(category) + '</strong>?<br><br>' +
-        'O participante ficará sem categoria e poderá ser reatribuído.',
+        _t('cat.removeFromCatTitle'),
+        _t('cat.removeFromCatMsg', {name: pName, cat: window._displayCategoryName(category)}),
         function() {
             _executeRemoveFromCategory(tId, pIdx, category);
         },
@@ -1236,10 +1233,8 @@ function _unmergeCategoryAction(tId, catName) {
         var record = t.mergeHistory[mergeIdx];
         var _dn2 = window._displayCategoryName || function(c) { return c; };
         showAlertDialog(
-            'Desmesclar Categoria',
-            'Deseja desfazer a mesclagem de <strong>' + _dn2(catName) + '</strong>?<br><br>' +
-            'As categorias originais serão restauradas: <strong>' + _dn2(record.sourceCat) + '</strong> e <strong>' + _dn2(record.targetCat) + '</strong><br><br>' +
-            'Os participantes serão reatribuídos às suas categorias originais. Participantes sem histórico ficarão sem categoria.',
+            _t('cat.unmergeDialogTitle'),
+            _t('cat.unmergeDialogMsg', {cat: _dn2(catName), src: _dn2(record.sourceCat), target: _dn2(record.targetCat)}),
             function() {
                 _executeUnmerge(tId, mergeIdx);
             },
@@ -1281,11 +1276,10 @@ function _unmergeCategoryAction(tId, catName) {
     }
 
     var _dn3 = window._displayCategoryName || function(c) { return c; };
+    var _inferredCatsStr = '<strong>' + inferredCats.map(function(ic) { return _dn3(ic); }).join('</strong>, <strong>') + '</strong>';
     showAlertDialog(
-        'Desmesclar Categoria',
-        'Deseja desfazer a mesclagem de <strong>' + _dn3(catName) + '</strong>?<br><br>' +
-        'As categorias originais serão restauradas: <strong>' + inferredCats.map(function(ic) { return _dn3(ic); }).join('</strong>, <strong>') + '</strong><br><br>' +
-        'Os participantes serão reatribuídos às suas categorias originais.',
+        _t('cat.unmergeDialogTitle'),
+        _t('cat.unmergeDialogMsgInferred', {cat: _dn3(catName), cats: _inferredCatsStr}),
         function() {
             _executeInferredUnmerge(tId, catName, inferredCats);
         },
@@ -1615,16 +1609,16 @@ window._checkCategoryNotifications = function(t) {
     userNotifs.forEach(function(n) {
         n.read = true; // Mark as read
 
-        var sourceLabel = n.source === 'perfil' ? 'com base no seu perfil' : 'pelo organizador';
+        var sourceLabel = n.source === 'perfil' ? _t('cat.sourceProfile') : _t('cat.sourceOrganizer');
         var orgEmail = t.organizerEmail || '';
         var orgName = t.organizerName || t.organizerEmail || 'organizador';
 
         var questionBtnId = 'cat-question-btn-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
 
         showAlertDialog(
-            'Categoria Atribuída',
-            'Você foi atribuído à categoria <strong>' + window._displayCategoryName(n.category) + '</strong> ' + sourceLabel + ' no torneio <strong>' + (t.name || '') + '</strong>.' +
-            '<br><br><button id="' + questionBtnId + '" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;padding:8px 16px;border-radius:10px;font-weight:600;font-size:0.85rem;cursor:pointer;">💬 Questionar Organizador</button>',
+            _t('cat.assigned'),
+            _t('cat.assignedDialogMsg', {cat: window._displayCategoryName(n.category), source: sourceLabel, tournament: (t.name || '')}) +
+            '<br><br><button id="' + questionBtnId + '" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;padding:8px 16px;border-radius:10px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('cat.questionOrg') + '</button>',
             function() {
                 // Dialog dismissed
             },
