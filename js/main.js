@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>i18n completo — estimativa de duração e labels de acesso</b> — 20 strings em create-tournament.js conectadas ao <code>_t()</code>: estimativa de duração (quadra/s, Tempo disponível, min/partida, rodada/s, sequenciais, jogos, classificatória/s, chave, aviso de overflow, máximo), visibilidade de acesso ternária (🌐/🔒 na restauração de template), lançamento de resultado (Organizador/Jogadores/Árbitro, "Quem lança: {list}"), labels curtos de acesso. 17 novas chaves: <code>create.*</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>i18n completo — inline HTML em create-tournament</b> — 9 strings inline conectadas ao <code>_t()</code>: Sem logo, 🌐 Aberto ao Público, 🔒 Acesso Restrito, Carregando API do Google, Nenhum resultado encontrado, Mapa indisponível (2x), Previsão apenas para próximos 5 dias, X min por partida (com interpolação), detalhe de duração Chamada/Aquecimento/Jogo (com 3 interpolações). 9 novas chaves <code>create.*</code>.</p>' +
         '</div>' +

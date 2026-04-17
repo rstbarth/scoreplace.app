@@ -941,11 +941,11 @@ function setupCreateTournamentModal() {
 
     // Build combined description
     var parts = [];
-    if (org.checked) parts.push('Organizador e co-organizadores');
-    if (plr.checked) parts.push('Jogadores (com confirmação do adversário e placar ao vivo)');
-    if (ref.checked) parts.push('Árbitro designado');
+    if (org.checked) parts.push(_t('create.resultOrganizers'));
+    if (plr.checked) parts.push(_t('create.resultPlayers'));
+    if (ref.checked) parts.push(_t('create.resultReferee'));
     var descEl = document.getElementById('result-entry-desc');
-    if (descEl) descEl.textContent = parts.length ? 'Quem lança: ' + parts.join(' + ') + '.' : '';
+    if (descEl) descEl.textContent = parts.length ? _t('create.resultWho', { list: parts.join(' + ') }) : '';
   };
   // Legacy compat wrapper
   window._selectResultEntry = function(btn) {
@@ -1579,8 +1579,8 @@ function setupCreateTournamentModal() {
     var isPublic = values.length === 0 || (values.length === 1 && values[0] === 'public');
     toggle.checked = isPublic;
     if (hiddenEl) hiddenEl.value = isPublic ? 'public' : 'members';
-    if (label) label.innerHTML = isPublic ? '🌐 Aberto ao Público' : '🔒 Acesso Restrito';
-    if (desc) desc.textContent = isPublic ? 'Qualquer pessoa pode se inscrever e acompanhar o torneio.' : 'Apenas convidados pelo organizador podem participar.';
+    if (label) label.innerHTML = isPublic ? _t('create.accessOpen') : _t('create.accessRestricted');
+    if (desc) desc.textContent = isPublic ? _t('create.openDesc') : _t('create.restrictedDesc');
   };
 
   // --- Google Places venue search (programmatic — no Google UI elements injected) ---
@@ -1803,7 +1803,7 @@ function setupCreateTournamentModal() {
       if (accessEl) accessEl.value = suggested.join(',');
       window._applyVenueAccessUI(suggested);
       if (typeof showNotification === 'function') {
-        var accessLabel = suggested.includes('members') ? 'Acesso restrito' : 'Aberto ao público';
+        var accessLabel = suggested.includes('members') ? _t('create.accessRestrictedShort') : _t('create.accessOpenShort');
         showNotification(window._t('create.venueFound'), window._t('create.venueFoundMsg', {access: accessLabel}), 'success');
       }
 
@@ -2352,9 +2352,9 @@ function setupCreateTournamentModal() {
       const maxFeasible = _calcMaxFeasible(maxSlots);
 
       box.style.display = 'block';
-      document.getElementById('duration-estimate-text').textContent = slotTime + ' min por partida';
+      document.getElementById('duration-estimate-text').textContent = _t('create.minPerMatch', { n: slotTime });
       document.getElementById('duration-estimate-detail').innerHTML =
-        courts + ' quadra' + (courts > 1 ? 's' : '') + ' | Tempo disponível: ' + _fmtMin(availableMin);
+        courts + ' ' + _t('create.court') + (courts > 1 ? 's' : '') + ' | ' + _t('create.timeAvailable') + ': ' + _fmtMin(availableMin);
 
       if (maxFeasible > 1) {
         capEl.style.display = 'block';
@@ -2395,16 +2395,16 @@ function setupCreateTournamentModal() {
     let durationText = _fmtMin(totalMinutes);
 
     box.style.display = 'block';
-    let mainEstimate = durationText + ' · ' + numMatches + ' jogos';
+    let mainEstimate = durationText + ' · ' + numMatches + ' ' + _t('create.matchCount');
     if (isElimFmt && !_isPow2(n) && n > 2) {
       const det = _elimDetail(n);
-      mainEstimate += ' <span style="font-size:0.85rem; opacity:0.7;">(' + det.playInMatches + ' classificatória' + (det.playInMatches > 1 ? 's' : '') + ' + ' + det.mainMatches + ' chave)</span>';
+      mainEstimate += ' <span style="font-size:0.85rem; opacity:0.7;">(' + det.playInMatches + ' ' + _t('create.qualifier') + (det.playInMatches > 1 ? 's' : '') + ' + ' + det.mainMatches + ' ' + _t('create.bracket') + ')</span>';
     }
     document.getElementById('duration-estimate-text').innerHTML = mainEstimate;
     document.getElementById('duration-estimate-detail').innerHTML =
-      courts + ' quadra' + (courts > 1 ? 's' : '') + ' | ' +
-      slotTime + 'min/partida | ' +
-      roundCount + ' rodada' + (roundCount > 1 ? 's' : '') + ' sequenciais';
+      courts + ' ' + _t('create.court') + (courts > 1 ? 's' : '') + ' | ' +
+      slotTime + _t('create.minSlot') + ' | ' +
+      roundCount + ' ' + _t('create.round') + (roundCount > 1 ? 's' : '') + ' ' + _t('create.sequential');
 
     if (hasTimeWindow) {
       const maxSlots = Math.floor(availableMin / slotTime) * courts;
@@ -2415,14 +2415,14 @@ function setupCreateTournamentModal() {
       if (totalMinutes > availableMin) {
         const overMin = totalMinutes - availableMin;
         warnEl.style.display = 'block';
-        warnEl.innerHTML = '⚠️ O torneio pode exceder o horário de fim em <strong>' + _fmtMin(overMin) + '</strong>.';
+        warnEl.innerHTML = _t('create.overflowWarning', { time: _fmtMin(overMin) });
 
         capEl.style.display = 'block';
         capEl.style.background = 'rgba(239,68,68,0.1)';
         capEl.style.borderColor = 'rgba(239,68,68,0.25)';
         capEl.style.color = '#f87171';
         let capHtml = 'Com <strong>' + _fmtMin(availableMin) + '</strong> e <strong>' + courts +
-          ' quadra' + (courts > 1 ? 's' : '') + '</strong>, máximo: ' + _descOption(fmt, maxFeasible) + '.';
+          ' ' + _t('create.court') + (courts > 1 ? 's' : '') + '</strong>, ' + _t('create.capacityMax') + _descOption(fmt, maxFeasible) + '.';
         capEl.innerHTML = capHtml;
 
         // P2 resolution info
@@ -2502,7 +2502,7 @@ function setupCreateTournamentModal() {
 
         if (suggestions.length > 0) {
           sugEl.style.display = 'flex';
-          sugEl.innerHTML = '<div style="font-size:0.75rem; font-weight:600; color:#818cf8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Sugestões do Sistema</div>' + suggestions.join('');
+          sugEl.innerHTML = '<div style="font-size:0.75rem; font-weight:600; color:#818cf8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">' + _t('create.systemSuggestions') + '</div>' + suggestions.join('');
         }
 
       // ---- NEAR LIMIT: >75% usage ----
@@ -2540,7 +2540,7 @@ function setupCreateTournamentModal() {
         }
         if (suggestions.length > 0) {
           sugEl.style.display = 'flex';
-          sugEl.innerHTML = '<div style="font-size:0.75rem; font-weight:600; color:#818cf8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Sugestões</div>' + suggestions.join('');
+          sugEl.innerHTML = '<div style="font-size:0.75rem; font-weight:600; color:#818cf8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">' + _t('create.systemSuggestions') + '</div>' + suggestions.join('');
         }
 
       // ---- OK: within limits ----

@@ -1065,6 +1065,27 @@ window._translations['en'] = {
   'auth.profileUpdated': 'Profile Updated',
   'auth.profileUpdatedMsg': 'Your information was saved successfully.',
 
+  // Create tournament result entry / access labels
+  'create.resultOrganizers': 'Organizer and co-organizers',
+  'create.resultPlayers': 'Players (with opponent confirmation and live score)',
+  'create.resultReferee': 'Designated referee',
+  'create.resultWho': 'Who enters: {list}.',
+  'create.accessRestrictedShort': 'Restricted access',
+  'create.accessOpenShort': 'Open to public',
+
+  // Create tournament duration estimate
+  'create.court': 'court',
+  'create.timeAvailable': 'Available time',
+  'create.minSlot': 'min/match',
+  'create.round': 'round',
+  'create.sequential': 'sequential',
+  'create.matchCount': 'matches',
+  'create.qualifier': 'qualifier',
+  'create.bracket': 'bracket',
+  'create.overflowWarning': '⚠️ Tournament may exceed end time by <strong>{time}</strong>.',
+  'create.capacityMax': 'max: ',
+  'create.systemSuggestions': 'System Suggestions',
+
   // Create tournament inline UI
   'create.noLogo': 'No logo',
   'create.accessOpen': '🌐 Open to Public',

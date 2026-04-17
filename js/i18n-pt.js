@@ -1065,6 +1065,27 @@ window._translations['pt'] = {
   'auth.profileUpdated': 'Perfil Atualizado',
   'auth.profileUpdatedMsg': 'Suas informações foram salvas com sucesso.',
 
+  // Create tournament result entry / access labels
+  'create.resultOrganizers': 'Organizador e co-organizadores',
+  'create.resultPlayers': 'Jogadores (com confirmação do adversário e placar ao vivo)',
+  'create.resultReferee': 'Árbitro designado',
+  'create.resultWho': 'Quem lança: {list}.',
+  'create.accessRestrictedShort': 'Acesso restrito',
+  'create.accessOpenShort': 'Aberto ao público',
+
+  // Create tournament duration estimate
+  'create.court': 'quadra',
+  'create.timeAvailable': 'Tempo disponível',
+  'create.minSlot': 'min/partida',
+  'create.round': 'rodada',
+  'create.sequential': 'sequenciais',
+  'create.matchCount': 'jogos',
+  'create.qualifier': 'classificatória',
+  'create.bracket': 'chave',
+  'create.overflowWarning': '⚠️ O torneio pode exceder o horário de fim em <strong>{time}</strong>.',
+  'create.capacityMax': 'máximo: ',
+  'create.systemSuggestions': 'Sugestões do Sistema',
+
   // Create tournament inline UI
   'create.noLogo': 'Sem logo',
   'create.accessOpen': '🌐 Aberto ao Público',
