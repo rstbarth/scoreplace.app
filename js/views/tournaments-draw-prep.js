@@ -89,7 +89,7 @@ window._showGroupsConfigPanel = function(tId) {
 
     var info = window._diagnoseAll(t);
     var N = info.effectiveTeams;
-    var unitLabel = info.isTeam ? 'times' : 'participantes';
+    var unitLabel = info.isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParticipants');
     var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var currentClassified = parseInt(t.gruposClassified) || 2;
 
@@ -153,17 +153,17 @@ window._showGroupsConfigPanel = function(tId) {
                 '<div style="display:flex;align-items:center;gap:12px;">' +
                     '<span style="font-size:1.5rem;">🏟️</span>' +
                     '<div>' +
-                        '<h3 style="margin:0;color:#dbeafe;font-size:1.1rem;font-weight:900;">Configuração dos Grupos</h3>' +
-                        '<p style="margin:2px 0 0;color:#93c5fd;font-size:0.75rem;opacity:0.9;">' + N + ' ' + unitLabel + ' — escolha a distribuição</p>' +
+                        '<h3 style="margin:0;color:#dbeafe;font-size:1.1rem;font-weight:900;">' + _t('predraw.groupsTitle') + '</h3>' +
+                        '<p style="margin:2px 0 0;color:#93c5fd;font-size:0.75rem;opacity:0.9;">' + N + ' ' + unitLabel + ' — ' + _t('predraw.chooseDistribution') + '</p>' +
                     '</div>' +
                 '</div>' +
-                '<button onclick="window._cancelGroupsConfig(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#dbeafe;border:2px solid rgba(219,234,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\'">✕ Cancelar</button>' +
+                '<button onclick="window._cancelGroupsConfig(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#dbeafe;border:2px solid rgba(219,234,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\'">' + _t('predraw.cancelBtn') + '</button>' +
             '</div>' +
             '<div style="overflow-y:auto;flex:1;padding:1.5rem;">';
 
         // Classified per group selector
         html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;flex-wrap:wrap;">' +
-            '<span style="font-size:0.8rem;font-weight:700;color:var(--text-bright);">Classificados por grupo:</span>';
+            '<span style="font-size:0.8rem;font-weight:700;color:var(--text-bright);">' + _t('predraw.classifiedPerGroup') + '</span>';
         for (var cp = 1; cp <= 4; cp++) {
             var isActive = cp === classPerGroup;
             html += '<button onclick="window._groupsRerenderPanel(' + cp + ')" style="padding:6px 16px;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.15s;border:2px solid ' + (isActive ? '#3b82f6' : 'rgba(255,255,255,0.15)') + ';background:' + (isActive ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.05)') + ';color:' + (isActive ? '#93c5fd' : 'var(--text-muted)') + ';">' + cp + '</button>';
@@ -171,7 +171,7 @@ window._showGroupsConfigPanel = function(tId) {
         html += '</div>';
 
         if (configs.length === 0) {
-            html += '<div style="text-align:center;padding:2rem;color:var(--text-muted);">Nenhuma configuração válida para ' + N + ' ' + unitLabel + '.</div>';
+            html += '<div style="text-align:center;padding:2rem;color:var(--text-muted);">' + _t('predraw.noValidConfig', {n: N, unit: unitLabel}) + '</div>';
         } else {
             // Grid of configs
             html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">';
@@ -184,24 +184,24 @@ window._showGroupsConfigPanel = function(tId) {
                 // Distribution text
                 var distText = '';
                 if (isEven) {
-                    distText = c.groups + ' grupos de ' + c.base;
+                    distText = _t('predraw.groupsOf', {g: c.groups, s: c.base});
                 } else {
-                    distText = c.bigGroups + ' grupo' + (c.bigGroups > 1 ? 's' : '') + ' de ' + c.bigSize + ' + ' + c.smallGroups + ' grupo' + (c.smallGroups > 1 ? 's' : '') + ' de ' + c.smallSize;
+                    distText = _t('predraw.groupsMixed', {g1: c.bigGroups, s1: (c.bigGroups > 1 ? 's' : ''), z1: c.bigSize, g2: c.smallGroups, s2: (c.smallGroups > 1 ? 's' : ''), z2: c.smallSize});
                 }
 
                 // Advance info
-                var advanceText = c.totalAdvance + ' avançam';
+                var advanceText = _t('predraw.advanceLabel', {n: c.totalAdvance});
                 var pow2Badge = c.isPow2
-                    ? '<span style="font-size:0.6rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:2px 6px;border-radius:4px;">✓ POT. 2</span>'
-                    : '<span style="font-size:0.6rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 6px;border-radius:4px;">≠ pot. 2</span>';
+                    ? '<span style="font-size:0.6rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:2px 6px;border-radius:4px;">' + _t('predraw.badgePow2') + '</span>'
+                    : '<span style="font-size:0.6rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 6px;border-radius:4px;">' + _t('predraw.badgeNotPow2') + '</span>';
 
                 // Recommended badge
-                var recommendBadge = (idx === 0) ? '<div style="margin-bottom:4px;"><span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span></div>' : '';
+                var recommendBadge = (idx === 0) ? '<div style="margin-bottom:4px;"><span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;text-transform:uppercase;">' + _t('predraw.nashRecommended') + '</span></div>' : '';
 
                 html += '<button onclick="window._selectGroupsConfig(\'' + tIdSafe + '\',' + c.groups + ',' + c.classPerGroup + ')" style="background:' + bgColor + ';border:2px solid ' + borderColor + ';box-shadow:' + glowColor + ';border-radius:16px;padding:14px 16px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;align-items:center;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'">' +
                     recommendBadge +
                     '<div style="font-size:2rem;font-weight:950;color:#fff;line-height:1;">' + c.groups + '</div>' +
-                    '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">grupos</div>' +
+                    '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.groupsUnit') + '</div>' +
                     '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);line-height:1.3;margin-top:2px;">' + distText + '</div>' +
                     '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">' +
                         '<span style="font-size:0.7rem;color:#93c5fd;font-weight:600;">' + advanceText + '</span>' +
@@ -214,9 +214,9 @@ window._showGroupsConfigPanel = function(tId) {
 
         // Legend
         html += '<div style="margin-top:1rem;display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">' +
-            '<span style="font-size:0.65rem;color:var(--text-muted);">🟢 Potência de 2 (eliminatória perfeita)</span>' +
-            '<span style="font-size:0.65rem;color:var(--text-muted);">🔵 Grupos iguais</span>' +
-            '<span style="font-size:0.65rem;color:var(--text-muted);">🟡 Grupos mistos</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">' + _t('predraw.legendPow2') + '</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">' + _t('predraw.legendEven') + '</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);">' + _t('predraw.legendMixed') + '</span>' +
             '</div>';
 
         html += '</div></div>';
@@ -285,8 +285,8 @@ window._showRemainderPanel = function(tId, info, t) {
     var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var teamsFormed = info.effectiveTeams;
     var remCount = info.remainder;
-    var remLabel = remCount + ' participante' + (remCount > 1 ? 's' : '');
-    var teamLabel = teamsFormed + ' time' + (teamsFormed > 1 ? 's' : '');
+    var remLabel = remCount + ' ' + (remCount > 1 ? _t('predraw.unitParticipants') : _t('predraw.unitParticipantSingular'));
+    var teamLabel = teamsFormed + ' ' + (teamsFormed > 1 ? _t('predraw.unitTeams') : _t('predraw.unitTeamSingular'));
 
     // Store info globally so onclick handlers can access it without JSON in attributes
     window._remainderInfo = info;
@@ -303,11 +303,11 @@ window._showRemainderPanel = function(tId, info, t) {
             '<div style="display:flex;align-items:center;gap:12px;">' +
                 '<span style="font-size:1.5rem;">👥</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#ede9fe;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">Participantes Restantes</h3>' +
-                    '<p style="margin:2px 0 0;color:#c4b5fd;font-size:0.75rem;">' + remLabel + ' não forma' + (remCount > 1 ? 'm' : '') + ' time completo</p>' +
+                    '<h3 style="margin:0;color:#ede9fe;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">' + _t('predraw.remainderTitle') + '</h3>' +
+                    '<p style="margin:2px 0 0;color:#c4b5fd;font-size:0.75rem;">' + _t('predraw.remainderSubtitle', {label: remLabel, p: (remCount > 1 ? 'm' : '')}) + '</p>' +
                 '</div>' +
             '</div>' +
-            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#ede9fe;border:2px solid rgba(237,233,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(237,233,254,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(237,233,254,0.3)\'">✕ Cancelar</button>' +
+            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#ede9fe;border:2px solid rgba(237,233,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(237,233,254,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(237,233,254,0.3)\'">' + _t('predraw.cancelBtn') + '</button>' +
         '</div>' +
         // Scrollable content
         '<div style="overflow-y:auto;flex:1;">' +
@@ -316,44 +316,44 @@ window._showRemainderPanel = function(tId, info, t) {
             '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' +
                 '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
                     '<div style="font-size:1.8rem;font-weight:900;color:#a78bfa;line-height:1;">' + teamsFormed + '</div>' +
-                    '<div style="font-size:0.7rem;color:#c4b5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Times formados</div>' +
+                    '<div style="font-size:0.7rem;color:#c4b5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.teamsFormed') + '</div>' +
                 '</div>' +
                 '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
                     '<div style="font-size:1.8rem;font-weight:900;color:#f59e0b;line-height:1;">' + remCount + '</div>' +
-                    '<div style="font-size:0.7rem;color:#fcd34d;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Resto</div>' +
+                    '<div style="font-size:0.7rem;color:#fcd34d;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.remainderLabel') + '</div>' +
                 '</div>' +
                 '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
                     '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.totalRawParticipants + '</div>' +
-                    '<div style="font-size:0.7rem;color:#93c5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Total inscritos</div>' +
+                    '<div style="font-size:0.7rem;color:#93c5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.totalEnrolled') + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +
         // Options
         '<div style="padding:1.8rem 2rem 2rem;">' +
-            '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">O que fazer com o resto?</h4>' +
+            '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">' + _t('predraw.whatToDo') + '</h4>' +
             '<div style="display:flex;flex-direction:column;gap:10px;">' +
                 // Reabrir Inscrições
                 '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">↩️</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#60a5fa;">Reabrir Inscrições</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Abrir inscrições para completar ' + (remCount > 1 ? 'os times' : 'o time') + ' restante' + (remCount > 1 ? 's' : '') + '.</div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#60a5fa;">' + _t('predraw.p2PollReopenTitle') + '</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.reopenRemainderDesc', {label: (remCount > 1 ? _t('predraw.remainderTeamMany') : _t('predraw.remainderTeamOne'))}) + '</div>' +
                     '</div>' +
                 '</button>' +
                 // Lista de Espera
                 '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'standby\',window._remainderInfo)" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">⏱️</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">Lista de Espera</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Mover ' + remLabel + ' para lista de espera. Escolha: sorteio ou últimos inscritos.</div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">' + _t('predraw.waitlistTitle') + '</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.standbyRemainderDesc', {label: remLabel}) + '</div>' +
                     '</div>' +
                 '</button>' +
                 // Exclusão
                 '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'exclusion\',window._remainderInfo)" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
                     '<span style="font-size:1.6rem;flex-shrink:0;">🚫</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#f87171;">Exclusão</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">Remover ' + remLabel + ' do torneio. Escolha: sorteio ou últimos inscritos.</div>' +
+                        '<div style="font-weight:800;font-size:0.95rem;color:#f87171;">' + _t('predraw.exclusionTitle') + '</div>' +
+                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.exclusionRemainderDesc', {label: remLabel}) + '</div>' +
                     '</div>' +
                 '</button>' +
             '</div>' +
@@ -381,9 +381,9 @@ window._cancelRemainderPanel = function(tId) {
 
 window._showRemovalSubChoice = function(tId, mode, info) {
     var isStandby = mode === 'standby';
-    var title = isStandby ? '⏱️ Lista de Espera' : '🚫 Exclusão';
+    var title = isStandby ? ('⏱️ ' + _t('predraw.waitlistTitle')) : ('🚫 ' + _t('predraw.exclusionTitle'));
     var removeCount = info.remainder > 0 ? info.remainder : info.excess;
-    var label = removeCount + ' participante' + (removeCount > 1 ? 's' : '');
+    var label = removeCount + ' ' + (removeCount > 1 ? _t('predraw.unitParticipants') : _t('predraw.unitParticipantSingular'));
     var subtitle = isStandby
         ? _t('predraw.removalSubStandby', {label: label})
         : _t('predraw.removalSubExclusion', {label: label});
@@ -406,22 +406,22 @@ window._showRemovalSubChoice = function(tId, mode, info) {
             '<div style="display:flex;align-items:center;gap:10px;">' +
                 '<span style="font-size:1.3rem;">' + (isStandby ? '⏱️' : '🚫') + '</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:900;">' + (isStandby ? 'Lista de Espera' : 'Exclusão') + '</h3>' +
+                    '<h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:900;">' + (isStandby ? _t('predraw.waitlistTitle') : _t('predraw.exclusionTitle')) + '</h3>' +
                     '<p style="margin:2px 0 0;color:rgba(255,255,255,0.7);font-size:0.72rem;">' + subtitle + '</p>' +
                 '</div>' +
             '</div>' +
-            '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fff;border:2px solid rgba(255,255,255,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(255,255,255,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(255,255,255,0.3)\'">← Voltar</button>' +
+            '<button onclick="document.getElementById(\'removal-subchoice-panel\').remove();window.showUnifiedResolutionPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fff;border:2px solid rgba(255,255,255,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(255,255,255,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(255,255,255,0.3)\'">' + _t('predraw.backBtn') + '</button>' +
         '</div>' +
         // Scrollable content
         '<div style="overflow-y:auto;flex:1;padding:1.5rem 2rem;">' +
             '<div style="display:flex;flex-direction:column;gap:12px;">' +
                 '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
                     '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">' + _t('predraw.removalRandTitle') + '</div>' +
-                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + _t('predraw.randomSubtitle', {n: removeCount, s: (removeCount > 1 ? 's' : '')}) + '</div>' +
                 '</button>' +
                 '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
                     '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">' + _t('predraw.removalLastTitle') + '</div>' +
-                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
+                    '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + (isStandby ? _t('predraw.lastStandbySubtitle', {n: removeCount, s: (removeCount > 1 ? 's' : '')}) : _t('predraw.lastExclusionSubtitle', {n: removeCount, s: (removeCount > 1 ? 's' : '')})) + '</div>' +
                 '</button>' +
             '</div>' +
         '</div>' +
@@ -468,7 +468,7 @@ window._executeRemoval = function(tId, mode, method) {
         var removedNames = removed.map(function(p) {
             return typeof p === 'string' ? p : (p.displayName || p.name || '?');
         }).join(', ');
-        var actionLabel = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s)';
+        var actionLabel = mode === 'standby' ? _t('predraw.movedToWaitlist') : _t('predraw.removedLabel');
         if (typeof showNotification !== 'undefined') {
             showNotification(_t('draw.adjustDone'), removedNames + ' ' + actionLabel + '.', 'success');
         }
@@ -572,14 +572,18 @@ window.showUnifiedResolutionPanel = function(tId) {
         excludedKeys = excludedKeys || [];
 
         // Dynamic descriptions based on context
-        var _remLabel = info.remainder > 0 ? info.remainder + ' participante' + (info.remainder > 1 ? 's' : '') : '';
-        var _excessLabel = info.excess > 0 ? info.excess + (info.isTeam ? ' time' + (info.excess > 1 ? 's' : '') : ' inscrito' + (info.excess > 1 ? 's' : '')) : '';
+        var _remLabel = info.remainder > 0 ? info.remainder + ' ' + (info.remainder > 1 ? _t('predraw.unitParticipants') : _t('predraw.unitParticipantSingular')) : '';
+        var _excessLabel = info.excess > 0
+            ? info.excess + ' ' + (info.isTeam
+                ? (info.excess > 1 ? _t('predraw.unitTeams') : _t('predraw.unitTeamSingular'))
+                : (info.excess > 1 ? _t('predraw.unitParts') : _t('predraw.unitParticipantSingular')))
+            : '';
         var _standbyDesc = info.remainder > 0
-            ? 'Mover ' + _remLabel + ' do resto para lista de espera. Organizador escolhe: sorteio entre todos ou últimos inscritos.'
-            : 'Excluir ' + (_excessLabel || 'excedentes') + ' para lista de espera.';
+            ? _t('predraw.standbyRemDesc', {label: _remLabel})
+            : _t('predraw.standbyExcessDesc', {label: (_excessLabel || _t('predraw.standbyExcessFallback'))});
         var _exclusionDesc = info.remainder > 0
-            ? 'Remover ' + _remLabel + ' do resto. Organizador escolhe: sorteio entre todos ou últimos inscritos.'
-            : 'Remover ' + (_excessLabel || 'participantes') + ' para potência inferior exata.';
+            ? _t('predraw.exclusionRemDesc', {label: _remLabel})
+            : _t('predraw.exclusionExcessDesc', {label: (_excessLabel || _t('predraw.exclusionExcessFallback'))});
 
         // Define all possible options
         const allOptions = [
@@ -682,7 +686,7 @@ window.showUnifiedResolutionPanel = function(tId) {
             // Top row: Recomendado badge (left) + Exclude ✕ (right)
             var topRow = '<div style="display:flex;justify-content:space-between;align-items:center;min-height:22px;">';
             topRow += isBest ? '<span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">' + _t('predraw.nashRecommended') + '</span>' : '<span></span>';
-            topRow += canExclude ? '<span style="width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.25);color:#94a3b8;font-size:0.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.color=\'#94a3b8\'">✕</span>' : '';
+            topRow += canExclude ? '<span style="width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.25);color:#94a3b8;font-size:0.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;" title="' + _t('predraw.excludeOptionTitle') + '" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.color=\'#94a3b8\'">✕</span>' : '';
             topRow += '</div>';
 
             html += '<button style="background:' + c.bg + ';border:2px solid ' + c.border + ';box-shadow:' + c.glow + ';border-radius:16px;padding:12px 16px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;overflow:hidden;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'" onclick="window._handleUnifiedOption(\'' + tIdSafe + '\', \'' + o.key + '\')">' +
@@ -775,13 +779,13 @@ window.showUnifiedResolutionPanel = function(tId) {
     // Build the panel HTML
     let gaugeHtml = '';
     var _centerLabel = info.isTeam ? _t('predraw.gaugeCenterTeams') : _t('predraw.gaugeCenterParts');
-    var _centerSub = info.isTeam ? '(' + info.totalRawParticipants + ' participantes)' : '';
+    var _centerSub = info.isTeam ? '(' + info.totalRawParticipants + ' ' + _t('predraw.unitParticipants') + ')' : '';
     var _loSub = info.isTeam ? _t('predraw.gaugeTeamsLabel', {n: info.loP2 * info.teamSize}) : _t('predraw.gaugeCenterParts');
     var _hiSub = info.isTeam ? _t('predraw.gaugeTeamsLabel', {n: info.hiP2 * info.teamSize}) : _t('predraw.gaugeCenterParts');
 
     var _excessCount = info.effectiveTeams - info.loP2;
     var _missingCount = info.hiP2 - info.effectiveTeams;
-    var _unitLabel = info.isTeam ? 'times' : 'inscritos';
+    var _unitLabel = info.isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParts');
 
     gaugeHtml = '<div style="display:flex;align-items:center;justify-content:center;gap:1rem;background:rgba(0,0,0,0.3);padding:1.25rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">' +
         '<div style="text-align:center;min-width:80px;">' +
@@ -810,10 +814,10 @@ window.showUnifiedResolutionPanel = function(tId) {
                 '<span style="font-size:1.5rem;">⚙️</span>' +
                 '<div>' +
                     '<h3 style="margin:0;color:#fef3c7;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">' + _t('predraw.adjustTitle') + '</h3>' +
-                    '<p style="margin:2px 0 0;color:#fde68a;font-size:0.75rem;opacity:0.9;">Detectado: ' + issuesText + '</p>' +
+                    '<p style="margin:2px 0 0;color:#fde68a;font-size:0.75rem;opacity:0.9;">' + _t('predraw.detectedPrefix') + issuesText + '</p>' +
                 '</div>' +
             '</div>' +
-            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fef3c7;border:2px solid rgba(254,243,199,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(254,243,199,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(254,243,199,0.3)\'">✕ Cancelar</button>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#fef3c7;border:2px solid rgba(254,243,199,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(254,243,199,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(254,243,199,0.3)\'">' + _t('predraw.cancelBtn') + '</button>' +
         '</div>' +
         // Scrollable content
         '<div style="overflow-y:auto;flex:1;">' +
@@ -828,7 +832,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         '</style>' +
         '<div style="padding:2rem 2.5rem 2.5rem;">' +
             '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">' + _t('predraw.selectStrategy') + '</h4>' +
-            '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
+            '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">' + _t('predraw.nashColorLegend') + '</p>' +
             '<div id="unified-options-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">' +
                 window._renderUnifiedOptions([]) +
             '</div>' +
@@ -850,22 +854,26 @@ window._showReopenPanel = function(tId, info) {
     overlay.id = 'reopen-panel';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
 
-    const currentLabel = info.isTeam ? 'Times atuais: ' + info.effectiveTeams + ' (' + (info.effectiveTeams * info.teamSize) + ' participantes)' : 'Inscritos atuais: ' + info.effectiveTeams;
-    const needLabel = info.isTeam ? 'Faltam: ' + info.missing + ' times (' + info.missingParticipants + ' participantes)' : 'Faltam: ' + info.missing + ' inscritos';
+    const currentLabel = info.isTeam
+        ? _t('predraw.reopenTopTeamsCur', {n: info.effectiveTeams, p: (info.effectiveTeams * info.teamSize)})
+        : _t('predraw.reopenTopPartsCur', {n: info.effectiveTeams});
+    const needLabel = info.isTeam
+        ? _t('predraw.reopenTopTeamsMiss', {n: info.missing, p: info.missingParticipants})
+        : _t('predraw.reopenTopPartsMiss', {n: info.missing});
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:24px;border:1px solid rgba(59,130,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7);overflow:hidden;animation:modalFadeIn 0.3s ease-out;">' +
         '<div style="background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);padding:1.5rem 2rem;">' +
             '<div style="display:flex;align-items:center;gap:15px;">' +
                 '<span style="font-size:2.5rem;">↩️</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#dbeafe;font-size:1.25rem;font-weight:800;">Reabrir Inscrições</h3>' +
+                    '<h3 style="margin:0;color:#dbeafe;font-size:1.25rem;font-weight:800;">' + _t('predraw.p2PollReopenTitle') + '</h3>' +
                     '<p style="margin:4px 0 0;color:#bfdbfe;font-size:0.9rem;">' + currentLabel + '<br>' + needLabel + '</p>' +
                 '</div>' +
             '</div>' +
         '</div>' +
         '<div style="padding:1.5rem 2rem;">' +
-            '<p style="margin:0 0 1rem;font-size:0.85rem;color:#cbd5e1;line-height:1.6;">As inscrições serão reabertas. Quando alcançar ' + info.hiP2 + (info.isTeam ? ' times' : ' inscritos') + ' (ou a próxima potência de 2), volte para sortear.</p>' +
-            '<button onclick="window._cancelUnifiedPanel(\'' + String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;width:100%;">Voltar para o Torneio</button>' +
+            '<p style="margin:0 0 1rem;font-size:0.85rem;color:#cbd5e1;line-height:1.6;">' + _t('predraw.reopenInstruction', {n: info.hiP2, unit: (info.isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParts'))}) + '</p>' +
+            '<button onclick="window._cancelUnifiedPanel(\'' + String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;width:100%;">' + _t('predraw.reopenBackToTournament') + '</button>' +
         '</div>' +
     '</div>';
 
@@ -942,9 +950,9 @@ window._handleIncompleteOption = function (tId, option) {
         document.getElementById('incomplete-teams-panel').remove();
         // Collect poll options from incomplete teams context (exclude 'poll' itself)
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: 'Aguardar novos jogadores para fechar os times faltantes.' },
-            { key: 'lottery', icon: '🎲', title: 'Sorteio de Bots', desc: 'Preencher vagas com nomes fictícios ou convites aleatórios.' },
-            { key: 'standby', icon: '⏱️', title: _t('predraw.optStandbyTitle'), desc: 'Os que sobrarem ficam fora do torneio principal, podendo substituir ausentes.' },
+            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: _t('predraw.pollReopenWaitDesc') },
+            { key: 'lottery', icon: '🎲', title: _t('predraw.pollLotteryTitle'), desc: _t('predraw.pollLotteryDesc') },
+            { key: 'standby', icon: '⏱️', title: _t('predraw.optStandbyTitle'), desc: _t('predraw.pollStandbyOutDesc') },
             { key: 'dissolve', icon: '🧩', title: _t('predraw.optDissolveTitle'), desc: _t('predraw.optDissolveDesc') }
         ];
         window._showPollCreationDialog(tId, 'incomplete', pollOptions);
@@ -956,8 +964,8 @@ window.showLotteryIncompletePanel = function (tId) {
     if (!t) return;
 
     showConfirmDialog(
-        'Tipo de Repescagem',
-        'Escolha como a repescagem deve ser feita para completar os times:',
+        _t('predraw.lotteryTitle'),
+        _t('predraw.lotteryDesc'),
         () => {
             // Direta
             window.AppStore.logAction(tId, 'Repescagem Direta por Sorteio selecionada');
@@ -978,7 +986,7 @@ window.showLotteryIncompletePanel = function (tId) {
             type: 'info',
             confirmText: _t('btn.directDraw'),
             cancelText: _t('btn.playoff'),
-            message: '<b>Sorteio Direto:</b> Completa as vagas aleatoriamente.<br><b>Mini-Repescagem:</b> Jogadores disputam as vagas em partidas rápidas.'
+            message: _t('predraw.lotteryOptions')
         }
     );
 };
@@ -1086,58 +1094,58 @@ window._showIncompleteTeamDialog = function (tId, remainder, teamSize, totalIndi
         <div style="background:rgba(245,158,11,0.1);border-bottom:1px solid var(--border-color);padding:1.25rem;display:flex;align-items:center;gap:12px;">
           <span style="font-size:2rem;">⚠️</span>
           <div>
-            <div style="font-size:1.1rem;font-weight:700;color:var(--text-color);">Times Incompletos</div>
-            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">Ajuste necessário antes do sorteio</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--text-color);">${_t('predraw.incompleteTitle')}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">${_t('predraw.incompleteSubtitle')}</div>
           </div>
         </div>
         <div style="padding:1.25rem;color:var(--text-muted);font-size:0.9rem;line-height:1.7;">
-          <p>O torneio exige times de <strong style="color:var(--text-bright);">${teamSize} jogadores</strong>.</p>
+          <p>${_t('predraw.incompleteNeedsTeams', {n: teamSize})}</p>
           <div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap;">
             <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
               <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${totalIndividuals}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Individuais</div>
+              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompleteIndividuals')}</div>
             </div>
             ${preFormedTeams > 0 ? `
             <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
               <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${preFormedTeams}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Times Formados</div>
+              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompleteFormed')}</div>
             </div>` : ''}
             <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
               <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${totalTeamsPossible}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Times Possíveis</div>
+              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompletePossible')}</div>
             </div>
             <div style="flex:1;min-width:100px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:10px;text-align:center;">
               <div style="font-size:1.3rem;font-weight:800;color:#fbbf24;">${remainder}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:#fbbf24;opacity:0.9;">Sem Time</div>
+              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:#fbbf24;opacity:0.9;">${_t('predraw.incompleteNoTeam')}</div>
             </div>
           </div>
-          <p style="font-size:0.85rem;"><strong style="color:#fbbf24;">${remainder} participante${remainder > 1 ? 's' : ''}</strong> não conseguirá${remainder > 1 ? 'ão' : ''} formar um time completo. O que fazer com ${remainder > 1 ? 'eles' : 'ele'}?</p>
-          <p style="font-size:0.75rem;opacity:0.6;font-style:italic;">Os nomes não são revelados para não influenciar a decisão.</p>
+          <p style="font-size:0.85rem;">${_t('predraw.incompleteBody', {n: remainder, s: (remainder > 1 ? 's' : ''), a: (remainder > 1 ? 'ão' : ''), ele: (remainder > 1 ? 'eles' : 'ele')})}</p>
+          <p style="font-size:0.75rem;opacity:0.6;font-style:italic;">${_t('predraw.incompleteAnonymous')}</p>
         </div>
         <div style="padding:0 1.25rem 1.25rem;display:flex;flex-direction:column;gap:8px;">
           <button id="itd-standby" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.1);color:#fbbf24;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(251,191,36,0.2)'" onmouseout="this.style.background='rgba(251,191,36,0.1)'">
             <span style="font-size:1.2rem;">⏳</span>
             <div>
-              <div>Lista de Espera</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">Os participantes sem time vão para a lista de espera e podem substituir ausentes.</div>
+              <div>${_t('predraw.itdStandby')}</div>
+              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdStandbyDesc')}</div>
             </div>
           </button>
           <button id="itd-playin" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.2)'" onmouseout="this.style.background='rgba(99,102,241,0.1)'">
             <span style="font-size:1.2rem;">🔄</span>
             <div>
-              <div>Repescagem</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">Os participantes sem time disputam vagas em jogos eliminatórios antes do torneio principal.</div>
+              <div>${_t('predraw.itdPlayin')}</div>
+              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdPlayinDesc')}</div>
             </div>
           </button>
           <button id="itd-remove" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
             <span style="font-size:1.2rem;">❌</span>
             <div>
-              <div>Exclusão</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">Os participantes sem time são removidos do torneio.</div>
+              <div>${_t('predraw.itdRemove')}</div>
+              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdRemoveDesc')}</div>
             </div>
           </button>
           <button id="itd-cancel" style="width:100%;padding:10px 16px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text-muted);text-align:center;margin-top:4px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-            Cancelar
+            ${_t('predraw.cancelLabel')}
           </button>
         </div>
       </div>`;
@@ -1280,8 +1288,8 @@ window._handleOddOption = function (tId, option) {
         window.generateDrawFunction(tId);
     } else if (option === 'exclusion') {
         showConfirmDialog(
-            '🚫 Confirmar Exclusão',
-            'Deseja remover o último inscrito do torneio? Ficará com ' + (oddInfo.count - 1) + ' ' + (isTeam ? 'times' : 'inscritos') + '.',
+            _t('predraw.oddConfirmTitle'),
+            _t('predraw.oddConfirmMsg', {n: (oddInfo.count - 1), unit: (isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParts'))}),
             function() {
                 var arr = Array.isArray(t.participants) ? t.participants : [];
                 var removed = arr.splice(arr.length - 1, 1);
@@ -1301,9 +1309,9 @@ window._handleOddOption = function (tId, option) {
         var el4 = document.getElementById('odd-entries-panel');
         if (el4) el4.remove();
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: 'Aguardar mais 1 inscrito para ficar par.' },
-            { key: 'bye_odd', icon: '🥇', title: _t('draw.byeRotating'), desc: 'A cada rodada, alguém descansa. Todos participam.' },
-            { key: 'exclusion', icon: '🚫', title: _t('predraw.optExclusionTitle'), desc: 'Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + '.' }
+            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: _t('predraw.pollReopenOddDesc') },
+            { key: 'bye_odd', icon: '🥇', title: _t('draw.byeRotating'), desc: _t('predraw.pollByeOddDesc') },
+            { key: 'exclusion', icon: '🚫', title: _t('predraw.optExclusionTitle'), desc: _t('predraw.pollExclusionOddDesc', {n: (oddInfo.count - 1)}) }
         ];
         window._showPollCreationDialog(tId, 'odd', pollOptions);
     }
@@ -1466,39 +1474,39 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
         '<div style="display:flex;align-items:center;gap:15px;">' +
         '<span style="font-size:2.5rem;">🗳️</span>' +
         '<div>' +
-        '<h3 style="margin:0;color:#e0e7ff;font-size:1.25rem;font-weight:800;">Criar Enquete</h3>' +
-        '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.85rem;">Os participantes votarão na solução que preferem.</p>' +
+        '<h3 style="margin:0;color:#e0e7ff;font-size:1.25rem;font-weight:800;">' + _t('predraw.pollCreateTitle') + '</h3>' +
+        '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.85rem;">' + _t('predraw.pollCreateSubtitle') + '</p>' +
         '</div>' +
         '</div>' +
         '</div>' +
 
         '<div style="padding:1.5rem 2rem;">' +
         '<div style="margin-bottom:1.25rem;">' +
-        '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Opções da Enquete</label>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 10px;">Desmarque opções que não deseja incluir. A opção com badge ⚖️ Nash é a recomendada pelo equilíbrio de Nash.</p>' +
+        '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">' + _t('predraw.pollOptionsLabel') + '</label>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 10px;">' + _t('predraw.pollOptionsHint') + '</p>' +
         '<div id="poll-options-list" style="display:flex;flex-direction:column;gap:8px;">' + optionsHtml + '</div>' +
         '</div>' +
 
         '<div style="margin-bottom:1.25rem;">' +
-        '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Prazo para Votação</label>' +
+        '<label style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">' + _t('predraw.pollDeadlineLabel') + '</label>' +
         '<div style="display:flex;gap:12px;margin-top:8px;">' +
         '<div style="flex:1;">' +
-        '<label style="font-size:0.7rem;color:var(--text-muted);">Horas</label>' +
+        '<label style="font-size:0.7rem;color:var(--text-muted);">' + _t('predraw.pollHoursLabel') + '</label>' +
         '<input type="number" id="poll-deadline-hours" value="48" min="1" max="168" style="width:100%;padding:10px;border-radius:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text-bright);font-size:1rem;font-weight:700;text-align:center;">' +
         '</div>' +
-        '<div style="display:flex;align-items:flex-end;padding-bottom:10px;color:var(--text-muted);font-size:0.85rem;">horas</div>' +
+        '<div style="display:flex;align-items:flex-end;padding-bottom:10px;color:var(--text-muted);font-size:0.85rem;">' + _t('predraw.pollHoursUnit') + '</div>' +
         '</div>' +
         '</div>' +
 
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;padding:12px;margin-bottom:1rem;">' +
-        '<div style="font-size:0.75rem;font-weight:700;color:#4ade80;margin-bottom:4px;">⚖️ Equilíbrio de Nash</div>' +
-        '<div style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;">A opção recomendada maximiza o equilíbrio entre <strong style="color:var(--text-bright);">justiça</strong> (todos em condições iguais), <strong style="color:var(--text-bright);">inclusão</strong> (ninguém excluído) e <strong style="color:var(--text-bright);">praticidade</strong> (menos logística extra). Nenhum participante ganharia individualmente ao desviar desta escolha se todos a adotassem.</div>' +
+        '<div style="font-size:0.75rem;font-weight:700;color:#4ade80;margin-bottom:4px;">' + _t('predraw.pollNashTitle') + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;">' + _t('predraw.pollNashExplain') + '</div>' +
         '</div>' +
         '</div>' +
 
         '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;gap:12px;border-top:1px solid rgba(255,255,255,0.05);">' +
-        '<button id="poll-cancel-btn" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Cancelar</button>' +
-        '<button id="poll-create-btn" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(99,102,241,0.3);">Criar Enquete</button>' +
+        '<button id="poll-cancel-btn" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('predraw.cancelLabel') + '</button>' +
+        '<button id="poll-create-btn" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(99,102,241,0.3);">' + _t('predraw.pollCreateBtn') + '</button>' +
         '</div>' +
         '</div>';
 
@@ -1586,8 +1594,8 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
             window._notifyTournamentParticipants(t, {
                 type: 'poll',
                 level: 'important',
-                title: '🗳️ Enquete aberta: ' + window._safeHtml(t.name),
-                message: 'O organizador criou uma enquete para decidir o formato do torneio. Vote agora! Prazo: ' + hours + ' horas.',
+                title: _t('predraw.pollNotifTitle', {name: window._safeHtml(t.name)}),
+                message: _t('predraw.pollNotifMsg', {hours: hours}),
                 tournamentId: tId,
                 pollId: pollData.id
             }, t.organizerEmail);
@@ -1646,7 +1654,7 @@ window._showPollVotingDialog = function(tId, pollId) {
     // Countdown string
     var countdownStr = '';
     if (isPollClosed) {
-        countdownStr = '<span style="color:#f87171;font-weight:700;">Encerrada</span>';
+        countdownStr = '<span style="color:#f87171;font-weight:700;">' + _t('predraw.closed') + '</span>';
     } else {
         var hrs = Math.floor(remaining / 3600000);
         var mins = Math.floor((remaining % 3600000) / 60000);
@@ -1702,8 +1710,8 @@ window._showPollVotingDialog = function(tId, pollId) {
         '<div style="display:flex;align-items:center;gap:12px;">' +
         '<span style="font-size:2rem;">🗳️</span>' +
         '<div>' +
-        '<h3 style="margin:0;color:#e0e7ff;font-size:1.15rem;font-weight:800;">Enquete: ' + contextLabel + '</h3>' +
-        '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.8rem;">Vote na solução que preferir' + (isPollClosed ? ' (encerrada)' : '') + '</p>' +
+        '<h3 style="margin:0;color:#e0e7ff;font-size:1.15rem;font-weight:800;">' + _t('predraw.pollDialogTitle', {ctx: contextLabel}) + '</h3>' +
+        '<p style="margin:4px 0 0;color:#a5b4fc;font-size:0.8rem;">' + _t('predraw.pollDialogSubtitle', {suffix: isPollClosed ? _t('predraw.pollDialogClosedSuffix') : ''}) + '</p>' +
         '</div>' +
         '</div>' +
         '<div style="text-align:right;">' +
@@ -1716,7 +1724,7 @@ window._showPollVotingDialog = function(tId, pollId) {
         '<div style="padding:1.5rem 2rem;">' +
         ((!hasVoted && !isPollClosed) ? '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 1rem;">' + _t('predraw.pollInstruct') + '</p>' : '') +
         '<div id="poll-vote-options" style="display:flex;flex-direction:column;gap:10px;">' + optionsHtml + '</div>' +
-        (hasVoted ? '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center;font-style:italic;">Você pode mudar seu voto clicando em outra opção' + (isPollClosed ? '' : ' até o encerramento') + '.</p>' : '') +
+        (hasVoted ? '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center;font-style:italic;">' + _t('predraw.pollChangeVoteNote', {suffix: isPollClosed ? '' : _t('predraw.pollChangeVoteSuffix')}) + '</p>' : '') +
         '</div>' +
 
         '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
@@ -1852,15 +1860,13 @@ window._checkPollNotifications = function(t) {
     var remaining = Math.max(0, activePoll.deadline - Date.now());
     var hrs = Math.floor(remaining / 3600000);
     var mins = Math.floor((remaining % 3600000) / 60000);
-    var timeStr = hrs > 0 ? hrs + 'h ' + mins + 'm' : mins + ' minutos';
+    var timeStr = hrs > 0 ? hrs + 'h ' + mins + 'm' : _t('predraw.pollMinutesFmt', {m: mins});
 
-    var contextLabel = (activePoll.context === 'p2') ? 'ajuste de chaveamento' : 'times incompletos';
+    var contextLabel = (activePoll.context === 'p2') ? _t('predraw.pollCtxP2Short') : _t('predraw.pollCtxIncompleteShort');
 
     showAlertDialog(
-        '🗳️ Enquete Aberta',
-        'O organizador abriu uma enquete sobre <strong>' + contextLabel + '</strong> neste torneio.<br><br>' +
-        'Tempo restante: <strong>' + timeStr + '</strong><br><br>' +
-        'Vote na solução que preferir!',
+        _t('predraw.pollOpenTitle'),
+        _t('predraw.pollOpenMsg', {ctx: contextLabel, time: timeStr}),
         function() {
             window._showPollVotingDialog(String(t.id), activePoll.id);
         },
@@ -1933,7 +1939,7 @@ window._renderPollBanner = function(t) {
         '<div style="width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🗳️</div>' +
         '<div>' +
         '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">' + _t('predraw.pollBannerTitle') + '</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">' + statusText + ' · ' + totalVotes + '/' + totalParticipants + ' votos</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">' + statusText + ' · ' + totalVotes + '/' + totalParticipants + ' ' + _t('predraw.votesLabel') + '</div>' +
         '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
@@ -1992,7 +1998,7 @@ window._renderClosedPollBanner = function(t, poll) {
         '<div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">✅</div>' +
         '<div>' +
         '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">' + _t('predraw.pollClosedBannerTitle') + '</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Resultado: <strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' votos)</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">' + _t('predraw.pollResultPrefix') + '<strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' ' + _t('predraw.votesLabel') + ')</div>' +
         '</div>' +
         '</div>' +
         '</div>' +
@@ -2186,10 +2192,11 @@ window._handleP2Option = function (tId, option) {
         // Remove the last N enrolled participants to reach lower power of 2
         var isTeam = info.teamSize > 1;
         var removeCount = info.excess;
-        var label = isTeam ? ('os últimos ' + removeCount + ' times inscritos') : ('os últimos ' + removeCount + ' inscritos');
+        var label = isTeam ? _t('predraw.p2LastTeams', {n: removeCount}) : _t('predraw.p2LastParts', {n: removeCount});
+        var unitWord = isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParticipants');
         showConfirmDialog(
-            '🚫 Confirmar Exclusão',
-            'Deseja remover ' + label + ' do torneio? O chaveamento ficará com ' + info.lo + (isTeam ? ' times' : ' participantes') + ' (potência de 2 perfeita).\n\nOs removidos serão os últimos a se inscrever.',
+            _t('predraw.p2ConfirmTitle'),
+            _t('predraw.p2ConfirmMsg', {label: label, n: info.lo, unit: unitWord}),
             function() {
                 var arr = Array.isArray(t.participants) ? t.participants : [];
                 // Remove from the end (last enrolled)
@@ -2217,15 +2224,15 @@ window._handleP2Option = function (tId, option) {
         if (p2Panel) p2Panel.remove();
         // Collect poll options from P2 context
         var _pTeamSize = parseInt(t.teamSize) || 1;
-        var _pLabel = _pTeamSize > 1 ? 'times' : 'participantes';
-        var _pLabelInscritos = _pTeamSize > 1 ? 'inscritos' : 'inscritos';
+        var _pLabel = _pTeamSize > 1 ? _t('predraw.unitTeams') : _t('predraw.unitParticipants');
+        var _pLabelInscritos = _t('predraw.unitParts');
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais ' + info.missing + ' ' + _pLabel + ' para chegar a ' + info.hi + '. Igualdade total.' },
-            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: info.missing + ' ' + _pLabel + ' avançam direto para a 2ª rodada. Chaveamento de ' + info.hi + '.' },
-            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: (info.excess * 2) + ' ' + _pLabel + ' disputam ' + info.excess + ' vaga(s). Vencedores enfrentam quem avançou direto.' },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover os últimos ' + info.excess + ' ' + _pLabelInscritos + ' para chaveamento perfeito de ' + info.lo + '.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: info.excess + ' ' + _pLabel + ' vão para lista de espera. Chaveamento de ' + info.lo + '.' },
-            { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Mais jogos para todos antes de afunilar para os melhores ' + info.lo + '.' }
+            { key: 'reopen', icon: '↩️', title: _t('predraw.p2PollReopenTitle'), desc: _t('predraw.p2PollReopenDesc', {n: info.missing, unit: _pLabel, target: info.hi}) },
+            { key: 'bye', icon: '🥇', title: _t('predraw.p2PollByeTitle'), desc: _t('predraw.p2PollByeDesc', {n: info.missing, unit: _pLabel, target: info.hi}) },
+            { key: 'playin', icon: '🔁', title: _t('predraw.p2PollPlayinTitle'), desc: _t('predraw.p2PollPlayinDesc', {n: (info.excess * 2), unit: _pLabel, k: info.excess}) },
+            { key: 'exclusion', icon: '🚫', title: _t('predraw.p2PollExclusionTitle'), desc: _t('predraw.p2PollExclusionDesc', {n: info.excess, unit: _pLabelInscritos, target: info.lo}) },
+            { key: 'standby', icon: '⏱️', title: _t('predraw.p2PollStandbyTitle'), desc: _t('predraw.p2PollStandbyDesc', {n: info.excess, unit: _pLabel, target: info.lo}) },
+            { key: 'swiss', icon: '🏅', title: _t('predraw.p2PollSwissTitle'), desc: _t('predraw.p2PollSwissDesc', {target: info.lo}) }
         ];
         window._showPollCreationDialog(tId, 'p2', pollOptions);
         return;
@@ -2266,8 +2273,8 @@ window._showReopenPanel = function (tId, info) {
                 <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1rem;" id="reopen-autoclose-label">
                     <div class="toggle-row" style="padding:0;">
                         <div class="toggle-row-label"><div>
-                            <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;">Encerrar automaticamente ao atingir ${info.hi} inscritos</div>
-                            <div style="color:#64748b;font-size:0.8rem;margin-top:4px;">As inscrições serão fechadas automaticamente quando o número de participantes alcançar ${info.hi}.</div>
+                            <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;">${_t('predraw.autoCloseLabel', {n: info.hi})}</div>
+                            <div style="color:#64748b;font-size:0.8rem;margin-top:4px;">${_t('predraw.autoCloseDesc', {n: info.hi})}</div>
                         </div></div>
                         <label class="toggle-switch"><input type="checkbox" id="reopen-autoclose-cb" checked><span class="toggle-slider"></span></label>
                     </div>
@@ -2538,11 +2545,11 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const matchesR2 = totalSpots / 4; // R2 is power-of-2 bracket
 
         // Anonymous label helper
-        const _tLabel = isTeam ? 'Time' : 'Participante';
+        const _tLabel = isTeam ? _t('predraw.simTeam') : _t('predraw.simParticipant');
         const _byeLabel = function(num) {
             if (isTeam) {
                 var members = [];
-                for (var _m = 0; _m < teamSize; _m++) members.push('Jogador ' + ((num - 1) * teamSize + _m + 1));
+                for (var _m = 0; _m < teamSize; _m++) members.push(_t('predraw.simPlayer') + ' ' + ((num - 1) * teamSize + _m + 1));
                 return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span><span style="font-size:0.7rem;color:#94a3b8;margin-left:6px;">(' + members.join(', ') + ')</span>';
             }
             return '<span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">' + _tLabel + ' ' + num + '</span>';
@@ -2555,7 +2562,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
             var _a = ++_pNum;
             var _b = ++_pNum;
             r1Html += '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">' +
-                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ' + (_ri + 1) + '</div>' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">' + _t('predraw.simMatch') + ' ' + (_ri + 1) + '</div>' +
                 '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(96,165,250,0.4);margin-bottom:4px;">' + _byeLabel(_a) + '</div>' +
                 '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
                 '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(96,165,250,0.4);">' + _byeLabel(_b) + '</div>' +
@@ -2580,7 +2587,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 _r1MatchNum++;
                 _byeNum++;
                 var _byePart = _pNum + _byeNum;
-                slot1 = 'Vencedor Jogo ' + _r1MatchNum;
+                slot1 = _t('predraw.simWinnerOfMatch') + ' ' + _r1MatchNum;
                 slot1Color = 'rgba(96,165,250,0.4)';
                 slot2 = _byeLabel(_byePart);
                 slot2Color = 'rgba(34,197,94,0.4)';
@@ -2589,9 +2596,9 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 // Two R1 winners
                 var _w1 = ++_r1MatchNum;
                 var _w2 = ++_r1MatchNum;
-                slot1 = 'Vencedor Jogo ' + _w1;
+                slot1 = _t('predraw.simWinnerOfMatch') + ' ' + _w1;
                 slot1Color = 'rgba(96,165,250,0.4)';
-                slot2 = 'Vencedor Jogo ' + _w2;
+                slot2 = _t('predraw.simWinnerOfMatch') + ' ' + _w2;
                 slot2Color = 'rgba(96,165,250,0.4)';
             } else {
                 // Two BYE winners
@@ -2609,7 +2616,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
             var _byeBadge = hasByeSlot ? '<span style="font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.15);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">BYE</span>' : '';
             r2Html += '<div style="background:rgba(15,23,42,0.8);border:1px solid ' + (hasByeSlot ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)') + ';border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">' +
-                    '<span style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;">R2 — Jogo ' + (_r2i + 1) + '</span>' +
+                    '<span style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;">' + _t('predraw.simR2Match') + ' ' + (_r2i + 1) + '</span>' +
                     _byeBadge +
                 '</div>' +
                 '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ' + slot1Color + ';margin-bottom:4px;">' +
@@ -2622,55 +2629,58 @@ window.showResolutionSimulationPanel = function (tId, option) {
             '</div>';
         }
 
+        var _byeUnitLabel = isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParticipants');
+        var _byeGameRealLabel = realMatchesR1Count === 1 ? _t('predraw.simByeGameReal') : _t('predraw.simByeGamesReal');
+        var _byeRestSeq = matchesR2 >= 4 ? ' → ' + (matchesR2 / 4) : '';
         simulationHtml = `
             <div style="text-align:center;margin-bottom:2rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:1rem;">🥇</span>
-                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de BYE (Avanço Direto)</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">Chave de ${totalSpots} vagas · ${byes} ${isTeam ? 'times' : 'participantes'} avançam com BYE</p>
+                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">${_t('predraw.simByeTitle')}</h3>
+                <p style="color:#94a3b8;margin:8px 0 0;">${_t('predraw.simByeSubtitle', {n: totalSpots, b: byes, unit: _byeUnitLabel})}</p>
             </div>
 
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;text-align:center;">
                     <div style="background:rgba(96,165,250,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
                         <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${realMatchesR1Count}</div>
-                        <div style="font-size:0.65rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Jogos R1</div>
+                        <div style="font-size:0.65rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simByeR1Matches')}</div>
                     </div>
                     <div style="background:rgba(34,197,94,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
                         <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${byes}</div>
-                        <div style="font-size:0.65rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">BYEs direto p/ R2</div>
+                        <div style="font-size:0.65rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simByeByes')}</div>
                     </div>
                     <div style="background:rgba(139,92,246,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
                         <div style="font-size:1.5rem;font-weight:900;color:#a78bfa;">${matchesR2}</div>
-                        <div style="font-size:0.65rem;color:#c4b5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Jogos R2</div>
+                        <div style="font-size:0.65rem;color:#c4b5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simByeR2Matches')}</div>
                     </div>
                 </div>
             </div>
 
             <div style="max-height:500px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Rodada 1 — ${realMatchesR1Count} ${realMatchesR1Count === 1 ? 'jogo real' : 'jogos reais'}</h4>
+                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simByeR1Header', {n: realMatchesR1Count, jogo: _byeGameRealLabel})}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r1Html}
                 </div>
 
                 <div style="text-align:center;margin:1.5rem 0;padding:10px;background:rgba(255,255,255,0.02);border-radius:12px;">
-                    <div style="font-size:0.7rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${realMatchesR1Count} Vencedores → R2</div>
-                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${byes} com BYE → direto para R2</div>
+                    <div style="font-size:0.7rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${_t('predraw.simByeWinnersR2', {n: realMatchesR1Count})}</div>
+                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${_t('predraw.simByeByesToR2', {n: byes})}</div>
                 </div>
 
-                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Rodada 2 — ${matchesR2} jogos (potência de 2 atingida ✓)</h4>
+                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simByeR2Header', {n: matchesR2})}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r2Html}
                 </div>
 
                 <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:12px;margin-top:1rem;">
-                    <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">A partir da R2, a chave segue em potência de 2 (${matchesR2} → ${matchesR2 / 2}${matchesR2 >= 4 ? ' → ' + (matchesR2 / 4) : ''}...) sem mais BYEs.</div>
+                    <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">${_t('predraw.simByeFooter', {m: matchesR2, m2: (matchesR2 / 2), rest: _byeRestSeq})}</div>
                 </div>
             </div>
         `;
     } else if (option === 'playin') {
         const teamSize = parseInt(t.teamSize) || 1;
         const totalTeams = info.count;
-        const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;
+        const tLabel = (num) => teamSize > 1 ? (_t('predraw.simTeam') + ' ' + num) : (_t('predraw.simParticipant') + ' ' + num);
 
         // New repechage model:
         // R1: all teams play → winners advance directly
@@ -2704,7 +2714,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // R1 cards — all teams play
         let r1Html = '';
         for (let i = 0; i < matchesR1; i++) {
-            r1Html += matchCard('Jogo', '#38bdf8', 'rgba(255,255,255,0.08)',
+            r1Html += matchCard(_t('predraw.simMatch'), '#38bdf8', 'rgba(255,255,255,0.08)',
                 i + 1, tLabel((i * 2) + 1), tLabel((i * 2) + 2),
                 'rgba(16,185,129,0.4)', 'rgba(239,68,68,0.4)');
         }
@@ -2712,8 +2722,8 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // Repechage cards — losers face each other (purple accent)
         let repHtml = '';
         for (let i = 0; i < repechageMatches; i++) {
-            repHtml += matchCard('Repescagem', '#a78bfa', 'rgba(139,92,246,0.25)',
-                i + 1, `Derrotado Jogo ${(i * 2) + 1}`, `Derrotado Jogo ${(i * 2) + 2}`,
+            repHtml += matchCard(_t('predraw.simStatRepechage'), '#a78bfa', 'rgba(139,92,246,0.25)',
+                i + 1, _t('predraw.simRepLoser') + ' ' + ((i * 2) + 1), _t('predraw.simRepLoser') + ' ' + ((i * 2) + 2),
                 'rgba(139,92,246,0.4)', 'rgba(139,92,246,0.4)');
         }
 
@@ -2725,10 +2735,10 @@ window.showResolutionSimulationPanel = function (tId, option) {
         let r1Pool = [];  // R1 winners
         let repPool = []; // repechage classified
         for (let i = 1; i <= winnersR1; i++) {
-            r1Pool.push({ name: `Vencedor Jogo ${i}`, color: 'rgba(16,185,129,0.4)', isRep: false });
+            r1Pool.push({ name: _t('predraw.simWinnerOfMatch') + ' ' + i, color: 'rgba(16,185,129,0.4)', isRep: false });
         }
         for (let i = 1; i <= spotsFromRepechage; i++) {
-            repPool.push({ name: `Classificado Rep. ${i}`, color: 'rgba(139,92,246,0.4)', isRep: true });
+            repPool.push({ name: _t('predraw.simRepClassified') + ' ' + i, color: 'rgba(139,92,246,0.4)', isRep: true });
         }
         // Cross-seed: pair one from each pool as much as possible
         while (r1Pool.length > 0 && repPool.length > 0) {
@@ -2742,11 +2752,11 @@ window.showResolutionSimulationPanel = function (tId, option) {
         for (let i = 0; i < r2Slots.length; i++) {
             let s1 = r2Slots[i][0];
             let s2 = r2Slots[i][1];
-            let crossBadge = (s1.isRep !== s2.isRep) ? '<span style="position:absolute;top:6px;right:8px;font-size:0.55rem;font-weight:800;color:#fbbf24;background:rgba(245,158,11,0.12);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">Cross-seed</span>' : '';
+            let crossBadge = (s1.isRep !== s2.isRep) ? '<span style="position:absolute;top:6px;right:8px;font-size:0.55rem;font-weight:800;color:#fbbf24;background:rgba(245,158,11,0.12);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.simCrossSeed') + '</span>' : '';
             r2Html += `
             <div style="position:relative;background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">
                 ${crossBadge}
-                <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">R2 — Jogo ${i + 1}</div>
+                <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">${_t('predraw.simR2Match')} ${i + 1}</div>
                 <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid ${s1.color};margin-bottom:4px;">
                     <span style="font-weight:600;font-size:0.85rem;color:${s1.isRep ? '#a78bfa' : '#e2e8f0'};${s1.isRep ? 'font-style:italic;' : ''}">${s1.name}</span>
                 </div>
@@ -2760,59 +2770,64 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // Tiebreaker note
         const tiebreakNote = tiebreakSpots > 0
             ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:12px;margin-top:1rem;">
-                <div style="font-size:0.78rem;color:#fbbf24;font-weight:700;margin-bottom:4px;">Critério de Desempate</div>
-                <div style="font-size:0.75rem;color:#94a3b8;line-height:1.5;">${repechageWinners} vencedores da repescagem avançam direto. Mais ${tiebreakSpots} classificado(s) entre os derrotados da repescagem avança(m) por critério de desempate (saldo de pontos, sets, etc).</div>
+                <div style="font-size:0.78rem;color:#fbbf24;font-weight:700;margin-bottom:4px;">${_t('predraw.simTiebreakTitle')}</div>
+                <div style="font-size:0.75rem;color:#94a3b8;line-height:1.5;">${_t('predraw.simTiebreakDesc', {w: repechageWinners, n: tiebreakSpots})}</div>
                </div>`
             : `<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:12px;margin-top:1rem;">
-                <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">Todos os ${spotsFromRepechage} vencedores da repescagem avançam para a R2.</div>
+                <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">${_t('predraw.simAllRepAdvance', {n: spotsFromRepechage})}</div>
                </div>`;
 
+        var _playinUnitStat = teamSize > 1 ? _t('predraw.simStatTeams') : _t('predraw.simStatParticipants');
+        var _playinR1Unit = matchesR1 === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
+        var _playinRepUnit = repechageMatches === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
+        var _playinRepSlot = spotsFromRepechage === 1 ? _t('predraw.simUnitSpot') : _t('predraw.simUnitSpots');
+        var _playinR2Unit = matchesR2 === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
         simulationHtml = `
             <div style="text-align:center;margin-bottom:2rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:1rem;">🔁</span>
-                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de Repescagem</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">Todos jogam a R1. Derrotados disputam repescagem para completar a R2 em ${r2Target}.</p>
+                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">${_t('predraw.simPlayinTitle')}</h3>
+                <p style="color:#94a3b8;margin:8px 0 0;">${_t('predraw.simPlayinSubtitle', {n: r2Target})}</p>
             </div>
 
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center;">
                     <div style="background:rgba(34,197,94,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
                         <div style="font-size:1.4rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
-                        <div style="font-size:0.62rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${teamSize > 1 ? 'Times' : 'Participantes'}</div>
+                        <div style="font-size:0.62rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_playinUnitStat}</div>
                     </div>
                     <div style="background:rgba(96,165,250,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
                         <div style="font-size:1.4rem;font-weight:900;color:#60a5fa;">${matchesR1}</div>
-                        <div style="font-size:0.62rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Jogos R1</div>
+                        <div style="font-size:0.62rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatR1')}</div>
                     </div>
                     <div style="background:rgba(139,92,246,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
                         <div style="font-size:1.4rem;font-weight:900;color:#8b5cf6;">${repechageMatches}</div>
-                        <div style="font-size:0.62rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Repescagem</div>
+                        <div style="font-size:0.62rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatRepechage')}</div>
                     </div>
                     <div style="background:rgba(245,158,11,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">
                         <div style="font-size:1.4rem;font-weight:900;color:#f59e0b;">${spotsFromRepechage}</div>
-                        <div style="font-size:0.62rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">Vagas Rep.</div>
+                        <div style="font-size:0.62rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatRepSpots')}</div>
                     </div>
                 </div>
             </div>
 
             <div style="max-height:500px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Rodada 1 — Todos Jogam (${matchesR1} ${matchesR1 === 1 ? 'partida' : 'partidas'})</h4>
+                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simPlayinR1Header', {n: matchesR1, unit: _playinR1Unit})}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r1Html}
                 </div>
 
                 <div style="text-align:center;margin:1.5rem 0;padding:10px;background:rgba(255,255,255,0.02);border-radius:12px;">
-                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${winnersR1} Vencedores → avançam direto para R2</div>
-                    <div style="font-size:0.7rem;color:#ef4444;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${losersR1} Derrotados → disputam Repescagem</div>
+                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${_t('predraw.simPlayinWinnersGo', {n: winnersR1})}</div>
+                    <div style="font-size:0.7rem;color:#ef4444;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${_t('predraw.simPlayinLosersGo', {n: losersR1})}</div>
                 </div>
 
-                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Repescagem — ${repechageMatches} ${repechageMatches === 1 ? 'partida' : 'partidas'}, ${spotsFromRepechage} ${spotsFromRepechage === 1 ? 'vaga' : 'vagas'}</h4>
+                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simRepHeader', {n: repechageMatches, unit: _playinRepUnit, s: spotsFromRepechage, slot: _playinRepSlot})}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${repHtml}
                 </div>
                 ${tiebreakNote}
 
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">Rodada 2 — Chave de ${r2Target} (${matchesR2} ${matchesR2 === 1 ? 'partida' : 'partidas'})</h4>
+                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">${_t('predraw.simPlayinR2Header', {n: r2Target, m: matchesR2, unit: _playinR2Unit})}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r2Html}
                 </div>
@@ -2828,22 +2843,24 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const matchesR1 = teamsKept / 2;
 
         // Standby mode options — always show (2 options)
+        var _standbyTeamsDesc = teamSize > 1 ? _t('predraw.simStandbyModeTeamsDescT', {n: movedPlayers, m: teamsMoved}) : _t('predraw.simStandbyModeTeamsDescI', {n: movedPlayers, m: teamsMoved});
+        var _standbyIndivDesc = teamSize > 1 ? _t('predraw.simStandbyModeIndivDescT') : _t('predraw.simStandbyModeIndivDescI');
         const standbyModeOptions = `
             <div style="margin-bottom:1.5rem;">
-                <h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Modo de Substituição da Lista de Espera</h4>
+                <h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simStandbyModeHeader')}</h4>
                 <div style="display:flex;flex-direction:column;gap:8px;">
                     <label id="standby-opt-teams" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:rgba(245,158,11,0.08);border:2px solid rgba(245,158,11,0.4);border-radius:12px;padding:12px;transition:all 0.2s;" onclick="document.getElementById('standby-mode-teams').checked=true;window._updateStandbySimViz('teams')">
                         <input type="radio" name="standby-mode" id="standby-mode-teams" value="teams" checked style="margin-top:3px;accent-color:#f59e0b;flex-shrink:0;" />
                         <div>
-                            <div style="color:#e2e8f0;font-weight:700;font-size:0.9rem;">Formar times com jogadores da espera</div>
-                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px;line-height:1.4;">Os ${movedPlayers} jogadores em espera formam ${teamsMoved} ${teamSize > 1 ? 'times' : 'entradas'} por sorteio. ${teamSize > 1 ? 'Se um time da chave estiver incompleto, é desclassificado e o próximo time da espera ocupa o lugar — mesmo quem compareceu fica de fora.' : 'Se um jogador faltar, o próximo da espera assume.'}</div>
+                            <div style="color:#e2e8f0;font-weight:700;font-size:0.9rem;">${_t('predraw.simStandbyModeTeams')}</div>
+                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px;line-height:1.4;">${_standbyTeamsDesc}</div>
                         </div>
                     </label>
                     <label id="standby-opt-individual" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;transition:all 0.2s;" onclick="document.getElementById('standby-mode-individual').checked=true;window._updateStandbySimViz('individual')">
                         <input type="radio" name="standby-mode" id="standby-mode-individual" value="individual" style="margin-top:3px;accent-color:#f59e0b;flex-shrink:0;" />
                         <div>
-                            <div style="color:#e2e8f0;font-weight:700;font-size:0.9rem;">Jogadores avulsos completam times</div>
-                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px;line-height:1.4;">Os jogadores ficam individualmente na fila. ${teamSize > 1 ? 'Se um membro de um time faltar, o próximo da fila entra no lugar — quem compareceu continua jogando.' : 'Se um jogador faltar, o próximo da fila assume a vaga.'}</div>
+                            <div style="color:#e2e8f0;font-weight:700;font-size:0.9rem;">${_t('predraw.simStandbyModeIndiv')}</div>
+                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px;line-height:1.4;">${_standbyIndivDesc}</div>
                         </div>
                     </label>
                 </div>
@@ -2853,7 +2870,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // Build match card with optional yellow accent for standby entries
         const matchCardTeams = (num, t1, t2) => `
             <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">
-                <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ${num}</div>
+                <div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">${_t('predraw.simMatch')} ${num}</div>
                 <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);margin-bottom:4px;">
                     <span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">${t1}</span>
                 </div>
@@ -2869,7 +2886,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // Function to build viz HTML based on mode
         window._buildStandbyVizHtml = function(mode) {
             const p = window._standbySimParams;
-            const tl = (num) => p.teamSize > 1 ? 'Time ' + num : 'Jogador ' + num;
+            const tl = (num) => p.teamSize > 1 ? (_t('predraw.simTeam') + ' ' + num) : (_t('predraw.simPlayer') + ' ' + num);
 
             if (mode === 'teams') {
                 // TEAMS MODE: show match cards + standby as formed teams with yellow accent
@@ -2882,21 +2899,21 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 for (let i = 0; i < p.teamsMoved; i++) {
                     const teamNum = p.teamsKept + i + 1;
                     const members = p.teamSize > 1
-                        ? Array.from({length: p.teamSize}, (_, mi) => 'Jogador ' + (p.keptPlayers + (i * p.teamSize) + mi + 1)).join(', ')
+                        ? Array.from({length: p.teamSize}, (_, mi) => _t('predraw.simPlayer') + ' ' + (p.keptPlayers + (i * p.teamSize) + mi + 1)).join(', ')
                         : '';
                     standbyTeamsHtml += '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin-bottom:10px;">' +
                         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (members ? '6px' : '0') + ';">' +
                             '<span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:900;color:#000;flex-shrink:0;">' + (i + 1) + '</span>' +
                             '<span style="font-weight:700;font-size:0.88rem;color:#fbbf24;">' + tl(teamNum) + '</span>' +
-                            '<span style="margin-left:auto;font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 8px;border-radius:6px;">Espera</span>' +
+                            '<span style="margin-left:auto;font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 8px;border-radius:6px;">' + _t('predraw.simStandbyBadge') + '</span>' +
                         '</div>' +
                         (members ? '<div style="font-size:0.72rem;color:#94a3b8;padding-left:34px;line-height:1.5;">' + members + '</div>' : '') +
                     '</div>';
                 }
 
-                return '<h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Chaveamento R1</h4>' +
+                return '<h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">' + _t('predraw.simStandbyR1Header') + '</h4>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + matchesHtml + '</div>' +
-                    '<h4 style="color:#f59e0b;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">Lista de Espera — ' + p.teamsMoved + (p.teamSize > 1 ? ' times (' + p.movedPlayers + ' jogadores)' : ' jogadores') + '</h4>' +
+                    '<h4 style="color:#f59e0b;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">' + (p.teamSize > 1 ? _t('predraw.simStandbyListHeaderTeams', {t: p.teamsMoved, p: p.movedPlayers}) : _t('predraw.simStandbyListHeaderIndiv', {p: p.movedPlayers})) + '</h4>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + standbyTeamsHtml + '</div>';
 
             } else {
@@ -2911,13 +2928,13 @@ window.showResolutionSimulationPanel = function (tId, option) {
                     const playerNum = p.keptPlayers + i + 1;
                     standbyIndivHtml += '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">' +
                         '<span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:900;color:#000;flex-shrink:0;">' + (i + 1) + '</span>' +
-                        '<span style="font-size:0.82rem;font-weight:700;color:#fbbf24;">Jogador ' + playerNum + '</span>' +
+                        '<span style="font-size:0.82rem;font-weight:700;color:#fbbf24;">' + _t('predraw.simPlayer') + ' ' + playerNum + '</span>' +
                     '</div>';
                 }
 
-                return '<h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Chaveamento R1</h4>' +
+                return '<h4 style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">' + _t('predraw.simStandbyR1Header') + '</h4>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + matchesHtml + '</div>' +
-                    '<h4 style="color:#f59e0b;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">Lista de Espera — ' + p.movedPlayers + ' jogadores avulsos</h4>' +
+                    '<h4 style="color:#f59e0b;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">' + _t('predraw.simStandbyListHeaderIndiv', {p: p.movedPlayers}) + '</h4>' +
                     '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + standbyIndivHtml + '</div>';
             }
         };
@@ -2936,11 +2953,11 @@ window.showResolutionSimulationPanel = function (tId, option) {
             if (mode === 'individual') {
                 if (statCount) statCount.textContent = p.movedPlayers;
                 if (statLabel) statLabel.textContent = _t('predraw.waitingPlayers');
-                if (subtitle) subtitle.textContent = p.movedPlayers + ' jogadores';
+                if (subtitle) subtitle.textContent = _t('predraw.simStandbySubtitleIndiv', {m: p.movedPlayers});
             } else {
                 if (statCount) statCount.textContent = p.teamsMoved;
-                if (statLabel) statLabel.textContent = (p.teamSize > 1 ? 'Times' : 'Jogadores') + ' em Espera';
-                if (subtitle) subtitle.textContent = p.teamsMoved + (p.teamSize > 1 ? ' times' : ' jogadores');
+                if (statLabel) statLabel.textContent = _t('predraw.simStandbyWaiting', {unit: (p.teamSize > 1 ? _t('predraw.simStatTeams') : _t('predraw.simStatParticipants'))});
+                if (subtitle) subtitle.textContent = p.teamSize > 1 ? _t('predraw.simStandbySubtitleTeams', {m: p.teamsMoved}) : _t('predraw.simStandbySubtitleIndiv', {m: p.teamsMoved});
             }
             // Update option card styling
             const teamsOpt = document.getElementById('standby-opt-teams');
@@ -2955,26 +2972,31 @@ window.showResolutionSimulationPanel = function (tId, option) {
             }
         };
 
+        var _stUnit = teamSize > 1 ? _t('predraw.unitTeams') : _t('predraw.simStandbyPlayersWaitingLabel');
+        var _stPlayersParen = teamSize > 1 ? ' (' + keptPlayers + ' ' + _t('predraw.simStandbyPlayersWaitingLabel') + ')' : '';
+        var _stStandbyCountFmt = teamSize > 1 ? _t('predraw.simStandbySubtitleTeams', {m: teamsMoved}) : _t('predraw.simStandbySubtitleIndiv', {m: teamsMoved});
+        var _stInBracket = teamSize > 1 ? _t('predraw.simStandbyInBracket', {unit: _t('predraw.simStatTeams')}) : _t('predraw.simStandbyInBracket', {unit: _t('predraw.simStatParticipants')});
+        var _stWaiting = teamSize > 1 ? _t('predraw.simStandbyWaiting', {unit: _t('predraw.simStatTeams')}) : _t('predraw.simStandbyWaiting', {unit: _t('predraw.simStatParticipants')});
         simulationHtml = `
             <div style="text-align:center;margin-bottom:2rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:1rem;">⏳</span>
-                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">Simulação de Lista de Espera</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">Chave de ${teamsKept} ${teamSize > 1 ? 'times' : 'jogadores'}${teamSize > 1 ? ' (' + keptPlayers + ' jogadores)' : ''}. <span id="standby-subtitle-count">${teamsMoved} ${teamSize > 1 ? 'times' : 'jogadores'}</span> em espera.</p>
+                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">${_t('predraw.simStandbyTitle')}</h3>
+                <p style="color:#94a3b8;margin:8px 0 0;">${_t('predraw.simStandbyBracketCount', {t: teamsKept, unit: _stUnit, p: _stPlayersParen})}. <span id="standby-subtitle-count">${_stStandbyCountFmt}</span>.</p>
             </div>
 
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
                     <div style="background:rgba(34,197,94,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
                         <div style="font-size:1.5rem;font-weight:900;color:#4ade80;">${teamsKept}</div>
-                        <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${teamSize > 1 ? 'Times' : 'Jogadores'} na Chave</div>
+                        <div style="font-size:0.7rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${_stInBracket}</div>
                     </div>
                     <div style="background:rgba(96,165,250,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
                         <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;">${matchesR1}</div>
-                        <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">Partidas R1</div>
+                        <div style="font-size:0.7rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${_t('predraw.simStandbyR1Matches')}</div>
                     </div>
                     <div style="background:rgba(245,158,11,0.1);padding:1rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">
                         <div id="standby-stat-count" style="font-size:1.5rem;font-weight:900;color:#f59e0b;">${teamsMoved}</div>
-                        <div id="standby-stat-label" style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${teamSize > 1 ? 'Times' : 'Jogadores'} em Espera</div>
+                        <div id="standby-stat-label" style="font-size:0.7rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:1px;margin-top:4px;">${_stWaiting}</div>
                     </div>
                 </div>
             </div>
@@ -2991,8 +3013,8 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const targetTeams = info.lo;
         const recRounds = Math.max(2, Math.ceil(Math.log2(totalTeams)));
         const matchesPerRound = Math.floor(totalTeams / 2);
-        const tLabel = (num) => teamSize > 1 ? `Time ${num}` : `Participante ${num}`;
-        const teamWord = teamSize > 1 ? 'Times' : 'Participantes';
+        const tLabel = (num) => teamSize > 1 ? (_t('predraw.simTeam') + ' ' + num) : (_t('predraw.simParticipant') + ' ' + num);
+        const teamWord = teamSize > 1 ? _t('predraw.simStatTeams') : _t('predraw.simStatParticipants');
 
         // ── Generate round options from 2 up to max (capped at recRounds + 2, max 7) ──
         const minRounds = 2;
@@ -3058,10 +3080,10 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" ' +
                 'onmouseout="this.style.transform=\'\';this.style.filter=\'\'" ' +
                 'onclick="window._selectSwissRounds(' + r + ')">' +
-                (isBest ? '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">⭐ Recomendado</div>' : '') +
+                (isBest ? '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">' + _t('predraw.nashRecommended') + '</div>' : '') +
                 '<div style="font-size:1.8rem;font-weight:900;color:#fff;line-height:1;">' + r + '</div>' +
-                '<div style="font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:700;">rodadas</div>' +
-                '<div style="font-size:0.62rem;color:rgba(255,255,255,0.45);margin-top:2px;">' + totalMatches + ' partidas</div>' +
+                '<div style="font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:700;">' + _t('predraw.simSwissRoundsLabel') + '</div>' +
+                '<div style="font-size:0.62rem;color:rgba(255,255,255,0.45);margin-top:2px;">' + totalMatches + ' ' + _t('predraw.simSwissMatchesLabel') + '</div>' +
                 '<div style="margin-top:auto;padding-top:6px;"><span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:0.62rem;font-weight:800;background:' + c.pillBg + ';color:' + c.pill + ';">Nash ' + normPct + '%</span></div>' +
             '</button>';
         });
@@ -3074,10 +3096,10 @@ window.showResolutionSimulationPanel = function (tId, option) {
             const s = nashScores[r];
             if (!s) return '';
             return '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:1.5rem;">' +
-                '<span style="font-size:0.62rem;color:#a78bfa;">🎯 Precisão <b>' + Math.round(s.precision * 10) + '%</b></span>' +
-                '<span style="font-size:0.62rem;color:#4ade80;">⚖️ Justiça <b>' + Math.round(s.fairness * 10) + '%</b></span>' +
-                '<span style="font-size:0.62rem;color:#f59e0b;">⚡ Esforço <b>' + Math.round(s.effort * 10) + '%</b></span>' +
-                '<span style="font-size:0.62rem;color:#60a5fa;">🏃 Velocidade <b>' + Math.round(s.speed * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#a78bfa;">' + _t('predraw.simSwissPrecision') + ' <b>' + Math.round(s.precision * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#4ade80;">' + _t('predraw.simSwissFairness') + ' <b>' + Math.round(s.fairness * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#f59e0b;">' + _t('predraw.simSwissEffort') + ' <b>' + Math.round(s.effort * 10) + '%</b></span>' +
+                '<span style="font-size:0.62rem;color:#60a5fa;">' + _t('predraw.simSwissSpeed') + ' <b>' + Math.round(s.speed * 10) + '%</b></span>' +
             '</div>';
         }
         window._buildSwissNashLegend = _buildNashLegend;
@@ -3089,7 +3111,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
             // Swiss round cards
             const swissCard2 = (roundNum, matchNum, t1, t2) =>
                 '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">' +
-                '<div style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(139,92,246,0.1);">R' + roundNum + ' — Jogo ' + matchNum + '</div>' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(139,92,246,0.1);">R' + roundNum + ' — ' + _t('predraw.simMatch') + ' ' + matchNum + '</div>' +
                 '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(139,92,246,0.4);margin-bottom:4px;">' +
                 '<span style="font-weight:600;font-size:0.85rem;color:#e2e8f0;">' + t1 + '</span></div>' +
                 '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
@@ -3098,7 +3120,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
 
             const elimCard2 = (num, t1, t2) =>
                 '<div style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">' +
-                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">Jogo ' + num + '</div>' +
+                '<div style="font-size:0.65rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06);">' + _t('predraw.simMatch') + ' ' + num + '</div>' +
                 '<div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);margin-bottom:4px;">' +
                 '<span style="font-weight:600;font-size:0.85rem;color:#4ade80;">' + t1 + '</span></div>' +
                 '<div style="text-align:center;font-size:0.6rem;color:#64748b;font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
@@ -3111,18 +3133,18 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 let cards = '';
                 for (let m = 0; m < showMax; m++) {
                     if (r === 0) cards += swissCard2(r + 1, m + 1, tLabel((m * 2) + 1), tLabel((m * 2) + 2));
-                    else cards += swissCard2(r + 1, m + 1, (m * 2 + 1) + 'º colocado', (m * 2 + 2) + 'º colocado');
+                    else cards += swissCard2(r + 1, m + 1, _t('predraw.simSwissNthPlace', {n: (m * 2 + 1)}), _t('predraw.simSwissNthPlace', {n: (m * 2 + 2)}));
                 }
                 const moreC = mpr - showMax;
                 roundsHtml += '<div style="margin-bottom:1.5rem;">' +
                     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">' +
                     '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;color:white;flex-shrink:0;">' + (r + 1) + '</span>' +
-                    '<span style="font-weight:700;font-size:0.85rem;color:#e2e8f0;">Rodada ' + (r + 1) + '</span>' +
-                    '<span style="margin-left:auto;font-size:0.68rem;color:#64748b;">' + mpr + ' partidas</span>' +
-                    '<span style="font-size:0.65rem;color:#a78bfa;background:rgba(139,92,246,0.1);padding:2px 8px;border-radius:6px;font-weight:700;">' + (r === 0 ? 'Sorteio' : 'Por pontuação') + '</span>' +
+                    '<span style="font-weight:700;font-size:0.85rem;color:#e2e8f0;">' + _t('predraw.simSwissRoundLabel') + ' ' + (r + 1) + '</span>' +
+                    '<span style="margin-left:auto;font-size:0.68rem;color:#64748b;">' + _t('predraw.simSwissMatchesInRound', {n: mpr}) + '</span>' +
+                    '<span style="font-size:0.65rem;color:#a78bfa;background:rgba(139,92,246,0.1);padding:2px 8px;border-radius:6px;font-weight:700;">' + (r === 0 ? _t('predraw.simSwissDraw') : _t('predraw.simSwissByScore')) + '</span>' +
                     '</div>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + cards + '</div>' +
-                    (moreC > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreC + ' partidas nesta rodada</div>' : '') +
+                    (moreC > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">' + _t('predraw.simSwissMoreInRound', {n: moreC}) + '</div>' : '') +
                     '</div>';
             }
 
@@ -3130,17 +3152,17 @@ window.showResolutionSimulationPanel = function (tId, option) {
             const elimM = targetTeams / 2;
             const showElimMax2 = Math.min(elimM, 4);
             let elimH = '';
-            for (let i = 0; i < showElimMax2; i++) elimH += elimCard2(i + 1, '#' + ((i * 2) + 1) + ' classificado', '#' + ((i * 2) + 2) + ' classificado');
+            for (let i = 0; i < showElimMax2; i++) elimH += elimCard2(i + 1, _t('predraw.simSwissNthClassified', {n: ((i * 2) + 1)}), _t('predraw.simSwissNthClassified', {n: ((i * 2) + 2)}));
             const moreElim2 = elimM - showElimMax2;
 
-            return '<h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">Fase Classificatória — ' + selectedRounds + ' Rodadas</h4>' +
+            return '<h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">' + _t('predraw.simSwissClassPhase', {n: selectedRounds}) + '</h4>' +
                 roundsHtml +
                 '<div style="text-align:center;margin:0.75rem 0;padding:12px;background:rgba(34,197,94,0.05);border:1px dashed rgba(34,197,94,0.2);border-radius:12px;">' +
-                '<div style="font-size:0.72rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Classificação Final</div>' +
-                '<div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">Top ' + targetTeams + ' avançam para chave eliminatória</div></div>' +
-                '<h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 1rem;">Fase Eliminatória — Chave de ' + targetTeams + '</h4>' +
+                '<div style="font-size:0.72rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">' + _t('predraw.simSwissFinalClass') + '</div>' +
+                '<div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">' + _t('predraw.simSwissTopAdvance', {n: targetTeams}) + '</div></div>' +
+                '<h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 1rem;">' + _t('predraw.simSwissElimPhase', {n: targetTeams}) + '</h4>' +
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + elimH + '</div>' +
-                (moreElim2 > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">+ mais ' + moreElim2 + ' partidas na R1 eliminatória</div>' : '');
+                (moreElim2 > 0 ? '<div style="text-align:center;color:#64748b;font-size:0.72rem;margin-top:6px;font-style:italic;">' + _t('predraw.simSwissMoreInElim', {n: moreElim2}) + '</div>' : '');
         };
 
         window._selectSwissRounds = function(r) {
@@ -3174,21 +3196,21 @@ window.showResolutionSimulationPanel = function (tId, option) {
                     '<div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">' + teamWord + '</div></div>' +
                     '<div style="background:rgba(139,92,246,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(139,92,246,0.2);">' +
                     '<div style="font-size:1.3rem;font-weight:900;color:#8b5cf6;">' + r + '</div>' +
-                    '<div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Rodadas</div></div>' +
+                    '<div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">' + _t('predraw.simSwissRoundsCol') + '</div></div>' +
                     '<div style="background:rgba(96,165,250,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(96,165,250,0.2);">' +
                     '<div style="font-size:1.3rem;font-weight:900;color:#60a5fa;">' + targetTeams + '</div>' +
-                    '<div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Classificados</div></div>' +
+                    '<div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">' + _t('predraw.simSwissClassifiedCol') + '</div></div>' +
                     '<div style="background:rgba(245,158,11,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(245,158,11,0.2);">' +
                     '<div style="font-size:1.3rem;font-weight:900;color:#f59e0b;">' + tp + '</div>' +
-                    '<div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Partidas</div></div>';
+                    '<div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">' + _t('predraw.simSwissMatchesCol') + '</div></div>';
             }
         };
 
         simulationHtml = `
             <div style="text-align:center;margin-bottom:1.5rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:0.75rem;">🏅</span>
-                <h3 style="color:white;font-size:1.4rem;font-weight:900;margin:0;">Classificatória Suíça</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;font-size:0.82rem;">Escolha quantas rodadas de classificação antes da eliminatória.</p>
+                <h3 style="color:white;font-size:1.4rem;font-weight:900;margin:0;">${_t('predraw.simSwissTitle')}</h3>
+                <p style="color:#94a3b8;margin:8px 0 0;font-size:0.82rem;">${_t('predraw.simSwissSubtitle')}</p>
             </div>
 
             <div id="swiss-nash-legend">${_buildNashLegend(bestRounds)}</div>
@@ -3204,15 +3226,15 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 </div>
                 <div style="background:rgba(139,92,246,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(139,92,246,0.2);">
                     <div style="font-size:1.3rem;font-weight:900;color:#8b5cf6;">${bestRounds}</div>
-                    <div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Rodadas</div>
+                    <div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${_t('predraw.simSwissRoundsCol')}</div>
                 </div>
                 <div style="background:rgba(96,165,250,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(96,165,250,0.2);">
                     <div style="font-size:1.3rem;font-weight:900;color:#60a5fa;">${targetTeams}</div>
-                    <div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Classificados</div>
+                    <div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${_t('predraw.simSwissClassifiedCol')}</div>
                 </div>
                 <div style="background:rgba(245,158,11,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(245,158,11,0.2);">
                     <div style="font-size:1.3rem;font-weight:900;color:#f59e0b;">${matchesPerRound * bestRounds}</div>
-                    <div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Partidas</div>
+                    <div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${_t('predraw.simSwissMatchesCol')}</div>
                 </div>
             </div>
 
@@ -3227,12 +3249,12 @@ window.showResolutionSimulationPanel = function (tId, option) {
     overlay.innerHTML = `
         <div style="background:#0f172a;width:94%;max-width:600px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 50px 150px rgba(0,0,0,0.9);overflow:hidden;animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);margin:auto 0;display:flex;flex-direction:column;max-height:95vh;">
             <div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#312e81 0%,#4338ca 50%,#4f46e5 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;border-radius:32px 32px 0 0;">
-                <button onclick="document.getElementById('simulation-panel').remove();document.body.style.overflow=''; var _rp=document.getElementById('p2-resolution-panel')||document.getElementById('unified-resolution-panel'); if(_rp)_rp.style.display='';" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">← Voltar</button>
-                <button onclick="window._confirmP2Resolution('${_tIdSafe2}', '${_optSafe2}')" style="background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:white;border:none;padding:8px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3);transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.3)'">✓ Confirmar</button>
+                <button onclick="document.getElementById('simulation-panel').remove();document.body.style.overflow=''; var _rp=document.getElementById('p2-resolution-panel')||document.getElementById('unified-resolution-panel'); if(_rp)_rp.style.display='';" style="background:rgba(0,0,0,0.25);color:#c7d2fe;border:2px solid rgba(199,210,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(0,0,0,0.4)';this.style.borderColor='rgba(199,210,254,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.25)';this.style.borderColor='rgba(199,210,254,0.3)'">${_t('predraw.backLabel')}</button>
+                <button onclick="window._confirmP2Resolution('${_tIdSafe2}', '${_optSafe2}')" style="background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:white;border:none;padding:8px 24px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3);transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.3)'">${_t('predraw.confirmLabel')}</button>
             </div>
             <div style="padding:2rem 2.5rem 2.5rem;overflow-y:auto;flex:1;">
                 ${simulationHtml}
-                <p style="margin-top:1rem;text-align:center;color:#64748b;font-size:0.7rem;font-style:italic;">Nota: Esta é uma simulação ilustrativa. Os times são embaralhados no sorteio.</p>
+                <p style="margin-top:1rem;text-align:center;color:#64748b;font-size:0.7rem;font-style:italic;">${_t('predraw.simNote')}</p>
             </div>
         </div>
     `;
