@@ -491,7 +491,7 @@ window._openSetScoring = function(tId, matchId) {
         '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
         '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
       '</div>' +
-      '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;">Empate — desempate por tie-break</div>' +
+      '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;">' + _t('bui.drawTiebreak') + '</div>' +
     '</div>';
   } else {
     // Standard set-by-set scoring
@@ -530,12 +530,12 @@ window._openSetScoring = function(tId, matchId) {
   overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:500px;border-radius:20px;border:1px solid rgba(168,85,247,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;margin:auto 0;max-height:90vh;display:flex;flex-direction:column;">' +
     '<div style="background:linear-gradient(135deg,' + (isFixedSet ? '#b45309 0%,#f59e0b' : '#6d28d9 0%,#a855f7') + ' 100%);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
       '<div>' +
-        '<h3 style="margin:0;color:#f5f3ff;font-size:1.05rem;font-weight:800;">' + (isFixedSet ? '⚡ Set Fixo' : '🎾 Resultado por Sets') + '</h3>' +
+        '<h3 style="margin:0;color:#f5f3ff;font-size:1.05rem;font-weight:800;">' + (isFixedSet ? _t('bui.fixedSet') : _t('bui.setResult')) + '</h3>' +
         '<p style="margin:2px 0 0;color:#fef3c7;font-size:0.75rem;">' + headerSubtitle + '</p>' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#f5f3ff;border:1px solid rgba(255,255,255,0.25);">Cancelar</button>' +
-        '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-sm" style="background:#fff;color:' + (isFixedSet ? '#b45309' : '#6d28d9') + ';font-weight:700;border:none;" disabled>Salvar</button>' +
+        '<button type="button" onclick="document.getElementById(\'set-scoring-overlay\').remove();" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#f5f3ff;border:1px solid rgba(255,255,255,0.25);">' + _t('btn.cancel') + '</button>' +
+        '<button type="button" id="btn-save-sets" onclick="window._saveSetResult(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\')" class="btn btn-sm" style="background:#fff;color:' + (isFixedSet ? '#b45309' : '#6d28d9') + ';font-weight:700;border:none;" disabled>' + _t('btn.save') + '</button>' +
       '</div>' +
     '</div>' +
     '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
@@ -831,7 +831,7 @@ window._saveSetResult = function(tId, matchId) {
     const _resultText = m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner;
     const _notifData = {
       type: 'result',
-      title: 'Resultado registrado',
+      title: _t('bui.resultRegistered'),
       message: _resultText,
       tournamentId: tId,
       tournamentName: t.name,
@@ -925,11 +925,11 @@ window._saveResultInline = function (tId, matchId) {
     showNotification(_t('result.saved'), `${m.winner} avança!`, 'success');
   } else if (isRoundMatch) {
     // Liga/Suíço/Ranking — atualizar standings
-    showNotification(_t('result.saved'), `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+    showNotification(_t('result.saved'), m.draw ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
   } else {
     // Check if current group round is complete, activate next
     _checkGroupRoundComplete(t, m.group);
-    showNotification(_t('result.saved'), `${m.draw ? 'Empate!' : m.winner + ' venceu!'}`, 'success');
+    showNotification(_t('result.saved'), m.draw ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
   }
 
   // Auto check-in: marcar presença de todos os participantes deste jogo (e limpar ausência se existia)
@@ -952,11 +952,11 @@ window._saveResultInline = function (tId, matchId) {
   // Notify match participants about the result
   if (typeof window._sendUserNotification === 'function') {
     var _resultText = m.draw
-      ? (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Empate')
-      : (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — Vencedor: ' + m.winner);
+      ? (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — ' + _t('bui.drawResult'))
+      : (m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — ' + _t('bui.matchWon', {winner: m.winner}));
     var _notifData = {
       type: 'result',
-      title: 'Resultado registrado',
+      title: _t('bui.resultRegistered'),
       message: _resultText,
       tournamentId: tId,
       tournamentName: t.name,
@@ -982,8 +982,8 @@ window._saveResultInline = function (tId, matchId) {
 
 window._editResult = function (tId, matchId) {
   showConfirmDialog(
-    'Editar Resultado',
-    'Apagar o resultado atual e permitir novo lançamento? O avanço do vencedor anterior será revertido.',
+    _t('bui.editResultTitle'),
+    _t('bui.editResultConfirm'),
     () => {
       const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
       if (!t) return;
@@ -1101,7 +1101,7 @@ window._shareMatchResult = function(tId, matchId) {
 
   var isDraw = m.winner === 'draw' || m.draw;
   var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : '';
-  var resultText = isDraw ? 'Empate' : ('🏆 ' + m.winner);
+  var resultText = isDraw ? _t('bui.drawResult') : ('🏆 ' + m.winner);
   var text = '⚔️ ' + (m.p1 || '?') + ' vs ' + (m.p2 || '?');
   if (score) text += ' (' + score + ')';
   text += '\n' + resultText;
@@ -1110,7 +1110,7 @@ window._shareMatchResult = function(tId, matchId) {
   text += '\n\n🔗 ' + window._tournamentUrl(tId);
 
   if (navigator.share) {
-    navigator.share({ title: 'Resultado — ' + t.name, text: text, url: window._tournamentUrl(tId) }).catch(function() {});
+    navigator.share({ title: _t('bui.resultShareTitle', {name: t.name}), text: text, url: window._tournamentUrl(tId) }).catch(function() {});
   } else {
     // Clipboard fallback
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1209,21 +1209,21 @@ window._tvBuildNextMatches = function(t) {
   if (Array.isArray(t.rounds)) {
     t.rounds.forEach(function(r, ri) {
       (r.matches || []).forEach(function(m) {
-        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = 'Rodada ' + (ri + 1); allMatches.push(m); }
+        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bracket.round', {n: ri + 1}); allMatches.push(m); }
       });
     });
   }
   if (Array.isArray(t.groups)) {
     t.groups.forEach(function(g, gi) {
       (g.matches || []).forEach(function(m) {
-        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = 'Grupo ' + (g.name || (gi + 1)); allMatches.push(m); }
+        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bui.groupLabel', {n: g.name || (gi + 1)}); allMatches.push(m); }
       });
     });
   }
   var upcoming = allMatches.slice(0, 6);
   if (upcoming.length === 0) return '';
   var html = '<div style="margin-bottom:1.5rem;">';
-  html += '<div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:12px;">Próximos Jogos</div>';
+  html += '<div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:12px;">' + _t('bui.nextGames') + '</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
   upcoming.forEach(function(m) {
     var courtInfo = m.court ? '<div style="font-size:0.7rem;color:#818cf8;margin-top:4px;">📍 ' + window._safeHtml(m.court) + '</div>' : '';
@@ -1261,8 +1261,8 @@ window._tvBuildAttendance = function(t) {
   html += '<div style="display:flex;align-items:center;gap:10px;">';
   html += '<span style="font-size:1.5rem;">⏳</span>';
   html += '<div>';
-  html += '<div style="font-size:0.95rem;font-weight:700;color:#fbbf24;">Aguardando Presença</div>';
-  html += '<div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:2px;">' + waitingPresence.length + ' partida' + (waitingPresence.length > 1 ? 's' : '') + ' aguardando confirmação de presença</div>';
+  html += '<div style="font-size:0.95rem;font-weight:700;color:#fbbf24;">' + _t('bui.waitingPresence') + '</div>';
+  html += '<div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:2px;">' + _t('bui.waitingPresenceCount', {n: waitingPresence.length}) + '</div>';
   html += '</div></div></div>';
   return html;
 };

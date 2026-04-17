@@ -346,7 +346,7 @@ function _findMatch(t, matchId) {
 // ─── Auto-resolve BYE match when a real player is placed ─────────────────────
 function _autoResolveBye(t, match) {
   if (!match || match.winner) return; // already resolved
-  var byeLabel = 'BYE (Avança Direto)';
+  var byeLabel = _t('bui.byeLabel');
   var p1Real = match.p1 && match.p1 !== 'TBD' && match.p1 !== byeLabel;
   var p2Real = match.p2 && match.p2 !== 'TBD' && match.p2 !== byeLabel;
   var p1Bye = match.p1 === byeLabel;
@@ -887,7 +887,7 @@ function _maybeGenerate3rdPlace(t) {
     t.thirdPlaceMatch = {
       id: `match-3rd-${Date.now()}`,
       round: finalRoundNum,
-      label: '3º Lugar',
+      label: _t('bui.thirdPlaceMatch'),
       p1: 'TBD', p2: 'TBD', winner: null
     };
   }
@@ -916,8 +916,8 @@ window._closeRound = function (tId, roundIdx) {
   const unfinished = (round.matches || []).filter(m => !m.winner && !m.isBye && !m.isSitOut);
   if (unfinished.length > 0) {
     showConfirmDialog(
-      'Rodada Incompleta',
-      `Há ${unfinished.length} partida(s) sem resultado. Encerrar mesmo assim?`,
+      _t('bui.incompleteRound'),
+      _t('bui.incompleteRoundMsg', {n: unfinished.length}),
       () => _doCloseRound(t, tId, roundIdx),
       null,
       { type: 'warning', confirmText: _t('btn.finishAnyway'), cancelText: _t('btn.back') }
@@ -982,7 +982,7 @@ function _doCloseRound(t, tId, roundIdx) {
       if (typeof window._notifyTournamentParticipants === 'function') {
         window._notifyTournamentParticipants(t, {
           type: 'swiss_to_elimination',
-          message: 'Fase classificatória encerrada! Top ' + _targetCount + ' avançam para ' + (t.format || 'Eliminatórias') + '.',
+          message: _t('bui.swissFinishedNotif', {n: _targetCount, format: t.format || 'Eliminatórias'}),
           level: 'important'
         });
       }
@@ -1012,8 +1012,8 @@ function _doCloseRound(t, tId, roundIdx) {
       window._notifyTournamentParticipants(t, {
         type: 'new_round',
         level: 'important',
-        title: '🎲 Rodada ' + t.rounds.length + ' — ' + (t.name || 'Torneio'),
-        message: _newMatchCount + ' partida(s) sorteada(s). Confira seus confrontos!',
+        title: _t('bui.newRoundTitle', {n: t.rounds.length, name: t.name || 'Torneio'}),
+        message: _t('bui.newRoundNotifMsg', {n: _newMatchCount}),
         tournamentId: tId
       });
     }
