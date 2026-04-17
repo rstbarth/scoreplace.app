@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Momentum logo abaixo do vencedor + toggle elegante</b> — Box "Momentum da Partida" movido para logo abaixo do box Vencedor na tela de resultado, de forma que a animação de desenho das linhas seja visível no momento de abertura. Botão "🔄 Jogar" ficou compacto para dar espaço ao toggle "Re-sortear duplas" que agora renderiza como switch pill elegante (toggle-switch toggle-sm) no lado direito — cabe sem espremer em viewports de 303px+.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.20-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Gráfico Momentum redesenhado: linhas duplas animadas</b> — Substituído o gráfico de diferença com preenchimento por duas linhas cumulativas distintas: azul para o Time 1 e vermelha para o Time 2, ambas crescendo da esquerda para a direita. Y-axis com gridlines e rótulos (0, 5, 10, ...). Ao abrir a tela, as linhas se desenham progressivamente ao longo de 2.8s via stroke-dashoffset + pathLength="100". Marcadores finais (círculos + pontuação) aparecem ao final da animação. Botão ↻ Replay re-executa a animação. Linhas tracejadas verticais marcam o fim de cada set (S1, S2...).</p>' +
         '</div>' +

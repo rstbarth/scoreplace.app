@@ -3159,14 +3159,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
       }
 
       // Restart section: visible to all users on the match screen.
+      // Compact button + proper toggle-switch side-by-side. Button uses a short
+      // label so the "Re-sortear duplas" toggle fits elegantly on narrow phones.
       var restartSection = '';
       if (isDoubles) {
         restartSection =
-          '<div style="display:flex;align-items:stretch;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" style="flex:1;min-width:0;padding:13px 10px;border-radius:12px;font-size:0.92rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar Novamente</button>' +
-            '<label class="toggle-switch" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;">' +
-              '<span style="font-size:0.7rem;font-weight:600;color:var(--text-bright);line-height:1.15;max-width:70px;">Re-sortear duplas</span>' +
-              '<input type="checkbox" id="chk-shuffle-teams" style="width:36px;height:20px;accent-color:#818cf8;cursor:pointer;flex-shrink:0;" />' +
+          '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
+            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:10px 12px;border-radius:12px;font-size:0.8rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar</button>' +
+            '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
+              '<span style="font-size:0.72rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear duplas</span>' +
+              '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
+                '<input type="checkbox" id="chk-shuffle-teams" />' +
+                '<span class="toggle-slider"></span>' +
+              '</span>' +
             '</label>' +
           '</div>';
       } else {
@@ -3175,14 +3180,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
       }
 
       // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
+      // Momentum graph placed right below the winner so its draw animation is visible
+      // at the top of the screen the moment the result view opens — the animation
+      // would be wasted if it were below the fold.
       container.innerHTML =
         '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;gap:clamp(8px,1.5vh,14px);">' +
           // Winner section on top
           winnerSection +
+          // Momentum graph (animation visible immediately on open)
+          momentumSection +
           // Comparative team stats
           comparativeSection +
-          // Momentum graph (point-by-point)
-          momentumSection +
           // Loser section below
           loserSection +
           // Duration
