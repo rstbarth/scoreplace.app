@@ -828,6 +828,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Gráfico Momentum ponto a ponto na tela de vitória</b> — SVG do desenvolvimento da partida exibe a diferença cumulativa de pontos ao longo de todo o jogo. Área azul acima do zero indica vantagem do time 1, vermelha abaixo indica vantagem do time 2. Linha amarela suave sobre as áreas com pontos maiores nos extremos (maior vantagem de cada time) e marcador final. Linhas tracejadas verticais com rótulos S1, S2, ... marcam o final de cada set.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Travamento do saque reforçado + UI</b> — Após 2 jogos, ordem de saque fica travada em todos os canais (drag, _liveSetServer, _liveSwapServerInTeam) com guards explícitos. A bolinha de saque mostra um cadeado 🔒 quando travada, glow dimmer e tooltip "Ordem de saque travada". Campo "Sala de um amigo" agora tem mesma altura (44px) do botão Entrar.</p>' +
         '</div>' +

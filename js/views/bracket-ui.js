@@ -1831,7 +1831,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     serveSkipped: false, // user chose to skip serve tracking
     servePending: false, // true when waiting for user to pick a server
     totalGamesPlayed: 0, // total games completed (for serve rotation)
-    gameLog: []          // [{winner:1|2, serverName, serverTeam}] per completed normal game
+    gameLog: [],         // [{winner:1|2, serverName, serverTeam}] per completed normal game
+    pointLog: []         // [{team:1|2, endSet:bool}] every point scored, set boundaries marked
   };
   var serveSlots = isDoubles ? 4 : 2; // total rotation length
   var _courtLeft = 1; // Which team is on the left side of the court (1 or 2)
@@ -1862,6 +1863,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (Array.isArray(remote.serveOrder) && remote.serveOrder.length > 0) state.serveOrder = remote.serveOrder;
             state.serveSkipped = !!remote.serveSkipped;
             if (Array.isArray(remote.gameLog)) state.gameLog = remote.gameLog.slice();
+            if (Array.isArray(remote.pointLog)) state.pointLog = remote.pointLog.slice();
             if (remote.courtLeft) _courtLeft = remote.courtLeft;
             if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
             if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
@@ -2088,6 +2090,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
 
+    // Log every point scored (for momentum graph on finish)
+    state.pointLog.push({ team: player });
+
     if (!useSets || state.isFixedSet) {
       // Simple scoring or fixed set: each tap is 1 point
       if (state.isFixedSet) {
@@ -2162,6 +2167,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
   }
 
   function _finishSet(setWinner) {
+    // Mark the last point as set-ending (for momentum graph set boundaries)
+    if (state.pointLog.length > 0) state.pointLog[state.pointLog.length - 1].endSet = true;
     state.currentGameP1 = 0;
     state.currentGameP2 = 0;
     state.isTiebreak = false;
@@ -2880,6 +2887,85 @@ window._openLiveScoring = function(tId, matchId, opts) {
         ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;color:var(--text-muted);"><span>⏱</span><span style="font-weight:700;color:var(--text-bright);">' + elapsedStr + '</span><span>de jogo</span></div>'
         : '';
 
+      // Momentum graph (point-by-point cumulative diff)
+      var momentumSection = '';
+      if (state.pointLog && state.pointLog.length >= 2) {
+        var pts = state.pointLog;
+        var width = 320, height = 120, padX = 10, padY = 14;
+        var innerW = width - padX * 2, innerH = height - padY * 2;
+        var diffs = [], maxD = 0, minD = 0, setEnds = [], cum = 0;
+        for (var gi = 0; gi < pts.length; gi++) {
+          cum += pts[gi].team === 1 ? 1 : -1;
+          diffs.push(cum);
+          if (cum > maxD) maxD = cum;
+          if (cum < minD) minD = cum;
+          if (pts[gi].endSet) setEnds.push(gi);
+        }
+        var range = Math.max(maxD, -minD, 1);
+        var cxFn = function(i) { return padX + (pts.length === 1 ? innerW / 2 : i / (pts.length - 1) * innerW); };
+        var cyFn = function(diff) { return padY + innerH / 2 - (diff / range) * (innerH / 2 - 4); };
+        var baseline = cyFn(0);
+        // Paths: team 1 area (above baseline, diff > 0), team 2 area (below, diff < 0)
+        var aboveArea = 'M ' + cxFn(0) + ' ' + baseline;
+        var belowArea = 'M ' + cxFn(0) + ' ' + baseline;
+        var lineD = 'M ' + cxFn(0) + ' ' + cyFn(0);
+        for (var ki = 0; ki < diffs.length; ki++) {
+          var xxp = cxFn(ki);
+          var yActual = cyFn(diffs[ki]);
+          var yAbove = diffs[ki] > 0 ? yActual : baseline;
+          var yBelow = diffs[ki] < 0 ? yActual : baseline;
+          aboveArea += ' L ' + xxp + ' ' + yAbove;
+          belowArea += ' L ' + xxp + ' ' + yBelow;
+          lineD += ' L ' + xxp + ' ' + yActual;
+        }
+        aboveArea += ' L ' + cxFn(diffs.length - 1) + ' ' + baseline + ' Z';
+        belowArea += ' L ' + cxFn(diffs.length - 1) + ' ' + baseline + ' Z';
+        // Set boundary lines
+        var setLines = '';
+        for (var si2 = 0; si2 < setEnds.length; si2++) {
+          var sx = cxFn(setEnds[si2]);
+          setLines += '<line x1="' + sx.toFixed(1) + '" y1="' + padY + '" x2="' + sx.toFixed(1) + '" y2="' + (height - padY) + '" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="3,3" />';
+          setLines += '<text x="' + sx.toFixed(1) + '" y="' + (padY - 3) + '" fill="rgba(255,255,255,0.45)" font-size="8" text-anchor="middle" font-family="monospace">S' + (si2 + 1) + '</text>';
+        }
+        // Peak and trough markers
+        var peakIdx = 0, troughIdx = 0;
+        for (var pi2 = 0; pi2 < diffs.length; pi2++) {
+          if (diffs[pi2] > diffs[peakIdx]) peakIdx = pi2;
+          if (diffs[pi2] < diffs[troughIdx]) troughIdx = pi2;
+        }
+        var markers = '';
+        if (maxD > 0) markers += '<circle cx="' + cxFn(peakIdx).toFixed(1) + '" cy="' + cyFn(maxD).toFixed(1) + '" r="3.5" fill="#60a5fa" stroke="#fff" stroke-width="1.5" />';
+        if (minD < 0) markers += '<circle cx="' + cxFn(troughIdx).toFixed(1) + '" cy="' + cyFn(minD).toFixed(1) + '" r="3.5" fill="#f87171" stroke="#fff" stroke-width="1.5" />';
+        // Final point marker
+        var lastX = cxFn(diffs.length - 1).toFixed(1);
+        var lastY = cyFn(diffs[diffs.length - 1]).toFixed(1);
+        markers += '<circle cx="' + lastX + '" cy="' + lastY + '" r="4" fill="#fbbf24" stroke="#fff" stroke-width="1.5" />';
+
+        var p1Label = p1Players.length > 1 ? p1Players.join(' / ') : (p1Players[0] || 'Dupla 1');
+        var p2Label = p2Players.length > 1 ? p2Players.join(' / ') : (p2Players[0] || 'Dupla 2');
+
+        momentumSection =
+          '<div style="width:100%;max-width:380px;padding:clamp(10px,2vh,14px) clamp(8px,1.5vw,12px);border-radius:14px;background:linear-gradient(180deg,rgba(59,130,246,0.04),rgba(239,68,68,0.04));border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;">' +
+              '<div style="font-size:0.6rem;font-weight:800;color:#fbbf24;text-transform:uppercase;letter-spacing:1.5px;">📈 Momentum da Partida</div>' +
+              '<div style="font-size:0.58rem;color:var(--text-muted);font-weight:600;">' + pts.length + ' pts</div>' +
+            '</div>' +
+            '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" style="max-width:' + width + 'px;display:block;margin:0 auto;overflow:visible;">' +
+              '<line x1="' + padX + '" y1="' + baseline.toFixed(1) + '" x2="' + (width - padX) + '" y2="' + baseline.toFixed(1) + '" stroke="rgba(255,255,255,0.25)" stroke-width="1" />' +
+              '<path d="' + aboveArea + '" fill="#3b82f6" fill-opacity="0.45" />' +
+              '<path d="' + belowArea + '" fill="#ef4444" fill-opacity="0.45" />' +
+              '<path d="' + lineD + '" fill="none" stroke="#fde68a" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />' +
+              setLines +
+              markers +
+            '</svg>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px;font-size:0.58rem;">' +
+              '<span style="display:flex;align-items:center;gap:4px;color:#60a5fa;font-weight:700;"><span style="width:8px;height:8px;border-radius:2px;background:#3b82f6;"></span><span style="color:var(--text-muted);">+ ' + window._safeHtml(p1Label) + '</span></span>' +
+              '<span style="color:var(--text-muted);font-size:0.55rem;">0</span>' +
+              '<span style="display:flex;align-items:center;gap:4px;color:#f87171;font-weight:700;"><span style="color:var(--text-muted);">' + window._safeHtml(p2Label) + ' −</span><span style="width:8px;height:8px;border-radius:2px;background:#ef4444;"></span></span>' +
+            '</div>' +
+          '</div>';
+      }
+
       // Build restart section (with shuffle toggle for doubles)
       var restartSection = '';
       if (isDoubles) {
@@ -2901,6 +2987,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;gap:clamp(8px,1.5vh,14px);">' +
           // Winner section on top
           winnerSection +
+          // Momentum graph (point-by-point)
+          momentumSection +
           // Loser section below
           loserSection +
           // Duration
@@ -3430,6 +3518,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       serveOrder: state.serveOrder.map(function(s) { return { team: s.team, name: s.name }; }),
       serveSkipped: state.serveSkipped,
       gameLog: Array.isArray(state.gameLog) ? state.gameLog.slice() : [],
+      pointLog: Array.isArray(state.pointLog) ? state.pointLog.slice() : [],
       tieRule: state.tieRule,
       courtLeft: _courtLeft,
       p1Players: p1Players.slice(),
@@ -3457,6 +3546,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
     state.serveSkipped = !!remote.serveSkipped;
     if (Array.isArray(remote.gameLog)) state.gameLog = remote.gameLog.slice();
+    if (Array.isArray(remote.pointLog)) state.pointLog = remote.pointLog.slice();
     if (remote.courtLeft) _courtLeft = remote.courtLeft;
     if (remote.matchStartTime) _matchStartTime = remote.matchStartTime;
     if (remote.matchEndTime) _matchEndTime = remote.matchEndTime;
@@ -3561,6 +3651,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.serveSkipped = false;
         state.servePending = false;
         state.gameLog = [];
+        state.pointLog = [];
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
@@ -3607,6 +3698,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.serveSkipped = false;
         state.servePending = false;
         state.gameLog = [];
+        state.pointLog = [];
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
         _matchEndTime = null;
