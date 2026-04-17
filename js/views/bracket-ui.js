@@ -4408,7 +4408,7 @@ window._openCasualMatch = function() {
         var dragStyle = isDraggable ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
-          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" style="' + _inputStyle + 'color:' + textClr + ';">' +
+          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput()" style="' + _inputStyle + 'color:' + textClr + ';">' +
         '</div>';
       }
 
@@ -4557,6 +4557,8 @@ window._openCasualMatch = function() {
         }
       }
       _renderSetup();
+      // Broadcast team formation to other players in the lobby
+      _syncCasualSetupDebounced();
     }
 
     // Desktop drag events
@@ -4650,6 +4652,7 @@ window._openCasualMatch = function() {
   window._casualResetTeams = function() {
     _teamAssignments = {};
     _renderSetup();
+    _syncCasualSetupDebounced();
   };
 
   // Track if config screen is open
@@ -4669,12 +4672,14 @@ window._openCasualMatch = function() {
     isDoubles = val;
     if (_configOpen) window._casualOpenConfig();
     else _renderSetup();
+    _syncCasualSetupDebounced();
   };
 
   // Shuffle toggle
   window._casualSetShuffle = function(val) {
     autoShuffle = val;
     _renderSetup();
+    _syncCasualSetupDebounced();
   };
 
   // Misto toggle
@@ -4896,6 +4901,26 @@ window._openCasualMatch = function() {
   // Generate immediately so QR can be shown on setup screen
   var _sessionRoomCode = _generateRoomCode();
   var _sessionDocId = null;
+
+  // Broadcast setup state (players + teams + scoring) to Firestore so invited
+  // users watching the lobby see team formations in real time. Debounced so
+  // rapid edits (typing names, drag-and-drop) don't spam writes.
+  var _syncCasualSetupT = null;
+  function _syncCasualSetupDebounced() {
+    if (!_sessionDocId || typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.updateCasualMatch) return;
+    clearTimeout(_syncCasualSetupT);
+    _syncCasualSetupT = setTimeout(function() {
+      try {
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, {
+          players: _buildPlayers(),
+          scoring: _getConfig(),
+          isDoubles: isDoubles
+        });
+      } catch(e) {}
+    }, 500);
+  }
+  // Exposed for oninput handlers on name fields
+  window._syncCasualSetupFromInput = _syncCasualSetupDebounced;
 
   // Invite players via QR code (from setup screen, BEFORE starting)
   window._casualInvite = async function() {
@@ -5404,6 +5429,43 @@ window._renderCasualJoin = function(container, roomCode) {
       }
       html += '</div>';
 
+      // Live team preview — show the teams the organizer is assembling (visible to invited players too)
+      var matchPlayers = Array.isArray(match.players) ? match.players : [];
+      var hasNamedPlayer = matchPlayers.some(function(mp) {
+        if (!mp || !mp.name) return false;
+        var defaults = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+        return defaults.indexOf(mp.name) === -1;
+      });
+      if (match.isDoubles && matchPlayers.length === 4 && hasNamedPlayer) {
+        var t1 = matchPlayers.filter(function(mp) { return mp.team === 1; });
+        var t2 = matchPlayers.filter(function(mp) { return mp.team === 2; });
+        var _teamCard = function(team, clr, bg, bdr) {
+          var chips = team.map(function(mp) {
+            var avH;
+            if (mp.photoURL) {
+              avH = '<img src="' + _safe(mp.photoURL) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid ' + clr + ';" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+                '<div style="display:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:0.7rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((mp.name || 'J')[0].toUpperCase()) + '</div>';
+            } else {
+              avH = '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((mp.name || 'J')[0].toUpperCase()) + '</div>';
+            }
+            return '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);">' + avH +
+              '<span style="font-size:0.8rem;font-weight:700;color:' + clr + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(mp.name || '—') + '</span></div>';
+          }).join('');
+          return '<div style="flex:1;min-width:0;padding:10px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';display:flex;flex-direction:column;gap:5px;">' +
+            '<div style="font-size:0.55rem;font-weight:800;color:' + clr + ';text-transform:uppercase;letter-spacing:1px;text-align:center;">Time ' + (team === t1 ? '1' : '2') + '</div>' +
+            chips +
+          '</div>';
+        };
+        html += '<div style="margin-bottom:1.2rem;">' +
+          '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">⚔ Times formados</div>' +
+          '<div style="display:flex;gap:8px;align-items:stretch;">' +
+            _teamCard(t1, '#60a5fa', 'rgba(59,130,246,0.08)', 'rgba(59,130,246,0.25)') +
+            '<div style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:var(--text-muted);">VS</div>' +
+            _teamCard(t2, '#f87171', 'rgba(239,68,68,0.08)', 'rgba(239,68,68,0.25)') +
+          '</div>' +
+        '</div>';
+      }
+
       // Status messages
       if (!isLoggedIn) {
         html += '<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
@@ -5470,8 +5532,10 @@ window._renderCasualJoin = function(container, roomCode) {
             if (typeof showNotification === 'function') showNotification('Partida iniciada!', '', 'success');
             return;
           }
-          // Update participants list
+          // Update participants and keep match snapshot in sync so the lobby
+          // re-renders with latest team assignments set by the organizer.
           participants = Array.isArray(fresh.participants) ? fresh.participants : [];
+          match = fresh;
           _renderLobby();
         } catch(e) {}
       }, 3000);
