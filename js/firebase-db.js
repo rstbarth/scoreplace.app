@@ -559,7 +559,7 @@ window.FirestoreDB = {
     }
   },
 
-  // Leave a casual match — remove user from participants
+  // Leave a casual match — remove user from participants, playerUids and release any claimed slot
   async leaveCasualMatch(docId, uid) {
     if (!this.db || !docId || !uid) return false;
     try {
@@ -570,9 +570,21 @@ window.FirestoreDB = {
         var data = doc.data();
         var participants = Array.isArray(data.participants) ? data.participants.slice() : [];
         var playerUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
+        var players = Array.isArray(data.players) ? data.players.slice() : [];
         participants = participants.filter(function(p) { return p.uid !== uid; });
         playerUids = playerUids.filter(function(u) { return u !== uid; });
-        transaction.update(docRef, { participants: participants, playerUids: playerUids });
+        // Release any slot this user had claimed so another player can take it
+        players = players.map(function(p) {
+          if (p && p.uid === uid) {
+            var copy = Object.assign({}, p);
+            delete copy.uid;
+            delete copy.displayName;
+            delete copy.photoURL;
+            return copy;
+          }
+          return p;
+        });
+        transaction.update(docRef, { participants: participants, playerUids: playerUids, players: players });
         return true;
       });
     } catch (e) {

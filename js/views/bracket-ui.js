@@ -3941,10 +3941,28 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
     };
+    var _msg = isCasual
+      ? 'Deseja abandonar a partida casual? Sua vaga ficará livre para outro jogador.'
+      : 'Deseja fechar o placar ao vivo?';
     showConfirmDialog(
       'Abandonar partida?',
-      'Deseja abandonar a partida casual?',
-      _cleanup
+      _msg,
+      function() {
+        // Free the slot in the casual match so someone else can take it
+        var cu = window.AppStore && window.AppStore.currentUser;
+        if (isCasual && cu && cu.uid && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
+          try {
+            var leavePromise = window.FirestoreDB.leaveCasualMatch(_casualDocId, cu.uid);
+            if (leavePromise && typeof leavePromise.catch === 'function') leavePromise.catch(function(){});
+          } catch(e) {}
+        }
+        _cleanup();
+        // Navigate the user back to the dashboard so they're not stuck
+        // on the setup/join screen of a match they just abandoned.
+        if (isCasual) {
+          try { window.location.hash = '#dashboard'; } catch(e) {}
+        }
+      }
     );
   };
 
