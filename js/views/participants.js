@@ -692,7 +692,7 @@ function renderParticipants(container, tournamentId) {
       if (isTeam) {
         pNameHtml = pName.split('/').map((n, i) => {
           const _nm = n.trim();
-          const _nmSafe = _nm.replace(/'/g, "\\'");
+          const _nmSafe = _nm.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
           const _mSeed = encodeURIComponent(_nm);
           const _mCached = (window._playerPhotoCache && window._playerPhotoCache[_nm.toLowerCase()] && window._playerPhotoCache[_nm.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[_nm.toLowerCase()] : '';
           const _mInitials = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _mSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
@@ -702,7 +702,7 @@ function renderParticipants(container, tournamentId) {
           return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;overflow:hidden;"><img src="${_mPhoto}" ${_mErr} data-player-name="${_nm}" style="width:${i === 0 ? '24px' : '20px'};height:${i === 0 ? '24px' : '20px'};border-radius:50%;object-fit:cover;flex-shrink:0;"><span ${_editAttr}>${_nm}</span></div>`;
         }).join('');
       } else {
-        const _pSafe = pName.replace(/'/g, "\\'");
+        const _pSafe = pName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const _pSeedN = encodeURIComponent(pName);
         const _pCachedN = (window._playerPhotoCache && window._playerPhotoCache[pName.toLowerCase()] && window._playerPhotoCache[pName.toLowerCase()].indexOf('dicebear.com') === -1) ? window._playerPhotoCache[pName.toLowerCase()] : '';
         const _pInitialsN = 'https://api.dicebear.com/9.x/initials/svg?seed=' + _pSeedN + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
@@ -713,7 +713,7 @@ function renderParticipants(container, tournamentId) {
       }
 
       const vips = t.vips || {};
-      const safeP = pName.replace(/'/g, "\\'");
+      const safeP = pName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const isVip = !!vips[pName];
       const vipBadge = isVip ? '<span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.6rem;font-weight:900;padding:1px 6px;border-radius:4px;letter-spacing:0.5px;margin-left:4px;">⭐ VIP</span>' : '';
 
