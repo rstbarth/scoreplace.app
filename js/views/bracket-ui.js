@@ -2123,14 +2123,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (player === 1) state.currentGameP1++;
     else state.currentGameP2++;
 
-    // Log every point scored with rich context for analytics
+    // Log every point scored with rich context for analytics, including the
+    // timestamp so we can compute time-per-point analytics (avg/longest/fastest
+    // interval, longest rally gap, etc.).
     state.pointLog.push({
       team: player,
       server: _srvNow ? _srvNow.name : null,
       serverTeam: _srvNow ? _srvNow.team : null,
       p1Before: _p1Before,
       p2Before: _p2Before,
-      isTiebreak: _wasTiebreak
+      isTiebreak: _wasTiebreak,
+      t: Date.now()
     });
 
     if (!useSets || state.isFixedSet) {
@@ -2342,6 +2345,33 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var startT = _matchStartTime || null;
     var endT = _matchEndTime || Date.now();
     var ctx = extraContext || {};
+
+    // Time-per-point analytics from pointLog timestamps
+    var timeStatsRec = null;
+    var ptsWithT = (state.pointLog || []).filter(function(p) { return !!p.t; });
+    if (ptsWithT.length >= 2) {
+      var recIntervals = [];
+      var prevTs = startT;
+      for (var rti = 0; rti < ptsWithT.length; rti++) {
+        if (prevTs) recIntervals.push(ptsWithT[rti].t - prevTs);
+        prevTs = ptsWithT[rti].t;
+      }
+      if (recIntervals.length > 0) {
+        var sumI = 0, minI = Infinity, maxI = 0;
+        for (var rk = 0; rk < recIntervals.length; rk++) {
+          sumI += recIntervals[rk];
+          if (recIntervals[rk] < minI) minI = recIntervals[rk];
+          if (recIntervals[rk] > maxI) maxI = recIntervals[rk];
+        }
+        timeStatsRec = {
+          avgPointMs: Math.round(sumI / recIntervals.length),
+          longestPointMs: maxI,
+          shortestPointMs: minI === Infinity ? null : minI,
+          pointsWithTime: ptsWithT.length
+        };
+      }
+    }
+
     var record = {
       matchId: ctx.matchId || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 1e6)),
       matchType: ctx.matchType || (isCasual ? 'casual' : 'tournament'),
@@ -2352,6 +2382,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       finishedAt: new Date(endT).toISOString(),
       startedAt: startT ? new Date(startT).toISOString() : null,
       durationMs: startT ? (endT - startT) : null,
+      timeStats: timeStatsRec,
       players: recordPlayers,
       playerUids: recordPlayers.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
       winnerTeam: state.winner || 0,
@@ -3220,6 +3251,61 @@ window._openLiveScoring = function(tId, matchId, opts) {
         ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;color:var(--text-muted);"><span>⏱</span><span style="font-weight:700;color:var(--text-bright);">' + elapsedStr + '</span><span>de jogo</span></div>'
         : '';
 
+      // Time-per-point analytics from pointLog timestamps
+      function _fmtSec(ms) {
+        if (ms == null) return '—';
+        var s = Math.max(0, Math.round(ms / 1000));
+        if (s < 60) return s + 's';
+        var m = Math.floor(s / 60), ss = s % 60;
+        return m + 'm' + String(ss).padStart(2, '0') + 's';
+      }
+      var _timeStats = null;
+      if (state.pointLog && state.pointLog.length >= 2) {
+        var tsPts = state.pointLog;
+        var intervals = [];
+        var prevT = _matchStartTime || null;
+        for (var tpi = 0; tpi < tsPts.length; tpi++) {
+          var ti = tsPts[tpi].t;
+          if (!ti) continue;
+          if (prevT) intervals.push(ti - prevT);
+          prevT = ti;
+        }
+        if (intervals.length > 0) {
+          var sumMs = 0, minMs = Infinity, maxMs = 0;
+          for (var ii = 0; ii < intervals.length; ii++) {
+            sumMs += intervals[ii];
+            if (intervals[ii] < minMs) minMs = intervals[ii];
+            if (intervals[ii] > maxMs) maxMs = intervals[ii];
+          }
+          _timeStats = {
+            totalMs: _matchStartTime && _matchEndTime ? (_matchEndTime - _matchStartTime) : null,
+            avgMs: Math.round(sumMs / intervals.length),
+            minMs: minMs === Infinity ? null : minMs,
+            maxMs: maxMs || null,
+            pointCount: tsPts.length
+          };
+        }
+      }
+      var timeStatsSection = '';
+      if (_timeStats) {
+        var _tsBox = function(label, value, color) {
+          return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
+            '<span style="font-size:0.95rem;font-weight:800;color:' + (color || '#fff') + ';font-variant-numeric:tabular-nums;">' + value + '</span>' +
+            '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
+          '</div>';
+        };
+        timeStatsSection =
+          '<div style="width:100%;max-width:380px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;">' +
+            '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;">⏱ Tempo</div>' +
+            '<div style="display:flex;align-items:stretch;gap:6px;">' +
+              _tsBox('Duração', _timeStats.totalMs ? _fmtSec(_timeStats.totalMs) : '—', '#fff') +
+              _tsBox('Tempo/pt', _fmtSec(_timeStats.avgMs), '#60a5fa') +
+              _tsBox('Mais longo', _fmtSec(_timeStats.maxMs), '#fbbf24') +
+              _tsBox('Mais curto', _fmtSec(_timeStats.minMs), '#22c55e') +
+            '</div>' +
+          '</div>';
+      }
+
       // Momentum graph: two cumulative lines (P1 blue, P2 red) with progressive draw animation
       var momentumSection = '';
       if (state.pointLog && state.pointLog.length >= 2) {
@@ -3338,8 +3424,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
           comparativeSection +
           // Loser section below
           loserSection +
-          // Duration
-          durationRow +
+          // Time analytics (duration + per-point)
+          timeStatsSection +
+          // Duration (redundant tiny line — hide if timeStatsSection already shown)
+          (timeStatsSection ? '' : durationRow) +
         '</div>' +
         // Action buttons pinned at bottom — padding accounts for the device safe-area
         // (e.g. iOS home-indicator) so the buttons never get cropped by the browser chrome.

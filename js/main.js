@@ -435,15 +435,53 @@
           '<p><b>Pontuação</b> — Toque ▲ para marcar ponto, ▼ para corrigir. Placares grandes para fácil visualização.</p>' +
           '<p><b>Sets/Games</b> — Automático: ao completar games, avança set. Empate (ex: 5×5) oferece Prorrogar ou Tie-break.</p>' +
           '<p><b>Prorrogação</b> — Continua até vantagem de 2 games. Botão "⚡ Tie-break" disponível a qualquer momento para mudar de ideia.</p>' +
-          '<p><b>Ordem de saque</b> — Definida antes da partida. Botão "⇅" troca sacador dentro do time. Botão "⇅ Trocar" durante o jogo para corrigir.</p>' +
+          '<p><b>Tie-break</b> — Vence quem fizer 7 pontos primeiro com 2 de vantagem; se empatar em 7 continua até alguém abrir 2.</p>' +
+          '<p><b>Ordem de saque</b> — Arraste a bolinha 🎾 para trocar o sacador. Após o 1º game o time que começou trava; após o 2º game a ordem inteira trava com um cadeado 🔒.</p>' +
+          '<p><b>Decisões restritas aos jogadores</b> — Escolha de prorrogar vs tie-break e botão de tie-break só aparecem para usuários cadastrados envolvidos na partida. Não-jogadores veem "Aguardando decisão".</p>' +
           '<p><b>Nomes editáveis</b> — Toque no nome para alterar. Fotos de perfil exibidas para jogadores logados.</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Tela de Resultado</div>' +
+          '<p><b>Layout</b> — Vencedor no topo com troféu, placar e nomes clicáveis. Logo abaixo vem o gráfico Momentum (animação visível de imediato). Depois a seção Comparação dos Times e os stats do perdedor.</p>' +
+          '<p><b>Gráfico Momentum</b> — Duas linhas cumulativas animadas: azul para o Time 1, vermelha para o Time 2. Linhas desenham da esquerda para a direita em ~3s com marcadores de ponto final e divisores de set (S1, S2...). Botão ↻ Replay reexecuta a animação.</p>' +
+          '<p><b>Comparação dos Times</b> — Barras lado a lado: Sets, Games, Pontos, % Pontos no Saque, % Pontos na Recepção, Games Mantidos, Quebras de Saque, Killer Points (40-40), Maior Sequência e Maior Vantagem.</p>' +
+          '<p><b>Cards de jogador clicáveis</b> — Toque em qualquer jogador para ver suas estatísticas individuais: games servidos/mantidos, aproveitamento, maior sequência, e também pts servidos/ganhos/% no saque.</p>' +
+          '<p><b>Jogar Novamente + Re-sortear duplas</b> — Recomeça a partida com placar zerado. Ative o toggle ao lado para redistribuir os jogadores aleatoriamente entre os times.</p>' +
+          '<p><b>Botões não cortam</b> — O rodapé usa 100dvh + safe-area-inset para não ficar escondido pelo URL bar do navegador ou pelo home-indicator.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Lobby e Compartilhamento</div>' +
           '<p><b>Código da sala</b> — 6 caracteres. Digite na dashboard ("📷 Escanear QR") ou acesse #casual/CODIGO.</p>' +
           '<p><b>Lobby em tempo real</b> — Organizador e participantes veem quem já entrou. Atualização automática a cada 3s.</p>' +
-          '<p><b>Sair</b> — Qualquer participante pode sair da partida a qualquer momento (exceto o criador).</p>' +
-          '<p><b>Resultado</b> — Ao finalizar, confirme o resultado. Estatísticas salvas no perfil.</p>' +
+          '<p><b>Times visíveis no lobby</b> — Quando o organizador monta os times (arraste jogadores, edite nomes), as mudanças aparecem em tempo real no lobby dos outros usuários sob "⚔ Times formados".</p>' +
+          '<p><b>Sair libera a vaga</b> — Clicar em Sair (ou Voltar ao Dashboard) remove seu uid do slot e te redireciona para o dashboard — outro jogador pode ocupar a vaga imediatamente.</p>' +
+          '<p><b>Fechar partida</b> — O botão ✕ Fechar durante a partida pede confirmação; ao confirmar o abandono, sua vaga é liberada e você volta para o dashboard.</p>' +
+          '<p><b>Resultado</b> — Ao finalizar, confirme o resultado. Estatísticas detalhadas salvas no seu perfil (persistentes).</p>' +
+        '</div>'
+    },
+    {
+      id: 'estatisticas-detalhadas',
+      title: 'Estatísticas Detalhadas',
+      icon: '📊',
+      content: '<p>O scoreplace guarda estatísticas detalhadas de cada partida na sua conta. Essas estatísticas sobrevivem mesmo se o torneio for apagado ou se a partida casual for encerrada.</p>' +
+        '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">O que é registrado</div>' +
+          '<p><b>Por partida</b> — Sets, games, pontos, % pontos no saque, % pontos na recepção, games mantidos no saque, quebras, killer points (40-40), maior sequência, maior vantagem, duração, esporte.</p>' +
+          '<p><b>Por jogador</b> — Games servidos, games mantidos, aproveitamento (%), maior sequência de games mantidos, pontos servidos, pontos ganhos no saque e % no saque por ponto.</p>' +
+          '<p><b>Casuais vs Torneios</b> — Estatísticas mantidas separadas entre partidas casuais e torneios. Cada categoria tem sua própria agregação e tabelas.</p>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Confrontos Diretos (H2H)</div>' +
+          '<p>Compare seu desempenho contra cada oponente. A tabela mostra V-D-E e % de aproveitamento por oponente nos últimos confrontos (5 mais frequentes por modalidade).</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Parcerias</div>' +
+          '<p>Veja com quais parceiros você mais joga em duplas e qual a dupla com melhor aproveitamento. Útil para descobrir a parceria ideal em casuais e em torneios.</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Persistência</div>' +
+          '<p>Os dados ficam salvos em <code>users/{seu_uid}/matchHistory</code> — cada jogador cadastrado envolvido recebe sua própria cópia. Mesmo que o torneio seja deletado ou a sala casual expire, seu histórico permanece.</p>' +
+          '<p>Acesse Perfil → seção "📊 Estatísticas Detalhadas".</p>' +
         '</div>'
     },
     {
@@ -826,6 +864,10 @@
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.8-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.23-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Tempo por ponto + dicas + manual atualizados</b> — Cada ponto agora registra timestamp (t: Date.now()) no pointLog. Nova seção "⏱ Tempo" na tela de resultado exibe Duração, Tempo médio/ponto, Intervalo mais longo e Intervalo mais curto. Dados persistidos em matchHistory como timeStats (avgPointMs, longestPointMs, shortestPointMs) para análises futuras. Novas dicas contextuais cobrem: bolinha de saque travada, botão Sair libera vaga, Fechar partida, cards de jogador clicáveis, gráfico Momentum com Replay, seção Comparação, botão Jogar Novamente + toggle Re-sortear, tie-break 7 com 2 de margem, times visíveis no lobby, e seção de Estatísticas Detalhadas no perfil (H2H + parcerias). Manual de ajuda ganhou seção "📊 Estatísticas Detalhadas" e expandiu "Partida Casual" com as sub-seções Placar ao Vivo, Tela de Resultado, Lobby e Compartilhamento.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.22-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +

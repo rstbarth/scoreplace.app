@@ -250,6 +250,22 @@
     { id: 'casual-lobby', area: 'casual', selector: '.casual-lobby-section', text: 'O lobby mostra quem já entrou na partida em tempo real. Atualizações automáticas a cada 3 segundos.', priority: 2 },
     { id: 'casual-serve', area: 'casual', selector: '.serve-card', text: 'Defina a ordem de saque. Use ⇅ para trocar qual jogador do time saca primeiro. A alternância entre times é automática.', priority: 3 },
     { id: 'casual-tiebreak', area: 'casual', selector: '[onclick*="liveResolveTie"]', text: 'No empate, escolha Prorrogar (vantagem de 2 games) ou Tie-break. Na prorrogação, o botão Tie-break fica disponível para ativar a qualquer momento.', priority: 3 },
+    { id: 'casual-tiebreak-rule', area: 'casual', selector: '[onclick*="liveResolveTie"]', text: 'No tie-break vence quem fizer 7 pontos primeiro com 2 de vantagem. Se empatar em 7, o tie-break se estende até alguém abrir 2 de frente.', priority: 2 },
+    { id: 'casual-lobby-teams', area: 'casual', selector: '.casual-lobby-section', text: 'Os times montados pelo organizador já aparecem no seu lobby. Quando ele terminar, vocês entram juntos na tela ao vivo.', priority: 2 },
+    { id: 'casual-leave', area: 'casual', selector: '[onclick*="_casualLeaveMatch"]', text: 'Sair libera sua vaga na sala — outro jogador pode ocupar o seu lugar imediatamente.', priority: 3 },
+    { id: 'casual-close-match', area: 'casual', selector: '[onclick*="_closeLiveScoring"]', text: 'Fechar abandona a partida casual e libera sua vaga. Você volta para o dashboard — nada fica preso.', priority: 2 },
+    { id: 'casual-serve-lock', area: 'casual', selector: '[data-serve-ball]', text: 'Arraste a bolinha para trocar o sacador. Após 2 jogos ela trava 🔒 e a ordem não pode mais mudar.', priority: 3 },
+    { id: 'casual-player-card', area: 'casual', selector: 'button[onclick*="_showPlayerMatchStats"]', text: 'Toque em qualquer card de jogador para ver suas estatísticas individuais detalhadas (saque por game e por ponto).', priority: 3 },
+    { id: 'casual-momentum', area: 'casual', selector: '#mom-replay-btn', text: 'O gráfico Momentum mostra o desempenho das duas duplas ponto a ponto. Clique em ↻ Replay para rever a animação.', priority: 3 },
+    { id: 'casual-compare', area: 'casual', selector: '[style*="Comparação"]', text: 'Compare os times com barras: Sets, Games, Pontos, % Pontos no Saque, % na Recepção, Games Mantidos, Quebras, Killer Points (40-40), Maior Sequência e Maior Vantagem.', priority: 2 },
+    { id: 'casual-restart', area: 'casual', selector: '[onclick*="_liveScoreRestart"]', text: 'Jogar Novamente zera o placar e começa outra partida. Ative "Re-sortear duplas" para redistribuir os jogadores nos times.', priority: 3 },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PROFILE — Persistent Stats
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'profile-detailed-stats', selector: '#profile-detailed-stats', text: 'Suas estatísticas detalhadas ficam salvas na sua conta e sobrevivem mesmo se o torneio ou a partida casual for apagada.', context: 'global', priority: 4, position: 'top', requiresLogin: true },
+    { id: 'profile-h2h', selector: '#profile-detailed-stats', text: 'Veja seus Confrontos Diretos (H2H) — compare seu desempenho contra cada oponente em casuais e em torneios separadamente.', context: 'global', priority: 3, position: 'top', requiresLogin: true },
+    { id: 'profile-partnerships', selector: '#profile-detailed-stats', text: 'As tabelas de Parcerias mostram com quais parceiros você mais joga e ganha — descubra a dupla perfeita!', context: 'global', priority: 3, position: 'top', requiresLogin: true },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // META
