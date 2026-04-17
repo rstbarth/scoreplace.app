@@ -2583,6 +2583,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Swap server within a team during the match (mid-game correction)
   window._liveSwapServerInTeam = function(team) {
     if (!state.serveOrder || state.serveOrder.length === 0) return;
+    // HARD LOCK after 2 games
+    if (state.totalGamesPlayed >= 2) return;
+    // After game 1, only the 2nd-serving team may swap (team that started is locked)
+    if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && state.serveOrder[1].team !== team) return;
     var teamIdxs = [];
     for (var i = 0; i < state.serveOrder.length; i++) {
       if (state.serveOrder[i].team === team) teamIdxs.push(i);
@@ -2647,6 +2651,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Before game 2: only the other team's players → sets 2nd server → auto-sets 4th
   // After game 2: locked
   window._liveSetServer = function(team, playerIdx) {
+    // HARD LOCK: after 2 games, nobody's serve order can change — ever.
+    if (state.totalGamesPlayed >= 2) { _render(); return; }
     var players = team === 1 ? p1Players : p2Players;
     var name = players[playerIdx];
     if (!name) return;
@@ -2667,20 +2673,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
         { team: otherTeam, name: opponents[1] || 'Oponente 2' }
       ];
     } else if (state.totalGamesPlayed === 1) {
-      // Setting 2nd server: must be from the other team (the team that serves 2nd)
-      // serveOrder[1] is the 2nd server. Swap if the chosen player is currently at [3].
-      if (state.serveOrder.length >= 4 && state.serveOrder[1].team === team) {
-        // This player should serve 2nd, their teammate serves 4th
-        var otherPlayer = null;
-        var teamP = team === 1 ? p1Players : p2Players;
-        for (var j = 0; j < teamP.length; j++) {
-          if (teamP[j] !== name) { otherPlayer = teamP[j]; break; }
-        }
-        state.serveOrder[1] = { team: team, name: name };
-        state.serveOrder[3] = { team: team, name: otherPlayer || state.serveOrder[3].name };
+      // Setting 2nd server: MUST be from the team that serves 2nd (serveOrder[1].team).
+      // The team that started serving (serveOrder[0].team) is already locked.
+      if (state.serveOrder.length < 4) { _render(); return; }
+      if (state.serveOrder[1].team !== team) { _render(); return; }
+      // This player should serve 2nd, their teammate serves 4th
+      var otherPlayer = null;
+      var teamP = team === 1 ? p1Players : p2Players;
+      for (var j = 0; j < teamP.length; j++) {
+        if (teamP[j] !== name) { otherPlayer = teamP[j]; break; }
       }
+      state.serveOrder[1] = { team: team, name: name };
+      state.serveOrder[3] = { team: team, name: otherPlayer || state.serveOrder[3].name };
     }
-    // After game 2: ignore (locked)
     _render();
   };
 
@@ -2966,8 +2971,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var servBall = '';
         if (isServing) {
           var dragAttr = _canDragServe ? ' draggable="true" data-serve-ball="true"' : '';
-          var dragStyle = _canDragServe ? 'cursor:grab;' : '';
-          servBall = '<span' + dragAttr + ' style="font-size:0.85rem;flex-shrink:0;' + dragStyle + 'filter:drop-shadow(0 0 4px rgba(255,200,0,0.6));">' + _sportBall + '</span>';
+          var dragStyle = _canDragServe ? 'cursor:grab;' : 'cursor:default;';
+          var ballTitle = _canDragServe ? 'Arraste para trocar sacador' : 'Ordem de saque travada (após 2 jogos)';
+          // Dimmer glow + subtle 🔒 badge when locked
+          var ballGlow = _canDragServe ? 'filter:drop-shadow(0 0 4px rgba(255,200,0,0.6));' : 'filter:drop-shadow(0 0 2px rgba(255,200,0,0.3));opacity:0.85;';
+          var lockBadge = _canDragServe ? '' : '<span style="font-size:0.55rem;margin-left:-4px;opacity:0.85;" aria-hidden="true">🔒</span>';
+          servBall = '<span' + dragAttr + ' title="' + ballTitle + '" style="font-size:0.85rem;flex-shrink:0;' + dragStyle + ballGlow + '">' + _sportBall + '</span>' + lockBadge;
         }
 
         // Drop target: each player row is a drop target for the serve ball
@@ -3310,7 +3319,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var parts = drop.getAttribute('data-serve-drop').split('-');
         var dropTeam = parseInt(parts[0]);
         var dropIdx = parseInt(parts[1]);
-        // Validate: game 0 = any, game 1 = other team only
+        // HARD LOCK after 2 games
+        if (state.totalGamesPlayed >= 2) return;
+        // Validate: game 0 = any, game 1 = other team only (team that started is locked)
         if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) return;
         window._liveSetServer(dropTeam, dropIdx);
       });
@@ -3360,6 +3371,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
           var parts = target.dataset.serveDrop.split('-');
           var dropTeam = parseInt(parts[0]);
           var dropIdx = parseInt(parts[1]);
+          // HARD LOCK after 2 games
+          if (state.totalGamesPlayed >= 2) break;
           if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) break;
           window._liveSetServer(dropTeam, dropIdx);
           return;
@@ -4190,9 +4203,9 @@ window._openCasualMatch = function() {
             '</div>' +
             '<button onclick="window._casualInvite()" style="padding:6px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;border:1px solid rgba(56,189,248,0.3);cursor:pointer;background:rgba(56,189,248,0.12);color:#38bdf8;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">📲 Convidar</button>' +
           '</div>' +
-          // Join room input row — input left, button right-aligned, same height
-          '<div style="display:flex;gap:4px;align-items:stretch;height:2.2rem;">' +
-            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="6" style="flex:1;min-width:0;padding:0 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:border-box;" />' +
+          // Join room input row — input left, button right-aligned, same height (44px matches mobile button min-height)
+          '<div style="display:flex;gap:4px;align-items:stretch;min-height:44px;">' +
+            '<input type="text" id="casual-join-code" placeholder="Sala de um amigo" maxlength="6" style="flex:1;min-width:0;min-height:44px;padding:0 8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;font-family:monospace;text-align:center;box-sizing:border-box;" />' +
             '<button onclick="window._casualJoinRoom()" style="padding:0 12px;border-radius:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">Entrar</button>' +
           '</div>' +
         '</div>' +
