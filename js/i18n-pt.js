@@ -1065,6 +1065,46 @@ window._translations['pt'] = {
   'auth.profileUpdated': 'Perfil Atualizado',
   'auth.profileUpdatedMsg': 'Suas informações foram salvas com sucesso.',
 
+  // Create tournament change fields / capacity / p2 table
+  'create.fieldName': 'Nome',
+  'create.fieldStartDate': 'Data de início',
+  'create.fieldEndDate': 'Data de término',
+  'create.fieldVenue': 'Local',
+  'create.fieldFormat': 'Formato',
+  'create.fieldMaxParts': 'Máx. participantes',
+  'create.fieldEnrollMode': 'Modo de inscrição',
+  'create.fieldRegLimit': 'Prazo de inscrição',
+  'create.okCapacity': '✅ Máx: {desc}. Você tem <strong>{n}</strong> — dentro do limite.',
+  'create.enrollees': 'inscritos',
+  'create.pow2TableHeader': 'Potências de 2 (sem classificatórias):',
+
+  // Create tournament GSM summary (short)
+  'create.gsmFixedSet': '⚡ <strong>Set Fixo de {n} games</strong> — ganha quem vencer mais.',
+  'create.gsmFixedSetTb': '⚡ <strong>Set Fixo de {n} games</strong> — ganha quem vencer mais. Empate: TB {pts}.',
+  'create.gsmPoints': '<strong>{s} pontos</strong> para vencer ({g} min)',
+  'create.gsm1Set': '<strong>1 set</strong> de {g} games',
+  'create.gsm1SetTb': '<strong>1 set</strong> de {g} games (TB {pts} em {tie}-{tie})',
+  'create.gsmBestOf': '<strong>Melhor de {total}</strong> — {s} sets de {g} games',
+  'create.gsmDeciderTb': 'Set decisivo: Super TB {pts} pontos',
+  'create.gsmTb': 'TB {pts} em {tie}-{tie}',
+  'create.gsmAdvantage': 'Com vantagem (deuce/advantage)',
+
+  // Create tournament GSM summary (detailed)
+  'create.gsmFixedSetTitle': '<strong>⚡ Set Fixo de {n} games</strong>',
+  'create.gsmFixedSetDesc': 'Disputa de {n} games fixos. Ganha quem vencer mais.',
+  'create.gsmTieWithTb': 'Empate {n}-{n}: tie-break de {pts} pontos (diferença mín. {margin}).',
+  'create.gsmTieNoTb': 'Empate {n}-{n} possível (sem tie-break).',
+  'create.gsmResultsWithTb': 'Resultados possíveis: {a}-0, {b}-1, {c}-2, ..., {n}-{n} (TB).',
+  'create.gsmResultsNoTb': 'Resultados possíveis: {a}-0, {b}-1, {c}-2.',
+  'create.gsmResultsEven': 'Resultados possíveis: {a}-0, {b}-1, {c}-2, ..., {n}-{n}.',
+  'create.gsmNumericPts': '<strong>{s} pontos</strong> para vencer',
+  'create.gsmNumericTime': '{g} tempos de {g} minutos (contagem numérica)',
+  'create.gsmSets': '<strong>{s} set{pl}</strong> de {g} games',
+  'create.gsmCounting': 'Contagem: 15-30-40',
+  'create.gsmCountingAdv': 'Contagem: 15-30-40 + vantagem',
+  'create.gsmTbDetail': 'Em caso de empate {tie}-{tie}, tie-break de {pts} pontos ({draw} a {draw}, prorroga até o vencedor ter {margin} pontos de vantagem).',
+  'create.gsmSuperTb': 'Super tie-break de {pts} pontos ({draw} a {draw}, prorroga até o vencedor ter {margin} pontos de vantagem).',
+
   // Create tournament result entry / access labels
   'create.resultOrganizers': 'Organizador e co-organizadores',
   'create.resultPlayers': 'Jogadores (com confirmação do adversário e placar ao vivo)',

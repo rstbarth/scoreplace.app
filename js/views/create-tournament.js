@@ -2287,11 +2287,11 @@ function setupCreateTournamentModal() {
         const m = _calcMatchesFor(fmt, p);
         const t = _calcTimeFor(fmt, p);
         return '<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04);">' +
-          '<span><strong>' + p + '</strong> inscritos</span>' +
-          '<span style="opacity:0.7;">' + m + ' jogos · ' + _fmtMin(t) + '</span></div>';
+          '<span><strong>' + p + '</strong> ' + _t('create.enrollees') + '</span>' +
+          '<span style="opacity:0.7;">' + _t('create.matchesTime', { matches: m, time: _fmtMin(t) }) + '</span></div>';
       }).join('');
       return '<div style="margin-top:4px; font-size:0.75rem;">' +
-        '<div style="opacity:0.6; margin-bottom:2px;">Potências de 2 (sem classificatórias):</div>' + rows + '</div>';
+        '<div style="opacity:0.6; margin-bottom:2px;">' + _t('create.pow2TableHeader') + '</div>' + rows + '</div>';
     };
 
     // Helper: for non-p2, describe fastest resolution
@@ -2547,7 +2547,7 @@ function setupCreateTournamentModal() {
         capEl.style.background = 'rgba(16,185,129,0.1)';
         capEl.style.borderColor = 'rgba(16,185,129,0.25)';
         capEl.style.color = '#34d399';
-        let okHtml = '✅ Máx: ' + _descOption(fmt, maxFeasible) + '. Você tem <strong>' + n + '</strong> — dentro do limite.';
+        let okHtml = _t('create.okCapacity', { desc: _descOption(fmt, maxFeasible), n: n });
         if (isElimFmt && !_isPow2(n) && n > 2) {
           okHtml += _p2Resolution(n);
         }
@@ -3112,9 +3112,9 @@ function setupCreateTournamentModal() {
             // Detect meaningful changes to notify participants
             var _changes = [];
             var _checkFields = {
-              name: 'Nome', startDate: 'Data de início', endDate: 'Data de término',
-              venue: 'Local', format: 'Formato', maxParticipants: 'Máx. participantes',
-              enrollmentMode: 'Modo de inscrição', registrationLimit: 'Prazo de inscrição'
+              name: _t('create.fieldName'), startDate: _t('create.fieldStartDate'), endDate: _t('create.fieldEndDate'),
+              venue: _t('create.fieldVenue'), format: _t('create.fieldFormat'), maxParticipants: _t('create.fieldMaxParts'),
+              enrollmentMode: _t('create.fieldEnrollMode'), registrationLimit: _t('create.fieldRegLimit')
             };
             Object.keys(_checkFields).forEach(function(k) {
               if (tourData[k] !== undefined && String(tourData[k] || '') !== String(t[k] || '')) {
@@ -3384,20 +3384,20 @@ window._gsmUpdateMainSummary = function() {
   if (fsOn && counting !== 'numeric') {
     var half = Math.floor(fsGames / 2);
     var isEven = fsGames % 2 === 0;
-    lines.push('⚡ <strong>Set Fixo de ' + fsGames + ' games</strong> — ganha quem vencer mais.' + (isEven && tbOn ? ' Empate: TB ' + tbPts + '.' : ''));
+    lines.push(isEven && tbOn ? _t('create.gsmFixedSetTb', { n: fsGames, pts: tbPts }) : _t('create.gsmFixedSet', { n: fsGames }));
   } else if (counting === 'numeric') {
-    lines.push('<strong>' + s + ' pontos</strong> para vencer (' + g + ' min)');
+    lines.push(_t('create.gsmPoints', { s: s, g: g }));
   } else {
     var tie = g - 1;
     if (s === 1) {
-      lines.push('<strong>1 set</strong> de ' + g + ' games' + (tbOn ? ' (TB ' + tbPts + ' em ' + tie + '-' + tie + ')' : ''));
+      lines.push(tbOn ? _t('create.gsm1SetTb', { g: g, pts: tbPts, tie: tie }) : _t('create.gsm1Set', { g: g }));
     } else {
       var totalSets = s * 2 - 1;
-      lines.push('<strong>Melhor de ' + totalSets + '</strong> — ' + s + ' sets de ' + g + ' games');
-      if (stbOn) lines.push('Set decisivo: Super TB ' + stbPts + ' pontos');
-      else if (tbOn) lines.push('TB ' + tbPts + ' em ' + tie + '-' + tie);
+      lines.push(_t('create.gsmBestOf', { total: totalSets, s: s, g: g }));
+      if (stbOn) lines.push(_t('create.gsmDeciderTb', { pts: stbPts }));
+      else if (tbOn) lines.push(_t('create.gsmTb', { pts: tbPts, tie: tie }));
     }
-    if (advOn) lines.push('Com vantagem (deuce/advantage)');
+    if (advOn) lines.push(_t('create.gsmAdvantage'));
   }
 
   summaryEl.style.display = lines.length > 0 ? 'block' : 'none';
@@ -3600,32 +3600,32 @@ window._gsmUpdateSummary = function() {
   if (fsOn && counting === 'tennis') {
     var half = Math.floor(fsGames / 2);
     var isEven = fsGames % 2 === 0;
-    lines.push('<strong>⚡ Set Fixo de ' + fsGames + ' games</strong>');
-    lines.push('Disputa de ' + fsGames + ' games fixos. Ganha quem vencer mais.');
+    lines.push(_t('create.gsmFixedSetTitle', { n: fsGames }));
+    lines.push(_t('create.gsmFixedSetDesc', { n: fsGames }));
     if (isEven && tbOn) {
-      lines.push('Empate ' + half + '-' + half + ': tie-break de ' + tbPts + ' pontos (diferença mín. ' + tbMargin + ').');
+      lines.push(_t('create.gsmTieWithTb', { n: half, pts: tbPts, margin: tbMargin }));
     } else if (isEven && !tbOn) {
-      lines.push('Empate ' + half + '-' + half + ' possível (sem tie-break).');
+      lines.push(_t('create.gsmTieNoTb', { n: half }));
     }
     if (isEven && tbOn) {
-      lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2, ..., ' + half + '-' + half + ' (TB).');
+      lines.push(_t('create.gsmResultsWithTb', { a: fsGames, b: fsGames - 1, c: fsGames - 2, n: half }));
     } else {
-      lines.push('Resultados possíveis: ' + fsGames + '-0, ' + (fsGames - 1) + '-1, ' + (fsGames - 2) + '-2' + (isEven ? ', ..., ' + half + '-' + half : '') + '.');
+      lines.push(isEven ? _t('create.gsmResultsEven', { a: fsGames, b: fsGames - 1, c: fsGames - 2, n: half }) : _t('create.gsmResultsNoTb', { a: fsGames, b: fsGames - 1, c: fsGames - 2 }));
     }
   } else if (counting === 'numeric') {
-    lines.push('<strong>' + sets + ' pontos</strong> para vencer');
-    lines.push(games + ' tempos de ' + games + ' minutos (contagem numérica)');
+    lines.push(_t('create.gsmNumericPts', { s: sets }));
+    lines.push(_t('create.gsmNumericTime', { g: games }));
   } else {
-    lines.push('<strong>' + sets + ' set' + (sets > 1 ? 's' : '') + '</strong> de ' + games + ' games');
-    lines.push('Contagem: 15-30-40' + (advOn ? ' + vantagem' : ''));
+    lines.push(_t('create.gsmSets', { s: sets, pl: sets > 1 ? 's' : '', g: games }));
+    lines.push(advOn ? _t('create.gsmCountingAdv') : _t('create.gsmCounting'));
     if (tbOn) {
       var _tbTie = games - 1;
       var _tbDraw = tbPts - tbMargin;
-      lines.push('Em caso de empate ' + _tbTie + '-' + _tbTie + ', tie-break de ' + tbPts + ' pontos (' + _tbDraw + ' a ' + _tbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
+      lines.push(_t('create.gsmTbDetail', { tie: _tbTie, pts: tbPts, draw: _tbDraw, margin: tbMargin }));
     }
     if (stbOn && sets > 1) {
       var _stbDraw = stbPts - tbMargin;
-      lines.push('Super tie-break de ' + stbPts + ' pontos (' + _stbDraw + ' a ' + _stbDraw + ', prorroga até o vencedor ter ' + tbMargin + ' pontos de vantagem).');
+      lines.push(_t('create.gsmSuperTb', { pts: stbPts, draw: _stbDraw, margin: tbMargin }));
     }
   }
 
