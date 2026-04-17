@@ -2312,23 +2312,23 @@ function setupCreateTournamentModal() {
       const timePlayIn = _calcTimeFor(fmt, pCount);
 
       let html = '<div style="margin-top:6px; padding:6px 8px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.15); border-radius:6px; font-size:0.75rem;">';
-      html += '<div style="font-weight:600; color:#fbbf24; margin-bottom:4px;">⚡ ' + pCount + ' não é potência de 2 — soluções:</div>';
+      html += '<div style="font-weight:600; color:#fbbf24; margin-bottom:4px;">' + _t('create.notPow2Title', { n: pCount }) + '</div>';
 
       // Play-in
       html += '<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.04);">' +
-        '<span>Classificatórias: <strong>' + excess + '</strong> jogos extras (' + (excess * 2) + ' inscritos jogam), chave principal de ' + prev + '</span>' +
-        '<span style="opacity:0.7;">' + matchesPlayIn + ' jogos · ' + _fmtMin(timePlayIn) + '</span></div>';
+        '<span>' + _t('create.playinRow', { excess: excess, players: excess * 2, prev: prev }) + '</span>' +
+        '<span style="opacity:0.7;">' + _t('create.matchesTime', { matches: matchesPlayIn, time: _fmtMin(timePlayIn) }) + '</span></div>';
 
       // BYEs
       html += '<div style="display:flex; justify-content:space-between; padding:3px 0;">' +
-        '<span>BYEs: <strong>' + byes + '</strong> BYE' + (byes > 1 ? 's' : '') + ', chave de ' + next + ' (alguns avançam direto)</span>' +
-        '<span style="opacity:0.7;">' + matchesWithByes + ' jogos · ' + _fmtMin(timeWithByes) + '</span></div>';
+        '<span>' + _t('create.byeRow', { byes: byes, s: byes > 1 ? 's' : '', next: next }) + '</span>' +
+        '<span style="opacity:0.7;">' + _t('create.matchesTime', { matches: matchesWithByes, time: _fmtMin(timeWithByes) }) + '</span></div>';
 
       // Recommendation
       if (timePlayIn <= timeWithByes) {
-        html += '<div style="margin-top:4px; color:#34d399;">✅ <strong>Classificatórias é mais rápido</strong> — economiza ' + _fmtMin(timeWithByes - timePlayIn) + '</div>';
+        html += '<div style="margin-top:4px; color:#34d399;">' + _t('create.playinFaster', { time: _fmtMin(timeWithByes - timePlayIn) }) + '</div>';
       } else {
-        html += '<div style="margin-top:4px; color:#34d399;">✅ <strong>BYEs é mais rápido</strong> — economiza ' + _fmtMin(timePlayIn - timeWithByes) + '</div>';
+        html += '<div style="margin-top:4px; color:#34d399;">' + _t('create.byeFaster', { time: _fmtMin(timePlayIn - timeWithByes) }) + '</div>';
       }
       html += '</div>';
       return html;
@@ -2362,8 +2362,7 @@ function setupCreateTournamentModal() {
         capEl.style.borderColor = 'rgba(16,185,129,0.25)';
         capEl.style.color = '#34d399';
         const matchesMax = _calcMatchesFor(fmt, maxFeasible);
-        let capHtml = '💡 Com <strong>' + _fmtMin(availableMin) + '</strong> e <strong>' + courts +
-          ' quadra' + (courts > 1 ? 's' : '') + '</strong>: ' + _descOption(fmt, maxFeasible);
+        let capHtml = _t('create.capWith', { time: _fmtMin(availableMin), courts: courts + ' ' + _t('create.court') + (courts > 1 ? 's' : ''), desc: _descOption(fmt, maxFeasible) });
         capHtml += _buildP2Table(maxSlots);
         capEl.innerHTML = capHtml;
       }
@@ -2440,22 +2439,22 @@ function setupCreateTournamentModal() {
           if (pows.length > 0) {
             limBody = pows.map(p => _descOption(fmt, p)).join('<br>');
             const bestPow = pows[pows.length - 1];
-            suggestions.push(_sugCard('🔒', 'Limitar inscrições (potência de 2)',
+            suggestions.push(_sugCard('🔒', _t('create.limitEnrollPow2'),
               limBody,
-              'Aplicar ' + bestPow + ' inscritos',
+              _t('create.applyN', { n: bestPow }),
               'document.getElementById(\\\'tourn-max-participants\\\').value=' + bestPow + '; window._recalcDuration()'));
           }
           // Also show non-p2 max as option
           if (!_isPow2(maxFeasible) && maxFeasible > 2) {
-            suggestions.push(_sugCard('🔒', 'Limitar em ' + maxFeasible + ' (com classificatórias)',
+            suggestions.push(_sugCard('🔒', _t('create.limitEnrollWith', { n: maxFeasible }),
               _descOption(fmt, maxFeasible) + _p2Resolution(maxFeasible),
-              'Aplicar ' + maxFeasible,
+              _t('create.applyN', { n: maxFeasible }),
               'document.getElementById(\\\'tourn-max-participants\\\').value=' + maxFeasible + '; window._recalcDuration()'));
           }
         } else {
-          suggestions.push(_sugCard('🔒', 'Limitar inscrições em ' + maxFeasible,
+          suggestions.push(_sugCard('🔒', _t('create.limitEnroll', { n: maxFeasible }),
             _descOption(fmt, maxFeasible),
-            'Aplicar ' + maxFeasible,
+            _t('create.applyN', { n: maxFeasible }),
             'document.getElementById(\\\'tourn-max-participants\\\').value=' + maxFeasible + '; window._recalcDuration()'));
         }
 
@@ -2467,9 +2466,9 @@ function setupCreateTournamentModal() {
         const newEndDate = newEndDt.getFullYear() + '-' + String(newEndDt.getMonth() + 1).padStart(2, '0') + '-' + String(newEndDt.getDate()).padStart(2, '0');
         const endDateEl = document.getElementById('tourn-end-date').value || '';
         const sameDay = newEndDate === endDateEl;
-        const extLabel = sameDay ? 'Encerrar às ' + newEndH + ':' + newEndM : 'Estender até ' + newEndDate.split('-').reverse().join('/') + ' ' + newEndH + ':' + newEndM;
-        suggestions.push(_sugCard('⏰', 'Estender o horário de fim',
-          'Adicionando <strong>' + _fmtMin(extraNeeded) + '</strong>: ' + _descOption(fmt, n) + ' cabem no tempo.' + (sameDay ? '' : ' O torneio passaria para mais de 1 dia.'),
+        const extLabel = sameDay ? _t('create.closeAt', { time: newEndH + ':' + newEndM }) : _t('create.extendUntil', { date: newEndDate.split('-').reverse().join('/'), time: newEndH + ':' + newEndM });
+        suggestions.push(_sugCard('⏰', _t('create.extendTime'),
+          _t('create.extendTimeBody', { time: _fmtMin(extraNeeded), desc: _descOption(fmt, n) + ' ' + _t('create.fitsInTime') }) + (sameDay ? '' : _t('create.spansMultipleDays')),
           extLabel,
           'document.getElementById(\\\'tourn-end-date\\\').value=\\\'' + newEndDate + '\\\'; document.getElementById(\\\'tourn-end-time\\\').value=\\\'' + newEndH + ':' + newEndM + '\\\'; window._recalcDuration()'));
 
@@ -2478,9 +2477,9 @@ function setupCreateTournamentModal() {
         const slotsExtraDay = Math.floor(extraDayMin / slotTime) * courts;
         const maxExtraDay = _calcMaxFeasible(slotsExtraDay);
         if (maxExtraDay > maxFeasible) {
-          suggestions.push(_sugCard('📅', 'Adicionar +1 dia (+8h)',
-            'Com dia extra: ' + _descOption(fmt, Math.min(n, maxExtraDay)) + (n <= maxExtraDay ? ' — suficiente.' : ' — máx. ' + _descOption(fmt, maxExtraDay) + '.'),
-            'Adicionar dia',
+          suggestions.push(_sugCard('📅', _t('create.addExtraDay'),
+            _t('create.extraDayBody', { desc: _descOption(fmt, Math.min(n, maxExtraDay)) }) + (n <= maxExtraDay ? _t('create.fitsSuffix') : _t('create.maxSuffix', { max: _descOption(fmt, maxExtraDay) })),
+            _t('create.addDay'),
             'var d=document.getElementById(\\\'tourn-end-date\\\'); var dt=new Date(d.value); dt.setDate(dt.getDate()+1); d.value=dt.toISOString().split(\\\'T\\\')[0]; window._recalcDuration()'));
         }
 
@@ -2493,9 +2492,9 @@ function setupCreateTournamentModal() {
           if (opt.key === fmt) return;
           const maxForAlt = _calcMaxForFmt(opt.key, maxSlots);
           if (maxForAlt > maxFeasible && maxForAlt >= n) {
-            suggestions.push(_sugCard('🔄', 'Trocar para ' + opt.label,
-              _descOption(opt.key, n) + ' — cabe no tempo.',
-              'Alterar formato',
+            suggestions.push(_sugCard('🔄', _t('create.switchTo', { label: opt.label }),
+              _descOption(opt.key, n) + _t('create.fitsTimeSuffix'),
+              _t('create.changeFormat'),
               'document.getElementById(\\\'select-formato\\\').value=\\\'' + opt.optVal + '\\\'; window._onFormatoChange()'));
           }
         });
@@ -2512,8 +2511,7 @@ function setupCreateTournamentModal() {
         capEl.style.borderColor = 'rgba(245,158,11,0.25)';
         capEl.style.color = '#fbbf24';
         const remaining = maxFeasible - n;
-        let capHtml = '⏳ Usando <strong>' + Math.round(usage * 100) + '%</strong> do tempo. ' +
-          'Cabem mais <strong>' + remaining + '</strong> (máx. ' + _descOption(fmt, maxFeasible) + ').';
+        let capHtml = _t('create.nearLimitCap', { pct: Math.round(usage * 100), n: remaining, max: _descOption(fmt, maxFeasible) });
 
         if (isElimFmt && !_isPow2(n) && n > 2) {
           capHtml += _p2Resolution(n);
@@ -2527,15 +2525,15 @@ function setupCreateTournamentModal() {
           const pows = _nearPow2(maxFeasible);
           const bestPow = pows.length > 0 ? pows[pows.length - 1] : null;
           if (bestPow && bestPow >= n) {
-            suggestions.push(_sugCard('🔒', 'Encerrar inscrições em ' + bestPow,
-              _descOption(fmt, bestPow) + ' — sem classificatórias extras.',
-              'Aplicar ' + bestPow,
+            suggestions.push(_sugCard('🔒', _t('create.closeEnrollAt', { n: bestPow }),
+              _descOption(fmt, bestPow) + ' — ' + _t('create.noExtraQualifiers'),
+              _t('create.applyN', { n: bestPow }),
               'document.getElementById(\\\'tourn-max-participants\\\').value=' + bestPow + '; window._recalcDuration()'));
           }
         } else {
-          suggestions.push(_sugCard('🔒', 'Encerrar inscrições em ' + maxFeasible,
+          suggestions.push(_sugCard('🔒', _t('create.closeEnrollAt', { n: maxFeasible }),
             _descOption(fmt, maxFeasible),
-            'Aplicar ' + maxFeasible,
+            _t('create.applyN', { n: maxFeasible }),
             'document.getElementById(\\\'tourn-max-participants\\\').value=' + maxFeasible + '; window._recalcDuration()'));
         }
         if (suggestions.length > 0) {
