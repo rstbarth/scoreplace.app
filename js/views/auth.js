@@ -171,9 +171,9 @@ function _handleAccountLinking(error, providerName) {
     var existingProvider = methods[0]; // e.g. 'google.com', 'password', 'emailLink', 'phone'
     var providerNames = {
       'google.com': 'Google',
-      'password': 'E-mail e Senha',
+      'password': _t('auth.providerPassword'),
       'emailLink': 'Link de E-mail',
-      'phone': 'Celular'
+      'phone': _t('auth.providerPhone')
     };
     var existingName = providerNames[existingProvider] || existingProvider;
 
@@ -775,7 +775,7 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
     fromName: currentUser.displayName || '',
     fromPhoto: currentUser.photoURL || '',
     fromEmail: currentUser.email || '',
-    message: (currentUser.displayName || 'Alguém') + ' aceitou seu convite e agora é seu amigo(a)!',
+    message: _t('auth.friendAcceptedMsg', {name: currentUser.displayName || _t('auth.someone')}),
     createdAt: new Date().toISOString(),
     read: false
   });
@@ -955,7 +955,7 @@ async function simulateLoginSuccess(user) {
     btnLogin.style.flexDirection = 'row';
     btnLogin.style.alignItems = 'center';
 
-    var displayFirstName = user.displayName ? user.displayName.split(' ')[0] : 'Usuário';
+    var displayFirstName = user.displayName ? user.displayName.split(' ')[0] : _t('auth.defaultUser');
     var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
     var _sh = typeof window._safeHtml === 'function' ? window._safeHtml : function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
@@ -996,7 +996,7 @@ async function simulateLoginSuccess(user) {
     var avatar = document.getElementById('profile-avatar');
     if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
     var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
-    _setVal('profile-edit-name', cu.displayName || 'Usuário');
+    _setVal('profile-edit-name', cu.displayName || _t('auth.defaultUser'));
     _setVal('profile-edit-gender', cu.gender || '');
     _setVal('profile-edit-birthdate', cu.birthDate || '');
     _setVal('profile-edit-city', cu.city || '');
@@ -1051,7 +1051,7 @@ async function simulateLoginSuccess(user) {
   // Set view mode to organizer
   window.AppStore.viewMode = 'organizer';
   var viewModeBtn = document.getElementById('view-mode-selector');
-  if (viewModeBtn) viewModeBtn.innerHTML = '👁️ <span style="font-weight:600;">' + (window.innerWidth <= 767 ? 'Org.' : 'Organizador') + '</span>';
+  if (viewModeBtn) viewModeBtn.innerHTML = '👁️ <span style="font-weight:600;">' + (window.innerWidth <= 767 ? _t('auth.orgShort') : _t('nav.organizer')) + '</span>';
 
   // Update visibility of view mode selector
   if (typeof window.updateViewModeVisibility === 'function') {
@@ -1123,7 +1123,7 @@ async function simulateLoginSuccess(user) {
                       (t.skillCategories && t.skillCategories.length > 0);
         if (hasCats && _u.gender && typeof window._userGenderToCatCodes === 'function') {
           var genderCodes = window._userGenderToCatCodes(_u.gender);
-          var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto Aleat.', misto_obrigatorio: 'Misto Obrig.' };
+          var genderLabels = { fem: _t('auth.genderFem'), masc: _t('auth.genderMasc'), misto_aleatorio: _t('auth.genderMistoAl'), misto_obrigatorio: _t('auth.genderMistoOb') };
           var combined = t.combinedCategories || [];
           var genderCats = t.genderCategories || [];
           var skillCats = t.skillCategories || [];
@@ -1181,7 +1181,7 @@ async function simulateLoginSuccess(user) {
                 if (orgUid && typeof window._sendUserNotification === 'function') {
                   window._sendUserNotification(orgUid, {
                     type: 'enrollment_new',
-                    message: (_u.displayName || 'Um participante') + ' se inscreveu no torneio "' + t.name + '".',
+                    message: _t('auth.participantEnrolledMsg', {name: _u.displayName || _t('auth.someParticipant'), tournament: t.name}),
                     tournamentId: String(t.id),
                     tournamentName: t.name || '',
                     level: 'all'
@@ -1353,7 +1353,7 @@ function setupLoginModal() {
           '<div style="margin-bottom:4px;">' +
             '<button type="button" class="btn hover-lift btn-block" onclick="handleGoogleLogin()" style="background:#fff;color:#333;border:1px solid #ddd;padding:12px 16px;font-size:0.88rem;font-weight:600;">' +
               '<svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
-              'Entrar com Google' +
+              _t('auth.signInGoogle') +
             '</button>' +
           '</div>' +
           '<div id="login-panel-google" style="display:none;"></div>' +
@@ -1641,12 +1641,13 @@ function _setupPhoneMask(inputEl, countryCode) {
 
 // === Player Stats Calculator ===
 function _populatePlayerStats() {
+  var _t = window._t || function(k) { return k; };
   var el = document.getElementById('profile-stats-content');
   if (!el) return;
 
   var cu = window.AppStore.currentUser;
   if (!cu || !cu.email) {
-    el.innerHTML = '<span style="color:var(--text-muted);">Faça login para ver suas estatísticas.</span>';
+    el.innerHTML = '<span style="color:var(--text-muted);">' + _t('auth.loginForStats') + '</span>';
     return;
   }
 
@@ -2009,6 +2010,7 @@ function _populatePlayerStats() {
 // and partnership tables. Separates casual from tournament. Survives deletion of
 // the original match documents.
 function _renderDetailedPersistentStats(uid) {
+  var _t = window._t || function(k) { return k; };
   if (!window.FirestoreDB || !window.FirestoreDB.loadUserMatchHistory) return;
   window.FirestoreDB.loadUserMatchHistory(uid).then(function(records) {
     var el = document.getElementById('profile-stats-content');
@@ -2100,24 +2102,24 @@ function _renderDetailedPersistentStats(uid) {
       var h = '<div style="margin-top:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
           '<span style="font-size:0.85rem;font-weight:800;color:' + accent + ';">' + icon + ' ' + title + '</span>' +
-          '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:auto;">' + a.matches + ' partida' + (a.matches > 1 ? 's' : '') + '</span>' +
+          '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:auto;">' + a.matches + ' ' + (a.matches > 1 ? _t('profile.matchMany') : _t('profile.matchOne')) + '</span>' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
-          _statBox(a.wins, 'Vitórias', '#22c55e') +
-          _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), 'Derrotas' + (a.draws ? '/E' : ''), '#ef4444') +
-          _statBox(winRate + '%', 'Aproveit.', winRate >= 50 ? '#22c55e' : '#ef4444') +
+          _statBox(a.wins, _t('profile.statWins'), '#22c55e') +
+          _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), _t('profile.statLosses') + (a.draws ? '/E' : ''), '#ef4444') +
+          _statBox(winRate + '%', _t('profile.statRate'), winRate >= 50 ? '#22c55e' : '#ef4444') +
         '</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
           _statBox(a.sets, 'Sets') +
           _statBox(a.games, 'Games') +
-          _statBox(a.points, 'Pontos') +
+          _statBox(a.points, _t('profile.statPoints')) +
         '</div>' +
         (a.servePts > 0 ? (
           '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">' +
-            _statBox(srvPct + '%', 'Saque', '#60a5fa') +
-            _statBox(recvPct + '%', 'Recep.', '#f87171') +
+            _statBox(srvPct + '%', _t('profile.statServe'), '#60a5fa') +
+            _statBox(recvPct + '%', _t('profile.statRecv'), '#f87171') +
             _statBox(a.killerPoints, 'Killer', '#fbbf24') +
-            _statBox(a.breaks, 'Quebras', '#a855f7') +
+            _statBox(a.breaks, _t('profile.statBreaks'), '#a855f7') +
           '</div>'
         ) : '') +
       '</div>';
@@ -2157,16 +2159,16 @@ function _renderDetailedPersistentStats(uid) {
     wrap.id = 'profile-detailed-stats';
     wrap.style.cssText = 'margin-top:14px;border-top:1px solid var(--border-color);padding-top:12px;';
     wrap.innerHTML =
-      '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
-      '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px;">Dados persistentes por usuário — preservados mesmo se o torneio ou partida for apagado.</div>' +
-      _sectionHtml('Partidas Casuais', '📡', casual, '#38bdf8') +
-      _sectionHtml('Torneios', '🏆', tournament, '#fbbf24') +
+      '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;">' + _t('profile.detailedStats') + '</div>' +
+      '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px;">' + _t('profile.detailedStatsDesc') + '</div>' +
+      _sectionHtml(_t('profile.casualMatches'), '📡', casual, '#38bdf8') +
+      _sectionHtml(_t('profile.tournamentsSection'), '🏆', tournament, '#fbbf24') +
       (Object.keys(casualAgg.h2h).length + Object.keys(tournAgg.h2h).length > 0
         ? '<div style="margin-top:14px;">' +
-            _tableHtml('⚔ Confrontos diretos (casuais)', casualAgg.h2h) +
-            _tableHtml('⚔ Confrontos diretos (torneios)', tournAgg.h2h) +
-            _tableHtml('🤝 Parcerias (casuais)', casualAgg.partners) +
-            _tableHtml('🤝 Parcerias (torneios)', tournAgg.partners) +
+            _tableHtml(_t('profile.h2hCasual'), casualAgg.h2h) +
+            _tableHtml(_t('profile.h2hTournament'), tournAgg.h2h) +
+            _tableHtml(_t('profile.partnersCasual'), casualAgg.partners) +
+            _tableHtml(_t('profile.partnersTournament'), tournAgg.partners) +
           '</div>'
         : '');
     el.appendChild(wrap);
@@ -2540,6 +2542,7 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
 };
 
 function setupProfileModal() {
+  var _t = window._t || function(k) { return k; };
   if (!document.getElementById('modal-profile')) {
     // Country select options
     var countryOpts = _phoneCountries.map(function(c) {
@@ -2549,10 +2552,10 @@ function setupProfileModal() {
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
       '<div class="modal" style="max-width: 520px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; width: calc(100% - 2rem);">' +
         '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">' +
-          '<h2 class="card-title" style="margin:0;font-size:1.1rem;">Meu Perfil</h2>' +
+          '<h2 class="card-title" style="margin:0;font-size:1.1rem;">' + _t('profile.myProfile') + '</h2>' +
           '<div style="display:flex;gap:8px;align-items:center;">' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">Cancelar</button>' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">Salvar</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">' + _t('btn.cancel') + '</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">' + _t('btn.save') + '</button>' +
           '</div>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
@@ -2565,7 +2568,7 @@ function setupProfileModal() {
               '</div>' +
             '</div>' +
             '<div style="flex: 1; min-width: 0;">' +
-              '<label class="form-label" style="font-size: 0.75rem; margin-bottom: 2px;">Nome</label>' +
+              '<label class="form-label" style="font-size: 0.75rem; margin-bottom: 2px;">' + _t('profile.labelName') + '</label>' +
               '<input type="text" id="profile-edit-name" class="form-control" style="width: 100%; box-sizing: border-box;" required>' +
             '</div>' +
           '</div>' +
@@ -2585,39 +2588,39 @@ function setupProfileModal() {
             // Row: Sexo + Nascimento (2 colunas)
             '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">Sexo</label>' +
+                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSex') + '</label>' +
                 '<select id="profile-edit-gender" class="form-control" style="width: 100%; box-sizing: border-box;">' +
-                  '<option value="">Não informar</option>' +
-                  '<option value="masculino">Masculino</option>' +
-                  '<option value="feminino">Feminino</option>' +
-                  '<option value="outro">Outro</option>' +
+                  '<option value="">' + _t('profile.sexNotInform') + '</option>' +
+                  '<option value="masculino">' + _t('profile.sexMasc') + '</option>' +
+                  '<option value="feminino">' + _t('profile.sexFem') + '</option>' +
+                  '<option value="outro">' + _t('profile.sexOther') + '</option>' +
                 '</select>' +
               '</div>' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">Nascimento</label>' +
+                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelBirth') + '</label>' +
                 '<input type="date" id="profile-edit-birthdate" class="form-control" style="width: 100%; box-sizing: border-box;">' +
               '</div>' +
             '</div>' +
             // Row: Cidade + Categoria (2 colunas)
             '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">Cidade</label>' +
+                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelCity') + '</label>' +
                 '<input type="text" id="profile-edit-city" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: São Paulo">' +
               '</div>' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">Categoria</label>' +
+                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelCategory') + '</label>' +
                 '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
               '</div>' +
             '</div>' +
             // Esportes Preferidos (linha inteira)
             '<div class="form-group" style="margin-bottom: 10px;">' +
-              '<label class="form-label" style="font-size: 0.75rem;">Esportes Preferidos</label>' +
+              '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSports') + '</label>' +
               '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel, Beach Tennis">' +
-              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 2px; display: block;">Separe os esportes por vírgula</span>' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 2px; display: block;">' + _t('profile.sportsSeparator') + '</span>' +
             '</div>' +
             // Telefone: País + Número
             '<div class="form-group" style="margin-bottom: 10px;">' +
-              '<label class="form-label" style="font-size: 0.75rem;">WhatsApp</label>' +
+              '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelWhatsApp') + '</label>' +
               '<div style="display: flex; gap: 6px;">' +
                 '<select id="profile-phone-country" class="form-control" style="width: 120px; flex-shrink: 0; box-sizing: border-box; font-size: 0.85rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
                   countryOpts +
@@ -2628,29 +2631,29 @@ function setupProfileModal() {
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Social toggle + notification filters
             '<div style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Social &amp; Comunicações</label>' +
-              '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">Permitir convites de amizade e filtrar as comunicações que você recebe dos torneios em que está inscrito.</p>' +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: 'Aceitar convites de amizade', icon: '🤝', checked: true, color: '#3b82f6' }) : '') +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">' + _t('profile.socialCommsTitle') + '</label>' +
+              '<p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">' + _t('profile.socialCommsDesc') + '</p>' +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: _t('profile.acceptFriends'), icon: '🤝', checked: true, color: '#3b82f6' }) : '') +
               '<div style="margin-top:6px;">' +
-                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Receber comunicações dos torneios:</div>' +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-todas', label: 'Todas', icon: '🟢', checked: true, color: '#22c55e', onchange: 'window._onNotifyToggle(\'todas\')' }) : '') +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: 'Importantes', icon: '🟡', checked: false, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: 'Fundamentais', icon: '🔴', checked: false, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
+                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">' + _t('profile.receiveComms') + '</div>' +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-todas', label: _t('profile.notifAll'), icon: '🟢', checked: true, color: '#22c55e', onchange: 'window._onNotifyToggle(\'todas\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: _t('profile.notifImportant'), icon: '🟡', checked: false, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: _t('profile.notifFundamental'), icon: '🔴', checked: false, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
               '</div>' +
               // Notification channel toggles (between comm filters and locations)
               '<div style="margin-top:10px;">' +
-                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Canais de notificação:</div>' +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: 'Plataforma', icon: '🔔', checked: true }) : '') +
+                '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">' + _t('profile.notifChannels') + '</div>' +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: _t('profile.notifPlatform'), icon: '🔔', checked: true }) : '') +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: 'E-mail', icon: '✉️', checked: true, color: '#e67e22' }) : '') +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: 'WhatsApp', icon: '💬', checked: true, color: '#25D366' }) : '') +
               '</div>' +
             '</div>' +
             // Locais de preferência (mapa)
             '<div class="form-group" style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Locais de preferência para jogar</label>' +
-              '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">Adicione locais onde costuma jogar. Você será notificado de torneios próximos.</p>' +
+              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + _t('profile.labelLocations') + '</label>' +
+              '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">' + _t('profile.locationsDesc') + '</p>' +
               '<div style="position:relative;display:flex;gap:6px;margin-bottom:8px;">' +
-                '<input type="text" id="profile-location-search" class="form-control" placeholder="Buscar endereço, local ou CEP..." style="flex:1;box-sizing:border-box;font-size:0.8rem;" autocomplete="off">' +
+                '<input type="text" id="profile-location-search" class="form-control" placeholder="' + _t('profile.searchLocation') + '" style="flex:1;box-sizing:border-box;font-size:0.8rem;" autocomplete="off">' +
                 '<button type="button" id="profile-locate-btn" onclick="window._profileLocateMe()" class="btn btn-sm" style="background:var(--primary-color);color:#fff;border:none;white-space:nowrap;font-size:0.75rem;padding:6px 10px;" title="Usar minha localização">📍</button>' +
                 '<div id="profile-location-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-height:240px;overflow-y:auto;margin-top:4px;"></div>' +
               '</div>' +
@@ -2661,22 +2664,22 @@ function setupProfileModal() {
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Theme — exclusive buttons
             '<div class="form-group" style="margin-bottom: 1rem;">' +
-              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Aparência</label>' +
+              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + _t('profile.labelAppearance') + '</label>' +
               '<div id="theme-btn-group" style="display:flex;gap:6px;flex-wrap:nowrap;">' +
-                '<button type="button" data-theme-val="dark" onclick="window._setProfileTheme(\'dark\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌙 Noturno</button>' +
-                '<button type="button" data-theme-val="light" onclick="window._setProfileTheme(\'light\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">☀️ Claro</button>' +
-                '<button type="button" data-theme-val="sunset" onclick="window._setProfileTheme(\'sunset\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌅 Pôr do Sol</button>' +
-                '<button type="button" data-theme-val="ocean" onclick="window._setProfileTheme(\'ocean\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">🌊 Oceano</button>' +
+                '<button type="button" data-theme-val="dark" onclick="window._setProfileTheme(\'dark\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeNight') + '</button>' +
+                '<button type="button" data-theme-val="light" onclick="window._setProfileTheme(\'light\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeLight') + '</button>' +
+                '<button type="button" data-theme-val="sunset" onclick="window._setProfileTheme(\'sunset\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeSunset') + '</button>' +
+                '<button type="button" data-theme-val="ocean" onclick="window._setProfileTheme(\'ocean\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeOcean') + '</button>' +
               '</div>' +
             '</div>' +
             // Visual Hints toggle
             '<div style="margin-bottom: 1rem;">' +
-              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-hints-enabled', label: 'Dicas Visuais', icon: '💡', checked: true, color: '#fbbf24', desc: 'Dicas aparecem após alguns segundos de inatividade para ajudar a explorar o app.' }) : '') +
+              (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-hints-enabled', label: _t('profile.visualHints'), icon: '💡', checked: true, color: '#fbbf24', desc: _t('profile.hintsDesc') }) : '') +
             '</div>' +
             // Language selector — flag buttons
             '<div style="margin-bottom: 1rem;">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0; flex-shrink: 0;">Idioma</label>' +
+                '<label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin: 0; flex-shrink: 0;">' + _t('profile.language') + '</label>' +
                 '<div style="display:flex;gap:6px;flex-shrink:0;" id="profile-lang-flags">' +
                   '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'pt\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.4rem;background:none;border:2px solid ' + (window._lang === 'pt' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:3px 6px;cursor:pointer;opacity:' + (window._lang === 'pt' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'pt' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'pt' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="Português">🇧🇷</button>' +
                   '<button type="button" onclick="if(typeof window._setLang===\'function\'){window._setLang(\'en\');document.querySelectorAll(\'#profile-lang-flags button\').forEach(function(b){b.style.opacity=\'0.4\';b.style.transform=\'scale(1)\';b.style.boxShadow=\'none\'});this.style.opacity=\'1\';this.style.transform=\'scale(1.15)\';this.style.boxShadow=\'0 0 8px rgba(251,191,36,0.4)\'}" style="font-size:1.4rem;background:none;border:2px solid ' + (window._lang === 'en' ? '#fbbf24' : 'transparent') + ';border-radius:8px;padding:3px 6px;cursor:pointer;opacity:' + (window._lang === 'en' ? '1' : '0.4') + ';transform:scale(' + (window._lang === 'en' ? '1.15' : '1') + ');transition:all 0.2s;' + (window._lang === 'en' ? 'box-shadow:0 0 8px rgba(251,191,36,0.4)' : '') + '" title="English">🇺🇸</button>' +
@@ -2686,13 +2689,13 @@ function setupProfileModal() {
             // Player Stats Section
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             '<div id="profile-stats-section">' +
-              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">Meu Desempenho</label>' +
-              '<div id="profile-stats-content" style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">Calculando...</div>' +
+              '<label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.8rem;">' + _t('profile.myPerformance') + '</label>' +
+              '<div id="profile-stats-content" style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">' + _t('profile.calculating') + '</div>' +
             '</div>' +
             // Buttons
             /* Salvar/Sair buttons moved to sticky header */ '' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
-              '<button type="button" class="btn btn-ghost btn-micro" onclick="window._confirmDeleteAccount()" style="text-decoration:underline;">Excluir minha conta permanentemente</button>' +
+              '<button type="button" class="btn btn-ghost btn-micro" onclick="window._confirmDeleteAccount()" style="text-decoration:underline;">' + _t('profile.deleteAccountPerm') + '</button>' +
             '</div>' +
           '</form>' +
         '</div>' +
@@ -2755,8 +2758,8 @@ function setupProfileModal() {
           // Warn before disabling fundamentais
           if (typeof showConfirmDialog === 'function') {
             showConfirmDialog(
-              'Desativar comunicações fundamentais?',
-              'Você não receberá nenhuma comunicação dos torneios, incluindo avisos indispensáveis como alterações de horário, cancelamentos e resultados. Tem certeza?',
+              _t('auth.disableFundTitle'),
+              _t('auth.disableFundMsg'),
               function() {
                 // Confirmed: disable all
                 funEl.checked = false;
@@ -2858,7 +2861,7 @@ function setupProfileModal() {
         _setupProfileSearch();
       } catch (e) {
         console.warn('[profile-map] init error:', e);
-        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">Mapa indisponível</div>';
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.75rem;">' + _t('auth.mapUnavailable') + '</div>';
       }
     };
 
@@ -2955,7 +2958,7 @@ function setupProfileModal() {
       if (!listEl) return;
       var locs = window._profileLocations || [];
       if (locs.length === 0) {
-        listEl.innerHTML = '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:6px;">Nenhum local adicionado. Clique no mapa, busque ou use 📍.</div>';
+        listEl.innerHTML = '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:6px;">' + _t('auth.noLocationAdded') + '</div>';
         return;
       }
       listEl.innerHTML = locs.map(function(loc, idx) {
@@ -3070,7 +3073,7 @@ function setupProfileModal() {
         sugBox.style.display = 'block';
       } catch (e) {
         console.warn('[profile-map] search error:', e);
-        sugBox.innerHTML = '<div style="padding:10px 14px;color:#f87171;font-size:0.8rem;">Erro: ' + window._safeHtml(e.message || 'API indisponível') + '</div>';
+        sugBox.innerHTML = '<div style="padding:10px 14px;color:#f87171;font-size:0.8rem;">' + _t('auth.locationSearchError', {msg: window._safeHtml(e.message || 'API indisponível')}) + '</div>';
         sugBox.style.display = 'block';
       }
     }
@@ -3110,7 +3113,7 @@ function setupProfileModal() {
           var lng = pos.coords.longitude;
           if (btn) { btn.disabled = false; btn.textContent = '📍'; }
           _reverseGeocode(lat, lng, function(label) {
-            _addProfileLocation({ lat: lat, lng: lng, label: label || 'Minha localização' });
+            _addProfileLocation({ lat: lat, lng: lng, label: label || _t('auth.myLocation') });
             if (_profileMap) {
               _profileMap.panTo({ lat: lat, lng: lng });
               _profileMap.setZoom(14);
@@ -3244,7 +3247,7 @@ function setupProfileModal() {
 
       // Update header UI with new name and photo
       var photoUrl = window.AppStore.currentUser.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
-      var firstName = name ? name.split(' ')[0] : 'Usuário';
+      var firstName = name ? name.split(' ')[0] : _t('auth.defaultUser');
       var btnLogin = document.getElementById('btn-login');
       if (btnLogin) {
         var avatarImg = btnLogin.querySelector('img');
