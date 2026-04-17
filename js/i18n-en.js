@@ -1008,6 +1008,15 @@ window._translations['en'] = {
   'enroll.ligaActiveMsg': 'You will participate in upcoming draws.',
   'enroll.ligaInactive': '🔴 Inactive',
   'enroll.ligaInactiveMsg': 'You will be excluded from upcoming draws and receive average points.',
+  'enroll.anonParticipant': 'A participant',
+  'enroll.orgEnrollMsg': '{name} enrolled in "{tourn}".',
+  'enroll.orgTeamEnrollMsg': 'Team "{team}" enrolled in "{tourn}".',
+  'enroll.orgUnenrollMsg': '{name} cancelled enrollment in "{tourn}".',
+  'enroll.lateAddTitle': '➕ Add to Waitlist',
+  'enroll.lateAddMsg': 'Enrollment is closed. The participant will be added to the waitlist.',
+  'enroll.lateTeamTitle': '➕ Add Team to Waitlist',
+  'enroll.memberPlaceholder': 'Member {num} name',
+  'enroll.memberLabel': 'Member',
 
   // Organizer
   'org.clonedTitle': 'Tournament Cloned!',

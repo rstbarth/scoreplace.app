@@ -178,7 +178,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
                     if (orgUid) {
                         window._sendUserNotification(orgUid, {
                             type: 'enrollment_new',
-                            message: (user.displayName || 'Um participante') + ' se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
+                            message: _t('enroll.orgEnrollMsg', {name: user.displayName || _t('enroll.anonParticipant'), tourn: window._safeHtml(t.name)}),
                             tournamentId: String(t.id),
                             tournamentName: t.name || '',
                             level: 'all'
@@ -308,7 +308,7 @@ window.submitTeamEnroll = function (tId) {
                     if (orgUid) {
                         window._sendUserNotification(orgUid, {
                             type: 'enrollment_new',
-                            message: 'Equipe "' + window._safeHtml(teamString) + '" se inscreveu no torneio "' + window._safeHtml(t.name) + '".',
+                            message: _t('enroll.orgTeamEnrollMsg', {team: window._safeHtml(teamString), tourn: window._safeHtml(t.name)}),
                             tournamentId: String(t.id),
                             tournamentName: t.name || '',
                             level: 'all'
@@ -379,7 +379,7 @@ window.deenrollCurrentUser = function (tId) {
                                 if (orgUid) {
                                     window._sendUserNotification(orgUid, {
                                         type: 'enrollment_cancelled',
-                                        message: (user.displayName || 'Um participante') + ' cancelou a inscrição no torneio "' + window._safeHtml(t.name) + '".',
+                                        message: _t('enroll.orgUnenrollMsg', {name: user.displayName || _t('enroll.anonParticipant'), tourn: window._safeHtml(t.name)}),
                                         tournamentId: String(t.id),
                                         tournamentName: t.name || '',
                                         level: 'important'
@@ -422,8 +422,8 @@ window.addParticipantFunction = function (tId) {
         showAlertDialog(_t('enroll.enrollClosed'), _t('enroll.enrollClosedMsg'), null, { type: 'warning' });
         return;
     }
-    var _addTitle = _closedOrDrawn ? '➕ Adicionar à Lista de Espera' : _t('enroll.addParticipant');
-    var _addMsg = _closedOrDrawn ? 'Inscrições encerradas. O participante será adicionado à lista de espera.' : _t('enroll.addParticipantMsg');
+    var _addTitle = _closedOrDrawn ? _t('enroll.lateAddTitle') : _t('enroll.addParticipant');
+    var _addMsg = _closedOrDrawn ? _t('enroll.lateAddMsg') : _t('enroll.addParticipantMsg');
     showInputDialog(
         _addTitle,
         _addMsg,
@@ -489,10 +489,10 @@ window.addTeamFunction = function (tId) {
         return;
     }
     const teamSize = t.teamSize || 2;
-    const items = Array.from({ length: teamSize }, (_, i) => ({ placeholder: `Nome do integrante ${i + 1}` }));
+    const items = Array.from({ length: teamSize }, (_, i) => ({ placeholder: _t('enroll.memberPlaceholder', {num: i + 1}) }));
 
     showMultiInputDialog(
-        _closedOrDrawn2 ? '➕ Adicionar Time à Lista de Espera' : _t('enroll.addTeam'),
+        _closedOrDrawn2 ? _t('enroll.lateTeamTitle') : _t('enroll.addTeam'),
         items,
         (teamNames) => {
             if (!teamNames || teamNames.some(n => !n.trim())) {
@@ -524,7 +524,7 @@ window.addTeamFunction = function (tId) {
             const container = document.getElementById('view-container');
             if (container && typeof renderTournaments === 'function') renderTournaments(container, window.location.hash.split('/')[1]);
         },
-        { itemLabel: 'Integrante' }
+        { itemLabel: _t('enroll.memberLabel') }
     );
 };
 
