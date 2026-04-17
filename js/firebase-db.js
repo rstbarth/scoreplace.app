@@ -110,7 +110,8 @@ window.FirestoreDB = {
 
       // Auto-close check
       // Auto-close when maxParticipants is reached (always, no flag needed)
-      if (data.maxParticipants && participants.length >= parseInt(data.maxParticipants)) {
+      var _maxP = parseInt(data.maxParticipants, 10);
+      if (!isNaN(_maxP) && _maxP > 0 && participants.length >= _maxP) {
         updateData.status = 'closed';
       }
 
