@@ -14,11 +14,11 @@ function setupCreateTournamentModal() {
       <div class="modal-overlay" id="modal-create-tournament">
         <div class="modal" style="max-width: 800px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
           <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.5rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-            <h2 class="card-title" id="create-modal-title">Criar Novo Torneio</h2>
+            <h2 class="card-title" id="create-modal-title">${_t('create.modalTitle')}</h2>
             <div style="display:flex; gap:10px;">
               <button class="btn btn-tool-amber" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
-              <button class="btn btn-secondary" onclick="document.getElementById('modal-create-tournament').classList.remove('active')">Cancelar</button>
-              <button class="btn btn-primary" id="btn-save-tournament">Salvar Torneio</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('modal-create-tournament').classList.remove('active')">${_t('btn.cancel')}</button>
+              <button class="btn btn-primary" id="btn-save-tournament">${_t('create.saveTournament')}</button>
             </div>
           </div>
           <div class="modal-body" style="padding: 1.5rem; color: var(--text-main); overflow-x: hidden; max-width: 100%; box-sizing: border-box;">
@@ -28,11 +28,11 @@ function setupCreateTournamentModal() {
               <!-- Nome e Modalidade -->
               <div class="d-flex gap-2 mb-3">
                 <div class="form-group full-width">
-                  <label class="form-label">Nome do Torneio</label>
+                  <label class="form-label">${_t('create.nameLabel')}</label>
                   <input type="text" class="form-control" id="tourn-name" placeholder="Ex: Copa de Inverno 2026" required>
                 </div>
                 <div class="form-group full-width">
-                  <label class="form-label">Modalidade</label>
+                  <label class="form-label">${_t('create.sportLabel')}</label>
                   <!-- Hidden select for backward compatibility -->
                   <select class="form-control" id="select-sport" onchange="window._onSportChange()" style="display:none;">
                     <option>🎾 Beach Tennis</option>
@@ -53,14 +53,14 @@ function setupCreateTournamentModal() {
 
               <!-- Logo do Torneio -->
               <div id="logo-section" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a5b4fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Logo do Torneio</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a5b4fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.logoSection')}</p>
                 <div style="display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                   <div id="logo-preview" style="width: 80px; height: 80px; border-radius: 16px; border: 2px dashed rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: rgba(0,0,0,0.2);">
-                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center; padding: 4px;">Sem logo</span>
+                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center; padding: 4px;">${_t('create.noLogo')}</span>
                   </div>
                   <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px;">
                     <button type="button" onclick="window._generateTournamentLogo()" style="padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.15); color: #a5b4fc; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; justify-content: center;" onmouseover="this.style.background='rgba(99,102,241,0.25)'" onmouseout="this.style.background='rgba(99,102,241,0.15)'">
-                      🎨 Gerar Logo
+                      🎨 ${_t('create.genLogo')}
                     </button>
                     <div style="display: flex; gap: 6px;">
                       <button type="button" onclick="window._generateTournamentLogo()" title="Regerar logo" style="padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(99,102,241,0.2); background: rgba(99,102,241,0.08); color: #a5b4fc; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.18)'" onmouseout="this.style.background='rgba(99,102,241,0.08)'">
@@ -94,9 +94,9 @@ function setupCreateTournamentModal() {
                     <input type="checkbox" id="toggle-public" checked onchange="window._setVisibility(this.checked ? 'public' : 'private')">
                     <span class="toggle-slider"></span>
                   </label>
-                  <span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">🌐 Público</span>
+                  <span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">🌐 ${_t('create.publicLabel')}</span>
                 </div>
-                <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.</small>
+                <small id="vis-desc" class="text-muted" style="display:block;margin-top:6px;">${_t('create.publicDesc')}</small>
               </div>
 
               <!-- Formato -->
@@ -159,41 +159,41 @@ function setupCreateTournamentModal() {
 
               <!-- Campos específicos: Fase de Grupos -->
               <div id="grupos-fields" style="display:none; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações da Fase de Grupos</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.gruposConfig')}</p>
                 <div class="d-flex gap-2">
                   <div class="form-group full-width">
-                    <label class="form-label">Número de Grupos</label>
+                    <label class="form-label">${_t('create.gruposCount')}</label>
                     <input type="number" class="form-control" id="grupos-count" min="2" max="16" value="4" placeholder="Ex: 4">
-                    <small class="text-muted" style="display:block;margin-top:4px;">Os participantes serão distribuídos igualmente entre os grupos.</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gruposDistDesc')}</small>
                   </div>
                   <div class="form-group full-width">
-                    <label class="form-label">Classificados por Grupo</label>
+                    <label class="form-label">${_t('create.gruposClassified')}</label>
                     <input type="number" class="form-control" id="grupos-classified" min="1" max="4" value="2" placeholder="Ex: 2">
-                    <small class="text-muted" style="display:block;margin-top:4px;">Quantos avançam de cada grupo para as eliminatórias.</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gruposClassifiedDesc')}</small>
                   </div>
                 </div>
               </div>
 
               <!-- Campos específicos: Suíço -->
               <div id="suico-fields" style="display:none; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações do Suíço</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.suicoConfig')}</p>
                 <div class="d-flex gap-2">
                   <div class="form-group full-width">
-                    <label class="form-label">Número de Rodadas</label>
+                    <label class="form-label">${_t('create.suicoRounds')}</label>
                     <input type="number" class="form-control" id="suico-rounds" min="2" max="20" value="5" placeholder="Ex: 5">
-                    <small class="text-muted" style="display:block;margin-top:4px;">Para ${32} jogadores, recomenda-se 5 rodadas (log₂ de participantes).</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.suicoRecommendation')}</small>
                   </div>
                 </div>
               </div>
 
               <!-- Campos específicos: Liga (unificado com antigo Ranking) -->
               <div id="liga-fields" style="display:none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Configurações da Liga</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.ligaConfig')}</p>
                 <input type="hidden" id="liga-season-duration" value="indefinida">
                 <div id="liga-custom-duration-container" style="display:none;"><input type="hidden" id="liga-custom-months" value="6"></div>
                 <input type="hidden" id="liga-round-format" value="standard">
                 <div class="form-group mb-3">
-                  <label class="form-label" style="font-size:0.75rem;">Pontuação de Novos Inscritos</label>
+                  <label class="form-label" style="font-size:0.75rem;">${_t('create.ligaNewScore')}</label>
                   <input type="hidden" id="liga-new-player-score" value="zero">
                   <div id="liga-nps-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button type="button" class="liga-nps-btn liga-nps-active" data-value="zero" onclick="window._selectLigaNps(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;white-space:nowrap;">Zero</button>
@@ -203,7 +203,7 @@ function setupCreateTournamentModal() {
                   </div>
                 </div>
                 <div class="form-group mb-3">
-                  <label class="form-label" style="font-size:0.75rem;">Regra de Inatividade</label>
+                  <label class="form-label" style="font-size:0.75rem;">${_t('create.ligaInactRule')}</label>
                   <input type="hidden" id="liga-inactivity" value="keep">
                   <div id="liga-inact-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button type="button" class="liga-inact-btn liga-inact-active" data-value="keep" onclick="window._selectLigaInact(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;white-space:nowrap;">Manter</button>
@@ -212,37 +212,37 @@ function setupCreateTournamentModal() {
                   </div>
                 </div>
                 <div class="form-group" id="liga-inactivity-x-container" style="display:none;">
-                  <label class="form-label">Rodadas sem jogar para remoção</label>
+                  <label class="form-label">${_t('create.ligaInactRounds')}</label>
                   <input type="number" class="form-control" id="liga-inactivity-x" min="1" value="3">
                 </div>
                 <div class="form-group mt-2">
                   <div class="toggle-row">
-                    <div class="toggle-row-label"><span style="font-weight:bold; color:var(--text-color);">Inscrições abertas durante toda a temporada</span></div>
+                    <div class="toggle-row-label"><span style="font-weight:bold; color:var(--text-color);">${_t('create.ligaOpenEnrollLabel')}</span></div>
                     <label class="toggle-switch"><input type="checkbox" id="liga-open-enrollment" checked><span class="toggle-slider"></span></label>
                   </div>
                 </div>
                 <div id="liga-draw-schedule" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16,185,129,0.15);">
-                  <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios</p>
+                  <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.drawSchedule')}</p>
                   <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
-                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.dateLabel')}</label>
                       <input type="date" class="form-control" id="liga-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;" onchange="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
-                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.timeLabel')}</label>
                       <input type="time" class="form-control" id="liga-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;" onchange="window._syncLigaDrawDateToStart()">
                     </div>
                     <div class="form-group" style="margin:0;flex:0 0 auto;">
-                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.repeatEvery')}</label>
                       <div style="display:flex;align-items:center;gap:4px;">
                         <input type="number" class="form-control" id="liga-draw-interval" min="1" max="90" value="7" style="width:55px;padding:6px 8px;font-size:0.85rem;text-align:center;">
-                        <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                        <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">${_t('create.daysUnit')}</span>
                       </div>
                     </div>
                   </div>
                   <div class="form-group" style="margin:0;">
                     <div class="toggle-row">
-                      <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span><div class="toggle-desc">Quando ativado, o sorteio não ocorre automaticamente.</div></div></div>
+                      <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">${_t('create.manualDraw')}</span><div class="toggle-desc">${_t('create.manualDrawDesc')}</div></div></div>
                       <label class="toggle-switch"><input type="checkbox" id="liga-manual-draw"><span class="toggle-slider"></span></label>
                     </div>
                   </div>
@@ -253,21 +253,21 @@ function setupCreateTournamentModal() {
               <!-- Datas e Horários (posicionado após agendamento de sorteios) -->
               <div class="dates-row" style="display:flex; gap:10px; margin-bottom:0.75rem; align-items:stretch; flex-wrap:wrap;">
                 <div id="reg-date-container" style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Encerramento Inscrições</div>
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.enrollDeadline')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-reg-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
                     <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Início do Torneio</div>
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.tournamentStart')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-start-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
                     <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
-                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Fim do Torneio</div>
+                  <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.tournamentEnd')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
                     <input type="date" class="form-control" id="tourn-end-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
                     <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
@@ -277,27 +277,27 @@ function setupCreateTournamentModal() {
 
               <!-- Campos periocidade de sorteio: Suíço -->
               <div id="suico-draw-schedule-fields" style="display:none; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Agendamento de Sorteios (Suíço)</p>
+                <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.swissDrawSchedule')}</p>
                 <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
                   <div class="form-group" style="margin:0;flex:0 0 auto;">
-                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Data</label>
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.dateLabel')}</label>
                     <input type="date" class="form-control" id="suico-first-draw-date" style="width:130px;padding:6px 8px;font-size:0.85rem;">
                   </div>
                   <div class="form-group" style="margin:0;flex:0 0 auto;">
-                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Hora</label>
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.timeLabel')}</label>
                     <input type="time" class="form-control" id="suico-first-draw-time" value="19:00" style="width:100px;padding:6px 8px;font-size:0.85rem;">
                   </div>
                   <div class="form-group" style="margin:0;flex:0 0 auto;">
-                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">Repetir a cada</label>
+                    <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.repeatEvery')}</label>
                     <div style="display:flex;align-items:center;gap:4px;">
                       <input type="number" class="form-control" id="suico-draw-interval" min="1" max="90" value="7" style="width:55px;padding:6px 8px;font-size:0.85rem;text-align:center;">
-                      <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">dias</span>
+                      <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">${_t('create.daysUnit')}</span>
                     </div>
                   </div>
                 </div>
                 <div class="form-group" style="margin:0;">
                   <div class="toggle-row">
-                    <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">Sorteio manual</span><div class="toggle-desc">Quando ativado, o organizador decide quando gerar cada rodada.</div></div></div>
+                    <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">${_t('create.manualDraw')}</span><div class="toggle-desc">${_t('create.swissManualDrawDesc')}</div></div></div>
                     <label class="toggle-switch"><input type="checkbox" id="suico-manual-draw"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -305,12 +305,12 @@ function setupCreateTournamentModal() {
 
               <!-- Local e Quadras -->
               <div id="venue-photo-box" style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Local e Quadras</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.venueSection')}</p>
                 <div class="mb-2">
                   <div class="form-group" style="flex:1;">
-                    <label class="form-label">Local do Evento</label>
+                    <label class="form-label">${_t('create.venueLabel')}</label>
                     <div style="position:relative;display:flex;gap:6px;margin-bottom:8px;" id="venue-autocomplete-container">
-                      <input type="text" class="form-control" id="tourn-venue" placeholder="Buscar local, arena, clube..."
+                      <input type="text" class="form-control" id="tourn-venue" placeholder="${_t('create.venuePlaceholder')}"
                         style="flex:1;box-sizing:border-box;font-size:0.8rem;" autocomplete="off">
                       <button type="button" onclick="window._venueLocateMe()" class="btn btn-sm" style="background:var(--primary-color);color:#fff;border:none;white-space:nowrap;font-size:0.75rem;padding:6px 10px;" title="Usar minha localização">📍</button>
                       <div id="venue-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; background:var(--bg-card);border:1px solid var(--border-color); border-radius:10px; margin-top:4px; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
@@ -323,9 +323,9 @@ function setupCreateTournamentModal() {
                           <input type="checkbox" id="toggle-venue-public" checked onchange="window._onVenueAccessToggle()">
                           <span class="toggle-slider"></span>
                         </label>
-                        <span id="venue-access-label" style="font-size:0.82rem; font-weight:600; color:var(--text-bright);">🌐 Aberto ao Público</span>
+                        <span id="venue-access-label" style="font-size:0.82rem; font-weight:600; color:var(--text-bright);">${_t('create.accessOpen')}</span>
                       </div>
-                      <div id="venue-access-desc" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; margin-left:52px;">Qualquer pessoa pode se inscrever e acompanhar o torneio.</div>
+                      <div id="venue-access-desc" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; margin-left:52px;">${_t('create.openDesc')}</div>
                     </div>
                     <input type="hidden" id="tourn-venue-access" value="">
                     <input type="hidden" id="tourn-venue-lat" value="">
@@ -337,50 +337,50 @@ function setupCreateTournamentModal() {
                 </div>
                 <div class="courts-row" style="display:flex; gap:10px; align-items:flex-start; margin-bottom:0.5rem;">
                   <div class="form-group courts-count-field" style="flex:0 0 100px;">
-                    <label class="form-label">Quadras</label>
+                    <label class="form-label">${_t('create.courtsLabel')}</label>
                     <input type="number" class="form-control" id="tourn-court-count" min="1" max="50" value="1" style="text-align:center;" oninput="window._onCourtCountChange()">
                   </div>
                   <div class="form-group" style="flex:1; min-width:0;">
-                    <label class="form-label">Nomes das Quadras/Campos <small style="opacity:0.6;">(separados por vírgula)</small></label>
+                    <label class="form-label">${_t('create.courtNamesLabel')} <small style="opacity:0.6;">${_t('create.courtNamesSep')}</small></label>
                     <input type="text" class="form-control" id="tourn-court-names" placeholder="Ex: Quadra Central, Quadra 1, Quadra 2" style="width:100%;" oninput="window._onCourtNamesInput()">
-                    <small class="text-muted" style="display:block;margin-top:4px;" id="court-names-hint">Deixe em branco para numeração automática (Quadra 1, Quadra 2...).</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;" id="court-names-hint">${_t('create.courtHint')}</small>
                   </div>
                 </div>
               </div>
 
               <!-- Weather Forecast -->
               <div id="weather-forecast" style="display:none; margin-bottom:0.75rem; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px; padding:10px 14px;">
-                <div style="font-size:0.7rem; font-weight:600; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Previsão do Tempo</div>
+                <div style="font-size:0.7rem; font-weight:600; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.weatherSection')}</div>
                 <div id="weather-content"></div>
               </div>
 
               <!-- Estimativas de Tempo -->
               <div id="time-estimates-container" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Estimativas de Tempo</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.timeEstSection')}</p>
                 <div class="d-flex gap-2 mb-2">
                   <div class="form-group full-width">
-                    <label class="form-label">Chamada dos Jogadores</label>
+                    <label class="form-label">${_t('create.callTimeLabel')}</label>
                     <div style="display:flex;align-items:center;gap:6px;">
                       <input type="number" class="form-control" id="tourn-call-time" min="0" max="60" value="5" style="flex:1;" oninput="window._recalcDuration()">
                       <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">Tempo para chamar e reunir os jogadores na quadra.</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.callTimeDesc')}</small>
                   </div>
                   <div class="form-group full-width">
-                    <label class="form-label">Aquecimento</label>
+                    <label class="form-label">${_t('create.warmupLabel')}</label>
                     <div style="display:flex;align-items:center;gap:6px;">
                       <input type="number" class="form-control" id="tourn-warmup-time" min="0" max="60" value="5" style="flex:1;" oninput="window._recalcDuration()">
                       <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">Tempo de aquecimento antes do jogo.</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.warmupDesc')}</small>
                   </div>
                   <div class="form-group full-width">
-                    <label class="form-label">Duração Média do Jogo</label>
+                    <label class="form-label">${_t('create.gameDurLabel')}</label>
                     <div style="display:flex;align-items:center;gap:6px;">
                       <input type="number" class="form-control" id="tourn-game-duration" min="5" max="300" value="30" style="flex:1;" oninput="window._recalcDuration()">
                       <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">Duração estimada de cada partida.</small>
+                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gameDurDesc')}</small>
                   </div>
                 </div>
 
@@ -388,7 +388,7 @@ function setupCreateTournamentModal() {
                 <div id="duration-estimate-box" style="display:none; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 0.75rem 1rem; margin-top: 0.5rem;">
                   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
-                      <span style="font-size:0.8rem; color:#f59e0b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Duração Estimada</span>
+                      <span style="font-size:0.8rem; color:#f59e0b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">${_t('create.estDuration')}</span>
                       <div id="duration-estimate-text" style="font-size:1.1rem; font-weight:bold; color:var(--text-bright); margin-top:2px;">—</div>
                     </div>
                     <div id="duration-estimate-detail" style="font-size:0.8rem; color:var(--text-muted); text-align:right;">
@@ -405,12 +405,12 @@ function setupCreateTournamentModal() {
 
               <!-- Game Set Match Config — Presets -->
               <div id="gsm-section" style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">🎾 Formato da Partida</p>
+                <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">🎾 ${_t('create.matchFormat')}</p>
                 <div id="gsm-presets" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:10px;"></div>
                 <!-- Advantage toggle (auto-hidden for beach tennis/padel) -->
                 <div id="gsm-advantage-section" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.04);border-radius:10px;border:1px solid rgba(168,85,247,0.1);">
                   <div class="toggle-row" style="padding:0;">
-                    <div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;">Regra de vantagem</span><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Em 40-40 precisa de 2 pontos seguidos</div></div>
+                    <div class="toggle-row-label"><span style="font-size:0.82rem;font-weight:600;">${_t('create.gsmAdvantageLabel')}</span><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${_t('create.gsmAdvantageDesc')}</div></div>
                     <label class="toggle-switch toggle-sm"><input type="checkbox" id="gsm-advantage-toggle" onchange="window._gsmAdvantageChanged()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -434,8 +434,8 @@ function setupCreateTournamentModal() {
               <!-- Inscrição e Limite -->
               <div class="d-flex gap-2 mb-3">
                 <div class="form-group full-width">
-                  <label class="form-label">Máx. Participantes</label>
-                  <input type="number" class="form-control" id="tourn-max-participants" min="2" placeholder="Sem limite" oninput="window._updateAutoCloseVisibility(); window._recalcDuration()">
+                  <label class="form-label">${_t('create.maxParticipants')}</label>
+                  <input type="number" class="form-control" id="tourn-max-participants" min="2" placeholder="${_t('create.noLimit')}" oninput="window._updateAutoCloseVisibility(); window._recalcDuration()">
                 </div>
                 <div class="form-group full-width">
                   <label class="form-label">${_t('create.gameType')}</label>
@@ -443,11 +443,11 @@ function setupCreateTournamentModal() {
                   <input type="hidden" id="tourn-game-types" value="duplas">
                   <div id="game-type-buttons" style="display:flex;flex-direction:column;gap:8px;">
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏸</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameSimples')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">1 jogador por lado da quadra.</div></div></div>
+                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏸</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameSimples')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.simplesSideDesc')}</div></div></div>
                       <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameDuplas')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">2 jogadores por lado (duplas).</div></div></div>
+                      <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameDuplas')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.duplasSideDesc')}</div></div></div>
                       <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                   </div>
@@ -461,11 +461,11 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="select-inscricao" value="individual">
                 <div id="enroll-mode-buttons" style="display:flex;flex-direction:column;gap:8px;">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Individual</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores se inscrevem sozinhos. O sorteio forma as duplas/times.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.enrollIndividualDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-individual" checked onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Times Montados</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores se inscrevem ja com parceiro(s) definido(s).</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollTeam')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.enrollTeamDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-team" onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -475,22 +475,22 @@ function setupCreateTournamentModal() {
               <!-- Auto-close (apenas eliminatórias) -->
               <div class="form-group mb-3" id="auto-close-container" style="display:none;">
                 <div class="toggle-row">
-                  <div class="toggle-row-label"><span class="toggle-icon">⚡</span><div><span style="font-weight:bold;color:var(--text-color);">Encerrar inscrições ao atingir o limite</span><div class="toggle-desc">Disponível quando o máximo for potência de 2 e formato Eliminatórias.</div></div></div>
+                  <div class="toggle-row-label"><span class="toggle-icon">⚡</span><div><span style="font-weight:bold;color:var(--text-color);">${_t('create.autoCloseLabel')}</span><div class="toggle-desc">${_t('create.autoCloseDesc')}</div></div></div>
                   <label class="toggle-switch"><input type="checkbox" id="tourn-auto-close"><span class="toggle-slider"></span></label>
                 </div>
               </div>
 
               <!-- W.O. Scope -->
               <div style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;" id="wo-scope-container">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">⚠️ W.O. (Ausência)</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">⚠️ ${_t('create.woSection')}</p>
                 <input type="hidden" id="wo-scope" value="individual">
                 <div style="display:flex;flex-direction:column;gap:8px;" id="wo-scope-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Individual</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">W.O. afeta só o jogador ausente. Parceiro continua e um jogador da lista de espera entra no lugar.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Time Inteiro</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">W.O. elimina o time completo. Adversário avança automaticamente.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.woTeam')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woTeamDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-team" onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -498,19 +498,19 @@ function setupCreateTournamentModal() {
 
               <!-- Inscrições após encerramento -->
               <div style="background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">⏱️ Inscrições Após Encerramento</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #fbbf24; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">⏱️ ${_t('create.lateEnrollSection')}</p>
                 <input type="hidden" id="late-enrollment" value="closed">
                 <div style="display:flex;flex-direction:column;gap:8px;" id="late-enrollment-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Fechadas</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Ninguém mais pode se inscrever após o encerramento.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">⏳</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Lista de Espera</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Novas inscrições vão direto para a lista de espera como suplentes.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">⏳</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollStandby')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollStandbyDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-standby" onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Novos Confrontos</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Suplentes acumulam na espera. Se juntarem participantes suficientes antes do fim da 1ª rodada, novos confrontos são gerados.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -518,78 +518,78 @@ function setupCreateTournamentModal() {
 
               <!-- Categorias do Torneio -->
               <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a855f7; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Categorias</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #a855f7; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.catSection')}</p>
                 <div style="margin-bottom:0.75rem;">
-                  <label class="form-label" style="margin-bottom:6px;">Categorias por Sexo</label>
+                  <label class="form-label" style="margin-bottom:6px;">${_t('create.genderCatLabel')}</label>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;" id="gender-cat-buttons">
-                    <button type="button" id="btn-cat-fem" onclick="window._toggleGenderCat('fem')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♀ Feminino</button>
-                    <button type="button" id="btn-cat-masc" onclick="window._toggleGenderCat('masc')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♂ Masculino</button>
-                    <button type="button" id="btn-cat-misto-ale" onclick="window._toggleGenderCat('misto_aleatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚥ Misto Aleatório</button>
-                    <button type="button" id="btn-cat-misto-obr" onclick="window._toggleGenderCat('misto_obrigatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚤ Misto Obrigatório</button>
+                    <button type="button" id="btn-cat-fem" onclick="window._toggleGenderCat('fem')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♀ ${_t('create.catFem')}</button>
+                    <button type="button" id="btn-cat-masc" onclick="window._toggleGenderCat('masc')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">♂ ${_t('create.catMasc')}</button>
+                    <button type="button" id="btn-cat-misto-ale" onclick="window._toggleGenderCat('misto_aleatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚥ ${_t('create.catMistoAle')}</button>
+                    <button type="button" id="btn-cat-misto-obr" onclick="window._toggleGenderCat('misto_obrigatorio')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">⚤ ${_t('create.catMistoObr')}</button>
                   </div>
                   <input type="hidden" id="tourn-gender-categories" value="">
-                  <small class="text-muted" style="display:block;margin-top:6px;">Fem = só mulheres. Masc = só homens. Misto Obrigatório = times 50/50. Misto Aleatório = sem restrição de proporção.</small>
+                  <small class="text-muted" style="display:block;margin-top:6px;">${_t('create.genderCatHint')}</small>
                 </div>
                 <div>
-                  <label class="form-label" style="margin-bottom:6px;">Categorias por Habilidade</label>
-                  <input type="text" class="form-control" id="tourn-skill-categories" placeholder="Ex: A, B, C, D" oninput="window._updateCategoryPreview()">
-                  <small class="text-muted" style="display:block;margin-top:4px;">Separe por vírgula. Deixe em branco para categoria única.</small>
+                  <label class="form-label" style="margin-bottom:6px;">${_t('create.skillCatLabel')}</label>
+                  <input type="text" class="form-control" id="tourn-skill-categories" placeholder="${_t('create.skillCatPlaceholder')}" oninput="window._updateCategoryPreview()">
+                  <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.skillCatHint')}</small>
                 </div>
                 <div id="category-preview" style="display:none; margin-top:0.75rem; padding:8px 12px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:8px;">
-                  <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Categorias do Torneio</div>
+                  <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">${_t('create.catPreview')}</div>
                   <div id="category-preview-list" style="display:flex; flex-wrap:wrap; gap:4px; font-size:0.8rem;"></div>
                 </div>
               </div>
 
               <!-- Lançamento de Resultados (toggles não-excludentes) -->
               <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #60a5fa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">📋 Lançamento de Resultados</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #60a5fa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">📋 ${_t('create.resultSection')}</p>
                 <div id="result-entry-buttons" style="display:flex;flex-direction:column;gap:8px;">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">📋</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Organizador</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Organizador e co-organizadores lançam resultados.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">📋</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultOrg')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultOrgDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-organizer" checked onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏓</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Jogadores</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Jogadores lançam pelo celular com placar ao vivo. Adversário confirma.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏓</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultPlayersLabel')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultPlayersDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-players" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🧑‍⚖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">Árbitro</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">Árbitro designado pelo organizador lança os resultados.</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🧑‍⚖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultRefereeLabel')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultRefereeDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-referee" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
-                <div id="result-entry-desc" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Apenas o organizador (e co-organizadores) podem lançar resultados das partidas.</div>
+                <div id="result-entry-desc" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">${_t('create.resultOnlyOrgDesc')}</div>
                 <input type="hidden" id="select-result-entry" value="organizer">
               </div>
 
               <!-- Classificação -->
               <div id="elim-settings" style="display:none; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Classificação Final</p>
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f87171; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.classificationSection')}</p>
                 <input type="hidden" id="elim-third-place" value="true">
                 <div class="form-group">
                   <div id="ranking-type-buttons" style="display:flex;gap:8px;">
-                    <button type="button" class="ranking-type-btn ranking-type-active" data-value="individual" onclick="window._selectRankingType('individual')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #f87171;background:rgba(248,113,113,0.12);color:#fca5a5;font-weight:600;text-align:center;">Personalizado</button>
-                    <button type="button" class="ranking-type-btn" data-value="blocks" onclick="window._selectRankingType('blocks')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">Em Blocos</button>
+                    <button type="button" class="ranking-type-btn ranking-type-active" data-value="individual" onclick="window._selectRankingType('individual')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid #f87171;background:rgba(248,113,113,0.12);color:#fca5a5;font-weight:600;text-align:center;">${_t('create.rankingPersonalized')}</button>
+                    <button type="button" class="ranking-type-btn" data-value="blocks" onclick="window._selectRankingType('blocks')" style="flex:1;padding:10px 14px;border-radius:10px;font-size:0.82rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;text-align:center;">${_t('create.rankingBlocks')}</button>
                   </div>
-                  <small class="text-muted" style="display:block;margin-top:6px;">Personalizado: cada participante recebe colocação específica. Em blocos: eliminados na mesma fase compartilham a colocação.</small>
+                  <small class="text-muted" style="display:block;margin-top:6px;">${_t('create.rankingTypeHint')}</small>
                   <select class="form-control" id="elim-ranking-type" style="display:none;">
-                    <option value="individual">Personalizado</option>
-                    <option value="blocks">Em blocos</option>
+                    <option value="individual">${_t('create.rankingPersonalized')}</option>
+                    <option value="blocks">${_t('create.rankingBlocks')}</option>
                   </select>
                 </div>
               </div>
 
               <!-- Critérios de Desempate -->
               <div id="tiebreaker-section" style="background: rgba(88,166,255,0.06); border: 1px solid rgba(88,166,255,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #58a6ff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Critérios de Desempate (arraste para reordenar)</p>
-                <small class="text-muted" style="display:block;margin-bottom:0.75rem;">Os critérios serão aplicados na ordem abaixo. Arraste para alterar a prioridade.</small>
+                <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #58a6ff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.tiebreakerSection')}</p>
+                <small class="text-muted" style="display:block;margin-bottom:0.75rem;">${_t('create.tiebreakerDesc')}</small>
                 <ul id="tiebreaker-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-                  <li draggable="true" data-tb="confronto_direto" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Confronto Direto</li>
-                  <li draggable="true" data-tb="saldo_pontos" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Saldo de Pontos</li>
-                  <li draggable="true" data-tb="vitorias" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Número de Vitórias</li>
-                  <li draggable="true" data-tb="buchholz" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Força dos Adversários <small style="opacity:0.5; font-size:0.75rem;">(Buchholz)</small></li>
-                  <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Qualidade das Vitórias <small style="opacity:0.5; font-size:0.75rem;">(Sonneborn-Berger)</small></li>
-                  <li draggable="true" data-tb="sorteio" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> Sorteio</li>
+                  <li draggable="true" data-tb="confronto_direto" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbHeadToHead')}</li>
+                  <li draggable="true" data-tb="saldo_pontos" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbPointDiff')}</li>
+                  <li draggable="true" data-tb="vitorias" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbWins')}</li>
+                  <li draggable="true" data-tb="buchholz" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbBuchholz')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbBuchholzAbbr')})</small></li>
+                  <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbSonneborn')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbSonnebornAbbr')})</small></li>
+                  <li draggable="true" data-tb="sorteio" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbRandom')}</li>
                 </ul>
               </div>
 
@@ -2038,7 +2038,7 @@ function setupCreateTournamentModal() {
             '<div style="flex:1;">' +
             '<div style="font-size:0.85rem; font-weight:600; color:#a5b4fc;">' + tempDisplay + '</div>' +
             '<div style="font-size:0.75rem; color:#cbd5e1; text-transform:capitalize; margin-top:2px;">' + description + '</div>' +
-            '<div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Umidade: ' + humidity + '%</div>' +
+            '<div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">' + _t('create.humidity') + ': ' + humidity + '%</div>' +
             '</div></div>';
         })
         .catch(() => {
