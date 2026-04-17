@@ -57,7 +57,7 @@ window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
   });
   var bestMonthLabel = bestMonth ? (function() {
     var parts = bestMonth.split('-');
-    var months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var months = t('dashboard.monthAbbrevs').split(',');
     return months[parseInt(parts[1], 10) - 1] + '/' + parts[0];
   })() : '-';
 
@@ -210,9 +210,9 @@ function renderDashboard(container) {
 
     const start = formatDateBr(t.startDate);
     const end = formatDateBr(t.endDate);
-    const dates = start ? (end ? `${start} A ${end}` : `${start}`) : 'A DEFINIR';
+    const dates = start ? (end ? `${start} ${_t('tourn.dateTo')} ${end}` : `${start}`) : _t('tourn.dateTbd');
     const regLimit = formatDateBr(t.registrationLimit);
-    const cats = (t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única';
+    const cats = (t.categories && t.categories.length) ? t.categories.join(', ') : _t('tourn.singleCat');
 
     // Liga season auto-closure: se a temporada expirou, encerra automaticamente
     if ((typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.status !== 'finished') {
@@ -432,7 +432,7 @@ function renderDashboard(container) {
                 // 1. Não começou → countdown para início
                 if (t.startDate && !sorteioRealizado) {
                   var _sd = new Date(t.startDate).getTime();
-                  if (!isNaN(_sd) && _sd > _now) _ligaEv = { ts: _sd, label: 'Início da Liga', icon: '🏁', color: '#10b981' };
+                  if (!isNaN(_sd) && _sd > _now) _ligaEv = { ts: _sd, label: _t('tourn.ligaStart'), icon: '🏁', color: '#10b981' };
                 }
                 // 2. Começou + próximo sorteio → countdown para próximo sorteio
                 if (!_ligaEv && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
@@ -445,7 +445,7 @@ function renderDashboard(container) {
                       var _ssd = new Date(t.startDate);
                       if (!isNaN(_ssd.getTime())) { var _se = new Date(_ssd); _se.setMonth(_se.getMonth() + parseInt(_sm)); _seTs = _se.getTime(); }
                     }
-                    if (!isNaN(_ndTs) && _ndTs > _now && (!_seTs || _ndTs <= _seTs)) _ligaEv = { ts: _ndTs, label: 'Próximo sorteio', icon: '🎲', color: '#fb923c' };
+                    if (!isNaN(_ndTs) && _ndTs > _now && (!_seTs || _ndTs <= _seTs)) _ligaEv = { ts: _ndTs, label: _t('tourn.nextDraw'), icon: '🎲', color: '#fb923c' };
                   }
                 }
                 // 3. Sem próximo sorteio → countdown para fim da temporada
@@ -453,7 +453,7 @@ function renderDashboard(container) {
                   var _sm2 = t.ligaSeasonMonths || t.rankingSeasonMonths;
                   if (_sm2 && t.startDate) {
                     var _ssd2 = new Date(t.startDate);
-                    if (!isNaN(_ssd2.getTime())) { var _end = new Date(_ssd2); _end.setMonth(_end.getMonth() + parseInt(_sm2)); var _eTs = _end.getTime(); if (!isNaN(_eTs) && _eTs > _now) _ligaEv = { ts: _eTs, label: 'Fim da temporada', icon: '🏁', color: '#8b5cf6' }; }
+                    if (!isNaN(_ssd2.getTime())) { var _end = new Date(_ssd2); _end.setMonth(_end.getMonth() + parseInt(_sm2)); var _eTs = _end.getTime(); if (!isNaN(_eTs) && _eTs > _now) _ligaEv = { ts: _eTs, label: _t('tourn.seasonEnd'), icon: '🏁', color: '#8b5cf6' }; }
                   }
                 }
                 if (!_ligaEv) return '';
@@ -506,7 +506,7 @@ function renderDashboard(container) {
               var _elapsedText = window._formatCountdown ? window._formatCountdown(Date.now() - _startTs) : '';
               return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;">' +
                 '<span style="font-size:1.3rem;">⏱️</span>' +
-                '<span style="font-size:0.85rem;font-weight:700;color:#10b981;">Em andamento</span>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:#10b981;">' + _t('dashboard.inProgress') + '</span>' +
                 '<span data-elapsed-since="' + _startTs + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:#10b981;font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _elapsedText + '</span>' +
               '</div>';
             })()}
@@ -525,7 +525,7 @@ function renderDashboard(container) {
                              <span style="font-size: 1.1rem;">👤</span>
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${individualCount}</span>
                           </div>
-                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Inscritos</span>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">${_t('dashboard.statEnrolled')}</span>
                        </div>
                        ${teamCount > 0 ? `
                        <div class="stat-box" style="flex-direction: column;">
@@ -533,7 +533,7 @@ function renderDashboard(container) {
                              <span style="font-size: 1.1rem;">👥</span>
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95;">${teamCount}</span>
                           </div>
-                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">Equipes</span>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">${_t('dashboard.statTeams')}</span>
                        </div>
                        ` : ''}
                        ${_standbyCount > 0 ? `
@@ -542,7 +542,7 @@ function renderDashboard(container) {
                              <span style="font-size: 1.1rem;">⏱️</span>
                              <span style="font-size: 1.4rem; font-weight: 800; line-height: 1; opacity: 0.95; color: #fbbf24;">${_standbyCount}</span>
                           </div>
-                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8; color: #fbbf24;">Espera</span>
+                          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8; color: #fbbf24;">${_t('dashboard.statWaiting')}</span>
                        </div>
                        ` : ''}
                    </div>
@@ -551,8 +551,8 @@ function renderDashboard(container) {
 
                <!-- Formato, Regras e Categorias -->
                <div class="info-box">
-                  <div><strong>Formato:</strong> ${t.format}</div>
-                  <div><strong>Acesso:</strong> ${publicText}</div>
+                  <div><strong>${_t('dashboard.labelFormat')}:</strong> ${t.format}</div>
+                  <div><strong>${_t('dashboard.labelAccess')}:</strong> ${publicText}</div>
                </div>
             </div>
 
@@ -565,7 +565,7 @@ function renderDashboard(container) {
                   var _barColor = _prog.pct === 100 ? '#10b981' : (_prog.pct > 50 ? '#3b82f6' : '#f59e0b');
                   _html += '<div class="info-box" style="margin-top: 10px; padding: 8px 12px;">';
                   _html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">';
-                  _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Progresso</span>';
+                  _html += '<span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">' + _t('dashboard.labelProgress') + '</span>';
                   _html += '<span style="font-size: 0.7rem; font-weight: 700;">' + _prog.pct + '%</span>';
                   _html += '</div>';
                   _html += '<div style="width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">';
@@ -597,11 +597,11 @@ function renderDashboard(container) {
                   _html += '<div style="width:42px;height:42px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🗳️</div>';
                   _html += '<div>';
                   _html += '<div style="font-weight:900;font-size:1.15rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE</div>';
-                  _html += '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _pStatusText + ' · ' + _pVotes + '/' + _pTotal + ' votos</div>';
+                  _html += '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _pStatusText + ' · ' + _pVotes + '/' + _pTotal + ' ' + _t('dashboard.votes') + '</div>';
                   _html += '</div></div>';
                   _html += '<div style="text-align:center;background:rgba(0,0,0,0.2);padding:6px 14px;border-radius:10px;">';
                   _html += '<div style="font-size:1.4rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + _pTimeStr + '</div>';
-                  _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">restante</div>';
+                  _html += '<div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">' + _t('dashboard.remaining') + '</div>';
                   _html += '</div></div>';
                   _html += '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);opacity:0.7;">' + _t('enroll.suspended') + '</div>';
                   _html += '</div>';
@@ -715,7 +715,8 @@ function renderDashboard(container) {
 
     participacoes.forEach(function(t) {
       if (t.status === 'finished') return;
-      var tName = t.name || 'Torneio';
+      var _tFallback = window._t || function(k) { return k; };
+      var tName = t.name || _tFallback('dashboard.tournamentName');
       var tId = t.id;
 
       // Collect pending matches (no winner yet, player is p1 or p2)
@@ -782,7 +783,7 @@ function renderDashboard(container) {
       html += '</div>';
     }
     if (pending.length > maxShow) {
-      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">e mais ' + (pending.length - maxShow) + '...</div>';
+      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">' + _t2('dashboard.andMore', {count: pending.length - maxShow}) + '</div>';
     }
     html += '</div>';
     return html;
@@ -925,7 +926,7 @@ function renderDashboard(container) {
   const filterBarHtml = hasSecondaryFilters ? `
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.2rem;align-items:center;">
       ${sportsPills}${locationPills}${formatPills}
-      ${(curSport || curLocation || curFormat) ? `<button class="btn btn-micro btn-pill" onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);">✕ Limpar filtros</button>` : ''}
+      ${(curSport || curLocation || curFormat) ? `<button class="btn btn-micro btn-pill" onclick="window._dashSport='';window._dashLocation='';window._dashFormat='';window._applyDashFilter(window._dashFilter||'todos')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);">${_t('dashboard.clearFilters')}</button>` : ''}
     </div>
   ` : '';
 
@@ -966,7 +967,7 @@ function renderDashboard(container) {
             '<span style="font-size:0.7rem;color:var(--text-muted);">👥 ' + pCount + '</span>' +
             (hasDraw && !isFinished ? '<span style="font-size:0.7rem;color:' + (prog.pct === 100 ? '#10b981' : '#f59e0b') + ';">' + prog.pct + '%</span>' : '') +
             '<span style="font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(' + statusBadgeBgRgb + ',0.15);color:' + statusColor + ';white-space:nowrap;">' + statusText + '</span>' +
-            (isOrg ? '<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,0.15);color:#fbbf24;">Org</span>' : '') +
+            (isOrg ? '<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,0.15);color:#fbbf24;">' + _t('auth.orgShort') + '</span>' : '') +
           '</div>' +
         '</div>' +
       '</a>';
@@ -997,7 +998,7 @@ function renderDashboard(container) {
 
       <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; text-align: left;">
         <h2 style="margin:0; font-size: 2.2rem; font-weight: 700; flex:1;">${_t('dashboard.welcome', {name: userName})}${_proBadge}</h2>
-        ${window.AppStore.currentUser ? '<button onclick="if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + window._safeHtml((window.AppStore.currentUser.displayName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + '\')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#fff;font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.25)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><span style="font-size:1rem;">📊</span> Estatísticas</button>' : ''}
+        ${window.AppStore.currentUser ? '<button onclick="if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + window._safeHtml((window.AppStore.currentUser.displayName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + '\')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#fff;font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.25)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><span style="font-size:1rem;">📊</span> ' + _t('dashboard.statistics') + '</button>' : ''}
       </div>
       <div style="text-align:center;margin-bottom:8px;font-size:0.75rem;color:rgba(255,255,255,1);font-weight:600;letter-spacing:0.5px;">v${window.SCOREPLACE_VERSION || ''}</div>
 
@@ -1008,7 +1009,7 @@ function renderDashboard(container) {
           </button>
           <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:0 0 auto;min-width:min(30vw,140px); min-height: 78px; font-size: 1rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
             <span style="font-size:1.5rem;">📡</span>
-            <span>Partida Casual</span>
+            <span>${_t('dashboard.casualMatch')}</span>
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center;">
