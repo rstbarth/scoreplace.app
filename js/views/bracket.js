@@ -228,6 +228,7 @@ function renderBracket(container, tournamentId, isInline) {
 
 // ─── Banner de Jogos Prontos (ambos presentes) ──────────────────────────────
 window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
+  var _t = window._t || function(k) { return k; };
   if (!t || !t.tournamentStarted || !t.checkedIn || !t.matches) return '';
   const ci = t.checkedIn;
   const hasAnyCheckin = Object.keys(ci).length > 0;
@@ -279,7 +280,7 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
     const labelColor = isReady ? '#4ade80' : '#fbbf24';
     return `
     <div style="padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:10px;display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1;max-width:360px;">
-      <div style="font-size:0.8rem;font-weight:800;color:${labelColor};letter-spacing:0.5px;">Jogo ${e.friendlyNum}</div>
+      <div style="font-size:0.8rem;font-weight:800;color:${labelColor};letter-spacing:0.5px;">${_t('bracket.matchNum', {n: e.friendlyNum})}</div>
       ${renderSideRow(e.match.p1)}
       <div style="font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.2);letter-spacing:2px;padding:0 2px;">VS</div>
       ${renderSideRow(e.match.p2)}
@@ -306,6 +307,7 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
 
 // ─── Painel de Lista de Espera (Standby) ─────────────────────────────────────
 window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
+  var _t = window._t || function(k) { return k; };
   // Merge both waitlist sources
   var _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
   var _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
@@ -325,8 +327,8 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
 
   // Mode description
   const modeDesc = {
-    teams: 'Times formados na espera — time incompleto é desclassificado e substituído inteiro',
-    individual: 'Jogadores avulsos — completam times com membros ausentes'
+    teams: _t('bracket.standbyTeams'),
+    individual: _t('bracket.standbyIndividual')
   };
 
   const _tIdSafe = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -339,7 +341,7 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
     const mc = !!ci[name];
     const isAb = !!ab[name];
     const toggleColor = mc ? '#10b981' : '#64748b';
-    const statusLabel = mc ? 'Presente' : 'Ausente';
+    const statusLabel = mc ? _t('bracket.checkedIn') : _t('bracket.notCheckedIn');
     const statusColor = mc ? '#4ade80' : '#64748b';
 
     return `
@@ -594,6 +596,7 @@ if (window._bracketZoom === undefined) window._bracketZoom = 1;
 
 
 function renderSingleElimBracket(t, canEnterResult) {
+  var _t = window._t || function(k) { return k; };
   // ── Auto-reparação: gera rodadas futuras se não existirem ──
   _ensureFutureRounds(t);
 
@@ -622,7 +625,7 @@ function renderSingleElimBracket(t, canEnterResult) {
     });
 
   if (activeRounds.length === 0) {
-    return `<p class="text-muted">Nenhuma rodada ativa.</p>`;
+    return `<p class="text-muted">${_t('bracket.noActiveRounds')}</p>`;
   }
 
   // Compute expected total rounds from positive rounds only (skip play-in and repechage)
@@ -639,8 +642,8 @@ function renderSingleElimBracket(t, canEnterResult) {
 
   // Label by position from the end
   const getRoundLabel = (roundNum, roundIndex) => {
-    if (roundNum === 0) return 'Play-in';
-    if (roundNum < 0) return 'Repescagem' + (Math.abs(roundNum) > 1 ? ' ' + Math.abs(roundNum) : '');
+    if (roundNum === 0) return _t('bracket.playIn');
+    if (roundNum < 0) return _t('bracket.lowerBracket') + (Math.abs(roundNum) > 1 ? ' ' + Math.abs(roundNum) : '');
     // For repechage tournaments, count from the last positive round
     var posIdx = positiveRounds.indexOf(roundNum);
     var fromEnd = positiveRounds.length - posIdx;
@@ -852,11 +855,11 @@ function renderSingleElimBracket(t, canEnterResult) {
       var color = pos === 1 ? '#fbbf24' : pos === 2 ? '#94a3b8' : pos === 3 ? '#cd7f32' : 'var(--text-muted)';
       return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;display:inline-flex;align-items:center;gap:2px;">' + (typeof window._nameWithCrown === 'function' ? window._nameWithCrown(name, t) : window._safeHtml(name)) + '</span></div>';
     }).join('');
-    classifHtml = '<details style="margin-bottom:1rem;" ' + (t.status === 'finished' ? 'open' : '') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">🏅 Classificação (' + entries.length + ' posições definidas)</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + rows + '</div></details>';
+    classifHtml = '<details style="margin-bottom:1rem;" ' + (t.status === 'finished' ? 'open' : '') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">' + _t('bracket.classified', {n: entries.length}) + '</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + rows + '</div></details>';
   }
 
   // Toggle button: Linear ↔ Espelhado
-  const modeLabel = canMirror ? 'Linear' : 'Espelhado';
+  const modeLabel = canMirror ? _t('bracket.layoutLinear') : _t('bracket.layoutMirror');
   const modeIcon = canMirror ? '➡️' : '🏆';
   const toggleBtnHtml = mirrorPossible ? `
       <button onclick="window._toggleBracketMode('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
@@ -908,6 +911,7 @@ function renderSingleElimBracket(t, canEnterResult) {
 
 // ─── Double Elimination ───────────────────────────────────────────────────────
 function renderDoubleElimBracket(t, canEnterResult) {
+  var _t = window._t || function(k) { return k; };
   // Auto-reparação para dupla eliminatória também
   _ensureFutureRounds(t);
 
@@ -924,7 +928,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
     const sorted = Object.keys(rMap).sort((a, b) => Number(a) - Number(b));
     const cols = sorted.map(r => `
       <div style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
-        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">Rodada ${r}</h5>
+        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${_t('bracket.round', {n: r})}</h5>
         ${rMap[r].map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}
       </div>`).join('');
     return `
@@ -1069,6 +1073,7 @@ function _teamAvatarHtml(teamName) {
 }
 
 function renderMatchCard(m, canEnterResult, tId, matchNum) {
+  var _t = window._t || function(k) { return k; };
   if (!m) return '';
 
   // Sit-out (Folga): render compact info card instead of full match card
@@ -1156,7 +1161,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const ciDot = (status) => {
     if (!hasAnyCheckIn && !matchReady) return '';
     const color = status === 'full' ? '#10b981' : status === 'partial' ? '#f59e0b' : '#64748b';
-    const title = status === 'full' ? 'Presente' : status === 'partial' ? 'Parcial' : 'Ausente';
+    const title = status === 'full' ? _t('bracket.checkedIn') : status === 'partial' ? _t('bracket.partial') : _t('bracket.notCheckedIn');
     return `<span title="${title}" style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;margin-right:4px;display:inline-block;"></span>`;
   };
 
@@ -1249,7 +1254,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
           title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
     : '';
 
-  const matchLabel = matchNum ? `Jogo ${matchNum}` : (m.label || 'Partida');
+  const matchLabel = matchNum ? _t('bracket.matchNum', {n: matchNum}) : (m.label || _t('bracket.matchLabel'));
 
   // Detect if current user participates in this match
   const _cu = window.AppStore && window.AppStore.currentUser;
@@ -1279,10 +1284,10 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   if (!isDecided && !isByeMatch && !hasTBD) {
     if (matchReady) {
       cardBorder = 'rgba(16,185,129,0.5)';
-      readyBadge = `<span style="font-size:0.6rem;font-weight:800;color:#10b981;background:rgba(16,185,129,0.15);padding:2px 6px;border-radius:4px;text-transform:uppercase;">Pronto</span>`;
+      readyBadge = `<span style="font-size:0.6rem;font-weight:800;color:#10b981;background:rgba(16,185,129,0.15);padding:2px 6px;border-radius:4px;text-transform:uppercase;">${_t('bracket.ready')}</span>`;
     } else if (matchPartial) {
       cardBorder = 'rgba(245,158,11,0.4)';
-      readyBadge = `<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;background:rgba(245,158,11,0.12);padding:2px 6px;border-radius:4px;text-transform:uppercase;">Parcial</span>`;
+      readyBadge = `<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;background:rgba(245,158,11,0.12);padding:2px 6px;border-radius:4px;text-transform:uppercase;">${_t('bracket.partial')}</span>`;
     }
   }
 
@@ -1291,7 +1296,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     ? `<button onclick="window._openLiveScoring('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
         onmouseover="this.style.background='rgba(239,68,68,0.3)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'"
-        title="Placar ao vivo">📡 Ao Vivo</button>`
+        title="${_t('bracket.liveScore')}">${_t('bracket.liveBtn')}</button>`
     : '';
 
   // User's own matches: indigo border + glow (distinct from amber partial)
@@ -1316,6 +1321,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
 // ── Rei/Rainha da Praia Rendering ────────────────────────────────────────────
 function _renderMonarchStage(t, isOrg, canEnterResult) {
+  var _t = window._t || function(k) { return k; };
   var html = '';
   var allGroupsDone = true;
 
@@ -1368,7 +1374,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
       '</div>' +
       '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (g.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
       standingsTable +
-      '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Partidas com rodízio de parceiros</div>' +
+      '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">' + _t('bracket.monarchMatchRotation') + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:8px;">' + matchCards + '</div>' +
     '</div>';
   });
@@ -1391,8 +1397,9 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
 }
 
 function renderGroupStage(t, isOrg, canEnterResult) {
+  var _t = window._t || function(k) { return k; };
   const groups = t.groups || [];
-  if (!groups.length) return '<p class="text-muted">Nenhum grupo gerado.</p>';
+  if (!groups.length) return '<p class="text-muted">' + _t('bracket.noGroups') + '</p>';
 
   // Check if all group matches are complete
   const allGroupsDone = groups.every(g =>
@@ -1404,7 +1411,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
   const advanceBtn = (isOrg && allGroupsDone) ? `
     <div style="text-align:center;margin:2rem 0;">
       <button class="btn btn-warning btn-lg hover-lift" onclick="window._advanceToElimination('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
-        🏆 Avançar para Fase Eliminatória
+        ${_t('bracket.advanceToElim')}
       </button>
     </div>` : '';
 
@@ -1505,15 +1512,16 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 // ─── Save group match result ────────────────────────────────────────────────
 
 function renderStandings(t, isOrg, canEnterResult) {
+  var _t = window._t || function(k) { return k; };
   const rounds = t.rounds || [];
   const currentRound = rounds.length;
 
   if (!currentRound) {
     return `
       <div style="text-align:center;padding:3rem;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);border-radius:24px;">
-        <h3 style="color:var(--text-bright);">Nenhuma rodada gerada ainda</h3>
-        <p class="text-muted">O organizador deve realizar o sorteio para iniciar a primeira rodada.</p>
-        ${isOrg ? `<button class="btn btn-primary" style="margin-top:1rem;" onclick="window.generateDrawFunction('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">🎲 Iniciar Primeira Rodada</button>` : ''}
+        <h3 style="color:var(--text-bright);">${_t('bracket.noRounds')}</h3>
+        <p class="text-muted">${_t('bracket.noRoundsDesc')}</p>
+        ${isOrg ? `<button class="btn btn-primary" style="margin-top:1rem;" onclick="window.generateDrawFunction('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">${_t('bracket.startFirstRound')}</button>` : ''}
       </div>`;
   }
 
@@ -1600,9 +1608,9 @@ function renderStandings(t, isOrg, canEnterResult) {
         ${isOrg && !isFinished && allComplete ? `
           <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
-            ✓ Encerrar Rodada e Gerar Próxima
+            ${_t('bracket.closeRound')}
           </button>` : ''}
-        ${isFinished ? `<span style="color:#fbbf24;font-weight:700;">🏆 Torneio Encerrado!</span>` : ''}
+        ${isFinished ? `<span style="color:#fbbf24;font-weight:700;">${_t('bracket.tournamentFinished')}</span>` : ''}
       </div>
       ${_isReiRainhaRound ? (() => {
         return currentRoundData.monarchGroups.map(function(g) {
@@ -1664,9 +1672,10 @@ function renderStandings(t, isOrg, canEnterResult) {
 
   const standingsTablesHtml = standingsSections.map(function(sec) {
     var displayLabel = sec.label && window._displayCategoryName ? window._displayCategoryName(sec.label) : sec.label;
+    var _roundLabel = currentRound + (isSuico ? ' / ' + maxRounds : '');
     var title = displayLabel
-      ? `Classificação — ${displayLabel} — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`
-      : `Classificação — Rodada ${currentRound}${isSuico ? ' / ' + maxRounds : ''}`;
+      ? _t('bracket.standingsTitleCat', {cat: displayLabel, n: _roundLabel})
+      : _t('bracket.standingsTitle', {n: _roundLabel});
     return `<div class="card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <h3 class="card-title" style="margin:0;">${title}</h3>
@@ -1699,7 +1708,7 @@ function renderStandings(t, isOrg, canEnterResult) {
         var isDraw = w === 'draw' || m.draw;
         var p1Style = w === m.p1 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
         var p2Style = w === m.p2 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
-        var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : (w ? (isDraw ? 'Empate' : '') : 'Pendente');
+        var score = (m.scoreP1 !== undefined && m.scoreP1 !== null) ? (m.scoreP1 + ' x ' + m.scoreP2) : (w ? (isDraw ? _t('bracket.draw') : '') : _t('bracket.pending'));
         prevRoundsInner += '<div style="min-width: 200px; flex: 1; max-width: 280px; background: rgba(0,0,0,0.15); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem;">' +
           '<div style="display: flex; justify-content: space-between; align-items: center;">' +
           '<span style="' + p1Style + '">' + (m.p1 || 'TBD') + '</span>' +
@@ -1758,13 +1767,13 @@ function renderStandings(t, isOrg, canEnterResult) {
       if (byWins[0] && byWins[0].wins > 0) {
         statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(251,191,36,0.08); border-radius: 10px; border-left: 3px solid #fbbf24;">' +
           '<span style="font-size: 1.1rem;">⚡</span>' +
-          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Mais vitórias</div>' +
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">' + _t('bracket.statMostWins') + '</div>' +
           '<div style="font-weight: 700; color: var(--text-bright);">' + byWins[0].name + ' <span style="color: #4ade80;">(' + byWins[0].wins + 'V)</span></div></div></div>');
       }
       if (byStreak[0] && byStreak[0].streak >= 2) {
         statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(16,185,129,0.08); border-radius: 10px; border-left: 3px solid #10b981;">' +
           '<span style="font-size: 1.1rem;">🔥</span>' +
-          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Sequência de vitórias</div>' +
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">' + _t('bracket.statStreak') + '</div>' +
           '<div style="font-weight: 700; color: var(--text-bright);">' + byStreak[0].name + ' <span style="color: #10b981;">(' + byStreak[0].streak + ' seguidas)</span></div></div></div>');
       }
       var totalMatches = rounds.reduce(function(sum, r) { return sum + (r.matches || []).filter(function(m) { return m.winner && !m.isBye; }).length; }, 0);
@@ -1772,13 +1781,13 @@ function renderStandings(t, isOrg, canEnterResult) {
       if (totalMatches > 0) {
         statItems.push('<div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(99,102,241,0.08); border-radius: 10px; border-left: 3px solid #6366f1;">' +
           '<span style="font-size: 1.1rem;">📈</span>' +
-          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Partidas disputadas</div>' +
-          '<div style="font-weight: 700; color: var(--text-bright);">' + totalMatches + ' partidas' + (totalDraws > 0 ? ' <span style="color: #94a3b8;">(' + totalDraws + ' empate' + (totalDraws > 1 ? 's' : '') + ')</span>' : '') + '</div></div></div>');
+          '<div><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">' + _t('bracket.statTotal') + '</div>' +
+          '<div style="font-weight: 700; color: var(--text-bright);">' + totalMatches + (totalDraws > 0 ? ' <span style="color: #94a3b8;">(' + totalDraws + ' ' + _t('bracket.draw').toLowerCase() + (totalDraws > 1 ? 's' : '') + ')</span>' : '') + '</div></div></div>');
       }
 
       if (statItems.length > 0) {
         statsHtml = '<div class="card" style="margin-top: 1rem;">' +
-          '<h3 class="card-title" style="margin: 0 0 12px 0; font-size: 0.95rem;">📊 Estatísticas do Torneio</h3>' +
+          '<h3 class="card-title" style="margin: 0 0 12px 0; font-size: 0.95rem;">' + _t('bracket.statsTitle') + '</h3>' +
           '<div style="display: flex; flex-wrap: wrap; gap: 10px;">' + statItems.join('') + '</div></div>';
       }
     }
@@ -1821,7 +1830,7 @@ function renderStandings(t, isOrg, canEnterResult) {
 
       // Build table
       var displayLabel = catLabel && window._displayCategoryName ? window._displayCategoryName(catLabel) : catLabel;
-      var title = displayLabel ? 'Confrontos Diretos — ' + displayLabel : 'Confrontos Diretos';
+      var title = displayLabel ? _t('bracket.h2hTitle', {cat: displayLabel}) : _t('bracket.h2hTitleSimple');
 
       var thCells = '<th style="padding:6px 4px;font-size:0.6rem;color:var(--text-muted);text-align:center;min-width:28px;"></th>';
       names.forEach(function(n, i) {
@@ -1863,7 +1872,7 @@ function renderStandings(t, isOrg, canEnterResult) {
         '<thead><tr style="border-bottom:1px solid var(--border-color);">' + thCells + '</tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
         '</table>' +
-        '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);">Formato: V-E-D (Vitórias-Empates-Derrotas). <span style="color:#4ade80;">Verde</span> = vantagem, <span style="color:#f87171;">vermelho</span> = desvantagem.</div>' +
+        '<div style="margin-top:8px;font-size:0.65rem;color:var(--text-muted);">' + _t('bracket.h2hLegend') + '</div>' +
         '</div></details></div>';
     });
   }
