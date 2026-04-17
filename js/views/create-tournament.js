@@ -786,9 +786,9 @@ function setupCreateTournamentModal() {
     // Update description
     var descEl = document.getElementById('game-type-desc');
     if (descEl) {
-      if (sOn && dOn) descEl.textContent = 'Chaves paralelas de simples e duplas no mesmo torneio.';
-      else if (sOn) descEl.textContent = 'Apenas partidas de simples (1v1).';
-      else descEl.textContent = 'Apenas partidas de duplas (2v2).';
+      if (sOn && dOn) descEl.textContent = _t('create.singlesDoubles');
+      else if (sOn) descEl.textContent = _t('create.singlesOnly');
+      else descEl.textContent = _t('create.doublesOnly');
     }
 
     if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
@@ -1303,11 +1303,11 @@ function setupCreateTournamentModal() {
     if (vis === 'public') {
       if (toggle) toggle.checked = true;
       if (hidden) hidden.value = 'true';
-      if (desc) desc.textContent = 'Visível para todos na aba Explorar. Qualquer pessoa pode se inscrever.';
+      if (desc) desc.textContent = _t('create.publicDesc');
     } else {
       if (toggle) toggle.checked = false;
       if (hidden) hidden.value = 'false';
-      if (desc) desc.textContent = 'Apenas você e jogadores convidados poderão ver o torneio.';
+      if (desc) desc.textContent = _t('create.privateDesc');
     }
   };
 
@@ -1562,11 +1562,11 @@ function setupCreateTournamentModal() {
     if (toggle.checked) {
       hiddenEl.value = 'public';
       if (label) label.innerHTML = '🌐 Aberto ao Público';
-      if (desc) desc.textContent = 'Qualquer pessoa pode se inscrever e acompanhar o torneio.';
+      if (desc) desc.textContent = _t('create.openDesc');
     } else {
       hiddenEl.value = 'members';
       if (label) label.innerHTML = '🔒 Acesso Restrito';
-      if (desc) desc.textContent = 'Apenas convidados pelo organizador podem participar.';
+      if (desc) desc.textContent = _t('create.restrictedDesc');
     }
   };
 
@@ -2107,7 +2107,7 @@ function setupCreateTournamentModal() {
       countEl.value = names.length;
       if (hintEl) hintEl.textContent = names.length + ' quadra' + (names.length > 1 ? 's' : '') + ' definida' + (names.length > 1 ? 's' : '') + ': ' + names.join(', ');
     } else {
-      if (hintEl) hintEl.textContent = 'Deixe em branco para numeração automática (Quadra 1, Quadra 2...).';
+      if (hintEl) hintEl.textContent = _t('create.courtHint');
     }
     window._recalcDuration();
   };
@@ -2569,7 +2569,7 @@ function setupCreateTournamentModal() {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
 
-    document.getElementById('create-modal-title').innerText = 'Editar Torneio';
+    document.getElementById('create-modal-title').innerText = _t('create.editTournament');
     document.getElementById('edit-tournament-id').value = tId;
     document.getElementById('tourn-name').value = t.name || '';
     // Match sport option even if stored value lacks emoji prefix (legacy data)
@@ -3550,9 +3550,9 @@ window._gsmToggleFixedSet = function() {
   if (tbLabel) {
     if (checked) {
       var half = Math.floor(g / 2);
-      tbLabel.textContent = 'Tie-break em caso de empate ' + half + '-' + half;
+      tbLabel.textContent = _t('create.tiebreakWhenTied', { n: half });
     } else {
-      tbLabel.textContent = 'Tie-break em ' + (g - 1) + '-' + (g - 1);
+      tbLabel.textContent = _t('create.tiebreakAt', { n: g - 1 });
     }
   }
   window._gsmUpdateSummary();
@@ -3637,14 +3637,14 @@ window._gsmUpdateSummary = function() {
 
   // Update dynamic labels
   var fsDesc = document.getElementById('gsm-fixedset-desc');
-  if (fsDesc) fsDesc.textContent = 'Disputa de ' + games + ' games fixos (quem vence mais ganha)';
+  if (fsDesc) fsDesc.textContent = _t('create.fixedGamesDesc', { n: games });
   var tbLabel = document.getElementById('gsm-tb-label');
   if (tbLabel) {
     if (fsOn) {
       var _half = Math.floor(games / 2);
-      tbLabel.textContent = 'Tie-break em caso de empate ' + _half + '-' + _half;
+      tbLabel.textContent = _t('create.tiebreakWhenTied', { n: _half });
     } else {
-      tbLabel.textContent = 'Tie-break em ' + (games - 1) + '-' + (games - 1);
+      tbLabel.textContent = _t('create.tiebreakAt', { n: games - 1 });
     }
   }
 

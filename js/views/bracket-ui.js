@@ -661,7 +661,7 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     if (!isNaN(g1) && !isNaN(g2)) {
       if (g1 === gps && g2 === gps) {
         needsTiebreak = i;
-        if (indicator) indicator.textContent = 'Tie-break!';
+        if (indicator) indicator.textContent = _t('bui.tiebreak');
       } else {
         if (indicator) indicator.textContent = '';
       }
@@ -1410,7 +1410,7 @@ window._tvMode = function(tId) {
 
         var ind = document.getElementById('tv-mode-refresh-indicator');
         if (ind) {
-          ind.textContent = '🔄 Atualizado';
+          ind.textContent = _t('bui.updated');
           ind.style.color = '#4ade80';
           setTimeout(function() { if (ind) { ind.textContent = _t('bui.autoRefresh'); ind.style.color = 'rgba(255,255,255,0.3)'; } }, 2000);
         }

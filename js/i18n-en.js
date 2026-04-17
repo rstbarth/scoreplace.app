@@ -1065,6 +1065,28 @@ window._translations['en'] = {
   'auth.profileUpdated': 'Profile Updated',
   'auth.profileUpdatedMsg': 'Your information was saved successfully.',
 
+  // Bracket-UI additional
+  'bui.tiebreak': 'Tie-break!',
+  'bui.updated': '🔄 Updated',
+
+  // Pre-draw countdown / waitlist
+  'predraw.closed': 'Closed',
+  'predraw.waitingPlayers': 'Waiting Players',
+
+  // Create tournament descriptions
+  'create.singlesDoubles': 'Parallel brackets for singles and doubles in the same tournament.',
+  'create.singlesOnly': 'Singles matches only (1v1).',
+  'create.doublesOnly': 'Doubles matches only (2v2).',
+  'create.publicDesc': 'Visible to everyone in the Explore tab. Anyone can sign up.',
+  'create.privateDesc': 'Only you and invited players can see the tournament.',
+  'create.openDesc': 'Anyone can sign up and follow the tournament.',
+  'create.restrictedDesc': 'Only players invited by the organizer can participate.',
+  'create.courtHint': 'Leave blank for automatic numbering (Court 1, Court 2...).',
+  'create.editTournament': 'Edit Tournament',
+  'create.tiebreakWhenTied': 'Tiebreak on tie {n}-{n}',
+  'create.tiebreakAt': 'Tiebreak at {n}-{n}',
+  'create.fixedGamesDesc': '{n} fixed games (most wins takes the match)',
+
   // Hints
   'hints.disabled': 'Hints Disabled',
   'hints.disabledMsg': 'You can re-enable them in your profile settings.',

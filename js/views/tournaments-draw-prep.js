@@ -1733,7 +1733,7 @@ window._showPollVotingDialog = function(tId, pollId) {
             var _pollTimer = setInterval(function() {
                 var rem = Math.max(0, poll.deadline - Date.now());
                 if (rem <= 0) {
-                    countdownEl.textContent = 'Encerrada';
+                    countdownEl.textContent = _t('predraw.closed');
                     countdownEl.style.color = '#f87171';
                     clearInterval(_pollTimer);
                     // Auto-close poll
@@ -2935,7 +2935,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
             const subtitle = document.getElementById('standby-subtitle-count');
             if (mode === 'individual') {
                 if (statCount) statCount.textContent = p.movedPlayers;
-                if (statLabel) statLabel.textContent = 'Jogadores em Espera';
+                if (statLabel) statLabel.textContent = _t('predraw.waitingPlayers');
                 if (subtitle) subtitle.textContent = p.movedPlayers + ' jogadores';
             } else {
                 if (statCount) statCount.textContent = p.teamsMoved;
