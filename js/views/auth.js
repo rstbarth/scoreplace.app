@@ -1474,11 +1474,11 @@ window._executeDeleteAccount = async function() {
 
   // Show loading state
   var btn = document.getElementById('btn-confirm-delete-account');
-  if (btn) { btn.textContent = 'Verificando...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
+  if (btn) { btn.textContent = _t('auth.verifying'); btn.style.pointerEvents = 'none'; btn.style.opacity = '0.6'; }
 
   try {
     // 1. Delete all user data first, then delete auth account
-    if (btn) btn.textContent = 'Excluindo dados...';
+    if (btn) btn.textContent = _t('auth.deletingData');
 
     // 2a. Delete user notifications subcollection
     try {
@@ -1582,7 +1582,7 @@ window._executeDeleteAccount = async function() {
   } catch (err) {
     console.error('Erro ao excluir conta:', err);
     showNotification(_t('auth.error'), _t('auth.deleteErrorMsg'), 'error');
-    if (btn) { btn.textContent = 'Excluir Conta'; btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
+    if (btn) { btn.textContent = _t('auth.deleteAccountBtn'); btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; }
   }
 };
 

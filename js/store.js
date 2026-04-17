@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.11.41-alpha';
+window.SCOREPLACE_VERSION = '0.11.42-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -402,7 +402,7 @@ window._startProCheckout = async function() {
   }
   try {
     var btn = document.querySelector('#modal-upgrade button');
-    if (btn) { btn.textContent = 'Processando...'; btn.disabled = true; }
+    if (btn) { btn.textContent = window._t('store.processing'); btn.disabled = true; }
 
     var resp = await fetch('https://southamerica-east1-scoreplace-app.cloudfunctions.net/createCheckoutSession', {
       method: 'POST',
@@ -422,7 +422,7 @@ window._startProCheckout = async function() {
     console.error('Checkout error:', err);
     if (typeof showNotification === 'function') showNotification(window._t('auth.error'), window._t('store.paymentError'), 'error');
     var btn2 = document.querySelector('#modal-upgrade button');
-    if (btn2) { btn2.textContent = 'Assinar Pro — R$19,90/mês'; btn2.disabled = false; }
+    if (btn2) { btn2.textContent = window._t('store.subscribePro'); btn2.disabled = false; }
   }
 };
 

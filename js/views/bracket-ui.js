@@ -575,7 +575,7 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     if (isNaN(g1) || isNaN(g2)) {
       if (indicator) indicator.textContent = '';
       if (tbRow) tbRow.style.display = 'none';
-      if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Informe os games de cada jogador'; }
+      if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = _t('bui.enterGames'); }
       if (saveBtn) saveBtn.disabled = true;
       return;
     }
@@ -588,14 +588,14 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     if (total !== fsGames) {
       if (indicator) indicator.innerHTML = '<span style="color:#ef4444;">Total ≠ ' + fsGames + '</span>';
       if (tbRow) tbRow.style.display = 'none';
-      if (statusEl) { statusEl.style.background = 'rgba(239,68,68,0.1)'; statusEl.style.color = '#ef4444'; statusEl.textContent = 'Total de games deve ser ' + fsGames + ' (atual: ' + total + ')'; }
+      if (statusEl) { statusEl.style.background = 'rgba(239,68,68,0.1)'; statusEl.style.color = '#ef4444'; statusEl.textContent = _t('bui.totalMustBe', { n: fsGames, m: total }); }
       if (saveBtn) saveBtn.disabled = true;
       return;
     }
 
     if (isTie) {
       // Tied — need tiebreak
-      if (indicator) indicator.textContent = 'Empate!';
+      if (indicator) indicator.textContent = _t('bui.draw');
       if (tbRow) tbRow.style.display = 'block';
       // Check if tiebreak is filled
       const tbP1 = parseInt(document.getElementById('tb-p1')?.value);
@@ -605,23 +605,23 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
       if (!isNaN(tbP1) && !isNaN(tbP2)) {
         const tbComplete = (tbP1 >= tbTarget || tbP2 >= tbTarget) && Math.abs(tbP1 - tbP2) >= tbMargin;
         if (tbComplete) {
-          const tbWinner = tbP1 > tbP2 ? 'Jogador 1' : 'Jogador 2';
-          if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = tbWinner + ' vence ' + g1 + '-' + g2 + ' TB(' + tbP1 + '-' + tbP2 + ')'; }
+          const tbWinner = tbP1 > tbP2 ? _t('bui.player1') : _t('bui.player2');
+          if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = _t('bui.playerWinsTb', { player: tbWinner, g1: g1, g2: g2, tb1: tbP1, tb2: tbP2 }); }
           if (saveBtn) saveBtn.disabled = false;
         } else {
-          if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Empate ' + g1 + '-' + g2 + ' — complete o tie-break (' + tbTarget + ' pts, dif. ' + tbMargin + ')'; }
+          if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = _t('bui.drawCompleteTb', { g1: g1, g2: g2, pts: tbTarget, diff: tbMargin }); }
           if (saveBtn) saveBtn.disabled = true;
         }
       } else {
-        if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Empate ' + g1 + '-' + g2 + ' — preencha o tie-break'; }
+        if (statusEl) { statusEl.style.background = 'rgba(245,158,11,0.1)'; statusEl.style.color = '#f59e0b'; statusEl.textContent = _t('bui.drawFillTb', { g1: g1, g2: g2 }); }
         if (saveBtn) saveBtn.disabled = true;
       }
     } else {
       // Clear winner
       if (indicator) indicator.textContent = '';
       if (tbRow) tbRow.style.display = 'none';
-      const winner = g1 > g2 ? 'Jogador 1' : 'Jogador 2';
-      if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = winner + ' vence ' + g1 + '-' + g2; }
+      const winner = g1 > g2 ? _t('bui.player1') : _t('bui.player2');
+      if (statusEl) { statusEl.style.background = 'rgba(16,185,129,0.1)'; statusEl.style.color = '#4ade80'; statusEl.textContent = _t('bui.playerWins', { player: winner, p1: g1, p2: g2 }); }
       if (saveBtn) saveBtn.disabled = false;
     }
     return;
@@ -675,7 +675,7 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
   if (tbRow) {
     tbRow.style.display = needsTiebreak >= 0 ? 'block' : 'none';
     const tbLabel = document.getElementById('tb-for-set');
-    if (tbLabel) tbLabel.textContent = 'Para o Set ' + (needsTiebreak + 1);
+    if (tbLabel) tbLabel.textContent = _t('bui.forSet', { n: needsTiebreak + 1 });
   }
 
   const statusEl = document.getElementById('set-scoring-status');
@@ -686,11 +686,11 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     if (matchDecided) {
       statusEl.style.background = 'rgba(16,185,129,0.1)';
       statusEl.style.color = '#4ade80';
-      statusEl.textContent = (p1Sets >= sc.setsToWin ? 'Jogador 1' : 'Jogador 2') + ' vence ' + p1Sets + '-' + p2Sets;
+      statusEl.textContent = _t('bui.playerWins', { player: p1Sets >= sc.setsToWin ? _t('bui.player1') : _t('bui.player2'), p1: p1Sets, p2: p2Sets });
     } else {
       statusEl.style.background = 'rgba(245,158,11,0.1)';
       statusEl.style.color = '#f59e0b';
-      statusEl.textContent = 'Em andamento: ' + p1Sets + '-' + p2Sets;
+      statusEl.textContent = _t('bui.inProgress', { p1: p1Sets, p2: p2Sets });
     }
   }
 
@@ -1412,7 +1412,7 @@ window._tvMode = function(tId) {
         if (ind) {
           ind.textContent = '🔄 Atualizado';
           ind.style.color = '#4ade80';
-          setTimeout(function() { if (ind) { ind.textContent = 'Auto-refresh: 30s'; ind.style.color = 'rgba(255,255,255,0.3)'; } }, 2000);
+          setTimeout(function() { if (ind) { ind.textContent = _t('bui.autoRefresh'); ind.style.color = 'rgba(255,255,255,0.3)'; } }, 2000);
         }
       }, 500);
     }

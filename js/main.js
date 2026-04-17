@@ -866,6 +866,10 @@
         '<p><b>Torneios encerrados com destaque</b> — Seção "Torneios Encerrados" agora separa os torneios em que você participou ou organizou (com badge 🏆) dos demais. Seus torneios aparecem primeiro com sub-título destacado. No filtro "Encerrados" a mesma priorização é aplicada. Canais de notificação (Plataforma, E-mail, WhatsApp) movidos para dentro da seção Social no perfil, entre filtros de comunicação e locais de preferência.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.42-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>i18n completo — textContent/innerText</b> — todas as atribuições diretas de DOM hardcoded em português conectadas ao <code>_t()</code> em 5 arquivos. bracket-ui.js: 10 strings de scoring de sets/games (Enter games, Total deve ser N, Empate + tie-break completo/preencher, Jogador 1/2, vence, TB, Em andamento, Para o Set N, Auto-refresh). auth.js: 3 strings do fluxo de exclusão de conta. store.js: 2 strings de checkout Pro. main.js: 2 títulos do modal de criação. tournaments.js: 1 string de envio. 19 novas chaves: <code>bui.*</code> (10), <code>auth.*</code> (2), <code>store.*</code> (2), <code>create.*</code> (2), <code>tourn.sending</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>i18n completo — botões de diálogo e labels</b> — todos os <code>confirmText</code>/<code>cancelText</code> hardcoded em português conectados ao sistema <code>_t()</code> em 9 arquivos. 22 novas chaves <code>btn.*</code>: remove, merge, mergeFuse, unmerge, group, keepSeparate, undo, keepTeam, finishTourn, finishAndDraw, keepOpen, finishAnyway, removeAndContinue, directDraw, playoff, voteNow, later, waitMore, deleteReedit, dqSub. Corrigidos também: inline onclick de QR Code (tournaments-sharing.js), label "Participante sem partida" (tournaments-utils.js).</p>' +
         '</div>' +
@@ -1801,7 +1805,7 @@
     const editId = document.getElementById('edit-tournament-id');
     if (editId) editId.value = '';
     const title = document.getElementById('create-modal-title');
-    if (title) title.innerText = 'Criar Novo Torneio';
+    if (title) title.innerText = _t('create.newTournament');
     const pub = document.getElementById('tourn-public');
     if (pub) pub.checked = true;
     const liga = document.getElementById('liga-open-enrollment');
@@ -1867,7 +1871,7 @@
     var editId = document.getElementById('edit-tournament-id');
     if (editId) editId.value = '';
     var title = document.getElementById('create-modal-title');
-    if (title) title.innerText = 'Novo Torneio (Template)';
+    if (title) title.innerText = _t('create.newFromTemplate');
     var pub = document.getElementById('tourn-public');
     if (pub) pub.checked = true;
 

@@ -130,7 +130,7 @@ function renderTournaments(container, tournamentId = null) {
 
             var btn = document.getElementById('invite-friends-btn-' + tournamentId);
             var statusDiv = document.getElementById('invite-friends-status-' + tournamentId);
-            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Enviando...'; }
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = _t('tourn.sending'); }
 
             var inviteUrl = window._tournamentUrl(t.id) + '?ref=' + encodeURIComponent(myUid);
             var sent = 0;
