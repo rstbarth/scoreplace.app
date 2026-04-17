@@ -385,8 +385,8 @@ window._showRemovalSubChoice = function(tId, mode, info) {
     var removeCount = info.remainder > 0 ? info.remainder : info.excess;
     var label = removeCount + ' participante' + (removeCount > 1 ? 's' : '');
     var subtitle = isStandby
-        ? 'Mover ' + label + ' para lista de espera. Como escolher quem sai?'
-        : 'Remover ' + label + ' do torneio. Como escolher quem sai?';
+        ? _t('predraw.removalSubStandby', {label: label})
+        : _t('predraw.removalSubExclusion', {label: label});
 
     var tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -416,11 +416,11 @@ window._showRemovalSubChoice = function(tId, mode, info) {
         '<div style="overflow-y:auto;flex:1;padding:1.5rem 2rem;">' +
             '<div style="display:flex;flex-direction:column;gap:12px;">' +
                 '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'random\')" style="background:rgba(168,85,247,0.1);border:2px solid rgba(168,85,247,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.3)\';this.style.transform=\'\'">' +
-                    '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">🎲 Sorteio entre todos</div>' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">' + _t('predraw.removalRandTitle') + '</div>' +
                     '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">' + removeCount + ' participante' + (removeCount > 1 ? 's sorteados' : ' sorteado') + ' aleatoriamente entre todos os inscritos.</div>' +
                 '</button>' +
                 '<button onclick="window._executeRemoval(\'' + tIdSafe + '\',\'' + mode + '\',\'last\')" style="background:rgba(251,191,36,0.1);border:2px solid rgba(251,191,36,0.3);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(251,191,36,0.6)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'rgba(251,191,36,0.3)\';this.style.transform=\'\'">' +
-                    '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">⏰ Últimos inscritos</div>' +
+                    '<div style="font-weight:800;font-size:0.95rem;color:#fbbf24;">' + _t('predraw.removalLastTitle') + '</div>' +
                     '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:4px;">Os ' + removeCount + ' último' + (removeCount > 1 ? 's' : '') + ' a se inscrever' + (isStandby ? ' vão para a lista de espera.' : ' são removidos.') + '</div>' +
                 '</button>' +
             '</div>' +
@@ -547,16 +547,16 @@ window.showUnifiedResolutionPanel = function(tId) {
     // Build issues description
     let issuesList = [];
     if (info.incompleteTeams.length > 0) {
-        issuesList.push('Times incompletos: ' + info.incompleteTeams.length);
+        issuesList.push(_t('predraw.issueIncompleteTeams', {n: info.incompleteTeams.length}));
     }
     if (info.remainder > 0) {
-        issuesList.push('Resto de ' + info.remainder + ' participante' + (info.remainder > 1 ? 's' : ''));
+        issuesList.push(_t('predraw.issueRemainder', {n: info.remainder, s: info.remainder > 1 ? 's' : ''}));
     }
     if (info.isOdd && info.remainder === 0) {
-        issuesList.push('Número ímpar de ' + (info.isTeam ? 'times' : 'inscritos'));
+        issuesList.push(_t('predraw.issueOddUnits', {unit: info.isTeam ? _t('predraw.unitTeams') : _t('predraw.unitParts')}));
     }
     if (!info.isPowerOf2 && info.remainder === 0 && !info.isOdd) {
-        issuesList.push('Não é potência de 2');
+        issuesList.push(_t('predraw.issueNotPow2'));
     }
 
     const issuesText = issuesList.join(', ');
@@ -583,14 +583,14 @@ window.showUnifiedResolutionPanel = function(tId) {
 
         // Define all possible options
         const allOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aumentar número de inscritos para resolver pendências e potência de 2.' },
-            { key: 'bye', icon: '🥇', title: 'Aplicar BYE', desc: 'BYEs automáticos para próxima potência de 2.' },
-            { key: 'playin', icon: '🔁', title: 'Play-in (Repescagem)', desc: 'Rodada de repescagem para resolver discrepâncias.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: _standbyDesc },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: _exclusionDesc },
-            { key: 'swiss', icon: '🏅', title: 'Formato Suíço', desc: 'Alternar para formato suíço (resolve ambos os problemas).' },
-            { key: 'dissolve', icon: '🧩', title: 'Ajuste Manual', desc: 'Reorganizar times manualmente (arrastar e soltar).' },
-            { key: 'poll', icon: '🗳️', title: 'Enquete', desc: 'Deixar que os participantes votem na solução.' }
+            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: _t('predraw.optReopenDesc') },
+            { key: 'bye', icon: '🥇', title: _t('predraw.optByeTitle'), desc: _t('predraw.optByeDesc') },
+            { key: 'playin', icon: '🔁', title: _t('predraw.optPlayinTitle'), desc: _t('predraw.optPlayinDesc') },
+            { key: 'standby', icon: '⏱️', title: _t('predraw.optStandbyTitle'), desc: _standbyDesc },
+            { key: 'exclusion', icon: '🚫', title: _t('predraw.optExclusionTitle'), desc: _exclusionDesc },
+            { key: 'swiss', icon: '🏅', title: _t('predraw.optSwissTitle'), desc: _t('predraw.optSwissDesc') },
+            { key: 'dissolve', icon: '🧩', title: _t('predraw.optDissolveTitle'), desc: _t('predraw.optDissolveDesc') },
+            { key: 'poll', icon: '🗳️', title: _t('predraw.optPollTitle'), desc: _t('predraw.optPollDesc') }
         ];
 
         // Filter options based on context
@@ -681,7 +681,7 @@ window.showUnifiedResolutionPanel = function(tId) {
 
             // Top row: Recomendado badge (left) + Exclude ✕ (right)
             var topRow = '<div style="display:flex;justify-content:space-between;align-items:center;min-height:22px;">';
-            topRow += isBest ? '<span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">⭐ Recomendado</span>' : '<span></span>';
+            topRow += isBest ? '<span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.62rem;font-weight:800;text-transform:uppercase;">' + _t('predraw.nashRecommended') + '</span>' : '<span></span>';
             topRow += canExclude ? '<span style="width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.25);color:#94a3b8;font-size:0.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Excluir esta opção" onclick="event.stopPropagation();window._excludeUnifiedOption(\'' + o.key + '\')" onmouseover="this.style.background=\'rgba(239,68,68,0.3)\';this.style.color=\'#fca5a5\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.color=\'#94a3b8\'">✕</span>' : '';
             topRow += '</div>';
 
@@ -698,7 +698,7 @@ window.showUnifiedResolutionPanel = function(tId) {
         const excludedOptions = allOptions.filter(function(o) { return excludedKeys.indexOf(o.key) !== -1; });
         if (excludedOptions.length > 0) {
             html += '<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
-            html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">Excluídas:</span>';
+            html += '<span style="font-size:0.7rem;color:#64748b;margin-right:4px;line-height:28px;">' + _t('predraw.excluded') + '</span>';
             excludedOptions.forEach(function(o) {
                 html += '<button onclick="event.stopPropagation();window._restoreUnifiedOption(\'' + o.key + '\')" style="background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:4px 12px;color:#64748b;font-size:0.72rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.color=\'#94a3b8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.color=\'#64748b\'">' + o.icon + ' ' + o.title + ' ↩</button>';
             });
@@ -774,10 +774,10 @@ window.showUnifiedResolutionPanel = function(tId) {
 
     // Build the panel HTML
     let gaugeHtml = '';
-    var _centerLabel = info.isTeam ? 'Times Atuais' : 'Inscritos';
+    var _centerLabel = info.isTeam ? _t('predraw.gaugeCenterTeams') : _t('predraw.gaugeCenterParts');
     var _centerSub = info.isTeam ? '(' + info.totalRawParticipants + ' participantes)' : '';
-    var _loSub = info.isTeam ? 'Times (' + (info.loP2 * info.teamSize) + ' part.)' : 'Inscritos';
-    var _hiSub = info.isTeam ? 'Times (' + (info.hiP2 * info.teamSize) + ' part.)' : 'Inscritos';
+    var _loSub = info.isTeam ? _t('predraw.gaugeTeamsLabel', {n: info.loP2 * info.teamSize}) : _t('predraw.gaugeCenterParts');
+    var _hiSub = info.isTeam ? _t('predraw.gaugeTeamsLabel', {n: info.hiP2 * info.teamSize}) : _t('predraw.gaugeCenterParts');
 
     var _excessCount = info.effectiveTeams - info.loP2;
     var _missingCount = info.hiP2 - info.effectiveTeams;
@@ -785,10 +785,10 @@ window.showUnifiedResolutionPanel = function(tId) {
 
     gaugeHtml = '<div style="display:flex;align-items:center;justify-content:center;gap:1rem;background:rgba(0,0,0,0.3);padding:1.25rem;border-radius:24px;border:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">' +
         '<div style="text-align:center;min-width:80px;">' +
-        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Inferior</div>' +
+        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">' + _t('predraw.gaugeInferior') + '</div>' +
         '<div style="font-size:1.8rem;font-weight:900;color:#4ade80;line-height:1;">' + info.loP2 + '</div>' +
         '<div style="font-size:0.7rem;color:#86efac;margin-top:2px;">' + _loSub + '</div>' +
-        '<div style="font-size:0.65rem;color:#f87171;margin-top:4px;font-weight:700;">sobram ' + _excessCount + ' ' + _unitLabel + '</div>' +
+        '<div style="font-size:0.65rem;color:#f87171;margin-top:4px;font-weight:700;">' + _t('predraw.gaugeOver', {n: _excessCount, unit: _unitLabel}) + '</div>' +
         '</div>' +
         '<div style="text-align:center;min-width:100px;padding:0 0.5rem;">' +
         '<div style="font-size:2.5rem;font-weight:950;color:#fbbf24;line-height:1;">' + info.effectiveTeams + '</div>' +
@@ -796,10 +796,10 @@ window.showUnifiedResolutionPanel = function(tId) {
         (info.isTeam ? '<div style="font-size:0.65rem;color:#fde68a;margin-top:1px;">' + _centerSub + '</div>' : '') +
         '</div>' +
         '<div style="text-align:center;min-width:80px;">' +
-        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">Superior</div>' +
+        '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:700;">' + _t('predraw.gaugeSuperior') + '</div>' +
         '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.hiP2 + '</div>' +
         '<div style="font-size:0.7rem;color:#93c5fd;margin-top:2px;">' + _hiSub + '</div>' +
-        '<div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;font-weight:700;">faltam ' + _missingCount + ' ' + _unitLabel + '</div>' +
+        '<div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;font-weight:700;">' + _t('predraw.gaugeMissing', {n: _missingCount, unit: _unitLabel}) + '</div>' +
         '</div>' +
         '</div>';
 
@@ -809,7 +809,7 @@ window.showUnifiedResolutionPanel = function(tId) {
             '<div style="display:flex;align-items:center;gap:12px;">' +
                 '<span style="font-size:1.5rem;">⚙️</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#fef3c7;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">Ajuste de Chaveamento</h3>' +
+                    '<h3 style="margin:0;color:#fef3c7;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">' + _t('predraw.adjustTitle') + '</h3>' +
                     '<p style="margin:2px 0 0;color:#fde68a;font-size:0.75rem;opacity:0.9;">Detectado: ' + issuesText + '</p>' +
                 '</div>' +
             '</div>' +
@@ -827,7 +827,7 @@ window.showUnifiedResolutionPanel = function(tId) {
             '@media (max-width:640px) { #unified-options-grid { grid-template-columns: 1fr 1fr !important; } } @media (max-width:400px) { #unified-options-grid { grid-template-columns: 1fr !important; } }' +
         '</style>' +
         '<div style="padding:2rem 2.5rem 2.5rem;">' +
-            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Selecione a Estratégia de Ajuste</h4>' +
+            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">' + _t('predraw.selectStrategy') + '</h4>' +
             '<p style="margin:0 0 1.5rem;font-size:0.7rem;color:#64748b;line-height:1.5;">Cores indicam equilíbrio de Nash: <span style="color:#22c55e;">■</span> melhor (verde) → <span style="color:#ef4444;">■</span> menor (vermelho). Clique ✕ para excluir uma opção e recalcular.</p>' +
             '<div id="unified-options-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">' +
                 window._renderUnifiedOptions([]) +
@@ -942,10 +942,10 @@ window._handleIncompleteOption = function (tId, option) {
         document.getElementById('incomplete-teams-panel').remove();
         // Collect poll options from incomplete teams context (exclude 'poll' itself)
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar novos jogadores para fechar os times faltantes.' },
+            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: 'Aguardar novos jogadores para fechar os times faltantes.' },
             { key: 'lottery', icon: '🎲', title: 'Sorteio de Bots', desc: 'Preencher vagas com nomes fictícios ou convites aleatórios.' },
-            { key: 'standby', icon: '⏱️', title: 'Lista de Espera', desc: 'Os que sobrarem ficam fora do torneio principal, podendo substituir ausentes.' },
-            { key: 'dissolve', icon: '🧩', title: 'Ajuste Manual', desc: 'Organizador redistribui jogadores entre times manualmente.' }
+            { key: 'standby', icon: '⏱️', title: _t('predraw.optStandbyTitle'), desc: 'Os que sobrarem ficam fora do torneio principal, podendo substituir ausentes.' },
+            { key: 'dissolve', icon: '🧩', title: _t('predraw.optDissolveTitle'), desc: _t('predraw.optDissolveDesc') }
         ];
         window._showPollCreationDialog(tId, 'incomplete', pollOptions);
     }
@@ -1002,28 +1002,28 @@ window.showDissolveTeamsPanel = function (tId) {
         <div style="background:var(--bg-card,#1e293b);width:96%;max-width:900px;height:85vh;border-radius:24px;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
             <div style="padding:1.5rem 2rem;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                    <h3 style="margin:0;color:white;">Realocação Manual</h3>
-                    <p style="margin:4px 0 0;color:#94a3b8;font-size:0.85rem;">Arraste jogadores para completar ou dissolver times.</p>
+                    <h3 style="margin:0;color:white;">${_t('predraw.reallocTitle')}</h3>
+                    <p style="margin:4px 0 0;color:#94a3b8;font-size:0.85rem;">${_t('predraw.reallocDesc')}</p>
                 </div>
-                <button onclick="document.getElementById('dissolve-panel').remove()" style="background:rgba(255,255,255,0.05);border:none;color:white;padding:8px 15px;border-radius:10px;cursor:pointer;">Fechar</button>
+                <button onclick="document.getElementById('dissolve-panel').remove()" style="background:rgba(255,255,255,0.05);border:none;color:white;padding:8px 15px;border-radius:10px;cursor:pointer;">${_t('predraw.reallocClose')}</button>
             </div>
 
             <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:2rem;overflow:hidden;">
                 <!-- Coluna 1: Times Incompletos -->
                 <div style="display:flex;flex-direction:column;gap:15px;overflow-y:auto;padding-right:10px;">
-                    <h4 style="margin:0;font-size:0.8rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;">Times Incompletos</h4>
+                    <h4 style="margin:0;font-size:0.8rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;">${_t('predraw.incompleteTeamsList')}</h4>
                     <div id="incomplete-list-dnd" style="display:flex;flex-direction:column;gap:12px;"></div>
                 </div>
 
                 <!-- Coluna 2: Todos os Participantes / Pool -->
                 <div style="display:flex;flex-direction:column;gap:15px;overflow-y:auto;padding-right:10px;">
-                    <h4 style="margin:0;font-size:0.8rem;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;">Todos os Participantes</h4>
+                    <h4 style="margin:0;font-size:0.8rem;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;">${_t('predraw.allParticipantsList')}</h4>
                     <div id="full-list-dnd" style="display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
             </div>
 
             <div style="padding:1.5rem 2rem;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.05);display:flex;justify-content:flex-end;gap:15px;">
-                <button onclick="window._saveDissolveResolution('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:#2563eb;color:white;border:none;padding:12px 25px;border-radius:12px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(37,99,235,0.3);">Salvar Alterações</button>
+                <button onclick="window._saveDissolveResolution('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:#2563eb;color:white;border:none;padding:12px 25px;border-radius:12px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(37,99,235,0.3);">${_t('predraw.saveChanges')}</button>
             </div>
         </div>
     `;
@@ -1043,7 +1043,7 @@ window.showDissolveTeamsPanel = function (tId) {
                 <div style="font-weight:700;color:white;margin-bottom:8px;font-size:0.9rem;">${window._safeHtml(it.name)}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;">
                     ${it.members.map(m => `<span style="background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#e2e8f0;">${window._safeHtml(m)}</span>`).join('')}
-                    <span style="border:1px dashed #94a3b8;padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#94a3b8;">+ Vaga</span>
+                    <span style="border:1px dashed #94a3b8;padding:4px 10px;border-radius:6px;font-size:0.8rem;color:#94a3b8;">${_t('predraw.openSlot')}</span>
                 </div>
             </div>
         `).join('');
@@ -1301,9 +1301,9 @@ window._handleOddOption = function (tId, option) {
         var el4 = document.getElementById('odd-entries-panel');
         if (el4) el4.remove();
         var pollOptions = [
-            { key: 'reopen', icon: '↩️', title: 'Reabrir Inscrições', desc: 'Aguardar mais 1 inscrito para ficar par.' },
-            { key: 'bye_odd', icon: '🥇', title: 'BYE Rotativo', desc: 'A cada rodada, alguém descansa. Todos participam.' },
-            { key: 'exclusion', icon: '🚫', title: 'Exclusão', desc: 'Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + '.' }
+            { key: 'reopen', icon: '↩️', title: _t('predraw.optReopenTitle'), desc: 'Aguardar mais 1 inscrito para ficar par.' },
+            { key: 'bye_odd', icon: '🥇', title: _t('draw.byeRotating'), desc: 'A cada rodada, alguém descansa. Todos participam.' },
+            { key: 'exclusion', icon: '🚫', title: _t('predraw.optExclusionTitle'), desc: 'Remover o último inscrito para ficar com ' + (oddInfo.count - 1) + '.' }
         ];
         window._showPollCreationDialog(tId, 'odd', pollOptions);
     }
@@ -1657,7 +1657,7 @@ window._showPollVotingDialog = function(tId, pollId) {
     // Build options HTML
     var optionsHtml = poll.options.map(function(opt) {
         var isMyVote = (userVote === opt.key);
-        var nashBadge = opt.isNash ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);margin-left:6px;">⚖️ Recomendado</span>' : '';
+        var nashBadge = opt.isNash ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);margin-left:6px;">' + _t('predraw.pollNashRec') + '</span>' : '';
 
         // Before voting: just show options and descriptions (no counts)
         // After voting or closed: show counts and own vote
@@ -1673,7 +1673,7 @@ window._showPollVotingDialog = function(tId, pollId) {
                 '</div>';
         }
 
-        var myVoteBadge = isMyVote ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);margin-left:6px;">Seu voto</span>' : '';
+        var myVoteBadge = isMyVote ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.6rem;font-weight:800;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);margin-left:6px;">' + _t('predraw.pollMyVote') + '</span>' : '';
 
         var borderColor = isMyVote ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
         var bgColor = isMyVote ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.03)';
@@ -1694,7 +1694,7 @@ window._showPollVotingDialog = function(tId, pollId) {
             '</div>';
     }).join('');
 
-    var contextLabel = (poll.context === 'p2') ? 'Ajuste de Chaveamento' : (poll.context === 'odd') ? 'Número Ímpar' : 'Times Incompletos';
+    var contextLabel = (poll.context === 'p2') ? _t('predraw.pollContextP2') : (poll.context === 'odd') ? _t('predraw.pollContextOdd') : _t('predraw.pollContextIncomplete');
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:95%;max-width:560px;border-radius:24px;border:1px solid rgba(99,102,241,0.2);box-shadow:0 30px 80px rgba(0,0,0,0.6);margin:auto;animation:fadeIn 0.2s ease;overflow:hidden;">' +
         '<div style="background:linear-gradient(135deg,#312e81 0%,#6366f1 100%);padding:1.5rem 2rem;">' +
@@ -1707,20 +1707,20 @@ window._showPollVotingDialog = function(tId, pollId) {
         '</div>' +
         '</div>' +
         '<div style="text-align:right;">' +
-        '<div style="font-size:0.65rem;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;">Tempo restante</div>' +
+        '<div style="font-size:0.65rem;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.pollTimeLeft') + '</div>' +
         '<div style="font-size:1rem;margin-top:2px;">' + countdownStr + '</div>' +
         '</div>' +
         '</div>' +
         '</div>' +
 
         '<div style="padding:1.5rem 2rem;">' +
-        ((!hasVoted && !isPollClosed) ? '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 1rem;">Clique em uma opção para votar. Você poderá mudar seu voto até o encerramento.</p>' : '') +
+        ((!hasVoted && !isPollClosed) ? '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 1rem;">' + _t('predraw.pollInstruct') + '</p>' : '') +
         '<div id="poll-vote-options" style="display:flex;flex-direction:column;gap:10px;">' + optionsHtml + '</div>' +
         (hasVoted ? '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center;font-style:italic;">Você pode mudar seu voto clicando em outra opção' + (isPollClosed ? '' : ' até o encerramento') + '.</p>' : '') +
         '</div>' +
 
         '<div style="padding:1rem 2rem 1.5rem;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);">' +
-        '<button onclick="document.getElementById(\'poll-voting-dialog\').remove();document.body.style.overflow=\'\';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">Fechar</button>' +
+        '<button onclick="document.getElementById(\'poll-voting-dialog\').remove();document.body.style.overflow=\'\';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('predraw.pollClose') + '</button>' +
         '</div>' +
         '</div>';
 
@@ -1920,11 +1920,11 @@ window._renderPollBanner = function(t) {
     var hasVoted = !!activePoll.votes[userEmail];
     var isOrganizer = (user && user.email === t.organizerEmail);
 
-    var btnText = hasVoted ? 'Ver / Alterar Voto' : 'Votar Agora';
-    var statusText = hasVoted ? '✅ Você já votou' : '⏳ Aguardando seu voto';
+    var btnText = hasVoted ? _t('predraw.pollViewChange') : _t('predraw.pollVoteNow');
+    var statusText = hasVoted ? _t('predraw.pollVoted') : _t('predraw.pollWaiting');
 
     var closeBtn = isOrganizer
-        ? '<button onclick="event.stopPropagation();window._closePollEarly(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Encerrar Agora</button>'
+        ? '<button onclick="event.stopPropagation();window._closePollEarly(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">' + _t('predraw.pollCloseEarly') + '</button>'
         : '';
 
     return '<div style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.08));border:2px solid rgba(99,102,241,0.4);border-radius:20px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(99,102,241,0.1);">' +
@@ -1932,22 +1932,22 @@ window._renderPollBanner = function(t) {
         '<div style="display:flex;align-items:center;gap:14px;">' +
         '<div style="width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🗳️</div>' +
         '<div>' +
-        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE</div>' +
+        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">' + _t('predraw.pollBannerTitle') + '</div>' +
         '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">' + statusText + ' · ' + totalVotes + '/' + totalParticipants + ' votos</div>' +
         '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
         '<div style="text-align:center;background:rgba(0,0,0,0.2);padding:8px 16px;border-radius:12px;">' +
         '<div style="font-size:1.6rem;font-weight:900;color:#a5b4fc;line-height:1;font-variant-numeric:tabular-nums;">' + timeStr + '</div>' +
-        '<div style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">restante</div>' +
+        '<div style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">' + _t('predraw.pollRemaining') + '</div>' +
         '</div>' +
         '</div>' +
         '</div>' +
         '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
-        '<button onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 22px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;flex:1;min-width:140px;">' + btnText + '</button>' +
+        '<button onclick="event.stopPropagation();window._showPollVotingDialog(\'' + t.id + '\',\'' + activePoll.id + '\')" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:white;border:none;padding:10px 22px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;flex:1;min-width:140px;">' + btnText + '</button>' +  // btnText already _t()
         closeBtn +
         '</div>' +
-        '<div style="margin-top:8px;font-size:0.68rem;color:var(--text-muted);opacity:0.7;">Inscrições suspensas durante a enquete.</div>' +
+        '<div style="margin-top:8px;font-size:0.68rem;color:var(--text-muted);opacity:0.7;">' + _t('predraw.pollSuspended') + '</div>' +
         '</div>';
 };
 
@@ -1979,19 +1979,19 @@ window._renderClosedPollBanner = function(t, poll) {
     var isOrganizer = (user && user.email === t.organizerEmail);
 
     var applyBtn = isOrganizer
-        ? '<button onclick="window._applyPollResult(\'' + t.id + '\',\'' + poll.id + '\')" style="background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Aplicar Resultado</button>'
+        ? '<button onclick="window._applyPollResult(\'' + t.id + '\',\'' + poll.id + '\')" style="background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;padding:8px 18px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">' + _t('predraw.pollApply') + '</button>'
         : '';
     var reopenBtn = isOrganizer
-        ? '<button onclick="window._reopenPoll(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Reabrir Enquete</button>'
+        ? '<button onclick="window._reopenPoll(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">' + _t('predraw.pollReopenBtn') + '</button>'
         : '';
-    var viewBtn = '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Ver Detalhes</button>';
+    var viewBtn = '<button onclick="window._showPollVotingDialog(\'' + t.id + '\',\'' + poll.id + '\')" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap;">' + _t('predraw.pollViewDetails') + '</button>';
 
     return '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.05));border:2px solid rgba(16,185,129,0.35);border-radius:20px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(16,185,129,0.08);">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
         '<div style="display:flex;align-items:center;gap:14px;">' +
         '<div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">✅</div>' +
         '<div>' +
-        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">ENQUETE ENCERRADA</div>' +
+        '<div style="font-weight:900;font-size:1.25rem;color:var(--text-bright);letter-spacing:0.02em;">' + _t('predraw.pollClosedBannerTitle') + '</div>' +
         '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Resultado: <strong style="color:#4ade80;">' + winnerTitle + '</strong> (' + pct + '% · ' + winnerCount + '/' + totalVotes + ' votos)</div>' +
         '</div>' +
         '</div>' +
@@ -2012,8 +2012,8 @@ window._closePollEarly = function(tId, pollId) {
 
     if (typeof showConfirmDialog === 'function') {
         showConfirmDialog(
-            'Encerrar enquete agora?',
-            'A votação será encerrada imediatamente. Você poderá aplicar o resultado e prosseguir com o sorteio.',
+            _t('predraw.closePollTitle'),
+            _t('predraw.closePollDesc'),
             function() {
                 poll.status = 'closed';
                 poll.deadline = Date.now();
@@ -2243,22 +2243,22 @@ window._showReopenPanel = function (tId, info) {
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;">
                     <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🔓</div>
                     <div>
-                        <h3 style="margin:0;color:#f1f5f9;font-size:1.2rem;font-weight:700;">Reabrir Inscrições</h3>
-                        <p style="margin:2px 0 0;color:#64748b;font-size:0.85rem;">Aguardando novos participantes</p>
+                        <h3 style="margin:0;color:#f1f5f9;font-size:1.2rem;font-weight:700;">${_t('predraw.reopenPanelTitle')}</h3>
+                        <p style="margin:2px 0 0;color:#64748b;font-size:0.85rem;">${_t('predraw.reopenPanelWaiting')}</p>
                     </div>
                 </div>
 
                 <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:14px;padding:1.25rem;margin-bottom:1.25rem;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-                        <span style="color:#94a3b8;font-size:0.85rem;">${info.teamSize > 1 ? 'Times atuais' : 'Inscritos atuais'}</span>
+                        <span style="color:#94a3b8;font-size:0.85rem;">${info.teamSize > 1 ? _t('predraw.reopenCurrentTeams') : _t('predraw.reopenCurrentParts')}</span>
                         <span style="color:#f1f5f9;font-weight:700;font-size:1.1rem;">${info.count}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-                        <span style="color:#94a3b8;font-size:0.85rem;">Próxima potência de 2</span>
+                        <span style="color:#94a3b8;font-size:0.85rem;">${_t('predraw.reopenNextPow2')}</span>
                         <span style="color:#3b82f6;font-weight:700;font-size:1.1rem;">${info.hi}</span>
                     </div>
                     <div style="border-top:1px solid rgba(59,130,246,0.15);padding-top:0.75rem;display:flex;justify-content:space-between;align-items:center;">
-                        <span style="color:#94a3b8;font-size:0.85rem;">Faltam para completar</span>
+                        <span style="color:#94a3b8;font-size:0.85rem;">${_t('predraw.reopenMissing')}</span>
                         <span style="color:#fbbf24;font-weight:800;font-size:1.3rem;">${info.missing}</span>
                     </div>
                 </div>
@@ -2275,8 +2275,8 @@ window._showReopenPanel = function (tId, info) {
             </div>
 
             <div style="padding:1.25rem 2.5rem 1.75rem;display:flex;gap:12px;justify-content:flex-end;background:rgba(0,0,0,0.1);border-top:1px solid rgba(255,255,255,0.05);border-radius:0 0 20px 20px;">
-                <button onclick="document.getElementById('reopen-panel').remove();document.body.style.overflow=''; var p2=document.getElementById('p2-resolution-panel'); if(p2) p2.style.display='flex';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">Voltar</button>
-                <button onclick="window._confirmReopen('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${info.hi})" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;padding:10px 28px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;box-shadow:0 4px 15px rgba(59,130,246,0.3);transition:all 0.2s;">Confirmar Reabertura</button>
+                <button onclick="document.getElementById('reopen-panel').remove();document.body.style.overflow=''; var p2=document.getElementById('p2-resolution-panel'); if(p2) p2.style.display='flex';" style="background:transparent;color:#94a3b8;border:2px solid rgba(148,163,184,0.2);padding:10px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;">${_t('predraw.reopenBack')}</button>
+                <button onclick="window._confirmReopen('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${info.hi})" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;padding:10px 28px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;box-shadow:0 4px 15px rgba(59,130,246,0.3);transition:all 0.2s;">${_t('predraw.reopenConfirm')}</button>
             </div>
         </div>
     `;
@@ -2322,12 +2322,12 @@ window.finishTournament = function(tId) {
         (Array.isArray(t.rounds) && t.rounds.some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); })) ||
         (Array.isArray(t.groups) && t.groups.some(function(g) { return (g.rounds || []).some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); }); }));
     const pendingMatches = (Array.isArray(t.matches) && t.matches.filter(function(m) { return !m.isBye && m.p1 && m.p1 !== 'TBD' && m.p2 && m.p2 !== 'TBD' && !m.winner; }).length) || 0;
-    let msg = 'Deseja encerrar este torneio? Esta ação marca o torneio como finalizado.';
+    let msg = _t('predraw.finishMsg');
     if (pendingMatches > 0) {
-        msg = 'Ainda há ' + pendingMatches + ' partida(s) sem resultado. Deseja encerrar o torneio mesmo assim? Os resultados pendentes ficarão sem registro.';
+        msg = _t('predraw.finishPendingMsg', {n: pendingMatches});
     }
     showConfirmDialog(
-        '🏁 Encerrar Torneio',
+        _t('predraw.finishTitle'),
         msg,
         function() {
             t.status = 'finished';
