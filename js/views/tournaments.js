@@ -160,7 +160,7 @@ function renderTournaments(container, tournamentId = null) {
                             fromPhoto: cu.photoURL || '',
                             tournamentId: String(t.id),
                             tournamentName: t.name || '',
-                            message: (cu.displayName || 'Um amigo') + ' convidou você para o torneio "' + window._safeHtml(t.name || '') + '"!',
+                            message: _t('tourn.friendInvitedMsg', {name: cu.displayName || _t('tourn.aFriend'), tournament: t.name || ''}),
                             inviteUrl: inviteUrl,
                             createdAt: new Date().toISOString(),
                             read: false
@@ -190,7 +190,7 @@ function renderTournaments(container, tournamentId = null) {
             if (sent > 0) statusParts.push(sent + ' convite' + (sent !== 1 ? 's' : '') + ' na plataforma');
             if (emailRecipients.length > 0) statusParts.push(emailRecipients.length + ' por e-mail');
             if (whatsappNumbers.length > 0) statusParts.push(whatsappNumbers.length + ' por WhatsApp');
-            var statusMsg = statusParts.length > 0 ? statusParts.join(', ') + '.' : 'Nenhum convite enviado.';
+            var statusMsg = statusParts.length > 0 ? statusParts.join(', ') + '.' : _t('tourn.noInvitesSent');
             if (statusDiv) statusDiv.textContent = statusMsg;
             if (typeof showNotification !== 'undefined') {
                 showNotification(_t('tourn.invitesSent'), statusMsg, 'success');
@@ -281,8 +281,8 @@ function renderTournaments(container, tournamentId = null) {
     if (!window.removeParticipantSetupDone) {
         window.removeParticipantFunction = function (tId, participantName) {
             showConfirmDialog(
-                'Remover Participante',
-                'Deseja realmente remover este participante?',
+                _t('tourn.removeParticipantTitle'),
+                _t('tourn.removeParticipantMsg'),
                 () => {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t && t.participants) {
@@ -330,8 +330,8 @@ function renderTournaments(container, tournamentId = null) {
     if (!window.splitParticipantSetupDone) {
         window.splitParticipantFunction = function (tId, participantName) {
             showConfirmDialog(
-                'Desfazer Equipe',
-                'Deseja desfazer esta equipe e retornar os jogadores como individuais?',
+                _t('tourn.splitTeamTitle'),
+                _t('tourn.splitTeamMsg'),
                 () => {
                     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
                     if (t && t.participants) {
@@ -467,9 +467,9 @@ function renderTournaments(container, tournamentId = null) {
 
         const start = formatDateBr(t.startDate);
         const end = formatDateBr(t.endDate);
-        const dates = start ? (end ? `${start} A ${end}` : `${start}`) : 'A DEFINIR';
+        const dates = start ? (end ? `${start} ${_t('tourn.dateTo')} ${end}` : `${start}`) : _t('tourn.dateTbd');
         const regLimit = formatDateBr(t.registrationLimit);
-        const cats = (t.combinedCategories && t.combinedCategories.length) ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : 'Cat. Única');
+        const cats = (t.combinedCategories && t.combinedCategories.length) ? window._sortCategoriesBySkillOrder(t.combinedCategories, t.skillCategories).join(', ') : ((t.categories && t.categories.length) ? t.categories.join(', ') : _t('tourn.singleCat'));
 
         // Liga season auto-closure: se a temporada expirou, encerra automaticamente
         if (window._isLigaFormat(t) && t.status !== 'finished') {
@@ -715,10 +715,10 @@ function renderTournaments(container, tournamentId = null) {
           }
           if (_pendingType) {
             const _safeTid = String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            const _invLabel = _pendingType === 'transfer' ? '👑 Convite para Organizar' : '👑 Convite de Co-Organização';
+            const _invLabel = _pendingType === 'transfer' ? _t('tourn.inviteTransfer') : _t('tourn.inviteCohost');
             const _invDesc = _pendingType === 'transfer'
-              ? 'Você foi convidado(a) para assumir a organização deste torneio.'
-              : 'Você foi convidado(a) para co-organizar este torneio.';
+              ? _t('tourn.inviteTransferDesc')
+              : _t('tourn.inviteCoHostDesc');
             pendingInviteBannerHtml = `
               <div class="pending-invite-banner" style="margin-top:1rem;padding:18px 20px;background:linear-gradient(135deg,rgba(251,191,36,0.18),rgba(217,119,6,0.12));border:2px solid rgba(251,191,36,0.5);border-radius:16px;text-align:center;animation:invitePulse 2s ease-in-out infinite;">
                 <div style="font-size:1.3rem;font-weight:800;color:#fbbf24;margin-bottom:6px;">${_invLabel}</div>
@@ -1101,7 +1101,7 @@ function renderTournaments(container, tournamentId = null) {
                 // 1. Torneio ainda não começou? → countdown para início
                 if (t.startDate && !sorteioRealizado) {
                   var _sd = new Date(t.startDate).getTime();
-                  if (!isNaN(_sd) && _sd > _now) _ligaEvent = { ts: _sd, label: 'Início da Liga', icon: '🏁', color: '#10b981' };
+                  if (!isNaN(_sd) && _sd > _now) _ligaEvent = { ts: _sd, label: _t('tourn.ligaStart'), icon: '🏁', color: '#10b981' };
                 }
                 // 2. Já começou e tem próximo sorteio agendado? → countdown para próximo sorteio
                 if (!_ligaEvent && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
@@ -1120,7 +1120,7 @@ function renderTournaments(container, tournamentId = null) {
                       }
                     }
                     if (!isNaN(_ndTs) && _ndTs > _now && (!_seasonEndTs || _ndTs <= _seasonEndTs)) {
-                      _ligaEvent = { ts: _ndTs, label: 'Próximo sorteio', icon: '🎲', color: '#fb923c' };
+                      _ligaEvent = { ts: _ndTs, label: _t('tourn.nextDraw'), icon: '🎲', color: '#fb923c' };
                     }
                   }
                 }
@@ -1133,7 +1133,7 @@ function renderTournaments(container, tournamentId = null) {
                       var _seasonEnd = new Date(_ssd2);
                       _seasonEnd.setMonth(_seasonEnd.getMonth() + parseInt(_sm2));
                       var _seTs = _seasonEnd.getTime();
-                      if (!isNaN(_seTs) && _seTs > _now) _ligaEvent = { ts: _seTs, label: 'Fim da temporada', icon: '🏁', color: '#8b5cf6' };
+                      if (!isNaN(_seTs) && _seTs > _now) _ligaEvent = { ts: _seTs, label: _t('tourn.seasonEnd'), icon: '🏁', color: '#8b5cf6' };
                     }
                   }
                 }
@@ -1628,13 +1628,13 @@ function renderTournaments(container, tournamentId = null) {
                     const vipBadge = isVip ? '<span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.6rem;font-weight:900;padding:1px 6px;border-radius:4px;letter-spacing:0.5px;margin-left:4px;">⭐ VIP</span>' : '';
                     // Label de tipo: origem da equipe
                     const _teamOrigins = t.teamOrigins || {};
-                    let _teamLabel = 'Inscrição Individual';
+                    let _teamLabel = _t('tourn.individualEnroll');
                     if (isTeam) {
                         const origin = _teamOrigins[pName];
-                        if (origin === 'inscrita') _teamLabel = 'Equipe Inscrita';
-                        else if (origin === 'sorteada') _teamLabel = 'Equipe Sorteada';
-                        else if (origin === 'formada') _teamLabel = 'Equipe Formada';
-                        else _teamLabel = 'Equipe Formada';
+                        if (origin === 'inscrita') _teamLabel = _t('tourn.teamEnrolled');
+                        else if (origin === 'sorteada') _teamLabel = _t('tourn.teamDrawn');
+                        else if (origin === 'formada') _teamLabel = _t('tourn.teamFormed');
+                        else _teamLabel = _t('tourn.teamFormed');
                     }
                     // Category badges — displayed below name as a separate row
                     const _pCats = window._getParticipantCategories(p);
@@ -1664,7 +1664,7 @@ function renderTournaments(container, tournamentId = null) {
                         dragProps = `draggable="true" ondragstart="window._mergeDragStart(event, '${safeP}', '${t.id}')" ondragend="window._mergeDragEnd(event)" ondragover="event.preventDefault();event.dataTransfer.dropEffect='move';" ondragenter="window._mergeDragEnter(event)" ondragleave="window._mergeDragLeave(event)" ondrop="window._mergeDrop(event, '${safeP}', '${t.id}')"`;
                     }
                     if (isOrg && !drawDone) {
-                        const vipBtn = `<button title="${isVip ? 'Remover VIP' : 'Marcar como VIP'}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; border-radius: 6px; cursor: pointer; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; transition: transform 0.2s; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
+                        const vipBtn = `<button title="${isVip ? _t('tourn.removeVip') : _t('tourn.markVip')}" style="background: ${isVip ? 'linear-gradient(135deg,rgba(234,179,8,0.35),rgba(251,191,36,0.25))' : 'rgba(234,179,8,0.08)'}; color: ${isVip ? '#fbbf24' : '#a3842a'}; border: 1px ${isVip ? 'solid' : 'dashed'} ${isVip ? 'rgba(251,191,36,0.6)' : 'rgba(234,179,8,0.3)'}; border-radius: 6px; cursor: pointer; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; transition: transform 0.2s; letter-spacing: 0.5px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window._toggleVip('${t.id}', '${safeP}');">⭐ VIP</button>`;
                         const delBtn = `<button title="Remover" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px dashed #ef4444;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:0.75rem;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='none'" onclick="event.stopPropagation(); window.removeParticipantFunction('${t.id}', '${safeP}');">🗑️</button>`;
                         let splitBtn = '';
                         if (pName.includes('/')) {
@@ -1728,13 +1728,13 @@ function renderTournaments(container, tournamentId = null) {
             var _sortChronoAsc = _enrollSort === 'chrono' || (!_enrollSort);
             var _sortChronoDesc = _enrollSort === 'chrono_desc';
             var _sortChronoActive = _sortChronoAsc || _sortChronoDesc;
-            var _alphaLabel = _sortAlphaDesc ? 'Z-A ↑' : 'A-Z ↓';
+            var _alphaLabel = _sortAlphaDesc ? _t('tourn.sortAlphaDesc') : _t('tourn.sortAlphaAsc');
             var _alphaNextMode = _sortAlphaAsc ? 'alpha_desc' : 'alpha_asc';
             var _chronoLabel = _sortChronoDesc ? '🕐 ↑' : '🕐 ↓';
             var _chronoNextMode = _sortChronoAsc ? 'chrono_desc' : 'chrono';
             var _sortBtns = `<div style="display:inline-flex;gap:2px;margin-left:auto;">
-              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_alphaNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortAlphaDesc ? 'Ordenar Z-A' : 'Ordenar A-Z'}" style="padding:3px 10px;border-radius:8px 0 0 8px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortAlphaActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortAlphaActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortAlphaActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_alphaLabel}</button>
-              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_chronoNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortChronoDesc ? 'Últimos inscritos primeiro' : 'Primeiros inscritos primeiro'}" style="padding:3px 10px;border-radius:0 8px 8px 0;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortChronoActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortChronoActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortChronoActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_chronoLabel}</button>
+              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_alphaNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortAlphaDesc ? _t('tourn.sortAlphaDesc') : _t('tourn.sortAlphaAsc')}" style="padding:3px 10px;border-radius:8px 0 0 8px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortAlphaActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortAlphaActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortAlphaActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_alphaLabel}</button>
+              <button onclick="var _sy=window.scrollY;window._enrollSortMode='${_chronoNextMode}';if(typeof renderTournaments==='function'){var c=document.getElementById('view-container');if(c)renderTournaments(c,'${t.id}');}setTimeout(function(){window.scrollTo(0,_sy);},50);" title="${_sortChronoDesc ? _t('tourn.sortChronoDesc') : _t('tourn.sortChronoAsc')}" style="padding:3px 10px;border-radius:0 8px 8px 0;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid ${_sortChronoActive ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${_sortChronoActive ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)'};color:${_sortChronoActive ? '#a5b4fc' : 'var(--text-muted)'};transition:all 0.2s;">${_chronoLabel}</button>
             </div>`;
 
             participantsHtml = `
