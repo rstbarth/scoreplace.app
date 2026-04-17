@@ -152,7 +152,7 @@ window._substituteFromStandby = function (tId) {
 
         window.AppStore.logAction(tId, `Substituição individual: ${absentPlayer} → ${replacementName} (time: ${newTeamName})`);
         window.AppStore.syncImmediate(tId);
-        showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentPlayer}`, 'success');
+        showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentPlayer}), 'success');
         _rerenderBracket(tId);
       }, null,
       { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' }
@@ -212,7 +212,7 @@ window._substituteFromStandby = function (tId) {
 
         window.AppStore.logAction(tId, `Desclassificação: ${absentTeam} → ${replacementName}`);
         window.AppStore.syncImmediate(tId);
-        showNotification('Substituição Realizada', `${replacementName} entrou no lugar de ${absentTeam}`, 'success');
+        showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentTeam}), 'success');
         _rerenderBracket(tId);
       }, null,
       { type: 'warning', confirmText: 'Desclassificar e Substituir', cancelText: 'Cancelar' }
@@ -239,7 +239,7 @@ window._autoSubstituteWO = function(tId) {
   // Find first present standby player
   var nextPresent = standby.find(function(p) { return !!ci[getName(p)]; });
   if (!nextPresent) {
-    if (typeof showNotification === 'function') showNotification('Sem substituto', 'Nenhum jogador da lista de espera está marcado como presente.', 'warning');
+    if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
     return;
   }
   var replacementName = getName(nextPresent);
@@ -270,7 +270,7 @@ window._autoSubstituteWO = function(tId) {
   }
 
   if (!woMatch) {
-    if (typeof showNotification === 'function') showNotification('Sem W.O.', 'Nenhum jogador com W.O. encontrado no chaveamento.', 'info');
+    if (typeof showNotification === 'function') showNotification(_t('sub.noWO'), _t('sub.noWOMsg'), 'info');
     return;
   }
 
@@ -327,7 +327,7 @@ window._autoSubstituteWO = function(tId) {
 
         window.AppStore.logAction(tId, 'Substituição W.O.: ' + absentMemberName + ' → ' + replacementName + ' (parceiro: ' + partnerName + ')');
         window.AppStore.syncImmediate(tId);
-        showNotification('Substituição Realizada', replacementName + ' entrou no lugar de ' + absentMemberName + '. ' + partnerName + ' permanece no time.', 'success');
+        showNotification(_t('sub.done'), _t('sub.donePartnerMsg', {name: replacementName, absent: absentMemberName, partner: partnerName}), 'success');
         var container = document.getElementById('view-container');
         if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
       }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
@@ -362,7 +362,7 @@ window._autoSubstituteWO = function(tId) {
 
         window.AppStore.logAction(tId, 'Substituição W.O.: ' + absentMemberName + ' → ' + replacementName);
         window.AppStore.syncImmediate(tId);
-        showNotification('Substituição Realizada', replacementName + ' entrou no lugar de ' + absentMemberName, 'success');
+        showNotification(_t('sub.done'), _t('sub.doneMsg', {name: replacementName, absent: absentMemberName}), 'success');
         var container = document.getElementById('view-container');
         if (container && typeof renderParticipants === 'function') renderParticipants(container, tId);
       }, null, { type: 'warning', confirmText: 'Confirmar Substituição', cancelText: 'Cancelar' });
@@ -1640,7 +1640,7 @@ window._advanceToElimination = function (tId) {
   window.AppStore.logAction(tId, `Fase Eliminatória iniciada com ${seeded.length} classificados`);
   window.AppStore.syncImmediate(tId);
 
-  showNotification('Fase Eliminatória', `${seeded.length} classificados avançaram para as eliminatórias!`, 'success');
+  showNotification(_t('bui.knockoutPhase'), _t('bui.knockoutPhaseMsg', {n: seeded.length}), 'success');
   _rerenderBracket(tId);
 };
 
@@ -1711,7 +1711,7 @@ window._advanceMonarchToElimination = function(tId) {
 
   t.elimThirdPlace = true;
   window.AppStore.syncImmediate(tId);
-  showNotification('Fase Eliminatória', seeded.length + ' classificados avançaram para as eliminatórias!', 'success');
+  showNotification(_t('bui.knockoutPhase'), _t('bui.knockoutPhaseMsg', {n: seeded.length}), 'success');
   _rerenderBracket(tId);
 };
 
@@ -2242,7 +2242,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return;
     }
     // We need to track history for proper undo. For MVP, just warn.
-    showNotification('Desfazer', 'Use o botão — para corrigir o placar manualmente.', 'info');
+    showNotification(_t('bui.undo'), _t('bui.undoMsg'), 'info');
   }
 
   // Build a self-contained record of this finished match and persist it to each
@@ -2425,7 +2425,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       } else {
         summary = state.currentGameP1 + ' × ' + state.currentGameP2;
       }
-      showNotification('Partida encerrada', winnerName + (state.winner === 0 ? '' : ' venceu!') + ' — ' + summary, 'success');
+      showNotification(_t('bui.matchClosed'), (state.winner === 0 ? winnerName : _t('bui.matchWon', {winner: winnerName})) + ' — ' + summary, 'success');
       // Save to casual match history in localStorage
       try {
         var hist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
@@ -2526,7 +2526,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var ov = document.getElementById('live-scoring-overlay');
     if (ov) ov.remove();
 
-    showNotification('Resultado salvo', m.winner === 'draw' ? 'Empate!' : (m.winner + ' venceu!'), 'success');
+    showNotification(_t('bui.resultSaved'), m.winner === 'draw' ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
     _rerenderBracket(tId, matchId);
 
     // Auto-advance etc.
@@ -4051,7 +4051,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   window._liveScoreFinish = function() {
     // For simple scoring: finish and set winner
     if (state.currentGameP1 === state.currentGameP2 && state.currentGameP1 === 0) {
-      showNotification('Placar vazio', 'Marque pelo menos um ponto antes de encerrar.', 'warning');
+      showNotification(_t('bui.emptyScore'), _t('bui.emptyScoreMsg'), 'warning');
       return;
     }
     state.isFinished = true;
@@ -4374,7 +4374,7 @@ window._openScanQR = function() {
     if (_scanFound) return;
     var code = _extractRoomCode(rawValue);
     if (code) {
-      if (typeof showNotification === 'function') showNotification('QR detectado!', 'Entrando na sala ' + code + '...', 'success');
+      if (typeof showNotification === 'function') showNotification(_t('bui.qrDetected'), _t('bui.qrDetectedMsg', {code: code}), 'success');
       _navigateToRoom(code);
     }
   }

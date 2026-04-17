@@ -1082,7 +1082,7 @@ function setupCreateTournamentModal() {
     var hidden = document.getElementById('tourn-logo-data');
     var dataUrl = hidden ? hidden.value : '';
     if (!dataUrl) {
-      if (typeof showNotification !== 'undefined') showNotification('Sem logo', 'Gere ou faça upload de um logo primeiro.', 'warning');
+      if (typeof showNotification !== 'undefined') showNotification(window._t('create.noLogo'), window._t('create.noLogoMsg'), 'warning');
       return;
     }
     var nameEl = document.getElementById('tourn-name');
@@ -1247,7 +1247,7 @@ function setupCreateTournamentModal() {
     var file = event.target.files && event.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      if (typeof showNotification !== 'undefined') showNotification('Arquivo muito grande', 'O logo deve ter no máximo 5MB.', 'warning');
+      if (typeof showNotification !== 'undefined') showNotification(window._t('create.fileTooLarge'), window._t('create.fileTooLargeMsg'), 'warning');
       return;
     }
     var reader = new FileReader();
@@ -1804,7 +1804,7 @@ function setupCreateTournamentModal() {
       window._applyVenueAccessUI(suggested);
       if (typeof showNotification === 'function') {
         var accessLabel = suggested.includes('members') ? 'Acesso restrito' : 'Aberto ao público';
-        showNotification('Local encontrado', 'Acesso sugerido: ' + accessLabel, 'success');
+        showNotification(window._t('create.venueFound'), window._t('create.venueFoundMsg', {access: accessLabel}), 'success');
       }
 
       window._checkWeather();
@@ -1814,7 +1814,7 @@ function setupCreateTournamentModal() {
     } catch (err) {
       console.error('Place details fetch error:', err);
       if (typeof showNotification === 'function') {
-        showNotification('Erro', 'Não foi possível obter detalhes do local: ' + (err.message || ''), 'error');
+        showNotification(window._t('auth.error'), window._t('create.venueDetailError', {msg: err.message || ''}), 'error');
       }
     }
   };
@@ -1892,10 +1892,10 @@ function setupCreateTournamentModal() {
 
   window._venueLocateMe = function() {
     if (!navigator.geolocation) {
-      if (typeof showNotification === 'function') showNotification('Erro', 'Geolocalização não disponível no seu navegador.', 'error');
+      if (typeof showNotification === 'function') showNotification(window._t('auth.error'), window._t('create.geoUnavailable'), 'error');
       return;
     }
-    if (typeof showNotification === 'function') showNotification('Localizando...', 'Obtendo sua posição...', 'info');
+    if (typeof showNotification === 'function') showNotification(window._t('create.locating'), window._t('create.locatingMsg'), 'info');
     navigator.geolocation.getCurrentPosition(function(pos) {
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
@@ -1922,7 +1922,7 @@ function setupCreateTournamentModal() {
       }
     }, function(err) {
       console.warn('Geolocation error:', err);
-      if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível obter sua localização.', 'error');
+      if (typeof showNotification === 'function') showNotification(window._t('auth.error'), window._t('create.geoFailed'), 'error');
     }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
@@ -3137,7 +3137,7 @@ function setupCreateTournamentModal() {
               }, t.organizerEmail);
             }
           }
-          showNotification('Sucesso', 'Torneio atualizado!', 'success');
+          showNotification(window._t('draw.changesSaved'), window._t('create.tournamentUpdated'), 'success');
         } else {
           // Feature gate: limite de torneios no plano Free
           if (!window._canCreateTournament()) {
@@ -3145,7 +3145,7 @@ function setupCreateTournamentModal() {
             return;
           }
           window.AppStore.addTournament(tourData);
-          showNotification('Torneio Criado', `O torneio "${name}" foi salvo com sucesso.`, 'success');
+          showNotification(window._t('create.tournamentCreated'), window._t('create.tournamentCreatedMsg', {name: name}), 'success');
         }
 
         // Persiste no localStorage
@@ -3156,7 +3156,7 @@ function setupCreateTournamentModal() {
         if (_autoAssignTid && window._autoAssignCategories) {
           var _autoCount = window._autoAssignCategories(_autoAssignTid);
           if (_autoCount > 0) {
-            showNotification('Categorias Auto-atribuídas', _autoCount + ' participante' + (_autoCount > 1 ? 's foram atribuídos' : ' foi atribuído') + ' a categorias com base no perfil.', 'info');
+            showNotification(window._t('create.autoAssigned'), window._t('create.autoAssignedMsg', {n: _autoCount}), 'info');
           }
         }
 
@@ -3194,7 +3194,7 @@ function setupCreateTournamentModal() {
         }
       } catch (err) {
         console.error('Erro ao salvar torneio:', err);
-        showNotification('Erro', 'Falha ao salvar: ' + err.message, 'error');
+        showNotification(window._t('auth.error'), window._t('create.saveError', {msg: err.message}), 'error');
       }
     });
   }
@@ -3716,7 +3716,7 @@ window._gsmSaveConfig = function() {
   if (typeof window._gsmUpdateMainSummary === 'function') window._gsmUpdateMainSummary();
 
   if (typeof showNotification !== 'undefined') {
-    showNotification('Pontuação Configurada', 'Sistema de pontuação atualizado.', 'success');
+    showNotification(window._t('create.scoringConfigured'), window._t('create.scoringConfiguredMsg'), 'success');
   }
 };
 
@@ -3903,7 +3903,7 @@ window._applyTemplateInCreate = function(index) {
   var form = document.getElementById('form-create-tournament');
   if (form) form.reset();
   if (typeof window._prefillFromTemplate === 'function') window._prefillFromTemplate(tpl);
-  if (typeof showNotification === 'function') showNotification('Template aplicado', window._safeHtml(tpl.name), 'success');
+  if (typeof showNotification === 'function') showNotification(window._t('create.templateApplied'), window._safeHtml(tpl.name), 'success');
   setTimeout(function() {
     if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
   }, 100);
@@ -3911,7 +3911,7 @@ window._applyTemplateInCreate = function(index) {
 
 window._deleteTemplateInCreate = async function(templateId) {
   if (typeof window._deleteTemplate === 'function') await window._deleteTemplate(templateId);
-  if (typeof showNotification === 'function') showNotification('Template excluído', '', 'info');
+  if (typeof showNotification === 'function') showNotification(window._t('create.templateDeleted'), '', 'info');
   // Refresh picker
   var overlay = document.querySelector('.alert-dialog-overlay');
   if (overlay) overlay.remove();
