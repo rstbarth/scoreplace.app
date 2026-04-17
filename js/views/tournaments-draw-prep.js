@@ -2,6 +2,8 @@
 
 (function() {
 
+var _t = window._t || function(k) { return k; };
+
 // Helper: restore body scroll when any overlay panel is removed
 window._restoreBodyScroll = function() {
     document.body.style.overflow = '';
@@ -468,7 +470,7 @@ window._executeRemoval = function(tId, mode, method) {
         }).join(', ');
         var actionLabel = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s)';
         if (typeof showNotification !== 'undefined') {
-            showNotification('Ajuste realizado', removedNames + ' ' + actionLabel + '.', 'success');
+            showNotification(_t('draw.adjustDone'), removedNames + ' ' + actionLabel + '.', 'success');
         }
         // Update stat-boxes (inscritos count + waitlist) in the detail view
         if (typeof window._updateStatBoxes === 'function') {
@@ -923,7 +925,7 @@ window._handleIncompleteOption = function (tId, option) {
         window.AppStore.sync();
         var el = document.getElementById('incomplete-teams-panel');
         if (el) el.remove();
-        if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Aguardando novos inscritos para completar os times.', 'success');
+        if (typeof showNotification === 'function') showNotification(_t('draw.enrollReopenedTeams'), _t('draw.enrollReopenedTeamsMsg'), 'success');
         window.location.hash = '#tournaments/' + tId;
     } else if (option === 'lottery') {
         window.showLotteryIncompletePanel(tId);
@@ -1063,7 +1065,7 @@ window.showDissolveTeamsPanel = function (tId) {
 window._saveDissolveResolution = function (tId) {
     // Em um sistema real, aqui consolidaríamos as mudanças no state do torneio
     window.AppStore.logAction(tId, 'Times dissolvidos/realocados manualmente');
-    showNotification('Sucesso', 'Alterações salvas com sucesso.', 'success');
+    showNotification(_t('draw.changesSaved'), _t('draw.changesSavedMsg'), 'success');
     document.getElementById('dissolve-panel').remove();
     if (document.getElementById('incomplete-teams-panel')) document.getElementById('incomplete-teams-panel').remove();
     window.showPowerOf2Panel(tId);
@@ -1204,17 +1206,17 @@ window._resolveIncompleteTeams = function (tId, option) {
         overflow.forEach(p => t.standbyParticipants.push(p));
         const count = overflow.length;
         window.AppStore.logAction(tId, `${count} participante(s) sem time movido(s) para lista de espera (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification('Lista de Espera', `${count} participante(s) sem time foram movidos para a lista de espera.`, 'info');
+        if (typeof showNotification === 'function') showNotification(_t('draw.waitlist'), _t('draw.waitlistMsg', {count: count}), 'info');
     } else if (option === 'playin') {
         if (!Array.isArray(t.playinParticipants)) t.playinParticipants = [];
         overflow.forEach(p => t.playinParticipants.push(p));
         const count = overflow.length;
         window.AppStore.logAction(tId, `${count} participante(s) sem time movido(s) para repescagem (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification('Repescagem', `${count} participante(s) sem time disputarão vagas em repescagem.`, 'info');
+        if (typeof showNotification === 'function') showNotification(_t('draw.wildcard'), _t('draw.wildcardMsg', {count: count}), 'info');
     } else if (option === 'remove') {
         const count = overflow.length;
         window.AppStore.logAction(tId, `${count} participante(s) sem time removido(s) do torneio (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification('Participantes Removidos', `${count} participante(s) sem time foram removidos.`, 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('draw.removedTeamless'), _t('draw.removedTeamlessMsg', {count: count}), 'warning');
     }
 
     t.incompleteTeamResolved = true;
@@ -1265,7 +1267,7 @@ window._handleOddOption = function (tId, option) {
         window.AppStore.sync();
         var el = document.getElementById('odd-entries-panel');
         if (el) el.remove();
-        showNotification('Inscrições Reabertas', 'Aguardando mais 1 inscrito para paridade.', 'info');
+        showNotification(_t('draw.enrollReopenedParity'), _t('draw.enrollReopenedParityMsg'), 'info');
         var container = document.getElementById('view-container');
         if (container) renderTournaments(container, tId);
     } else if (option === 'bye_odd') {
@@ -1274,7 +1276,7 @@ window._handleOddOption = function (tId, option) {
         window.AppStore.sync();
         var el2 = document.getElementById('odd-entries-panel');
         if (el2) el2.remove();
-        showNotification('BYE Rotativo', 'A cada rodada, um ' + (isTeam ? 'time' : 'jogador') + ' terá BYE.', 'success');
+        showNotification(_t('draw.byeRotating'), _t('draw.byeRotatingMsg', {unit: isTeam ? _t('draw.team') : _t('draw.player')}), 'success');
         window.generateDrawFunction(tId);
     } else if (option === 'exclusion') {
         showConfirmDialog(
@@ -1289,7 +1291,7 @@ window._handleOddOption = function (tId, option) {
                 window.AppStore.sync();
                 var el3 = document.getElementById('odd-entries-panel');
                 if (el3) el3.remove();
-                showNotification('Participante Removido', removedName + ' foi removido. Total agora: ' + (oddInfo.count - 1) + '.', 'warning');
+                showNotification(_t('draw.participantRemoved'), _t('draw.participantRemovedMsg', {name: removedName, total: oddInfo.count - 1}), 'warning');
                 window.generateDrawFunction(tId);
             },
             null,
@@ -1362,7 +1364,7 @@ window._cancelPowerOf2Panel = function (tId) {
         window.AppStore.sync();
         const container = document.getElementById('view-container');
         if (container) renderTournaments(container, window.location.hash.split('/')[1]);
-        showNotification('Inscrições Restauradas', 'O status das inscrições foi restaurado.', 'info');
+        showNotification(_t('draw.enrollRestored'), _t('draw.enrollRestoredMsg'), 'info');
     }
 };
 
@@ -1514,7 +1516,7 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
             if (cb.checked) selectedOptions.push(cb.value);
         });
         if (selectedOptions.length < 2) {
-            if (typeof showNotification === 'function') showNotification('Erro', 'Selecione pelo menos 2 opções para a enquete.', 'error');
+            if (typeof showNotification === 'function') showNotification(_t('auth.error'), _t('draw.pollMinOptions'), 'error');
             return;
         }
         var hours = parseInt(document.getElementById('poll-deadline-hours').value) || 48;
@@ -1594,7 +1596,7 @@ window._showPollCreationDialog = function(tId, context, pollOptions) {
         overlay.remove();
         document.body.style.overflow = '';
         if (typeof showNotification === 'function') {
-            showNotification('Enquete Criada', 'Os participantes foram notificados para votar. Inscrições suspensas até o encerramento. Prazo: ' + hours + ' horas.', 'success');
+            showNotification(_t('draw.pollCreated'), _t('draw.pollCreatedMsg', {hours: hours}), 'success');
         }
 
         // Re-render tournament detail
@@ -1771,14 +1773,14 @@ window._castPollVote = function(tId, pollId, optionKey) {
     if (!poll || poll.status === 'closed') return;
     if (Date.now() > poll.deadline) {
         poll.status = 'closed';
-        if (typeof showNotification === 'function') showNotification('Enquete Encerrada', 'O prazo para votação já expirou.', 'info');
+        if (typeof showNotification === 'function') showNotification(_t('draw.pollClosed'), _t('draw.pollClosedMsg'), 'info');
         return;
     }
 
     var user = window.AppStore.currentUser;
     var userEmail = (user && user.email) ? user.email : '';
     if (!userEmail) {
-        if (typeof showNotification === 'function') showNotification('Erro', 'Faça login para votar.', 'error');
+        if (typeof showNotification === 'function') showNotification(_t('auth.error'), _t('draw.pollLoginRequired'), 'error');
         return;
     }
 
@@ -1790,7 +1792,7 @@ window._castPollVote = function(tId, pollId, optionKey) {
     });
     var isOrganizer = (userEmail === t.organizerEmail);
     if (!isParticipant && !isOrganizer) {
-        if (typeof showNotification === 'function') showNotification('Não Permitido', 'Apenas participantes inscritos podem votar na enquete.', 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('draw.pollNotAllowed'), _t('draw.pollNotAllowedMsg'), 'warning');
         return;
     }
 
@@ -1809,9 +1811,9 @@ window._castPollVote = function(tId, pollId, optionKey) {
 
     if (typeof showNotification === 'function') {
         if (previousVote && previousVote !== optionKey) {
-            showNotification('Voto Alterado', 'Seu voto foi atualizado para: ' + optTitle, 'success');
+            showNotification(_t('draw.voteChanged'), _t('draw.voteChangedMsg', {option: optTitle}), 'success');
         } else {
-            showNotification('Voto Registrado', 'Você votou em: ' + optTitle, 'success');
+            showNotification(_t('draw.voteRegistered'), _t('draw.voteRegisteredMsg', {option: optTitle}), 'success');
         }
     }
 
@@ -2030,7 +2032,7 @@ window._closePollEarly = function(tId, pollId) {
                     window.AppStore.sync();
                 }
                 if (typeof showNotification === 'function') {
-                    showNotification('Enquete Encerrada', 'Votação encerrada. Aplique o resultado para prosseguir.', 'info');
+                    showNotification(_t('draw.pollClosed'), _t('draw.pollClosedApply'), 'info');
                 }
                 window.location.hash = '#tournaments/' + tId;
             }
@@ -2095,7 +2097,7 @@ window._reopenPoll = function(tId, pollId) {
             }
 
             if (typeof showNotification === 'function') {
-                showNotification('Enquete Reaberta', 'Participantes notificados. Novo prazo: ' + hours + ' horas.', 'success');
+                showNotification(_t('draw.pollReopened'), _t('draw.pollReopenedMsg', {hours: hours}), 'success');
             }
             window.location.hash = '#tournaments/' + tId;
         });
@@ -2200,7 +2202,7 @@ window._handleP2Option = function (tId, option) {
                 window.AppStore.sync();
                 var p2Panel = document.getElementById('p2-resolution-panel');
                 if (p2Panel) p2Panel.remove();
-                showNotification('Participantes Removidos', removeCount + ' último(s) inscrito(s) removido(s). Chaveamento de ' + info.lo + '.', 'warning');
+                showNotification(_t('draw.removedBracket'), _t('draw.removedBracketMsg', {count: removeCount, bracket: info.lo}), 'warning');
                 // Continue draw
                 window.generateDrawFunction(tId);
             },
@@ -2305,7 +2307,7 @@ window._confirmReopen = function (tId, target) {
 
     const container = document.getElementById('view-container');
     if (container) renderTournaments(container, window.location.hash.split('/')[1]);
-    showNotification('Torneio Reaberto', checked ? `Inscrições abertas até ${target} participantes (encerramento automático).` : 'Aguardando novas inscrições.', 'info');
+    showNotification(_t('draw.tournamentReopened'), checked ? _t('draw.reopenedAutoClose', {target: target}) : _t('draw.reopenedWaiting'), 'info');
 };
 
 // ─── Encerrar Torneio (manual) ───
@@ -2313,7 +2315,7 @@ window.finishTournament = function(tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
     if (t.status === 'finished') {
-        showNotification('Já encerrado', 'Este torneio já está encerrado.', 'info');
+        showNotification(_t('draw.alreadyClosed'), _t('draw.alreadyClosedMsg'), 'info');
         return;
     }
     const hasResults = (Array.isArray(t.matches) && t.matches.some(function(m) { return !!m.winner; })) ||
@@ -2337,10 +2339,9 @@ window.finishTournament = function(tId) {
             window.AppStore.sync();
             // Notify all participants
             if (typeof window._notifyTournamentParticipants === 'function') {
-                var _tFnFin = window._t || function(k) { return k; };
                 window._notifyTournamentParticipants(t, {
                     type: 'tournament_finished',
-                    message: _tFnFin('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
+                    message: _t('notif.tournamentFinished').replace('{name}', t.name || 'Torneio'),
                     tournamentName: t.name || '',
                     level: 'important'
                 }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
@@ -2367,7 +2368,7 @@ window.toggleRegistrationStatus = function (tId) {
             }).catch(function(err) {
                 console.error('[toggleRegistrationStatus] save error:', err);
                 if (callback) callback();
-                if (typeof showNotification === 'function') showNotification('Aviso', 'Salvo localmente. Pode demorar a sincronizar.', 'warning');
+                if (typeof showNotification === 'function') showNotification(_t('draw.savedLocally'), _t('draw.savedLocallyMsg'), 'warning');
             });
         } else {
             try { window.AppStore.sync(); } catch(e) { console.error('sync error:', e); }
@@ -2408,16 +2409,15 @@ window.toggleRegistrationStatus = function (tId) {
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
             // Notify participants about reopened enrollments
             if (typeof window._notifyTournamentParticipants === 'function') {
-                var _tFnReopen = window._t || function(k) { return k; };
-                window._notifyTournamentParticipants(t, {
+                    window._notifyTournamentParticipants(t, {
                     type: 'enrollments_reopened',
-                    message: _tFnReopen('notif.enrollmentsReopened').replace('{name}', t.name || 'Torneio'),
+                    message: _t('notif.enrollmentsReopened').replace('{name}', t.name || 'Torneio'),
                     level: 'important'
                 }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
             }
             _saveTournament(function() {
                 _refreshView();
-                if (typeof showNotification === 'function') showNotification('Inscrições Reabertas', 'Novas inscrições podem ser feitas.', 'info');
+                if (typeof showNotification === 'function') showNotification(_t('draw.enrollReopened'), _t('draw.enrollReopenedMsg'), 'info');
             });
         });
         return;
@@ -2471,16 +2471,15 @@ window.toggleRegistrationStatus = function (tId) {
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
         // Notify participants about closed enrollments
         if (typeof window._notifyTournamentParticipants === 'function') {
-            var _tFnClose = window._t || function(k) { return k; };
             window._notifyTournamentParticipants(t, {
                 type: 'enrollments_closed',
-                message: _tFnClose('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                message: _t('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
                 level: 'important'
             }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
         }
         _saveTournament(function() {
             _refreshView();
-            if (typeof showNotification === 'function') showNotification('Inscrições Encerradas', 'O torneio foi fechado para novas inscrições.', 'success');
+            if (typeof showNotification === 'function') showNotification(_t('draw.enrollClosed'), _t('draw.enrollClosedMsg'), 'success');
         });
     });
 };
@@ -2494,10 +2493,9 @@ window._handleClosureOption = function (tId, option) {
         window.AppStore.logAction(tId, 'Inscrições Encerradas manualmente');
         // Notify participants about closed enrollments
         if (typeof window._notifyTournamentParticipants === 'function') {
-            var _tFnClose2 = window._t || function(k) { return k; };
             window._notifyTournamentParticipants(t, {
                 type: 'enrollments_closed',
-                message: _tFnClose2('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
+                message: _t('notif.enrollmentsClosed').replace('{name}', t.name || 'Torneio'),
                 level: 'important'
             }, window.AppStore.currentUser ? window.AppStore.currentUser.email : null);
         }
