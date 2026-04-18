@@ -67,7 +67,9 @@ try {
 // link operations just like the popup flow does.
 if (firebase && firebase.auth) {
   try {
+    console.log('[scoreplace-auth] Checking getRedirectResult on page load...');
     firebase.auth().getRedirectResult().then(function(result) {
+      console.log('[scoreplace-auth] getRedirectResult:', result && result.user ? { uid: result.user.uid, email: result.user.email } : 'no user');
       if (!result || !result.user) return;
       var user = result.user;
       try {
@@ -79,13 +81,31 @@ if (firebase && firebase.auth) {
         window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
       }
       try { _tryLinkPendingCredential(result); } catch(e) {}
-      var credential = result.credential;
-      if (credential && credential.accessToken) {
-        try { _fetchGoogleDemographics(credential.accessToken, user.uid || user.email); } catch(e) {}
+
+      // Explicitly drive the login flow from the redirect callback
+      // instead of relying solely on onAuthStateChanged. On iOS Safari and
+      // iOS Chrome (which uses WebKit), ITP + 3rd-party cookie blocking
+      // against the cross-origin authDomain (firebaseapp.com) can prevent
+      // onAuthStateChanged from firing after a redirect. The
+      // _simulateLoginInProgress guard makes this safe if both fire.
+      try {
+        localStorage.setItem('scoreplace_authCache', JSON.stringify({
+          uid: user.uid, email: user.email,
+          displayName: user.displayName, photoURL: user.photoURL
+        }));
+      } catch(e) {}
+      console.log('[scoreplace-auth] Calling simulateLoginSuccess directly from getRedirectResult');
+      if (typeof simulateLoginSuccess === 'function') {
+        simulateLoginSuccess({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        });
       }
     }).catch(function(error) {
       if (!error || !error.code) return;
-      console.warn('getRedirectResult error:', error);
+      console.warn('[scoreplace-auth] getRedirectResult error:', error);
       if (error.code === 'auth/account-exists-with-different-credential') {
         _handleAccountLinking(error, 'Google');
       } else if (error.code !== 'auth/credential-already-in-use' && error.code !== 'auth/no-auth-event') {
