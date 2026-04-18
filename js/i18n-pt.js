@@ -841,7 +841,7 @@ window._translations['pt'] = {
   'bui.tooFewAdvanceMsg': 'Precisa de pelo menos 2 classificados para a eliminatória.',
 
   // Invite to app (general QR in dashboard hero)
-  'invite.inviteFriends': 'Convidar amigos',
+  'invite.inviteFriends': 'Convidar',
   'invite.appQrTitle': 'Convidar para o scoreplace.app',
   'invite.appQrDesc': 'Escaneie o QR code para entrar no app',
   'invite.copyLink': 'Copiar Link',

@@ -841,7 +841,7 @@ window._translations['en'] = {
   'bui.tooFewAdvanceMsg': 'At least 2 qualified players are needed for the elimination stage.',
 
   // Invite to app (general QR in dashboard hero)
-  'invite.inviteFriends': 'Invite friends',
+  'invite.inviteFriends': 'Invite',
   'invite.appQrTitle': 'Invite to scoreplace.app',
   'invite.appQrDesc': 'Scan the QR code to join the app',
   'invite.copyLink': 'Copy Link',
