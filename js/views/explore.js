@@ -38,9 +38,9 @@ function renderExplore(container) {
       '<div id="explore-conhecidos"></div>' +
 
       // Search bar
-      '<div style="display: flex; gap: 10px; margin-bottom: 1.25rem;">' +
+      '<div style="display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center;">' +
         '<input type="text" id="explore-search-input" class="form-control" placeholder="' + _t('explore.searchPlaceholder') + '" style="flex: 1; box-sizing: border-box;">' +
-        '<button class="btn btn-primary" id="explore-search-btn">' + _t('explore.search') + '</button>' +
+        '<button class="btn btn-outline btn-sm" id="explore-search-btn" style="padding: 8px 14px; white-space: nowrap;">🔍 ' + _t('explore.search') + '</button>' +
       '</div>' +
 
       // Non-friend, non-conhecido results
@@ -451,16 +451,25 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
 }
 
 function _sortConhecidosArray(arr, mode) {
-  if (mode === 'alpha') {
+  // Backward-compat legacy modes
+  if (mode === 'alpha') mode = 'alpha-asc';
+  else if (mode === 'oldest') mode = 'date-asc';
+  else if (mode === 'recent') mode = 'date-desc';
+
+  if (mode === 'alpha-asc') {
     arr.sort(function(a, b) {
       return (a.displayName || '').localeCompare(b.displayName || '', 'pt-BR', { sensitivity: 'base' });
     });
-  } else if (mode === 'oldest') {
+  } else if (mode === 'alpha-desc') {
+    arr.sort(function(a, b) {
+      return (b.displayName || '').localeCompare(a.displayName || '', 'pt-BR', { sensitivity: 'base' });
+    });
+  } else if (mode === 'date-asc') {
     arr.sort(function(a, b) {
       return (a.latestTs || a._latestTs || 0) - (b.latestTs || b._latestTs || 0);
     });
   } else {
-    // 'recent' — reverse chronological by latest shared tournament
+    // 'date-desc' — reverse chronological by latest shared tournament
     arr.sort(function(a, b) {
       var tb = b.latestTs || b._latestTs || 0;
       var ta = a.latestTs || a._latestTs || 0;
@@ -470,6 +479,34 @@ function _sortConhecidosArray(arr, mode) {
   }
 }
 
+window._toggleConhecidosSort = function(dimension) {
+  var current = window._conhecidosSortMode || 'date-desc';
+  // Normalize legacy modes
+  if (current === 'alpha') current = 'alpha-asc';
+  else if (current === 'oldest') current = 'date-asc';
+  else if (current === 'recent') current = 'date-desc';
+
+  var parts = current.split('-');
+  var currentDim = parts[0];
+  var currentDir = parts[1] || 'desc';
+
+  var newMode;
+  if (currentDim === dimension) {
+    // Toggle direction
+    newMode = dimension + '-' + (currentDir === 'asc' ? 'desc' : 'asc');
+  } else {
+    // Switch dimension with its natural default direction
+    newMode = dimension + '-' + (dimension === 'date' ? 'desc' : 'asc');
+  }
+  window._conhecidosSortMode = newMode;
+  var div = document.getElementById('explore-conhecidos');
+  var profiles = window._conhecidosProfiles;
+  if (!div || !profiles) return;
+  _sortConhecidosArray(profiles, newMode);
+  _renderConhecidosCards(div, profiles);
+};
+
+// Keep legacy entry point for any external callers
 window._setConhecidosSort = function(mode) {
   window._conhecidosSortMode = mode;
   var div = document.getElementById('explore-conhecidos');
@@ -482,23 +519,35 @@ window._setConhecidosSort = function(mode) {
 function _renderConhecidosCards(div, profiles) {
   var mySent = (window.AppStore.currentUser && window.AppStore.currentUser.friendRequestsSent) || [];
   var myReceived = (window.AppStore.currentUser && window.AppStore.currentUser.friendRequestsReceived) || [];
-  var sortMode = window._conhecidosSortMode || 'recent';
+  var sortMode = window._conhecidosSortMode || 'date-desc';
+  // Normalize legacy modes
+  if (sortMode === 'alpha') sortMode = 'alpha-asc';
+  else if (sortMode === 'oldest') sortMode = 'date-asc';
+  else if (sortMode === 'recent') sortMode = 'date-desc';
+
+  var _sortParts = sortMode.split('-');
+  var _sortDim = _sortParts[0];
+  var _sortDir = _sortParts[1] || 'desc';
 
   var _tLocal = window._t || function(k){return k;};
-  var sortRecentLabel = _tLocal('explore.sortRecent');
-  if (sortRecentLabel === 'explore.sortRecent') sortRecentLabel = 'Recentes';
-  var sortOldestLabel = _tLocal('explore.sortOldest');
-  if (sortOldestLabel === 'explore.sortOldest') sortOldestLabel = 'Antigos';
+  var sortDateLabel = _tLocal('explore.sortDate');
+  if (sortDateLabel === 'explore.sortDate') sortDateLabel = 'Data';
   var sortAlphaLabel = _tLocal('explore.sortAlpha');
   if (sortAlphaLabel === 'explore.sortAlpha') sortAlphaLabel = 'A–Z';
 
-  function sortBtn(mode, label) {
-    var active = sortMode === mode;
-    var style = 'padding:4px 10px;border-radius:14px;font-size:0.72rem;font-weight:600;border:1px solid ' +
+  function sortToggleBtn(dimension, label) {
+    var active = _sortDim === dimension;
+    var arrow = '';
+    if (active) {
+      arrow = _sortDir === 'asc' ? ' ↑' : ' ↓';
+    } else {
+      arrow = ' ⇅';
+    }
+    var style = 'padding:5px 11px;border-radius:14px;font-size:0.72rem;font-weight:600;border:1px solid ' +
       (active ? '#f59e0b' : 'rgba(245,158,11,0.3)') + ';background:' +
       (active ? 'rgba(245,158,11,0.25)' : 'transparent') + ';color:' +
-      (active ? '#fbbf24' : 'var(--text-muted)') + ';cursor:pointer;';
-    return '<button onclick="window._setConhecidosSort(\'' + mode + '\')" style="' + style + '">' + label + '</button>';
+      (active ? '#fbbf24' : 'var(--text-muted)') + ';cursor:pointer;display:inline-flex;align-items:center;gap:2px;';
+    return '<button onclick="window._toggleConhecidosSort(\'' + dimension + '\')" style="' + style + '" title="' + label + '">' + label + arrow + '</button>';
   }
 
   var acquaintancesLabel = _tLocal('explore.acquaintances');
@@ -508,9 +557,8 @@ function _renderConhecidosCards(div, profiles) {
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:0.75rem;">' +
       '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">' + acquaintancesLabel + ' (' + profiles.length + ')</div>' +
       '<div style="display:flex;gap:6px;">' +
-        sortBtn('recent', '↓ ' + sortRecentLabel) +
-        sortBtn('oldest', '↑ ' + sortOldestLabel) +
-        sortBtn('alpha', sortAlphaLabel) +
+        sortToggleBtn('date', '📅 ' + sortDateLabel) +
+        sortToggleBtn('alpha', sortAlphaLabel) +
       '</div>' +
     '</div>' +
     '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
