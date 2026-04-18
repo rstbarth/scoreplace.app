@@ -264,11 +264,42 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
 
     // Helpers to build legacy AppStore-based stats (fallback when uid unknown or matchHistory empty)
     function _buildLegacyStatsHtml(s, sp, wr, tList) {
-        // Read localStorage casual history — only meaningful when viewing current user's stats
+        // When viewing current user's stats, prefer the local rich cache
+        // (scoreplace_casual_history_v2) written by bracket-ui._buildAndPersistMatchRecord.
+        // That cache stores the full record schema (stats.team1/team2, playerStats,
+        // timeStats, durationMs, players[].uid) so we can run the same detailed
+        // aggregation used by the Firestore matchHistory path.
+        var cu = window.AppStore && window.AppStore.currentUser;
+        var isCurrentUser = cu && cu.displayName && String(cu.displayName).toLowerCase().trim() === String(playerName).toLowerCase().trim();
+        if (isCurrentUser && typeof window._renderPersistentMatchStats === 'function') {
+            try {
+                var v2 = JSON.parse(localStorage.getItem('scoreplace_casual_history_v2') || '[]');
+                if (Array.isArray(v2) && v2.length > 0) {
+                    // Seed records with current user's uid/name so _renderPersistentMatchStats
+                    // can find "my slot" even when the saved player entry had no uid.
+                    var myUid = cu.uid || null;
+                    var myDn = (cu.displayName || '').toLowerCase().trim();
+                    var seeded = v2.map(function(r) {
+                        var rc = Object.assign({}, r);
+                        rc.players = (r.players || []).map(function(p) {
+                            var cp = Object.assign({}, p);
+                            if (!cp.uid && cp.name && String(cp.name).toLowerCase().trim() === myDn) {
+                                cp.uid = myUid;
+                            }
+                            return cp;
+                        });
+                        return rc;
+                    });
+                    // _renderPersistentMatchStats filters by uid — only renders matches
+                    // where current user is found. That's exactly what we want.
+                    return window._renderPersistentMatchStats(seeded, myUid);
+                }
+            } catch(e) {}
+        }
+
+        // Read localStorage casual history (legacy minimal format) — only for V/D/% fallback
         var cStats = { matches:0, wins:0, losses:0, draws:0 };
         try {
-            var cu = window.AppStore && window.AppStore.currentUser;
-            var isCurrentUser = cu && cu.displayName && String(cu.displayName).toLowerCase().trim() === String(playerName).toLowerCase().trim();
             if (isCurrentUser) {
                 var casualHist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
                 cStats.matches = casualHist.length;
@@ -351,14 +382,48 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
     // Load persistent per-user matchHistory — primary data source, survives deletion
     if (resolvedUid && window.FirestoreDB && typeof window.FirestoreDB.loadUserMatchHistory === 'function') {
         var slot = modal.querySelector('#player-stats-persistent');
+        // Merge Firestore records with localStorage v2 casual cache so the hero-box
+        // always shows the full detailed metric set for casual matches — even if
+        // the Firestore write failed (permission, offline, no uid at save time).
+        function _mergeLocalCasualV2(firestoreRecs) {
+            var curUser = window.AppStore && window.AppStore.currentUser;
+            var viewingSelf = curUser && curUser.displayName && String(curUser.displayName).toLowerCase().trim() === String(playerName).toLowerCase().trim();
+            if (!viewingSelf) return firestoreRecs || [];
+            var merged = (firestoreRecs || []).slice();
+            try {
+                var v2 = JSON.parse(localStorage.getItem('scoreplace_casual_history_v2') || '[]');
+                if (Array.isArray(v2) && v2.length > 0) {
+                    var seen = {};
+                    for (var i = 0; i < merged.length; i++) { if (merged[i] && merged[i].matchId) seen[merged[i].matchId] = 1; }
+                    var myUid = curUser.uid || null;
+                    var myDn = (curUser.displayName || '').toLowerCase().trim();
+                    for (var j = 0; j < v2.length; j++) {
+                        var r = v2[j];
+                        if (!r || (r.matchId && seen[r.matchId])) continue;
+                        // Ensure my uid is present so _renderPersistentMatchStats can locate me.
+                        var seeded = Object.assign({}, r);
+                        seeded.players = (r.players || []).map(function(p) {
+                            var cp = Object.assign({}, p);
+                            if (!cp.uid && cp.name && String(cp.name).toLowerCase().trim() === myDn) {
+                                cp.uid = myUid;
+                            }
+                            return cp;
+                        });
+                        merged.push(seeded);
+                    }
+                }
+            } catch(e) {}
+            return merged;
+        }
         window.FirestoreDB.loadUserMatchHistory(resolvedUid).then(function(records) {
             if (!slot) return;
-            if (!records || !records.length) {
-                // Fall back to AppStore legacy stats if matchHistory empty
+            var merged = _mergeLocalCasualV2(records || []);
+            if (!merged.length) {
+                // Fall back to AppStore legacy stats if no records at all
                 slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
                 return;
             }
-            slot.innerHTML = window._renderPersistentMatchStats(records, resolvedUid);
+            slot.innerHTML = window._renderPersistentMatchStats(merged, resolvedUid);
         }).catch(function(e) {
             console.warn('[player-stats] loadUserMatchHistory failed', e);
             if (slot) slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);

@@ -2418,6 +2418,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var p = window.FirestoreDB.saveUserMatchRecords(record);
       if (p && typeof p.catch === 'function') p.catch(function(){});
     } catch(e) {}
+    // Mirror casual records into localStorage so the hero-box "Minhas
+    // estatísticas" view can render the full detailed metric set even when
+    // Firestore matchHistory is unavailable (no uid, permission denied,
+    // offline). Same schema as Firestore records — consumed by
+    // _renderPersistentMatchStats in tournaments-analytics.js.
+    if (record.matchType === 'casual') {
+      try {
+        var histKey = 'scoreplace_casual_history_v2';
+        var hist2 = JSON.parse(localStorage.getItem(histKey) || '[]');
+        hist2.unshift(record);
+        if (hist2.length > 100) hist2 = hist2.slice(0, 100);
+        localStorage.setItem(histKey, JSON.stringify(hist2));
+      } catch(e) {}
+    }
   }
 
   // Save result to match
