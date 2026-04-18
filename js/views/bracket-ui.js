@@ -5829,6 +5829,36 @@ window._renderCasualJoin = function(container, roomCode) {
       '</div>' +
     '</div>';
 
+  // Wait for Firebase Auth to rehydrate before deciding "logged-in vs anon".
+  // On Safari/iOS the IndexedDB-backed auth state can take several hundred ms
+  // to restore after a cold page load. Without this wait, an already-logged-in
+  // user who opens a #casual/CODE link sees the "login to join" screen and is
+  // sent through a fresh Google OAuth flow (including 2FA) for no reason.
+  var _cuNow = window.AppStore && window.AppStore.currentUser;
+  var _isLoggedInNow = !!(_cuNow && _cuNow.uid);
+  var _hasAuthCache = false;
+  try { _hasAuthCache = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
+  if (!_isLoggedInNow && _hasAuthCache && !window._authStateResolved) {
+    var _waited = 0;
+    var _tick = function() {
+      var cuLater = window.AppStore && window.AppStore.currentUser;
+      if (window._authStateResolved || (cuLater && cuLater.uid)) {
+        window._renderCasualJoin(container, roomCode);
+        return;
+      }
+      _waited += 200;
+      if (_waited >= 6000) {
+        // Timeout — fall through and render whatever we have (likely login screen)
+        window._authStateResolved = true;
+        window._renderCasualJoin(container, roomCode);
+        return;
+      }
+      setTimeout(_tick, 200);
+    };
+    setTimeout(_tick, 200);
+    return;
+  }
+
   if (typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.db) {
     container.innerHTML =
       '<div style="text-align:center;padding:3rem 1rem;">' +
