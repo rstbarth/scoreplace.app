@@ -1782,9 +1782,28 @@ window._openLiveScoring = function(tId, matchId, opts) {
   })();
 
   // Helper: build small avatar HTML for a player name (from metadata)
+  // Falls back to first-name and substring matches so display names like
+  // "Maria" still find metadata stored under "Maria Silva".
   function _liveAvatarHtml(name, size) {
     var sz = size || 28;
     var meta = _playerMeta[name];
+    if (!meta || !meta.photoURL) {
+      // Try first-name / substring fallback
+      var firstName = (name || '').split(' ')[0].toLowerCase();
+      var lowerName = (name || '').toLowerCase();
+      var keys = Object.keys(_playerMeta);
+      for (var ki = 0; ki < keys.length; ki++) {
+        var k = keys[ki];
+        var mm = _playerMeta[k];
+        if (!mm || !mm.photoURL) continue;
+        var kLower = k.toLowerCase();
+        var kFirst = kLower.split(' ')[0];
+        if (kFirst === firstName || kLower === lowerName || kLower.indexOf(lowerName) === 0 || lowerName.indexOf(kFirst) === 0) {
+          meta = mm;
+          break;
+        }
+      }
+    }
     if (meta && meta.photoURL) {
       return '<img src="' + window._safeHtml(meta.photoURL) + '" style="width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
         '<div style="display:none;width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:' + (sz * 0.45) + 'px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((name || 'J')[0].toUpperCase()) + '</div>';
@@ -3498,7 +3517,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var pn = players[ni];
         var isServing = serverInfo && !state.isFinished && serverInfo.team === team && serverInfo.name === pn;
         var fullName = window._safeHtml(pn);
-        var avatar = _liveAvatarHtml(pn, 26);
+        var avatar = _liveAvatarHtml(pn, 30);
 
         // Serve ball: shown for the current server. Draggable when serve can still be changed.
         var servBall = '';
@@ -3516,10 +3535,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var dropAttr = _canDragServe ? ' data-serve-drop="' + team + '-' + ni + '"' : '';
 
         // Individual player box
-        cards += '<div' + dropAttr + ' onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform 0.15s,background 0.15s;">' +
+        cards += '<div' + dropAttr + ' onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform 0.15s,background 0.15s;min-width:0;">' +
           servBall +
           avatar +
-          '<span style="font-size:clamp(0.75rem,2.5vw,0.92rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:nowrap;">' + fullName + '</span>' +
+          '<span style="flex:1;min-width:0;font-size:clamp(0.72rem,2.2vw,0.88rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;">' + fullName + '</span>' +
         '</div>';
       }
       // Team box wrapping all players
@@ -3636,27 +3655,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;gap:0;padding:0;">' +
           // Sets row
           setsRow +
+          // Games box — ABOVE the plates to keep score numbers bigger
+          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(2px,0.6vh,6px);">' + lsGamesCenter + '</div>' : '') +
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.6rem,1.5vw,0.75rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(2px,0.5vh,6px);">' + gameLabel + '</div>' : '') +
-          // Main row — 5 columns with constrained widths
-          '<div style="display:flex;align-items:center;width:100%;gap:clamp(4px,0.8vw,8px);justify-content:center;padding:0 6px;">' +
+          // Main row — 4 columns: [Names+Btns Left] [Plate Left] [Plate Right] [Names+Btns Right]
+          '<div style="display:flex;align-items:center;width:100%;gap:clamp(6px,1vw,10px);justify-content:center;padding:0 6px;">' +
             // Left column: names + buttons stacked
-            '<div style="flex:0 1 auto;min-width:0;max-width:22vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
+            '<div style="flex:0 1 auto;min-width:0;max-width:24vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
               _buildNameStack(leftTeam) +
               _lsBtns(leftTeam) +
             '</div>' +
             // Left plate
-            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:28vw;">' +
+            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:32vw;">' +
               _lsPlate(leftTeam) +
             '</div>' +
-            // Games center
-            (showGamesBox ? lsGamesCenter : '<div style="width:clamp(4px,1vw,10px);"></div>') +
             // Right plate
-            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:28vw;">' +
+            '<div style="flex:1;display:flex;align-items:center;justify-content:center;max-width:32vw;">' +
               _lsPlate(rightTeam) +
             '</div>' +
             // Right column: names + buttons stacked
-            '<div style="flex:0 1 auto;min-width:0;max-width:22vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
+            '<div style="flex:0 1 auto;min-width:0;max-width:24vw;display:flex;flex-direction:column;align-items:stretch;gap:3px;">' +
               _buildNameStack(rightTeam) +
               _lsBtns(rightTeam) +
             '</div>' +
@@ -4188,11 +4207,41 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   document.body.appendChild(overlay);
 
+  // ── Screen Wake Lock ──
+  // Keep screen on while live scoring is open so the device doesn't sleep
+  // mid-match. Silent no-op on browsers without Wake Lock support.
+  var _wakeLock = null;
+  var _requestWakeLock = function() {
+    try {
+      if ('wakeLock' in navigator && !_wakeLock) {
+        navigator.wakeLock.request('screen').then(function(lock) {
+          _wakeLock = lock;
+          lock.addEventListener('release', function() { _wakeLock = null; });
+        }).catch(function() {});
+      }
+    } catch(e) {}
+  };
+  var _releaseWakeLock = function() {
+    try {
+      if (_wakeLock) { _wakeLock.release().catch(function(){}); _wakeLock = null; }
+    } catch(e) { _wakeLock = null; }
+  };
+  // Re-acquire on visibility change (browsers auto-release when tab hidden)
+  var _onVisibility = function() {
+    if (document.visibilityState === 'visible' && document.getElementById('live-scoring-overlay')) {
+      _requestWakeLock();
+    }
+  };
+  document.addEventListener('visibilitychange', _onVisibility);
+  _requestWakeLock();
+
   // Close handler — always confirms before leaving
   window._closeLiveScoring = function() {
     var _cleanup = function() {
       if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
       window.removeEventListener('resize', _onResize);
+      document.removeEventListener('visibilitychange', _onVisibility);
+      _releaseWakeLock();
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
     };
@@ -5633,13 +5682,62 @@ window._renderCasualJoin = function(container, roomCode) {
     var isLoggedIn = !!(cu && cu.uid);
     var _lobbyInterval = null;
 
+    // Remember that we want to auto-join this casual match after login
+    if (!isLoggedIn) {
+      try { sessionStorage.setItem('_pendingCasualRoom', roomCode); } catch(e) {}
+    }
+
     function _renderLobby() {
       var myUid = isLoggedIn ? cu.uid : null;
       var alreadyJoined = myUid && participants.some(function(p) { return p.uid === myUid; });
       var isCreator = myUid && match.createdBy === myUid;
       var totalNeeded = match.isDoubles ? 4 : 2;
 
-      var html =
+      var html;
+      if (!isLoggedIn) {
+        // Elegant login-first screen: minimal header + login buttons at top.
+        // All sign-in methods (Google, email/password, magic link, SMS) via modal-login.
+        html =
+          '<div style="max-width:440px;margin:0 auto;padding:1.5rem 1rem;">' +
+            // Elegant minimal header — just sport + creator, no giant icons
+            '<div style="text-align:center;padding:1rem 0 1.25rem;border-bottom:1px solid var(--border-color, rgba(255,255,255,0.08));margin-bottom:1.25rem;">' +
+              '<div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;">' + _t('casual.title') + '</div>' +
+              '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);margin-top:4px;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>' +
+            '</div>' +
+            // Login card at the top
+            '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:14px;padding:1.25rem 1rem;text-align:center;">' +
+              '<div style="font-size:1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.35rem;">' + _t('casual.loginToJoin') + '</div>' +
+              '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">' + _t('casual.loginToJoinMsg') + '</div>' +
+              '<button class="btn btn-primary" style="width:100%;margin-bottom:8px;font-weight:700;" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\');">' +
+                '🔐 ' + _t('casual.loginBtn') +
+              '</button>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.5rem;">' + _t('casual.loginMethodsHint') + '</div>' +
+            '</div>' +
+            // Participants preview below login, subdued
+            '<div style="margin-top:1.5rem;opacity:0.75;">' +
+              '<div style="font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">' +
+                _t('casual.playersInRoom', {count: participants.length, total: totalNeeded}) +
+              '</div>';
+        for (var li = 0; li < participants.length; li++) {
+          var lpp = participants[li];
+          var lAvH = lpp.photoURL ?
+            '<img src="' + _safe(lpp.photoURL) + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+            '<div style="display:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:0.75rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((lpp.displayName || 'J')[0].toUpperCase()) + '</div>' :
+            '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((lpp.displayName || 'J')[0].toUpperCase()) + '</div>';
+          html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:3px;">' +
+            lAvH +
+            '<span style="font-size:0.8rem;color:var(--text-bright);">' + _safe(lpp.displayName || _t('casual.playerFallback')) + '</span>' +
+          '</div>';
+        }
+        html += '</div>' +
+          '<button class="btn btn-ghost" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;width:100%;">← ' + _t('casual.backDashboard') + '</button>' +
+        '</div>';
+        container.innerHTML = html;
+        return;
+      }
+
+      html =
         '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
           '<div style="font-size:2.5rem;margin-bottom:0.5rem;">📡</div>' +
           '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">' + _t('casual.title') + '</div>' +
@@ -5722,13 +5820,7 @@ window._renderCasualJoin = function(container, roomCode) {
       }
 
       // Status messages
-      if (!isLoggedIn) {
-        html += '<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:1rem;margin-bottom:1rem;">' +
-          '<div style="font-size:0.85rem;color:#fbbf24;font-weight:600;margin-bottom:0.3rem;">' + _t('casual.loginToJoin') + '</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);">' + _t('casual.loginToJoinMsg') + '</div>' +
-          '<button class="btn btn-primary" onclick="if(typeof handleGoogleLogin===\'function\')handleGoogleLogin();" style="margin-top:0.6rem;">' + _t('casual.loginBtn') + '</button>' +
-        '</div>';
-      } else if (alreadyJoined) {
+      if (alreadyJoined) {
         html += '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">' +
           '<div style="font-size:1.3rem;">✅</div>' +
           '<div>' +

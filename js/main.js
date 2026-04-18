@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Estatísticas do usuário reescritas</b> — Tela de estatísticas no perfil adota o padrão visual do pós-jogo da partida casual: cards <code>_boxStat</code> com ícone + valor em cor de destaque + label pequeno uppercase. Grade principal expandida (Partidas, Vitórias, Derrotas, Aproveitamento, Títulos, Torneios) com códigos de cor por faixa de aproveitamento. Seções detalhadas (Casual 📡 e Torneio 🏆) agora com ícones em cada métrica (saque 🚀, recepção 🛡, killer ⚡, quebras 💥, sequência 🔥, vantagem 📈). Nova seção comparativa "⚖ Casual vs Torneio" com barras lado a lado (partidas, vitórias, aproveitamento, % saque, % recepção) usando o mesmo padrão <code>_compareBar</code> da tela de comparação de times. Dados vêm do <code>matchHistory</code> persistente por usuário no Firestore — sobrevive à exclusão do torneio ou partida casual de origem.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.10.68-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Arrastar e soltar em toda a partida casual</b> — Ordem de saque: arraste cards para reordenar (desktop + touch). Formar times: arraste um jogador sobre outro → "Formar time?" → os 2 restantes formam o outro time automaticamente. Botão "Refazer times" para recomeçar. Nome completo do perfil em todas as telas.</p>' +
         '</div>' +

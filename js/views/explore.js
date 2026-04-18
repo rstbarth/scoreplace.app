@@ -352,12 +352,19 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
         if (!key) return;
 
         if (!conhecidosMap[key]) {
-          conhecidosMap[key] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [] };
+          conhecidosMap[key] = { email: email, displayName: name, sharedCount: 0, tournamentNames: [], latestTs: 0 };
         }
         conhecidosMap[key].sharedCount++;
         if (t.name && conhecidosMap[key].tournamentNames.length < 3) {
           conhecidosMap[key].tournamentNames.push(t.name);
         }
+        var ts = 0;
+        var rawDate = t.startDate || t.createdAt || t.updatedAt;
+        if (rawDate) {
+          var parsed = new Date(rawDate).getTime();
+          if (!isNaN(parsed)) ts = parsed;
+        }
+        if (ts > conhecidosMap[key].latestTs) conhecidosMap[key].latestTs = ts;
       });
     });
   });
@@ -392,8 +399,9 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     if (c.displayName) window._conhecidosEmails.push(c.displayName);
   });
 
-  // Sort by shared tournament count (most interaction first)
-  conhecidos.sort(function(a, b) { return b.sharedCount - a.sharedCount; });
+  // Default sort: reverse chronological (most recent shared tournament first)
+  var sortMode = window._conhecidosSortMode || 'recent';
+  _sortConhecidosArray(conhecidos, sortMode);
 
   if (conhecidos.length === 0) {
     div.innerHTML = '';
@@ -431,62 +439,141 @@ function _renderConhecidos(myUid, myFriends, mySent, myReceived) {
     profiles = profiles.filter(function(p) { return p; });
     if (profiles.length === 0) { div.innerHTML = ''; return; }
 
-    // Re-sort after profile loading
-    profiles.sort(function(a, b) { return (b._sharedCount || 0) - (a._sharedCount || 0); });
-
-    var html = '<div style="margin-bottom: 1.5rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.acquaintances') + ' (' + profiles.length + ')</div>' +
-      '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
-
-    var _tLocal = window._t || function(k){return k;};
-    profiles.forEach(function(u) {
-      var uid = u._docId || u.email;
-      var isSent = mySent.indexOf(uid) !== -1;
-      var isReceived = myReceived.indexOf(uid) !== -1;
-
-      // Info line: shared tournaments
-      var sharedText = (u._sharedCount || 0) + ' ' + _tLocal('explore.sharedTournaments');
-      u._extraInfo = sharedText;
-
-      var safeUidConhecido = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var actionBtn = '';
-      if (isSent) {
-        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
-      } else if (isReceived) {
-        actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
-        '</div>';
-      } else {
-        // Check if user accepts friend requests
-        var canInvite = u.acceptFriendRequests !== false;
-        if (canInvite) {
-          actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
-        } else {
-          actionBtn = '';
-        }
-      }
-
-      // Custom card for conhecidos (amber/yellow tint)
-      var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
-      var avatarSeed = encodeURIComponent(name || uid || 'User');
-      var initialsUrlC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
-      var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlC;
-      var fallbackPhotoC = initialsUrlC;
-
-      html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
-        '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
-        '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
-          '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
-          '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + sharedText + '</div>' +
-        '</div>' +
-        (actionBtn ? '<div style="margin-top: auto; width: 100%;">' + actionBtn + '</div>' : '') +
-      '</div>';
+    // Propagate latestTs from conhecidos data to loaded profiles
+    profiles.forEach(function(p, i) {
+      if (conhecidos[i]) p._latestTs = conhecidos[i].latestTs || 0;
     });
 
-    html += '</div></div>';
-    div.innerHTML = html;
+    // Cache for re-sort without refetch
+    window._conhecidosProfiles = profiles;
+    _renderConhecidosCards(div, profiles);
   });
+}
+
+function _sortConhecidosArray(arr, mode) {
+  if (mode === 'alpha') {
+    arr.sort(function(a, b) {
+      return (a.displayName || '').localeCompare(b.displayName || '', 'pt-BR', { sensitivity: 'base' });
+    });
+  } else if (mode === 'oldest') {
+    arr.sort(function(a, b) {
+      return (a.latestTs || a._latestTs || 0) - (b.latestTs || b._latestTs || 0);
+    });
+  } else {
+    // 'recent' — reverse chronological by latest shared tournament
+    arr.sort(function(a, b) {
+      var tb = b.latestTs || b._latestTs || 0;
+      var ta = a.latestTs || a._latestTs || 0;
+      if (tb !== ta) return tb - ta;
+      return (b.sharedCount || b._sharedCount || 0) - (a.sharedCount || a._sharedCount || 0);
+    });
+  }
+}
+
+window._setConhecidosSort = function(mode) {
+  window._conhecidosSortMode = mode;
+  var div = document.getElementById('explore-conhecidos');
+  var profiles = window._conhecidosProfiles;
+  if (!div || !profiles) return;
+  _sortConhecidosArray(profiles, mode);
+  _renderConhecidosCards(div, profiles);
+};
+
+function _renderConhecidosCards(div, profiles) {
+  var mySent = (window.AppStore.currentUser && window.AppStore.currentUser.friendRequestsSent) || [];
+  var myReceived = (window.AppStore.currentUser && window.AppStore.currentUser.friendRequestsReceived) || [];
+  var sortMode = window._conhecidosSortMode || 'recent';
+
+  var _tLocal = window._t || function(k){return k;};
+  var sortRecentLabel = _tLocal('explore.sortRecent');
+  if (sortRecentLabel === 'explore.sortRecent') sortRecentLabel = 'Recentes';
+  var sortOldestLabel = _tLocal('explore.sortOldest');
+  if (sortOldestLabel === 'explore.sortOldest') sortOldestLabel = 'Antigos';
+  var sortAlphaLabel = _tLocal('explore.sortAlpha');
+  if (sortAlphaLabel === 'explore.sortAlpha') sortAlphaLabel = 'A–Z';
+
+  function sortBtn(mode, label) {
+    var active = sortMode === mode;
+    var style = 'padding:4px 10px;border-radius:14px;font-size:0.72rem;font-weight:600;border:1px solid ' +
+      (active ? '#f59e0b' : 'rgba(245,158,11,0.3)') + ';background:' +
+      (active ? 'rgba(245,158,11,0.25)' : 'transparent') + ';color:' +
+      (active ? '#fbbf24' : 'var(--text-muted)') + ';cursor:pointer;';
+    return '<button onclick="window._setConhecidosSort(\'' + mode + '\')" style="' + style + '">' + label + '</button>';
+  }
+
+  var acquaintancesLabel = _tLocal('explore.acquaintances');
+  if (acquaintancesLabel === 'explore.acquaintances') acquaintancesLabel = 'Conhecidos';
+
+  var html = '<div style="margin-bottom: 1.5rem;">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:0.75rem;">' +
+      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">' + acquaintancesLabel + ' (' + profiles.length + ')</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        sortBtn('recent', '↓ ' + sortRecentLabel) +
+        sortBtn('oldest', '↑ ' + sortOldestLabel) +
+        sortBtn('alpha', sortAlphaLabel) +
+      '</div>' +
+    '</div>' +
+    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+
+  profiles.forEach(function(u) {
+    var uid = u._docId || u.email;
+    var isSent = mySent.indexOf(uid) !== -1;
+    var isReceived = myReceived.indexOf(uid) !== -1;
+
+    // Info line: shared tournaments
+    var sharedText = (u._sharedCount || 0) + ' ' + _tLocal('explore.sharedTournaments');
+    u._extraInfo = sharedText;
+
+    var safeUidConhecido = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+    var actionBtn = '';
+    if (isSent) {
+      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
+    } else if (isReceived) {
+      actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
+        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
+      '</div>';
+    } else {
+      // Check if user accepts friend requests
+      var canInvite = u.acceptFriendRequests !== false;
+      if (canInvite) {
+        actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
+      } else {
+        actionBtn = '';
+      }
+    }
+
+    // Custom card for conhecidos (amber/yellow tint)
+    var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+    var avatarSeed = encodeURIComponent(name || uid || 'User');
+    var initialsUrlC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+    var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlC;
+    var fallbackPhotoC = initialsUrlC;
+
+    var latestTs = u._latestTs || 0;
+    var dateLabel = '';
+    if (latestTs > 0) {
+      var d = new Date(latestTs);
+      if (!isNaN(d.getTime())) {
+        try {
+          dateLabel = d.toLocaleDateString((window._lang === 'en' ? 'en-US' : 'pt-BR'), { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch(e) { dateLabel = d.toISOString().slice(0, 10); }
+      }
+    }
+
+    html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
+      '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
+      '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
+        '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
+        '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + sharedText + '</div>' +
+        (dateLabel ? '<div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 2px;">' + dateLabel + '</div>' : '') +
+      '</div>' +
+      (actionBtn ? '<div style="margin-top: auto; width: 100%;">' + actionBtn + '</div>' : '') +
+    '</div>';
+  });
+
+  html += '</div></div>';
+  div.innerHTML = html;
 }
 
 // ---- Global action functions ----

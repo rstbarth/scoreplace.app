@@ -1215,6 +1215,17 @@ async function simulateLoginSuccess(user) {
     return;
   }
 
+  // Auto-rejoin pending casual match room (user came in via #casual/XXX while logged out)
+  var pendingCasualRoom = null;
+  try { pendingCasualRoom = sessionStorage.getItem('_pendingCasualRoom'); } catch(e) {}
+  if (pendingCasualRoom) {
+    try { sessionStorage.removeItem('_pendingCasualRoom'); } catch(e) {}
+    window.location.hash = '#casual/' + pendingCasualRoom;
+    if (typeof initRouter === 'function') initRouter();
+    window._simulateLoginInProgress = false;
+    return;
+  }
+
   // Redirect to pending invite tournament if there was one
   if (window._pendingInviteHash) {
     var dest = window._pendingInviteHash;
@@ -1843,42 +1854,28 @@ function _populatePlayerStats() {
 
   var winRate = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
 
+  // _boxStat helper — matches the post-match casual stats card pattern
+  // (icon + bold accent-colored value + uppercased muted label)
+  function _boxStat(label, value, icon, accent) {
+    accent = accent || 'var(--text-bright)';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">' +
+      '<span style="font-size:1rem;">' + icon + '</span>' +
+      '<span style="font-size:1.15rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + value + '</span>' +
+      '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
+    '</div>';
+  }
+
+  var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
+
   var html = headerHtml +
-    '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">';
-
-  // Row 1: Tournaments, Matches, Win Rate
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: var(--primary-color);">' + stats.tournamentsParticipated + '</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Torneios</div>' +
-  '</div>';
-
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: var(--text-color);">' + stats.matchesPlayed + '</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Partidas</div>' +
-  '</div>';
-
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: ' + (winRate >= 50 ? '#22c55e' : '#ef4444') + ';">' + winRate + '%</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Aproveitamento</div>' +
-  '</div>';
-
-  // Row 2: Wins, Losses/Draws, Titles
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: #22c55e;">' + stats.wins + '</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Vitórias</div>' +
-  '</div>';
-
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: #ef4444;">' + stats.losses + (stats.draws > 0 ? '<span style="color:var(--text-muted);font-size:0.85rem;">/' + stats.draws + 'E</span>' : '') + '</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Derrotas' + (stats.draws > 0 ? '/Empates' : '') + '</div>' +
-  '</div>';
-
-  html += '<div style="background: var(--bg-darker); border-radius: 8px; padding: 10px 6px;">' +
-    '<div style="font-size: 1.3rem; font-weight: 700; color: #fbbf24;">🏆 ' + stats.titles + '</div>' +
-    '<div style="font-size: 0.7rem; color: var(--text-muted);">Títulos</div>' +
-  '</div>';
-
-  html += '</div>';
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
+      _boxStat('Partidas', stats.matchesPlayed, '🎯', '#60a5fa') +
+      _boxStat('Vitórias', stats.wins, '✅', '#22c55e') +
+      _boxStat('Derrotas' + (stats.draws > 0 ? '/E' : ''), stats.losses + (stats.draws > 0 ? '/' + stats.draws : ''), '❌', '#ef4444') +
+      _boxStat('Aproveit.', winRate + '%', '📊', rateClr) +
+      _boxStat('Títulos', stats.titles, '👑', '#fbbf24') +
+      _boxStat('Torneios', stats.tournamentsParticipated, '🏆', '#a855f7') +
+    '</div>';
 
   // Organized count if > 0
   if (stats.tournamentsOrganized > 0) {
@@ -1936,12 +1933,12 @@ function _populatePlayerStats() {
     }
     if (casualTotal > 0) {
       casualHtml += '<div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:12px;">';
-      casualHtml += '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:8px;">📡 Partidas Casuais</div>';
-      casualHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;margin-bottom:8px;">';
-      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:var(--primary-color);">' + casualTotal + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Partidas</div></div>';
-      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:#22c55e;">' + casualWins + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Vitórias</div></div>';
-      casualHtml += '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;"><div style="font-size:1.1rem;font-weight:700;color:#ef4444;">' + casualLosses + '</div><div style="font-size:0.65rem;color:var(--text-muted);">Derrotas</div></div>';
-      casualHtml += '</div>';
+      casualHtml += '<div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:8px;">📡 Partidas Casuais (local)</div>';
+      casualHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;">' +
+        _boxStat('Partidas', casualTotal, '🎯', '#38bdf8') +
+        _boxStat('Vitórias', casualWins, '✅', '#22c55e') +
+        _boxStat('Derrotas', casualLosses, '❌', '#ef4444') +
+      '</div>';
 
       // Last 5 casual matches
       var maxCasual = Math.min(casualTotal, 5);
@@ -2084,11 +2081,36 @@ function _renderDetailedPersistentStats(uid) {
       return { h2h: h2h, partners: partners };
     }
 
-    function _statBox(value, label, color) {
-      return '<div style="background:var(--bg-darker);border-radius:8px;padding:8px 4px;text-align:center;">' +
-        '<div style="font-size:1rem;font-weight:800;color:' + (color || 'var(--text-color)') + ';">' + value + '</div>' +
-        '<div style="font-size:0.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</div>' +
+    function _statBox(value, label, color, icon) {
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 5px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">' +
+        (icon ? '<span style="font-size:0.85rem;line-height:1;">' + icon + '</span>' : '') +
+        '<div style="font-size:1rem;font-weight:900;color:' + (color || 'var(--text-bright)') + ';font-variant-numeric:tabular-nums;line-height:1;">' + value + '</div>' +
+        '<div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</div>' +
       '</div>';
+    }
+
+    // _compareBar — side-by-side casual vs tournament comparison bar (mirrors bracket-ui.js pattern)
+    function _compareBar(label, icon, leftVal, rightVal, leftClr, rightClr, fmt, maxCap) {
+      fmt = fmt || function(v) { return v; };
+      var maxV = maxCap || Math.max(leftVal, rightVal, 1);
+      var lp = Math.round(leftVal / maxV * 100);
+      var rp = Math.round(rightVal / maxV * 100);
+      return (
+        '<div style="display:flex;flex-direction:column;gap:4px;">' +
+          '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + leftClr + ';font-variant-numeric:tabular-nums;">' + fmt(leftVal) + '</span>' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;">' +
+              '<div style="width:' + lp + '%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
+            '</div>' +
+            '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
+              '<div style="width:' + rp + '%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
+            '</div>' +
+            '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + rightClr + ';font-variant-numeric:tabular-nums;">' + fmt(rightVal) + '</span>' +
+          '</div>' +
+        '</div>'
+      );
     }
 
     function _sectionHtml(title, icon, recs, accent) {
@@ -2099,31 +2121,63 @@ function _renderDetailedPersistentStats(uid) {
       var recvPct = a.receivePts > 0 ? Math.round(a.receivePtsWon / a.receivePts * 100) : 0;
       var holdPct = a.holdsServed > 0 ? Math.round(a.holdsWon / a.holdsServed * 100) : 0;
 
-      var h = '<div style="margin-top:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
-          '<span style="font-size:0.85rem;font-weight:800;color:' + accent + ';">' + icon + ' ' + title + '</span>' +
-          '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:auto;">' + a.matches + ' ' + (a.matches > 1 ? _t('profile.matchMany') : _t('profile.matchOne')) + '</span>' +
+      var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
+      var h = '<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ' + accent + '44;">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">' +
+          '<span style="font-size:0.9rem;font-weight:800;color:' + accent + ';">' + icon + ' ' + title + '</span>' +
+          '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:auto;font-weight:700;">' + a.matches + ' ' + (a.matches > 1 ? _t('profile.matchMany') : _t('profile.matchOne')) + '</span>' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
-          _statBox(a.wins, _t('profile.statWins'), '#22c55e') +
-          _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), _t('profile.statLosses') + (a.draws ? '/E' : ''), '#ef4444') +
-          _statBox(winRate + '%', _t('profile.statRate'), winRate >= 50 ? '#22c55e' : '#ef4444') +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px;">' +
+          _statBox(a.wins, _t('profile.statWins'), '#22c55e', '✅') +
+          _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), _t('profile.statLosses') + (a.draws ? '/E' : ''), '#ef4444', '❌') +
+          _statBox(winRate + '%', _t('profile.statRate'), rateClr, '📊') +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">' +
-          _statBox(a.sets, 'Sets') +
-          _statBox(a.games, 'Games') +
-          _statBox(a.points, _t('profile.statPoints')) +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px;">' +
+          _statBox(a.sets, 'Sets', '#fbbf24', '🏅') +
+          _statBox(a.games, 'Games', '#60a5fa', '🎾') +
+          _statBox(a.points, _t('profile.statPoints'), '#a855f7', '🎯') +
         '</div>' +
         (a.servePts > 0 ? (
           '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">' +
-            _statBox(srvPct + '%', _t('profile.statServe'), '#60a5fa') +
-            _statBox(recvPct + '%', _t('profile.statRecv'), '#f87171') +
-            _statBox(a.killerPoints, 'Killer', '#fbbf24') +
-            _statBox(a.breaks, _t('profile.statBreaks'), '#a855f7') +
+            _statBox(srvPct + '%', _t('profile.statServe'), '#60a5fa', '🚀') +
+            _statBox(recvPct + '%', _t('profile.statRecv'), '#f87171', '🛡') +
+            _statBox(a.killerPoints, 'Killer', '#fbbf24', '⚡') +
+            _statBox(a.breaks, _t('profile.statBreaks'), '#a855f7', '💥') +
+          '</div>'
+        ) : '') +
+        (a.longestStreak > 0 || a.biggestLead > 0 ? (
+          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:5px;">' +
+            _statBox(a.longestStreak, 'Maior Seq.', '#fb923c', '🔥') +
+            _statBox(a.biggestLead, 'Maior Vant.', '#22c55e', '📈') +
           '</div>'
         ) : '') +
       '</div>';
       return h;
+    }
+
+    // Build side-by-side comparative bars between casual and tournament matches.
+    function _comparativeSectionHtml() {
+      if (!casual.length || !tournament.length) return '';
+      var ca = _aggregate(casual), ta = _aggregate(tournament);
+      var caRate = ca.matches > 0 ? Math.round(ca.wins / ca.matches * 100) : 0;
+      var taRate = ta.matches > 0 ? Math.round(ta.wins / ta.matches * 100) : 0;
+      var caSrv = ca.servePts > 0 ? Math.round(ca.servePtsWon / ca.servePts * 100) : 0;
+      var taSrv = ta.servePts > 0 ? Math.round(ta.servePtsWon / ta.servePts * 100) : 0;
+      var caRecv = ca.receivePts > 0 ? Math.round(ca.receivePtsWon / ca.receivePts * 100) : 0;
+      var taRecv = ta.receivePts > 0 ? Math.round(ta.receivePtsWon / ta.receivePts * 100) : 0;
+      var casualClr = '#38bdf8', tournClr = '#fbbf24';
+      return '<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10);display:flex;flex-direction:column;gap:10px;">' +
+        '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;">⚖ Casual vs Torneio</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;font-size:0.65rem;font-weight:700;">' +
+          '<span style="color:' + casualClr + ';">📡 Casual</span>' +
+          '<span style="color:' + tournClr + ';">Torneio 🏆</span>' +
+        '</div>' +
+        _compareBar('Partidas', '🎯', ca.matches, ta.matches, casualClr, tournClr) +
+        _compareBar('Vitórias', '✅', ca.wins, ta.wins, casualClr, tournClr) +
+        _compareBar('Aproveitamento', '📊', caRate, taRate, casualClr, tournClr, function(v) { return v + '%'; }, 100) +
+        (ca.servePts + ta.servePts > 0 ? _compareBar('% Pontos no Saque', '🚀', caSrv, taSrv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
+        (ca.receivePts + ta.receivePts > 0 ? _compareBar('% Pontos na Recepção', '🛡', caRecv, taRecv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
+      '</div>';
     }
 
     function _tableHtml(title, map, valueLabel) {
@@ -2163,6 +2217,7 @@ function _renderDetailedPersistentStats(uid) {
       '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px;">' + _t('profile.detailedStatsDesc') + '</div>' +
       _sectionHtml(_t('profile.casualMatches'), '📡', casual, '#38bdf8') +
       _sectionHtml(_t('profile.tournamentsSection'), '🏆', tournament, '#fbbf24') +
+      _comparativeSectionHtml() +
       (Object.keys(casualAgg.h2h).length + Object.keys(tournAgg.h2h).length > 0
         ? '<div style="margin-top:14px;">' +
             _tableHtml(_t('profile.h2hCasual'), casualAgg.h2h) +
