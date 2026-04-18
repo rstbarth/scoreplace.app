@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botão "Login" no menu hambúrguer voltou a funcionar</b> — O menu mobile clona o conteúdo da topbar via <code>cloneNode(true)</code>, mas listeners registrados por <code>addEventListener</code> não sobrevivem à clonagem. Mudamos o botão <code>#btn-login</code> para usar um <code>onclick</code> inline (fecha o hambúrguer e abre o modal de login com todas as opções: Google, e-mail/senha, link mágico, SMS). Aplicado também ao reset pós-logout e pós-exclusão de conta.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>CTA da landing page agora abre o modal de login completo</b> — O botão verde "Crie seu torneio grátis" (e o "Comece agora — é grátis!" no rodapé) deixaram de disparar o login direto com o Google e agora abrem o modal de login padrão, com todas as opções de autenticação disponíveis (Google, e-mail/senha, link mágico por e-mail, SMS). O visitante pode escolher o método que preferir.</p>' +
         '</div>' +

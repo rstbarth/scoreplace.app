@@ -98,7 +98,7 @@
 
            <!-- Grupo 3: Perfil/Login (reordena via JS quando topbar quebra em 2 linhas) -->
            <div class="topbar-profile-group" style="display: flex; align-items: center; gap: 4px;">
-             <button class="btn btn-outline" id="btn-login" style="font-size: 0.82rem; padding: 0 16px; height: 38px;" aria-label="Fazer login com Google">Login</button>
+             <button class="btn btn-outline" id="btn-login" onclick="if(typeof window._closeHamburger==='function')window._closeHamburger(); if(typeof openModal==='function')openModal('modal-login');" style="font-size: 0.82rem; padding: 0 16px; height: 38px;" aria-label="Fazer login">Login</button>
            </div>
         </nav>
       </header>
@@ -126,7 +126,7 @@
   <script src="js/i18n-en.js?v=0.11.66"></script>
 
   <script src="js/notification-catalog.js?v=0.10.0"></script>
-  <script src="js/store.js?v=0.12.1"></script>
+  <script src="js/store.js?v=0.12.2"></script>
   <script src="js/firebase-db.js?v=0.11.64"></script>
   <script src="js/notifications.js?v=0.11.39"></script>
   <script src="js/email-templates.js?v=0.10.0"></script>
@@ -152,12 +152,12 @@
   <script src="js/views/rules.js?v=0.8.4"></script>
   <script src="js/views/explore.js?v=0.11.62"></script>
   <script src="js/views/notifications-view.js?v=0.10.0"></script>
-  <script src="js/views/auth.js?v=0.11.76"></script>
+  <script src="js/views/auth.js?v=0.12.2"></script>
 
   <script src="js/views/enroll-modal.js?v=0.11.38"></script>
   <script src="js/hints.js?v=0.11.38"></script>
   <script src="js/router.js?v=0.11.14"></script>
-  <script src="js/main.js?v=0.12.1"></script>
+  <script src="js/main.js?v=0.12.2"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

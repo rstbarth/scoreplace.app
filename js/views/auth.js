@@ -1482,10 +1482,9 @@ function handleLogout() {
   if (btnLogin) {
     btnLogin.innerHTML = 'Login';
     btnLogin.className = 'btn btn-outline';
-    btnLogin.style = 'padding: 0.5rem 1rem;';
-    var newBtn = btnLogin.cloneNode(true);
-    btnLogin.parentNode.replaceChild(newBtn, btnLogin);
-    newBtn.addEventListener('click', function() { openModal('modal-login'); });
+    btnLogin.style = 'font-size: 0.82rem; padding: 0 16px; height: 38px;';
+    // Inline onclick survives cloneNode(true) into the hamburger dropdown.
+    btnLogin.setAttribute('onclick', "if(typeof window._closeHamburger==='function')window._closeHamburger(); if(typeof openModal==='function')openModal('modal-login');");
   }
 
   // Close profile modal if open
@@ -1653,10 +1652,8 @@ window._executeDeleteAccount = async function() {
     if (btnLogin) {
       btnLogin.innerHTML = 'Login';
       btnLogin.className = 'btn btn-outline';
-      btnLogin.style = 'padding: 0.5rem 1rem;';
-      var newBtn = btnLogin.cloneNode(true);
-      btnLogin.parentNode.replaceChild(newBtn, btnLogin);
-      newBtn.addEventListener('click', function() { openModal('modal-login'); });
+      btnLogin.style = 'font-size: 0.82rem; padding: 0 16px; height: 38px;';
+      btnLogin.setAttribute('onclick', "if(typeof window._closeHamburger==='function')window._closeHamburger(); if(typeof openModal==='function')openModal('modal-login');");
     }
 
     var proBtn = document.getElementById('btn-upgrade-pro');
