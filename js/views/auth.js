@@ -1741,200 +1741,113 @@ function _populatePlayerStats() {
     return;
   }
 
+  var _safer = (typeof window._safeHtml === 'function') ? window._safeHtml : function(s) { return String(s == null ? '' : s); };
   var email = cu.email.toLowerCase();
   var displayName = (cu.displayName || '').toLowerCase();
   var tournaments = window.AppStore.tournaments || [];
 
-  var stats = {
-    tournamentsParticipated: 0,
-    tournamentsOrganized: 0,
-    matchesPlayed: 0,
-    wins: 0,
-    losses: 0,
-    draws: 0,
-    titles: 0,       // 1st place finishes
-    history: []      // [{name, id, format, status, position}]
-  };
-
-  // Helper: check if a participant string/object matches the current user
   function _isMe(p) {
     if (!p) return false;
     var str = typeof p === 'string' ? p : (p.email || p.displayName || p.name || '');
     str = str.toLowerCase();
     return str === email || (displayName && str === displayName);
   }
-
-  // Helper: check if a player label in a match belongs to current user
   function _isMyLabel(label) {
     if (!label) return false;
     var l = label.toLowerCase();
     return l === email || (displayName && l === displayName);
   }
 
-  // Iterate all tournaments
+  // ── Aggregate TOURNAMENT stats from legacy tournament data ──
+  var tStats = { matches:0, wins:0, losses:0, draws:0, titles:0, played:0, organized:0, history:[] };
+
   for (var ti = 0; ti < tournaments.length; ti++) {
     var t = tournaments[ti];
-
-    // Check if organized
-    if (t.organizerEmail && t.organizerEmail.toLowerCase() === email) {
-      stats.tournamentsOrganized++;
-    }
-
-    // Check if participant
+    if (t.organizerEmail && t.organizerEmail.toLowerCase() === email) tStats.organized++;
     var pList = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
     var isParticipant = pList.some(function(p) { return _isMe(p); });
     if (!isParticipant) continue;
+    tStats.played++;
 
-    stats.tournamentsParticipated++;
-
-    // Collect all matches from various structures
     var allMatches = [];
-
-    // Direct matches array (Eliminatórias single/double)
-    if (Array.isArray(t.matches)) {
-      allMatches = allMatches.concat(t.matches);
-    }
-    // Third place match
-    if (t.thirdPlaceMatch) {
-      allMatches.push(t.thirdPlaceMatch);
-    }
-    // Rounds (Suíço)
+    if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
+    if (t.thirdPlaceMatch) allMatches.push(t.thirdPlaceMatch);
     if (Array.isArray(t.rounds)) {
       for (var ri = 0; ri < t.rounds.length; ri++) {
-        if (Array.isArray(t.rounds[ri])) {
-          allMatches = allMatches.concat(t.rounds[ri]);
-        } else if (t.rounds[ri] && Array.isArray(t.rounds[ri].matches)) {
-          allMatches = allMatches.concat(t.rounds[ri].matches);
-        }
+        if (Array.isArray(t.rounds[ri])) allMatches = allMatches.concat(t.rounds[ri]);
+        else if (t.rounds[ri] && Array.isArray(t.rounds[ri].matches)) allMatches = allMatches.concat(t.rounds[ri].matches);
       }
     }
-    // Groups (group stage)
     if (Array.isArray(t.groups)) {
       for (var gi = 0; gi < t.groups.length; gi++) {
         var group = t.groups[gi];
-        if (group && Array.isArray(group.matches)) {
-          allMatches = allMatches.concat(group.matches);
-        }
+        if (group && Array.isArray(group.matches)) allMatches = allMatches.concat(group.matches);
         if (group && Array.isArray(group.rounds)) {
           for (var gri = 0; gri < group.rounds.length; gri++) {
-            if (Array.isArray(group.rounds[gri])) {
-              allMatches = allMatches.concat(group.rounds[gri]);
-            }
+            if (Array.isArray(group.rounds[gri])) allMatches = allMatches.concat(group.rounds[gri]);
           }
         }
       }
     }
-    // Liga rodadas
     if (Array.isArray(t.rodadas)) {
       for (var li = 0; li < t.rodadas.length; li++) {
-        if (Array.isArray(t.rodadas[li])) {
-          allMatches = allMatches.concat(t.rodadas[li]);
-        } else if (t.rodadas[li] && Array.isArray(t.rodadas[li].matches)) {
-          allMatches = allMatches.concat(t.rodadas[li].matches);
-        }
+        if (Array.isArray(t.rodadas[li])) allMatches = allMatches.concat(t.rodadas[li]);
+        else if (t.rodadas[li] && Array.isArray(t.rodadas[li].matches)) allMatches = allMatches.concat(t.rodadas[li].matches);
       }
     }
-
-    // Count wins/losses/draws from matches
     for (var mi = 0; mi < allMatches.length; mi++) {
       var m = allMatches[mi];
-      if (!m || !m.winner) continue;  // No result yet
-
-      var imP1 = _isMyLabel(m.p1);
-      var imP2 = _isMyLabel(m.p2);
+      if (!m || !m.winner) continue;
+      var imP1 = _isMyLabel(m.p1), imP2 = _isMyLabel(m.p2);
       if (!imP1 && !imP2) continue;
-
-      stats.matchesPlayed++;
-
-      if (m.winner === 'draw' || m.draw) {
-        stats.draws++;
-      } else if (_isMyLabel(m.winner)) {
-        stats.wins++;
-      } else {
-        stats.losses++;
-      }
+      tStats.matches++;
+      if (m.winner === 'draw' || m.draw) tStats.draws++;
+      else if (_isMyLabel(m.winner)) tStats.wins++;
+      else tStats.losses++;
     }
 
-    // Check for titles and position
     var _myPosition = null;
     if (t.status === 'finished') {
-      // Eliminatórias: check if won the final
       if (Array.isArray(t.matches) && t.matches.length > 0) {
         var finalMatch = t.matches[t.matches.length - 1];
-        if (finalMatch && finalMatch.winner && _isMyLabel(finalMatch.winner)) {
-          stats.titles++;
-          _myPosition = 1;
-        } else if (finalMatch && finalMatch.winner) {
-          // Lost the final = 2nd place
+        if (finalMatch && finalMatch.winner && _isMyLabel(finalMatch.winner)) { tStats.titles++; _myPosition = 1; }
+        else if (finalMatch && finalMatch.winner) {
           if (_isMyLabel(finalMatch.p1) || _isMyLabel(finalMatch.p2)) _myPosition = 2;
         }
-        // Check 3rd place match
-        if (!_myPosition && t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
-          if (_isMyLabel(t.thirdPlaceMatch.winner)) _myPosition = 3;
-        }
+        if (!_myPosition && t.thirdPlaceMatch && t.thirdPlaceMatch.winner && _isMyLabel(t.thirdPlaceMatch.winner)) _myPosition = 3;
       }
-      // Liga/Suíço: check standings
       if (Array.isArray(t.standings) && t.standings.length > 0) {
         for (var si = 0; si < t.standings.length; si++) {
           var _sp = t.standings[si];
           if (_sp && _isMyLabel(_sp.name || _sp.player || _sp.displayName)) {
             _myPosition = si + 1;
-            if (si === 0) stats.titles++;
+            if (si === 0) tStats.titles++;
             break;
           }
         }
       }
     }
-
-    // Build history entry
-    stats.history.push({
-      name: t.name || 'Sem nome',
-      id: t.id,
-      format: t.format || '?',
-      status: t.status || 'open',
-      position: _myPosition,
+    tStats.history.push({
+      name: t.name || 'Sem nome', id: t.id, format: t.format || '?',
+      status: t.status || 'open', position: _myPosition,
       date: t.startDate || t.createdAt || ''
     });
   }
 
-  // User header (avatar + name) shown at the top of the stats block — gives
-  // immediate context about whose stats are being displayed, matching the
-  // profile header style. Wrapped in try/catch so any rendering issue with the
-  // avatar/fallback never blocks the rest of the stats flow or the profile modal.
-  var headerHtml = '';
+  // ── Aggregate CASUAL stats from localStorage ──
+  var cStats = { matches:0, wins:0, losses:0, draws:0 };
   try {
-    var _safer = (typeof window._safeHtml === 'function')
-      ? window._safeHtml
-      : function(s) { return String(s == null ? '' : s); };
-    var _userName = cu.displayName || cu.email || 'Você';
-    var _initial = _userName.charAt(0) ? _userName.charAt(0).toUpperCase() : '?';
-    var _avatarHtml;
-    if (cu.photoURL) {
-      _avatarHtml = '<img src="' + _safer(cu.photoURL) + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-        '<div style="display:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
-    } else {
-      _avatarHtml = '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
+    var casualHist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
+    cStats.matches = casualHist.length;
+    for (var ci = 0; ci < casualHist.length; ci++) {
+      var ch = casualHist[ci];
+      if (ch.winner === 'Empate') cStats.draws++;
+      else if (ch.winner && ch.winner.toLowerCase() === displayName) cStats.wins++;
+      else if (ch.winner) cStats.losses++;
     }
-    headerHtml = '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;margin-bottom:10px;border-bottom:1px solid var(--border-color);">' +
-      _avatarHtml +
-      '<div style="flex:1;min-width:0;text-align:left;">' +
-        '<div style="font-size:0.95rem;font-weight:800;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(_userName) + '</div>' +
-        '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(cu.email || '') + '</div>' +
-      '</div>' +
-    '</div>';
-  } catch (e) { console.warn('[profile-stats] header render failed', e); headerHtml = ''; }
+  } catch(e) {}
 
-  // Render stats
-  if (stats.tournamentsParticipated === 0) {
-    el.innerHTML = headerHtml +
-      '<span style="color:var(--text-muted);">Você ainda não participou de nenhum torneio.</span>';
-    return;
-  }
-
-  var winRate = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
-
-  // _boxStat helper — matches the post-match casual stats card pattern
-  // (icon + bold accent-colored value + uppercased muted label)
+  // ── Helpers (mirror casual match end-of-match cards) ──
   function _boxStat(label, value, icon, accent) {
     accent = accent || 'var(--text-bright)';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">' +
@@ -1944,140 +1857,121 @@ function _populatePlayerStats() {
     '</div>';
   }
 
-  var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
+  function _sectionShell(id, title, icon, accent, badge) {
+    return '<div id="' + id + '" style="margin-top:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid ' + accent + '44;display:flex;flex-direction:column;gap:8px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:1rem;">' + icon + '</span>' +
+        '<span style="font-size:0.85rem;font-weight:900;color:' + accent + ';text-transform:uppercase;letter-spacing:0.8px;">' + title + '</span>' +
+        '<span style="margin-left:auto;font-size:0.62rem;color:var(--text-muted);font-weight:700;">' + badge + '</span>' +
+      '</div>';
+  }
 
-  var html = headerHtml +
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
-      _boxStat('Partidas', stats.matchesPlayed, '🎯', '#60a5fa') +
-      _boxStat('Vitórias', stats.wins, '✅', '#22c55e') +
-      _boxStat('Derrotas' + (stats.draws > 0 ? '/E' : ''), stats.losses + (stats.draws > 0 ? '/' + stats.draws : ''), '❌', '#ef4444') +
-      _boxStat('Aproveit.', winRate + '%', '📊', rateClr) +
-      _boxStat('Títulos', stats.titles, '👑', '#fbbf24') +
-      _boxStat('Torneios', stats.tournamentsParticipated, '🏆', '#a855f7') +
-    '</div>';
-
-  // Organized count if > 0
-  if (stats.tournamentsOrganized > 0) {
-    html += '<div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">' +
-      '📋 Você organizou ' + stats.tournamentsOrganized + ' torneio' + (stats.tournamentsOrganized > 1 ? 's' : '') +
+  // Section body: overview triple (wins/losses/rate) shared by both sections
+  function _overviewTriple(s) {
+    var rate = s.matches > 0 ? Math.round(s.wins / s.matches * 100) : 0;
+    var rateClr = rate >= 60 ? '#22c55e' : (rate >= 40 ? '#fbbf24' : '#ef4444');
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
+      _boxStat('Vitórias', s.wins, '✅', '#22c55e') +
+      _boxStat('Derrotas' + (s.draws ? '/E' : ''), s.losses + (s.draws ? '/' + s.draws : ''), '❌', '#ef4444') +
+      _boxStat('Aproveit.', rate + '%', '📊', rateClr) +
     '</div>';
   }
 
-  // Tournament history list (most recent first, max 8)
-  if (stats.history.length > 0) {
-    stats.history.sort(function(a, b) {
-      return (b.date || '').localeCompare(a.date || '');
-    });
-    var maxShow = Math.min(stats.history.length, 8);
-    html += '<div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 10px;">';
-    html += '<div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Histórico de Torneios</div>';
+  // ── User header ──
+  var _userName = cu.displayName || cu.email || 'Você';
+  var _initial = _userName.charAt(0) ? _userName.charAt(0).toUpperCase() : '?';
+  var _avatarHtml;
+  if (cu.photoURL) {
+    _avatarHtml = '<img src="' + _safer(cu.photoURL) + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+      '<div style="display:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
+  } else {
+    _avatarHtml = '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">' + _safer(_initial) + '</div>';
+  }
+  var headerHtml = '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;margin-bottom:6px;border-bottom:1px solid var(--border-color);">' +
+    _avatarHtml +
+    '<div style="flex:1;min-width:0;text-align:left;">' +
+      '<div style="font-size:0.95rem;font-weight:800;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(_userName) + '</div>' +
+      '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safer(cu.email || '') + '</div>' +
+    '</div>' +
+  '</div>';
+
+  var html = headerHtml;
+
+  // Empty state
+  if (!cStats.matches && !tStats.played) {
+    html += '<div style="text-align:center;padding:16px 10px;color:var(--text-muted);font-size:0.85rem;line-height:1.5;">' +
+      '🎯 Nenhuma partida registrada ainda.<br>' +
+      '<span style="font-size:0.72rem;">Jogue uma partida casual ou participe de um torneio para ver suas estatísticas.</span>' +
+    '</div>';
+    el.innerHTML = html;
+    if (cu && cu.uid && window.FirestoreDB && window.FirestoreDB.db) _renderDetailedPersistentStats(cu.uid);
+    return;
+  }
+
+  // ── Partidas Casuais section ──
+  if (cStats.matches > 0) {
+    var cBadge = cStats.matches + ' ' + (cStats.matches > 1 ? 'partidas' : 'partida');
+    html += _sectionShell('profile-stats-casual', 'Partidas Casuais', '📡', '#38bdf8', cBadge) +
+      _overviewTriple(cStats) +
+    '</div>';
+  }
+
+  // ── Torneios section ──
+  if (tStats.played > 0) {
+    var tBadge = tStats.played + ' ' + (tStats.played > 1 ? 'torneios' : 'torneio');
+    html += _sectionShell('profile-stats-tournament', 'Torneios', '🏆', '#fbbf24', tBadge);
+    if (tStats.matches > 0) {
+      html += _overviewTriple(tStats);
+    }
+    if (tStats.titles > 0 || tStats.played > 0) {
+      html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
+        _boxStat('Títulos', tStats.titles, '👑', '#fbbf24') +
+        _boxStat('Torneios', tStats.played, '🏆', '#a855f7') +
+      '</div>';
+    }
+    if (tStats.organized > 0) {
+      html += '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;">' +
+        '📋 Você organizou ' + tStats.organized + ' torneio' + (tStats.organized > 1 ? 's' : '') +
+      '</div>';
+    }
+    html += '</div>';
+  }
+
+  // ── Tournament history list (most recent first, max 8) ──
+  if (tStats.history.length > 0) {
+    tStats.history.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    var maxShow = Math.min(tStats.history.length, 8);
+    html += '<div style="margin-top:12px;border-top:1px solid var(--border-color);padding-top:10px;">';
+    html += '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Histórico de Torneios</div>';
     for (var hi = 0; hi < maxShow; hi++) {
-      var h = stats.history[hi];
+      var h = tStats.history[hi];
       var posIcon = '';
       if (h.position === 1) posIcon = '🥇';
       else if (h.position === 2) posIcon = '🥈';
       else if (h.position === 3) posIcon = '🥉';
       else if (h.position) posIcon = h.position + 'º';
-
       var statusIcon = h.status === 'finished' ? '✅' : (h.status === 'active' ? '▶️' : '⏳');
-      var safeName = window._safeHtml ? window._safeHtml(h.name) : h.name;
-
+      var safeName = _safer(h.name);
       var escapedId = String(h.id).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
       html += '<div onclick="window.location.hash=\'#tournaments/' + escapedId + '\'; document.getElementById(\'modal-profile\').classList.remove(\'active\');" ' +
         'style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:background 0.15s;" ' +
         'onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">' +
         '<span style="flex-shrink:0;width:22px;text-align:center;">' + statusIcon + '</span>' +
         '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">' + safeName + '</span>' +
-        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + window._safeHtml(h.format || '') + '</span>' +
+        '<span style="flex-shrink:0;font-size:0.7rem;color:var(--text-muted);">' + _safer(h.format || '') + '</span>' +
         (posIcon ? '<span style="flex-shrink:0;min-width:24px;text-align:right;">' + posIcon + '</span>' : '') +
       '</div>';
     }
-    if (stats.history.length > maxShow) {
-      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px;">e mais ' + (stats.history.length - maxShow) + ' torneio' + ((stats.history.length - maxShow) > 1 ? 's' : '') + '...</div>';
+    if (tStats.history.length > maxShow) {
+      html += '<div style="text-align:center;font-size:0.68rem;color:var(--text-muted);padding:4px;">e mais ' + (tStats.history.length - maxShow) + ' torneio' + ((tStats.history.length - maxShow) > 1 ? 's' : '') + '...</div>';
     }
     html += '</div>';
   }
 
-  // ── Casual match stats section ──
-  // Load from localStorage first (instant), then try Firestore for linked matches
-  var casualHtml = '';
-  try {
-    var casualHist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
-    var casualWins = 0, casualLosses = 0, casualTotal = casualHist.length;
-    var p1Lower = displayName;
-    for (var ci = 0; ci < casualHist.length; ci++) {
-      var ch = casualHist[ci];
-      if (ch.winner && ch.winner.toLowerCase() === p1Lower) casualWins++;
-      else if (ch.winner && ch.winner !== 'Empate') casualLosses++;
-    }
-    if (casualTotal > 0) {
-      casualHtml += '<div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:12px;">';
-      casualHtml += '<div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:8px;">📡 Partidas Casuais (local)</div>';
-      casualHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;">' +
-        _boxStat('Partidas', casualTotal, '🎯', '#38bdf8') +
-        _boxStat('Vitórias', casualWins, '✅', '#22c55e') +
-        _boxStat('Derrotas', casualLosses, '❌', '#ef4444') +
-      '</div>';
-
-      // Last 5 casual matches
-      var maxCasual = Math.min(casualTotal, 5);
-      casualHtml += '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Últimas partidas</div>';
-      for (var ck = 0; ck < maxCasual; ck++) {
-        var cm = casualHist[ck];
-        var cmDate = cm.date ? new Date(cm.date) : null;
-        var cmDateStr = cmDate ? (cmDate.getDate() + '/' + (cmDate.getMonth()+1)) : '';
-        var cmWon = cm.winner && cm.winner.toLowerCase() === p1Lower;
-        var cmDraw = cm.winner === 'Empate';
-        var resultIcon = cmWon ? '✅' : (cmDraw ? '🤝' : '❌');
-        var safeSport = window._safeHtml ? window._safeHtml(cm.sport || '') : (cm.sport || '');
-        var safeP2 = window._safeHtml ? window._safeHtml(cm.p2 || '') : (cm.p2 || '');
-        var safeSummary = window._safeHtml ? window._safeHtml(cm.summary || '') : (cm.summary || '');
-        casualHtml += '<div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;font-size:0.75rem;background:rgba(255,255,255,0.02);margin-bottom:3px;">' +
-          '<span style="flex-shrink:0;width:18px;text-align:center;">' + resultIcon + '</span>' +
-          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-color);">vs ' + safeP2 + '</span>' +
-          '<span style="flex-shrink:0;font-size:0.68rem;color:var(--text-muted);">' + safeSport + '</span>' +
-          '<span style="flex-shrink:0;font-size:0.68rem;color:var(--text-muted);min-width:30px;text-align:right;">' + safeSummary + '</span>' +
-          '<span style="flex-shrink:0;font-size:0.65rem;color:var(--text-muted);min-width:28px;text-align:right;">' + cmDateStr + '</span>' +
-        '</div>';
-      }
-      if (casualTotal > maxCasual) {
-        casualHtml += '<div style="text-align:center;font-size:0.68rem;color:var(--text-muted);padding:2px;">e mais ' + (casualTotal - maxCasual) + ' partida' + ((casualTotal - maxCasual) > 1 ? 's' : '') + '...</div>';
-      }
-      casualHtml += '</div>';
-    }
-  } catch(e) {}
-
-  // Also try loading from Firestore (async, will append when ready)
-  html += casualHtml;
   el.innerHTML = html;
 
-  // Async: load Firestore casual stats and merge with localStorage
-  if (cu && cu.uid && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
-    window.FirestoreDB.loadUserCasualMatches(cu.uid).then(function(firestoreMatches) {
-      if (!firestoreMatches || firestoreMatches.length === 0) return;
-      var fsWins = 0, fsLosses = 0, fsDraws = 0;
-      for (var fi = 0; fi < firestoreMatches.length; fi++) {
-        var fm = firestoreMatches[fi];
-        var fPlayers = Array.isArray(fm.players) ? fm.players : [];
-        var mySlot = fPlayers.find(function(p) { return p.uid === cu.uid; });
-        if (!mySlot || !fm.result) continue;
-        var myTeam = mySlot.team;
-        if (fm.result.winner === myTeam) fsWins++;
-        else if (fm.result.winner === 0) fsDraws++;
-        else fsLosses++;
-      }
-      // Update the casual stats section if it exists
-      var statsEl = document.getElementById('profile-stats-content');
-      if (!statsEl) return;
-      var fsSection = document.getElementById('casual-firestore-stats');
-      if (fsSection) return; // Already rendered
-      var fHtml = '<div id="casual-firestore-stats" style="margin-top:4px;font-size:0.72rem;color:var(--text-muted);text-align:center;">' +
-        '☁️ Partidas vinculadas: ' + firestoreMatches.length + ' (' + fsWins + 'V / ' + fsLosses + 'D' + (fsDraws > 0 ? ' / ' + fsDraws + 'E' : '') + ')' +
-      '</div>';
-      statsEl.insertAdjacentHTML('beforeend', fHtml);
-    }).catch(function() {});
-
-    // Detailed persistent stats (per-user matchHistory, survives tournament/casual deletion)
+  // Async: upgrade sections with detailed stats from matchHistory subcollection
+  if (cu && cu.uid && window.FirestoreDB && window.FirestoreDB.db) {
     _renderDetailedPersistentStats(cu.uid);
   }
 }
@@ -2192,26 +2086,28 @@ function _renderDetailedPersistentStats(uid) {
       );
     }
 
-    function _sectionHtml(title, icon, recs, accent) {
+    // Build the rich STATS BODY for a section (without the outer shell — the shell
+    // already exists in the DOM as #profile-stats-casual or #profile-stats-tournament).
+    // Returns the HTML that replaces the section's innerHTML entirely (including header row).
+    function _sectionBodyHtml(title, icon, recs, accent, extraTail) {
       if (!recs.length) return '';
       var a = _aggregate(recs);
       var winRate = a.matches > 0 ? Math.round(a.wins / a.matches * 100) : 0;
       var srvPct = a.servePts > 0 ? Math.round(a.servePtsWon / a.servePts * 100) : 0;
       var recvPct = a.receivePts > 0 ? Math.round(a.receivePtsWon / a.receivePts * 100) : 0;
-      var holdPct = a.holdsServed > 0 ? Math.round(a.holdsWon / a.holdsServed * 100) : 0;
 
       var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
-      var h = '<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ' + accent + '44;">' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">' +
-          '<span style="font-size:0.9rem;font-weight:800;color:' + accent + ';">' + icon + ' ' + title + '</span>' +
-          '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:auto;font-weight:700;">' + a.matches + ' ' + (a.matches > 1 ? _t('profile.matchMany') : _t('profile.matchOne')) + '</span>' +
+      return '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:1rem;">' + icon + '</span>' +
+          '<span style="font-size:0.85rem;font-weight:900;color:' + accent + ';text-transform:uppercase;letter-spacing:0.8px;">' + title + '</span>' +
+          '<span style="margin-left:auto;font-size:0.62rem;color:var(--text-muted);font-weight:700;">' + a.matches + ' ' + (a.matches > 1 ? _t('profile.matchMany') : _t('profile.matchOne')) + '</span>' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px;">' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">' +
           _statBox(a.wins, _t('profile.statWins'), '#22c55e', '✅') +
           _statBox(a.losses + (a.draws ? '/' + a.draws + 'E' : ''), _t('profile.statLosses') + (a.draws ? '/E' : ''), '#ef4444', '❌') +
           _statBox(winRate + '%', _t('profile.statRate'), rateClr, '📊') +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px;">' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">' +
           _statBox(a.sets, 'Sets', '#fbbf24', '🏅') +
           _statBox(a.games, 'Games', '#60a5fa', '🎾') +
           _statBox(a.points, _t('profile.statPoints'), '#a855f7', '🎯') +
@@ -2225,13 +2121,12 @@ function _renderDetailedPersistentStats(uid) {
           '</div>'
         ) : '') +
         (a.longestStreak > 0 || a.biggestLead > 0 ? (
-          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:5px;">' +
+          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">' +
             _statBox(a.longestStreak, 'Maior Seq.', '#fb923c', '🔥') +
             _statBox(a.biggestLead, 'Maior Vant.', '#22c55e', '📈') +
           '</div>'
         ) : '') +
-      '</div>';
-      return h;
+        (extraTail || '');
     }
 
     // Build side-by-side comparative bars between casual and tournament matches.
@@ -2288,15 +2183,55 @@ function _renderDetailedPersistentStats(uid) {
     var casualAgg = _computeH2hAndPartners(casual);
     var tournAgg = _computeH2hAndPartners(tournament);
 
-    var wrap = document.createElement('div');
-    wrap.id = 'profile-detailed-stats';
-    wrap.style.cssText = 'margin-top:14px;border-top:1px solid var(--border-color);padding-top:12px;';
-    wrap.innerHTML =
-      '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;">' + _t('profile.detailedStats') + '</div>' +
-      '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px;">' + _t('profile.detailedStatsDesc') + '</div>' +
-      _sectionHtml(_t('profile.casualMatches'), '📡', casual, '#38bdf8') +
-      _sectionHtml(_t('profile.tournamentsSection'), '🏆', tournament, '#fbbf24') +
-      _comparativeSectionHtml() +
+    // Upgrade the basic sections rendered by _populatePlayerStats with rich stats,
+    // replacing their innerHTML in-place (no duplicate blocks below).
+    if (casual.length) {
+      var casualEl = document.getElementById('profile-stats-casual');
+      if (casualEl) casualEl.innerHTML = _sectionBodyHtml(_t('profile.casualMatches'), '📡', casual, '#38bdf8');
+    }
+    if (tournament.length) {
+      var tournEl = document.getElementById('profile-stats-tournament');
+      // Preserve tournament-only extras (titles/organized count) from the basic section
+      var titlesCount = 0, organizedCount = 0;
+      try {
+        var tournaments = window.AppStore.tournaments || [];
+        var cu = window.AppStore.currentUser || {};
+        var emailLc = (cu.email || '').toLowerCase();
+        var displayLc = (cu.displayName || '').toLowerCase();
+        function _isMyLabelLocal(l) { if (!l) return false; var x = String(l).toLowerCase(); return x === emailLc || (displayLc && x === displayLc); }
+        for (var ti2 = 0; ti2 < tournaments.length; ti2++) {
+          var tt = tournaments[ti2];
+          if (tt.organizerEmail && tt.organizerEmail.toLowerCase() === emailLc) organizedCount++;
+          if (tt.status === 'finished') {
+            if (Array.isArray(tt.matches) && tt.matches.length > 0) {
+              var fm = tt.matches[tt.matches.length - 1];
+              if (fm && fm.winner && _isMyLabelLocal(fm.winner)) titlesCount++;
+            }
+            if (Array.isArray(tt.standings) && tt.standings.length > 0) {
+              var s0 = tt.standings[0];
+              if (s0 && _isMyLabelLocal(s0.name || s0.player || s0.displayName)) titlesCount++;
+            }
+          }
+        }
+      } catch(e2) {}
+      var extraTail = (titlesCount > 0 ? (
+          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">' +
+            _statBox(titlesCount, 'Títulos', '#fbbf24', '👑') +
+            _statBox(tournament.length, 'Partidas', '#a855f7', '🏆') +
+          '</div>'
+        ) : '') +
+        (organizedCount > 0 ? (
+          '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;">' +
+            '📋 Você organizou ' + organizedCount + ' torneio' + (organizedCount > 1 ? 's' : '') +
+          '</div>'
+        ) : '');
+      if (tournEl) tournEl.innerHTML = _sectionBodyHtml(_t('profile.tournamentsSection'), '🏆', tournament, '#fbbf24', extraTail);
+    }
+
+    // Append comparative bars + H2H tables below (under the history list)
+    var existing = document.getElementById('profile-detailed-stats');
+    if (existing) existing.remove();
+    var extraBlockHtml = _comparativeSectionHtml() +
       (Object.keys(casualAgg.h2h).length + Object.keys(tournAgg.h2h).length > 0
         ? '<div style="margin-top:14px;">' +
             _tableHtml(_t('profile.h2hCasual'), casualAgg.h2h) +
@@ -2305,7 +2240,13 @@ function _renderDetailedPersistentStats(uid) {
             _tableHtml(_t('profile.partnersTournament'), tournAgg.partners) +
           '</div>'
         : '');
-    el.appendChild(wrap);
+    if (extraBlockHtml) {
+      var wrap = document.createElement('div');
+      wrap.id = 'profile-detailed-stats';
+      wrap.style.cssText = 'margin-top:10px;';
+      wrap.innerHTML = extraBlockHtml;
+      el.appendChild(wrap);
+    }
   }).catch(function(e) { console.warn('loadUserMatchHistory failed', e); });
 }
 

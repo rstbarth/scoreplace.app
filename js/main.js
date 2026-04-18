@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.69-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Estatísticas do perfil estruturadas como partida casual</b> — A página de estatísticas dentro do perfil (no hero box do dashboard) foi totalmente reescrita para usar a mesma linguagem visual da tela de fim de partida casual. Agora com duas seções paralelas claramente separadas — 📡 <b>Partidas Casuais</b> e 🏆 <b>Torneios</b> — cada uma com seu próprio badge, cartões de estatísticas (V/D/Aproveit.) e cores. Quando há histórico detalhado (sets, games, saque%, recepção%, killer points, breaks, maior sequência, maior vantagem), os cards são enriquecidos automaticamente. Quem tem ambos os tipos de partida vê a barra comparativa "Casual vs Torneio" e tabelas de confrontos diretos / parcerias logo abaixo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.68-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Desfazer times propaga para todos + fechar encerra para todos</b> — Quando o organizador desfaz os times formados na tela de montagem da partida casual, a mudança agora aparece em tempo real para todos os jogadores no lobby (antes os convidados continuavam vendo "Times Formados" mesmo depois de o organizador quebrar a dupla). E quando o organizador clica em "Fechar" — tanto na tela de montagem quanto durante o placar ao vivo — a partida casual é encerrada para todos: os demais jogadores são automaticamente desconectados e voltam para o dashboard, em vez de ficar presos numa sala fantasma.</p>' +
         '</div>' +
