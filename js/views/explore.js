@@ -28,14 +28,14 @@ function renderExplore(container) {
     '<div style="max-width: 800px; margin: 0 auto;">' +
       '<h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-bright);">' + _t('explore.title') + '</h2>' +
 
-      // Pending friend requests
+      // Received friend requests (need my response)
       '<div id="explore-pending"></div>' +
 
-      // My friends section (rendered first, above search)
+      // My friends section
       '<div id="explore-friends"></div>' +
 
-      // Conhecidos (same tournaments)
-      '<div id="explore-conhecidos"></div>' +
+      // Sent friend requests (waiting on them)
+      '<div id="explore-sent"></div>' +
 
       // Search bar
       '<div style="display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center;">' +
@@ -43,29 +43,36 @@ function renderExplore(container) {
         '<button class="btn btn-outline btn-sm" id="explore-search-btn" style="padding: 8px 14px; white-space: nowrap;">🔍 ' + _t('explore.search') + '</button>' +
       '</div>' +
 
-      // Non-friend, non-conhecido results
+      // Unified non-friend, non-invited results
       '<div id="explore-results"></div>' +
     '</div>';
 
-  // Render pending friend requests
+  // Render received friend requests, my friends, and sent requests
   _renderPendingRequests(myUid, myReceived);
+  _renderMyFriends(myUid, myFriends);
+  _renderSentRequests(myUid, mySent);
 
-  // Render my friends first, THEN conhecidos (so friend emails/names are available for filtering)
-  _renderMyFriends(myUid, myFriends).then(function() {
-    _renderConhecidos(myUid, myFriends, mySent, myReceived);
-  });
-
-  // Search handler
+  // Search handler — live filter as user types (debounced)
   var searchInput = document.getElementById('explore-search-input');
   var searchBtn = document.getElementById('explore-search-btn');
+  var _searchTimer = null;
 
   function doSearch() {
     _performUserSearch(searchInput.value.trim(), myUid, myFriends, mySent, myReceived);
   }
 
+  function scheduleSearch(delayMs) {
+    if (_searchTimer) clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(doSearch, typeof delayMs === 'number' ? delayMs : 250);
+  }
+
   searchBtn.addEventListener('click', doSearch);
+  searchInput.addEventListener('input', function() { scheduleSearch(250); });
   searchInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doSearch();
+    if (e.key === 'Enter') {
+      if (_searchTimer) clearTimeout(_searchTimer);
+      doSearch();
+    }
   });
 
   // Auto-load non-friend users
@@ -119,6 +126,74 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
   '</div>';
 }
 
+// ---- Sort helpers for OUTROS USUÁRIOS ----
+function _sortOtrosArray(arr, mode) {
+  if (mode === 'alpha-asc') {
+    arr.sort(function(a, b) {
+      return ((a.displayName || a.email || '')).localeCompare((b.displayName || b.email || ''), 'pt-BR', { sensitivity: 'base' });
+    });
+  } else if (mode === 'alpha-desc') {
+    arr.sort(function(a, b) {
+      return ((b.displayName || b.email || '')).localeCompare((a.displayName || a.email || ''), 'pt-BR', { sensitivity: 'base' });
+    });
+  } else if (mode === 'date-asc') {
+    arr.sort(function(a, b) {
+      return (a._latestTs || 0) - (b._latestTs || 0);
+    });
+  } else {
+    // 'date-desc' — most recent encounter / profile activity first
+    arr.sort(function(a, b) {
+      return (b._latestTs || 0) - (a._latestTs || 0);
+    });
+  }
+}
+
+window._toggleOtrosSort = function(dimension) {
+  var current = window._otrosSortMode || 'date-desc';
+  var parts = current.split('-');
+  var currentDim = parts[0];
+  var currentDir = parts[1] || 'desc';
+  var newMode;
+  if (currentDim === dimension) {
+    newMode = dimension + '-' + (currentDir === 'asc' ? 'desc' : 'asc');
+  } else {
+    newMode = dimension + '-' + (dimension === 'date' ? 'desc' : 'asc');
+  }
+  window._otrosSortMode = newMode;
+  var users = window._otrosUsers;
+  var resultsDiv = document.getElementById('explore-results');
+  if (!users || !resultsDiv) return;
+  _sortOtrosArray(users, newMode);
+  _renderOtrosCards(resultsDiv, users);
+};
+
+function _computeSharedInfo(user, myEmail, myName) {
+  var email = user.email || '';
+  var name = user.displayName || '';
+  var tournaments = window.AppStore.tournaments || [];
+  var latest = 0;
+  var count = 0;
+  for (var i = 0; i < tournaments.length; i++) {
+    var t = tournaments[i];
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    var hasMe = t.organizerEmail === myEmail || parts.some(function(p) {
+      return _participantMatchesUser(p, myEmail, myName);
+    });
+    if (!hasMe) continue;
+    var hasUser = parts.some(function(p) {
+      return _participantMatchesUser(p, email, name);
+    });
+    if (!hasUser) continue;
+    count++;
+    var rawDate = t.startDate || t.createdAt || t.updatedAt;
+    if (rawDate) {
+      var parsed = new Date(rawDate).getTime();
+      if (!isNaN(parsed) && parsed > latest) latest = parsed;
+    }
+  }
+  return { count: count, latest: latest };
+}
+
 // ---- Search non-friend users ----
 function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   var resultsDiv = document.getElementById('explore-results');
@@ -127,8 +202,8 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   resultsDiv.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">' + _t('explore.searching') + '</div>';
 
   window.FirestoreDB.searchUsers(query).then(function(users) {
-    // Filter out self, friends, and conhecidos (shown in their own sections)
-    var conhecidosKeys = window._conhecidosEmails || [];
+    // Filter out self, friends, received-invitations, and sent-invitations
+    // (those live in their own sections)
     var friendEmails = window._friendEmails || [];
     var friendNames = window._friendNames || [];
     users = users.filter(function(u) {
@@ -136,15 +211,16 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
       var email = u.email || '';
       var name = u.displayName || '';
       if (uid === myUid) return false;
-      // Filter by friend UID, email, or name
       if (myFriends.indexOf(uid) !== -1) return false;
       if (email && myFriends.indexOf(email) !== -1) return false;
       if (email && friendEmails.indexOf(email) !== -1) return false;
       if (name && friendNames.indexOf(name) !== -1) return false;
-      // Filter conhecidos
-      if (email && conhecidosKeys.indexOf(email) !== -1) return false;
-      if (uid && conhecidosKeys.indexOf(uid) !== -1) return false;
-      if (name && conhecidosKeys.indexOf(name) !== -1) return false;
+      // Hide people I already invited (shown in "Convites Pendentes")
+      if (mySent.indexOf(uid) !== -1) return false;
+      if (email && mySent.indexOf(email) !== -1) return false;
+      // Hide people who invited me (shown in received section)
+      if (myReceived.indexOf(uid) !== -1) return false;
+      if (email && myReceived.indexOf(email) !== -1) return false;
       return true;
     });
 
@@ -155,35 +231,140 @@ function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
       return;
     }
 
-    var html = '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + _t('explore.otherUsers') + '</div>';
-    html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
-
+    // Compute timestamps + shared tournament count: latest shared tournament (preferred) or profile updatedAt/createdAt
+    var cu = window.AppStore.currentUser || {};
+    var _myEmail = cu.email || '';
+    var _myName = cu.displayName || '';
     users.forEach(function(u) {
-      var uid = u._docId || u.uid || u.email;
-      var isSent = mySent.indexOf(uid) !== -1;
-      var isReceived = myReceived.indexOf(uid) !== -1;
-
-      var actionBtn = '';
-      var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      if (isSent) {
-        actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
-      } else if (isReceived) {
-        actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
-        '</div>';
+      var shareInfo = _computeSharedInfo(u, _myEmail, _myName);
+      u._sharedCount = shareInfo.count;
+      if (shareInfo.latest > 0) {
+        u._latestTs = shareInfo.latest;
+        u._hasShared = true;
       } else {
-        actionBtn = '<button class="btn btn-primary btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
+        var ts = 0;
+        var raw = u.updatedAt || u.createdAt || u.lastSeenAt;
+        if (raw) {
+          var parsed = new Date(raw).getTime();
+          if (!isNaN(parsed)) ts = parsed;
+        }
+        u._latestTs = ts;
+        u._hasShared = false;
       }
-
-      html += _userCardHtml(u, uid, actionBtn, false);
     });
 
-    html += '</div>';
-    resultsDiv.innerHTML = html;
+    var sortMode = window._otrosSortMode || 'date-desc';
+    _sortOtrosArray(users, sortMode);
+    window._otrosUsers = users;
+    _renderOtrosCards(resultsDiv, users);
   }).catch(function(err) {
     resultsDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger-color);">' + _t('explore.searchError') + ': ' + window._safeHtml(err.message || err.toString()) + '</div>';
   });
+}
+
+function _renderOtrosCards(resultsDiv, users) {
+  var _t = window._t || function(k) { return k; };
+  var cu = window.AppStore.currentUser || {};
+  var mySent = cu.friendRequestsSent || [];
+  var myReceived = cu.friendRequestsReceived || [];
+  var sortMode = window._otrosSortMode || 'date-desc';
+  var _sortParts = sortMode.split('-');
+  var _sortDim = _sortParts[0];
+  var _sortDir = _sortParts[1] || 'desc';
+
+  var sortDateLabel = _t('explore.sortDate');
+  if (sortDateLabel === 'explore.sortDate') sortDateLabel = 'Data';
+  var sortAlphaLabel = _t('explore.sortAlpha');
+  if (sortAlphaLabel === 'explore.sortAlpha') sortAlphaLabel = 'A–Z';
+
+  function sortToggleBtn(dimension, label) {
+    var active = _sortDim === dimension;
+    var arrow = active ? (_sortDir === 'asc' ? ' ↑' : ' ↓') : ' ⇅';
+    var style = 'padding:5px 11px;border-radius:14px;font-size:0.72rem;font-weight:600;border:1px solid ' +
+      (active ? 'var(--primary-color, #6366f1)' : 'rgba(148,163,184,0.3)') + ';background:' +
+      (active ? 'rgba(99,102,241,0.2)' : 'transparent') + ';color:' +
+      (active ? 'var(--text-bright, #e2e8f0)' : 'var(--text-muted)') + ';cursor:pointer;display:inline-flex;align-items:center;gap:2px;';
+    return '<button onclick="window._toggleOtrosSort(\'' + dimension + '\')" style="' + style + '" title="' + label + '">' + label + arrow + '</button>';
+  }
+
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom: 0.75rem;">' +
+    '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">' + _t('explore.otherUsers') + ' (' + users.length + ')</div>' +
+    '<div style="display:flex;gap:6px;">' +
+      sortToggleBtn('date', '📅 ' + sortDateLabel) +
+      sortToggleBtn('alpha', sortAlphaLabel) +
+    '</div>' +
+  '</div>';
+  html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+
+  users.forEach(function(u) {
+    var uid = u._docId || u.uid || u.email;
+    var isSent = mySent.indexOf(uid) !== -1;
+    var isReceived = myReceived.indexOf(uid) !== -1;
+
+    var actionBtn = '';
+    var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+    var useWarning = u._hasShared;
+    var btnClass = useWarning ? 'btn btn-warning btn-sm hover-lift' : 'btn btn-primary btn-sm hover-lift';
+    if (isSent) {
+      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+    } else if (isReceived) {
+      actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
+        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
+      '</div>';
+    } else {
+      actionBtn = '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
+    }
+
+    html += _userCardWithEncounterHtml(u, uid, actionBtn);
+  });
+
+  html += '</div>';
+  resultsDiv.innerHTML = html;
+}
+
+// Renders a user card that shows shared-tournament count + latest encounter date when applicable
+function _userCardWithEncounterHtml(u, uid, actionHtml) {
+  var _t = window._t || function(k){return k;};
+  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var avatarSeed = encodeURIComponent(name || uid || 'User');
+  var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+  var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
+  var fallbackPhoto = initialsUrl;
+
+  var hasShared = !!u._hasShared;
+  var borderColor = hasShared ? 'rgba(245,158,11,0.45)' : 'var(--border-color)';
+  var bgTint = hasShared ? 'rgba(245, 158, 11, 0.06)' : 'transparent';
+  var avatarBorder = hasShared ? 'rgba(245,158,11,0.45)' : 'var(--border-color)';
+
+  var sharedLine = '';
+  if (hasShared) {
+    var sharedLabel = _t('explore.sharedTournaments');
+    if (sharedLabel === 'explore.sharedTournaments') sharedLabel = 'torneio(s) em comum';
+    sharedLine = '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + (u._sharedCount || 0) + ' ' + sharedLabel + '</div>';
+  }
+
+  var dateLine = '';
+  if (u._latestTs) {
+    var d = new Date(u._latestTs);
+    if (!isNaN(d.getTime())) {
+      var dateLabel = '';
+      try {
+        dateLabel = d.toLocaleDateString((window._lang === 'en' ? 'en-US' : 'pt-BR'), { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch(e) { dateLabel = d.toISOString().slice(0, 10); }
+      dateLine = '<div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 2px;">' + dateLabel + '</div>';
+    }
+  }
+
+  return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + avatarBorder + ';">' +
+    '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
+      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
+      sharedLine +
+      dateLine +
+    '</div>' +
+    '<div style="margin-top: auto; width: 100%;">' + actionHtml + '</div>' +
+  '</div>';
 }
 
 // ---- Pending friend requests ----
@@ -202,8 +383,11 @@ function _renderPendingRequests(myUid, receivedIds) {
     profiles = profiles.filter(function(p) { return p; });
     if (profiles.length === 0) { div.innerHTML = ''; return; }
 
+    var _tR = window._t || function(k){return k;};
+    var receivedLabel = _tR('explore.receivedInvites');
+    if (receivedLabel === 'explore.receivedInvites') receivedLabel = 'Convites Recebidos';
     var html = '<div style="margin-bottom: 1.25rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.pendingInvites') + '</div>';
+      '<div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + receivedLabel + ' (' + profiles.length + ')</div>';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
@@ -227,6 +411,42 @@ function _renderPendingRequests(myUid, receivedIds) {
     });
 
     html += '</div>';
+    div.innerHTML = html;
+  });
+}
+
+// ---- Sent friend requests (outgoing, awaiting their response) ----
+function _renderSentRequests(myUid, sentIds) {
+  var div = document.getElementById('explore-sent');
+  if (!div || !sentIds || sentIds.length === 0) { if (div) div.innerHTML = ''; return; }
+  var _t = window._t || function(k){return k;};
+
+  var promises = sentIds.map(function(uid) {
+    return window.FirestoreDB.loadUserProfile(uid).then(function(profile) {
+      if (profile) profile._docId = uid;
+      return profile;
+    }).catch(function() { return null; });
+  });
+
+  Promise.all(promises).then(function(profiles) {
+    profiles = profiles.filter(function(p) { return p; });
+    if (profiles.length === 0) { div.innerHTML = ''; return; }
+
+    var titleLabel = _t('explore.sentPending');
+    if (titleLabel === 'explore.sentPending') titleLabel = 'Convites Pendentes';
+
+    var html = '<div style="margin-bottom: 1.5rem;">' +
+      '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + titleLabel + ' (' + profiles.length + ')</div>' +
+      '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+
+    profiles.forEach(function(u) {
+      var uid = u._docId;
+      var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      html += _userCardHtml(u, uid, cancelBtn, false);
+    });
+
+    html += '</div></div>';
     div.innerHTML = html;
   });
 }
