@@ -4563,12 +4563,13 @@ window._openCasualMatch = function() {
   }
   if (!initialSport) initialSport = 'Beach Tennis';
 
-  // State — default to doubles ON, sortear ON, misto OFF
+  // State — default to doubles ON, sortear ON (auto-drives from team formation)
   var selectedSport = initialSport;
   var spMatch = sports.find(function(s) { return s.key === initialSport; });
   var isDoubles = (persistedDoubles !== null) ? persistedDoubles : (spMatch ? spMatch.defaultDoubles : true);
-  var autoShuffle = false;
-  var isMisto = false;
+  // autoShuffle mirrors team-formation state: ON until a team is formed via
+  // drag-and-drop, then OFF; if the team is broken, it flips back to ON.
+  var autoShuffle = true;
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
   var _setupRefreshInterval = null;
@@ -4698,12 +4699,13 @@ window._openCasualMatch = function() {
       if (sports[si].key === selectedSport) { sportIcon = sports[si].icon; sportLabel = sports[si].label; break; }
     }
 
-    // Toggles: Sortear + Misto (only for doubles)
+    // Sortear toggle (doubles only). Auto-drives from drag-and-drop team
+    // formation: ON while no team is formed, OFF when a team is paired via
+    // the chain, back to ON when the team is broken.
     var togglesHtml = '';
     if (isDoubles) {
       togglesHtml =
         '<div style="margin-bottom:0.8rem;display:flex;flex-direction:column;gap:6px;">' +
-          // Sortear toggle
           '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:12px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);">' +
             '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-size:1rem;">🔀</span>' +
@@ -4713,17 +4715,6 @@ window._openCasualMatch = function() {
               '</div>' +
             '</div>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#fbbf24;"><input type="checkbox" ' + (autoShuffle ? 'checked' : '') + ' onchange="window._casualSetShuffle(this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
-          // Misto toggle
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:12px;background:rgba(192,132,252,0.05);border:1px solid rgba(192,132,252,0.12);">' +
-            '<div style="display:flex;align-items:center;gap:8px;">' +
-              '<span style="font-size:1rem;">⚤</span>' +
-              '<div>' +
-                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + _t('casual.mixed') + '</span>' +
-                '<div style="font-size:0.65rem;color:var(--text-muted);">' + _t('casual.mixedSubtitle') + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#c084fc;"><input type="checkbox" ' + (isMisto ? 'checked' : '') + ' onchange="window._casualSetMisto(this.checked)"><span class="toggle-slider"></span></label>' +
           '</div>' +
         '</div>';
     }
@@ -4744,8 +4735,8 @@ window._openCasualMatch = function() {
         return '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((pp.displayName || 'J')[0].toUpperCase()) + '</div>';
       }
 
-      // Check if teams are formed (Sortear OFF drag-and-drop)
-      var _teamsFormed = !autoShuffle && _teamAssignments[0] !== undefined && _teamAssignments[1] !== undefined && _teamAssignments[2] !== undefined && _teamAssignments[3] !== undefined;
+      // Check if teams are formed (drag-and-drop assigned all 4 slots)
+      var _teamsFormed = _teamAssignments[0] !== undefined && _teamAssignments[1] !== undefined && _teamAssignments[2] !== undefined && _teamAssignments[3] !== undefined;
 
       var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.82rem;font-weight:600;outline:none;min-width:0;width:100%;resize:none;font-family:inherit;overflow:hidden;line-height:1.3;word-break:break-word;white-space:pre-wrap;';
 
@@ -4771,8 +4762,8 @@ window._openCasualMatch = function() {
         } else {
           bg = 'rgba(255,255,255,0.04)'; bdr = 'rgba(255,255,255,0.12)'; textClr = 'var(--text-bright)';
         }
-        var isDraggable = !autoShuffle;
-        var dragStyle = isDraggable ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;' : '';
+        var isDraggable = true;
+        var dragStyle = 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
           '<textarea id="' + inputIds[ci] + '" rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
@@ -4932,6 +4923,8 @@ window._openCasualMatch = function() {
           if (j !== idx1 && j !== idx2) _teamAssignments[j] = 1;
         }
       }
+      // Teams are now fixed — shuffle is redundant and misleading, so flip OFF
+      autoShuffle = false;
       _renderSetup();
       // Broadcast team formation to other players in the lobby
       _syncCasualSetupDebounced();
@@ -5057,9 +5050,10 @@ window._openCasualMatch = function() {
     }
   };
 
-  // Reset team assignments
+  // Reset team assignments — teams are no longer fixed, so shuffle flips back ON
   window._casualResetTeams = function() {
     _teamAssignments = {};
+    autoShuffle = true;
     _renderSetup();
     _syncCasualSetupDebounced();
   };
@@ -5093,16 +5087,14 @@ window._openCasualMatch = function() {
     _syncCasualSetupDebounced();
   };
 
-  // Shuffle toggle
+  // Shuffle toggle. Turning ON breaks any formed teams so the start-of-match
+  // shuffle has a clean slate. Turning OFF just stores the preference — teams
+  // still need to be formed via drag-and-drop before Iniciar.
   window._casualSetShuffle = function(val) {
-    autoShuffle = val;
+    autoShuffle = !!val;
+    if (val) _teamAssignments = {};
     _renderSetup();
     _syncCasualSetupDebounced();
-  };
-
-  // Misto toggle
-  window._casualSetMisto = function(val) {
-    isMisto = val;
   };
 
   // Join a friend's room by code
@@ -5702,6 +5694,7 @@ window._openCasualMatch = function() {
             // Reset any team formation — positions shifted and the slot is
             // now free for someone else to take.
             _teamAssignments = {};
+            autoShuffle = true;
             if (typeof showNotification === 'function' && _leftNames.length > 0) {
               showNotification(_t('casual.playerLeft'), _t('casual.playerLeftRoom', {name: _leftNames[0]}), 'info');
             }
