@@ -4598,6 +4598,10 @@ window._openCasualMatch = function() {
     if (section) section.innerHTML = _buildLobbyHtml();
     // Also fill empty player inputs with lobby participant names
     _fillInputsFromLobby();
+    // Re-render the setup cards so each registered guest's avatar + name
+    // appears on their card. _renderSetup captures current input values
+    // before re-rendering, so anything the host typed is preserved.
+    _renderSetup();
   }
 
   // Fill player name inputs with lobby participants' displayNames
@@ -5552,9 +5556,41 @@ window._openCasualMatch = function() {
         if (!fresh) return;
         var newParts = Array.isArray(fresh.participants) ? fresh.participants : [];
         if (newParts.length !== _lobbyParticipants.length) {
+          var countDecreased = newParts.length < _lobbyParticipants.length;
+          // Figure out who left so we can clear their typed-in name from
+          // the host's setup cards — freeing the slot for another joiner.
+          var _leftNames = [];
+          if (countDecreased) {
+            var _stillInUids = {};
+            for (var _si = 0; _si < newParts.length; _si++) {
+              if (newParts[_si] && newParts[_si].uid) _stillInUids[newParts[_si].uid] = true;
+            }
+            for (var _pi = 0; _pi < _lobbyParticipants.length; _pi++) {
+              var _gone = _lobbyParticipants[_pi];
+              if (_gone && _gone.uid && !_stillInUids[_gone.uid] && _gone.displayName) {
+                _leftNames.push(_gone.displayName);
+              }
+            }
+          }
           _lobbyParticipants = newParts;
+          if (countDecreased) {
+            // Clear ALL non-host inputs so _fillInputsFromLobby can repopulate
+            // from the current participant list. Otherwise stale slots linger
+            // (e.g. the input at the freed position keeps the departed name).
+            var _inpIds = ['casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
+            for (var _ii = 0; _ii < _inpIds.length; _ii++) {
+              var _el = document.getElementById(_inpIds[_ii]);
+              if (_el) _el.value = '';
+            }
+            // Reset any team formation — positions shifted and the slot is
+            // now free for someone else to take.
+            _teamAssignments = {};
+            if (typeof showNotification === 'function' && _leftNames.length > 0) {
+              showNotification(_t('casual.playerLeft'), _t('casual.playerLeftRoom', {name: _leftNames[0]}), 'info');
+            }
+          }
           _updateLobbySection();
-          if (newParts.length > 1) {
+          if (!countDecreased && newParts.length > 1) {
             var latest = newParts[newParts.length - 1];
             if (latest && latest.uid !== (cu ? cu.uid : '')) {
               if (typeof showNotification === 'function') showNotification(_t('casual.newPlayer'), _t('casual.playerJoinedRoom', {name: latest.displayName || _t('casual.someone')}), 'success');

@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.64-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Avatares + refresh ao vivo na partida casual</b> — A tela de montagem do organizador agora mostra a foto de perfil e o nome cadastrado de cada jogador que entra na sala, atualizando os cards em tempo real. Quando um jogador sai, seu nome desaparece instantaneamente dos demais, os inputs dos convidados são reabertos e as duplas já formadas são desfeitas — a vaga fica livre para outro jogador ocupar, com aviso ("Fulano saiu da sala — vaga liberada") para o organizador.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Desfazer duplas e sair da partida casual</b> — Times formados por arrastar-e-soltar agora exibem um ícone de corrente 🔗 entre os parceiros; um toque quebra a dupla para reformar ou sortear de novo antes de iniciar. Sair da partida casual é efetivo: o organizador que fecha a tela de montagem cancela a partida no Firestore (remove-se da sala e libera os convidados), e jogadores convidados cuja sala foi cancelada são redirecionados automaticamente ao dashboard com aviso — ninguém fica preso em sala fantasma nem visível aos demais.</p>' +
         '</div>' +

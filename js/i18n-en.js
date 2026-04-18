@@ -1138,6 +1138,8 @@ window._translations['en'] = {
   'casual.whatsappMsg': 'Casual match of {sport}! Join with code {code}: {url}',
   'casual.newPlayer': 'New player!',
   'casual.playerJoinedRoom': '{name} joined the room.',
+  'casual.playerLeft': 'Player left',
+  'casual.playerLeftRoom': '{name} left the room — slot freed.',
   'casual.teamShuffled': 'Teams shuffled!',
   'casual.inRoom': 'In room · {count}/{total}',
   'casual.you': 'You',
