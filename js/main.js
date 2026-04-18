@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.67-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cards de jogador uniformes + duplas por padrão</b> — Os 4 cards de jogador na montagem da partida casual agora têm altura sempre igual (alinhamento automático à maior), e nomes longos quebram em múltiplas linhas dentro do card em vez de vazar ou serem cortados. Fluxo também ficou mais previsível: ao abrir a partida casual, lembramos o último esporte e modalidade (simples/duplas) escolhidos; usuários sem preferência configurada caem em Beach Tennis (duplas) em vez de Placar Simples — corrige o caso em que alguns usuários viam jogo single sem querer.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Login no Safari estável + QR de convite para o app</b> — Safari e iOS (incluindo Chrome no iOS, que usa WebKit) agora usam o fluxo <code>signInWithRedirect</code> em vez de popup, fugindo do ITP que derrubava a sessão após leitura do QR code; persistência LOCAL é aplicada explicitamente e <code>getRedirectResult</code> é capturado no carregamento da página, trazendo o usuário de volta logado. Popup-blocked em outros navegadores também cai automaticamente para redirect. Novo botão 📱 "Convidar amigos" no hero box abre um QR code apontando para <code>scoreplace.app</code> (com <code>?ref</code> automático de quem convida) — ideal para passar o link direto para alguém que ainda não está no app.</p>' +
         '</div>' +

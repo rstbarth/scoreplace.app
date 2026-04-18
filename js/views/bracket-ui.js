@@ -4493,21 +4493,32 @@ window._openCasualMatch = function() {
     { key: '_simple', icon: '🏅', label: 'Placar Simples', defaultDoubles: false }
   ];
 
-  // Resolve initial sport
-  var initialSport = '_simple';
-  for (var si = 0; si < sports.length; si++) {
-    if (userSport && userSport.toLowerCase().indexOf(sports[si].key.toLowerCase()) !== -1) {
-      initialSport = sports[si].key; break;
+  // Resolve initial sport: (1) last-used persisted choice → (2) profile preferredSport → (3) Beach Tennis (most common casual match)
+  var initialSport = '';
+  var persistedDoubles = null;
+  try {
+    var _lastPrefs = JSON.parse(localStorage.getItem('scoreplace_casual_last') || '{}');
+    if (_lastPrefs.sport && sports.find(function(s){ return s.key === _lastPrefs.sport; })) {
+      initialSport = _lastPrefs.sport;
+      if (typeof _lastPrefs.isDoubles === 'boolean') persistedDoubles = _lastPrefs.isDoubles;
     }
-    if (userSport && sports[si].key.toLowerCase().indexOf(userSport.toLowerCase().replace(/[^\w\u00C0-\u024F]/gu, '')) !== -1) {
-      initialSport = sports[si].key; break;
+  } catch(e) {}
+  if (!initialSport) {
+    for (var si = 0; si < sports.length; si++) {
+      if (userSport && userSport.toLowerCase().indexOf(sports[si].key.toLowerCase()) !== -1) {
+        initialSport = sports[si].key; break;
+      }
+      if (userSport && sports[si].key.toLowerCase().indexOf(userSport.toLowerCase().replace(/[^\w\u00C0-\u024F]/gu, '')) !== -1) {
+        initialSport = sports[si].key; break;
+      }
     }
   }
+  if (!initialSport) initialSport = 'Beach Tennis';
 
   // State — default to doubles ON, sortear ON, misto OFF
   var selectedSport = initialSport;
   var spMatch = sports.find(function(s) { return s.key === initialSport; });
-  var isDoubles = spMatch ? spMatch.defaultDoubles : true;
+  var isDoubles = (persistedDoubles !== null) ? persistedDoubles : (spMatch ? spMatch.defaultDoubles : true);
   var autoShuffle = false;
   var isMisto = false;
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
@@ -4581,7 +4592,7 @@ window._openCasualMatch = function() {
       h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;' +
         'background:' + (isMe ? 'rgba(34,197,94,0.06)' : 'transparent') + ';">' +
         _avatarHtml(pp, 28) +
-        '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;">' + window._safeHtml(pp.displayName || _t('casual.playerFallback')) +
+        '<div style="font-size:0.82rem;font-weight:600;color:var(--text-bright);flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">' + window._safeHtml(pp.displayName || _t('casual.playerFallback')) +
           (isHost ? ' <span style="font-size:0.65rem;color:#fbbf24;">👑</span>' : '') +
           (isMe ? ' <span style="font-size:0.62rem;color:#22c55e;">(' + _t('casual.you') + ')</span>' : '') +
         '</div>' +
@@ -4688,7 +4699,7 @@ window._openCasualMatch = function() {
       // Check if teams are formed (Sortear OFF drag-and-drop)
       var _teamsFormed = !autoShuffle && _teamAssignments[0] !== undefined && _teamAssignments[1] !== undefined && _teamAssignments[2] !== undefined && _teamAssignments[3] !== undefined;
 
-      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.82rem;font-weight:600;outline:none;min-width:0;width:0;';
+      var _inputStyle = 'flex:1;padding:0;border:none;background:transparent;font-size:0.82rem;font-weight:600;outline:none;min-width:0;width:100%;resize:none;font-family:inherit;overflow:hidden;line-height:1.3;word-break:break-word;white-space:pre-wrap;';
 
       // Setup screen: neutral cards, or team-colored when teams formed via drag-and-drop
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
@@ -4716,7 +4727,7 @@ window._openCasualMatch = function() {
         var dragStyle = isDraggable ? 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
-          '<input type="text" id="' + inputIds[ci] + '" value="' + window._safeHtml(inputValues[ci]) + '" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput()" style="' + _inputStyle + 'color:' + textClr + ';">' +
+          '<textarea id="' + inputIds[ci] + '" rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
         '</div>';
       }
 
@@ -4966,7 +4977,40 @@ window._openCasualMatch = function() {
         _touchIdx = null;
       });
     });
+
+    // After render: autosize textareas and equalize card heights
+    setTimeout(function() {
+      var tas = document.querySelectorAll('#casual-team-cards textarea');
+      for (var ti = 0; ti < tas.length; ti++) {
+        if (window._autosizeCasualInput) window._autosizeCasualInput(tas[ti]);
+      }
+      if (window._equalizeCasualCards) window._equalizeCasualCards();
+    }, 0);
   }
+
+  // Auto-resize a casual-setup textarea to fit its content (wraps long names)
+  window._autosizeCasualInput = function(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    var h = el.scrollHeight;
+    if (h > 0) el.style.height = h + 'px';
+  };
+
+  // Keep all 4 casual-setup player cards at the same (tallest) height for visual consistency
+  window._equalizeCasualCards = function() {
+    var cards = document.querySelectorAll('#casual-team-cards [data-casual-idx]');
+    if (!cards.length) return;
+    for (var i = 0; i < cards.length; i++) cards[i].style.minHeight = '';
+    var max = 0;
+    for (var j = 0; j < cards.length; j++) {
+      var h = cards[j].getBoundingClientRect().height;
+      if (h > max) max = h;
+    }
+    if (max > 0) {
+      var px = Math.ceil(max) + 'px';
+      for (var k = 0; k < cards.length; k++) cards[k].style.minHeight = px;
+    }
+  };
 
   // Reset team assignments
   window._casualResetTeams = function() {
@@ -4978,11 +5022,19 @@ window._openCasualMatch = function() {
   // Track if config screen is open
   var _configOpen = false;
 
+  // Persist last-used sport + doubles toggle so the next casual match opens with the same defaults
+  function _persistLastCasualChoice() {
+    try {
+      localStorage.setItem('scoreplace_casual_last', JSON.stringify({ sport: selectedSport, isDoubles: !!isDoubles }));
+    } catch(e) {}
+  }
+
   // Sport selection handler — also resets doubles default
   window._casualSelectSport = function(key) {
     selectedSport = key;
     var sp = sports.find(function(s) { return s.key === key; });
     if (sp) isDoubles = sp.defaultDoubles;
+    _persistLastCasualChoice();
     if (_configOpen) window._casualOpenConfig();
     else _renderSetup();
   };
@@ -4990,6 +5042,7 @@ window._openCasualMatch = function() {
   // Doubles toggle
   window._casualSetDoubles = function(val) {
     isDoubles = val;
+    _persistLastCasualChoice();
     if (_configOpen) window._casualOpenConfig();
     else _renderSetup();
     _syncCasualSetupDebounced();
