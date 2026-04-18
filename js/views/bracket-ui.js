@@ -1857,6 +1857,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var _courtLeft = 1; // Which team is on the left side of the court (1 or 2)
   var _matchStartTime = null; // Timestamp when first point is scored
   var _matchEndTime = null;   // Timestamp when match finishes
+  var _resultSaved = false;   // Guards idempotent save on restart/close
 
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
@@ -2439,12 +2440,25 @@ window._openLiveScoring = function(tId, matchId, opts) {
   }
 
   // Save result to match
-  function _saveResult() {
+  // opts.keepOpen  — don't remove the overlay (used by restart path)
+  // opts.silent    — don't show the "Resultado salvo" toast
+  function _saveResult(opts) {
+    opts = opts || {};
+    if (_resultSaved) {
+      if (!opts.keepOpen) {
+        var _ovDup = document.getElementById('live-scoring-overlay');
+        if (_ovDup) _ovDup.remove();
+      }
+      return;
+    }
+    _resultSaved = true;
     if (isCasual) {
       // Casual mode: show result, save to Firestore, and close
       var winnerName = state.winner === 1 ? p1Name : (state.winner === 2 ? p2Name : 'Empate');
-      var ov = document.getElementById('live-scoring-overlay');
-      if (ov) ov.remove();
+      if (!opts.keepOpen) {
+        var ov = document.getElementById('live-scoring-overlay');
+        if (ov) ov.remove();
+      }
       // Build summary for casual
       var summary = '';
       var setsData = null;
@@ -2462,7 +2476,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       } else {
         summary = state.currentGameP1 + ' × ' + state.currentGameP2;
       }
-      showNotification(_t('bui.matchClosed'), (state.winner === 0 ? winnerName : _t('bui.matchWon', {winner: winnerName})) + ' — ' + summary, 'success');
+      if (!opts.silent) showNotification(_t('bui.matchClosed'), (state.winner === 0 ? winnerName : _t('bui.matchWon', {winner: winnerName})) + ' — ' + summary, 'success');
       // Save to casual match history in localStorage
       try {
         var hist = JSON.parse(localStorage.getItem('scoreplace_casual_history') || '[]');
@@ -2560,10 +2574,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     });
 
     // Close overlay
-    var ov = document.getElementById('live-scoring-overlay');
-    if (ov) ov.remove();
+    if (!opts.keepOpen) {
+      var ov = document.getElementById('live-scoring-overlay');
+      if (ov) ov.remove();
+    }
 
-    showNotification(_t('bui.resultSaved'), m.winner === 'draw' ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
+    if (!opts.silent) showNotification(_t('bui.resultSaved'), m.winner === 'draw' ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
     _rerenderBracket(tId, matchId);
 
     // Auto-advance etc.
@@ -3434,7 +3450,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (isDoubles) {
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:10px 12px;border-radius:12px;font-size:0.8rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;white-space:nowrap;">🔄 Jogar</button>' +
+            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar Novamente</button>' +
             '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
               '<span style="font-size:0.72rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear duplas</span>' +
               '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
@@ -3445,16 +3461,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       } else {
         restartSection =
-          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
+          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">🔄 Jogar Novamente</button>';
       }
 
-      // Action buttons pinned at the TOP so "Confirmar Resultado" and "Jogar Novamente"
-      // are always within thumb-reach and never pushed below the fold by the stats.
-      // Scrollable content fills the remaining space below.
+      // Action section pinned at the TOP — "Jogar Novamente" (and optional
+      // shuffle toggle for doubles) are always within thumb-reach. Clicking
+      // "Jogar Novamente" or "✕ Fechar" both persist the result as confirmed.
       container.innerHTML =
         '<div style="flex-shrink:0;padding:calc(8px + env(safe-area-inset-top, 0px)) 1rem 8px;display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-bottom:1px solid rgba(255,255,255,0.06);">' +
-          '<button onclick="window._liveScoreSave()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;' +
-          'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
           restartSection +
         '</div>' +
         '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) calc(8px + env(safe-area-inset-bottom, 0px));gap:clamp(8px,1.5vh,14px);">' +
@@ -4162,8 +4176,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var shouldShuffle = shuffleChk && shuffleChk.checked;
     showConfirmDialog(
       'Recomeçar partida?',
-      shouldShuffle ? 'As duplas serão re-sorteadas e a contagem zerada.' : 'A contagem será zerada e uma nova partida começará.',
+      shouldShuffle ? 'O resultado atual será salvo. As duplas serão re-sorteadas e uma nova partida começará.' : 'O resultado atual será salvo e uma nova partida começará.',
       function() {
+        // Persist the finished result as confirmed before wiping state.
+        if (state.isFinished && !_resultSaved) {
+          try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+        }
+        // Allow next completed match to be saved again.
+        _resultSaved = false;
         // Shuffle teams if requested
         if (shouldShuffle && isDoubles) {
           var allPlayers = p1Players.concat(p2Players);
@@ -4278,20 +4298,29 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var cu = window.AppStore && window.AppStore.currentUser;
     var isOrganizer = isCasual && cu && cu.uid && _casualCreatedBy && cu.uid === _casualCreatedBy;
     var _title, _msg;
+    var _matchFinished = state.isFinished && !_resultSaved;
     if (isCasual && isOrganizer) {
       _title = 'Encerrar partida casual?';
-      _msg = 'Ao fechar, a partida casual será encerrada para TODOS os jogadores — eles voltarão ao dashboard automaticamente.';
+      _msg = _matchFinished
+        ? 'O resultado será salvo como confirmado. A partida casual será encerrada para TODOS os jogadores — eles voltarão ao dashboard automaticamente.'
+        : 'Ao fechar, a partida casual será encerrada para TODOS os jogadores — eles voltarão ao dashboard automaticamente.';
     } else if (isCasual) {
       _title = 'Abandonar partida?';
-      _msg = 'Deseja abandonar a partida casual? Sua vaga ficará livre para outro jogador.';
+      _msg = _matchFinished
+        ? 'O resultado será salvo como confirmado. Sua vaga ficará livre para outro jogador.'
+        : 'Deseja abandonar a partida casual? Sua vaga ficará livre para outro jogador.';
     } else {
       _title = 'Fechar placar?';
-      _msg = 'Deseja fechar o placar ao vivo?';
+      _msg = _matchFinished ? 'O resultado será salvo como confirmado.' : 'Deseja fechar o placar ao vivo?';
     }
     showConfirmDialog(
       _title,
       _msg,
       function() {
+        // Persist the finished result as confirmed before closing/cleanup.
+        if (state.isFinished && !_resultSaved) {
+          try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+        }
         if (isCasual && isOrganizer && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
           // Organizer: delete the whole match so every watching guest's listener
           // fires with !doc.exists and evacuates them. Mark local flag first so
