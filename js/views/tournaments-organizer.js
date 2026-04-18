@@ -110,15 +110,11 @@ window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
             if (notifData.inviteType) _notifPayload.inviteType = notifData.inviteType;
             await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
-        // Email — collect for dispatch
-        var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;
-        // WhatsApp — collect phone
+        // Email / WhatsApp dispatch intentionally disabled — feature not implemented yet.
+        // Will be re-enabled when the external channels ship; profile UI no longer
+        // exposes these toggles so flags are not read.
+        var email = null;
         var phone = null;
-        if (profile.notifyWhatsApp !== false && profile.phone) {
-            var cc = profile.phoneCountry || '55';
-            var digits = (profile.phone || '').replace(/\D/g, '');
-            if (digits) phone = cc + digits;
-        }
 
         // Auto-dispatch email & WhatsApp for this individual notification
         // (skip when called from _notifyTournamentParticipants which does batch dispatch)

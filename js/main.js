@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.74-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Notificações por E-mail e WhatsApp removidas do perfil (temporariamente)</b> — Os toggles de canal de notificação por E-mail e WhatsApp foram removidos do formulário de perfil, pois esses canais ainda não estão realmente implementados. O despacho automático para os dois canais também foi desligado (em <code>_sendUserNotification</code>). Quando o backend estiver pronto, reativamos tanto a UI quanto o envio. O canal 🔔 Plataforma (push in-app) permanece ativo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.73-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Estatísticas detalhadas também para partidas casuais no hero box</b> — Corrigido: o modal de estatísticas do dashboard mostrava apenas Vitórias, Derrotas e % de Aproveitamento para partidas casuais. Agora, toda partida casual encerrada grava também no cache local (<code>scoreplace_casual_history_v2</code>) o mesmo registro completo que é salvo no Firestore — com stats de times, pontos, games, sets, saque/recepção, quebras, tempo por ponto, duração e jogadores. O modal de "Estatísticas" agora combina os registros do Firestore com os do cache local, renderizando a mesma seção ultra-detalhada (🏅 Sets V/P, 🎾 Games V/P, 🎯 Pontos V/P, 🚀 % Saque, 🎯 % Recep., 📊 Games Mantidos, 💥 Quebras, 🔥 Maior Seq. Pontos, 🏆 Maior Seq. Vitórias, ⏱ Tempo total, ⏲ Média/ponto, 📏 Ponto + longo, ⚡ Ponto + curto, 🤝 Top 5 Parceiros, ⚔ Top 5 Adversários) para casuais — não só para torneios.</p>' +
         '</div>' +
