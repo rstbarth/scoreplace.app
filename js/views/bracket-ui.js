@@ -5879,6 +5879,7 @@ window._renderCasualJoin = function(container, roomCode) {
     }
 
     function _renderLobby() {
+      if (_hasLeft) return;
       var myUid = isLoggedIn ? cu.uid : null;
       var alreadyJoined = myUid && participants.some(function(p) { return p.uid === myUid; });
       var isCreator = myUid && match.createdBy === myUid;
@@ -6081,6 +6082,10 @@ window._renderCasualJoin = function(container, roomCode) {
         if (_hasLeft) return;
         try {
           var fresh = await window.FirestoreDB.loadCasualMatch(roomCode);
+          // Guard: user clicked "Sair" during the in-flight await. Without this,
+          // the resolved callback would overwrite the dashboard with the lobby
+          // HTML and the guest would appear stuck on the match screen.
+          if (_hasLeft) return;
           // Match was cancelled/deleted by the organizer — evacuate everyone
           // still on the lobby screen so they don't stay stuck on a ghost room.
           if (!fresh || fresh.status === 'cancelled') {
@@ -6110,6 +6115,7 @@ window._renderCasualJoin = function(container, roomCode) {
           // re-renders with latest team assignments set by the organizer.
           participants = Array.isArray(fresh.participants) ? fresh.participants : [];
           match = fresh;
+          if (_hasLeft) return;
           _renderLobby();
         } catch(e) {}
       }, 3000);
