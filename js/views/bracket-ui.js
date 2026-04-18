@@ -5498,6 +5498,53 @@ window._openCasualMatch = function() {
       } catch(e) {}
     }
 
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var cuUid = cu && cu.uid;
+
+    // Is this player the current logged-in user?
+    function _isCurrentUser(p) {
+      if (!p) return false;
+      if (cuUid && p.uid === cuUid) return true;
+      if (cu && cu.displayName && p.name) {
+        var first = cu.displayName.split(' ')[0];
+        if (p.name === cu.displayName || p.name === first) return true;
+      }
+      return false;
+    }
+
+    // Rename unnamed team-1 / team-2 slots to role names. Rules:
+    //  - the current user is never renamed to "Parceiro";
+    //  - only ONE team-1 player becomes "Parceiro" (the one who isn't the user);
+    //  - adversaries are numbered by their position within team 2.
+    function _renameRoles() {
+      var defaultNames = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4', 'Parceiro', 'Adversário 1', 'Adversário 2'];
+      var t1List = [], t2List = [];
+      for (var ii = 0; ii < players.length; ii++) {
+        if (players[ii].team === 1) t1List.push(players[ii]);
+        else if (players[ii].team === 2) t2List.push(players[ii]);
+      }
+      var partnerAssigned = false;
+      for (var ti = 0; ti < t1List.length; ti++) {
+        var p1p = t1List[ti];
+        var isDefault1 = !p1p.name || defaultNames.indexOf(p1p.name) !== -1;
+        if (_isCurrentUser(p1p)) {
+          if (isDefault1 && cu && cu.displayName) {
+            p1p.name = cu.displayName.split(' ')[0];
+          }
+          continue;
+        }
+        if (isDefault1 && !partnerAssigned) {
+          p1p.name = 'Parceiro';
+          partnerAssigned = true;
+        }
+      }
+      for (var tj = 0; tj < t2List.length; tj++) {
+        var p2p = t2List[tj];
+        var isDefault2 = !p2p.name || defaultNames.indexOf(p2p.name) !== -1;
+        if (isDefault2) p2p.name = 'Adversário ' + (tj + 1);
+      }
+    }
+
     // Sortear ON: randomly assign 4 players into 2 teams. User always stays on Team 1.
     // Unnamed players get labeled based on which team they land on.
     // Sortear OFF: teams are fixed from setup (slots 0,1=T1, slots 2,3=T2) — no shuffle.
@@ -5511,7 +5558,6 @@ window._openCasualMatch = function() {
       players[0].team = 1; players[1].team = 1;
       players[2].team = 2; players[3].team = 2;
       // Ensure current user is in Team 1
-      var cuUid = cu && cu.uid;
       if (cuUid) {
         for (var si = 2; si < 4; si++) {
           if (players[si].uid === cuUid) {
@@ -5521,25 +5567,12 @@ window._openCasualMatch = function() {
           }
         }
       }
-      // Name unnamed players based on their team role
-      var defaultNames = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
-      for (var ni = 0; ni < 4; ni++) {
-        if (!players[ni].name || defaultNames.indexOf(players[ni].name) !== -1) {
-          if (players[ni].team === 1) players[ni].name = 'Parceiro';
-          else players[ni].name = ni === 2 ? 'Adversário 1' : 'Adversário 2';
-        }
-      }
+      _renameRoles();
     }
 
     // Sortear OFF: teams fixed from setup (0,1=T1, 2,3=T2). Rename unnamed to role names.
     if (isDoubles && !autoShuffle && players.length === 4) {
-      var defNames = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
-      for (var ri = 0; ri < 4; ri++) {
-        if (!players[ri].name || defNames.indexOf(players[ri].name) !== -1) {
-          if (players[ri].team === 1) players[ri].name = 'Parceiro';
-          else players[ri].name = ri === 2 ? 'Adversário 1' : 'Adversário 2';
-        }
-      }
+      _renameRoles();
     }
 
     var n1, n2;
@@ -5554,7 +5587,6 @@ window._openCasualMatch = function() {
     }
 
     var cfg = _getConfig();
-    var cu = window.AppStore && window.AppStore.currentUser;
     var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
 
     // If not yet saved to Firestore, save now
