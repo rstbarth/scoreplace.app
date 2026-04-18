@@ -5596,7 +5596,7 @@ window._openCasualMatch = function() {
           '<div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
         : cu ?
           '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
-        : '<span style="font-size:1.3rem;">📡</span>') +
+        : '<span style="font-size:1.3rem;">⚡</span>') +
         '<div>' +
           '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</div>' +
           '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : _t('casual.subtitle')) + '</div>' +
@@ -5922,7 +5922,7 @@ window._renderCasualJoin = function(container, roomCode) {
           '</div>';
         }
         html += '</div>' +
-          '<button class="btn btn-ghost" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;width:100%;">← ' + _t('casual.backDashboard') + '</button>' +
+          '<button class="btn btn-ghost" onclick="try{sessionStorage.removeItem(\'_pendingCasualRoom\');}catch(e){} window._casualEvacuateToDashboard && window._casualEvacuateToDashboard();" style="margin-top:1rem;width:100%;">← ' + _t('casual.backDashboard') + '</button>' +
         '</div>';
         container.innerHTML = html;
         return;
@@ -5930,7 +5930,7 @@ window._renderCasualJoin = function(container, roomCode) {
 
       html =
         '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
-          '<div style="font-size:2.5rem;margin-bottom:0.5rem;">📡</div>' +
+          '<div style="font-size:2.5rem;margin-bottom:0.5rem;">⚡</div>' +
           '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">' + _t('casual.title') + '</div>' +
           '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
           '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>';
@@ -6055,6 +6055,26 @@ window._renderCasualJoin = function(container, roomCode) {
       }
     }
 
+    // Force-navigate the guest back to the dashboard. Relying only on
+    // `window.location.hash = '#dashboard'` is fragile in in-app browsers
+    // (iOS QR scanner, WhatsApp webview) where hashchange sometimes doesn't
+    // fire — so we also clear the container and render the dashboard directly.
+    function _evacuateToDashboard() {
+      try {
+        if (container && typeof renderDashboard === 'function') {
+          container.innerHTML = '';
+          renderDashboard(container);
+        }
+      } catch(e) {}
+      try {
+        if (window.location.hash !== '#dashboard') {
+          window.location.hash = '#dashboard';
+        }
+      } catch(e) {}
+    }
+    // Expose so inline onclick handlers (non-logged-in button) can reach it
+    window._casualEvacuateToDashboard = _evacuateToDashboard;
+
     // Periodic refresh to see new players and detect match start
     function _startLobbyRefresh() {
       _lobbyInterval = setInterval(async function() {
@@ -6067,7 +6087,7 @@ window._renderCasualJoin = function(container, roomCode) {
             _hasLeft = true;
             _casualLobbyCleanup();
             if (typeof showNotification === 'function') showNotification(_t('casual.matchCancelled'), _t('casual.matchCancelledMsg'), 'info');
-            try { window.location.hash = '#dashboard'; } catch(e) {}
+            _evacuateToDashboard();
             return;
           }
           // Match started? Switch to live scoring
@@ -6113,8 +6133,11 @@ window._renderCasualJoin = function(container, roomCode) {
         } catch(e) {}
       }
       if (typeof showNotification === 'function') showNotification(_t('casual.leftMatch'), '', 'info');
-      // Navigate immediately so the user isn't stuck on the lobby
-      try { window.location.hash = '#dashboard'; } catch(e) {}
+      // Clear any auto-rejoin pointer so the guest doesn't get pulled back in
+      try { sessionStorage.removeItem('_pendingCasualRoom'); } catch(e) {}
+      // Navigate immediately — render dashboard directly AND update the hash,
+      // so in-app browsers that swallow hashchange still see the dashboard.
+      _evacuateToDashboard();
     };
 
     // Cleanup on leave
