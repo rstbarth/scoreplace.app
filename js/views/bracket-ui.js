@@ -3965,9 +3965,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   // ── Firestore real-time sync for casual matches ──
   var _casualDocId = isCasual && opts ? opts.casualDocId : null;
+  var _casualCreatedBy = isCasual && opts ? (opts.createdBy || null) : null;
   var _syncTimer = null;
   var _isRemoteUpdate = false; // true when receiving from Firestore
   var _unsubFirestore = null;
+  var _casualCancelled = false; // local flag so we don't double-evacuate
 
   // Serialize state for Firestore
   function _serializeState() {
@@ -4040,7 +4042,25 @@ window._openLiveScoring = function(tId, matchId, opts) {
     try {
       _unsubFirestore = window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId)
         .onSnapshot(function(doc) {
-          if (!doc.exists) return;
+          // Organizer cancelled (deleted doc) or doc disappeared — evacuate everyone
+          // still watching so they don't get stuck on a ghost match.
+          if (!doc.exists) {
+            if (_casualCancelled) return;
+            _casualCancelled = true;
+            if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+            try { window.removeEventListener('resize', _onResize); } catch(e) {}
+            try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+            try { _releaseWakeLock(); } catch(e) {}
+            var ov = document.getElementById('live-scoring-overlay');
+            if (ov) ov.remove();
+            var cu = window.AppStore && window.AppStore.currentUser;
+            var wasOrganizer = cu && _casualCreatedBy && cu.uid === _casualCreatedBy;
+            if (!wasOrganizer && typeof showNotification === 'function') {
+              showNotification(_t('casual.matchCancelled'), _t('casual.matchCancelledMsg'), 'info');
+            }
+            try { window.location.hash = '#dashboard'; } catch(e) {}
+            return;
+          }
           var data = doc.data();
           if (!data.liveState || !data.liveState._ts) return;
           // Only apply if remote timestamp is newer than ours
@@ -4245,16 +4265,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
     };
-    var _msg = isCasual
-      ? 'Deseja abandonar a partida casual? Sua vaga ficará livre para outro jogador.'
-      : 'Deseja fechar o placar ao vivo?';
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var isOrganizer = isCasual && cu && cu.uid && _casualCreatedBy && cu.uid === _casualCreatedBy;
+    var _title, _msg;
+    if (isCasual && isOrganizer) {
+      _title = 'Encerrar partida casual?';
+      _msg = 'Ao fechar, a partida casual será encerrada para TODOS os jogadores — eles voltarão ao dashboard automaticamente.';
+    } else if (isCasual) {
+      _title = 'Abandonar partida?';
+      _msg = 'Deseja abandonar a partida casual? Sua vaga ficará livre para outro jogador.';
+    } else {
+      _title = 'Fechar placar?';
+      _msg = 'Deseja fechar o placar ao vivo?';
+    }
     showConfirmDialog(
-      'Abandonar partida?',
+      _title,
       _msg,
       function() {
-        // Free the slot in the casual match so someone else can take it
-        var cu = window.AppStore && window.AppStore.currentUser;
-        if (isCasual && cu && cu.uid && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
+        if (isCasual && isOrganizer && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+          // Organizer: delete the whole match so every watching guest's listener
+          // fires with !doc.exists and evacuates them. Mark local flag first so
+          // our own listener doesn't also try to handle the deletion.
+          _casualCancelled = true;
+          try {
+            var cancelPromise = window.FirestoreDB.cancelCasualMatch(_casualDocId);
+            if (cancelPromise && typeof cancelPromise.catch === 'function') cancelPromise.catch(function(){});
+          } catch(e) {}
+        } else if (isCasual && cu && cu.uid && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
+          // Guest: just free their own slot
           try {
             var leavePromise = window.FirestoreDB.leaveCasualMatch(_casualDocId, cu.uid);
             if (leavePromise && typeof leavePromise.catch === 'function') leavePromise.catch(function(){});
@@ -5275,6 +5313,17 @@ window._openCasualMatch = function() {
   var _sessionRoomCode = _generateRoomCode();
   var _sessionDocId = null;
 
+  // True when the organizer has explicitly paired the 4 players into teams
+  // (not autoShuffle, all 4 slots assigned via drag-and-drop). Guests use this
+  // to decide whether to show the "Times Formados" preview in the lobby.
+  function _isTeamsFormed() {
+    return !!(isDoubles && !autoShuffle &&
+      _teamAssignments[0] !== undefined &&
+      _teamAssignments[1] !== undefined &&
+      _teamAssignments[2] !== undefined &&
+      _teamAssignments[3] !== undefined);
+  }
+
   // Broadcast setup state (players + teams + scoring) to Firestore so invited
   // users watching the lobby see team formations in real time. Debounced so
   // rapid edits (typing names, drag-and-drop) don't spam writes.
@@ -5287,7 +5336,8 @@ window._openCasualMatch = function() {
         window.FirestoreDB.updateCasualMatch(_sessionDocId, {
           players: _buildPlayers(),
           scoring: _getConfig(),
-          isDoubles: isDoubles
+          isDoubles: isDoubles,
+          teamsFormed: _isTeamsFormed()
         });
       } catch(e) {}
     }, 500);
@@ -5314,6 +5364,7 @@ window._openCasualMatch = function() {
           sport: sportLabel,
           scoring: cfg,
           isDoubles: isDoubles,
+          teamsFormed: _isTeamsFormed(),
           players: players,
           participants: [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }],
           playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
@@ -5325,7 +5376,7 @@ window._openCasualMatch = function() {
     } else if (_sessionDocId) {
       // Update existing with current players/config
       try {
-        window.FirestoreDB.updateCasualMatch(_sessionDocId, { players: players, scoring: cfg, isDoubles: isDoubles });
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, { players: players, scoring: cfg, isDoubles: isDoubles, teamsFormed: _isTeamsFormed() });
       } catch(e) {}
     }
 
@@ -5488,6 +5539,7 @@ window._openCasualMatch = function() {
           sport: sportLabel,
           scoring: cfg,
           isDoubles: isDoubles,
+          teamsFormed: _isTeamsFormed(),
           players: players,
           playerUids: players.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; }),
           roomCode: _sessionRoomCode,
@@ -5498,7 +5550,7 @@ window._openCasualMatch = function() {
     } else if (_sessionDocId) {
       // Update existing match to active with current players
       try {
-        window.FirestoreDB.updateCasualMatch(_sessionDocId, { status: 'active', players: players, scoring: cfg, isDoubles: isDoubles });
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, { status: 'active', players: players, scoring: cfg, isDoubles: isDoubles, teamsFormed: _isTeamsFormed() });
       } catch(e) {}
     }
 
@@ -5518,6 +5570,7 @@ window._openCasualMatch = function() {
       sportName: sportLabel,
       isDoubles: isDoubles,
       casualDocId: _sessionDocId,
+      createdBy: cu && cu.uid,
       roomCode: _sessionRoomCode,
       players: players
     });
@@ -5582,6 +5635,7 @@ window._openCasualMatch = function() {
       sport: sportLabel,
       scoring: _getConfig(),
       isDoubles: isDoubles,
+      teamsFormed: false,
       players: [],
       participants: [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }],
       playerUids: [cu.uid],
@@ -5793,6 +5847,7 @@ window._renderCasualJoin = function(container, roomCode) {
         sportName: sportName,
         isDoubles: match.isDoubles || false,
         casualDocId: docId,
+        createdBy: match.createdBy,
         roomCode: roomCode,
         players: players
       });
@@ -5909,13 +5964,15 @@ window._renderCasualJoin = function(container, roomCode) {
       html += '</div>';
 
       // Live team preview — show the teams the organizer is assembling (visible to invited players too)
+      // Only render when the organizer has explicitly formed teams (drag-and-drop),
+      // so breaking teams on the host propagates instantly to every guest.
       var matchPlayers = Array.isArray(match.players) ? match.players : [];
       var hasNamedPlayer = matchPlayers.some(function(mp) {
         if (!mp || !mp.name) return false;
         var defaults = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4', 'Parceiro', 'Adversário 1', 'Adversário 2'];
         return defaults.indexOf(mp.name) === -1;
       });
-      if (match.isDoubles && matchPlayers.length === 4 && hasNamedPlayer) {
+      if (match.isDoubles && matchPlayers.length === 4 && hasNamedPlayer && match.teamsFormed === true) {
         var t1 = matchPlayers.filter(function(mp) { return mp.team === 1; });
         var t2 = matchPlayers.filter(function(mp) { return mp.team === 2; });
         var _teamCard = function(team, clr, bg, bdr) {
@@ -6013,6 +6070,7 @@ window._renderCasualJoin = function(container, roomCode) {
               casual: true, scoring: fresh.scoring || {}, p1Name: p1n, p2Name: p2n,
               title: fresh.sport || _t('casual.title'), sportName: fresh.sport || '',
               isDoubles: fresh.isDoubles || false, casualDocId: fresh._docId,
+              createdBy: fresh.createdBy,
               roomCode: roomCode, players: pp
             });
             if (typeof showNotification === 'function') showNotification(_t('casual.matchStarted'), '', 'success');

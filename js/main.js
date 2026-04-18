@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.68-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Desfazer times propaga para todos + fechar encerra para todos</b> — Quando o organizador desfaz os times formados na tela de montagem da partida casual, a mudança agora aparece em tempo real para todos os jogadores no lobby (antes os convidados continuavam vendo "Times Formados" mesmo depois de o organizador quebrar a dupla). E quando o organizador clica em "Fechar" — tanto na tela de montagem quanto durante o placar ao vivo — a partida casual é encerrada para todos: os demais jogadores são automaticamente desconectados e voltam para o dashboard, em vez de ficar presos numa sala fantasma.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.67-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cards de jogador uniformes + duplas por padrão</b> — Os 4 cards de jogador na montagem da partida casual agora têm altura sempre igual (alinhamento automático à maior), e nomes longos quebram em múltiplas linhas dentro do card em vez de vazar ou serem cortados. Fluxo também ficou mais previsível: ao abrir a partida casual, lembramos o último esporte e modalidade (simples/duplas) escolhidos; usuários sem preferência configurada caem em Beach Tennis (duplas) em vez de Placar Simples — corrige o caso em que alguns usuários viam jogo single sem querer.</p>' +
         '</div>' +
