@@ -2732,13 +2732,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     container.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:1.5rem;gap:1.2rem;">' +
-        '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
-        '<div id="serve-order-list" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:360px;">' + cardsHtml + '</div>' +
-        '<div style="display:flex;gap:12px;">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;height:100%;padding:1rem 1.5rem 1.5rem;gap:1rem;">' +
+        // Action buttons pinned at the top of the page.
+        '<div style="display:flex;gap:12px;flex-shrink:0;">' +
           '<button onclick="window._liveConfirmServeOrder()" style="padding:14px 32px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:0.95rem;font-weight:700;box-shadow:0 2px 12px rgba(16,185,129,0.3);">Iniciar Partida</button>' +
           '<button onclick="window._liveSkipServe()" style="padding:14px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:0.85rem;font-weight:600;">Pular</button>' +
         '</div>' +
+        '<div style="font-size:1.1rem;font-weight:800;color:var(--text-bright);">Ordem de Saque</div>' +
+        '<div id="serve-order-list" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:360px;">' + cardsHtml + '</div>' +
       '</div>';
 
     setTimeout(function() { _setupServeDragDrop(); }, 30);
@@ -3443,31 +3444,22 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '<button onclick="window._liveScoreRestart()" style="width:100%;padding:13px;border-radius:12px;font-size:0.95rem;font-weight:700;border:2px solid rgba(99,102,241,0.3);cursor:pointer;background:rgba(99,102,241,0.1);color:#818cf8;">🔄 Jogar Novamente</button>';
       }
 
-      // Scrollable content area (flex:1) with buttons pinned at bottom (flex-shrink:0)
-      // Momentum graph placed right below the winner so its draw animation is visible
-      // at the top of the screen the moment the result view opens — the animation
-      // would be wasted if it were below the fold.
+      // Action buttons pinned at the TOP so "Confirmar Resultado" and "Jogar Novamente"
+      // are always within thumb-reach and never pushed below the fold by the stats.
+      // Scrollable content fills the remaining space below.
       container.innerHTML =
-        '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) 8px;gap:clamp(8px,1.5vh,14px);">' +
-          // Winner section on top
-          winnerSection +
-          // Momentum graph (animation visible immediately on open)
-          momentumSection +
-          // Comparative team stats
-          comparativeSection +
-          // Loser section below
-          loserSection +
-          // Time analytics (duration + per-point)
-          timeStatsSection +
-          // Duration (redundant tiny line — hide if timeStatsSection already shown)
-          (timeStatsSection ? '' : durationRow) +
-        '</div>' +
-        // Action buttons pinned at bottom — padding accounts for the device safe-area
-        // (e.g. iOS home-indicator) so the buttons never get cropped by the browser chrome.
-        '<div style="flex-shrink:0;padding:8px 1rem calc(12px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-top:1px solid rgba(255,255,255,0.06);">' +
+        '<div style="flex-shrink:0;padding:calc(8px + env(safe-area-inset-top, 0px)) 1rem 8px;display:flex;flex-direction:column;gap:8px;background:#0a0e1a;border-bottom:1px solid rgba(255,255,255,0.06);">' +
           '<button onclick="window._liveScoreSave()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;' +
           'background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✅ Confirmar Resultado</button>' +
           restartSection +
+        '</div>' +
+        '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) calc(8px + env(safe-area-inset-bottom, 0px));gap:clamp(8px,1.5vh,14px);">' +
+          winnerSection +
+          momentumSection +
+          comparativeSection +
+          loserSection +
+          timeStatsSection +
+          (timeStatsSection ? '' : durationRow) +
         '</div>';
       // Wire up Replay button — re-renders the finish view to re-trigger the SVG draw animation
       setTimeout(function() {

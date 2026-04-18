@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.75-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Botões principais da partida casual movidos para o topo</b> — "Iniciar Partida" (na tela de ordem de saque) e "Confirmar Resultado" (na tela de fim de partida) agora ficam fixos no topo da página, não mais no rodapé. O conteúdo (cards de saque, estatísticas, gráfico de momentum, comparativos, tempo) passou a rolar abaixo dos botões. O toggle "Re-sortear duplas" continua junto do botão "Jogar Novamente" no cabeçalho fixo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.74-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Notificações por E-mail e WhatsApp removidas do perfil (temporariamente)</b> — Os toggles de canal de notificação por E-mail e WhatsApp foram removidos do formulário de perfil, pois esses canais ainda não estão realmente implementados. O despacho automático para os dois canais também foi desligado (em <code>_sendUserNotification</code>). Quando o backend estiver pronto, reativamos tanto a UI quanto o envio. O canal 🔔 Plataforma (push in-app) permanece ativo.</p>' +
         '</div>' +
