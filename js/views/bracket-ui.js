@@ -2268,7 +2268,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // registered player's matchHistory subcollection so the stats survive deletion
   // of the tournament / casual match. Used by both casual and tournament paths.
   function _buildAndPersistMatchRecord(extraContext) {
-    if (typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.saveUserMatchRecords) return;
+    // Record is built regardless of Firestore availability — the localStorage
+    // v2 cache must be written for every casual match so the stats modal can
+    // render the full detailed metric set even when Firestore writes fail.
     var pts = state.pointLog || [];
     var gmL = state.gameLog || [];
     var team = { 1: { points:0, games:0, sets:0, holdServed:0, held:0, longestStreak:0, biggestLead:0,
@@ -2414,10 +2416,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
       stats: { team1: team[1], team2: team[2] },
       playerStats: plrs
     };
-    try {
-      var p = window.FirestoreDB.saveUserMatchRecords(record);
-      if (p && typeof p.catch === 'function') p.catch(function(){});
-    } catch(e) {}
+    if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveUserMatchRecords) {
+      try {
+        var p = window.FirestoreDB.saveUserMatchRecords(record);
+        if (p && typeof p.catch === 'function') p.catch(function(){});
+      } catch(e) {}
+    }
     // Mirror casual records into localStorage so the hero-box "Minhas
     // estatísticas" view can render the full detailed metric set even when
     // Firestore matchHistory is unavailable (no uid, permission denied,

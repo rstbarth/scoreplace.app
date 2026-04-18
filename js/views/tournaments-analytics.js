@@ -218,6 +218,29 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
     var winRate = stats.totalMatches > 0 ? Math.round((stats.totalWins / stats.totalMatches) * 100) : 0;
     var sportsStr = Object.keys(stats.sports).map(function(s) { return s + ' (' + stats.sports[s] + ')'; }).join(', ') || 'N/A';
 
+    // Collect any available local records (v2 cache) so the initial render
+    // can show real stats before the async Firestore fetch completes.
+    function _collectLocalRecordsForPlayer(pName, pUid) {
+        var cu = window.AppStore && window.AppStore.currentUser;
+        var isCurUser = cu && cu.displayName && String(cu.displayName).toLowerCase().trim() === String(pName).toLowerCase().trim();
+        if (!isCurUser) return [];
+        try {
+            var v2 = JSON.parse(localStorage.getItem('scoreplace_casual_history_v2') || '[]');
+            if (!Array.isArray(v2) || !v2.length) return [];
+            var myUid = pUid || (cu && cu.uid) || null;
+            var myDn = (cu.displayName || '').toLowerCase().trim();
+            return v2.map(function(r) {
+                var rc = Object.assign({}, r);
+                rc.players = (r.players || []).map(function(p) {
+                    var cp = Object.assign({}, p);
+                    if (!cp.uid && cp.name && String(cp.name).toLowerCase().trim() === myDn) cp.uid = myUid;
+                    return cp;
+                });
+                return rc;
+            });
+        } catch(e) { return []; }
+    }
+
     // Remove previous modal
     var prev = document.getElementById('player-stats-overlay');
     if (prev) prev.remove();
@@ -246,17 +269,25 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       ? '<img src="' + window._safeHtml(resolvedPhoto) + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color,#3b82f6);margin-bottom:0.5rem;display:inline-block;" onerror="this.outerHTML=\'<div style=\\\'width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#1a1e2e;margin-bottom:0.5rem;\\\'>' + _initialChar + '</div>\'">'
       : '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#1a1e2e;margin-bottom:0.5rem;">' + _initialChar + '</div>';
 
+    // Initial render: always full metric grid (zeros if no data) so players
+    // see what's trackable and are encouraged to play matches via the app.
+    // If we have a uid, the async Firestore load will replace with real data.
+    var _tourListFooter = (stats.tournamentsPlayed > 0
+      ? '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-bright,#fff);padding:6px 0;">📋 Torneios Disputados (' + stats.tournamentsPlayed + ')</summary><div style="margin-top:6px;">' + tourListHtml + '</div></details>'
+      : '');
+    var _initialStatsHtml = (typeof window._renderPersistentMatchStats === 'function')
+      ? (window._renderPersistentMatchStats(_collectLocalRecordsForPlayer(playerName, resolvedUid), resolvedUid) + _tourListFooter)
+      : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
+
     modal.innerHTML = '' +
       '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>' +
       '<div style="text-align:center;margin-bottom:1rem;">' +
         avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
       '</div>' +
-      // Main body: persistent matchHistory stats (primary) or legacy fallback
+      // Main body: persistent matchHistory stats (primary)
       '<div id="player-stats-persistent">' +
-        (resolvedUid
-          ? '<div style="padding:24px;text-align:center;font-size:0.8rem;color:var(--text-muted,#94a3b8);">⏳ Carregando estatísticas…</div>'
-          : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml)) +
+        _initialStatsHtml +
       '</div>';
 
     overlay.appendChild(modal);
@@ -418,15 +449,14 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
         window.FirestoreDB.loadUserMatchHistory(resolvedUid).then(function(records) {
             if (!slot) return;
             var merged = _mergeLocalCasualV2(records || []);
-            if (!merged.length) {
-                // Fall back to AppStore legacy stats if no records at all
-                slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
-                return;
-            }
-            slot.innerHTML = window._renderPersistentMatchStats(merged, resolvedUid);
+            // Always render the full metric grid (zeros if no data) so players
+            // see what's trackable and are encouraged to play matches via the app.
+            slot.innerHTML = window._renderPersistentMatchStats(merged, resolvedUid) +
+                (stats.tournamentsPlayed > 0 ? '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-bright,#fff);padding:6px 0;">📋 Torneios Disputados (' + stats.tournamentsPlayed + ')</summary><div style="margin-top:6px;">' + tourListHtml + '</div></details>' : '');
         }).catch(function(e) {
             console.warn('[player-stats] loadUserMatchHistory failed', e);
-            if (slot) slot.innerHTML = _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
+            if (slot) slot.innerHTML = window._renderPersistentMatchStats(_collectLocalRecordsForPlayer(playerName, resolvedUid), resolvedUid) +
+                (stats.tournamentsPlayed > 0 ? '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-bright,#fff);padding:6px 0;">📋 Torneios Disputados (' + stats.tournamentsPlayed + ')</summary><div style="margin-top:6px;">' + tourListHtml + '</div></details>' : '');
         });
     }
 
@@ -721,8 +751,9 @@ window._renderPersistentMatchStats = function(records, uid) {
     // Rich per-category breakdown — shows every metric the user asked for.
     // Used for BOTH the casual section and the tournament section.
     function _detailedSectionHtml(id, title, icon, recs, accent, rel) {
-        if (!recs.length) return '';
-        var a = _aggregate(recs);
+        // Always render the full metric grid — even with zero data — so players
+        // see what's trackable and are encouraged to play matches via the app.
+        var a = _aggregate(recs || []);
         var winRate = a.matches > 0 ? Math.round(a.wins / a.matches * 100) : 0;
         var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
         var srvPct = a.servePts > 0 ? Math.round(a.servePtsWon / a.servePts * 100) : 0;
@@ -730,7 +761,7 @@ window._renderPersistentMatchStats = function(records, uid) {
         var holdPct = a.holdsServed > 0 ? Math.round(a.holdsWon / a.holdsServed * 100) : 0;
         var totalDur = a.totalDurationMs || 0;
         var avgPt = a.avgPointMatches > 0 ? a.avgPointMsSum / a.avgPointMatches : 0;
-        var badge = a.matches + ' partida' + (a.matches > 1 ? 's' : '');
+        var badge = a.matches + ' partida' + (a.matches === 1 ? '' : 's');
         var wonLost = function(won, lost) { return won + ' / ' + lost; };
 
         var html = _sectionShell(id, title, icon, accent, badge) +
@@ -747,28 +778,24 @@ window._renderPersistentMatchStats = function(records, uid) {
                 _boxStat('Pontos V/P', wonLost(a.pointsWon, a.pointsLost), '🎯', '#a855f7') +
             '</div>' +
             // Row 3 — % Saque / % Recep. / Games Mantidos / Quebras
-            (a.servePts > 0 || a.holdsServed > 0 ? (
-                '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
-                    _boxStat('% Saque', (a.servePts > 0 ? srvPct + '%' : '—'), '🚀', '#60a5fa') +
-                    _boxStat('% Recep.', (a.receivePts > 0 ? recvPct + '%' : '—'), '🎯', '#f87171') +
-                    _boxStat('Games Mantidos', (a.holdsServed > 0 ? holdPct + '%' : '—'), '📊', '#38bdf8') +
-                    _boxStat('Quebras', a.breaks, '💥', '#a855f7') +
-                '</div>'
-            ) : '') +
+            '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
+                _boxStat('% Saque', (a.servePts > 0 ? srvPct + '%' : '—'), '🚀', '#60a5fa') +
+                _boxStat('% Recep.', (a.receivePts > 0 ? recvPct + '%' : '—'), '🎯', '#f87171') +
+                _boxStat('Games Mantidos', (a.holdsServed > 0 ? holdPct + '%' : '—'), '📊', '#38bdf8') +
+                _boxStat('Quebras', a.breaks, '💥', '#a855f7') +
+            '</div>' +
             // Row 4 — Maior Sequência (pontos / vitórias)
             '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
                 _boxStat('Maior Seq. Pontos', a.longestPointStreak, '🔥', '#fb923c') +
                 _boxStat('Maior Seq. Vitórias', a.longestWinStreak, '🏆', '#22c55e') +
             '</div>' +
             // Row 5 — Tempo total / médio / mais longo / mais curto
-            ((totalDur > 0 || avgPt > 0 || a.longestPointMs > 0 || a.shortestPointMs) ? (
-                '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
-                    _boxStat('Tempo total', (totalDur > 0 ? _fmtDuration(totalDur) : '—'), '⏱', '#38bdf8') +
-                    _boxStat('Média/ponto', (avgPt > 0 ? _fmtPointTime(avgPt) : '—'), '⏲', '#a78bfa') +
-                    _boxStat('Ponto + longo', (a.longestPointMs > 0 ? _fmtPointTime(a.longestPointMs) : '—'), '📏', '#fbbf24') +
-                    _boxStat('Ponto + curto', (a.shortestPointMs ? _fmtPointTime(a.shortestPointMs) : '—'), '⚡', '#22c55e') +
-                '</div>'
-            ) : '');
+            '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
+                _boxStat('Tempo total', (totalDur > 0 ? _fmtDuration(totalDur) : '—'), '⏱', '#38bdf8') +
+                _boxStat('Média/ponto', (avgPt > 0 ? _fmtPointTime(avgPt) : '—'), '⏲', '#a78bfa') +
+                _boxStat('Ponto + longo', (a.longestPointMs > 0 ? _fmtPointTime(a.longestPointMs) : '—'), '📏', '#fbbf24') +
+                _boxStat('Ponto + curto', (a.shortestPointMs ? _fmtPointTime(a.shortestPointMs) : '—'), '⚡', '#22c55e') +
+            '</div>';
 
         // Top 5 Parceiros + Top 5 Adversários (per-section)
         if (rel) {
