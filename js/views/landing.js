@@ -34,10 +34,12 @@
   };
 
   function _hero(t) {
+    var ver = window.SCOREPLACE_VERSION || '';
     return '<section class="landing-hero">' +
       '<div class="landing-hero-content">' +
         '<div class="landing-logo">🏆</div>' +
         '<h1 class="landing-title">scoreplace<span class="landing-dot">.app</span></h1>' +
+        (ver ? '<div class="landing-version" style="font-size:0.78rem;color:var(--text-muted,#9ca3af);margin-top:-4px;margin-bottom:14px;letter-spacing:0.3px;">v' + ver + '</div>' : '') +
         '<p class="landing-tagline">' + t('landing.tagline') + '</p>' +
         '<button class="btn btn-cta btn-success landing-cta-btn" data-landing-cta>' +
           t('landing.cta') +

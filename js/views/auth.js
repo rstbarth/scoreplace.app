@@ -873,6 +873,19 @@ async function simulateLoginSuccess(user) {
   // Set AppStore.currentUser with the user object
   window.AppStore.currentUser = user;
 
+  // Close any open login modal + hamburger, and immediately refresh the route
+  // so the landing page gives way to the dashboard BEFORE any async Firestore
+  // call has a chance to throw and skip the initRouter at the end of the function.
+  try {
+    var _lm = document.getElementById('modal-login');
+    if (_lm) _lm.classList.remove('active');
+    if (typeof window._closeHamburger === 'function') window._closeHamburger();
+    if (typeof initRouter === 'function' &&
+        (window.location.hash === '' || window.location.hash === '#dashboard' || window.location.hash === '#')) {
+      initRouter();
+    }
+  } catch (e) { console.warn('Early post-login refresh failed:', e); }
+
   // Load user profile from Firestore (merge extra fields like gender, sports)
   var uid = user.uid || user.email;
   var existingProfile = null;

@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.3-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Versão do app na landing page + correção do retorno à landing após login</b> — A landing page (visitante não logado) agora exibe a versão atual (<code>vX.Y.Z-alpha</code>) logo abaixo do nome "scoreplace.app", tornando mais fácil identificar a build em uso sem precisar logar. Também corrigido: após login (Google, e-mail, etc.), se qualquer operação assíncrona de pós-login falhasse (ex.: regra do Firestore bloqueando uma leitura) a chamada final ao <code>initRouter()</code> era pulada e o usuário voltava a ver a landing. Agora o modal de login é fechado e o router é reexecutado imediatamente após setar <code>AppStore.currentUser</code>, dentro de um <code>try/catch</code> — a dashboard passa a renderizar antes mesmo de qualquer carga de perfil.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.2-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Botão "Login" no menu hambúrguer voltou a funcionar</b> — O menu mobile clona o conteúdo da topbar via <code>cloneNode(true)</code>, mas listeners registrados por <code>addEventListener</code> não sobrevivem à clonagem. Mudamos o botão <code>#btn-login</code> para usar um <code>onclick</code> inline (fecha o hambúrguer e abre o modal de login com todas as opções: Google, e-mail/senha, link mágico, SMS). Aplicado também ao reset pós-logout e pós-exclusão de conta.</p>' +
         '</div>' +
