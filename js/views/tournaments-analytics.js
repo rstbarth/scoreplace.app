@@ -786,10 +786,12 @@ window._renderPersistentMatchStats = function(records, uid) {
         return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
     }
 
-    // Diverging bar row: label on top, mirrored icon+number columns (casual + tournament)
-    // on either side of a center divider, bars extending outward proportional to totals.
+    // Diverging bar row: three-part header (left label · center metric · right label),
+    // icons+numbers pushed to the extreme left/right edges of the row, bars diverging
+    // from center proportional to totals.
     // Left side = losses (red), right side = wins (green).
-    function _diffBarRow(label, leftCasual, leftTourn, rightCasual, rightTourn) {
+    // Casual icon is ⚡ (matches the dashboard "Partida Casual" button).
+    function _diffBarRow(centerLabel, leftLabel, rightLabel, leftCasual, leftTourn, rightCasual, rightTourn) {
         var totalL = (leftCasual || 0) + (leftTourn || 0);
         var totalR = (rightCasual || 0) + (rightTourn || 0);
         var maxV = Math.max(totalL, totalR, 1);
@@ -797,22 +799,27 @@ window._renderPersistentMatchStats = function(records, uid) {
         var rp = Math.round(totalR / maxV * 100);
         var leftClr = '#ef4444', rightClr = '#22c55e';
         var col = function(icon, val, clr) {
-            return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:24px;">' +
+            return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:22px;">' +
                 '<span style="font-size:0.7rem;opacity:0.85;line-height:1;">' + icon + '</span>' +
                 '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + (val || 0) + '</span>' +
             '</div>';
         };
         return '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +
-            // Label on top, centered
-            '<div style="font-size:0.62rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;">' + label + '</div>' +
-            // Icons + numbers row: mirrored about center (outer = 🏆, inner = 📡)
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;">' +
-                '<div style="display:flex;justify-content:flex-end;gap:12px;">' +
+            // Header: [left label] [center metric] [right label]
+            '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:baseline;">' +
+                '<div style="font-size:0.62rem;font-weight:700;color:' + leftClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:left;">' + (leftLabel || '') + '</div>' +
+                '<div style="font-size:0.72rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;white-space:nowrap;">' + (centerLabel || '') + '</div>' +
+                '<div style="font-size:0.62rem;font-weight:700;color:' + rightClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:right;">' + (rightLabel || '') + '</div>' +
+            '</div>' +
+            // Icons + numbers row: groups pushed to EXTREME left/right edges
+            // (outer = 🏆 tournament, inner = ⚡ casual)
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
+                '<div style="display:flex;justify-content:flex-start;gap:10px;">' +
                     col('🏆', leftTourn, leftClr) +
-                    col('📡', leftCasual, leftClr) +
+                    col('⚡', leftCasual, leftClr) +
                 '</div>' +
-                '<div style="display:flex;justify-content:flex-start;gap:12px;">' +
-                    col('📡', rightCasual, rightClr) +
+                '<div style="display:flex;justify-content:flex-end;gap:10px;">' +
+                    col('⚡', rightCasual, rightClr) +
                     col('🏆', rightTourn, rightClr) +
                 '</div>' +
             '</div>' +
@@ -836,7 +843,7 @@ window._renderPersistentMatchStats = function(records, uid) {
           '<span style="font-size:0.85rem;">' + icon + '</span>' +
           '<div style="display:flex;align-items:baseline;gap:6px;">' +
             '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">' +
-              '<span style="font-size:0.58rem;opacity:0.7;line-height:1;">📡</span>' +
+              '<span style="font-size:0.58rem;opacity:0.7;line-height:1;">⚡</span>' +
               '<span style="font-size:0.88rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + showVal(casualVal) + '</span>' +
             '</div>' +
             '<span style="width:1px;height:16px;background:rgba(255,255,255,0.15);"></span>' +
@@ -861,7 +868,7 @@ window._renderPersistentMatchStats = function(records, uid) {
         var t = _aggregate(tournRecs || []);
         var totalMatches = c.matches + t.matches;
         var badge = totalMatches + ' partida' + (totalMatches === 1 ? '' : 's') +
-            ' · 📡 ' + c.matches + ' · 🏆 ' + t.matches;
+            ' · ⚡ ' + c.matches + ' · 🏆 ' + t.matches;
 
         // Format helpers for dual-stat values
         var durC = c.totalDurationMs > 0 ? _fmtDuration(c.totalDurationMs) : '—';
@@ -881,13 +888,14 @@ window._renderPersistentMatchStats = function(records, uid) {
 
         var html = _sectionShell('persist-stats-unified', 'Desempenho', '📊', '#a855f7', badge);
 
-        // Diverging bar rows: wins vs losses (mirrored casual+tournament per side)
+        // Diverging bar rows — row 1 has no center metric (wins/losses IS the metric),
+        // rows 2+ show metric in center with "perdidos"/"vencidos" at the sides.
         html += '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
-            _diffBarRow('Vitórias / Derrotas', c.losses, t.losses, c.wins, t.wins) +
-            _diffBarRow('Sets V/P', c.setsLost, t.setsLost, c.setsWon, t.setsWon) +
-            _diffBarRow('Games V/P', c.gamesLost, t.gamesLost, c.gamesWon, t.gamesWon) +
-            _diffBarRow('Pontos V/P', c.pointsLost, t.pointsLost, c.pointsWon, t.pointsWon) +
-            _diffBarRow('Tiebreaks V/P', c.tbLost, t.tbLost, c.tbWon, t.tbWon) +
+            _diffBarRow('', 'Derrotas', 'Vitórias', c.losses, t.losses, c.wins, t.wins) +
+            _diffBarRow('Sets', 'perdidos', 'vencidos', c.setsLost, t.setsLost, c.setsWon, t.setsWon) +
+            _diffBarRow('Games', 'perdidos', 'vencidos', c.gamesLost, t.gamesLost, c.gamesWon, t.gamesWon) +
+            _diffBarRow('Pontos', 'perdidos', 'vencidos', c.pointsLost, t.pointsLost, c.pointsWon, t.pointsWon) +
+            _diffBarRow('Tiebreaks', 'perdidos', 'vencidos', c.tbLost, t.tbLost, c.tbWon, t.tbWon) +
         '</div>';
 
         // Supplementary stats — single-value metrics with casual / tournament side-by-side
@@ -912,8 +920,8 @@ window._renderPersistentMatchStats = function(records, uid) {
         // involve different relationships) but render inside the unified section.
         var relHtml = '';
         if (casualRel) {
-            var cp = _tableHtml('📡 Top 5 Parceiros — Casuais', casualRel.partners);
-            var ch = _tableHtml('📡 Top 5 Adversários — Casuais', casualRel.h2h);
+            var cp = _tableHtml('⚡ Top 5 Parceiros — Casuais', casualRel.partners);
+            var ch = _tableHtml('⚡ Top 5 Adversários — Casuais', casualRel.h2h);
             relHtml += cp + ch;
         }
         if (tournRel) {
@@ -957,7 +965,7 @@ window._renderPersistentMatchStats = function(records, uid) {
 
     return '<div style="border-top:1px solid var(--border-color,rgba(255,255,255,0.1));padding-top:10px;">' +
         '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
-        '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Partidas casuais 📡 e torneios 🏆 lado a lado — dados persistentes preservados mesmo se o torneio ou a partida for apagada.</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Partidas casuais ⚡ e torneios 🏆 lado a lado — dados persistentes preservados mesmo se o torneio ou a partida for apagada.</div>' +
         _unifiedStatsHtml(casual, tournament, casualRel, tournRel) +
     '</div>';
 };
