@@ -561,6 +561,19 @@ window.FirestoreDB = {
     }
   },
 
+  // Cancel a casual match — delete the document so lingering participants are kicked out.
+  // Called when the organizer closes the setup overlay before the match starts.
+  async cancelCasualMatch(docId) {
+    if (!this.db || !docId) return false;
+    try {
+      await this.db.collection('casualMatches').doc(docId).delete();
+      return true;
+    } catch (e) {
+      console.error('Erro ao cancelar partida casual:', e);
+      return false;
+    }
+  },
+
   // Leave a casual match — remove user from participants, playerUids and release any claimed slot
   async leaveCasualMatch(docId, uid) {
     if (!this.db || !docId || !uid) return false;

@@ -4718,16 +4718,30 @@ window._openCasualMatch = function() {
 
       var cardsHtml;
       if (_teamsFormed) {
-        // Teams formed: T1 stacked left, T2 stacked right
+        // Teams formed: T1 stacked left, T2 stacked right, with a clickable
+        // chain icon between each pair. Clicking the chain breaks teams.
         var _t1Idxs = [], _t2Idxs = [];
         for (var _gi = 0; _gi < 4; _gi++) {
           if (_teamAssignments[_gi] === 1) _t1Idxs.push(_gi);
           else _t2Idxs.push(_gi);
         }
+        var _chainBtn = '<button type="button" onclick="window._casualResetTeams()" title="' + _t('casual.breakTeams') + '" aria-label="' + _t('casual.breakTeams') + '" ' +
+          'style="margin:4px auto;display:flex;align-items:center;justify-content:center;width:40px;height:28px;' +
+          'border-radius:14px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
+          'cursor:pointer;font-size:0.95rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
+          '-webkit-tap-highlight-color:transparent;padding:0;" ' +
+          'onmouseover="this.style.background=\'rgba(239,68,68,0.15)\';this.style.borderColor=\'rgba(239,68,68,0.45)\';this.style.color=\'#f87171\';this.style.transform=\'scale(1.08)\'" ' +
+          'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'var(--text-muted)\';this.style.transform=\'\'" ' +
+          'ontouchstart="this.style.background=\'rgba(239,68,68,0.2)\';this.style.transform=\'scale(0.94)\'" ' +
+          'ontouchend="this.style.background=\'rgba(255,255,255,0.04)\';this.style.transform=\'\'">🔗</button>';
         cardsHtml =
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            _buildSetupCard(_t1Idxs[0]) + _buildSetupCard(_t2Idxs[0]) +
-            _buildSetupCard(_t1Idxs[1]) + _buildSetupCard(_t2Idxs[1]) +
+            '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
+              _buildSetupCard(_t1Idxs[0]) + _chainBtn + _buildSetupCard(_t1Idxs[1]) +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
+              _buildSetupCard(_t2Idxs[0]) + _chainBtn + _buildSetupCard(_t2Idxs[1]) +
+            '</div>' +
           '</div>';
       } else {
         cardsHtml =
@@ -4740,9 +4754,7 @@ window._openCasualMatch = function() {
       if (autoShuffle) {
         subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">' + _t('casual.shuffleOnStart') + '</div>';
       } else if (_teamsFormed) {
-        subtitle = '<div style="font-size:0.65rem;margin-top:6px;text-align:center;">' +
-          '<span onclick="window._casualResetTeams()" style="color:var(--text-muted);cursor:pointer;text-decoration:underline;">' + _t('casual.undo') + '</span>' +
-          '</div>';
+        subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">' + _t('casual.breakTeamsHint') + '</div>';
       } else {
         subtitle = '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center;">' + _t('casual.dragToForm') + '</div>';
       }
@@ -5473,7 +5485,7 @@ window._openCasualMatch = function() {
           '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : _t('casual.subtitle')) + '</div>' +
         '</div>' +
       '</div>' +
-      '<button onclick="var ov=document.getElementById(\'casual-match-overlay\');if(ov)ov.remove();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
+      '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
     '</div>' +
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 
@@ -5564,6 +5576,31 @@ window._openCasualMatch = function() {
   }
   window._casualSetupCleanup = function() {
     if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
+  };
+
+  // Fully close the setup overlay: cancel the match in Firestore so invited
+  // players aren't stuck in a ghost lobby, clear the active-room marker on the
+  // user's profile, stop the poller, and remove the overlay so the dashboard
+  // shows underneath.
+  window._casualSetupClose = function() {
+    try { if (window._casualSetupCleanup) window._casualSetupCleanup(); } catch(e) {}
+    try {
+      if (_sessionDocId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+        var p = window.FirestoreDB.cancelCasualMatch(_sessionDocId);
+        if (p && typeof p.catch === 'function') p.catch(function(){});
+      }
+    } catch(e) {}
+    try {
+      var _cu2 = window.AppStore && window.AppStore.currentUser;
+      var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
+      if (_uid2 && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+        window.FirestoreDB.saveUserProfile(_uid2, { activeCasualRoom: null }).catch(function() {});
+      }
+    } catch(e) {}
+    var ov = document.getElementById('casual-match-overlay');
+    if (ov) ov.remove();
+    var qrOv = document.getElementById('casual-qr-overlay');
+    if (qrOv) qrOv.remove();
   };
 
   setTimeout(function() {
@@ -5868,7 +5905,15 @@ window._renderCasualJoin = function(container, roomCode) {
         if (_hasLeft) return;
         try {
           var fresh = await window.FirestoreDB.loadCasualMatch(roomCode);
-          if (!fresh) return;
+          // Match was cancelled/deleted by the organizer — evacuate everyone
+          // still on the lobby screen so they don't stay stuck on a ghost room.
+          if (!fresh || fresh.status === 'cancelled') {
+            _hasLeft = true;
+            _casualLobbyCleanup();
+            if (typeof showNotification === 'function') showNotification(_t('casual.matchCancelled'), _t('casual.matchCancelledMsg'), 'info');
+            try { window.location.hash = '#dashboard'; } catch(e) {}
+            return;
+          }
           // Match started? Switch to live scoring
           if (fresh.status === 'active') {
             _casualLobbyCleanup();

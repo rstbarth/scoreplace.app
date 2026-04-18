@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Desfazer duplas e sair da partida casual</b> — Times formados por arrastar-e-soltar agora exibem um ícone de corrente 🔗 entre os parceiros; um toque quebra a dupla para reformar ou sortear de novo antes de iniciar. Sair da partida casual é efetivo: o organizador que fecha a tela de montagem cancela a partida no Firestore (remove-se da sala e libera os convidados), e jogadores convidados cuja sala foi cancelada são redirecionados automaticamente ao dashboard com aviso — ninguém fica preso em sala fantasma nem visível aos demais.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Estatísticas do usuário reescritas</b> — Tela de estatísticas no perfil adota o padrão visual do pós-jogo da partida casual: cards <code>_boxStat</code> com ícone + valor em cor de destaque + label pequeno uppercase. Grade principal expandida (Partidas, Vitórias, Derrotas, Aproveitamento, Títulos, Torneios) com códigos de cor por faixa de aproveitamento. Seções detalhadas (Casual 📡 e Torneio 🏆) agora com ícones em cada métrica (saque 🚀, recepção 🛡, killer ⚡, quebras 💥, sequência 🔥, vantagem 📈). Nova seção comparativa "⚖ Casual vs Torneio" com barras lado a lado (partidas, vitórias, aproveitamento, % saque, % recepção) usando o mesmo padrão <code>_compareBar</code> da tela de comparação de times. Dados vêm do <code>matchHistory</code> persistente por usuário no Firestore — sobrevive à exclusão do torneio ou partida casual de origem.</p>' +
         '</div>' +
