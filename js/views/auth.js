@@ -200,19 +200,11 @@ function handleGoogleLogin() {
 
   showNotification(_t('auth.connecting'), _t('auth.connectingMsg'), 'info');
 
-  // Safari/iOS: popup-based OAuth is unreliable due to ITP cookie blocking.
-  // Use redirect instead — getRedirectResult() on page reload picks up the session.
-  if (_isSafariOrIOSWebView()) {
-    firebase.auth().signInWithRedirect(authProvider).catch(function(error) {
-      console.error('Firebase auth redirect error:', error);
-      if (!_handleAccountLinking(error, 'Google')) {
-        showNotification(_t('auth.googleError'), _t('auth.googleErrorMsg'), 'error');
-      }
-    });
-    return;
-  }
-
-  console.log('[scoreplace-auth] Google popup starting...');
+  // Try popup on ALL platforms (including iOS/Safari) — modern iOS Safari 16+
+  // handles popup auth via postMessage without requiring 3rd-party cookies.
+  // If popup fails (blocked, unsupported, cookies disabled), the error handler
+  // falls back to signInWithRedirect.
+  console.log('[scoreplace-auth] Google popup starting... UA:', navigator.userAgent);
   firebase.auth().signInWithPopup(authProvider)
     .then(function(result) {
       var user = result.user;

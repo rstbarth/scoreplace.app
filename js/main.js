@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.8-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Login com Google: popup em todas as plataformas (incluindo iOS)</b> — Antes o iOS e o Safari eram forçados a usar <code>signInWithRedirect</code>, mas o redirect cross-origin falha no iOS moderno por causa do ITP (cookies de terceiros em <code>firebaseapp.com</code> são bloqueados e o <code>getRedirectResult</code> retorna <code>null</code>). Agora todas as plataformas tentam <code>signInWithPopup</code> primeiro — o iOS Safari 16+ suporta popup com <code>postMessage</code> sem depender de cookies cross-origin. Se o popup for bloqueado (código <code>auth/popup-blocked</code> ou similar), o handler de erro faz fallback para <code>signInWithRedirect</code> automaticamente. Log do userAgent adicionado para diagnóstico.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.7-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Login com Google no celular (iOS/Safari) volta a funcionar</b> — No desktop o v0.12.6 resolveu o login via popup, mas no celular (iOS Safari e iOS Chrome, que também usa WebKit) o fluxo usa <code>signInWithRedirect</code> por causa do ITP da Apple. O handler <code>getRedirectResult</code> que recebe o usuário após o redirect também dependia exclusivamente do <code>onAuthStateChanged</code> — que pode não disparar no iOS com cookies 3rd-party bloqueados contra o <code>authDomain</code> cross-origin. Agora o próprio <code>getRedirectResult</code> chama <code>simulateLoginSuccess</code> diretamente e grava o <code>scoreplace_authCache</code>, com o mesmo guard contra execução dupla.</p>' +
         '</div>' +
