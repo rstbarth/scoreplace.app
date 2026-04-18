@@ -1110,6 +1110,7 @@ async function simulateLoginSuccess(user) {
     [
       { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
       { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
+      { id: 'profile-notify-email', val: cu.notifyEmail !== false },
       { id: 'profile-hints-enabled', val: _hintsEnabled }
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
     window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
@@ -2205,6 +2206,7 @@ function setupProfileModal() {
               '<div style="margin-top:10px;">' +
                 '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">' + _t('profile.notifChannels') + '</div>' +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: _t('profile.notifPlatform'), icon: '🔔', checked: true }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: _t('profile.notifEmail'), icon: '✉️', checked: true, color: '#3b82f6' }) : '') +
               '</div>' +
             '</div>' +
             // Locais de preferência (mapa)
@@ -2705,6 +2707,7 @@ function setupProfileModal() {
       // Toggle switches: read checked state
       var acceptFriends = document.getElementById('profile-accept-friends') ? document.getElementById('profile-accept-friends').checked : true;
       var notifyPlatform = document.getElementById('profile-notify-platform') ? document.getElementById('profile-notify-platform').checked : true;
+      var notifyEmail = document.getElementById('profile-notify-email') ? document.getElementById('profile-notify-email').checked : true;
       var _todasChecked = document.getElementById('profile-filter-todas') ? document.getElementById('profile-filter-todas').checked : true;
       var _impChecked = document.getElementById('profile-filter-importantes') ? document.getElementById('profile-filter-importantes').checked : false;
       var _funChecked = document.getElementById('profile-filter-fundamentais') ? document.getElementById('profile-filter-fundamentais').checked : false;
@@ -2731,6 +2734,7 @@ function setupProfileModal() {
       window.AppStore.currentUser.defaultCategory = category;
       window.AppStore.currentUser.acceptFriendRequests = acceptFriends;
       window.AppStore.currentUser.notifyPlatform = notifyPlatform;
+      window.AppStore.currentUser.notifyEmail = notifyEmail;
       window.AppStore.currentUser.notifyLevel = notifyLevel;
       window.AppStore.currentUser.preferredCeps = preferredCeps;
       window.AppStore.currentUser.preferredLocations = preferredLocations;

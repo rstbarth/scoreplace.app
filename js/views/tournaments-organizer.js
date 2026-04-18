@@ -110,10 +110,9 @@ window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
             if (notifData.inviteType) _notifPayload.inviteType = notifData.inviteType;
             await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
-        // Email / WhatsApp dispatch intentionally disabled — feature not implemented yet.
-        // Will be re-enabled when the external channels ship; profile UI no longer
-        // exposes these toggles so flags are not read.
-        var email = null;
+        // Email dispatch — writes to 'mail' Firestore collection, processed by
+        // the "Trigger Email from Firestore" extension. WhatsApp still disabled.
+        var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;
         var phone = null;
 
         // Auto-dispatch email & WhatsApp for this individual notification

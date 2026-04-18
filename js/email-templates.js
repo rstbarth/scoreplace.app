@@ -1,5 +1,8 @@
-// ─── Email Templates: HTML email generators for Cloud Function integration ──
-// Client-side only. Returns HTML strings ready to be sent via a Cloud Function.
+// ─── Email Templates: HTML email generators for Firestore "Trigger Email" ──
+// Client-side only. Returns HTML strings written to the 'mail' collection.
+// The email body carries the actual notification content, not a generic
+// "open the app" stub — so recipients can read what happened without
+// opening the webapp.
 (function() {
   'use strict';
 
@@ -8,136 +11,187 @@
   var TEXT_COLOR = '#e5e7eb';
   var MUTED_COLOR = '#9ca3af';
 
-  function _header() {
+  // Friendly subtitle shown above the notification body. Maps notification
+  // type → human-readable heading. Falls back to a generic label.
+  var _TYPE_HEADINGS = {
+    enrollment:                 { icon: '✅', title: 'Inscrição confirmada' },
+    enrollment_new:             { icon: '✅', title: 'Nova inscrição' },
+    enrollment_confirm:         { icon: '🎉', title: 'Inscrição confirmada' },
+    enrollment_cancelled:       { icon: '🛑', title: 'Inscrição cancelada' },
+    enrollment_cancelled_confirm: { icon: '🛑', title: 'Inscrição cancelada' },
+    enrollments_closed:         { icon: '🔒', title: 'Inscrições encerradas' },
+    enrollments_reopened:       { icon: '🔓', title: 'Inscrições reabertas' },
+    tournament_created:         { icon: '🏆', title: 'Novo torneio' },
+    tournament_deleted:         { icon: '🗑️', title: 'Torneio cancelado' },
+    tournament_update:          { icon: '📢', title: 'Torneio atualizado' },
+    tournament_finished:        { icon: '🏆', title: 'Torneio encerrado' },
+    tournament_invite:          { icon: '🏆', title: 'Convite para torneio' },
+    tournament_reminder:        { icon: '⏰', title: 'Lembrete de torneio' },
+    tournament_nearby:          { icon: '📍', title: 'Torneio perto de você' },
+    draw:                       { icon: '🎲', title: 'Chaveamento gerado' },
+    new_round:                  { icon: '🔄', title: 'Nova rodada' },
+    result:                     { icon: '🏅', title: 'Resultado registrado' },
+    org_communication:          { icon: '📣', title: 'Comunicado do organizador' },
+    participant_removed:        { icon: '🚫', title: 'Remoção de torneio' },
+    cohost_invite:              { icon: '👑', title: 'Convite de co-organização' },
+    host_transfer_invite:       { icon: '👑', title: 'Convite para assumir organização' },
+    cohost_invite_sent:         { icon: '📨', title: 'Convite enviado' },
+    host_transfer_sent:         { icon: '📨', title: 'Convite enviado' },
+    host_invite_accepted:       { icon: '✅', title: 'Convite aceito' },
+    host_invite_rejected:       { icon: '❌', title: 'Convite recusado' },
+    cohost_removed:             { icon: '🚫', title: 'Co-organização removida' },
+    friend_request:             { icon: '👋', title: 'Pedido de amizade' },
+    friend_accepted:            { icon: '🤝', title: 'Amizade aceita' },
+    poll:                       { icon: '🗳️', title: 'Nova enquete' },
+    category_assignment:        { icon: '🏷️', title: 'Categoria atribuída' },
+    reminder:                   { icon: '⏰', title: 'Lembrete' },
+    info:                       { icon: '🔔', title: 'Notificação' }
+  };
+
+  function _heading(type) {
+    return _TYPE_HEADINGS[type] || { icon: '🔔', title: 'Notificação' };
+  }
+
+  function _escape(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Convert a plain-text message to safe HTML preserving newlines.
+  function _messageToHtml(msg) {
+    return _escape(msg).replace(/\n/g, '<br>');
+  }
+
+  function _header(heading) {
     return '<tr><td style="padding:24px 32px;text-align:center;background:' + BRAND_COLOR + ';">' +
-      '<h1 style="margin:0;font-size:1.4rem;font-weight:700;color:#fff;">🏆 scoreplace.app</h1>' +
+      '<div style="font-size:2rem;line-height:1;margin-bottom:6px;">' + heading.icon + '</div>' +
+      '<h1 style="margin:0;font-size:1.15rem;font-weight:700;color:#fff;letter-spacing:0.2px;">' + _escape(heading.title) + '</h1>' +
+      '<p style="margin:6px 0 0;font-size:0.78rem;color:rgba(255,255,255,0.85);">scoreplace.app</p>' +
     '</td></tr>';
   }
 
-  function _footer(unsubscribeUrl) {
+  function _footer() {
     return '<tr><td style="padding:20px 32px;text-align:center;border-top:1px solid #374151;">' +
-      '<p style="margin:0 0 8px;font-size:0.75rem;color:' + MUTED_COLOR + ';">scoreplace.app — Gestao de torneios esportivos</p>' +
-      (unsubscribeUrl ? '<p style="margin:0;font-size:0.72rem;"><a href="' + unsubscribeUrl + '" style="color:' + MUTED_COLOR + ';">Cancelar notificacoes por email</a></p>' : '') +
+      '<p style="margin:0 0 8px;font-size:0.75rem;color:' + MUTED_COLOR + ';">scoreplace.app — Gestão de torneios esportivos</p>' +
+      '<p style="margin:0;font-size:0.72rem;color:' + MUTED_COLOR + ';">Para desativar e-mails, abra o app, toque no seu perfil e desligue "E-mail" em Canais de notificação.</p>' +
     '</td></tr>';
   }
 
   function _ctaButton(text, url) {
-    return '<table cellpadding="0" cellspacing="0" border="0" style="margin:20px auto;"><tr><td style="background:' + BRAND_COLOR + ';border-radius:8px;padding:12px 32px;">' +
-      '<a href="' + url + '" style="color:#fff;text-decoration:none;font-weight:600;font-size:0.95rem;">' + text + '</a>' +
+    return '<table cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 8px;"><tr><td style="background:' + BRAND_COLOR + ';border-radius:8px;padding:12px 28px;">' +
+      '<a href="' + _escape(url) + '" style="color:#fff;text-decoration:none;font-weight:600;font-size:0.92rem;">' + _escape(text) + '</a>' +
     '</td></tr></table>';
   }
 
-  function _wrap(bodyRows) {
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
-      '<body style="margin:0;padding:0;background:#0b0f19;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">' +
-      '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;margin:20px auto;background:' + BG_COLOR + ';border-radius:12px;overflow:hidden;border:1px solid #1f2937;">' +
-      _header() + bodyRows + _footer('{unsubscribeUrl}') +
-      '</table></body></html>';
-  }
+  function _body(type, data) {
+    var bodyText = data.message ? _messageToHtml(data.message) : '';
+    var tournamentLine = '';
+    if (data.tournamentName) {
+      tournamentLine = '<p style="margin:0 0 14px;font-size:0.82rem;color:' + MUTED_COLOR + ';letter-spacing:0.3px;text-transform:uppercase;font-weight:600;">' +
+        '🏆 ' + _escape(data.tournamentName) + '</p>';
+    }
 
-  function _body(title, message, ctaText, ctaUrl) {
+    // Type-specific enrichments appended after the main message.
+    var extra = '';
+    if (type === 'result') {
+      if (data.player1 || data.player2 || data.score1 != null || data.score2 != null) {
+        var scoreLine = _escape(data.player1 || '?') + ' <b>' + _escape(String(data.score1 != null ? data.score1 : 0)) +
+          '</b> × <b>' + _escape(String(data.score2 != null ? data.score2 : 0)) + '</b> ' + _escape(data.player2 || '?');
+        extra += '<div style="margin-top:14px;padding:14px 16px;background:rgba(59,130,246,0.1);border-left:3px solid ' + BRAND_COLOR + ';border-radius:6px;font-size:1rem;font-weight:500;">' + scoreLine + '</div>';
+      }
+      if (data.winner) {
+        extra += '<p style="margin:12px 0 0;font-size:0.92rem;">🏅 Vencedor: <b>' + _escape(data.winner) + '</b></p>';
+      }
+    } else if (type === 'tournament_update' && data.changes) {
+      extra += '<div style="margin-top:14px;padding:14px 16px;background:rgba(245,158,11,0.1);border-left:3px solid #f59e0b;border-radius:6px;font-size:0.9rem;">' +
+        '<b>Alterações:</b><br>' + _messageToHtml(data.changes) + '</div>';
+    } else if (type === 'tournament_finished' && data.champion) {
+      extra += '<p style="margin:16px 0 0;font-size:1rem;">🏆 <b>' + _escape(data.champion) + '</b> é o campeão!</p>';
+    }
+
+    var ctaText = data.ctaText || (data.tournamentUrl ? 'Ver no scoreplace.app' : '');
+    var ctaUrl = data.tournamentUrl || data.ctaUrl || '';
+
     return '<tr><td style="padding:28px 32px;color:' + TEXT_COLOR + ';">' +
-      '<h2 style="margin:0 0 12px;font-size:1.15rem;font-weight:700;color:#fff;">' + title + '</h2>' +
-      '<p style="margin:0 0 4px;font-size:0.92rem;line-height:1.6;color:' + TEXT_COLOR + ';">' + message + '</p>' +
+      tournamentLine +
+      (bodyText ? '<p style="margin:0;font-size:1rem;line-height:1.55;color:#f3f4f6;">' + bodyText + '</p>' : '') +
+      extra +
       (ctaText && ctaUrl ? _ctaButton(ctaText, ctaUrl) : '') +
     '</td></tr>';
   }
 
+  function _wrap(type, data) {
+    var heading = _heading(type);
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+      '<body style="margin:0;padding:0;background:#0b0f19;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">' +
+      '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;margin:20px auto;background:' + BG_COLOR + ';border-radius:12px;overflow:hidden;border:1px solid #1f2937;">' +
+      _header(heading) + _body(type, data) + _footer() +
+      '</table></body></html>';
+  }
+
   /**
-   * Generate an email template HTML string.
-   * @param {string} type - 'enrollment' | 'result' | 'reminder' | 'tournament_update'
-   * @param {Object} data - { playerName, tournamentName, tournamentUrl, score1, score2, player1, player2, winner, days, changes }
+   * Build a full HTML email for a notification. The body is the actual
+   * notification message (data.message). Type drives the heading and any
+   * type-specific enrichment (scores, changes list, champion, etc.).
+   *
+   * @param {string} type - notification type (matches NOTIF_CATALOG keys)
+   * @param {Object} data - { message, tournamentName, tournamentUrl,
+   *                          ctaText, ctaUrl,
+   *                          // type-specific:
+   *                          player1, player2, score1, score2, winner,
+   *                          changes, champion, playerName, friendName,
+   *                          days }
    * @returns {string} Complete HTML email string
    */
   window._emailTemplate = function(type, data) {
     data = data || {};
-    var name = data.tournamentName || 'Torneio';
-    var url = data.tournamentUrl || 'https://scoreplace.app';
-
-    switch (type) {
-      case 'enrollment':
-        return _wrap(_body(
-          'Inscrição Confirmada!',
-          (data.playerName || 'Você') + ' foi inscrito(a) no torneio <b>' + name + '</b>. Acompanhe o torneio pelo link abaixo.',
-          'Ver Torneio', url
-        ));
-
-      case 'result':
-        var scoreText = (data.player1 || '?') + ' ' + (data.score1 || '0') + ' x ' + (data.score2 || '0') + ' ' + (data.player2 || '?');
-        var winnerText = data.winner ? '<br>Vencedor: <b>' + data.winner + '</b>' : '';
-        return _wrap(_body(
-          'Resultado — ' + name,
-          scoreText + winnerText,
-          'Ver Chaves', url
-        ));
-
-      case 'reminder':
-        return _wrap(_body(
-          'Lembrete: ' + name,
-          'Seu torneio <b>' + name + '</b> comeca em <b>' + (data.days || '?') + ' dias</b>. Confira os detalhes e confirme sua presenca!',
-          'Ver Torneio', url
-        ));
-
-      case 'tournament_update':
-        var changesHtml = data.changes ? '<br><br><b>Alteracoes:</b><br>' + data.changes : '';
-        return _wrap(_body(
-          'Atualizacao — ' + name,
-          'O torneio <b>' + name + '</b> foi atualizado.' + changesHtml,
-          'Ver Torneio', url
-        ));
-
-      case 'tournament_deleted':
-        return _wrap(_body(
-          'Torneio Cancelado',
-          'O torneio <b>' + name + '</b> foi cancelado pelo organizador.',
-          'Ir para Dashboard', 'https://scoreplace.app/#dashboard'
-        ));
-
-      case 'draw':
-        return _wrap(_body(
-          'Chaveamento Gerado — ' + name,
-          'O chaveamento do torneio <b>' + name + '</b> foi gerado! Confira seus confrontos.',
-          'Ver Chaves', url
-        ));
-
-      case 'tournament_finished':
-        var champText = data.champion ? '<br><b>' + data.champion + '</b> e o campeao!' : '';
-        return _wrap(_body(
-          'Torneio Encerrado — ' + name,
-          'O torneio <b>' + name + '</b> foi encerrado!' + champText,
-          'Ver Resultado', url
-        ));
-
-      case 'enrollments_closed':
-        return _wrap(_body(
-          'Inscricoes Encerradas — ' + name,
-          'As inscricoes do torneio <b>' + name + '</b> foram encerradas. O sorteio sera realizado em breve.',
-          'Ver Torneio', url
-        ));
-
-      case 'new_round':
-        return _wrap(_body(
-          'Nova Rodada — ' + name,
-          'Uma nova rodada foi gerada no torneio <b>' + name + '</b>. Confira seus confrontos!',
-          'Ver Chaves', url
-        ));
-
-      case 'participant_removed':
-        return _wrap(_body(
-          'Remocao de Torneio',
-          'Voce foi removido(a) do torneio <b>' + name + '</b> pelo organizador.',
-          'Ir para Dashboard', 'https://scoreplace.app/#dashboard'
-        ));
-
-      case 'tournament_created':
-        return _wrap(_body(
-          'Novo Torneio — ' + name,
-          (data.friendName || 'Um amigo') + ' criou o torneio <b>' + name + '</b>. Participe!',
-          'Ver Torneio', url
-        ));
-
-      default:
-        return _wrap(_body('Notificacao', 'Voce tem uma nova notificacao do scoreplace.app.', 'Abrir App', url));
+    // Back-compat: older callers passed `tournamentName` + no `message`.
+    // Synthesize a reasonable fallback message so the body is never empty.
+    if (!data.message) {
+      var name = data.tournamentName || 'seu torneio';
+      switch (type) {
+        case 'enrollment':
+        case 'enrollment_new':
+        case 'enrollment_confirm':
+          data.message = (data.playerName || 'Você') + ' foi inscrito(a) no torneio ' + name + '.';
+          break;
+        case 'reminder':
+        case 'tournament_reminder':
+          data.message = 'Seu torneio ' + name + ' começa em ' + (data.days || '?') + ' dias.';
+          break;
+        case 'tournament_update':
+          data.message = 'O torneio ' + name + ' foi atualizado.';
+          break;
+        case 'tournament_deleted':
+          data.message = 'O torneio ' + name + ' foi cancelado pelo organizador.';
+          break;
+        case 'draw':
+          data.message = 'O chaveamento do torneio ' + name + ' foi gerado.';
+          break;
+        case 'tournament_finished':
+          data.message = 'O torneio ' + name + ' foi encerrado.';
+          break;
+        case 'enrollments_closed':
+          data.message = 'As inscrições do torneio ' + name + ' foram encerradas.';
+          break;
+        case 'new_round':
+          data.message = 'Uma nova rodada foi gerada no torneio ' + name + '.';
+          break;
+        case 'participant_removed':
+          data.message = 'Você foi removido(a) do torneio ' + name + '.';
+          break;
+        case 'tournament_created':
+          data.message = (data.friendName || 'Um amigo') + ' criou o torneio ' + name + '.';
+          break;
+        default:
+          data.message = 'Você tem uma nova notificação em ' + name + '.';
+      }
     }
+    return _wrap(type, data);
   };
 })();
