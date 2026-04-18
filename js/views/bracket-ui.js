@@ -4893,10 +4893,7 @@ window._openCasualMatch = function() {
         '</div>' +
       '</div>' +
 
-      // Start button
-      '<button onclick="window._casualStart()" style="width:100%;padding:14px;border-radius:14px;font-size:1.1rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:white;box-shadow:0 4px 20px rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
-        '<span style="font-size:1.3rem;">📡</span> ' + _t('casual.startMatch') +
-      '</button>';
+      '';
 
     // Attach drag-and-drop for team building (Sortear OFF + Doubles)
     if (isDoubles && !autoShuffle) {
@@ -5605,7 +5602,10 @@ window._openCasualMatch = function() {
           '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : _t('casual.subtitle')) + '</div>' +
         '</div>' +
       '</div>' +
-      '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:8px 18px;font-size:0.88rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;">' + _t('casual.start') + '</button>' +
+        '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
+      '</div>' +
     '</div>' +
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 

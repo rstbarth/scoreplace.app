@@ -12,7 +12,7 @@ window._translations['pt'] = {
 
   // Dashboard
   'dashboard.welcome': 'Bem-vindo, {name}!',
-  'dashboard.newTournament': '+ Novo Torneio',
+  'dashboard.newTournament': 'Novo Torneio',
   'dashboard.filterAll': 'Todos',
   'dashboard.filterOrganized': 'Organizados',
   'dashboard.filterParticipating': 'Participando',
@@ -1140,6 +1140,7 @@ window._translations['pt'] = {
   'casual.joinRoomPlaceholder': 'Sala de um amigo',
   'casual.join': 'Entrar',
   'casual.startMatch': 'Iniciar Partida',
+  'casual.start': 'Iniciar',
   'casual.invitePlayers': 'Convidar Jogadores',
   'casual.inviteInstructions': 'Peça para escanear o QR code ou envie o código',
   'casual.copyLink': 'Copiar',
