@@ -1334,9 +1334,9 @@ function setupLoginModal() {
           '<div style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️ Link Magico por E-mail</div>' +
             '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
-              '<div style="display:flex;gap:8px;align-items:center;">' +
-                '<input type="email" id="login-email-link" class="form-control" placeholder="seu@email.com" required style="flex:1;font-size:0.85rem;">' +
-                '<button type="submit" class="btn btn-primary" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Enviar</button>' +
+              '<div style="display:flex;gap:6px;align-items:center;">' +
+                '<input type="email" id="login-email-link" class="form-control" placeholder="ex: joao.silva@gmail.com" required style="flex:1;font-size:1rem;padding:12px 14px;">' +
+                '<button type="submit" class="btn" style="font-size:0.72rem;white-space:nowrap;padding:6px 10px;background:transparent;border:1px solid var(--primary-color,#3b82f6);color:var(--primary-color,#3b82f6);font-weight:600;border-radius:8px;">Enviar</button>' +
               '</div>' +
             '</form>' +
           '</div>' +

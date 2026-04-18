@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.76-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Campo de e-mail e botão "Enviar" do link mágico redesenhados</b> — Na página de login, o campo de e-mail para envio do link mágico ficou maior (fonte 1rem, padding 12px 14px) e ganhou um placeholder de exemplo ("ex: joao.silva@gmail.com"), tornando-o mais visível e amigável. O botão "Enviar" foi reduzido para caber apenas a palavra com uma borda fina na cor primária (outline transparente 1px, fonte 0.72rem, padding 6px 10px), liberando mais espaço para o campo de e-mail.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.75-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Botões principais da partida casual movidos para o topo</b> — "Iniciar Partida" (na tela de ordem de saque) e "Confirmar Resultado" (na tela de fim de partida) agora ficam fixos no topo da página, não mais no rodapé. O conteúdo (cards de saque, estatísticas, gráfico de momentum, comparativos, tempo) passou a rolar abaixo dos botões. O toggle "Re-sortear duplas" continua junto do botão "Jogar Novamente" no cabeçalho fixo.</p>' +
         '</div>' +
