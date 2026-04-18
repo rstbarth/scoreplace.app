@@ -710,6 +710,20 @@ window._renderPersistentMatchStats = function(records, uid) {
         return agg;
     }
 
+    // Placeholder names from the casual setup screen (empty participant slots)
+    // should never populate the Top 5 Parceiros / Adversários lists.
+    function _isPlaceholderName(n) {
+        if (!n) return true;
+        var s = String(n).trim().toLowerCase();
+        if (!s) return true;
+        // Exact generic labels
+        if (s === 'parceiro' || s === 'partner') return true;
+        if (s === 'oponente' || s === 'opponent' || s === 'adversário' || s === 'adversario') return true;
+        // Numbered placeholders: "Jogador 2", "Player 3", "Adversário 1", "Oponente 2", "Parceiro 1"
+        if (/^(jogador|player|parceiro|partner|oponente|opponent|adversário|adversario)\s*\d+$/i.test(s)) return true;
+        return false;
+    }
+
     function _computeH2hAndPartners(recs) {
         var h2h = {}, partners = {};
         for (var i = 0; i < recs.length; i++) {
@@ -722,6 +736,8 @@ window._renderPersistentMatchStats = function(records, uid) {
             for (var j = 0; j < ps.length; j++) {
                 var pj = ps[j];
                 if (pj === me || pj.name === me.name) continue;
+                // Skip placeholder names with no uid — anonymous empty slots from casual setup.
+                if (!pj.uid && _isPlaceholderName(pj.name)) continue;
                 var key = pj.uid || ('name:' + (pj.name || ''));
                 var map = pj.team === myTeam ? partners : h2h;
                 if (!map[key]) map[key] = { name: pj.name, uid: pj.uid || null, photoURL: pj.photoURL || null, played:0, wins:0, losses:0, draws:0 };

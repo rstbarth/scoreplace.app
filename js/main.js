@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Top 5 Parceiros/Adversários ignora nomes genéricos de slot vazio</b> — Quando o organizador iniciava uma partida casual sem renomear os cards "Jogador 2", "Jogador 3", "Jogador 4" (ou quando o nome gravado era "Parceiro", "Adversário 1", "Adversário 2" etc.), esses rótulos apareciam no ranking de parceiros e adversários do modal de estatísticas, poluindo a lista com entradas sem jogador real. Agora <code>_computeH2hAndPartners</code> filtra por uma regex de nomes placeholder (<code>jogador|player|parceiro|partner|oponente|opponent|adversário|adversario</code> sozinho ou seguido de número) quando o participante não tem <code>uid</code> — jogadores reais identificados por uid continuam sendo contabilizados mesmo que o nome coincida.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Dashboard: botões "Novo Torneio" e "Partida Casual" lado a lado + botão "Iniciar" no topo do setup casual</b> — Na hero box da dashboard, os dois botões principais agora ficam na mesma linha, com tamanhos iguais (altura 64px, fonte 0.95rem), ícones atualizados (🏆 para Novo Torneio, ⚡ para Partida Casual) e layout compacto sem quebra em telas estreitas (<code>flex-wrap:nowrap</code>). Na tela de setup de partida casual, o botão "Iniciar Partida" que ocupava a base da tela foi substituído por um botão verde "Iniciar" (<code>linear-gradient(135deg,#10b981,#059669)</code>) fixo no cabeçalho, ao lado do "✕ Fechar" — fica sempre visível sem precisar rolar pelo QR code, código de sala e campo de convite.</p>' +
         '</div>' +
