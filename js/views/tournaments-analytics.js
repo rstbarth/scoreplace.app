@@ -543,42 +543,73 @@ window._renderPersistentMatchStats = function(records, uid) {
     }
 
     function _aggregate(recs) {
+        // Process chronologically (oldest → newest) so the win-streak count is correct.
+        var sorted = recs.slice().sort(function(a, b) { return (a.finishedAt || '').localeCompare(b.finishedAt || ''); });
         var agg = { matches:0, wins:0, losses:0, draws:0,
-            points:0, games:0, sets:0, breaks:0, killerPoints:0,
+            setsWon:0, setsLost:0, gamesWon:0, gamesLost:0, pointsWon:0, pointsLost:0,
+            breaks:0, killerPoints:0,
             servePts:0, servePtsWon:0, receivePts:0, receivePtsWon:0,
-            holdsServed:0, holdsWon:0, longestStreak:0, biggestLead:0,
-            totalDurationMs: 0, durationMatches: 0, avgPointMsSum: 0, avgPointMatches: 0 };
-        for (var i = 0; i < recs.length; i++) {
-            var r = recs[i];
+            holdsServed:0, holdsWon:0,
+            longestPointStreak:0, longestWinStreak:0, biggestLead:0,
+            totalDurationMs:0, durationMatches:0,
+            longestPointMs:0, shortestPointMs:null,
+            avgPointMsSum:0, avgPointMatches:0 };
+        var curWinStreak = 0;
+        for (var i = 0; i < sorted.length; i++) {
+            var r = sorted[i];
             var mySlot = (r.players || []).find(function(p) { return p.uid === uid; });
             if (!mySlot) continue;
             var myTeam = mySlot.team;
+            var oppTeam = myTeam === 1 ? 2 : 1;
             agg.matches++;
             var w = r.winnerTeam;
-            if (w === 0) agg.draws++;
-            else if (w === myTeam) agg.wins++;
-            else agg.losses++;
+            if (w === 0) { agg.draws++; curWinStreak = 0; }
+            else if (w === myTeam) {
+                agg.wins++; curWinStreak++;
+                if (curWinStreak > agg.longestWinStreak) agg.longestWinStreak = curWinStreak;
+            }
+            else { agg.losses++; curWinStreak = 0; }
             var mine = r.stats && (myTeam === 1 ? r.stats.team1 : r.stats.team2);
+            var theirs = r.stats && (oppTeam === 1 ? r.stats.team1 : r.stats.team2);
             if (mine) {
-                agg.points += mine.points || 0;
-                agg.games += mine.games || 0;
-                agg.sets += mine.sets || 0;
+                agg.pointsWon += mine.points || 0;
+                agg.gamesWon += mine.games || 0;
+                agg.setsWon += mine.sets || 0;
                 agg.breaks += mine.breaks || 0;
                 agg.killerPoints += mine.deucePtsWon || 0;
                 agg.servePts += mine.servePtsPlayed || 0;
                 agg.servePtsWon += mine.servePtsWon || 0;
                 agg.receivePts += mine.receivePtsPlayed || 0;
                 agg.receivePtsWon += mine.receivePtsWon || 0;
-                agg.holdsServed += mine.holdServed || 0;
-                agg.holdsWon += mine.held || 0;
-                if ((mine.longestStreak || 0) > agg.longestStreak) agg.longestStreak = mine.longestStreak;
+                if ((mine.longestStreak || 0) > agg.longestPointStreak) agg.longestPointStreak = mine.longestStreak;
                 if ((mine.biggestLead || 0) > agg.biggestLead) agg.biggestLead = mine.biggestLead;
+            }
+            if (theirs) {
+                agg.pointsLost += theirs.points || 0;
+                agg.gamesLost += theirs.games || 0;
+                agg.setsLost += theirs.sets || 0;
+            }
+            // Per-player holds (saque mantido) — lives in playerStats[name], keyed by display name.
+            var myPs = r.playerStats && mySlot.name && r.playerStats[mySlot.name];
+            if (myPs) {
+                agg.holdsServed += myPs.served || 0;
+                agg.holdsWon += myPs.held || 0;
             }
             if (typeof r.durationMs === 'number' && r.durationMs > 0) {
                 agg.totalDurationMs += r.durationMs; agg.durationMatches++;
             }
-            if (r.timeStats && typeof r.timeStats.avgPointMs === 'number') {
-                agg.avgPointMsSum += r.timeStats.avgPointMs; agg.avgPointMatches++;
+            if (r.timeStats) {
+                if (typeof r.timeStats.avgPointMs === 'number' && r.timeStats.avgPointMs > 0) {
+                    agg.avgPointMsSum += r.timeStats.avgPointMs; agg.avgPointMatches++;
+                }
+                if (typeof r.timeStats.longestPointMs === 'number' && r.timeStats.longestPointMs > agg.longestPointMs) {
+                    agg.longestPointMs = r.timeStats.longestPointMs;
+                }
+                if (typeof r.timeStats.shortestPointMs === 'number' && r.timeStats.shortestPointMs > 0) {
+                    if (agg.shortestPointMs === null || r.timeStats.shortestPointMs < agg.shortestPointMs) {
+                        agg.shortestPointMs = r.timeStats.shortestPointMs;
+                    }
+                }
             }
         }
         return agg;
@@ -622,84 +653,68 @@ window._renderPersistentMatchStats = function(records, uid) {
         return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
     }
 
-    // Build "Casual vs Torneios" side-by-side comparative section (preferred when both have data)
-    function _comparativeSectionHtml(ca, ta) {
-        var casualClr = '#38bdf8', tournClr = '#fbbf24';
-        var caRate = ca.matches > 0 ? Math.round(ca.wins / ca.matches * 100) : 0;
-        var taRate = ta.matches > 0 ? Math.round(ta.wins / ta.matches * 100) : 0;
-        var caSrv = ca.servePts > 0 ? Math.round(ca.servePtsWon / ca.servePts * 100) : 0;
-        var taSrv = ta.servePts > 0 ? Math.round(ta.servePtsWon / ta.servePts * 100) : 0;
-        var caRecv = ca.receivePts > 0 ? Math.round(ca.receivePtsWon / ca.receivePts * 100) : 0;
-        var taRecv = ta.receivePts > 0 ? Math.round(ta.receivePtsWon / ta.receivePts * 100) : 0;
-        var caHold = ca.holdsServed > 0 ? Math.round(ca.holdsWon / ca.holdsServed * 100) : 0;
-        var taHold = ta.holdsServed > 0 ? Math.round(ta.holdsWon / ta.holdsServed * 100) : 0;
-        var hasServePt = (ca.servePts + ta.servePts) > 0;
-        var hasHold = (ca.holdsServed + ta.holdsServed) > 0;
-        var hasKiller = (ca.killerPoints + ta.killerPoints) > 0;
-        var hasStreak = (ca.longestStreak + ta.longestStreak) > 0;
-        var hasLead = (ca.biggestLead + ta.biggestLead) > 0;
-
-        var body =
-            _compareBar('Partidas', '🎯', ca.matches, ta.matches, casualClr, tournClr) +
-            _compareBar('Vitórias', '✅', ca.wins, ta.wins, casualClr, tournClr) +
-            _compareBar('Aproveitamento', '📊', caRate, taRate, casualClr, tournClr, function(v) { return v + '%'; }, 100) +
-            ((ca.sets + ta.sets) > 0 ? _compareBar('Sets', '🏅', ca.sets, ta.sets, casualClr, tournClr) : '') +
-            ((ca.games + ta.games) > 0 ? _compareBar('Games', '🎾', ca.games, ta.games, casualClr, tournClr) : '') +
-            _compareBar('Pontos', '🎯', ca.points, ta.points, casualClr, tournClr) +
-            (hasServePt ? _compareBar('% Pontos no Saque', '🚀', caSrv, taSrv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
-            (hasServePt ? _compareBar('% Pontos na Recepção', '🎯', caRecv, taRecv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
-            (hasHold ? _compareBar('Games Mantidos (saque)', '📊', caHold, taHold, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
-            (hasHold ? _compareBar('Quebras de Saque', '💥', ca.breaks, ta.breaks, casualClr, tournClr) : '') +
-            (hasKiller ? _compareBar('Killer Points (40-40)', '⚡', ca.killerPoints, ta.killerPoints, casualClr, tournClr) : '') +
-            (hasStreak ? _compareBar('Maior Sequência', '🔥', ca.longestStreak, ta.longestStreak, casualClr, tournClr) : '') +
-            (hasLead ? _compareBar('Maior Vantagem', '📈', ca.biggestLead, ta.biggestLead, casualClr, tournClr) : '');
-        return _compareShell('', body);
-    }
-
-    // Single-side breakdown (fallback when only one category has records)
-    function _singleSectionHtml(id, title, icon, recs, accent) {
+    // Rich per-category breakdown — shows every metric the user asked for.
+    // Used for BOTH the casual section and the tournament section.
+    function _detailedSectionHtml(id, title, icon, recs, accent, rel) {
         if (!recs.length) return '';
         var a = _aggregate(recs);
         var winRate = a.matches > 0 ? Math.round(a.wins / a.matches * 100) : 0;
         var rateClr = winRate >= 60 ? '#22c55e' : (winRate >= 40 ? '#fbbf24' : '#ef4444');
         var srvPct = a.servePts > 0 ? Math.round(a.servePtsWon / a.servePts * 100) : 0;
         var recvPct = a.receivePts > 0 ? Math.round(a.receivePtsWon / a.receivePts * 100) : 0;
-        var avgDur = a.durationMatches > 0 ? a.totalDurationMs / a.durationMatches : 0;
+        var holdPct = a.holdsServed > 0 ? Math.round(a.holdsWon / a.holdsServed * 100) : 0;
+        var totalDur = a.totalDurationMs || 0;
         var avgPt = a.avgPointMatches > 0 ? a.avgPointMsSum / a.avgPointMatches : 0;
         var badge = a.matches + ' partida' + (a.matches > 1 ? 's' : '');
+        var wonLost = function(won, lost) { return won + ' / ' + lost; };
 
-        return _sectionShell(id, title, icon, accent, badge) +
+        var html = _sectionShell(id, title, icon, accent, badge) +
+            // Row 1 — Vitórias / Derrotas / Aproveitamento
             '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
                 _boxStat('Vitórias', a.wins, '✅', '#22c55e') +
                 _boxStat('Derrotas' + (a.draws ? '/E' : ''), a.losses + (a.draws ? '/' + a.draws : ''), '❌', '#ef4444') +
                 _boxStat('Aproveit.', winRate + '%', '📊', rateClr) +
             '</div>' +
+            // Row 2 — Sets / Games / Pontos (vencidos / perdidos)
             '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' +
-                _boxStat('Sets', a.sets, '🏅', '#fbbf24') +
-                _boxStat('Games', a.games, '🎾', '#60a5fa') +
-                _boxStat('Pontos', a.points, '🎯', '#a855f7') +
+                _boxStat('Sets V/P', wonLost(a.setsWon, a.setsLost), '🏅', '#fbbf24') +
+                _boxStat('Games V/P', wonLost(a.gamesWon, a.gamesLost), '🎾', '#60a5fa') +
+                _boxStat('Pontos V/P', wonLost(a.pointsWon, a.pointsLost), '🎯', '#a855f7') +
             '</div>' +
-            (a.servePts > 0 ? (
+            // Row 3 — % Saque / % Recep. / Games Mantidos / Quebras
+            (a.servePts > 0 || a.holdsServed > 0 ? (
                 '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
-                    _boxStat('Saque', srvPct + '%', '🚀', '#60a5fa') +
-                    _boxStat('Recep.', recvPct + '%', '🛡', '#f87171') +
-                    _boxStat('Killer', a.killerPoints, '⚡', '#fbbf24') +
+                    _boxStat('% Saque', (a.servePts > 0 ? srvPct + '%' : '—'), '🚀', '#60a5fa') +
+                    _boxStat('% Recep.', (a.receivePts > 0 ? recvPct + '%' : '—'), '🎯', '#f87171') +
+                    _boxStat('Games Mantidos', (a.holdsServed > 0 ? holdPct + '%' : '—'), '📊', '#38bdf8') +
                     _boxStat('Quebras', a.breaks, '💥', '#a855f7') +
                 '</div>'
             ) : '') +
-            (a.longestStreak > 0 || a.biggestLead > 0 ? (
-                '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
-                    _boxStat('Maior Seq.', a.longestStreak, '🔥', '#fb923c') +
-                    _boxStat('Maior Vant.', a.biggestLead, '📈', '#22c55e') +
+            // Row 4 — Maior Sequência (pontos / vitórias)
+            '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
+                _boxStat('Maior Seq. Pontos', a.longestPointStreak, '🔥', '#fb923c') +
+                _boxStat('Maior Seq. Vitórias', a.longestWinStreak, '🏆', '#22c55e') +
+            '</div>' +
+            // Row 5 — Tempo total / médio / mais longo / mais curto
+            ((totalDur > 0 || avgPt > 0 || a.longestPointMs > 0 || a.shortestPointMs) ? (
+                '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
+                    _boxStat('Tempo total', (totalDur > 0 ? _fmtDuration(totalDur) : '—'), '⏱', '#38bdf8') +
+                    _boxStat('Média/ponto', (avgPt > 0 ? _fmtPointTime(avgPt) : '—'), '⏲', '#a78bfa') +
+                    _boxStat('Ponto + longo', (a.longestPointMs > 0 ? _fmtPointTime(a.longestPointMs) : '—'), '📏', '#fbbf24') +
+                    _boxStat('Ponto + curto', (a.shortestPointMs ? _fmtPointTime(a.shortestPointMs) : '—'), '⚡', '#22c55e') +
                 '</div>'
-            ) : '') +
-            ((avgDur > 0 || avgPt > 0) ? (
-                '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
-                    _boxStat('Duração média', _fmtDuration(avgDur), '⏱', '#38bdf8') +
-                    _boxStat('Tempo/ponto', _fmtPointTime(avgPt), '⏲', '#a78bfa') +
-                '</div>'
-            ) : '') +
-        '</div>';
+            ) : '');
+
+        // Top 5 Parceiros + Top 5 Adversários (per-section)
+        if (rel) {
+            var partnersHtml = _tableHtml('🤝 Top 5 Parceiros', rel.partners);
+            var h2hHtml = _tableHtml('⚔ Top 5 Adversários', rel.h2h);
+            if (partnersHtml || h2hHtml) {
+                html += partnersHtml + h2hHtml;
+            }
+        }
+        html += '</div>';
+        return html;
     }
 
     function _tableHtml(title, map) {
@@ -730,31 +745,18 @@ window._renderPersistentMatchStats = function(records, uid) {
 
     var casualRel = _computeH2hAndPartners(casual);
     var tournRel = _computeH2hAndPartners(tournament);
-    var casualStats = _aggregate(casual);
-    var tournStats = _aggregate(tournament);
 
-    var bodyHtml;
-    if (casual.length > 0 && tournament.length > 0) {
-        bodyHtml = _comparativeSectionHtml(casualStats, tournStats);
-    } else if (casual.length > 0) {
-        bodyHtml = _singleSectionHtml('persist-stats-casual', 'Partidas Casuais', '📡', casual, '#38bdf8');
-    } else if (tournament.length > 0) {
-        bodyHtml = _singleSectionHtml('persist-stats-tournament', 'Torneios', '🏆', tournament, '#fbbf24');
-    } else {
-        bodyHtml = '';
-    }
+    // Always stack both sections when data exists — each section is fully detailed
+    // (Vitórias/Derrotas/Aproveit., Sets V/P, Games V/P, Pontos V/P, % Saque, % Recep.,
+    //  Games Mantidos, Quebras, Maior Seq. Pontos/Vitórias, Tempo total/médio/mais longo/curto,
+    //  Top 5 Parceiros, Top 5 Adversários).
+    var casualHtml = _detailedSectionHtml('persist-stats-casual', 'Partidas Casuais', '📡', casual, '#38bdf8', casualRel);
+    var tournHtml = _detailedSectionHtml('persist-stats-tournament', 'Torneios', '🏆', tournament, '#fbbf24', tournRel);
 
     return '<div style="border-top:1px solid var(--border-color,rgba(255,255,255,0.1));padding-top:10px;">' +
         '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
         '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Dados persistentes — preservados mesmo se o torneio ou partida casual for apagado.</div>' +
-        bodyHtml +
-        (Object.keys(casualRel.h2h).length + Object.keys(tournRel.h2h).length + Object.keys(casualRel.partners).length + Object.keys(tournRel.partners).length > 0
-            ? '<div style="margin-top:14px;">' +
-                _tableHtml('⚔ Confrontos diretos (casuais)', casualRel.h2h) +
-                _tableHtml('⚔ Confrontos diretos (torneios)', tournRel.h2h) +
-                _tableHtml('🤝 Parcerias (casuais)', casualRel.partners) +
-                _tableHtml('🤝 Parcerias (torneios)', tournRel.partners) +
-              '</div>'
-            : '') +
+        casualHtml +
+        tournHtml +
     '</div>';
 };

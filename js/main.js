@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.72-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Estatísticas pessoais ultra-detalhadas por categoria</b> — Cada seção (📡 Partidas Casuais e 🏆 Torneios) agora mostra TODOS os metrics pedidos: Vitórias, Derrotas, % de Aproveitamento, 🏅 Sets V/P, 🎾 Games V/P, 🎯 Pontos V/P, 🚀 % Pontos no Saque, 🎯 % Pontos na Recepção, 📊 Games Mantidos (saque), 💥 Quebras de Saque, 🔥 Maior Sequência de Pontos, 🏆 Maior Sequência de Vitórias, ⏱ Tempo total de jogo, ⏲ Tempo médio por ponto, 📏 Ponto mais longo, ⚡ Ponto mais curto, 🤝 Top 5 Parceiros e ⚔ Top 5 Adversários. Os dados são lidos de <code>users/{uid}/matchHistory</code> no Firestore, onde cada partida é gravada automaticamente para cada jogador registrado ao final do jogo — persistem mesmo se o torneio ou a partida casual forem apagados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.71-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Estatísticas pessoais viraram "Casual vs Torneios" com barras comparativas</b> — O modal do botão "Estatísticas" foi redesenhado para o padrão de comparação lado a lado da tela de fim de partida casual: quem tem histórico nos dois tipos vê agora barras horizontais comparando 📡 Casual (azul, à esquerda) contra 🏆 Torneios (dourado, à direita) em Partidas, Vitórias, Aproveitamento, Sets, Games, Pontos, % Pontos no Saque/Recepção, Games Mantidos, Quebras, Killer Points, Maior Sequência e Maior Vantagem. Quando só há um dos lados, cai num card compacto daquele lado. Funciona tanto com os dados persistentes do Firestore quanto com o fallback do histórico local — o visual é o mesmo.</p>' +
         '</div>' +
