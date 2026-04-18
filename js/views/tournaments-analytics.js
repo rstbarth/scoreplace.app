@@ -835,30 +835,54 @@ window._renderPersistentMatchStats = function(records, uid) {
         '</div>';
     }
 
-    // Dual-value stat box: single metric with casual + tournament values side-by-side.
-    function _dualStat(label, casualVal, tournVal, icon, accent) {
-        accent = accent || 'var(--text-bright,#fff)';
-        var showVal = function(v) { return (v == null || v === '') ? '—' : v; };
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);min-width:0;">' +
-          '<span style="font-size:0.85rem;">' + icon + '</span>' +
-          '<div style="display:flex;align-items:baseline;gap:6px;">' +
-            '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">' +
-              '<span style="font-size:0.58rem;opacity:0.7;line-height:1;">⚡</span>' +
-              '<span style="font-size:0.88rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + showVal(casualVal) + '</span>' +
+    // Dual-value diverging bar row for non-V/P metrics.
+    // Left side = casuais (casual button blue #38bdf8), right side = torneios
+    // (novo-torneio button dark blue #1e40af). Bars scale per-row: each side's
+    // width is its value divided by max(casual, tournament), so the bigger side
+    // always reaches 100%.
+    function _dualBarRow(label, casualRaw, tournRaw, casualDisplay, tournDisplay) {
+        var cVal = Number(casualRaw) || 0;
+        var tVal = Number(tournRaw) || 0;
+        var maxV = Math.max(cVal, tVal, 1);
+        var cp = Math.round(cVal / maxV * 100);
+        var tp = Math.round(tVal / maxV * 100);
+        var casualClr = '#38bdf8';  // casual button
+        var tournClr = '#1e40af';   // tournament button
+        return '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +
+            // Header: [casuais] [metric name] [torneios]
+            '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:baseline;">' +
+                '<div style="font-size:0.58rem;font-weight:700;color:' + casualClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:left;">casuais</div>' +
+                '<div style="font-size:0.72rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;white-space:nowrap;">' + label + '</div>' +
+                '<div style="font-size:0.58rem;font-weight:700;color:' + tournClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:right;">torneios</div>' +
             '</div>' +
-            '<span style="width:1px;height:16px;background:rgba(255,255,255,0.15);"></span>' +
-            '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">' +
-              '<span style="font-size:0.58rem;opacity:0.7;line-height:1;">🏆</span>' +
-              '<span style="font-size:0.88rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + showVal(tournVal) + '</span>' +
+            // Icons + values pushed to extreme edges (⚡ left, 🏆 right)
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
+                '<div style="display:flex;justify-content:flex-start;gap:6px;align-items:baseline;">' +
+                    '<span style="font-size:0.72rem;opacity:0.9;line-height:1;">⚡</span>' +
+                    '<span style="font-size:0.92rem;font-weight:900;color:' + casualClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + casualDisplay + '</span>' +
+                '</div>' +
+                '<div style="display:flex;justify-content:flex-end;gap:6px;align-items:baseline;">' +
+                    '<span style="font-size:0.92rem;font-weight:900;color:' + tournClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + tournDisplay + '</span>' +
+                    '<span style="font-size:0.72rem;opacity:0.9;line-height:1;">🏆</span>' +
+                '</div>' +
             '</div>' +
-          '</div>' +
-          '<span style="font-size:0.54rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.4px;text-align:center;line-height:1.1;">' + label + '</span>' +
+            // Bars diverge from center
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
+                '<div style="height:8px;border-radius:4px 0 0 4px;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;overflow:hidden;">' +
+                    '<div style="width:' + cp + '%;height:100%;background:linear-gradient(90deg,' + casualClr + '44,' + casualClr + ');transition:width 0.5s ease-out;"></div>' +
+                '</div>' +
+                '<div style="height:8px;border-radius:0 4px 4px 0;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid rgba(255,255,255,0.25);">' +
+                    '<div style="width:' + tp + '%;height:100%;background:linear-gradient(90deg,' + tournClr + ',' + tournClr + '44);transition:width 0.5s ease-out;"></div>' +
+                '</div>' +
+            '</div>' +
         '</div>';
     }
 
+    // Percentage helper — returns {raw, display}. raw is null when denominator is 0.
     function _pct(num, den) {
-        if (!den || den <= 0) return null;
-        return Math.round(num / den * 100) + '%';
+        if (!den || den <= 0) return { raw: 0, display: '—' };
+        var p = Math.round(num / den * 100);
+        return { raw: p, display: p + '%' };
     }
 
     // Unified stats block — merges casual + tournament into one section with diverging
@@ -870,21 +894,40 @@ window._renderPersistentMatchStats = function(records, uid) {
         var badge = totalMatches + ' partida' + (totalMatches === 1 ? '' : 's') +
             ' · ⚡ ' + c.matches + ' · 🏆 ' + t.matches;
 
-        // Format helpers for dual-stat values
-        var durC = c.totalDurationMs > 0 ? _fmtDuration(c.totalDurationMs) : '—';
-        var durT = t.totalDurationMs > 0 ? _fmtDuration(t.totalDurationMs) : '—';
-        var avgPtC = c.avgPointMatches > 0 ? _fmtPointTime(c.avgPointMsSum / c.avgPointMatches) : '—';
-        var avgPtT = t.avgPointMatches > 0 ? _fmtPointTime(t.avgPointMsSum / t.avgPointMatches) : '—';
-        var longPtC = c.longestPointMs > 0 ? _fmtPointTime(c.longestPointMs) : '—';
-        var longPtT = t.longestPointMs > 0 ? _fmtPointTime(t.longestPointMs) : '—';
-        var shortPtC = c.shortestPointMs ? _fmtPointTime(c.shortestPointMs) : '—';
-        var shortPtT = t.shortestPointMs ? _fmtPointTime(t.shortestPointMs) : '—';
-        var tbAvgC = c.tbPlayed > 0 ? (c.tbPointsSum / c.tbPlayed).toFixed(1) : '—';
-        var tbAvgT = t.tbPlayed > 0 ? (t.tbPointsSum / t.tbPlayed).toFixed(1) : '—';
-        var tbMaxC = c.tbPlayed > 0 ? c.tbMaxPoints : '—';
-        var tbMaxT = t.tbPlayed > 0 ? t.tbMaxPoints : '—';
-        var tbMinC = c.tbPlayed > 0 ? c.tbMinPoints : '—';
-        var tbMinT = t.tbPlayed > 0 ? t.tbMinPoints : '—';
+        // Percentage metrics — raw is the percent, display is "NN%" or "—"
+        var apC = _pct(c.wins, c.matches), apT = _pct(t.wins, t.matches);
+        var svC = _pct(c.servePtsWon, c.servePts), svT = _pct(t.servePtsWon, t.servePts);
+        var rcC = _pct(c.receivePtsWon, c.receivePts), rcT = _pct(t.receivePtsWon, t.receivePts);
+        var hdC = _pct(c.holdsWon, c.holdsServed), hdT = _pct(t.holdsWon, t.holdsServed);
+
+        // Time metrics — raw is milliseconds, display is formatted
+        var durCms = c.totalDurationMs || 0, durTms = t.totalDurationMs || 0;
+        var durCdisp = durCms > 0 ? _fmtDuration(durCms) : '—';
+        var durTdisp = durTms > 0 ? _fmtDuration(durTms) : '—';
+        var avgPtCms = c.avgPointMatches > 0 ? (c.avgPointMsSum / c.avgPointMatches) : 0;
+        var avgPtTms = t.avgPointMatches > 0 ? (t.avgPointMsSum / t.avgPointMatches) : 0;
+        var avgPtCdisp = avgPtCms > 0 ? _fmtPointTime(avgPtCms) : '—';
+        var avgPtTdisp = avgPtTms > 0 ? _fmtPointTime(avgPtTms) : '—';
+        var longPtCms = c.longestPointMs || 0, longPtTms = t.longestPointMs || 0;
+        var longPtCdisp = longPtCms > 0 ? _fmtPointTime(longPtCms) : '—';
+        var longPtTdisp = longPtTms > 0 ? _fmtPointTime(longPtTms) : '—';
+        var shortPtCms = c.shortestPointMs || 0, shortPtTms = t.shortestPointMs || 0;
+        var shortPtCdisp = shortPtCms > 0 ? _fmtPointTime(shortPtCms) : '—';
+        var shortPtTdisp = shortPtTms > 0 ? _fmtPointTime(shortPtTms) : '—';
+
+        // Tiebreak metrics
+        var tbAvgCraw = c.tbPlayed > 0 ? (c.tbPointsSum / c.tbPlayed) : 0;
+        var tbAvgTraw = t.tbPlayed > 0 ? (t.tbPointsSum / t.tbPlayed) : 0;
+        var tbAvgCdisp = c.tbPlayed > 0 ? tbAvgCraw.toFixed(1) : '—';
+        var tbAvgTdisp = t.tbPlayed > 0 ? tbAvgTraw.toFixed(1) : '—';
+        var tbMaxCraw = c.tbPlayed > 0 ? c.tbMaxPoints : 0;
+        var tbMaxTraw = t.tbPlayed > 0 ? t.tbMaxPoints : 0;
+        var tbMaxCdisp = c.tbPlayed > 0 ? String(c.tbMaxPoints) : '—';
+        var tbMaxTdisp = t.tbPlayed > 0 ? String(t.tbMaxPoints) : '—';
+        var tbMinCraw = c.tbPlayed > 0 ? c.tbMinPoints : 0;
+        var tbMinTraw = t.tbPlayed > 0 ? t.tbMinPoints : 0;
+        var tbMinCdisp = c.tbPlayed > 0 ? String(c.tbMinPoints) : '—';
+        var tbMinTdisp = t.tbPlayed > 0 ? String(t.tbMinPoints) : '—';
 
         var html = _sectionShell('persist-stats-unified', 'Desempenho', '📊', '#a855f7', badge);
 
@@ -898,22 +941,22 @@ window._renderPersistentMatchStats = function(records, uid) {
             _diffBarRow('Tiebreaks', 'perdidos', 'vencidos', c.tbLost, t.tbLost, c.tbWon, t.tbWon) +
         '</div>';
 
-        // Supplementary stats — single-value metrics with casual / tournament side-by-side
-        html += '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;">' +
-            _dualStat('Aproveit.', _pct(c.wins, c.matches) || '—', _pct(t.wins, t.matches) || '—', '📊', '#fbbf24') +
-            _dualStat('% Saque', _pct(c.servePtsWon, c.servePts) || '—', _pct(t.servePtsWon, t.servePts) || '—', '🚀', '#60a5fa') +
-            _dualStat('% Recep.', _pct(c.receivePtsWon, c.receivePts) || '—', _pct(t.receivePtsWon, t.receivePts) || '—', '🎯', '#f87171') +
-            _dualStat('Games Mantidos', _pct(c.holdsWon, c.holdsServed) || '—', _pct(t.holdsWon, t.holdsServed) || '—', '🛡', '#38bdf8') +
-            _dualStat('Quebras', c.breaks, t.breaks, '💥', '#a855f7') +
-            _dualStat('Maior Seq. Pts', c.longestPointStreak, t.longestPointStreak, '🔥', '#fb923c') +
-            _dualStat('Maior Seq. Vit.', c.longestWinStreak, t.longestWinStreak, '🏆', '#22c55e') +
-            _dualStat('Tempo total', durC, durT, '⏱', '#38bdf8') +
-            _dualStat('Média/ponto', avgPtC, avgPtT, '⏲', '#a78bfa') +
-            _dualStat('Ponto + longo', longPtC, longPtT, '📏', '#fbbf24') +
-            _dualStat('Ponto + curto', shortPtC, shortPtT, '⚡', '#22c55e') +
-            _dualStat('TB Média', tbAvgC, tbAvgT, '📊', '#60a5fa') +
-            _dualStat('TB Máx', tbMaxC, tbMaxT, '🏆', '#22c55e') +
-            _dualStat('TB Mín', tbMinC, tbMinT, '📉', '#f87171') +
+        // Supplementary stats — casuais left (light blue), torneios right (dark blue)
+        html += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:2px;">' +
+            _dualBarRow('Aproveitamento', apC.raw, apT.raw, apC.display, apT.display) +
+            _dualBarRow('% Saque', svC.raw, svT.raw, svC.display, svT.display) +
+            _dualBarRow('% Recepção', rcC.raw, rcT.raw, rcC.display, rcT.display) +
+            _dualBarRow('Games Mantidos', hdC.raw, hdT.raw, hdC.display, hdT.display) +
+            _dualBarRow('Quebras', c.breaks, t.breaks, String(c.breaks), String(t.breaks)) +
+            _dualBarRow('Maior Seq. Pontos', c.longestPointStreak, t.longestPointStreak, String(c.longestPointStreak), String(t.longestPointStreak)) +
+            _dualBarRow('Maior Seq. Vitórias', c.longestWinStreak, t.longestWinStreak, String(c.longestWinStreak), String(t.longestWinStreak)) +
+            _dualBarRow('Tempo Total', durCms, durTms, durCdisp, durTdisp) +
+            _dualBarRow('Média por Ponto', avgPtCms, avgPtTms, avgPtCdisp, avgPtTdisp) +
+            _dualBarRow('Ponto Mais Longo', longPtCms, longPtTms, longPtCdisp, longPtTdisp) +
+            _dualBarRow('Ponto Mais Curto', shortPtCms, shortPtTms, shortPtCdisp, shortPtTdisp) +
+            _dualBarRow('TB Média', tbAvgCraw, tbAvgTraw, tbAvgCdisp, tbAvgTdisp) +
+            _dualBarRow('TB Máximo', tbMaxCraw, tbMaxTraw, tbMaxCdisp, tbMaxTdisp) +
+            _dualBarRow('TB Mínimo', tbMinCraw, tbMinTraw, tbMinCdisp, tbMinTdisp) +
         '</div>';
 
         // Top 5 Parceiros / Adversários — keep per-source separation (casual vs torneios
