@@ -68,6 +68,40 @@ function _sectionShell(id, title, icon, accent, badge) {
       '</div>';
 }
 
+// Horizontal compare-bar — mirrors bracket-ui.js casual end-of-match "Comparação dos Times".
+function _compareBar(label, icon, leftVal, rightVal, leftClr, rightClr, fmt, maxCap) {
+    fmt = fmt || function(v) { return v; };
+    var maxV = maxCap || Math.max(leftVal, rightVal, 1);
+    var lp = Math.round(leftVal / maxV * 100);
+    var rp = Math.round(rightVal / maxV * 100);
+    return '<div style="display:flex;flex-direction:column;gap:4px;">' +
+        '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + leftClr + ';font-variant-numeric:tabular-nums;">' + fmt(leftVal) + '</span>' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;">' +
+                '<div style="width:' + lp + '%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
+            '</div>' +
+            '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
+                '<div style="width:' + rp + '%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
+            '</div>' +
+            '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + rightClr + ';font-variant-numeric:tabular-nums;">' + fmt(rightVal) + '</span>' +
+        '</div>' +
+    '</div>';
+}
+
+// Comparative shell — header + legend + compare-bar body (used by both legacy & persistent paths).
+function _compareShell(badge, bodyHtml) {
+    return '<div style="width:100%;padding:clamp(12px,2.2vh,18px);border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;gap:clamp(8px,1.6vh,14px);margin-top:12px;">' +
+        '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:2px;">⚖ Casual vs Torneios' + (badge ? ' · ' + badge : '') + '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;font-size:0.68rem;font-weight:700;">' +
+            '<span style="color:#38bdf8;">📡 Casual</span>' +
+            '<span style="color:#fbbf24;">Torneio 🏆</span>' +
+        '</div>' +
+        bodyHtml +
+    '</div>';
+}
+
 // Show Player Stats Modal — consolidated stats across all tournaments + persistent
 // matchHistory (casual + tournament) so records survive deletion of the source.
 window._showPlayerStats = function(playerName, currentTournamentId) {
@@ -259,9 +293,27 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
             return html;
         }
 
-        // Casual section (localStorage, current user only)
+        var casualClr = '#38bdf8', tournClr = '#fbbf24';
+        var cRate = cStats.matches > 0 ? Math.round(cStats.wins / cStats.matches * 100) : 0;
+        var tRate = wr;
+
+        // Preferred path: both sides have data — render side-by-side compare bars.
+        if (cStats.matches > 0 && s.tournamentsPlayed > 0) {
+            var body =
+                _compareBar('Partidas', '🎯', cStats.matches, s.totalMatches, casualClr, tournClr) +
+                _compareBar('Vitórias', '✅', cStats.wins, s.totalWins, casualClr, tournClr) +
+                _compareBar('Derrotas', '❌', cStats.losses, s.totalLosses, casualClr, tournClr) +
+                ((cStats.draws + s.totalDraws) > 0 ? _compareBar('Empates', '⚖', cStats.draws, s.totalDraws, casualClr, tournClr) : '') +
+                _compareBar('Aproveitamento', '📊', cRate, tRate, casualClr, tournClr, function(v) { return v + '%'; }, 100) +
+                (s.titles > 0 ? _compareBar('Títulos', '👑', 0, s.titles, casualClr, tournClr) : '') +
+                (s.podiums > 0 ? _compareBar('Pódios', '🥉', 0, s.podiums, casualClr, tournClr) : '');
+            html += _compareShell('', body);
+            html += '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-bright,#fff);padding:6px 0;">📋 Torneios Disputados (' + s.tournamentsPlayed + ')</summary><div style="margin-top:6px;">' + tList + '</div></details>';
+            return html;
+        }
+
+        // Single-side fallback: only casual OR only tournament has data.
         if (cStats.matches > 0) {
-            var cRate = cStats.matches > 0 ? Math.round(cStats.wins / cStats.matches * 100) : 0;
             var cClr = cRate >= 60 ? '#22c55e' : (cRate >= 40 ? '#fbbf24' : '#ef4444');
             var cBadge = cStats.matches + ' ' + (cStats.matches > 1 ? 'partidas' : 'partida');
             html += _sectionShell('legacy-stats-casual', 'Partidas Casuais', '📡', '#38bdf8', cBadge) +
@@ -273,9 +325,7 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
             '</div>';
         }
 
-        // Tournaments section
         if (s.tournamentsPlayed > 0) {
-            var tRate = wr;
             var tClr = tRate >= 60 ? '#22c55e' : (tRate >= 40 ? '#fbbf24' : '#ef4444');
             var tBadge = s.tournamentsPlayed + ' ' + (s.tournamentsPlayed > 1 ? 'torneios' : 'torneio');
             html += _sectionShell('legacy-stats-tournament', 'Torneios', '🏆', '#fbbf24', tBadge);
@@ -572,7 +622,42 @@ window._renderPersistentMatchStats = function(records, uid) {
         return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
     }
 
-    function _sectionHtml(id, title, icon, recs, accent) {
+    // Build "Casual vs Torneios" side-by-side comparative section (preferred when both have data)
+    function _comparativeSectionHtml(ca, ta) {
+        var casualClr = '#38bdf8', tournClr = '#fbbf24';
+        var caRate = ca.matches > 0 ? Math.round(ca.wins / ca.matches * 100) : 0;
+        var taRate = ta.matches > 0 ? Math.round(ta.wins / ta.matches * 100) : 0;
+        var caSrv = ca.servePts > 0 ? Math.round(ca.servePtsWon / ca.servePts * 100) : 0;
+        var taSrv = ta.servePts > 0 ? Math.round(ta.servePtsWon / ta.servePts * 100) : 0;
+        var caRecv = ca.receivePts > 0 ? Math.round(ca.receivePtsWon / ca.receivePts * 100) : 0;
+        var taRecv = ta.receivePts > 0 ? Math.round(ta.receivePtsWon / ta.receivePts * 100) : 0;
+        var caHold = ca.holdsServed > 0 ? Math.round(ca.holdsWon / ca.holdsServed * 100) : 0;
+        var taHold = ta.holdsServed > 0 ? Math.round(ta.holdsWon / ta.holdsServed * 100) : 0;
+        var hasServePt = (ca.servePts + ta.servePts) > 0;
+        var hasHold = (ca.holdsServed + ta.holdsServed) > 0;
+        var hasKiller = (ca.killerPoints + ta.killerPoints) > 0;
+        var hasStreak = (ca.longestStreak + ta.longestStreak) > 0;
+        var hasLead = (ca.biggestLead + ta.biggestLead) > 0;
+
+        var body =
+            _compareBar('Partidas', '🎯', ca.matches, ta.matches, casualClr, tournClr) +
+            _compareBar('Vitórias', '✅', ca.wins, ta.wins, casualClr, tournClr) +
+            _compareBar('Aproveitamento', '📊', caRate, taRate, casualClr, tournClr, function(v) { return v + '%'; }, 100) +
+            ((ca.sets + ta.sets) > 0 ? _compareBar('Sets', '🏅', ca.sets, ta.sets, casualClr, tournClr) : '') +
+            ((ca.games + ta.games) > 0 ? _compareBar('Games', '🎾', ca.games, ta.games, casualClr, tournClr) : '') +
+            _compareBar('Pontos', '🎯', ca.points, ta.points, casualClr, tournClr) +
+            (hasServePt ? _compareBar('% Pontos no Saque', '🚀', caSrv, taSrv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
+            (hasServePt ? _compareBar('% Pontos na Recepção', '🎯', caRecv, taRecv, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
+            (hasHold ? _compareBar('Games Mantidos (saque)', '📊', caHold, taHold, casualClr, tournClr, function(v) { return v + '%'; }, 100) : '') +
+            (hasHold ? _compareBar('Quebras de Saque', '💥', ca.breaks, ta.breaks, casualClr, tournClr) : '') +
+            (hasKiller ? _compareBar('Killer Points (40-40)', '⚡', ca.killerPoints, ta.killerPoints, casualClr, tournClr) : '') +
+            (hasStreak ? _compareBar('Maior Sequência', '🔥', ca.longestStreak, ta.longestStreak, casualClr, tournClr) : '') +
+            (hasLead ? _compareBar('Maior Vantagem', '📈', ca.biggestLead, ta.biggestLead, casualClr, tournClr) : '');
+        return _compareShell('', body);
+    }
+
+    // Single-side breakdown (fallback when only one category has records)
+    function _singleSectionHtml(id, title, icon, recs, accent) {
         if (!recs.length) return '';
         var a = _aggregate(recs);
         var winRate = a.matches > 0 ? Math.round(a.wins / a.matches * 100) : 0;
@@ -643,20 +728,32 @@ window._renderPersistentMatchStats = function(records, uid) {
         return h;
     }
 
-    var casualAgg = _computeH2hAndPartners(casual);
-    var tournAgg = _computeH2hAndPartners(tournament);
+    var casualRel = _computeH2hAndPartners(casual);
+    var tournRel = _computeH2hAndPartners(tournament);
+    var casualStats = _aggregate(casual);
+    var tournStats = _aggregate(tournament);
+
+    var bodyHtml;
+    if (casual.length > 0 && tournament.length > 0) {
+        bodyHtml = _comparativeSectionHtml(casualStats, tournStats);
+    } else if (casual.length > 0) {
+        bodyHtml = _singleSectionHtml('persist-stats-casual', 'Partidas Casuais', '📡', casual, '#38bdf8');
+    } else if (tournament.length > 0) {
+        bodyHtml = _singleSectionHtml('persist-stats-tournament', 'Torneios', '🏆', tournament, '#fbbf24');
+    } else {
+        bodyHtml = '';
+    }
 
     return '<div style="border-top:1px solid var(--border-color,rgba(255,255,255,0.1));padding-top:10px;">' +
         '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
         '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Dados persistentes — preservados mesmo se o torneio ou partida casual for apagado.</div>' +
-        _sectionHtml('persist-stats-casual', 'Partidas Casuais', '📡', casual, '#38bdf8') +
-        _sectionHtml('persist-stats-tournament', 'Torneios', '🏆', tournament, '#fbbf24') +
-        (Object.keys(casualAgg.h2h).length + Object.keys(tournAgg.h2h).length + Object.keys(casualAgg.partners).length + Object.keys(tournAgg.partners).length > 0
+        bodyHtml +
+        (Object.keys(casualRel.h2h).length + Object.keys(tournRel.h2h).length + Object.keys(casualRel.partners).length + Object.keys(tournRel.partners).length > 0
             ? '<div style="margin-top:14px;">' +
-                _tableHtml('⚔ Confrontos diretos (casuais)', casualAgg.h2h) +
-                _tableHtml('⚔ Confrontos diretos (torneios)', tournAgg.h2h) +
-                _tableHtml('🤝 Parcerias (casuais)', casualAgg.partners) +
-                _tableHtml('🤝 Parcerias (torneios)', tournAgg.partners) +
+                _tableHtml('⚔ Confrontos diretos (casuais)', casualRel.h2h) +
+                _tableHtml('⚔ Confrontos diretos (torneios)', tournRel.h2h) +
+                _tableHtml('🤝 Parcerias (casuais)', casualRel.partners) +
+                _tableHtml('🤝 Parcerias (torneios)', tournRel.partners) +
               '</div>'
             : '') +
     '</div>';
