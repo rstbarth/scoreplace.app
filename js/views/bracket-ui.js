@@ -1756,6 +1756,44 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (p2Players.length === 0) p2Players = ['Adversário 1'];
   }
 
+  // ── Perspective-based role labels ──
+  // Stored names for unidentified slots may be "Parceiro" or "Adversário N"
+  // (assigned by the host at match start). But those labels only make sense
+  // from the host's perspective — someone on Team 2 sees the host's partner
+  // as an adversary, not as "Parceiro". Remap role-labeled slots based on
+  // the current viewer's team so every client sees the match from their own
+  // side. Real player names pass through untouched.
+  (function _localizeRoleLabels() {
+    if (!isDoubles) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return; // spectator with no identity — leave stored labels
+    var viewerTeam = null;
+    if (opts && Array.isArray(opts.players)) {
+      for (var vi = 0; vi < opts.players.length; vi++) {
+        if (opts.players[vi] && opts.players[vi].uid === cu.uid) {
+          viewerTeam = opts.players[vi].team;
+          break;
+        }
+      }
+    }
+    if (viewerTeam !== 1 && viewerTeam !== 2) return; // viewer not in match
+    var roleRe = /^(Parceiro|Adversário\s*\d+)$/;
+    function remap(names, team) {
+      var out = [];
+      for (var j = 0; j < names.length; j++) {
+        var n = names[j];
+        if (roleRe.test(n)) {
+          out.push(viewerTeam === team ? 'Parceiro' : ('Adversário ' + (j + 1)));
+        } else {
+          out.push(n);
+        }
+      }
+      return out;
+    }
+    p1Players = remap(p1Players, 1);
+    p2Players = remap(p2Players, 2);
+  })();
+
   // Player metadata map (name → { uid, photoURL }) for avatar display
   var _playerMeta = {};
   if (opts && Array.isArray(opts.players)) {
@@ -4599,9 +4637,63 @@ window._openCasualMatch = function() {
   // autoShuffle mirrors team-formation state: ON until a team is formed via
   // drag-and-drop, then OFF; if the team is broken, it flips back to ON.
   var autoShuffle = true;
+  // Mixed-doubles toggle — appears only when we detect 2M+2F in lobby. Defaults ON.
+  var _mixedDoublesEnabled = true;
+  // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
+  var _participantGenders = {};
+  if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
   var _setupRefreshInterval = null;
+
+  // Async-load gender for any lobby participant we haven't seen yet, then
+  // re-render the setup view so the mixed-doubles toggle can appear when
+  // the 2M+2F condition is satisfied.
+  function _loadMissingGenders() {
+    if (!window.FirestoreDB || !window.FirestoreDB.loadUserProfile) return;
+    var needed = [];
+    for (var i = 0; i < _lobbyParticipants.length; i++) {
+      var lp = _lobbyParticipants[i];
+      if (lp && lp.uid && !(lp.uid in _participantGenders)) needed.push(lp.uid);
+    }
+    if (!needed.length) return;
+    // Mark as loading so we don't re-dispatch
+    for (var j = 0; j < needed.length; j++) _participantGenders[needed[j]] = undefined;
+    var pending = needed.length;
+    needed.forEach(function(uid) {
+      window.FirestoreDB.loadUserProfile(uid).then(function(prof) {
+        _participantGenders[uid] = (prof && prof.gender) ? prof.gender : '';
+      }).catch(function() {
+        _participantGenders[uid] = '';
+      }).then(function() {
+        pending--;
+        if (pending === 0) {
+          if (document.getElementById('casual-match-overlay')) _renderSetup();
+        }
+      });
+    });
+  }
+
+  // Count males/females among current lobby participants.
+  function _genderCounts() {
+    var m = 0, f = 0, unknown = 0;
+    for (var i = 0; i < _lobbyParticipants.length; i++) {
+      var uid = _lobbyParticipants[i] && _lobbyParticipants[i].uid;
+      var g = uid ? _participantGenders[uid] : undefined;
+      if (g === 'masculino') m++;
+      else if (g === 'feminino') f++;
+      else unknown++;
+    }
+    return { male: m, female: f, unknown: unknown };
+  }
+
+  // Is the 2M+2F condition satisfied?
+  function _canShowMixedToggle() {
+    if (!isDoubles) return false;
+    if (_lobbyParticipants.length !== 4) return false;
+    var c = _genderCounts();
+    return c.male === 2 && c.female === 2;
+  }
   // Team assignments for drag-and-drop (keyed by card index 0-3): { idx: 1 or 2 }
   // When empty, no teams formed yet. When set, idx→1 = Team 1 (blue), idx→2 = Team 2 (red).
   var _teamAssignments = {};
@@ -4744,8 +4836,21 @@ window._openCasualMatch = function() {
               '</div>' +
             '</div>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#fbbf24;"><input type="checkbox" ' + (autoShuffle ? 'checked' : '') + ' onchange="window._casualSetShuffle(this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
-        '</div>';
+          '</div>';
+      if (_canShowMixedToggle()) {
+        togglesHtml +=
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:12px;background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.15);">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-size:1rem;">⚤</span>' +
+              '<div>' +
+                '<span style="font-size:0.85rem;font-weight:700;color:var(--text-bright);">' + _t('casual.mixedDoubles') + '</span>' +
+                '<div style="font-size:0.65rem;color:var(--text-muted);">' + _t('casual.mixedSubtitle') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#ec4899;"><input type="checkbox" ' + (_mixedDoublesEnabled ? 'checked' : '') + ' onchange="window._casualSetMixedDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>';
+      }
+      togglesHtml += '</div>';
     }
 
     // Player names — same 4-card grid for both Sortear ON and OFF
@@ -5122,6 +5227,14 @@ window._openCasualMatch = function() {
   window._casualSetShuffle = function(val) {
     autoShuffle = !!val;
     if (val) _teamAssignments = {};
+    _renderSetup();
+    _syncCasualSetupDebounced();
+  };
+
+  // Mixed-doubles toggle. Only meaningful when we detect 2M+2F in the lobby;
+  // when ON, shuffle at match-start assigns 1M+1F to each team.
+  window._casualSetMixedDoubles = function(val) {
+    _mixedDoublesEnabled = !!val;
     _renderSetup();
     _syncCasualSetupDebounced();
   };
@@ -5549,21 +5662,57 @@ window._openCasualMatch = function() {
     // Unnamed players get labeled based on which team they land on.
     // Sortear OFF: teams are fixed from setup (slots 0,1=T1, slots 2,3=T2) — no shuffle.
     if (isDoubles && autoShuffle && players.length === 4) {
-      // Fisher-Yates shuffle
-      for (var j = players.length - 1; j > 0; j--) {
-        var k = Math.floor(Math.random() * (j + 1));
-        var tmp = players[j]; players[j] = players[k]; players[k] = tmp;
+      var _mixedApplied = false;
+      if (_mixedDoublesEnabled && _canShowMixedToggle()) {
+        // Mixed-doubles shuffle: ensure each team has 1M + 1F.
+        var males = [], females = [];
+        for (var gi = 0; gi < players.length; gi++) {
+          var gUid = players[gi].uid;
+          var gg = gUid ? _participantGenders[gUid] : '';
+          if (gg === 'masculino') males.push(players[gi]);
+          else if (gg === 'feminino') females.push(players[gi]);
+        }
+        if (males.length === 2 && females.length === 2) {
+          // Randomly pick which male pairs with which female for Team 1.
+          var mIdx = Math.floor(Math.random() * 2);
+          var fIdx = Math.floor(Math.random() * 2);
+          var t1a = males[mIdx], t1b = females[fIdx];
+          var t2a = males[1 - mIdx], t2b = females[1 - fIdx];
+          // If current user exists and isn't in Team 1, swap with same-gender Team-1 member.
+          if (cuUid) {
+            var cuGender = _participantGenders[cuUid];
+            if (t1a.uid !== cuUid && t1b.uid !== cuUid) {
+              if (cuGender === 'masculino' && t2a.uid === cuUid) { var sA = t1a; t1a = t2a; t2a = sA; }
+              else if (cuGender === 'feminino' && t2b.uid === cuUid) { var sB = t1b; t1b = t2b; t2b = sB; }
+            }
+          }
+          // Randomize team-2 internal order for variety; team-1 keeps user first.
+          if (Math.random() < 0.5) { var swapT2 = t2a; t2a = t2b; t2b = swapT2; }
+          // Put user first on Team 1 if present.
+          if (cuUid && t1b.uid === cuUid) { var swapT1 = t1a; t1a = t1b; t1b = swapT1; }
+          players[0] = t1a; players[1] = t1b; players[2] = t2a; players[3] = t2b;
+          players[0].team = 1; players[1].team = 1;
+          players[2].team = 2; players[3].team = 2;
+          _mixedApplied = true;
+        }
       }
-      // Assign teams by position
-      players[0].team = 1; players[1].team = 1;
-      players[2].team = 2; players[3].team = 2;
-      // Ensure current user is in Team 1
-      if (cuUid) {
-        for (var si = 2; si < 4; si++) {
-          if (players[si].uid === cuUid) {
-            var swp = players[0]; players[0] = players[si]; players[si] = swp;
-            players[0].team = 1; players[si].team = 2;
-            break;
+      if (!_mixedApplied) {
+        // Fisher-Yates shuffle
+        for (var j = players.length - 1; j > 0; j--) {
+          var k = Math.floor(Math.random() * (j + 1));
+          var tmp = players[j]; players[j] = players[k]; players[k] = tmp;
+        }
+        // Assign teams by position
+        players[0].team = 1; players[1].team = 1;
+        players[2].team = 2; players[3].team = 2;
+        // Ensure current user is in Team 1
+        if (cuUid) {
+          for (var si = 2; si < 4; si++) {
+            if (players[si].uid === cuUid) {
+              var swp = players[0]; players[0] = players[si]; players[si] = swp;
+              players[0].team = 1; players[si].team = 2;
+              break;
+            }
           }
         }
       }
@@ -5743,6 +5892,7 @@ window._openCasualMatch = function() {
             }
           }
           _lobbyParticipants = newParts;
+          _loadMissingGenders();
           if (countDecreased) {
             // Clear ALL non-host inputs so _fillInputsFromLobby can repopulate
             // from the current participant list. Otherwise stale slots linger
