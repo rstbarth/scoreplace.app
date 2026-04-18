@@ -13,6 +13,24 @@ const firebaseConfig = {
   measurementId: "G-PZ25D36JSV"
 };
 
+// ─── Safari detection ───────────────────────────────────────────────────────
+// Safari (desktop + iOS) has ITP that breaks popup-based OAuth when the auth
+// domain is cross-origin (firebaseapp.com). We detect Safari + in-app webviews
+// (iOS Chrome, Facebook/Instagram browser) and route those users through the
+// redirect flow, which is ITP-friendly.
+function _isSafariOrIOSWebView() {
+  try {
+    var ua = navigator.userAgent || '';
+    var isChromium = /Chrome|Chromium|CriOS|EdgA|EdgiOS/.test(ua);
+    var isSafariUA = /Safari/.test(ua) && !isChromium;
+    var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isIOSWebView = isIOS && !/Safari/.test(ua);
+    // iOS always — even Chrome on iOS uses WebKit and suffers the same ITP issues
+    return isSafariUA || isIOS || isIOSWebView;
+  } catch (e) { return false; }
+}
+window._isSafariOrIOSWebView = _isSafariOrIOSWebView;
+
 // Initialize Firebase + Firestore
 let authProvider = null;
 try {
@@ -24,12 +42,54 @@ try {
     authProvider.addScope('https://www.googleapis.com/auth/user.addresses.read');
     authProvider.addScope('https://www.googleapis.com/auth/user.phonenumbers.read');
   }
+  // Force LOCAL persistence so auth survives page reloads in Safari/ITP contexts.
+  // (LOCAL is already the default, but Safari sometimes downgrades silently —
+  // setting it explicitly also surfaces storage-blocked errors early.)
+  if (firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) {
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .catch(function(err) { console.warn('setPersistence error:', err); });
+  }
   // Initialize Firestore
   if (window.FirestoreDB) {
     window.FirestoreDB.init();
   }
 } catch (e) {
   console.warn("Firebase initialization error:", e);
+}
+
+// ─── Handle redirect result on page load ────────────────────────────────────
+// When a user returns from Google's OAuth redirect (Safari/iOS flow), we need
+// to capture the credential + access token here (onAuthStateChanged won't give
+// us access to the OAuth credential). This also lets us finish pending account-
+// link operations just like the popup flow does.
+if (firebase && firebase.auth) {
+  try {
+    firebase.auth().getRedirectResult().then(function(result) {
+      if (!result || !result.user) return;
+      var user = result.user;
+      try {
+        if (typeof showNotification === 'function') {
+          showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName || user.email}), 'success');
+        }
+      } catch(e) {}
+      if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
+        window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
+      }
+      try { _tryLinkPendingCredential(result); } catch(e) {}
+      var credential = result.credential;
+      if (credential && credential.accessToken) {
+        try { _fetchGoogleDemographics(credential.accessToken, user.uid || user.email); } catch(e) {}
+      }
+    }).catch(function(error) {
+      if (!error || !error.code) return;
+      console.warn('getRedirectResult error:', error);
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        _handleAccountLinking(error, 'Google');
+      } else if (error.code !== 'auth/credential-already-in-use' && error.code !== 'auth/no-auth-event') {
+        try { showNotification(_t('auth.googleError'), _t('auth.googleErrorMsg'), 'error'); } catch(e) {}
+      }
+    });
+  } catch (e) { console.warn('getRedirectResult init error:', e); }
 }
 
 // Listen for auth state changes to auto-login returning users
@@ -114,6 +174,19 @@ function handleGoogleLogin() {
   }
 
   showNotification(_t('auth.connecting'), _t('auth.connectingMsg'), 'info');
+
+  // Safari/iOS: popup-based OAuth is unreliable due to ITP cookie blocking.
+  // Use redirect instead — getRedirectResult() on page reload picks up the session.
+  if (_isSafariOrIOSWebView()) {
+    firebase.auth().signInWithRedirect(authProvider).catch(function(error) {
+      console.error('Firebase auth redirect error:', error);
+      if (!_handleAccountLinking(error, 'Google')) {
+        showNotification(_t('auth.googleError'), _t('auth.googleErrorMsg'), 'error');
+      }
+    });
+    return;
+  }
+
   firebase.auth().signInWithPopup(authProvider)
     .then(function(result) {
       var user = result.user;
@@ -136,9 +209,15 @@ function handleGoogleLogin() {
     })
     .catch(function(error) {
       console.error('Firebase auth error:', error);
-      if (error.code === 'auth/popup-blocked') {
-        showNotification(_t('auth.popupBlocked'), _t('auth.popupBlockedMsg'), 'error');
-      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+      // Popup blocked / failed — fall back to redirect flow so the user can still log in.
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment' || error.code === 'auth/web-storage-unsupported') {
+        firebase.auth().signInWithRedirect(authProvider).catch(function(err2) {
+          console.error('Redirect fallback error:', err2);
+          showNotification(_t('auth.popupBlocked'), _t('auth.popupBlockedMsg'), 'error');
+        });
+        return;
+      }
+      if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         // User cancelled, no need for error
       } else if (_handleAccountLinking(error, 'Google')) {
         // handled

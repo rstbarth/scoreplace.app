@@ -840,6 +840,14 @@ window._translations['pt'] = {
   'bui.tooFewAdvanceTitle': 'Insuficiente',
   'bui.tooFewAdvanceMsg': 'Precisa de pelo menos 2 classificados para a eliminatória.',
 
+  // Invite to app (general QR in dashboard hero)
+  'invite.inviteFriends': 'Convidar amigos',
+  'invite.appQrTitle': 'Convidar para o scoreplace.app',
+  'invite.appQrDesc': 'Escaneie o QR code para entrar no app',
+  'invite.copyLink': 'Copiar Link',
+  'invite.downloadQr': 'Baixar QR',
+  'invite.printQr': 'Imprimir',
+
   // Sharing / export
   'share.copied': 'Copiado!',
   'share.copiedMsg': 'Link do torneio copiado.',

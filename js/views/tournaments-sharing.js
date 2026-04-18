@@ -37,6 +37,80 @@ window._shareTournament = function(tournamentId) {
     }
 };
 
+// Show QR Code modal inviting people to the app (no tournament/casual match attached)
+window._showAppInviteQR = function() {
+    var baseUrl = window.SCOREPLACE_URL || 'https://scoreplace.app';
+    var url = baseUrl;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (cu && (cu.uid || cu.email)) {
+        url += '/?ref=' + encodeURIComponent(cu.uid || cu.email);
+    }
+    var qrImageUrl = window._qrCodeUrl(url, 280, true);
+    var qrImageUrlLight = window._qrCodeUrl(url, 280, false);
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+    var prev = document.getElementById('qr-modal-overlay');
+    if (prev) prev.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'qr-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box;animation:fadeIn 0.2s ease;';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--card-bg,#1e2235);border-radius:20px;padding:2rem;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;';
+
+    var title = (_t && _t('invite.appQrTitle')) || 'Convidar para o scoreplace.app';
+    var desc = (_t && _t('invite.appQrDesc')) || 'Escaneie o QR code para entrar no app';
+    var copyLabel = (_t && _t('invite.copyLink')) || 'Copiar Link';
+    var dlLabel = (_t && _t('invite.downloadQr')) || 'Baixar QR';
+    var printLabel = (_t && _t('invite.printQr')) || 'Imprimir';
+
+    modal.innerHTML = '' +
+      '<button onclick="document.getElementById(\'qr-modal-overlay\').remove()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:1.8rem;cursor:pointer;line-height:1;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&times;</button>' +
+      '<h3 style="margin:0 0 0.5rem;font-size:1.2rem;color:var(--text-bright,#fff);">📱 ' + window._safeHtml(title) + '</h3>' +
+      '<p style="margin:0 0 1rem;font-size:0.85rem;color:var(--text-muted,#94a3b8);">' + window._safeHtml(desc) + '</p>' +
+      '<div style="background:' + (isLight ? '#ffffff' : '#1a1e2e') + ';border-radius:16px;padding:16px;display:inline-block;margin-bottom:1rem;">' +
+        '<img id="qr-code-img" src="' + (isLight ? qrImageUrlLight : qrImageUrl) + '" alt="QR Code" style="width:280px;height:280px;border-radius:8px;" onerror="this.parentElement.innerHTML=\'<p style=color:#ef4444;font-size:0.85rem;>Erro ao gerar QR Code. Verifique sua conexão.</p>\'">' +
+      '</div>' +
+      '<p style="margin:0 0 1rem;font-size:0.78rem;color:var(--text-muted,#94a3b8);word-break:break-all;">' + window._safeHtml(url) + '</p>' +
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+        '<button onclick="navigator.clipboard.writeText(\'' + url.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\').then(function(){if(typeof showNotification===\'function\')showNotification(window._t(\'share.copied\'),window._t(\'share.copiedLinkMsg\'),\'success\');})" class="btn btn-sm hover-lift" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">📋 ' + window._safeHtml(copyLabel) + '</button>' +
+        '<button onclick="window._downloadAppInviteQR()" class="btn btn-sm hover-lift" style="background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">💾 ' + window._safeHtml(dlLabel) + '</button>' +
+        '<button onclick="window._printQRCode()" class="btn btn-sm hover-lift" style="background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">🖨️ ' + window._safeHtml(printLabel) + '</button>' +
+      '</div>';
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    var _escHandler = function(e) {
+        if (e.key === 'Escape') {
+            var el = document.getElementById('qr-modal-overlay');
+            if (el) el.remove();
+            document.removeEventListener('keydown', _escHandler);
+        }
+    };
+    document.addEventListener('keydown', _escHandler);
+};
+
+window._downloadAppInviteQR = function() {
+    var img = document.getElementById('qr-code-img');
+    if (!img) return;
+    fetch(img.src).then(function(resp) { return resp.blob(); }).then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'scoreplace-app-invite.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        if (typeof showNotification === 'function') showNotification(_t('share.qrSaved'), _t('share.qrSavedMsg'), 'success');
+    }).catch(function() {
+        if (typeof showNotification === 'function') showNotification(_t('auth.error'), _t('share.qrError'), 'error');
+    });
+};
+
 // Show QR Code modal for a tournament link
 window._showQRCode = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });

@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Login no Safari estável + QR de convite para o app</b> — Safari e iOS (incluindo Chrome no iOS, que usa WebKit) agora usam o fluxo <code>signInWithRedirect</code> em vez de popup, fugindo do ITP que derrubava a sessão após leitura do QR code; persistência LOCAL é aplicada explicitamente e <code>getRedirectResult</code> é capturado no carregamento da página, trazendo o usuário de volta logado. Popup-blocked em outros navegadores também cai automaticamente para redirect. Novo botão 📱 "Convidar amigos" no hero box abre um QR code apontando para <code>scoreplace.app</code> (com <code>?ref</code> automático de quem convida) — ideal para passar o link direto para alguém que ainda não está no app.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.64-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Avatares + refresh ao vivo na partida casual</b> — A tela de montagem do organizador agora mostra a foto de perfil e o nome cadastrado de cada jogador que entra na sala, atualizando os cards em tempo real. Quando um jogador sai, seu nome desaparece instantaneamente dos demais, os inputs dos convidados são reabertos e as duplas já formadas são desfeitas — a vaga fica livre para outro jogador ocupar, com aviso ("Fulano saiu da sala — vaga liberada") para o organizador.</p>' +
         '</div>' +
