@@ -20,11 +20,13 @@
       _footer() +
     '</div>';
 
-    // Attach CTA click handlers
+    // Attach CTA click handlers — open full login modal (all sign-in options)
     var btns = container.querySelectorAll('[data-landing-cta]');
     for (var i = 0; i < btns.length; i++) {
       btns[i].addEventListener('click', function() {
-        if (typeof window.handleGoogleLogin === 'function') {
+        if (typeof window.openModal === 'function') {
+          window.openModal('modal-login');
+        } else if (typeof window.handleGoogleLogin === 'function') {
           window.handleGoogleLogin();
         }
       });

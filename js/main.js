@@ -802,6 +802,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.1-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>CTA da landing page agora abre o modal de login completo</b> — O botão verde "Crie seu torneio grátis" (e o "Comece agora — é grátis!" no rodapé) deixaram de disparar o login direto com o Google e agora abrem o modal de login padrão, com todas as opções de autenticação disponíveis (Google, e-mail/senha, link mágico por e-mail, SMS). O visitante pode escolher o método que preferir.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.11.76-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Campo de e-mail e botão "Enviar" do link mágico redesenhados</b> — Na página de login, o campo de e-mail para envio do link mágico ficou maior (fonte 1rem, padding 12px 14px) e ganhou um placeholder de exemplo ("ex: joao.silva@gmail.com"), tornando-o mais visível e amigável. O botão "Enviar" foi reduzido para caber apenas a palavra com uma borda fina na cor primária (outline transparente 1px, fonte 0.72rem, padding 6px 10px), liberando mais espaço para o campo de e-mail.</p>' +
         '</div>' +
