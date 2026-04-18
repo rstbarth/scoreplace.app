@@ -98,11 +98,12 @@ if (firebase && firebase.auth) {
 // Listen for auth state changes to auto-login returning users
 if (firebase && firebase.auth) {
   firebase.auth().onAuthStateChanged(async function(user) {
+    console.log('[scoreplace-auth] onAuthStateChanged fired:', user ? { uid: user.uid, email: user.email } : 'null');
     window._authStateResolved = true;
     if (user) {
       // Skip if email registration is still updating displayName profile
       if (window._pendingProfileUpdate) {
-        // Skipping — pending profile update (email register)
+        console.log('[scoreplace-auth] onAuthStateChanged skipped (pending profile update)');
         return;
       }
       // Cache login state for instant restore on next page load
@@ -120,6 +121,7 @@ if (firebase && firebase.auth) {
         photoURL: user.photoURL
       });
     } else {
+      console.log('[scoreplace-auth] onAuthStateChanged: signed out — clearing authCache, currentUser');
       // Clear cached login state
       try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
       // User is signed out — stop previous listener, load public tournaments
@@ -190,9 +192,11 @@ function handleGoogleLogin() {
     return;
   }
 
+  console.log('[scoreplace-auth] Google popup starting...');
   firebase.auth().signInWithPopup(authProvider)
     .then(function(result) {
       var user = result.user;
+      console.log('[scoreplace-auth] Popup success:', { uid: user && user.uid, email: user && user.email });
       showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName}), 'success');
 
       // Save auth provider to Firestore
@@ -203,15 +207,27 @@ function handleGoogleLogin() {
       // Try linking pending credential from another provider
       _tryLinkPendingCredential(result);
 
-      // Tenta buscar o gênero do Google via People API
-      var credential = result.credential;
-      if (credential && credential.accessToken) {
-        _fetchGoogleDemographics(credential.accessToken, user.uid || user.email);
-      }
-      // onAuthStateChanged will handle the rest
+      // Explicitly drive the login flow from the popup success callback
+      // instead of relying solely on onAuthStateChanged. Chrome's 3rd-party
+      // cookie deprecation + cross-origin auth domain (firebaseapp.com) can
+      // cause onAuthStateChanged to not fire reliably. simulateLoginSuccess
+      // has a _simulateLoginInProgress guard so this is safe if both fire.
+      try {
+        localStorage.setItem('scoreplace_authCache', JSON.stringify({
+          uid: user.uid, email: user.email,
+          displayName: user.displayName, photoURL: user.photoURL
+        }));
+      } catch(e) {}
+      console.log('[scoreplace-auth] Calling simulateLoginSuccess directly from popup callback');
+      simulateLoginSuccess({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      });
     })
     .catch(function(error) {
-      console.error('Firebase auth error:', error);
+      console.error('[scoreplace-auth] Firebase auth error:', error);
       // Popup blocked / failed — fall back to redirect flow so the user can still log in.
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment' || error.code === 'auth/web-storage-unsupported') {
         firebase.auth().signInWithRedirect(authProvider).catch(function(err2) {
@@ -866,15 +882,17 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
 }
 
 async function simulateLoginSuccess(user) {
+  console.log('[scoreplace-auth] simulateLoginSuccess called for', user && user.email, 'inProgress:', !!window._simulateLoginInProgress);
   // Guard against double execution (e.g. onAuthStateChanged + explicit call)
   if (window._simulateLoginInProgress) {
-    // simulateLoginSuccess: skipping — already in progress
+    console.log('[scoreplace-auth] simulateLoginSuccess: skipping — already in progress');
     return;
   }
   window._simulateLoginInProgress = true;
 
   // Set AppStore.currentUser with the user object
   window.AppStore.currentUser = user;
+  console.log('[scoreplace-auth] currentUser set, running early router refresh');
 
   // Close any open login modal + hamburger, and immediately refresh the route
   // so the landing page gives way to the dashboard BEFORE any async Firestore

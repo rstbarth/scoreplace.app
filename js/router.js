@@ -75,7 +75,9 @@ function initRouter() {
     var _isLoggedInNow = !!(window.AppStore && window.AppStore.currentUser);
     var _hasAuthCacheNow = false;
     try { _hasAuthCacheNow = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
+    console.log('[scoreplace-router] route', hash, 'loggedIn:', _isLoggedInNow, 'authCache:', _hasAuthCacheNow);
     if (!_isLoggedInNow && !_hasAuthCacheNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+      console.log('[scoreplace-router] → rendering LANDING (not logged in, no cache)');
       renderLanding(viewContainer);
       return;
     }
