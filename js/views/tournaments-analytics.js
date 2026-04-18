@@ -648,7 +648,8 @@ window._renderPersistentMatchStats = function(records, uid) {
             longestPointStreak:0, longestWinStreak:0, biggestLead:0,
             totalDurationMs:0, durationMatches:0,
             longestPointMs:0, shortestPointMs:null,
-            avgPointMsSum:0, avgPointMatches:0 };
+            avgPointMsSum:0, avgPointMatches:0,
+            tbWon:0, tbLost:0, tbPlayed:0, tbPointsSum:0, tbMaxPoints:0, tbMinPoints:null };
         var curWinStreak = 0;
         for (var i = 0; i < sorted.length; i++) {
             var r = sorted[i];
@@ -683,6 +684,27 @@ window._renderPersistentMatchStats = function(records, uid) {
                 agg.pointsLost += theirs.points || 0;
                 agg.gamesLost += theirs.games || 0;
                 agg.setsLost += theirs.sets || 0;
+            }
+            // Tiebreak stats — iterate per-set tiebreak entries in r.sets[].
+            // Schema varies: {p1,p2} (persistent record from state.sets) or
+            // {pointsP1,pointsP2} (legacy tournament m.sets saves). Handle both.
+            if (Array.isArray(r.sets)) {
+                for (var sIdx = 0; sIdx < r.sets.length; sIdx++) {
+                    var _tbSet = r.sets[sIdx];
+                    var _tb = _tbSet && _tbSet.tiebreak;
+                    if (!_tb) continue;
+                    var _tbP1 = (typeof _tb.p1 === 'number') ? _tb.p1 : (typeof _tb.pointsP1 === 'number' ? _tb.pointsP1 : null);
+                    var _tbP2 = (typeof _tb.p2 === 'number') ? _tb.p2 : (typeof _tb.pointsP2 === 'number' ? _tb.pointsP2 : null);
+                    if (_tbP1 === null || _tbP2 === null) continue;
+                    var _myPts = myTeam === 1 ? _tbP1 : _tbP2;
+                    var _oppPts = myTeam === 1 ? _tbP2 : _tbP1;
+                    if (_myPts > _oppPts) agg.tbWon++;
+                    else if (_oppPts > _myPts) agg.tbLost++;
+                    agg.tbPlayed++;
+                    agg.tbPointsSum += _myPts;
+                    if (_myPts > agg.tbMaxPoints) agg.tbMaxPoints = _myPts;
+                    if (agg.tbMinPoints === null || _myPts < agg.tbMinPoints) agg.tbMinPoints = _myPts;
+                }
             }
             // Per-player holds (saque mantido) — lives in playerStats[name], keyed by display name.
             var myPs = r.playerStats && mySlot.name && r.playerStats[mySlot.name];
@@ -811,6 +833,13 @@ window._renderPersistentMatchStats = function(records, uid) {
                 _boxStat('Média/ponto', (avgPt > 0 ? _fmtPointTime(avgPt) : '—'), '⏲', '#a78bfa') +
                 _boxStat('Ponto + longo', (a.longestPointMs > 0 ? _fmtPointTime(a.longestPointMs) : '—'), '📏', '#fbbf24') +
                 _boxStat('Ponto + curto', (a.shortestPointMs ? _fmtPointTime(a.shortestPointMs) : '—'), '⚡', '#22c55e') +
+            '</div>' +
+            // Row 6 — Tie-breaks: V/P, média de pontos, max e min (numa partida)
+            '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' +
+                _boxStat('TB V/P', wonLost(a.tbWon, a.tbLost), '🎯', '#fbbf24') +
+                _boxStat('TB Média', (a.tbPlayed > 0 ? (a.tbPointsSum / a.tbPlayed).toFixed(1) : '—'), '📊', '#60a5fa') +
+                _boxStat('TB Máx', (a.tbPlayed > 0 ? a.tbMaxPoints : '—'), '🏆', '#22c55e') +
+                _boxStat('TB Mín', (a.tbPlayed > 0 ? a.tbMinPoints : '—'), '📉', '#f87171') +
             '</div>';
 
         // Top 5 Parceiros + Top 5 Adversários (per-section)
