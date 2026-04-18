@@ -1763,7 +1763,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // as an adversary, not as "Parceiro". Remap role-labeled slots based on
   // the current viewer's team so every client sees the match from their own
   // side. Real player names pass through untouched.
-  (function _localizeRoleLabels() {
+  //
+  // CRITICAL: This must be re-applied after every Firestore sync that rewrites
+  // p1Players/p2Players — otherwise the host's perspective labels ("Parceiro"
+  // on Team 1) leak into other viewers who would see the same slot correctly
+  // as "Adversário N". The remote sync handlers below call this function
+  // after overwriting the arrays.
+  var _roleRe = /^(Parceiro|Adversário\s*\d+)$/;
+  function _localizeRoleLabels() {
     if (!isDoubles) return;
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) return; // spectator with no identity — leave stored labels
@@ -1777,22 +1784,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
       }
     }
     if (viewerTeam !== 1 && viewerTeam !== 2) return; // viewer not in match
-    var roleRe = /^(Parceiro|Adversário\s*\d+)$/;
-    function remap(names, team) {
-      var out = [];
-      for (var j = 0; j < names.length; j++) {
-        var n = names[j];
-        if (roleRe.test(n)) {
-          out.push(viewerTeam === team ? 'Parceiro' : ('Adversário ' + (j + 1)));
-        } else {
-          out.push(n);
+    function remap(arr, team) {
+      for (var j = 0; j < arr.length; j++) {
+        if (_roleRe.test(arr[j])) {
+          arr[j] = (viewerTeam === team) ? 'Parceiro' : ('Adversário ' + (j + 1));
         }
       }
-      return out;
     }
-    p1Players = remap(p1Players, 1);
-    p2Players = remap(p2Players, 2);
-  })();
+    // Mutate in place so outer references to the same arrays see the change.
+    remap(p1Players, 1);
+    remap(p2Players, 2);
+  }
+  _localizeRoleLabels();
 
   // Player metadata map (name → { uid, photoURL }) for avatar display
   var _playerMeta = {};
@@ -1931,6 +1934,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (Array.isArray(remote.p2Players)) {
               for (var j = 0; j < remote.p2Players.length && j < p2Players.length; j++) p2Players[j] = remote.p2Players[j];
             }
+            // Re-localize role labels from the viewer's perspective — the host
+            // pushes its own perspective (e.g. "Parceiro" for their partner)
+            // and without this, every client would see the host's labels.
+            _localizeRoleLabels();
             _render();
           }
         });
@@ -4086,6 +4093,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (Array.isArray(remote.p2Players)) {
       for (var j = 0; j < remote.p2Players.length && j < p2Players.length; j++) p2Players[j] = remote.p2Players[j];
     }
+    // Re-apply perspective-based role labels — the host's "Parceiro"/"Adversário N"
+    // labels must be remapped locally for every viewer that isn't the host.
+    _localizeRoleLabels();
   }
 
   // Sync local state to Firestore (debounced 300ms)
