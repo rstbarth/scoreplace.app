@@ -37,10 +37,13 @@ try {
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
     authProvider = new firebase.auth.GoogleAuthProvider();
-    authProvider.addScope('https://www.googleapis.com/auth/user.gender.read');
-    authProvider.addScope('https://www.googleapis.com/auth/user.birthday.read');
-    authProvider.addScope('https://www.googleapis.com/auth/user.addresses.read');
-    authProvider.addScope('https://www.googleapis.com/auth/user.phonenumbers.read');
+    // NOTE: Sensitive People API scopes (gender, birthday, addresses, phone)
+    // require Google OAuth app verification. Without verification, Google shows
+    // an "unverified app" warning that silently rejects the login flow for many
+    // users. We use only default scopes (profile, email) — users can fill in
+    // demographics manually in their profile.
+  } else if (firebase.auth && firebase.auth.GoogleAuthProvider) {
+    authProvider = new firebase.auth.GoogleAuthProvider();
   }
   // Force LOCAL persistence so auth survives page reloads in Safari/ITP contexts.
   // (LOCAL is already the default, but Safari sometimes downgrades silently —
