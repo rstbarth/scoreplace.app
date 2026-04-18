@@ -117,10 +117,59 @@ if (firebase && firebase.auth) {
 
 // Listen for auth state changes to auto-login returning users
 if (firebase && firebase.auth) {
+  // Debounce handler: Safari/iOS can emit transient null auth-state events
+  // during IndexedDB rehydration or ITP cookie transients. Without debouncing,
+  // a user who is actually signed-in sees the app briefly treat them as logged
+  // out (wiping authCache, rerouting to login) before bouncing back — which
+  // causes the "flickering" between lobby and login screens on invite links.
+  // We wait _AUTH_SIGNOUT_GRACE_MS before committing a sign-out so a quick
+  // re-resolution with a user cancels it.
+  var _AUTH_SIGNOUT_GRACE_MS = 2500;
+  var _pendingSignoutTimer = null;
+
+  function _commitSignOut() {
+    console.log('[scoreplace-auth] onAuthStateChanged: committing sign-out after grace period');
+    try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
+    if (window.AppStore) {
+      window.AppStore.currentUser = null;
+      if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
+      // Start real-time listener for public tournaments only
+      if (window.FirestoreDB && window.FirestoreDB.db) {
+        var _pubFirstSnap = true;
+        window.AppStore._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
+          .where('isPublic', '==', true)
+          .onSnapshot(function(snap) {
+            var publicTournaments = [];
+            snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
+            window.AppStore.tournaments = publicTournaments;
+            window.AppStore._saveToCache();
+            // First snapshot = initial load, subsequent = remote changes
+            if (_pubFirstSnap) {
+              _pubFirstSnap = false;
+              if (typeof initRouter === 'function') initRouter();
+            } else if (typeof window._softRefreshView === 'function') {
+              window._softRefreshView();
+            }
+          }, function(err) {
+            console.warn('Public tournaments listener error:', err);
+            window.AppStore.tournaments = [];
+          });
+      } else {
+        window.AppStore.tournaments = [];
+      }
+    }
+  }
+
   firebase.auth().onAuthStateChanged(async function(user) {
     console.log('[scoreplace-auth] onAuthStateChanged fired:', user ? { uid: user.uid, email: user.email } : 'null');
     window._authStateResolved = true;
     if (user) {
+      // Cancel any pending sign-out — auth came back with a user before grace elapsed
+      if (_pendingSignoutTimer) {
+        console.log('[scoreplace-auth] cancelling pending sign-out — auth re-resolved');
+        clearTimeout(_pendingSignoutTimer);
+        _pendingSignoutTimer = null;
+      }
       // Skip if email registration is still updating displayName profile
       if (window._pendingProfileUpdate) {
         console.log('[scoreplace-auth] onAuthStateChanged skipped (pending profile update)');
@@ -141,38 +190,27 @@ if (firebase && firebase.auth) {
         photoURL: user.photoURL
       });
     } else {
-      console.log('[scoreplace-auth] onAuthStateChanged: signed out — clearing authCache, currentUser');
-      // Clear cached login state
-      try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
-      // User is signed out — stop previous listener, load public tournaments
-      if (window.AppStore) {
-        window.AppStore.currentUser = null;
-        if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
-        // Start real-time listener for public tournaments only
-        if (window.FirestoreDB && window.FirestoreDB.db) {
-          var _pubFirstSnap = true;
-          window.AppStore._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
-            .where('isPublic', '==', true)
-            .onSnapshot(function(snap) {
-              var publicTournaments = [];
-              snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
-              window.AppStore.tournaments = publicTournaments;
-              window.AppStore._saveToCache();
-              // First snapshot = initial load, subsequent = remote changes
-              if (_pubFirstSnap) {
-                _pubFirstSnap = false;
-                if (typeof initRouter === 'function') initRouter();
-              } else if (typeof window._softRefreshView === 'function') {
-                window._softRefreshView();
-              }
-            }, function(err) {
-              console.warn('Public tournaments listener error:', err);
-              window.AppStore.tournaments = [];
-            });
-        } else {
-          window.AppStore.tournaments = [];
-        }
+      // If a manual logout is in progress, commit immediately — the user pressed
+      // "Sair" and we don't want to wait for the grace period.
+      if (window._manualLogoutInProgress) {
+        console.log('[scoreplace-auth] onAuthStateChanged: signed out (manual logout — committing immediately)');
+        _commitSignOut();
+        return;
       }
+      // Transient null event — defer the clear so a quick re-resolution
+      // (common on Safari) cancels it silently.
+      console.log('[scoreplace-auth] onAuthStateChanged: null — deferring sign-out ' + _AUTH_SIGNOUT_GRACE_MS + 'ms');
+      if (_pendingSignoutTimer) clearTimeout(_pendingSignoutTimer);
+      _pendingSignoutTimer = setTimeout(function() {
+        _pendingSignoutTimer = null;
+        // Re-check current auth state — if it's back to a user, don't sign out
+        var now = firebase.auth().currentUser;
+        if (now) {
+          console.log('[scoreplace-auth] deferred sign-out aborted — user is present');
+          return;
+        }
+        _commitSignOut();
+      }, _AUTH_SIGNOUT_GRACE_MS);
     }
   });
 }
@@ -1511,10 +1549,17 @@ function setupLoginModal() {
 }
 
 function handleLogout() {
+  // Flag this as a manual logout so onAuthStateChanged(null) commits immediately
+  // rather than waiting for the grace period (that grace period exists to absorb
+  // Safari's transient null auth events, not intentional user logouts).
+  window._manualLogoutInProgress = true;
   // Sign out from Firebase
   if (firebase && firebase.auth) {
     firebase.auth().signOut().catch(function(error) {
       console.error('Firebase sign out error:', error);
+    }).finally(function() {
+      // Clear flag shortly after so future transient nulls are debounced again
+      setTimeout(function() { window._manualLogoutInProgress = false; }, 3000);
     });
   }
 

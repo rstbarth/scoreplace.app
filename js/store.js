@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.12.21-alpha';
+window.SCOREPLACE_VERSION = '0.12.22-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -521,12 +521,17 @@ window._toggleTheme = function() {
 };
 
 window._applyThemeIcon = function(theme) {
-  var btn = document.getElementById('theme-toggle-btn');
-  if (!btn) return;
+  // The hamburger dropdown clones topbar nodes, producing a second element
+  // with id="theme-toggle-btn". getElementById returns only the first, so we
+  // use querySelectorAll to update every live copy.
+  var btns = document.querySelectorAll('#theme-toggle-btn');
+  if (!btns || !btns.length) return;
   var icon = window._themeIcons[theme] || '🌙';
   var name = window._themeNames[theme] || theme;
-  btn.textContent = icon;
-  btn.title = 'Tema: ' + name + ' (clique para trocar)';
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].textContent = icon;
+    btns[i].title = 'Tema: ' + name + ' (clique para trocar)';
+  }
 };
 
 // Apply saved theme on load

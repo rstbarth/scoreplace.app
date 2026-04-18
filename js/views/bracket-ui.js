@@ -5984,11 +5984,11 @@ window._renderCasualJoin = function(container, roomCode) {
   // to restore after a cold page load. Without this wait, an already-logged-in
   // user who opens a #casual/CODE link sees the "login to join" screen and is
   // sent through a fresh Google OAuth flow (including 2FA) for no reason.
+  // We always wait when auth hasn't resolved yet — the presence of authCache
+  // alone isn't reliable on Safari (ITP can clear it), but the wait is cheap.
   var _cuNow = window.AppStore && window.AppStore.currentUser;
   var _isLoggedInNow = !!(_cuNow && _cuNow.uid);
-  var _hasAuthCache = false;
-  try { _hasAuthCache = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
-  if (!_isLoggedInNow && _hasAuthCache && !window._authStateResolved) {
+  if (!_isLoggedInNow && !window._authStateResolved) {
     var _waited = 0;
     var _tick = function() {
       var cuLater = window.AppStore && window.AppStore.currentUser;
@@ -6036,7 +6036,20 @@ window._renderCasualJoin = function(container, roomCode) {
     var sportName = match.sport || _t('casual.title');
     var creatorName = match.createdByName || _t('casual.someone');
     var docId = match._docId;
-    var cu = window.AppStore && window.AppStore.currentUser;
+    // Resolve the viewer identity — prefer the live AppStore.currentUser, but
+    // fall back to the cached auth payload. On Safari/iOS the live currentUser
+    // can briefly go null between transient onAuthStateChanged events; without
+    // this fallback the lobby would flicker to the login screen and back.
+    function _resolveCurrentUser() {
+      var live = window.AppStore && window.AppStore.currentUser;
+      if (live && live.uid) return live;
+      try {
+        var cached = JSON.parse(localStorage.getItem('scoreplace_authCache') || 'null');
+        if (cached && cached.uid) return cached;
+      } catch(e) {}
+      return null;
+    }
+    var cu = _resolveCurrentUser();
 
     if (match.status === 'finished') {
       // Show result
@@ -6104,16 +6117,19 @@ window._renderCasualJoin = function(container, roomCode) {
 
     // Status: waiting — auto-join + lobby
     var participants = Array.isArray(match.participants) ? match.participants : [];
-    var isLoggedIn = !!(cu && cu.uid);
     var _lobbyInterval = null;
 
     // Remember that we want to auto-join this casual match after login
-    if (!isLoggedIn) {
+    if (!cu || !cu.uid) {
       try { sessionStorage.setItem('_pendingCasualRoom', roomCode); } catch(e) {}
     }
 
     function _renderLobby() {
       if (_hasLeft) return;
+      // Re-resolve identity on each render so we pick up the latest auth state
+      // (Safari can have transient null/populated transitions between polls).
+      cu = _resolveCurrentUser();
+      var isLoggedIn = !!(cu && cu.uid);
       var myUid = isLoggedIn ? cu.uid : null;
       var alreadyJoined = myUid && participants.some(function(p) { return p.uid === myUid; });
       var isCreator = myUid && match.createdBy === myUid;
@@ -6278,7 +6294,8 @@ window._renderCasualJoin = function(container, roomCode) {
     // Auto-join: add logged-in user to match participants
     async function _autoJoin() {
       if (_hasLeft) return;
-      if (!isLoggedIn || !docId) return;
+      cu = _resolveCurrentUser();
+      if (!cu || !cu.uid || !docId) return;
       var alreadyIn = participants.some(function(p) { return p.uid === cu.uid; });
       if (alreadyIn) return;
       var ok = await window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '', cu.photoURL || '');
@@ -6364,7 +6381,8 @@ window._renderCasualJoin = function(container, roomCode) {
       if (_hasLeft) return;
       _hasLeft = true;
       _casualLobbyCleanup();
-      var userUid = cu && cu.uid;
+      var _cuLeave = _resolveCurrentUser();
+      var userUid = _cuLeave && _cuLeave.uid;
       // Fire-and-forget leave so the user isn't blocked by a slow Firestore round-trip
       if (userUid && docId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
         try {
