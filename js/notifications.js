@@ -163,9 +163,14 @@ function _safeText(str) {
 }
 
 // Sistema Global de Notificações (Toastings)
+// MAX_TOASTS: hard cap to avoid a pile-up when several flows fire in sequence
+// (enroll + auto-follow + organizer notify, etc.). Dedup on title+message+type
+// collapses near-duplicate bursts into a single toast with a "xN" counter.
+var MAX_TOASTS = 3;
 function showNotification(title, message, type = 'info') {
   title = _safeText(title);
   message = _safeText(message);
+
   // Cria o container de toasts se não existir
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -183,6 +188,32 @@ function showNotification(title, message, type = 'info') {
     document.body.appendChild(container);
   }
 
+  // Dedup: if an identical toast (same title+message+type) is already showing,
+  // bump its counter and restart its auto-dismiss timer instead of stacking.
+  var dedupKey = type + '|' + title + '|' + message;
+  var existing = container.querySelector('[data-toast-key="' + CSS.escape(dedupKey) + '"]');
+  if (existing) {
+    var count = parseInt(existing.getAttribute('data-toast-count') || '1', 10) + 1;
+    existing.setAttribute('data-toast-count', String(count));
+    var badge = existing.querySelector('[data-toast-badge]');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.setAttribute('data-toast-badge', '1');
+      badge.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 7px;border-radius:10px;background:rgba(255,255,255,0.12);font-size:0.7rem;font-weight:700;color:var(--text-bright, #fff);vertical-align:middle;';
+      var h4 = existing.querySelector('h4');
+      if (h4) h4.appendChild(badge);
+    }
+    badge.textContent = '×' + count;
+    // Restart dismiss timer
+    if (existing._dismissTimer) clearTimeout(existing._dismissTimer);
+    existing._dismissTimer = setTimeout(() => {
+      existing.style.transform = 'translateX(100%)';
+      existing.style.opacity = '0';
+      setTimeout(() => existing.remove(), 300);
+    }, 4000);
+    return;
+  }
+
   // Define cores baseadas no tipo
   let bg = 'var(--surface-color)';
   let border = 'var(--primary-color)';
@@ -191,6 +222,8 @@ function showNotification(title, message, type = 'info') {
   else if(type === 'error') { border = 'var(--danger-color)'; }
 
   const toast = document.createElement('div');
+  toast.setAttribute('data-toast-key', dedupKey);
+  toast.setAttribute('data-toast-count', '1');
   toast.style.cssText = `
     background: var(--bg-card, #1e293b);
     border-left: 4px solid ${border};
@@ -214,6 +247,18 @@ function showNotification(title, message, type = 'info') {
 
   container.appendChild(toast);
 
+  // Cap: keep at most MAX_TOASTS visible — drop the oldest ones immediately.
+  var toasts = container.querySelectorAll('[data-toast-key]');
+  if (toasts.length > MAX_TOASTS) {
+    for (var i = 0; i < toasts.length - MAX_TOASTS; i++) {
+      var old = toasts[i];
+      if (old._dismissTimer) clearTimeout(old._dismissTimer);
+      old.style.transform = 'translateX(100%)';
+      old.style.opacity = '0';
+      setTimeout((function(n) { return function() { n.remove(); }; })(old), 300);
+    }
+  }
+
   // AnimIn
   requestAnimationFrame(() => {
     toast.style.transform = 'translateX(0)';
@@ -221,7 +266,7 @@ function showNotification(title, message, type = 'info') {
   });
 
   // AnimOut after 4s
-  setTimeout(() => {
+  toast._dismissTimer = setTimeout(() => {
     toast.style.transform = 'translateX(100%)';
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 300);
