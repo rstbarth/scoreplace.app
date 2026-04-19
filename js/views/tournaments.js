@@ -880,16 +880,46 @@ function renderTournaments(container, tournamentId = null) {
                 if (isFinished) {
                     // Torneio encerrado — mostrar pódio + Ver Chaves
                     let podiumHtml = '';
-                    const _allM = t.matches || [];
-                    if (_allM.length > 0) {
-                        // Elimination: get champion from final match
-                        const _roundNums = _allM.map(function(m) { return m.round || 0; });
-                        const _lastR = Math.max.apply(null, _roundNums);
-                        const _finalM = _allM.filter(function(m) { return m.round === _lastR && !m.isBye && m.winner; });
-                        if (_finalM.length > 0) {
-                            const _1st = _finalM[0].winner;
-                            const _2nd = _finalM[0].winner === _finalM[0].p1 ? _finalM[0].p2 : _finalM[0].p1;
-                            const _3rd = (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) ? t.thirdPlaceMatch.winner : null;
+                    // Prefer canonical adapter: look for the last elim/grand column
+                    // with a decided winner; fall back to legacy t.matches scan.
+                    let _finalMatch = null;
+                    let _thirdPlace = null;
+                    const _unif = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+                    if (_unif && Array.isArray(_unif.columns) && _unif.columns.length > 0) {
+                        // Find the Grand Final (double-elim) or the last elim column.
+                        const _gf = _unif.columns.filter(function(c) { return c && c.phase === 'grandfinal'; }).pop();
+                        if (_gf && Array.isArray(_gf.matches) && _gf.matches.length > 0) {
+                            _finalMatch = _gf.matches.find(function(m) { return m && m.winner && !m.isBye; });
+                        }
+                        if (!_finalMatch) {
+                            const _elimCols = _unif.columns.filter(function(c) { return c && c.phase === 'elim'; });
+                            const _lastElim = _elimCols[_elimCols.length - 1];
+                            if (_lastElim && Array.isArray(_lastElim.matches)) {
+                                _finalMatch = _lastElim.matches.find(function(m) { return m && m.winner && !m.isBye; });
+                            }
+                        }
+                        const _tpCol = _unif.columns.find(function(c) { return c && c.phase === 'thirdplace'; });
+                        if (_tpCol && Array.isArray(_tpCol.matches) && _tpCol.matches[0] && _tpCol.matches[0].winner) {
+                            _thirdPlace = _tpCol.matches[0].winner;
+                        }
+                    }
+                    if (!_finalMatch) {
+                        // Legacy fallback: scan t.matches for highest round with decided winner.
+                        const _allM = t.matches || [];
+                        if (_allM.length > 0) {
+                            const _roundNums = _allM.map(function(m) { return m.round || 0; });
+                            const _lastR = Math.max.apply(null, _roundNums);
+                            const _finalM = _allM.filter(function(m) { return m.round === _lastR && !m.isBye && m.winner; });
+                            if (_finalM.length > 0) _finalMatch = _finalM[0];
+                        }
+                    }
+                    if (!_thirdPlace && t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+                        _thirdPlace = t.thirdPlaceMatch.winner;
+                    }
+                    if (_finalMatch) {
+                        const _1st = _finalMatch.winner;
+                        const _2nd = _finalMatch.winner === _finalMatch.p1 ? _finalMatch.p2 : _finalMatch.p1;
+                        const _3rd = _thirdPlace;
                             podiumHtml = `<div style="text-align:center;margin:1.5rem 0;padding:1.5rem;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:16px;">
                                 <div style="font-size:1.5rem;margin-bottom:0.5rem;">🏆 Torneio Encerrado</div>
                                 <div style="display:flex;justify-content:center;align-items:flex-end;gap:1.5rem;margin-top:1rem;flex-wrap:wrap;">
@@ -910,7 +940,6 @@ function renderTournaments(container, tournamentId = null) {
                                     </div>` : ''}
                                 </div>
                             </div>`;
-                        }
                     }
                     // Suíço/Liga: show standings-based podium
                     if (!podiumHtml && Array.isArray(t.rounds) && t.rounds.length > 0 && t.standings && t.standings.length > 0) {

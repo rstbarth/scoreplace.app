@@ -31,13 +31,24 @@ window._executeMerge = function(sourceName, targetName, tId) {
             if (m.p2 && m.p2.indexOf(nm) !== -1) found = true;
             if (m.winner && m.winner.indexOf(nm) !== -1) found = true;
         };
-        if (Array.isArray(t.matches)) t.matches.forEach(_check);
-        if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_check); });
-        if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-            if (!g) return;
-            if (Array.isArray(g.matches)) g.matches.forEach(_check);
-            if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_check); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_check); });
-        });
+        if (typeof window._collectAllMatches === 'function') {
+            window._collectAllMatches(t).forEach(_check);
+        } else {
+            // Defensive fallback: bracket-model.js not loaded.
+            if (Array.isArray(t.matches)) t.matches.forEach(_check);
+            if (t.thirdPlaceMatch) _check(t.thirdPlaceMatch);
+            if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_check); });
+            if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+                if (!g) return;
+                if (Array.isArray(g.matches)) g.matches.forEach(_check);
+                if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_check); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_check); });
+            });
+            if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) {
+                if (Array.isArray(r)) r.forEach(_check);
+                else if (r && Array.isArray(r.matches)) r.matches.forEach(_check);
+                else if (r && Array.isArray(r.jogos)) r.jogos.forEach(_check);
+            });
+        }
         return found;
     };
 
