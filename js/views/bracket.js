@@ -1746,11 +1746,13 @@ function renderStandings(t, isOrg, canEnterResult) {
       prevRoundsInner += '</div></div>';
     }
     if (prevRoundsInner) {
-      previousRoundsHtml = '<div class="card" style="margin-top: 1rem;">' +
-        '<details open>' +
-        '<summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-bright); padding: 4px 0; user-select: none;">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</summary>' +
-        '<div style="margin-top: 12px;">' + prevRoundsInner + '</div>' +
-        '</details></div>';
+      previousRoundsHtml = '<div class="card prev-rounds-card" style="margin-top: 1rem;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+          '<h3 style="margin:0;flex:1;font-weight:700;font-size:1rem;color:var(--text-bright);">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</h3>' +
+          '<button class="btn btn-micro btn-outline" onclick="window._togglePrevRoundsBlock(this)">Ocultar</button>' +
+        '</div>' +
+        '<div class="prev-rounds-content">' + prevRoundsInner + '</div>' +
+      '</div>';
     }
   }
 

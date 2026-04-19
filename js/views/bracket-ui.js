@@ -423,6 +423,16 @@ function _recalcFixedScrollbar() {
   }
 }
 
+window._togglePrevRoundsBlock = function (btn) {
+  var card = btn && btn.closest ? btn.closest('.prev-rounds-card') : null;
+  if (!card) return;
+  var content = card.querySelector('.prev-rounds-content');
+  if (!content) return;
+  var willHide = content.style.display !== 'none';
+  content.style.display = willHide ? 'none' : '';
+  btn.textContent = willHide ? 'Mostrar' : 'Ocultar';
+};
+
 window._toggleRoundVisibility = function (tId, roundNum) {
   if (!window._hiddenRounds[tId]) window._hiddenRounds[tId] = new Set();
   const set = window._hiddenRounds[tId];
