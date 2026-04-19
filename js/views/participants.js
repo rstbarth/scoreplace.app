@@ -614,16 +614,30 @@ function renderParticipants(container, tournamentId) {
       }
 
       // Opponent line (with dots) — ocultar para standby puro
-      let vsLine = '';
+      let opponentLine = '';
       if (ind.opponent && !isStandbyPure) {
         const oppMembers = ind.opponent.includes('/') ? ind.opponent.split('/').map(n => n.trim()).filter(n => n) : [ind.opponent];
-        const oppDots = oppMembers.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
-        vsLine = `<span style="font-size:0.65rem;font-weight:800;color:rgba(255,255,255,0.2);margin:0 3px;">vs</span>${oppDots}`;
+        opponentLine = oppMembers.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
       }
 
       const matchLabel = (!isStandbyPure && ind.matchNum) ? `Jogo ${ind.matchNum}` : '';
       const standbyLabel = ind.isStandby ? '<span style="font-weight:700;color:#fbbf24;opacity:0.8;margin-right:4px;">Lista de Espera</span>' : '';
-      const infoLine = (teamLine || vsLine || matchLabel || standbyLabel) ? `<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;margin-top:2px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${standbyLabel}${matchLabel ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;margin-right:4px;">${matchLabel}</span>` : ''}${teamLine}${vsLine}</div>` : '';
+
+      // Stack: "Jogo N" header, then team 1 on top, "vs" separator, team 2 on bottom
+      let infoLine = '';
+      if (teamLine || opponentLine || matchLabel || standbyLabel) {
+        const headerBits = `${standbyLabel}${matchLabel ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;">${matchLabel}</span>` : ''}`;
+        const headerHtml = headerBits ? `<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;margin-top:2px;display:flex;align-items:center;gap:4px;">${headerBits}</div>` : '';
+        let matchupHtml = '';
+        if (teamLine && opponentLine) {
+          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.95;margin-top:3px;display:flex;flex-direction:column;gap:3px;line-height:1.3;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${teamLine}</div><div style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-style:italic;">vs</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${opponentLine}</div></div>`;
+        } else if (teamLine) {
+          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.85;margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${teamLine}</div>`;
+        } else if (opponentLine) {
+          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.85;margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${opponentLine}</div>`;
+        }
+        infoLine = headerHtml + matchupHtml;
+      }
 
       // W.O. check
       const woMatch = ind.matchNum && t.matches ? t.matches[ind.matchNum - 1] : null;
