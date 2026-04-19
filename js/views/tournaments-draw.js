@@ -1003,7 +1003,7 @@ window._buildNextMatchLinks = function (t) {
                 };
                 if (catName) nm.category = catName;
                 roundsMap[r].push(nm);
-                t.matches.push(nm);
+                window._appendCanonicalColumn(t, { phase: 'elim', round: r, matches: [nm] });
             }
 
             prevRound.forEach(function(m, idx) {
@@ -1051,7 +1051,7 @@ window._buildDoubleElimBracket = function (t) {
                 p1: 'TBD', p2: 'TBD', winner: null
             };
             upperRounds[r].push(m);
-            t.matches.push(m);
+            window._appendCanonicalColumn(t, { phase: 'elim', bracket: 'upper', round: r, matches: [m] });
         }
     }
 
@@ -1088,7 +1088,7 @@ window._buildDoubleElimBracket = function (t) {
                     p1: 'TBD', p2: 'TBD', winner: null
                 };
                 lowerRounds[lowerRoundNum].push(m);
-                t.matches.push(m);
+                window._appendCanonicalColumn(t, { phase: 'elim', bracket: 'lower', round: lowerRoundNum, matches: [m] });
             }
 
             // Link upper R1 losers → lower R1
@@ -1114,7 +1114,7 @@ window._buildDoubleElimBracket = function (t) {
                     p1: 'TBD', p2: 'TBD', winner: null
                 };
                 lowerRounds[lowerRoundNum].push(m);
-                t.matches.push(m);
+                window._appendCanonicalColumn(t, { phase: 'elim', bracket: 'lower', round: lowerRoundNum, matches: [m] });
             }
 
             // Link previous lower round winners → this round
@@ -1146,7 +1146,7 @@ window._buildDoubleElimBracket = function (t) {
                         p1: 'TBD', p2: 'TBD', winner: null
                     };
                     lowerRounds[lowerRoundNum].push(m);
-                    t.matches.push(m);
+                    window._appendCanonicalColumn(t, { phase: 'elim', bracket: 'lower', round: lowerRoundNum, matches: [m] });
                 }
 
                 // Link merge round winners → battle round
@@ -1170,7 +1170,7 @@ window._buildDoubleElimBracket = function (t) {
         label: 'Grande Final',
         p1: 'TBD', p2: 'TBD', winner: null
     };
-    t.matches.push(grandFinal);
+    window._appendCanonicalColumn(t, { phase: 'grandfinal', bracket: 'grand', round: totalUpperRounds + 1, matches: [grandFinal] });
 
     // Link upper bracket final winner → grand final
     const upperFinal = upperRounds[totalUpperRounds];

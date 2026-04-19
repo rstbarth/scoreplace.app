@@ -1731,7 +1731,7 @@ window._advanceMonarchToElimination = function(tId) {
       isBye: isBye
     };
     r1.push(m);
-    t.matches.push(m);
+    window._appendCanonicalColumn(t, { phase: 'elim', round: 1, matches: [m] });
   }
 
   // Build next rounds

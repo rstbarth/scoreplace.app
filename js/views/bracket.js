@@ -535,7 +535,7 @@ function _ensureFutureRounds(t) {
         p1: 'TBD', p2: 'TBD', winner: null
       };
       currentRoundsMap[r].push(nm);
-      t.matches.push(nm);
+      window._appendCanonicalColumn(t, { phase: 'elim', bracket: isDupla ? 'upper' : undefined, round: r, matches: [nm] });
     }
 
     // Linkar matches da rodada anterior → próxima
