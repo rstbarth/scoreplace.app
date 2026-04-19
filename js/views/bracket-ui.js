@@ -1881,7 +1881,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     superTiebreak: useSets ? (sc.superTiebreak === true) : false,
     superTiebreakPoints: useSets ? (sc.superTiebreakPoints || 10) : 10,
     countingType: useSets ? (sc.countingType || 'numeric') : 'numeric',
-    advantageRule: useSets ? (sc.advantageRule === true) : false,
+    // deuceRule: game-level 40-40 → AD. Migrates legacy sc.advantageRule.
+    deuceRule: useSets ? (sc.deuceRule === true || sc.advantageRule === true) : false,
+    // twoPointAdvantage: set-level 2-game lead. Default ON.
+    twoPointAdvantage: useSets ? (sc.twoPointAdvantage !== false) : false,
     isFixedSet: useSets && sc.fixedSet === true,
     fixedSetGames: useSets && sc.fixedSet ? (sc.fixedSetGames || sc.gamesPerSet || 6) : 0,
     tieRule: sc.tieRule || null, // 'extend'|'tiebreak'|'ask'|null (null = standard 2-game lead)
@@ -1974,12 +1977,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.countingType === 'tennis' && !state.isFixedSet) {
       // Tennis counting: 0, 15, 30, 40, AD
       if (pts >= 3 && oppPts >= 3) {
-        if (state.advantageRule) {
+        if (state.deuceRule) {
           if (pts === oppPts) return '40';
           if (pts > oppPts) return 'AD';
           return '40';
         }
-        return '40'; // No advantage: sudden death at deuce
+        return '40'; // No deuce: sudden death (golden point) at 40-40
       }
       var map = [0, 15, 30, 40];
       return String(pts < 4 ? map[pts] : 40);
@@ -2013,7 +2016,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.countingType === 'tennis') {
       // Tennis game rules: need 4 points and lead by 2 (or no advantage)
       if (p1 >= 4 && p2 >= 4) {
-        if (!state.advantageRule) {
+        if (!state.deuceRule) {
           // Sudden death at deuce: whoever scored last wins
           return p1 > p2 ? 1 : 2;
         }
@@ -2039,6 +2042,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
     if (state.isFixedSet) return 0; // Handled in _checkGameWon
     if (_isDecidingSet()) return 0; // handled by tiebreak game
+
+    // twoPointAdvantage OFF: set ends as soon as someone reaches g games —
+    // e.g. a 6-game set ends at 5-6 with no extension, no tiebreak.
+    if (state.twoPointAdvantage === false) {
+      if (cs.gamesP1 >= g) return 1;
+      if (cs.gamesP2 >= g) return 2;
+      return 0;
+    }
 
     // tieRule logic: at (g-1)-(g-1) and every subsequent tie, ask or apply rule
     // e.g. at 5-5 in a 6-game set, 2-game lead is impossible with 1 more game
@@ -4614,8 +4625,7 @@ window._openCasualMatch = function() {
     { key: 'Pickleball', icon: '🥒', label: 'Pickleball', defaultDoubles: false },
     { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
     { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
-    { key: 'Padel', icon: '🏸', label: 'Padel', defaultDoubles: true },
-    { key: '_simple', icon: '🏅', label: 'Placar Simples', defaultDoubles: false }
+    { key: 'Padel', icon: '🏸', label: 'Padel', defaultDoubles: true }
   ];
 
   // Resolve initial sport: (1) last-used persisted choice → (2) profile preferredSport → (3) Beach Tennis (most common casual match)
@@ -4709,23 +4719,29 @@ window._openCasualMatch = function() {
   var _teamAssignments = {};
 
   // Casual default config per sport (overrides _sportScoringDefaults for casual).
-  // advantageRule defaults to true across all sports — the "2-point advantage" toggle
-  // on the casual config panel is pre-enabled, matching real on-court play.
+  // deuceRule: game-level 40-40 → AD rule (tennis/padel only).
+  // twoPointAdvantage: set-level — when true, a set cannot end without a 2-game
+  // lead; at (g-1)-(g-1) ties it either prorroga or goes to tiebreak (tieRule).
   var _casualDefaults = {
-    'Beach Tennis':  { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:true, tieRule:'ask' },
-    'Pickleball':    { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:true, tieRule:'extend' },
-    'Tênis':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true, tieRule:'tiebreak' },
-    'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:true, tieRule:'extend' },
-    'Padel':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true, tieRule:'tiebreak' }
+    'Beach Tennis':  { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', deuceRule:false, twoPointAdvantage:true, tieRule:'ask' },
+    'Pickleball':    { type:'sets', setsToWin:1, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', deuceRule:false, twoPointAdvantage:true, tieRule:'extend' },
+    'Tênis':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', deuceRule:true, twoPointAdvantage:true, tieRule:'tiebreak' },
+    'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', deuceRule:false, twoPointAdvantage:true, tieRule:'extend' },
+    'Padel':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', deuceRule:true, twoPointAdvantage:true, tieRule:'tiebreak' }
   };
 
   function _getConfig() {
-    if (selectedSport === '_simple') return { type: 'simple' };
     try {
       var prefs = JSON.parse(localStorage.getItem('scoreplace_casual_prefs') || '{}');
-      if (prefs[selectedSport]) return prefs[selectedSport];
+      if (prefs[selectedSport]) {
+        var stored = prefs[selectedSport];
+        // Migrate legacy advantageRule → deuceRule (+ twoPointAdvantage default on)
+        if (stored.advantageRule !== undefined && stored.deuceRule === undefined) stored.deuceRule = !!stored.advantageRule;
+        if (stored.twoPointAdvantage === undefined) stored.twoPointAdvantage = true;
+        return stored;
+      }
     } catch(e) {}
-    return _casualDefaults[selectedSport] || { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', advantageRule:true, tieRule:'ask' };
+    return _casualDefaults[selectedSport] || { type:'sets', setsToWin:1, gamesPerSet:6, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'tennis', deuceRule:false, twoPointAdvantage:true, tieRule:'ask' };
   }
 
   var _tieRuleLabels = { 'ask': 'Perguntar no jogo', 'extend': 'Prorrogar (vantagem de 2)', 'tiebreak': 'Tie-break 7pts', 'supertiebreak': 'Super tie-break 10pts' };
@@ -4738,9 +4754,13 @@ window._openCasualMatch = function() {
     parts.push(cfg.gamesPerSet + ' games');
     if (cfg.countingType === 'tennis') parts.push('15-30-40');
     else parts.push('1-2-3');
-    if (cfg.advantageRule) parts.push('AD');
-    var tr = cfg.tieRule || 'ask';
-    parts.push('Empate: ' + (_tieRuleLabels[tr] || tr));
+    if (cfg.deuceRule) parts.push('AD');
+    if (cfg.twoPointAdvantage !== false) {
+      var tr = cfg.tieRule || 'ask';
+      parts.push('Empate: ' + (_tieRuleLabels[tr] || tr));
+    } else {
+      parts.push('Sem vantagem de 2');
+    }
     return parts.join(' · ');
   }
 
@@ -5273,7 +5293,6 @@ window._openCasualMatch = function() {
     var content = document.getElementById('casual-setup-content');
     if (!content) return;
 
-    var isSimple = !cfg.type || cfg.type !== 'sets';
     var tr = cfg.tieRule || 'ask';
 
     // Sport buttons for config screen
@@ -5311,17 +5330,7 @@ window._openCasualMatch = function() {
           '<label class="toggle-switch" style="--toggle-on-bg:#38bdf8;"><input type="checkbox" ' + (isDoubles ? 'checked' : '') + ' onchange="window._casualSetDoubles(this.checked)"><span class="toggle-slider"></span></label>' +
         '</div>' +
 
-        // Scoring type
-        '<div style="margin-bottom:1rem;">' +
-          '<label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">' + _t('casual.scoreType') + '</label>' +
-          '<div style="display:flex;gap:8px;">' +
-            '<button onclick="window._casualSetType(\'simple\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (isSimple ? '#10b981' : 'rgba(255,255,255,0.12)') + ';background:' + (isSimple ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (isSimple ? '#10b981' : 'var(--text-muted)') + ';">' + _t('casual.simple') + '</button>' +
-            '<button onclick="window._casualSetType(\'sets\')" style="flex:1;padding:10px;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:600;border:2px solid ' + (!isSimple ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (!isSimple ? 'rgba(129,140,248,0.12)' : 'rgba(255,255,255,0.04)') + ';color:' + (!isSimple ? '#818cf8' : 'var(--text-muted)') + ';">Game Set Match</button>' +
-          '</div>' +
-        '</div>' +
-
         // GSM options
-        (isSimple ? '' :
         '<div style="display:flex;flex-direction:column;gap:12px;">' +
           // Sets to win
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
@@ -5351,37 +5360,29 @@ window._openCasualMatch = function() {
               '<button onclick="window._casualSetCfg(\'countingType\',\'numeric\')" style="padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid ' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'rgba(255,255,255,0.12)') + ';background:' + (cfg.countingType !== 'tennis' ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.04)') + ';color:' + (cfg.countingType !== 'tennis' ? '#818cf8' : 'var(--text-muted)') + ';">1-2-3</button>' +
             '</div>' +
           '</div>' +
-          // Tie-break toggle (default ON)
+          // AD toggle (game-level deuce — 40-40 → AD)
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.deuce') + '</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.deuceRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'deuceRule\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // 2-point advantage (set-level — set doesn't end 5-6; prorroga/tiebreak at tied g-1)
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.advantage') + '</span>' +
+            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.twoPointAdvantage !== false ? 'checked' : '') + ' onchange="window._casualSetCfg(\'twoPointAdvantage\',this.checked)"><span class="toggle-slider"></span></label>' +
+          '</div>' +
+          // Tie-break toggle — only relevant when twoPointAdvantage is on
+          (cfg.twoPointAdvantage !== false ?
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
             '<span style="font-size:0.82rem;color:var(--text-bright);">Tie-break</span>' +
             '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.tieRule === 'tiebreak' || cfg.tiebreakEnabled ? 'checked' : '') + ' onchange="window._casualSetCfg(\'tieRule\',this.checked?\'tiebreak\':\'ask\');window._casualSetCfg(\'tiebreakEnabled\',this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
-          // 2-point advantage toggle
-          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<span style="font-size:0.82rem;color:var(--text-bright);">' + _t('casual.advantage') + '</span>' +
-            '<label class="toggle-switch" style="--toggle-on-bg:#818cf8;"><input type="checkbox" ' + (cfg.advantageRule ? 'checked' : '') + ' onchange="window._casualSetCfg(\'advantageRule\',this.checked)"><span class="toggle-slider"></span></label>' +
-          '</div>' +
-        '</div>'
-        ) +
+          '</div>'
+          : '') +
+        '</div>' +
       '</div>';
   };
 
   // Temp config object for editing
   var _tempCfg = null;
-
-  window._casualSetType = function(type) {
-    if (type === 'simple') {
-      _tempCfg = { type: 'simple' };
-    } else {
-      var base = _getConfig();
-      if (base.type !== 'sets') {
-        base = _casualDefaults[selectedSport] || _casualDefaults['Beach Tennis'];
-      }
-      _tempCfg = Object.assign({}, base, { type: 'sets' });
-    }
-    _saveTempCfg();
-    window._casualOpenConfig();
-  };
 
   window._casualSetCfg = function(key, value) {
     if (!_tempCfg) _tempCfg = Object.assign({}, _getConfig());
@@ -5394,7 +5395,7 @@ window._openCasualMatch = function() {
     if (!_tempCfg) return;
     try {
       var prefs = JSON.parse(localStorage.getItem('scoreplace_casual_prefs') || '{}');
-      prefs[selectedSport === '_simple' ? '_casual' : selectedSport] = _tempCfg;
+      prefs[selectedSport] = _tempCfg;
       localStorage.setItem('scoreplace_casual_prefs', JSON.stringify(prefs));
     } catch(e) {}
   }
@@ -5503,7 +5504,7 @@ window._openCasualMatch = function() {
     var players = _buildPlayers();
     var cfg = _getConfig();
     var cu = window.AppStore && window.AppStore.currentUser;
-    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
+    var sportLabel = selectedSport;
 
     var roomCode = _sessionRoomCode;
 
@@ -5748,7 +5749,7 @@ window._openCasualMatch = function() {
     }
 
     var cfg = _getConfig();
-    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
+    var sportLabel = selectedSport;
 
     // If not yet saved to Firestore, save now
     if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
@@ -5851,7 +5852,7 @@ window._openCasualMatch = function() {
 
   // Auto-save to Firestore immediately so QR code works before clicking anything
   if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
-    var sportLabel = selectedSport === '_simple' ? 'Placar Simples' : selectedSport;
+    var sportLabel = selectedSport;
     window.FirestoreDB.saveCasualMatch({
       createdBy: cu.uid,
       createdByName: cu.displayName || '',
