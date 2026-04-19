@@ -1291,8 +1291,17 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     }
   }
 
-  // "Ao Vivo" button: shown on user's own undecided matches when players can launch results
-  const liveBtn = (_isMyMatch && !isDecided && !isByeMatch && !hasTBD && window._resultEntryIncludes(t, 'players'))
+  // "Ao Vivo" button: shown on undecided matches to whoever is allowed to score.
+  // Organizer → always. Participant → if the 'players' rule is active and this
+  // is their match. Referee → if the 'referee' rule is active (any logged-in
+  // viewer, matching the permissive model used by canEnterResult elsewhere).
+  const _isOrgLocal = !!(window.AppStore && typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t));
+  const _canScoreLive = !isDecided && !isByeMatch && !hasTBD && (
+    _isOrgLocal ||
+    (_isMyMatch && window._resultEntryIncludes(t, 'players')) ||
+    (_cu && _cu.uid && window._resultEntryIncludes(t, 'referee'))
+  );
+  const liveBtn = _canScoreLive
     ? `<button onclick="window._openLiveScoring('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
         onmouseover="this.style.background='rgba(239,68,68,0.3)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'"
