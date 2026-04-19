@@ -1,5 +1,51 @@
 // Dynamically update stat-boxes after participant/waitlist changes
 var _t = window._t || function(k) { return k; };
+
+// Self-healing: when enrollments are open (status not 'closed' AND no draw yet),
+// the waitlist/standby lists should always be empty. Anyone sitting there from a
+// previous closed state gets promoted back to the main roster. Dedupe by
+// email/uid/displayName/name. Returns the number of promoted entries.
+// Call with { save: true } to persist to Firestore when any promotion happens.
+window._drainWaitlistsIfOpen = function(t, opts) {
+    if (!t) return 0;
+    var hasDraw = (Array.isArray(t.matches) && t.matches.length > 0)
+        || (Array.isArray(t.rounds) && t.rounds.length > 0)
+        || (Array.isArray(t.groups) && t.groups.length > 0);
+    var isReallyOpen = t.status !== 'closed' && t.status !== 'finished' && !hasDraw;
+    if (!isReallyOpen) return 0;
+    var hasStandby = Array.isArray(t.standbyParticipants) && t.standbyParticipants.length > 0;
+    var hasWaitlist = Array.isArray(t.waitlist) && t.waitlist.length > 0;
+    if (!hasStandby && !hasWaitlist) return 0;
+    if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
+    var promoted = 0;
+    function promote(list) {
+        if (!Array.isArray(list) || list.length === 0) return;
+        list.forEach(function(sp) {
+            var spEmail = (sp && sp.email) || '';
+            var spUid = (sp && sp.uid) || '';
+            var spName = (sp && (sp.displayName || sp.name)) || (typeof sp === 'string' ? sp : '');
+            var already = t.participants.some(function(p) {
+                if (typeof p === 'string') return (spEmail && p === spEmail) || (spName && p === spName);
+                return (p.email && spEmail && p.email === spEmail)
+                    || (p.uid && spUid && p.uid === spUid)
+                    || (p.displayName && spName && p.displayName === spName)
+                    || (p.name && spName && p.name === spName);
+            });
+            if (!already) { t.participants.push(sp); promoted++; }
+        });
+    }
+    promote(t.standbyParticipants);
+    promote(t.waitlist);
+    t.standbyParticipants = [];
+    t.waitlist = [];
+    if (opts && opts.save && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+        window.FirestoreDB.saveTournament(t).catch(function() {});
+    }
+    if (promoted > 0 && window.AppStore && typeof window.AppStore.logAction === 'function') {
+        window.AppStore.logAction(t.id, promoted + ' participante(s) promovido(s) da lista de espera (inscrições abertas)');
+    }
+    return promoted;
+};
 window._updateStatBoxes = function(t) {
     var row = document.getElementById('stat-boxes-row');
     if (!row || !t) return;
@@ -523,6 +569,11 @@ function renderTournaments(container, tournamentId = null) {
           if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
             window.FirestoreDB.saveTournament({ id: t.id, status: 'closed' }).catch(function() {});
           }
+        }
+
+        // Self-heal: enrollments open + no draw => drain any residual waitlist/standby into participants
+        if (isAberto && !sorteioRealizado && typeof window._drainWaitlistsIfOpen === 'function') {
+          window._drainWaitlistsIfOpen(t, { save: true });
         }
 
         const statusText = isFinished ? '🏆 ' + _t('status.finished') : (ligaAberta ? _t('tournament.leagueOpenEnroll') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed'))));
