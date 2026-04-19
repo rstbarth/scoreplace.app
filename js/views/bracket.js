@@ -1898,13 +1898,14 @@ function renderStandings(t, isOrg, canEnterResult) {
     });
   }
 
-  // Placeholder round cards for upcoming rounds — shows every round of the
-  // tournament up front, with TBD match slots that fill in as adversaries are
-  // defined. Two phases may appear: Swiss classification (remaining Swiss
-  // rounds) and, when Swiss is the p2 resolution, the elimination phase that
-  // follows.
-  var upcomingRoundsHtml = '';
+  // Round layout — Swiss tournaments (non-Rei/Rainha) use a horizontal
+  // column-per-round scroll, matching the linear elim bracket. Every round of
+  // the tournament shows up front, with TBD match slots that fill in as
+  // adversaries are defined. Two phases may appear: Swiss classification
+  // (remaining Swiss rounds) and, when Swiss is the p2 resolution, the
+  // elimination phase that follows.
   var isSwissClassification = isSuico && t.p2Resolution === 'swiss' && t.currentStage === 'swiss' && t.p2TargetCount;
+  var useColumnLayout = isSuico && !_isReiRainhaRound;
 
   // Minimal TBD match card (no inputs, no handlers — purely visual).
   var _tbdMatchCard = function(matchNum, accentColor) {
@@ -1914,7 +1915,7 @@ function renderStandings(t, isOrg, canEnterResult) {
                  '<div style="flex:1;color:var(--text-muted);font-weight:600;font-size:0.88rem;">' + _t('bracket.tbd') + '</div>' +
                '</div>';
     var _vs = '<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:3px 0;">VS</div>';
-    return '<div style="background:var(--bg-card);border:1px dashed ' + _accent + ';border-radius:12px;padding:10px;opacity:0.7;min-width:240px;max-width:320px;flex:1;">' +
+    return '<div style="background:var(--bg-card);border:1px dashed ' + _accent + ';border-radius:12px;padding:10px;opacity:0.7;min-width:260px;max-width:320px;">' +
              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
                '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">' + _t('bracket.matchNum', {n: matchNum}) + '</span>' +
                '<span style="font-size:0.7rem;color:var(--text-muted);">⏳</span>' +
@@ -1923,70 +1924,133 @@ function renderStandings(t, isOrg, canEnterResult) {
            '</div>';
   };
 
-  var _buildTbdRoundCard = function(title, subtitle, matchesCount, borderAccent, titleColor, matchAccent) {
-    var _cards = '';
-    for (var _mi = 1; _mi <= matchesCount; _mi++) _cards += _tbdMatchCard(_mi, matchAccent);
-    return '<div class="card" style="margin-top:1rem;opacity:0.8;border-style:dashed;' + (borderAccent ? 'border-color:' + borderAccent + ';' : '') + '">' +
-             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">' +
-               '<h3 class="card-title" style="margin:0;' + (titleColor ? 'color:' + titleColor + ';' : '') + '">' + title + '</h3>' +
-               '<span style="font-size:0.75rem;color:var(--text-muted);">' + subtitle + '</span>' +
-             '</div>' +
-             '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + _cards + '</div>' +
-           '</div>';
-  };
+  // ─── Column layout (Swiss, non-Rei/Rainha) ─────────────────────────────────
+  var roundsScrollHtml = '';
+  if (useColumnLayout) {
+    var _roundColumns = [];
+    var _tIdEsc = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-  // Upcoming Swiss rounds: same number of matches as the current round (minus sit-outs).
-  if (isSuico && currentRound < maxRounds) {
-    var _swissMatchesPerRound = (currentRoundData.matches || []).filter(function(m) { return !m.isSitOut; }).length;
-    if (_swissMatchesPerRound < 1) _swissMatchesPerRound = 1;
-    for (var _upR = currentRound + 1; _upR <= maxRounds; _upR++) {
-      upcomingRoundsHtml += _buildTbdRoundCard(
-        _t('bracket.round', {n: _upR}) + ' / ' + maxRounds,
-        '⏳ ' + _t('bracket.awaitingPrevRound'),
-        _swissMatchesPerRound,
-        null, null, null
-      );
-    }
-  }
+    // Current round column — real match cards (with inputs when allowed).
+    var _prevMatchCount = rounds.slice(0, currentRound - 1).reduce(function(s, r) { return s + (r.matches || []).length; }, 0);
+    var _currentMatchesHtml = (currentRoundData.matches || []).map(function(m, idx) {
+      return renderMatchCard(m, canEnterResult, t.id, _prevMatchCount + idx + 1);
+    }).join('');
+    var _currentLabel = _t('bracket.round', {n: currentRound}) + ' / ' + maxRounds;
+    var _currentStatusBadge = currentRoundData.status === 'complete'
+      ? '<span style="color:#4ade80;font-size:0.7rem;font-weight:700;white-space:nowrap;">✓ ' + _t('bracket.complete') + '</span>'
+      : (isFinished ? '<span style="color:#fbbf24;font-weight:700;font-size:0.7rem;white-space:nowrap;">' + _t('bracket.tournamentFinished') + '</span>' : '');
+    var _closeBtn = (isOrg && !isFinished && allComplete)
+      ? '<button onclick="window._closeRound(\'' + _tIdEsc + '\', ' + (currentRound - 1) + ')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:5px 12px;font-weight:600;cursor:pointer;font-size:0.72rem;white-space:nowrap;">' + _t('bracket.closeRound') + '</button>'
+      : '';
+    _roundColumns.push(
+      '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '<h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">' + _currentLabel + '</h4>' +
+          _currentStatusBadge + _closeBtn +
+        '</div>' +
+        (rankingCountdownHtml || '') +
+        '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + _currentMatchesHtml + '</div>' +
+      '</div>'
+    );
 
-  // Upcoming elimination phase placeholders (when Swiss is only the p2 resolution)
-  if (isSwissClassification) {
-    var _elimRounds = Math.log2(t.p2TargetCount);
-    if (Number.isInteger(_elimRounds) && _elimRounds > 0) {
-      upcomingRoundsHtml +=
-        '<div style="margin-top:1.5rem;padding:10px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:10px;font-weight:700;color:#fbbf24;font-size:0.85rem;">' +
-          _t('bracket.phaseElim', {n: t.p2TargetCount}) +
-        '</div>';
-      for (var _er = 1; _er <= _elimRounds; _er++) {
-        var _fromEnd = _elimRounds - _er;
-        var _phaseLabel;
-        if (_fromEnd === 0) _phaseLabel = _t('bracket.final');
-        else if (_fromEnd === 1) _phaseLabel = _t('bracket.semiFinal');
-        else if (_fromEnd === 2) _phaseLabel = _t('bracket.quarterFinal');
-        else if (_fromEnd === 3) _phaseLabel = _t('bracket.roundOf16');
-        else _phaseLabel = _t('bracket.round', {n: _er});
-        var _elimMatchesCount = t.p2TargetCount / Math.pow(2, _er);
-        upcomingRoundsHtml += _buildTbdRoundCard(
-          '🏆 ' + _phaseLabel,
-          '⏳ ' + _t('bracket.awaitingSwissEnd'),
-          _elimMatchesCount,
-          'rgba(251,191,36,0.4)',
-          '#fbbf24',
-          'rgba(251,191,36,0.4)'
+    // Upcoming Swiss rounds — TBD placeholders, same match count as current round.
+    if (currentRound < maxRounds) {
+      var _swissMatchesPerRound = (currentRoundData.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+      if (_swissMatchesPerRound < 1) _swissMatchesPerRound = 1;
+      for (var _upR = currentRound + 1; _upR <= maxRounds; _upR++) {
+        var _tbdSwiss = '';
+        for (var _mi = 1; _mi <= _swissMatchesPerRound; _mi++) _tbdSwiss += _tbdMatchCard(_mi, null);
+        _roundColumns.push(
+          '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;opacity:0.9;">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<h4 style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid rgba(148,163,184,0.35);padding-left:8px;flex:1;">' + _t('bracket.round', {n: _upR}) + ' / ' + maxRounds + '</h4>' +
+            '</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">⏳ ' + _t('bracket.awaitingPrevRound') + '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + _tbdSwiss + '</div>' +
+          '</div>'
         );
       }
     }
-  }
 
-  // Classification phase header (shown above current round when Swiss is the p2 resolution)
-  var phaseHeaderHtml = '';
-  if (isSwissClassification) {
-    phaseHeaderHtml =
-      '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
-        _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
+    // Upcoming elim columns (Swiss-as-p2-resolution)
+    if (isSwissClassification) {
+      var _elimRounds = Math.log2(t.p2TargetCount);
+      if (Number.isInteger(_elimRounds) && _elimRounds > 0) {
+        for (var _er = 1; _er <= _elimRounds; _er++) {
+          var _fromEnd = _elimRounds - _er;
+          var _phaseLabel;
+          if (_fromEnd === 0) _phaseLabel = _t('bracket.final');
+          else if (_fromEnd === 1) _phaseLabel = _t('bracket.semiFinal');
+          else if (_fromEnd === 2) _phaseLabel = _t('bracket.quarterFinal');
+          else if (_fromEnd === 3) _phaseLabel = _t('bracket.roundOf16');
+          else _phaseLabel = _t('bracket.round', {n: _er});
+          var _elimMatchesCount = t.p2TargetCount / Math.pow(2, _er);
+          var _tbdElim = '';
+          for (var _mie = 1; _mie <= _elimMatchesCount; _mie++) _tbdElim += _tbdMatchCard(_mie, 'rgba(251,191,36,0.4)');
+          _roundColumns.push(
+            '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;opacity:0.9;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<h4 style="color:#fbbf24;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid rgba(251,191,36,0.5);padding-left:8px;flex:1;">🏆 ' + _phaseLabel + '</h4>' +
+              '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">⏳ ' + _t('bracket.awaitingSwissEnd') + '</div>' +
+              '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + _tbdElim + '</div>' +
+            '</div>'
+          );
+        }
+      }
+    }
+
+    // Phase banner above the scroll (compact — info about the two phases).
+    var _phaseBanner = '';
+    if (isSwissClassification) {
+      _phaseBanner =
+        '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
+          _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
+          ' <span style="color:var(--text-muted);font-weight:500;">→</span> ' +
+          '<span style="color:#fbbf24;">🏆 ' + _t('bracket.phaseElim', {n: t.p2TargetCount}) + '</span>' +
+        '</div>';
+    }
+
+    roundsScrollHtml = _phaseBanner +
+      '<div class="bracket-sticky-scroll-wrapper" style="overflow-x:auto;overflow-y:visible;display:block;width:100%;max-width:100%;margin-top:1rem;">' +
+        '<div class="bracket-scroll-content" style="display:inline-flex;gap:32px;align-items:flex-start;padding:1rem 0;min-width:max-content;">' +
+          _roundColumns.join('') +
+          '<div style="min-width:80px;flex-shrink:0;">&nbsp;</div>' +
+        '</div>' +
       '</div>';
   }
 
+  // ─── Legacy stacked-card layout (Liga/Ranking, Rei/Rainha rounds) ──────────
+  var upcomingRoundsHtml = '';
+  var phaseHeaderHtml = '';
+  if (!useColumnLayout) {
+    if (isSuico && currentRound < maxRounds) {
+      var _legacySwissPerRound = (currentRoundData.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+      if (_legacySwissPerRound < 1) _legacySwissPerRound = 1;
+      for (var _legR = currentRound + 1; _legR <= maxRounds; _legR++) {
+        var _legCards = '';
+        for (var _legMi = 1; _legMi <= _legacySwissPerRound; _legMi++) _legCards += _tbdMatchCard(_legMi, null);
+        upcomingRoundsHtml +=
+          '<div class="card" style="margin-top:1rem;opacity:0.8;border-style:dashed;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">' +
+              '<h3 class="card-title" style="margin:0;">' + _t('bracket.round', {n: _legR}) + ' / ' + maxRounds + '</h3>' +
+              '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingPrevRound') + '</span>' +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + _legCards + '</div>' +
+          '</div>';
+      }
+    }
+    if (isSwissClassification) {
+      phaseHeaderHtml =
+        '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
+          _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
+        '</div>';
+    }
+  }
+
+  if (useColumnLayout) {
+    return standingsTablesHtml + roundsScrollHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  }
   return standingsTablesHtml + phaseHeaderHtml + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
