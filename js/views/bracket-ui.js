@@ -465,8 +465,9 @@ window._toggleRoundVisibility = function (tId, roundNum) {
   }
   _rerenderBracket(tId);
 
-  // After hiding, scroll so the next visible round becomes the first column
-  // the user sees (the round that "took over" the hidden one's spot).
+  // After hiding, scroll so the next visible round's title ("QUARTAS DE FINAL"
+  // etc.) sits at the very top of the viewport — accounting for the fixed
+  // topbar and sticky back header so nothing covers the label.
   if (!wasHidden) {
     setTimeout(function () {
       var cols = document.querySelectorAll('.bracket-round-column[data-round-num]');
@@ -475,13 +476,49 @@ window._toggleRoundVisibility = function (tId, roundNum) {
         var rn = parseInt(cols[i].getAttribute('data-round-num'), 10);
         if (!isNaN(rn) && rn > roundNum) { target = cols[i]; break; }
       }
-      // Fallback: first visible column if no higher-numbered round exists
       if (!target && cols.length > 0) target = cols[0];
-      if (target && typeof target.scrollIntoView === 'function') {
+      if (!target) return;
+
+      // Measure fixed/sticky headers above the content so we can offset the
+      // scroll position — otherwise the round title lands under them.
+      var topbar = document.querySelector('.topbar');
+      var backHeader = document.querySelector('.sticky-back-header');
+      var offset = 0;
+      if (topbar) {
+        var tbRect = topbar.getBoundingClientRect();
+        if (getComputedStyle(topbar).position === 'fixed' || tbRect.top <= 0) {
+          offset += tbRect.height;
+        }
+      }
+      if (backHeader) {
+        offset += backHeader.getBoundingClientRect().height;
+      }
+      // Small breathing room so the label doesn't hug the header bottom edge
+      offset += 8;
+
+      var rect = target.getBoundingClientRect();
+      var absoluteTop = rect.top + window.pageYOffset;
+      var scrollY = Math.max(0, absoluteTop - offset);
+
+      try {
+        window.scrollTo({ top: scrollY, behavior: 'smooth' });
+      } catch (e) {
+        window.scrollTo(0, scrollY);
+      }
+
+      // Horizontal scroll for the bracket container (so the target round
+      // is the leftmost visible column in wide brackets).
+      var scrollParent = target.parentElement;
+      while (scrollParent && scrollParent !== document.body) {
+        var ov = getComputedStyle(scrollParent).overflowX;
+        if (ov === 'auto' || ov === 'scroll') break;
+        scrollParent = scrollParent.parentElement;
+      }
+      if (scrollParent && scrollParent !== document.body) {
         try {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+          scrollParent.scrollTo({ left: target.offsetLeft - scrollParent.offsetLeft, behavior: 'smooth' });
         } catch (e) {
-          target.scrollIntoView();
+          scrollParent.scrollLeft = target.offsetLeft - scrollParent.offsetLeft;
         }
       }
     }, 50);
