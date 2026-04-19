@@ -2300,30 +2300,36 @@ window.toggleRegistrationStatus = function (tId) {
                 }
                 t.activePollId = null;
             }
-            // Promote standby/waitlist participants back to main list — the waitlist
-            // only existed because enrollments were closed; now that they're open again,
-            // those participants should hold regular spots instead of waiting.
+            // Promote everyone on any waitlist back to the main list — once enrollments
+            // are open again, there's no reason to keep anyone waiting. Drains both
+            // t.standbyParticipants (draw-time standby) and t.waitlist (late-enrollment
+            // waitlist), with duplicate check by email/uid/displayName.
             var _promoted = 0;
-            if (Array.isArray(t.standbyParticipants) && t.standbyParticipants.length > 0) {
-                if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
-                t.standbyParticipants.forEach(function(sp) {
+            if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
+            function _promoteList(list) {
+                if (!Array.isArray(list) || list.length === 0) return;
+                list.forEach(function(sp) {
                     var spEmail = (sp && sp.email) || '';
                     var spUid = (sp && sp.uid) || '';
-                    var spName = (sp && (sp.displayName || sp.name)) || '';
+                    var spName = (sp && (sp.displayName || sp.name)) || (typeof sp === 'string' ? sp : '');
                     var already = t.participants.some(function(p) {
                         if (typeof p === 'string') return (spEmail && p === spEmail) || (spName && p === spName);
                         return (p.email && spEmail && p.email === spEmail) ||
                                (p.uid && spUid && p.uid === spUid) ||
-                               (p.displayName && spName && p.displayName === spName);
+                               (p.displayName && spName && p.displayName === spName) ||
+                               (p.name && spName && p.name === spName);
                     });
                     if (!already) {
                         t.participants.push(sp);
                         _promoted++;
                     }
                 });
-                t.standbyParticipants = [];
-                if (_promoted > 0) window.AppStore.logAction(tId, _promoted + ' participante(s) promovido(s) da lista de espera ao reabrir inscrições');
             }
+            _promoteList(t.standbyParticipants);
+            _promoteList(t.waitlist);
+            t.standbyParticipants = [];
+            t.waitlist = [];
+            if (_promoted > 0) window.AppStore.logAction(tId, _promoted + ' participante(s) promovido(s) da lista de espera ao reabrir inscrições');
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
             // Notify participants about reopened enrollments
             if (typeof window._notifyTournamentParticipants === 'function') {
