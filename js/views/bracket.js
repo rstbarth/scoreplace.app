@@ -947,37 +947,62 @@ function renderDoubleElimBracket(t, canEnterResult) {
   // Auto-reparação para dupla eliminatória também
   _ensureFutureRounds(t);
 
-  // Mostrar TODOS os jogos (incluindo futuros com TBD)
-  const upperMatches = (t.matches || []).filter(m => m.bracket === 'upper' || (!m.bracket && m.bracket !== 'lower' && m.bracket !== 'grand'));
-  const lowerMatches = (t.matches || []).filter(m => m.bracket === 'lower');
-  const grandFinal = (t.matches || []).filter(m => m.bracket === 'grand');
+  // Source per-bracket column layout from the unified adapter. Adapter emits
+  // one column per (bracket, round) combo with bracket ∈ {upper, lower, grand}
+  // for double-elim. When unavailable, fall back to manual partitioning of
+  // t.matches by m.bracket.
+  var unified = (typeof window._getUnifiedRounds === 'function')
+    ? window._getUnifiedRounds(t)
+    : null;
+  var upperCols, lowerCols, grandCols;
+  if (unified) {
+    upperCols = unified.columns.filter(function(c) { return c.bracket === 'upper'; });
+    lowerCols = unified.columns.filter(function(c) { return c.bracket === 'lower'; });
+    grandCols = unified.columns.filter(function(c) { return c.bracket === 'grand'; });
+  } else {
+    var bucket = function(pred) {
+      var map = {};
+      (t.matches || []).filter(pred).forEach(function(m) {
+        if (!map[m.round]) map[m.round] = [];
+        map[m.round].push(m);
+      });
+      return Object.keys(map).sort(function(a, b) { return Number(a) - Number(b); }).map(function(r) {
+        return { round: Number(r), matches: map[r], bracket: (map[r][0] || {}).bracket || null };
+      });
+    };
+    upperCols = bucket(function(m) { return m.bracket === 'upper' || !m.bracket; });
+    lowerCols = bucket(function(m) { return m.bracket === 'lower'; });
+    grandCols = bucket(function(m) { return m.bracket === 'grand'; });
+  }
 
   let deGlobalNum = 0;
-  const renderSection = (matches, title, color) => {
-    if (!matches.length) return '';
-    const rMap = {};
-    matches.forEach(m => { if (!rMap[m.round]) rMap[m.round] = []; rMap[m.round].push(m); });
-    const sorted = Object.keys(rMap).sort((a, b) => Number(a) - Number(b));
-    const cols = sorted.map(r => `
+  const renderSection = (cols, title, color) => {
+    if (!cols || !cols.length) return '';
+    const colsHtml = cols.map(function(col) {
+      var matches = col.matches || [];
+      return `
       <div style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
-        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${_t('bracket.round', {n: r})}</h5>
-        ${rMap[r].map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}
-      </div>`).join('');
+        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${_t('bracket.round', {n: col.round})}</h5>
+        ${matches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}
+      </div>`;
+    }).join('');
     return `
       <div style="margin-bottom:2rem;">
         <h4 style="color:var(--text-bright);font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;border-left:3px solid ${color};padding-left:10px;margin-bottom:1rem;">${title}</h4>
-        <div class="bracket-scroll-container" style="display:flex;gap:32px;overflow-x:auto;padding-bottom:8px;"><div style="display:flex;gap:32px;min-width:max-content;">${cols}<div style="min-width:200px;flex-shrink:0;">&nbsp;</div></div></div>
+        <div class="bracket-scroll-container" style="display:flex;gap:32px;overflow-x:auto;padding-bottom:8px;"><div style="display:flex;gap:32px;min-width:max-content;">${colsHtml}<div style="min-width:200px;flex-shrink:0;">&nbsp;</div></div></div>
       </div>`;
   };
 
+  var grandMatches = grandCols.reduce(function(acc, c) { return acc.concat(c.matches || []); }, []);
+
   return `
     <div>
-      ${renderSection(upperMatches, 'Chaveamento Superior', '#10b981')}
-      ${renderSection(lowerMatches, 'Chaveamento Inferior', '#f59e0b')}
-      ${grandFinal.length ? `
+      ${renderSection(upperCols, 'Chaveamento Superior', '#10b981')}
+      ${renderSection(lowerCols, 'Chaveamento Inferior', '#f59e0b')}
+      ${grandMatches.length ? `
         <div style="margin-top:1rem;padding-top:1.5rem;border-top:1px solid var(--border-color);">
           <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">🏆 ${_t('bracket.grandFinal')}</h4>
-          <div style="max-width:280px;">${grandFinal.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
+          <div style="max-width:280px;">${grandMatches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
         </div>` : ''}
     </div>`;
 }

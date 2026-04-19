@@ -148,45 +148,91 @@
   }
 
   // ── Single-elim columns from t.matches[] ─────────────────────────────────
+  // For double-elim, columns are emitted once per (bracket, round) combo —
+  // ordered: all 'upper' by round, then all 'lower' by round, then 'grand'.
+  // For single-elim (no m.bracket field), bracket === null and columns are
+  // ordered by round only (identical to the pre-v0.12.62 behavior).
   function _buildElimColumns(t) {
     var matches = Array.isArray(t.matches) ? t.matches : [];
     if (matches.length === 0) return [];
 
-    // Group by round
-    var byRound = {};
+    // Bucket by bracket (null for single-elim) then by round.
+    var buckets = {}; // bracket -> byRound
+    var bracketsSeen = {};
     matches.forEach(function (m) {
+      var b = m.bracket || null;
+      bracketsSeen[b === null ? '__single' : b] = true;
+      if (!buckets[b]) buckets[b] = {};
       var k = m.round;
-      if (!byRound[k]) byRound[k] = [];
-      byRound[k].push(m);
+      if (!buckets[b][k]) buckets[b][k] = [];
+      buckets[b][k].push(m);
     });
 
-    // Sort keys: repechage (negative) after 1 but before 2, play-in (0) first
-    var keys = Object.keys(byRound).map(Number).sort(function (a, b) {
-      var aKey = a < 0 ? 1.5 + (Math.abs(a) * 0.01) : a;
-      var bKey = b < 0 ? 1.5 + (Math.abs(b) * 0.01) : b;
-      return aKey - bKey;
+    // Determine bracket iteration order
+    var bracketOrder;
+    if (bracketsSeen.__single) {
+      bracketOrder = [null];
+    } else {
+      bracketOrder = ['upper', 'lower', 'grand'].filter(function (b) { return bracketsSeen[b]; });
+    }
+
+    var allPositiveRounds = Object.keys(buckets).reduce(function (acc, b) {
+      Object.keys(buckets[b]).forEach(function (k) {
+        var n = Number(k);
+        if (n >= 1 && acc.indexOf(n) === -1) acc.push(n);
+      });
+      return acc;
+    }, []).sort(function (a, b) { return a - b; });
+
+    var result = [];
+    bracketOrder.forEach(function (br) {
+      var byRound = buckets[br];
+      var keys = Object.keys(byRound).map(Number).sort(function (a, b) {
+        var aKey = a < 0 ? 1.5 + (Math.abs(a) * 0.01) : a;
+        var bKey = b < 0 ? 1.5 + (Math.abs(b) * 0.01) : b;
+        return aKey - bKey;
+      });
+      // For single-elim labeling, positiveRounds drives naming (Final/Semi/…).
+      // For double-elim upper bracket we keep the round-number labeling since
+      // the legacy renderer just uses "Rodada N".
+      var positiveRounds = br === null
+        ? keys.filter(function (r) { return r >= 1; })
+        : allPositiveRounds;
+      keys.forEach(function (roundNum) {
+        var rMatches = byRound[roundNum];
+        var phase;
+        if (br === 'grand') phase = 'grandfinal';
+        else if (roundNum === 0) phase = 'playin';
+        else if (roundNum < 0) phase = 'repechage';
+        else phase = 'elim';
+
+        var label;
+        if (br === null) {
+          label = _labelElimRound(roundNum, positiveRounds);
+        } else if (br === 'grand') {
+          label = _tr('bracket.grandFinal', LABELS.grandfinal);
+        } else {
+          // upper/lower bracket: keep simple round label
+          label = _tr('bracket.round', 'Rodada ' + roundNum, { n: roundNum });
+        }
+
+        result.push({
+          id: 'elim-' + (br || 'r') + '-r' + roundNum,
+          phase: phase,
+          label: label,
+          round: roundNum,
+          status: _roundStatus(rMatches),
+          historical: _roundStatus(rMatches) === 'done',
+          matches: rMatches.slice(),
+          subgroups: undefined,
+          category: null,
+          bracket: br,
+          meta: { raw: { round: roundNum, matches: rMatches, bracket: br } }
+        });
+      });
     });
 
-    var positiveRounds = keys.filter(function (r) { return r >= 1; });
-
-    return keys.map(function (roundNum) {
-      var rMatches = byRound[roundNum];
-      var phase = roundNum === 0 ? 'playin'
-                : roundNum < 0 ? 'repechage'
-                : 'elim';
-      return {
-        id: 'elim-r' + roundNum,
-        phase: phase,
-        label: _labelElimRound(roundNum, positiveRounds),
-        round: roundNum,
-        status: _roundStatus(rMatches),
-        historical: _roundStatus(rMatches) === 'done',
-        matches: rMatches.slice(),
-        subgroups: undefined,
-        category: null,
-        meta: { raw: { round: roundNum, matches: rMatches } }
-      };
-    });
+    return result;
   }
 
   // ── Group-stage column (one column, groups as subgroups) ─────────────────
