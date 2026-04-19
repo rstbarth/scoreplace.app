@@ -1898,24 +1898,54 @@ function renderStandings(t, isOrg, canEnterResult) {
     });
   }
 
-  // Placeholder cards for upcoming rounds — users see all rounds upfront,
-  // filling in as games happen. Two phases may appear: Swiss classification
-  // (if Swiss rounds remain) and, when Swiss is p2 resolution, the
-  // elimination phase that follows.
+  // Placeholder round cards for upcoming rounds — shows every round of the
+  // tournament up front, with TBD match slots that fill in as adversaries are
+  // defined. Two phases may appear: Swiss classification (remaining Swiss
+  // rounds) and, when Swiss is the p2 resolution, the elimination phase that
+  // follows.
   var upcomingRoundsHtml = '';
   var isSwissClassification = isSuico && t.p2Resolution === 'swiss' && t.currentStage === 'swiss' && t.p2TargetCount;
 
-  // Upcoming Swiss rounds
+  // Minimal TBD match card (no inputs, no handlers — purely visual).
+  var _tbdMatchCard = function(matchNum, accentColor) {
+    var _accent = accentColor || 'rgba(148,163,184,0.35)';
+    var _row = '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.02);border-radius:8px;">' +
+                 '<div style="width:28px;height:28px;border-radius:50%;background:rgba(148,163,184,0.12);border:1px dashed ' + _accent + ';display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem;flex-shrink:0;">?</div>' +
+                 '<div style="flex:1;color:var(--text-muted);font-weight:600;font-size:0.88rem;">' + _t('bracket.tbd') + '</div>' +
+               '</div>';
+    var _vs = '<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:3px 0;">VS</div>';
+    return '<div style="background:var(--bg-card);border:1px dashed ' + _accent + ';border-radius:12px;padding:10px;opacity:0.7;min-width:240px;max-width:320px;flex:1;">' +
+             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+               '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">' + _t('bracket.matchNum', {n: matchNum}) + '</span>' +
+               '<span style="font-size:0.7rem;color:var(--text-muted);">⏳</span>' +
+             '</div>' +
+             _row + _vs + _row +
+           '</div>';
+  };
+
+  var _buildTbdRoundCard = function(title, subtitle, matchesCount, borderAccent, titleColor, matchAccent) {
+    var _cards = '';
+    for (var _mi = 1; _mi <= matchesCount; _mi++) _cards += _tbdMatchCard(_mi, matchAccent);
+    return '<div class="card" style="margin-top:1rem;opacity:0.8;border-style:dashed;' + (borderAccent ? 'border-color:' + borderAccent + ';' : '') + '">' +
+             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">' +
+               '<h3 class="card-title" style="margin:0;' + (titleColor ? 'color:' + titleColor + ';' : '') + '">' + title + '</h3>' +
+               '<span style="font-size:0.75rem;color:var(--text-muted);">' + subtitle + '</span>' +
+             '</div>' +
+             '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + _cards + '</div>' +
+           '</div>';
+  };
+
+  // Upcoming Swiss rounds: same number of matches as the current round (minus sit-outs).
   if (isSuico && currentRound < maxRounds) {
+    var _swissMatchesPerRound = (currentRoundData.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+    if (_swissMatchesPerRound < 1) _swissMatchesPerRound = 1;
     for (var _upR = currentRound + 1; _upR <= maxRounds; _upR++) {
-      upcomingRoundsHtml +=
-        '<div class="card" style="margin-top:1rem;opacity:0.55;border-style:dashed;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">' +
-            '<h3 class="card-title" style="margin:0;">' + _t('bracket.round', {n: _upR}) + ' / ' + maxRounds + '</h3>' +
-            '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingPrevRound') + '</span>' +
-          '</div>' +
-          '<p style="color:var(--text-muted);font-size:0.82rem;margin:10px 0 0 0;">' + _t('bracket.awaitingPrevRoundDesc') + '</p>' +
-        '</div>';
+      upcomingRoundsHtml += _buildTbdRoundCard(
+        _t('bracket.round', {n: _upR}) + ' / ' + maxRounds,
+        '⏳ ' + _t('bracket.awaitingPrevRound'),
+        _swissMatchesPerRound,
+        null, null, null
+      );
     }
   }
 
@@ -1935,14 +1965,15 @@ function renderStandings(t, isOrg, canEnterResult) {
         else if (_fromEnd === 2) _phaseLabel = _t('bracket.quarterFinal');
         else if (_fromEnd === 3) _phaseLabel = _t('bracket.roundOf16');
         else _phaseLabel = _t('bracket.round', {n: _er});
-        upcomingRoundsHtml +=
-          '<div class="card" style="margin-top:0.75rem;opacity:0.55;border-style:dashed;border-color:rgba(251,191,36,0.4);">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">' +
-              '<h3 class="card-title" style="margin:0;color:#fbbf24;">🏆 ' + _phaseLabel + '</h3>' +
-              '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingSwissEnd') + '</span>' +
-            '</div>' +
-            '<p style="color:var(--text-muted);font-size:0.82rem;margin:10px 0 0 0;">' + _t('bracket.awaitingSwissEndDesc', {n: t.p2TargetCount}) + '</p>' +
-          '</div>';
+        var _elimMatchesCount = t.p2TargetCount / Math.pow(2, _er);
+        upcomingRoundsHtml += _buildTbdRoundCard(
+          '🏆 ' + _phaseLabel,
+          '⏳ ' + _t('bracket.awaitingSwissEnd'),
+          _elimMatchesCount,
+          'rgba(251,191,36,0.4)',
+          '#fbbf24',
+          'rgba(251,191,36,0.4)'
+        );
       }
     }
   }

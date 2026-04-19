@@ -286,6 +286,7 @@ window._translations['en'] = {
   'bracket.awaitingSwissEndDesc': 'This elimination round will be drawn after the top {n} are determined by the Swiss phase.',
   'bracket.phaseClassif': '🎯 Classification Phase — Swiss',
   'bracket.phaseElim': '🏆 Elimination Phase (Top {n})',
+  'bracket.tbd': 'TBD',
   'bracket.tournamentFinished': '🏆 Tournament Finished!',
   'bracket.standingsTitle': 'Standings — Round {n}',
   'bracket.standingsTitleCat': 'Standings — {cat} — Round {n}',

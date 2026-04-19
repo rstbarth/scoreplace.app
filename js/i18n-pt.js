@@ -286,6 +286,7 @@ window._translations['pt'] = {
   'bracket.awaitingSwissEndDesc': 'Esta rodada da fase eliminatória será sorteada após os {n} melhores serem definidos pela fase Suíço.',
   'bracket.phaseClassif': '🎯 Fase Classificatória — Suíço',
   'bracket.phaseElim': '🏆 Fase Eliminatória (Top {n})',
+  'bracket.tbd': 'A definir',
   'bracket.tournamentFinished': '🏆 Torneio Encerrado!',
   'bracket.standingsTitle': 'Classificação — Rodada {n}',
   'bracket.standingsTitleCat': 'Classificação — {cat} — Rodada {n}',
