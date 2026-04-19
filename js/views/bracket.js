@@ -762,7 +762,7 @@ function renderSingleElimBracket(t, canEnterResult) {
         return renderMatchCard(m, canEnterResult, t.id, globalMatchNum);
       }).join('');
       return `
-        <div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
+        <div class="bracket-round-column" data-round-num="${roundNum}" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">${label}${suffix ? ' ' + suffix : ''}</h4>
             ${hideBtn}
@@ -846,7 +846,7 @@ function renderSingleElimBracket(t, canEnterResult) {
         </div>` : '';
 
       roundColumns.push(`
-        <div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
+        <div class="bracket-round-column" data-round-num="${roundNum}" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">${label}</h4>
             ${hideBtn}

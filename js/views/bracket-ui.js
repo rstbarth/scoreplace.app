@@ -453,7 +453,8 @@ window._togglePrevRoundsBlock = function (btn) {
 window._toggleRoundVisibility = function (tId, roundNum) {
   if (!window._hiddenRounds[tId]) window._hiddenRounds[tId] = new Set();
   const set = window._hiddenRounds[tId];
-  if (set.has(roundNum)) {
+  const wasHidden = set.has(roundNum);
+  if (wasHidden) {
     // "Mostrar" — unhide this round AND all rounds before it (restore everything up to this point)
     const toShow = [];
     set.forEach(r => { if (r <= roundNum) toShow.push(r); });
@@ -463,6 +464,28 @@ window._toggleRoundVisibility = function (tId, roundNum) {
     set.add(roundNum);
   }
   _rerenderBracket(tId);
+
+  // After hiding, scroll so the next visible round becomes the first column
+  // the user sees (the round that "took over" the hidden one's spot).
+  if (!wasHidden) {
+    setTimeout(function () {
+      var cols = document.querySelectorAll('.bracket-round-column[data-round-num]');
+      var target = null;
+      for (var i = 0; i < cols.length; i++) {
+        var rn = parseInt(cols[i].getAttribute('data-round-num'), 10);
+        if (!isNaN(rn) && rn > roundNum) { target = cols[i]; break; }
+      }
+      // Fallback: first visible column if no higher-numbered round exists
+      if (!target && cols.length > 0) target = cols[0];
+      if (target && typeof target.scrollIntoView === 'function') {
+        try {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+        } catch (e) {
+          target.scrollIntoView();
+        }
+      }
+    }, 50);
+  }
 };
 
 // Revela apenas a rodada oculta mais recente (maior número) a cada clique.
