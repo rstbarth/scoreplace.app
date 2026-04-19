@@ -720,30 +720,35 @@ function renderDashboard(container) {
       var tId = t.id;
 
       // Collect pending matches (no winner yet, player is p1 or p2)
-      var matchSources = [];
-      if (Array.isArray(t.matches)) matchSources = matchSources.concat(t.matches);
-      if (t.thirdPlaceMatch) matchSources.push(t.thirdPlaceMatch);
-      if (Array.isArray(t.rounds)) {
-        t.rounds.forEach(function(r) {
-          if (Array.isArray(r)) matchSources = matchSources.concat(r);
-          else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
-        });
-      }
-      if (Array.isArray(t.groups)) {
-        t.groups.forEach(function(g) {
-          if (g && Array.isArray(g.matches)) matchSources = matchSources.concat(g.matches);
-          if (g && Array.isArray(g.rounds)) {
-            g.rounds.forEach(function(gr) {
-              if (Array.isArray(gr)) matchSources = matchSources.concat(gr);
-            });
-          }
-        });
-      }
-      if (Array.isArray(t.rodadas)) {
-        t.rodadas.forEach(function(r) {
-          if (Array.isArray(r)) matchSources = matchSources.concat(r);
-          else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
-        });
+      var matchSources = (typeof window._collectAllMatches === 'function')
+        ? window._collectAllMatches(t).slice()
+        : [];
+      if (matchSources.length === 0 && typeof window._collectAllMatches !== 'function') {
+        // Defensive fallback: bracket-model.js not loaded.
+        if (Array.isArray(t.matches)) matchSources = matchSources.concat(t.matches);
+        if (t.thirdPlaceMatch) matchSources.push(t.thirdPlaceMatch);
+        if (Array.isArray(t.rounds)) {
+          t.rounds.forEach(function(r) {
+            if (Array.isArray(r)) matchSources = matchSources.concat(r);
+            else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
+          });
+        }
+        if (Array.isArray(t.groups)) {
+          t.groups.forEach(function(g) {
+            if (g && Array.isArray(g.matches)) matchSources = matchSources.concat(g.matches);
+            if (g && Array.isArray(g.rounds)) {
+              g.rounds.forEach(function(gr) {
+                if (Array.isArray(gr)) matchSources = matchSources.concat(gr);
+              });
+            }
+          });
+        }
+        if (Array.isArray(t.rodadas)) {
+          t.rodadas.forEach(function(r) {
+            if (Array.isArray(r)) matchSources = matchSources.concat(r);
+            else if (r && Array.isArray(r.matches)) matchSources = matchSources.concat(r.matches);
+          });
+        }
       }
 
       matchSources.forEach(function(m) {

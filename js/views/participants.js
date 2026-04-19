@@ -119,16 +119,28 @@ window._editParticipantName = function(tId, oldName) {
       if (Array.isArray(m.team1)) { var i1 = m.team1.indexOf(oldName); if (i1 !== -1) m.team1[i1] = newName; }
       if (Array.isArray(m.team2)) { var i2 = m.team2.indexOf(oldName); if (i2 !== -1) m.team2[i2] = newName; }
     };
-    if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
-    if (t.thirdPlaceMatch) _updateMatch(t.thirdPlaceMatch);
-    if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
+    // Update every match across all shapes (by-reference, mutations persist).
+    if (typeof window._collectAllMatches === 'function') {
+      window._collectAllMatches(t).forEach(_updateMatch);
+    } else {
+      // Defensive fallback: bracket-model.js not loaded.
+      if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
+      if (t.thirdPlaceMatch) _updateMatch(t.thirdPlaceMatch);
+      if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
+      if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
+        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); });
+      });
+      if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
+    }
+    // g.players is a roster field (not a match), handled separately.
     if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-      if (!g) return;
-      if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
-      if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); });
-      if (Array.isArray(g.players)) { var pi = g.players.indexOf(oldName); if (pi !== -1) g.players[pi] = newName; }
+      if (g && Array.isArray(g.players)) {
+        var pi = g.players.indexOf(oldName);
+        if (pi !== -1) g.players[pi] = newName;
+      }
     });
-    if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); });
     // Update checkedIn, absent, vips, standings, classification, sorteioRealizado
     ['checkedIn', 'absent', 'vips'].forEach(function(field) {
       if (!t[field]) return;
