@@ -1228,7 +1228,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
           </div>`;
         })()
       : `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
-          ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
+          ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.max(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
         </div>`
     : '';
 

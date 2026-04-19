@@ -822,7 +822,7 @@ window._saveSetResult = function(tId, matchId) {
   });
   if (!t.tournamentStarted) t.tournamentStarted = Date.now();
 
-  const scoreText = sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.min(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join(' ');
+  const scoreText = sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.max(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join(' ');
 
   window.AppStore.logAction(tId, 'Resultado: ' + m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner);
   window.AppStore.syncImmediate(tId);
@@ -2409,7 +2409,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       for (var si2 = 0; si2 < state.sets.length; si2++) {
         var _ss = state.sets[si2];
         scoreSummaryStr += _ss.gamesP1 + '-' + _ss.gamesP2;
-        if (_ss.tiebreak) scoreSummaryStr += '(' + Math.min(_ss.tiebreak.p1, _ss.tiebreak.p2) + ')';
+        if (_ss.tiebreak) scoreSummaryStr += '(' + Math.max(_ss.tiebreak.p1, _ss.tiebreak.p2) + ')';
         if (si2 < state.sets.length - 1) scoreSummaryStr += ' ';
       }
     } else {
@@ -3069,7 +3069,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
           totalGP1 += ss.gamesP1; totalGP2 += ss.gamesP2;
           var setClr = ss.gamesP1 > ss.gamesP2 ? '#60a5fa' : (ss.gamesP2 > ss.gamesP1 ? '#f87171' : 'var(--text-muted)');
           scoreSummary += '<span style="font-size:clamp(1.3rem,4vw,2rem);font-weight:900;color:' + setClr + ';font-variant-numeric:tabular-nums;">' + ss.gamesP1 + '-' + ss.gamesP2;
-          if (ss.tiebreak) scoreSummary += '<sup style="font-size:0.55em;font-weight:600;">(' + Math.min(ss.tiebreak.p1, ss.tiebreak.p2) + ')</sup>';
+          if (ss.tiebreak) scoreSummary += '<sup style="font-size:0.55em;font-weight:600;">(' + Math.max(ss.tiebreak.p1, ss.tiebreak.p2) + ')</sup>';
           scoreSummary += '</span>';
           if (si < state.sets.length - 1) scoreSummary += '<span style="color:rgba(255,255,255,0.15);margin:0 clamp(4px,1vw,8px);">·</span>';
         }
