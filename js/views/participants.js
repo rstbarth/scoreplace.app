@@ -245,17 +245,21 @@ window._declareAbsent = function (tId, playerName) {
 
   if (!teamName) return;
 
-  // Encontrar o match onde este time joga
+  // Encontrar o match onde este time joga — scan todas as shapes via helper canônico.
+  // Para elim, a ordem do helper começa com t.matches, preservando o índice amigável.
+  // Para Liga/Suíço/Grupos, o índice flat ao menos localiza a partida (antes: silent miss).
   let matchEntry = null;
   let matchIdx = -1;
   let matchSide = null; // 'p1' or 'p2'
-  if (t.matches) {
-    t.matches.forEach((m, mi) => {
-      if (m.winner) return; // já decidido
-      if (m.p1 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p1'; }
-      else if (m.p2 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
-    });
-  }
+  const _allForWO = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : (Array.isArray(t.matches) ? t.matches.slice() : []);
+  _allForWO.forEach((m, mi) => {
+    if (!m || m.winner) return; // já decidido
+    if (matchEntry) return; // já encontrado
+    if (m.p1 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p1'; }
+    else if (m.p2 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
+  });
 
   const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
   const hasStandby = standby.length > 0;
@@ -499,24 +503,28 @@ function renderParticipants(container, tournamentId) {
     gridStyle = 'display:flex;flex-direction:column;gap:6px;';
 
     // Build map: participant/team name → { friendly match number, decided, opponent }
+    // Use canonical collector so Liga/Suíço/Grupos also populate the map
+    // (antes: silently empty para formatos não-elim).
     const nameToMatch = {};
     const nameToMatchDecided = {};
     const nameToOpponent = {};
-    if (t.matches) {
-      t.matches.forEach((m, mi) => {
-        const num = mi + 1;
-        if (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') {
-          nameToMatch[m.p1] = num;
-          nameToMatchDecided[m.p1] = !!m.winner;
-          nameToOpponent[m.p1] = (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') ? m.p2 : null;
-        }
-        if (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') {
-          nameToMatch[m.p2] = num;
-          nameToMatchDecided[m.p2] = !!m.winner;
-          nameToOpponent[m.p2] = (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') ? m.p1 : null;
-        }
-      });
-    }
+    const _allForCheckin = (typeof window._collectAllMatches === 'function')
+      ? window._collectAllMatches(t)
+      : (Array.isArray(t.matches) ? t.matches.slice() : []);
+    _allForCheckin.forEach((m, mi) => {
+      if (!m) return;
+      const num = mi + 1;
+      if (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') {
+        nameToMatch[m.p1] = num;
+        nameToMatchDecided[m.p1] = !!m.winner;
+        nameToOpponent[m.p1] = (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') ? m.p2 : null;
+      }
+      if (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') {
+        nameToMatch[m.p2] = num;
+        nameToMatchDecided[m.p2] = !!m.winner;
+        nameToOpponent[m.p2] = (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') ? m.p1 : null;
+      }
+    });
 
     const allIndividuals = [];
     parts.forEach((p, idx) => {
