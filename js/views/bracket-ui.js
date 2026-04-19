@@ -2014,16 +2014,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     if (state.countingType === 'tennis') {
-      // Tennis game rules: need 4 points and lead by 2 (or no advantage)
-      if (p1 >= 4 && p2 >= 4) {
-        if (!state.deuceRule) {
-          // Sudden death at deuce: whoever scored last wins
-          return p1 > p2 ? 1 : 2;
-        }
-        if (p1 - p2 >= 2) return 1;
-        if (p2 - p1 >= 2) return 2;
+      if (!state.deuceRule) {
+        // Golden point / sudden death — first to 4 points wins, NO 2-point
+        // lead required. At 40-40 (3-3), the next point closes the game.
+        if (p1 >= 4) return 1;
+        if (p2 >= 4) return 2;
         return 0;
       }
+      // AD rule: need 4 points AND 2-point lead (continues past 40-40 with AD)
       if (p1 >= 4 && p1 - p2 >= 2) return 1;
       if (p2 >= 4 && p2 - p1 >= 2) return 2;
       return 0;
