@@ -54,6 +54,54 @@ function renderRules(container, tournamentId) {
 
   const categoriesText = (t.categories && t.categories.length) ? t.categories.join(', ') : _t('rules.singleCategory');
 
+  // ── Scoring system block (documents how results are entered, including
+  // the trigger score that reveals the tiebreak inputs) ─────────────────
+  const scoringHtml = (() => {
+    const sc = t.scoring || {};
+    if (!sc.type) {
+      return `<div style="color:var(--text-muted);font-size:0.85rem;">${_t('rules.scoringSimpleDesc')}</div>`;
+    }
+    if (sc.type === 'simple') {
+      return `<div style="color:var(--text-muted);font-size:0.85rem;">${_t('rules.scoringSimpleDesc')}</div>`;
+    }
+    // GSM: sets with games
+    const setsToWin = sc.setsToWin || 1;
+    const gamesPerSet = sc.gamesPerSet || 6;
+    const counting = sc.countingType === 'tennis' ? _t('rules.scoringCountingTennis') : _t('rules.scoringCountingNumeric');
+    const adv = sc.advantageRule ? _t('rules.scoringAdvantageDeuce') : _t('rules.scoringAdvantageSudden');
+    const tbEnabled = sc.tiebreakEnabled;
+    const tbPoints = sc.tiebreakPoints || 7;
+    const tbMargin = sc.tiebreakMargin || 2;
+    // The score at which the tiebreak is triggered = gamesPerSet-gamesPerSet (e.g. 6-6).
+    const tbTrigger = gamesPerSet + '-' + gamesPerSet;
+    const superTb = sc.superTiebreak;
+    const superTbPts = sc.superTiebreakPoints || 10;
+    const rows = [
+      [_t('rules.scoringType'), _t('rules.scoringTypeGsm')],
+      [_t('rules.scoringSetsToWin'), String(setsToWin)],
+      [_t('rules.scoringGamesPerSet'), String(gamesPerSet)],
+      [_t('rules.scoringCounting'), counting],
+      [_t('rules.scoringAdvantage'), adv],
+      [_t('rules.scoringTiebreak'), tbEnabled ? _t('rules.scoringTbEnabled', { trigger: tbTrigger, points: tbPoints, margin: tbMargin }) : _t('rules.scoringTbDisabled')],
+    ];
+    if (superTb) rows.push([_t('rules.scoringSuperTb'), _t('rules.scoringSuperTbEnabled', { points: superTbPts })]);
+    const listHtml = rows.map(([label, value]) => `
+      <li style="padding:0.6rem 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <span style="color:var(--text-muted);font-size:0.85rem;">${label}</span>
+        <span style="font-weight:600;color:var(--text-bright);font-size:0.85rem;text-align:right;">${value}</span>
+      </li>`).join('');
+    const howToHtml = tbEnabled
+      ? `<div style="margin-top:1rem;padding:0.9rem 1rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:10px;">
+          <div style="font-size:0.8rem;font-weight:700;color:#c4b5fd;margin-bottom:6px;">💡 ${_t('rules.scoringHowTitle')}</div>
+          <div style="font-size:0.82rem;color:var(--text-main);line-height:1.5;">${_t('rules.scoringHowManualTb', { trigger: tbTrigger, points: tbPoints, margin: tbMargin })}</div>
+        </div>`
+      : `<div style="margin-top:1rem;padding:0.9rem 1rem;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:10px;">
+          <div style="font-size:0.8rem;font-weight:700;color:#93c5fd;margin-bottom:6px;">💡 ${_t('rules.scoringHowTitle')}</div>
+          <div style="font-size:0.82rem;color:var(--text-main);line-height:1.5;">${_t('rules.scoringHowManualNoTb')}</div>
+        </div>`;
+    return `<ul style="list-style:none;padding:0;margin:0;">${listHtml}</ul>${howToHtml}`;
+  })();
+
   const historyHtml = (t.history && t.history.length)
     ? [...t.history].reverse().slice(0, 20).map((log, i) => {
         let date = '—';
@@ -146,6 +194,11 @@ function renderRules(container, tournamentId) {
               }</span>
             </li>` : ''}
         </ul>
+
+        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border-color);">
+          <h4 style="margin:0 0 0.75rem;color:var(--text-bright);font-size:1rem;">🎾 ${_t('rules.scoringTitle')}</h4>
+          ${scoringHtml}
+        </div>
 
         ${isOrg ? `
           <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border-color);">

@@ -4180,6 +4180,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // ── Firestore real-time sync for casual matches ──
   var _casualDocId = isCasual && opts ? opts.casualDocId : null;
   var _casualCreatedBy = isCasual && opts ? (opts.createdBy || null) : null;
+  var _casualRoomCode = isCasual && opts ? (opts.roomCode || null) : null;
   var _syncTimer = null;
   var _isRemoteUpdate = false; // true when receiving from Firestore
   var _unsubFirestore = null;
@@ -4279,6 +4280,30 @@ window._openLiveScoring = function(tId, matchId, opts) {
             return;
           }
           var data = doc.data();
+          // Match ended (status='finished') — transition watchers to the
+          // casual view's result screen so they see the stats instead of
+          // being stuck on a now-frozen live overlay.
+          if (data && data.status === 'finished' && !_casualCancelled) {
+            _casualCancelled = true;
+            if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+            try { window.removeEventListener('resize', _onResize); } catch(e) {}
+            try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+            try { _releaseWakeLock(); } catch(e) {}
+            var ovDone = document.getElementById('live-scoring-overlay');
+            if (ovDone) ovDone.remove();
+            var cuDone = window.AppStore && window.AppStore.currentUser;
+            var wasHost = cuDone && _casualCreatedBy && cuDone.uid === _casualCreatedBy;
+            // Host already saw the confirmation; we only redirect guests.
+            if (!wasHost) {
+              var contDone = document.getElementById('view-container');
+              if (contDone && _casualRoomCode && typeof window._renderCasualJoin === 'function') {
+                window._renderCasualJoin(contDone, _casualRoomCode);
+              } else {
+                try { window.location.hash = '#dashboard'; } catch(e) {}
+              }
+            }
+            return;
+          }
           if (!data.liveState || !data.liveState._ts) return;
           // Only apply if remote timestamp is newer than ours
           var localTs = _lastSyncTs || 0;
@@ -4529,15 +4554,22 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (state.isFinished && !_resultSaved) {
           try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
         }
-        if (isCasual && isOrganizer && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
-          // Organizer: delete the whole match so every watching guest's listener
-          // fires with !doc.exists and evacuates them. Mark local flag first so
-          // our own listener doesn't also try to handle the deletion.
+        var _matchIsComplete = state.isFinished || _resultSaved;
+        if (isCasual && isOrganizer && _casualDocId && window.FirestoreDB) {
           _casualCancelled = true;
-          try {
-            var cancelPromise = window.FirestoreDB.cancelCasualMatch(_casualDocId);
-            if (cancelPromise && typeof cancelPromise.catch === 'function') cancelPromise.catch(function(){});
-          } catch(e) {}
+          if (_matchIsComplete) {
+            // Match finished — keep the doc alive with status='finished' so
+            // guests (including late arrivals who never saw the live view)
+            // see the result/stats screen on the casual room view instead
+            // of "Partida não encontrada".
+          } else if (typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+            // Host abandoned before finishing: delete the doc so every
+            // watching guest is evacuated to the dashboard.
+            try {
+              var cancelPromise = window.FirestoreDB.cancelCasualMatch(_casualDocId);
+              if (cancelPromise && typeof cancelPromise.catch === 'function') cancelPromise.catch(function(){});
+            } catch(e) {}
+          }
         } else if (isCasual && cu && cu.uid && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
           // Guest: just free their own slot
           try {
