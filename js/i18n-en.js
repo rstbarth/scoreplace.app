@@ -250,8 +250,6 @@ window._translations['en'] = {
   'bracket.semiFinal': 'Semifinals',
   'bracket.quarterFinal': 'Quarterfinals',
   'bracket.roundOf16': 'Round of 16',
-  'bracket.roundOf32': 'Round of 32',
-  'bracket.roundOf64': 'Round of 64',
   'bracket.thirdPlace': '3rd Place Match',
   'bracket.lowerBracket': 'Lower Bracket',
   'bracket.grandFinal': 'Grand Final',

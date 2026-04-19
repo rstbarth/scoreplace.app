@@ -651,8 +651,6 @@ function renderSingleElimBracket(t, canEnterResult) {
     if (fromEnd === 2) return _t('bracket.semiFinal');
     if (fromEnd === 3) return _t('bracket.quarterFinal');
     if (fromEnd === 4) return _t('bracket.roundOf16');
-    if (fromEnd === 5) return _t('bracket.roundOf32');
-    if (fromEnd === 6) return _t('bracket.roundOf64');
     return _t('bracket.round', {n: roundNum});
   };
 
