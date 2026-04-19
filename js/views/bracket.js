@@ -1247,17 +1247,30 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     return scoreHtml || '';
   };
 
+  const _tbEnabled = !!(useSets && t.scoring && t.scoring.tiebreakEnabled !== false);
+  const _tbInputStyle = 'width:40px;text-align:center;font-size:0.75rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:5px;padding:3px 4px;';
+  const p1TbInput = showInputs && _tbEnabled
+    ? `<input type="number" id="tb1-${m.id}" min="0" placeholder="tb" title="Tie-break"
+        style="${_tbInputStyle}display:none;margin-left:4px;"
+        oninput="window._highlightWinner('${_esc(m.id)}')">`
+    : '';
+  const p2TbInput = showInputs && _tbEnabled
+    ? `<input type="number" id="tb2-${m.id}" min="0" placeholder="tb" title="Tie-break"
+        style="${_tbInputStyle}display:none;margin-left:4px;"
+        oninput="window._highlightWinner('${_esc(m.id)}')">`
+    : '';
+
   const p1Score = showInputs
     ? `<input type="number" id="s1-${m.id}" min="0" placeholder="0"
         style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
-        oninput="window._highlightWinner('${_esc(m.id)}')">`
+        oninput="window._highlightWinner('${_esc(m.id)}')">${p1TbInput}`
     : null;
   const p1ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner) : null;
 
   const p2Score = showInputs
     ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
         style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
-        oninput="window._highlightWinner('${_esc(m.id)}')">`
+        oninput="window._highlightWinner('${_esc(m.id)}')">${p2TbInput}`
     : null;
   const p2ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner) : null;
 

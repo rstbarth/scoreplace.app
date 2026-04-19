@@ -471,9 +471,45 @@ window._highlightWinner = function (matchId) {
   if (!s1El || !s2El) return;
   const s1 = parseInt(s1El.value);
   const s2 = parseInt(s2El.value);
+
+  // Reveal tiebreak inputs when both games equal the tiebreak trigger (e.g. 6-6)
+  const tb1El = document.getElementById(`tb1-${matchId}`);
+  const tb2El = document.getElementById(`tb2-${matchId}`);
+  if (tb1El && tb2El) {
+    var _trigger = null;
+    try {
+      var _tours = window.AppStore && window.AppStore.tournaments;
+      if (Array.isArray(_tours)) {
+        for (var ti = 0; ti < _tours.length; ti++) {
+          var _tour = _tours[ti];
+          var _matches = (typeof window._collectAllMatches === 'function') ? window._collectAllMatches(_tour) : (_tour.matches || []);
+          for (var mi = 0; mi < _matches.length; mi++) {
+            if (_matches[mi] && _matches[mi].id === matchId) {
+              if (_tour.scoring && _tour.scoring.type === 'sets' && _tour.scoring.tiebreakEnabled !== false) {
+                _trigger = parseInt(_tour.scoring.gamesPerSet) || 6;
+              }
+              break;
+            }
+          }
+          if (_trigger !== null) break;
+        }
+      }
+    } catch(e) {}
+    var _showTb = _trigger !== null && s1 === _trigger && s2 === _trigger;
+    tb1El.style.display = _showTb ? 'inline-block' : 'none';
+    tb2El.style.display = _showTb ? 'inline-block' : 'none';
+    if (!_showTb) { tb1El.value = ''; tb2El.value = ''; }
+  }
+
   if (isNaN(s1) || isNaN(s2)) return;
-  s1El.style.color = s1 > s2 ? '#4ade80' : s1 < s2 ? '#f87171' : 'var(--text-bright)';
-  s2El.style.color = s2 > s1 ? '#4ade80' : s2 < s1 ? '#f87171' : 'var(--text-bright)';
+  // Colour by games won, unless tiebreak inputs have a winner — then defer to tiebreak.
+  var _tb1 = tb1El && tb1El.style.display !== 'none' ? parseInt(tb1El.value) : NaN;
+  var _tb2 = tb2El && tb2El.style.display !== 'none' ? parseInt(tb2El.value) : NaN;
+  var _useTb = !isNaN(_tb1) && !isNaN(_tb2) && _tb1 !== _tb2;
+  var _p1Wins = _useTb ? _tb1 > _tb2 : s1 > s2;
+  var _p2Wins = _useTb ? _tb2 > _tb1 : s2 > s1;
+  s1El.style.color = _p1Wins ? '#4ade80' : _p2Wins ? '#f87171' : 'var(--text-bright)';
+  s2El.style.color = _p2Wins ? '#4ade80' : _p1Wins ? '#f87171' : 'var(--text-bright)';
 };
 
 // ─── Save result inline ───────────────────────────────────────────────────────
@@ -908,39 +944,65 @@ window._saveResultInline = function (tId, matchId) {
   }));
   const allowDraw = isGroupMatch || isRoundMatch;
 
-  if (s1 === s2 && !allowDraw) {
-    showAlertDialog(_t('result.drawNotAllowed'), '', null, { type: 'warning' });
-    return;
-  }
-
   // GSM scoring compatibility: store inline scores as sets data when tournament uses GSM
   const useSets = t.scoring && t.scoring.type === 'sets';
   const isFixedSet = useSets && t.scoring.fixedSet;
+  const tbEnabled = useSets && t.scoring.tiebreakEnabled !== false;
+  const tbTrigger = tbEnabled ? (parseInt(t.scoring.gamesPerSet) || 6) : null;
+
+  // Tiebreak mode: read tie-break point inputs when the games-in-set reached the trigger
+  var tbP1 = NaN, tbP2 = NaN;
+  var isTiebreakEntry = false;
+  if (tbEnabled && s1 === tbTrigger && s2 === tbTrigger) {
+    var tb1El = document.getElementById('tb1-' + matchId);
+    var tb2El = document.getElementById('tb2-' + matchId);
+    tbP1 = tb1El ? parseInt(tb1El.value) : NaN;
+    tbP2 = tb2El ? parseInt(tb2El.value) : NaN;
+    if (isNaN(tbP1) || isNaN(tbP2)) {
+      showAlertDialog(_t('result.tbRequired'), _t('result.tbRequiredDetail', {trigger: tbTrigger + '-' + tbTrigger}), null, { type: 'warning' });
+      return;
+    }
+    if (tbP1 === tbP2) {
+      showAlertDialog(_t('result.tbNoDraw'), '', null, { type: 'warning' });
+      return;
+    }
+    isTiebreakEntry = true;
+  }
+
+  if (s1 === s2 && !allowDraw && !isTiebreakEntry) {
+    showAlertDialog(_t('result.drawNotAllowed'), '', null, { type: 'warning' });
+    return;
+  }
 
   if (useSets) {
     // Store as a single set for GSM compatibility
     var setData = { gamesP1: s1, gamesP2: s2 };
     if (isFixedSet) setData.fixedSet = true;
-    m.sets = [setData];
-    m.setsWonP1 = s1 > s2 ? 1 : (s2 > s1 ? 0 : 0);
-    m.setsWonP2 = s2 > s1 ? 1 : (s1 > s2 ? 0 : 0);
-    if (isFixedSet) {
-      m.fixedSet = true;
-      m.scoreP1 = s1;
-      m.scoreP2 = s2;
-    } else {
-      // For standard sets, the inline score IS the sets won count
-      m.scoreP1 = s1;
-      m.scoreP2 = s2;
+    if (isTiebreakEntry) {
+      setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
+      // Tiebreak winner takes an extra game in the set score
+      if (tbP1 > tbP2) setData.gamesP1 = s1 + 1;
+      else setData.gamesP2 = s2 + 1;
     }
-    m.totalGamesP1 = s1;
-    m.totalGamesP2 = s2;
+    m.sets = [setData];
+    var _finalS1 = setData.gamesP1;
+    var _finalS2 = setData.gamesP2;
+    m.setsWonP1 = _finalS1 > _finalS2 ? 1 : 0;
+    m.setsWonP2 = _finalS2 > _finalS1 ? 1 : 0;
+    if (isFixedSet) m.fixedSet = true;
+    m.scoreP1 = _finalS1;
+    m.scoreP2 = _finalS2;
+    m.totalGamesP1 = _finalS1;
+    m.totalGamesP2 = _finalS2;
   } else {
     m.scoreP1 = s1;
     m.scoreP2 = s2;
   }
 
-  if (s1 === s2 && allowDraw) {
+  if (isTiebreakEntry) {
+    m.winner = tbP1 > tbP2 ? m.p1 : m.p2;
+    m.draw = false;
+  } else if (s1 === s2 && allowDraw) {
     // Empate — ambos ganham 1 ponto (tratado na standings)
     m.winner = 'draw';
     m.draw = true;
