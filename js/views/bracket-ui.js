@@ -1508,31 +1508,38 @@ window._exitTvMode = function() {
 window._showPlayerHistory = function(tId, playerName) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
   if (!t) return;
-  var rounds = t.rounds || [];
   var matches = [];
-  rounds.forEach(function(r, ri) {
-    (r.matches || []).forEach(function(m) {
-      if (m.p1 === playerName || m.p2 === playerName) {
-        matches.push({ round: ri + 1, m: m });
-      }
-    });
-  });
-  // Also check t.matches (elimination) and t.groups
-  if (Array.isArray(t.matches)) {
-    t.matches.forEach(function(m) {
-      if (m.p1 === playerName || m.p2 === playerName) {
-        matches.push({ round: null, m: m });
-      }
-    });
-  }
-  if (Array.isArray(t.groups)) {
-    t.groups.forEach(function(g, gi) {
-      (g.matches || []).forEach(function(m) {
-        if (m.p1 === playerName || m.p2 === playerName) {
-          matches.push({ round: null, m: m, group: gi + 1 });
+  // Prefer canonical adapter: picks up thirdPlace + rodadas + sub-rounds,
+  // and supplies semantic labels ("Semifinais", "Final", "Grupo A", "Disputa 3º lugar").
+  var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+  if (_unified && Array.isArray(_unified.columns) && _unified.columns.length > 0) {
+    _unified.columns.forEach(function(c) {
+      if (!c || !Array.isArray(c.matches)) return;
+      c.matches.forEach(function(m) {
+        if (m && (m.p1 === playerName || m.p2 === playerName)) {
+          matches.push({ label: c.label || '', m: m });
         }
       });
     });
+  } else {
+    // Defensive fallback: adapter not loaded.
+    (t.rounds || []).forEach(function(r, ri) {
+      (r.matches || []).forEach(function(m) {
+        if (m.p1 === playerName || m.p2 === playerName) matches.push({ round: ri + 1, m: m });
+      });
+    });
+    if (Array.isArray(t.matches)) {
+      t.matches.forEach(function(m) {
+        if (m.p1 === playerName || m.p2 === playerName) matches.push({ round: null, m: m });
+      });
+    }
+    if (Array.isArray(t.groups)) {
+      t.groups.forEach(function(g, gi) {
+        (g.matches || []).forEach(function(m) {
+          if (m.p1 === playerName || m.p2 === playerName) matches.push({ round: null, m: m, group: gi + 1 });
+        });
+      });
+    }
   }
 
   if (matches.length === 0) {
@@ -1554,7 +1561,7 @@ window._showPlayerHistory = function(tId, playerName) {
       ? (m.p1 === playerName ? m.scoreP1 + ' × ' + m.scoreP2 : m.scoreP2 + ' × ' + m.scoreP1)
       : (m.winner ? '' : '—');
     var resultIcon = isDraw ? '🤝' : (isWin ? '✅' : (isLoss ? '❌' : '⏳'));
-    var roundLabel = item.round ? 'Rodada ' + item.round : (item.group ? 'Grupo ' + item.group : (m.label || ''));
+    var roundLabel = item.label || (item.round ? 'Rodada ' + item.round : (item.group ? 'Grupo ' + item.group : (m.label || '')));
     return '<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">' +
       '<td style="padding:8px 10px;font-size:0.8rem;color:var(--text-muted);">' + roundLabel + '</td>' +
       '<td style="padding:8px 10px;font-size:0.8rem;font-weight:600;color:var(--text-bright);">' + (opponent || 'BYE') + '</td>' +

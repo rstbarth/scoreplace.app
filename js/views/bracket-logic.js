@@ -325,7 +325,20 @@ function _getChampion(t, activeRounds) {
 
 // ─── Find match anywhere ──────────────────────────────────────────────────────
 function _findMatch(t, matchId) {
-  // Check 3rd place match first
+  // Use canonical collector: covers all 7 storage shapes
+  // (t.matches, t.thirdPlaceMatch, t.rounds[].matches, t.groups[].matches,
+  //  t.groups[].rounds[] array form, t.rodadas[].matches, t.rodadas[] array form).
+  // Previously missed t.groups[].matches (flat group matches, not in sub-rounds)
+  // and t.rodadas entirely — causing silent failures in advance-winner and
+  // result-save for those shapes.
+  if (typeof window._collectAllMatches === 'function') {
+    const all = window._collectAllMatches(t);
+    for (let i = 0; i < all.length; i++) {
+      if (all[i] && all[i].id === matchId) return all[i];
+    }
+    return null;
+  }
+  // Defensive fallback: bracket-model.js not loaded.
   if (t.thirdPlaceMatch && t.thirdPlaceMatch.id === matchId) return t.thirdPlaceMatch;
   let m = (t.matches || []).find(m => m.id === matchId);
   if (m) return m;
@@ -333,10 +346,17 @@ function _findMatch(t, matchId) {
     m = (round.matches || []).find(m => m.id === matchId);
     if (m) return m;
   }
-  // Search in groups (Fase de Grupos)
   for (const group of (t.groups || [])) {
+    if (Array.isArray(group.matches)) {
+      m = group.matches.find(m => m.id === matchId);
+      if (m) return m;
+    }
     for (const round of (group.rounds || [])) {
-      m = (round.matches || []).find(m => m.id === matchId);
+      if (Array.isArray(round)) {
+        m = round.find(m => m.id === matchId);
+      } else {
+        m = (round.matches || []).find(m => m.id === matchId);
+      }
       if (m) return m;
     }
   }
