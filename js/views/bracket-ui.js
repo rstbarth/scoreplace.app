@@ -3578,15 +3578,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '<div style="display:flex;flex-direction:column;gap:4px;">' +
             '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
             '<div style="display:flex;align-items:center;gap:6px;">' +
-              '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + winClr + ';font-variant-numeric:tabular-nums;">' + fmt(winVal) + '</span>' +
+              '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + loseClr + ';font-variant-numeric:tabular-nums;">' + fmt(losVal) + '</span>' +
               '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;position:relative;">' +
-                '<div style="width:' + winPctBar + '%;background:linear-gradient(90deg,' + winClr + '44,' + winClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
+                '<div style="width:' + losPctBar + '%;background:linear-gradient(90deg,' + loseClr + '44,' + loseClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
               '</div>' +
               '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
               '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
-                '<div style="width:' + losPctBar + '%;background:linear-gradient(90deg,' + loseClr + ',' + loseClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
+                '<div style="width:' + winPctBar + '%;background:linear-gradient(90deg,' + winClr + ',' + winClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
               '</div>' +
-              '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + loseClr + ';font-variant-numeric:tabular-nums;">' + fmt(losVal) + '</span>' +
+              '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + winClr + ';font-variant-numeric:tabular-nums;">' + fmt(winVal) + '</span>' +
             '</div>' +
           '</div>'
         );
