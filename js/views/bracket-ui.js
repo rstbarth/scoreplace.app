@@ -1225,22 +1225,55 @@ window._tvModeInterval = null;
 // Build "Próximos Jogos" section for TV mode
 window._tvBuildNextMatches = function(t) {
   var allMatches = [];
-  if (Array.isArray(t.matches)) {
-    t.matches.forEach(function(m) { if (m.p1 && m.p2 && !m.winner && !m.isBye) allMatches.push(m); });
-  }
-  if (Array.isArray(t.rounds)) {
-    t.rounds.forEach(function(r, ri) {
-      (r.matches || []).forEach(function(m) {
-        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bracket.round', {n: ri + 1}); allMatches.push(m); }
-      });
+  var unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+  var hasUnifiedColumns = unified && Array.isArray(unified.columns) && unified.columns.length > 0;
+
+  if (hasUnifiedColumns) {
+    // Canonical path: each column already carries a humane label
+    // ("Final" / "Semifinais" / "Grande Final" / "Grupos" / "Rodada N"),
+    // so TV mode can surface those instead of generic "Rodada N".
+    unified.columns.forEach(function(c) {
+      if (!c || c.phase === 'swiss-past' || c.historical) return;
+
+      if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
+        // Label per subgroup (e.g., "Grupo A")
+        c.subgroups.forEach(function(sg, gi) {
+          var label = _t('bui.groupLabel', { n: (sg && sg.name) || (gi + 1) });
+          (sg && sg.matches || []).forEach(function(m) {
+            if (m.p1 && m.p2 && !m.winner && !m.isBye) {
+              m._roundLabel = label;
+              allMatches.push(m);
+            }
+          });
+        });
+      } else {
+        (c.matches || []).forEach(function(m) {
+          if (m.p1 && m.p2 && !m.winner && !m.isBye) {
+            if (c.label) m._roundLabel = c.label;
+            allMatches.push(m);
+          }
+        });
+      }
     });
-  }
-  if (Array.isArray(t.groups)) {
-    t.groups.forEach(function(g, gi) {
-      (g.matches || []).forEach(function(m) {
-        if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bui.groupLabel', {n: g.name || (gi + 1)}); allMatches.push(m); }
+  } else {
+    // Legacy fallback (adapter not loaded)
+    if (Array.isArray(t.matches)) {
+      t.matches.forEach(function(m) { if (m.p1 && m.p2 && !m.winner && !m.isBye) allMatches.push(m); });
+    }
+    if (Array.isArray(t.rounds)) {
+      t.rounds.forEach(function(r, ri) {
+        (r.matches || []).forEach(function(m) {
+          if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bracket.round', {n: ri + 1}); allMatches.push(m); }
+        });
       });
-    });
+    }
+    if (Array.isArray(t.groups)) {
+      t.groups.forEach(function(g, gi) {
+        (g.matches || []).forEach(function(m) {
+          if (m.p1 && m.p2 && !m.winner) { m._roundLabel = _t('bui.groupLabel', {n: g.name || (gi + 1)}); allMatches.push(m); }
+        });
+      });
+    }
   }
   var upcoming = allMatches.slice(0, 6);
   if (upcoming.length === 0) return '';
