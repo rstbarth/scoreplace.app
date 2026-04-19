@@ -1366,9 +1366,29 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
   var html = '';
   var allGroupsDone = true;
 
-  (t.groups || []).forEach(function(g, gi) {
-    var standings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
-    var matches = (g.rounds && g.rounds[0]) ? g.rounds[0].matches : [];
+  // Source subgroups from the unified adapter when available. The adapter
+  // emits phase==='monarch' with subgroups [{name, players, matches}] for
+  // Rei/Rainha format. Legacy path (reading t.groups directly) kept as
+  // fallback for the case where bracket-model.js hasn't loaded.
+  var unified = (typeof window._getUnifiedRounds === 'function')
+    ? window._getUnifiedRounds(t)
+    : null;
+  var monarchCol = unified
+    ? unified.columns.find(function(c) { return c.phase === 'monarch' && c.subgroups; })
+    : null;
+  var subgroups = monarchCol
+    ? monarchCol.subgroups
+    : (t.groups || []).map(function(g) {
+        var rawMatches = (g.rounds && g.rounds[0]) ? g.rounds[0].matches : (g.matches || []);
+        return { name: g.name, players: g.players || [], matches: rawMatches };
+      });
+
+  subgroups.forEach(function(sg, gi) {
+    // _computeMonarchStandings tolerates both shapes: group.matches or
+    // group.rounds[0].matches. We pass the flat form, which is what subgroup
+    // already exposes.
+    var standings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings({ players: sg.players, matches: sg.matches }) : [];
+    var matches = sg.matches || [];
     var groupDone = matches.length > 0 && matches.every(function(m) { return !!m.winner; });
     if (!groupDone) allGroupsDone = false;
 
@@ -1410,10 +1430,10 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
 
     html += '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-left:4px solid ' + (groupDone ? '#4ade80' : '#fbbf24') + ';border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
-        '<h3 style="margin:0;font-size:1.1rem;color:var(--text-bright);flex:1;">' + window._safeHtml(g.name) + '</h3>' +
+        '<h3 style="margin:0;font-size:1.1rem;color:var(--text-bright);flex:1;">' + window._safeHtml(sg.name) + '</h3>' +
         statusBadge +
       '</div>' +
-      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (g.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (sg.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
       standingsTable +
       '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">' + _t('bracket.monarchMatchRotation') + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:8px;">' + matchCards + '</div>' +
