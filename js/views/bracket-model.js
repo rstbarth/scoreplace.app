@@ -193,19 +193,29 @@
   function _buildGroupsColumn(t) {
     if (!Array.isArray(t.groups) || t.groups.length === 0) return [];
     // Flatten each group's matches. Each group may have .matches or .rounds[].matches.
+    // When .rounds[] exists we also preserve it as subgroup.rounds so renderers
+    // that need per-round structure (status/labels/ordering) don't have to
+    // re-read t.groups.
     var subgroups = t.groups.map(function (g, gi) {
       var gMatches = [];
+      var gRounds;
       if (Array.isArray(g.matches) && g.matches.length > 0) {
         gMatches = g.matches.slice();
       } else if (Array.isArray(g.rounds)) {
-        g.rounds.forEach(function (r) {
-          if (Array.isArray(r.matches)) gMatches = gMatches.concat(r.matches);
+        gRounds = g.rounds.map(function (r) {
+          return {
+            round: r.round != null ? r.round : undefined,
+            status: r.status || _roundStatus(r.matches || []),
+            matches: (r.matches || []).slice()
+          };
         });
+        gRounds.forEach(function (r) { gMatches = gMatches.concat(r.matches); });
       }
       return {
         name: g.name || ('Grupo ' + String.fromCharCode(65 + gi)),
         players: (g.players || g.participants || []).slice(),
-        matches: gMatches
+        matches: gMatches,
+        rounds: gRounds
       };
     });
 

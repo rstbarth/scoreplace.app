@@ -1462,12 +1462,34 @@ function renderGroupStage(t, isOrg, canEnterResult) {
   const groups = t.groups || [];
   if (!groups.length) return '<p class="text-muted">' + _t('bracket.noGroups') + '</p>';
 
-  // Check if all group matches are complete
-  const allGroupsDone = groups.every(g =>
-    (g.rounds || []).every(r =>
-      (r.matches || []).every(m => m.winner)
-    )
-  );
+  // Source per-group structure from the unified adapter when available.
+  // Adapter's groups column carries subgroups[i].rounds (same shape as
+  // legacy t.groups[i].rounds) plus subgroups[i].players. Standings are
+  // still computed inline because they use a t-level scoring map, not the
+  // adapter (_computeMonarchStandings equivalent doesn't exist for groups).
+  var unified = (typeof window._getUnifiedRounds === 'function')
+    ? window._getUnifiedRounds(t)
+    : null;
+  var groupsCol = unified
+    ? unified.columns.find(function(c) { return c.phase === 'groups' && c.subgroups; })
+    : null;
+  var subgroups = groupsCol
+    ? groupsCol.subgroups
+    : groups.map(function(g) {
+        return {
+          name: g.name,
+          players: g.players || g.participants || [],
+          matches: (g.rounds || []).reduce(function(acc, r) { return acc.concat(r.matches || []); }, (g.matches || []).slice()),
+          rounds: g.rounds
+        };
+      });
+
+  // Check if all group matches are complete (adapter-derived)
+  const allGroupsDone = subgroups.every(function(sg) {
+    var rds = sg.rounds || [];
+    if (rds.length > 0) return rds.every(function(r) { return (r.matches || []).every(function(m) { return m.winner; }); });
+    return (sg.matches || []).every(function(m) { return m.winner; });
+  });
 
   const advanceBtn = (isOrg && allGroupsDone) ? `
     <div style="text-align:center;margin:2rem 0;">
@@ -1477,13 +1499,16 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     </div>` : '';
 
   let groupGlobalMatchNum = 0;
-  const groupsHtml = groups.map((g, gi) => {
-    // Compute group standings
+  const groupsHtml = subgroups.map((sg, gi) => {
+    // Compute group standings. Players list comes from the subgroup (falls
+    // back to participants for shapes that omit .players).
+    const gParticipants = (sg.players && sg.players.length) ? sg.players : (groups[gi] ? (groups[gi].participants || groups[gi].players || []) : []);
+    const gRounds = sg.rounds || (groups[gi] ? (groups[gi].rounds || []) : []);
     const scoreMap = {};
-    g.participants.forEach(name => {
+    gParticipants.forEach(name => {
       scoreMap[name] = { name, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0 };
     });
-    (g.rounds || []).forEach(r => {
+    gRounds.forEach(r => {
       (r.matches || []).forEach(m => {
         if (!m.winner) return;
         const s1 = parseInt(m.scoreP1) || 0;
@@ -1519,7 +1544,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       </tr>`).join('');
 
     // Mostrar TODAS as rodadas do grupo (completas, ativa e pendentes)
-    const allRoundsHtml = (g.rounds || []).map((r, ri) => {
+    const allRoundsHtml = gRounds.map((r, ri) => {
       const roundLabel = _t('bracket.round', {n: ri + 1}) + (r.status === 'complete' ? ' — ' + _t('bracket.complete') + ' ✓' : r.status === 'active' ? ' — ' + _t('bracket.ongoing') : '');
       const roundLabelColor = r.status === 'complete' ? '#4ade80' : r.status === 'active' ? '#fbbf24' : 'var(--text-muted)';
       const matchesInRound = (r.matches || []).map(m => {
@@ -1538,7 +1563,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 
     return `
       <div class="card" id="group-section-${gi}" style="border-left:4px solid ${groupColor};scroll-margin-top:120px;">
-        <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(g.name)}</h3>
+        <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(sg.name)}</h3>
         <div style="overflow-x:auto;margin-bottom:1rem;">
           <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
             <thead>
