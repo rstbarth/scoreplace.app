@@ -1698,15 +1698,21 @@ function renderStandings(t, isOrg, canEnterResult) {
       ? _t('bracket.standingsTitleCat', {cat: displayLabel, n: _roundLabel})
       : _t('bracket.standingsTitle', {n: _roundLabel});
     return `<div class="card" style="margin-bottom:1rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-        <h3 class="card-title" style="margin:0;">${title}</h3>
-      </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          ${_tableHeader}
-          <tbody>${sec.rows}</tbody>
-        </table>
-      </div>
+      <details>
+        <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:.75rem;">
+          <h3 class="card-title" style="margin:0;">${title}</h3>
+          <span class="standings-toggle-indicator" style="font-size:.85rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">
+            <span class="standings-toggle-show">▸ ${_t('bracket.showStandings')}</span>
+            <span class="standings-toggle-hide" style="display:none;">▾ ${_t('bracket.hideStandings')}</span>
+          </span>
+        </summary>
+        <div style="margin-top:1rem;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            ${_tableHeader}
+            <tbody>${sec.rows}</tbody>
+          </table>
+        </div>
+      </details>
     </div>`;
   }).join('');
 
@@ -1741,7 +1747,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     }
     if (prevRoundsInner) {
       previousRoundsHtml = '<div class="card" style="margin-top: 1rem;">' +
-        '<details>' +
+        '<details open>' +
         '<summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-bright); padding: 4px 0; user-select: none;">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</summary>' +
         '<div style="margin-top: 12px;">' + prevRoundsInner + '</div>' +
         '</details></div>';

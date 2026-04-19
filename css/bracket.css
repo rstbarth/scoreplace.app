@@ -1,3 +1,8 @@
+/* Standings collapsible toggle (inside <details>) */
+details[open] > summary .standings-toggle-show { display: none; }
+details[open] > summary .standings-toggle-hide { display: inline !important; }
+summary::-webkit-details-marker { display: none; }
+
 /* ==== TOURNAMENT BRACKET ==== */
 .bracket-container {
   display: flex;

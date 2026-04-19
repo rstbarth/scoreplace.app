@@ -258,6 +258,8 @@ window._translations['en'] = {
   'bracket.complete': 'Complete',
   'bracket.ongoing': 'In progress',
   'bracket.previousRounds': 'Previous Rounds',
+  'bracket.showStandings': 'Show standings',
+  'bracket.hideStandings': 'Hide standings',
   'bracket.champion': 'Champion',
   'bracket.runnerUp': 'Runner-up',
   'bracket.thirdPlaceLabel': '3rd Place',

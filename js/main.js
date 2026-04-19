@@ -815,6 +815,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>"3º Lugar" com ordinal sobrescrito</b> — As chaves i18n <code>bracket.thirdPlace</code> e <code>bracket.thirdPlaceLabel</code> em português estavam escritas como "3o Lugar" (letra "o" minúscula), o que em maiúsculas virava "3O LUGAR" e podia ser lido como "30 LUGAR". Trocado pelo caractere ordinal masculino (º), deixando "3º Lugar" — legível em qualquer casing.</p>' +
+        '<p><b>Classificação colapsável (oculta por padrão)</b> — A tabela de classificação do Suíço/Liga agora aparece recolhida por padrão, com um cabeçalho clicável "▸ Mostrar classificação" no card. Ao clicar, expande para a tabela completa com todos os critérios de desempate e vira "▾ Ocultar classificação". Tira carga visual da tela inicial (os cards de partida e o bracket continuam em destaque) e dá acesso rápido a quem quer ver a tabela detalhada.</p>' +
+        '<p><b>Rodadas Anteriores abertas por padrão</b> — O bloco "📜 Rodadas Anteriores" do Suíço/Liga volta a aparecer expandido por padrão (como já acontecia na eliminatória simples), mas mantém o cabeçalho clicável para ocultar quando o histórico fica longo.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.54-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>3º Lugar sempre visível no chaveamento futuro</b> — Na v0.12.53 o card "🥉 3º Lugar" só aparecia quando o torneio tinha flags legadas (thirdPlace/elimThirdPlace) ligadas. Como a disputa de terceiro lugar é obrigatória no Scoreplace há tempos (não é mais opção do organizador), o card agora é sempre exibido abaixo da Final — em todo torneio eliminatório.</p>' +
         '</div>' +
