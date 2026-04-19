@@ -269,6 +269,19 @@
     { id: 'profile-partnerships', selector: '#profile-detailed-stats', text: 'As tabelas de Parcerias mostram com quais parceiros você mais joga e ganha — descubra a dupla perfeita!', context: 'global', priority: 3, position: 'top', requiresLogin: true },
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // PLAYER STATS MODAL (Estatísticas Detalhadas)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'stats-voltar', selector: '#player-stats-overlay .sticky-back-header .btn-outline', text: 'Use o botão Voltar para fechar as estatísticas e retornar ao app. Ele fica sempre visível no topo, mesmo ao rolar.', context: 'player-stats', priority: 6, position: 'bottom' },
+    { id: 'stats-avatar', selector: '#player-stats-overlay h3', text: 'Toque no nome de qualquer jogador em outras telas para abrir as estatísticas detalhadas dele aqui.', context: 'player-stats', priority: 4, position: 'bottom' },
+    { id: 'stats-persistent', selector: '#persist-stats-unified', text: 'Desempenho: partidas casuais ⚡ e torneios 🏆 lado a lado. Os ícones 🏆 ficam nas extremidades e ⚡ por dentro.', context: 'player-stats', priority: 8, position: 'bottom' },
+    { id: 'stats-wins-bar', selector: '#persist-stats-unified', text: 'Barras divergentes: derrotas à esquerda (vermelho), vitórias à direita (verde). O tamanho é proporcional ao total.', context: 'player-stats', priority: 7, position: 'bottom' },
+    { id: 'stats-tb-rows', selector: '#persist-stats-unified', text: 'Logo após Tiebreaks: Pontos TB Médios (média em TBs perdidos vs vencidos), TB Vencidos (mín/máx pts nos vencidos) e TB Perdidos (mín/máx pts nos perdidos).', context: 'player-stats', priority: 6, position: 'bottom' },
+    { id: 'stats-pct-bars', selector: '#persist-stats-unified', text: 'Barras casuais (azul claro) vs torneios (azul escuro) para aproveitamento, saque, recepção, quebras e sequências.', context: 'player-stats', priority: 5, position: 'bottom' },
+    { id: 'stats-h2h', selector: '#player-stats-overlay [style*="Adversários"]', text: 'Top 3 Adversários mostra contra quem você mais joga. Casuais e torneios listados separadamente.', context: 'player-stats', priority: 4, position: 'top' },
+    { id: 'stats-partners', selector: '#player-stats-overlay [style*="Parceiros"]', text: 'Top 3 Parceiros: com quem você mais joga em duplas. Descubra sua dupla perfeita pelas vitórias compartilhadas.', context: 'player-stats', priority: 4, position: 'top' },
+    { id: 'stats-tournaments', selector: '#player-stats-overlay details', text: 'Toque em "📋 Torneios Disputados" para ver a lista com links diretos para cada torneio.', context: 'player-stats', priority: 3, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // META
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'hints-meta', selector: '#btn-login', text: 'Essas dicas aparecem quando você fica parado. Para desativá-las, clique "Desativar dicas" aqui embaixo — ou reative no seu Perfil quando quiser.', context: 'global', priority: 2, position: 'bottom' }
@@ -303,6 +316,7 @@
     if (document.getElementById('set-scoring-overlay')) return 'set-scoring';
     if (document.getElementById('dissolve-panel')) return 'dissolve-panel';
     if (document.getElementById('draw-visibility-dialog')) return 'draw-visibility';
+    if (document.getElementById('player-stats-overlay')) return 'player-stats';
     var ctModal = document.getElementById('modal-create-tournament');
     if (ctModal && ctModal.classList.contains('active')) return 'create-tournament';
     var qcModal = document.getElementById('modal-quick-create');
@@ -420,10 +434,15 @@
     // Overlay contexts block global hints — only show hints for the overlay itself
     var _overlayContexts = ['p2-panel', 'incomplete-panel', 'poll-creation', 'poll-voting', 'gsm-config', 'set-scoring', 'dissolve-panel', 'draw-visibility', 'create-tournament', 'invite-modal'];
     var _isOverlay = _overlayContexts.indexOf(ctx) !== -1;
+    // player-stats is a non-blocking overlay (topbar stays above it) — allow its own
+    // hints AND global (menu) hints, but suppress dashboard/tournament-detail/etc.
+    var _isStatsOverlay = (ctx === 'player-stats');
 
     var eligible = _hints.filter(function(h) {
-      // In overlay context: only show hints matching that overlay, never global
-      if (_isOverlay) { if (h.context !== ctx) return false; }
+      // Stats overlay: allow own context OR global (menu stays interactive above it)
+      if (_isStatsOverlay) { if (h.context !== 'player-stats' && h.context !== 'global') return false; }
+      // In blocking-overlay context: only show hints matching that overlay, never global
+      else if (_isOverlay) { if (h.context !== ctx) return false; }
       // In page context: match context or global
       else if (h.context !== ctx && h.context !== 'global') return false;
       // Don't repeat the hint we just showed

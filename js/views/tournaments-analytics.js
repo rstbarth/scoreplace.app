@@ -287,15 +287,17 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
 
     modal.innerHTML = '' +
-      // Top bar inside the card: Voltar (left) + close × (right) — same pill pattern
-      // used in the Category Manager and other sub-views. Uses position:sticky so
-      // the bar stays pinned to the top of the overlay's scroll container while
-      // the modal body scrolls underneath. Negative margins extend it flush with
-      // the modal's rounded top edges.
-      '<div style="position:sticky;top:0;z-index:5;margin:-1.5rem -1.5rem 12px;padding:12px 1.5rem;background:var(--bg-card,#1e2235);border-bottom:1px solid var(--border-color);border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">' +
-        '<button class="btn btn-sm hover-lift" onclick="document.getElementById(\'player-stats-overlay\').remove()" style="background:var(--info-pill-bg);color:var(--text-bright);border:1px solid var(--border-color);display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-weight:500;font-size:0.78rem;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
+      // Voltar header — same pattern as tournament details (.sticky-back-header). Uses
+      // position:fixed at top:60px so Voltar always stays visible just below the topbar
+      // while the modal body scrolls underneath. A spacer pushes modal content down.
+      '<div class="sticky-back-header" style="position:fixed;top:60px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+        '<button class="btn btn-outline btn-sm hover-lift" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;" onclick="document.getElementById(\'player-stats-overlay\').remove()">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
+          ' Voltar' +
+        '</button>' +
         '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
       '</div>' +
+      '<div style="height:50px;"></div>' +
       '<div style="text-align:center;margin-bottom:1rem;">' +
         avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
@@ -963,12 +965,27 @@ window._renderPersistentMatchStats = function(records, uid) {
 
         // Diverging bar rows — row 1 has no center metric (wins/losses IS the metric),
         // rows 2+ show metric in center with "perdidos"/"vencidos" at the sides.
+        // TB breakdown rows follow the Tiebreaks row so all tie-break metrics stay grouped.
+        var tbBreakdownRows = '';
+        if ((c.tbPlayed + t.tbPlayed) > 0) {
+            tbBreakdownRows =
+                _diffBarRow('Pontos TB Médios', 'perdidos', 'vencidos',
+                    Math.round(tbAvgLostCraw * 10) / 10, Math.round(tbAvgLostTraw * 10) / 10,
+                    Math.round(tbAvgWonCraw * 10) / 10, Math.round(tbAvgWonTraw * 10) / 10) +
+                _diffBarRow('TB Vencidos', 'mínimo', 'máximo',
+                    tbWonMinCraw, tbWonMinTraw, tbWonMaxCraw, tbWonMaxTraw,
+                    { leftClr: '#22c55e', rightClr: '#22c55e' }) +
+                _diffBarRow('TB Perdidos', 'mínimo', 'máximo',
+                    tbLostMinCraw, tbLostMinTraw, tbLostMaxCraw, tbLostMaxTraw,
+                    { leftClr: '#ef4444', rightClr: '#ef4444' });
+        }
         html += '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
             _diffBarRow('', 'Derrotas', 'Vitórias', c.losses, t.losses, c.wins, t.wins) +
             _diffBarRow('Sets', 'perdidos', 'vencidos', c.setsLost, t.setsLost, c.setsWon, t.setsWon) +
             _diffBarRow('Games', 'perdidos', 'vencidos', c.gamesLost, t.gamesLost, c.gamesWon, t.gamesWon) +
             _diffBarRow('Pontos', 'perdidos', 'vencidos', c.pointsLost, t.pointsLost, c.pointsWon, t.pointsWon) +
             _diffBarRow('Tiebreaks', 'perdidos', 'vencidos', c.tbLost, t.tbLost, c.tbWon, t.tbWon) +
+            tbBreakdownRows +
         '</div>';
 
         // Supplementary stats — casuais left (light blue), torneios right (dark blue)
@@ -985,23 +1002,6 @@ window._renderPersistentMatchStats = function(records, uid) {
             _dualBarRow('Ponto Mais Longo', longPtCms, longPtTms, longPtCdisp, longPtTdisp) +
             _dualBarRow('Ponto Mais Curto', shortPtCms, shortPtTms, shortPtCdisp, shortPtTdisp) +
         '</div>';
-
-        // Tiebreak breakdown — avg pts in lost vs won TBs (red/green), and min/max
-        // pts scored within a single won TB (both green) and within a single lost TB
-        // (both red). Only render when at least one TB has been played.
-        if ((c.tbPlayed + t.tbPlayed) > 0) {
-            html += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:2px;">' +
-                _diffBarRow('Pontos TB Médios', 'perdidos', 'vencidos',
-                    Math.round(tbAvgLostCraw * 10) / 10, Math.round(tbAvgLostTraw * 10) / 10,
-                    Math.round(tbAvgWonCraw * 10) / 10, Math.round(tbAvgWonTraw * 10) / 10) +
-                _diffBarRow('TB Vencidos', 'mínimo', 'máximo',
-                    tbWonMinCraw, tbWonMinTraw, tbWonMaxCraw, tbWonMaxTraw,
-                    { leftClr: '#22c55e', rightClr: '#22c55e' }) +
-                _diffBarRow('TB Perdidos', 'mínimo', 'máximo',
-                    tbLostMinCraw, tbLostMinTraw, tbLostMaxCraw, tbLostMaxTraw,
-                    { leftClr: '#ef4444', rightClr: '#ef4444' }) +
-            '</div>';
-        }
 
         // Top 5 Parceiros / Adversários — keep per-source separation (casual vs torneios
         // involve different relationships) but render inside the unified section.

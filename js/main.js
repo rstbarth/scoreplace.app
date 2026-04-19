@@ -433,8 +433,9 @@
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Placar ao Vivo</div>' +
           '<p><b>Pontuação</b> — Toque ▲ para marcar ponto, ▼ para corrigir. Placares grandes para fácil visualização.</p>' +
+          '<p><b>Vantagem de 2 pontos</b> — <b>Ativada por padrão.</b> Em empates (40-40, deuce) a partida continua até alguém abrir 2 pontos de vantagem. Pode desativar na configuração.</p>' +
           '<p><b>Sets/Games</b> — Automático: ao completar games, avança set. Empate (ex: 5×5) oferece Prorrogar ou Tie-break.</p>' +
-          '<p><b>Prorrogação</b> — Continua até vantagem de 2 games. Botão "⚡ Tie-break" disponível a qualquer momento para mudar de ideia.</p>' +
+          '<p><b>Prorrogação</b> — Continua até vantagem de 2 games. Botão "⚡ Tie-break" ganha destaque com <b>glow pulsante</b> durante a prorrogação para facilitar a mudança a qualquer momento.</p>' +
           '<p><b>Tie-break</b> — Vence quem fizer 7 pontos primeiro com 2 de vantagem; se empatar em 7 continua até alguém abrir 2.</p>' +
           '<p><b>Ordem de saque</b> — Arraste a bolinha 🎾 para trocar o sacador. Após o 1º game o time que começou trava; após o 2º game a ordem inteira trava com um cadeado 🔒.</p>' +
           '<p><b>Decisões restritas aos jogadores</b> — Escolha de prorrogar vs tie-break e botão de tie-break só aparecem para usuários cadastrados envolvidos na partida. Não-jogadores veem "Aguardando decisão".</p>' +
@@ -446,7 +447,7 @@
           '<p><b>Gráfico Momentum</b> — Duas linhas cumulativas animadas: azul para o Time 1, vermelha para o Time 2. Linhas desenham da esquerda para a direita em ~3s com marcadores de ponto final e divisores de set (S1, S2...). Botão ↻ Replay reexecuta a animação.</p>' +
           '<p><b>Comparação dos Times</b> — Barras lado a lado: Sets, Games, Pontos, % Pontos no Saque, % Pontos na Recepção, Games Mantidos, Quebras de Saque, Killer Points (40-40), Maior Sequência e Maior Vantagem.</p>' +
           '<p><b>Cards de jogador clicáveis</b> — Toque em qualquer jogador para ver suas estatísticas individuais: games servidos/mantidos, aproveitamento, maior sequência, e também pts servidos/ganhos/% no saque.</p>' +
-          '<p><b>Jogar Novamente + Re-sortear duplas</b> — Recomeça a partida com placar zerado. Ative o toggle ao lado para redistribuir os jogadores aleatoriamente entre os times.</p>' +
+          '<p><b>Jogar Novamente + Re-sortear duplas</b> — Botões fixos no rodapé da tela de resultado (não somem ao rolar). Recomeça a partida com placar zerado. Ative o toggle ao lado para redistribuir os jogadores aleatoriamente entre os times.</p>' +
           '<p><b>Botões não cortam</b> — O rodapé usa 100dvh + safe-area-inset para não ficar escondido pelo URL bar do navegador ou pelo home-indicator.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;">' +
@@ -464,24 +465,35 @@
       title: 'Estatísticas Detalhadas',
       icon: '📊',
       content: '<p>O scoreplace guarda estatísticas detalhadas de cada partida na sua conta. Essas estatísticas sobrevivem mesmo se o torneio for apagado ou se a partida casual for encerrada.</p>' +
+        '<p><b>Como acessar</b> — Toque no nome de qualquer jogador em qualquer tela (dashboard, chaveamento, classificação, resultado de partida casual) para abrir o modal de estatísticas. O botão <b>Voltar</b> fica fixo no topo, logo abaixo do menu, sempre visível durante o scroll.</p>' +
         '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">O que é registrado</div>' +
           '<p><b>Por partida</b> — Sets, games, pontos, % pontos no saque, % pontos na recepção, games mantidos no saque, quebras, killer points (40-40), maior sequência, maior vantagem, duração, esporte.</p>' +
           '<p><b>Por jogador</b> — Games servidos, games mantidos, aproveitamento (%), maior sequência de games mantidos, pontos servidos, pontos ganhos no saque e % no saque por ponto.</p>' +
-          '<p><b>Casuais vs Torneios</b> — Estatísticas mantidas separadas entre partidas casuais e torneios. Cada categoria tem sua própria agregação e tabelas.</p>' +
+          '<p><b>Casuais vs Torneios</b> — Estatísticas mantidas separadas entre partidas casuais (⚡) e torneios (🏆). Barras divergentes e ícones lado a lado em cada linha.</p>' +
+        '</div>' +
+        '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Barras Divergentes (Desempenho)</div>' +
+          '<p>Derrotas à esquerda (vermelho), vitórias à direita (verde). O tamanho é proporcional ao total. Ordem das linhas:</p>' +
+          '<p><b>1. Vitórias/Derrotas</b> — V-D totais.</p>' +
+          '<p><b>2. Sets</b> — Sets vencidos e perdidos.</p>' +
+          '<p><b>3. Games</b> — Games vencidos e perdidos.</p>' +
+          '<p><b>4. Pontos</b> — Pontos vencidos e perdidos.</p>' +
+          '<p><b>5. Tiebreaks</b> — TBs vencidos e perdidos.</p>' +
+          '<p><b>6. Pontos TB Médios</b> — Média de pontos em TBs perdidos (esq.) vs TBs vencidos (dir.).</p>' +
+          '<p><b>7. TB Vencidos (mín/máx pts)</b> — Placar mínimo e máximo que você fez nos TBs que venceu. Ambos os lados em verde.</p>' +
+          '<p><b>8. TB Perdidos (mín/máx pts)</b> — Placar mínimo e máximo que você fez nos TBs que perdeu. Ambos os lados em vermelho.</p>' +
+          '<p style="color:var(--text-muted);font-size:0.78rem;">As 3 linhas de TB (6-8) aparecem apenas quando há tiebreaks registrados.</p>' +
         '</div>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Confrontos Diretos (H2H)</div>' +
-          '<p>Compare seu desempenho contra cada oponente. A tabela mostra V-D-E e % de aproveitamento por oponente nos últimos confrontos (5 mais frequentes por modalidade).</p>' +
-        '</div>' +
-        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Parcerias</div>' +
-          '<p>Veja com quais parceiros você mais joga em duplas e qual a dupla com melhor aproveitamento. Útil para descobrir a parceria ideal em casuais e em torneios.</p>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Top 3 Adversários / Parceiros</div>' +
+          '<p><b>Adversários</b> — Contra quem você mais joga: casuais e torneios listados separadamente.</p>' +
+          '<p><b>Parceiros</b> — Com quem você mais forma dupla: descubra sua dupla ideal pelas vitórias compartilhadas.</p>' +
         '</div>' +
         '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Persistência</div>' +
           '<p>Os dados ficam salvos em <code>users/{seu_uid}/matchHistory</code> — cada jogador cadastrado envolvido recebe sua própria cópia. Mesmo que o torneio seja deletado ou a sala casual expire, seu histórico permanece.</p>' +
-          '<p>Acesse Perfil → seção "📊 Estatísticas Detalhadas".</p>' +
+          '<p>Seção <b>📋 Torneios Disputados</b> no rodapé do modal lista cada torneio com link direto.</p>' +
         '</div>'
     },
     {
@@ -802,6 +814,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.30-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas contextuais nas Estatísticas, Voltar fixo no manual e manual atualizado</b> — Três ajustes focados em descoberta e navegação: (1) <b>Dicas na tela de Estatísticas Detalhadas</b>: criado o contexto <code>player-stats</code> no sistema de hints com nove dicas específicas (Voltar, avatar, barras divergentes, linhas de tiebreak, barras casuais vs torneios, Top 3 Parceiros/Adversários, Torneios Disputados). Diferente dos outros overlays que bloqueiam dicas globais, o <code>player-stats</code> permite que as dicas do menu (topbar) continuem aparecendo junto com as dicas da tela — como o overlay das estatísticas fica abaixo da topbar (<code>z-index: 90</code> vs 100), o menu segue interativo e merece sua própria orientação visual. Dicas da dashboard foram removidas enquanto o modal está aberto, exatamente como pedido. (2) <b>Botão Voltar fixo no topo do manual</b>: a Central de Ajuda ganhou o mesmo padrão das sub-views (<code>position: sticky</code> no cabeçalho do modal): pill "← Voltar" à esquerda com ícone SVG, título centralizado e × à direita, com a barra de busca logo abaixo. Tudo permanece visível ao rolar pelo conteúdo das 20+ seções. (3) <b>Manual atualizado</b>: a seção "Partida Casual" ganhou menção explícita da <i>vantagem de 2 pontos ligada por padrão</i> (v0.12.29) e do <i>glow pulsante no botão de tie-break durante prorrogação</i> (v0.12.26). A seção "Estatísticas Detalhadas" foi reescrita para refletir a nova ordem das barras (1-5 são V/D/Sets/Games/Pontos/Tiebreaks, 6-8 são Pontos TB Médios/TB Vencidos mín-máx/TB Perdidos mín-máx, todas logo após Tiebreaks), com explicação de cores e do bloco Top 3 Adversários / Parceiros. Botão de Voltar do modal de estatísticas agora aparece documentado como "fixo no topo, sempre visível durante o scroll".</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.29-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Pacote com quatro ajustes pedidos: tiebreaks detalhados, Voltar fixo, Explorar agrupado por data e vantagem de 2 pontos por padrão</b> — (1) <b>Estatísticas Detalhadas — três novas linhas de tiebreak mais informativas</b>: as três últimas linhas da seção "📊 Estatísticas Detalhadas" (antes "TB Média", "TB Máximo", "TB Mínimo", todas barras casuais ⇄ torneios) foram substituídas por três linhas divergentes que separam os tiebreaks ganhos dos perdidos: <i>"Pontos TB Médios"</i> (média de pontos que o jogador fez em TBs perdidos à esquerda em vermelho · média em TBs vencidos à direita em verde, ícones ⚡ casuais e 🏆 torneios nas extremidades), <i>"TB Vencidos"</i> (mínimo e máximo de pontos que o jogador marcou dentro de um único TB vencido — ambos os lados em verde, refletindo que os dois valores vêm do mesmo grupo semântico) e <i>"TB Perdidos"</i> (mínimo e máximo em um único TB perdido — ambos em vermelho). A seção inteira só aparece se pelo menos um tiebreak já foi jogado. Internamente, <code>_aggregate</code> passou a trackear <code>tbWonPointsSum</code>/<code>tbLostPointsSum</code>, <code>tbWonMin</code>/<code>tbWonMax</code> e <code>tbLostMin</code>/<code>tbLostMax</code>, e <code>_diffBarRow</code> recebeu parâmetro opcional <code>opts.leftClr</code>/<code>opts.rightClr</code> para renderizar barras com mesma cor nos dois lados quando a semântica é "range dentro do mesmo grupo" em vez de vitória×derrota. (2) <b>Estatísticas Detalhadas — botão "← Voltar" agora fica fixo no topo</b>: antes o botão Voltar do v0.12.28 era parte do corpo do modal e desaparecia ao rolar para ver as estatísticas de tiebreak ou os Top 3. Agora a barra superior (Voltar à esquerda, × à direita) usa <code>position: sticky; top: 0</code> dentro do container de scroll do overlay, com margens negativas para estender flush até as bordas arredondadas do modal e <code>backdrop-filter: blur(12px)</code> para manter legibilidade quando o conteúdo desliza por trás. Mesma promessa do <code>.sticky-back-header</code> das outras sub-views do app: o Voltar está sempre visível, não importa o quanto rolou. (3) <b>Explorar — cards agrupados por data</b>: na lista "Outros usuários" da tela Explorar, quando o modo de ordenação é Data (padrão), as pessoas encontradas em torneios ou com última atividade recente agora aparecem agrupadas por dia. Cada grupo tem um cabeçalho com emoji 📅 e a data legível (ex: "15 abr, 2026") seguido pelo grid de cards daquele dia. Sem data registrada? Vai para um bucket final "Sem encontros registrados". A data foi removida da parte inferior de cada card individual já que agora está centralizada no cabeçalho do grupo, deixando os cards mais limpos. No modo alfabético, os cards seguem num grid único sem grupos, como antes. (4) <b>Nomes longos quebram em duas linhas nos cards de Explorar</b>: o <code>text-overflow: ellipsis</code> dos nomes e chips foi substituído por <code>-webkit-line-clamp: 2</code> com <code>word-break: break-word</code> — nomes compostos ou com sobrenome longo agora quebram naturalmente em duas linhas antes de serem truncados, melhorando a legibilidade sem alargar os cards. Aplicado tanto em <code>_userCardWithEncounterHtml</code> (resultados principais) quanto em <code>_userCardHtml</code> (convites enviados). (5) <b>Partida Casual — vantagem de 2 pontos ligada por padrão</b>: o toggle "Regra de vantagem" do painel de configuração de Partida Casual agora vem ativado por padrão em todas as modalidades (Beach Tennis, Pickleball, Tênis de Mesa e Padel — Tênis já vinha ligado). A regra "ao empatar em 40-40, exige 2 pontos de vantagem" espelha melhor o que acontece em quadra, então faz mais sentido ser o default e o usuário desativar se quiser jogar sem advantage. Preferências salvas em <code>scoreplace_casual_prefs</code> continuam respeitadas — a mudança afeta apenas novos usuários ou quem ainda não personalizou a config.</p>' +
         '</div>' +
@@ -1851,14 +1867,19 @@
 
   var html = '<div class="modal-overlay" id="modal-help">' +
     '<div class="modal" style="max-width:560px; padding:0; max-height:85vh; display:flex; flex-direction:column;">' +
-      '<div style="padding:1.5rem 1.5rem 1rem; flex-shrink:0;">' +
-        '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">' +
-          '<h2 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-bright);">Central de Ajuda</h2>' +
-          '<button class="btn btn-ghost" onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" style="font-size:1.3rem; padding:4px 8px; line-height:1;">✕</button>' +
+      // Sticky header — Voltar pill (tournament-details style) stays pinned while body scrolls.
+      '<div style="position:sticky; top:0; z-index:2; background:var(--bg-card, var(--bg-darker)); padding:12px 1.5rem 10px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.06);">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">' +
+          '<button class="btn btn-outline btn-sm hover-lift" onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" style="display:inline-flex; align-items:center; gap:6px; padding:6px 16px; border-radius:20px;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
+            ' Voltar' +
+          '</button>' +
+          '<h2 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-bright);">Central de Ajuda</h2>' +
+          '<button onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
         '</div>' +
         '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%; box-sizing:border-box; padding:10px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-darker); color:var(--text-color); font-size:0.85rem; outline:none;" oninput="window._filterHelpSections(this.value)">' +
       '</div>' +
-      '<div id="help-sections-container" style="padding:0 1.5rem 1.5rem; overflow-y:auto; flex:1;">' +
+      '<div id="help-sections-container" style="padding:1.25rem 1.5rem 1.5rem; overflow-y:auto; flex:1;">' +
         sectionsHtml +
         '<div id="help-no-results" style="display:none; text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.85rem;">Nenhum resultado encontrado. Tente outras palavras.</div>' +
       '</div>' +
