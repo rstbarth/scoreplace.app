@@ -926,6 +926,26 @@ window._saveResultInline = function (tId, matchId) {
   } else if (isRoundMatch) {
     // Liga/Suíço/Ranking — atualizar standings
     showNotification(_t('result.saved'), m.draw ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
+
+    // Auto-close round + auto-advance to next round when all matches complete
+    // (avoids requiring organizer to manually click "Encerrar Rodada")
+    var _roundIdxAuto = -1;
+    (t.rounds || []).forEach(function(r, idx) {
+      (r.matches || []).forEach(function(rm) { if (rm.id === matchId) _roundIdxAuto = idx; });
+    });
+    if (_roundIdxAuto >= 0) {
+      var _thisRound = t.rounds[_roundIdxAuto];
+      var _thisComplete = (_thisRound.matches || []).every(function(rm) { return !!rm.winner; });
+      var _isLast = _roundIdxAuto === (t.rounds.length - 1);
+      if (_thisComplete && _isLast && _thisRound.status !== 'complete') {
+        // Defer to close-round logic so Swiss/Liga dispatch & elim-transition run uniformly
+        setTimeout(function() {
+          if (typeof window._closeRound === 'function') {
+            window._closeRound(tId, _roundIdxAuto);
+          }
+        }, 0);
+      }
+    }
   } else {
     // Check if current group round is complete, activate next
     _checkGroupRoundComplete(t, m.group);

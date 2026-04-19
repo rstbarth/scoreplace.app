@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Suíço: avanço automático para a próxima rodada</b> — Em torneios com Suíço como resolução de potência de 2 (e em Suíço puro também), ao lançar o último resultado de uma rodada, o app não gerava a próxima rodada automaticamente — o organizador precisava clicar em "Encerrar Rodada" manualmente, e isso não estava óbvio. Relatado em torneio de 2 rodadas Suíço: após registrar todos os placares da Rodada 1, a Rodada 2 simplesmente não aparecia. Agora, quando o último resultado de uma rodada é registrado, o app dispara automaticamente o fechamento da rodada e gera a próxima (ou transiciona para a fase eliminatória, se Suíço estava sendo usado como classificação). O botão manual "Encerrar Rodada" continua disponível caso se queira encerrar antes da hora.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Painel "Tudo Pronto para o Sorteio!": botões sempre visíveis + registro no histórico</b> — O painel final estava cortando embaixo em telas altas: o botão "Voltar e Revisar" aparecia parcialmente atrás da barra de endereço do iOS. Reestruturado em flex-column com rodapé fixo — os botões "Rodar Sorteio Agora" e "Voltar e Revisar" ficam sempre visíveis, o meio (checklist e histórico) rola internamente se precisar. A resolução do resto (Lista de Espera, Exclusão) agora também é gravada no Histórico de Resoluções, com indicação do método (sorteio geral ou últimos inscritos) e os nomes dos afetados.</p>' +
         '</div>' +
