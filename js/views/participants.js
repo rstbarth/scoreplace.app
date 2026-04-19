@@ -695,15 +695,18 @@ function renderParticipants(container, tournamentId) {
       const _pAvatar = _pCached || _pInitials;
       const _pAvatarErr = `onerror="this.onerror=null;this.src='${_pInitials}'"` ;
 
-      const nameCell = `<div style="display:flex;align-items:center;gap:6px;min-width:0;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>`;
-      // Inline layout (name + Jogo + teams + vs on one row + team 2 below) only when there's horizontal room.
+      const jogoInline = matchLabel
+        ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.55;font-size:0.72rem;white-space:nowrap;margin-left:6px;">${matchLabel}</span>`
+        : '';
+      const nameCell = `<div style="display:flex;align-items:baseline;gap:6px;min-width:0;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}${jogoInline}</div>`;
+      // Inline layout: name+Jogo anchored to top-left, teams stack to the right, "vs" at top-right.
       // Mobile (< 768px) falls back to name on top, matchup block below.
       const _isNarrow = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
       let infoBlock;
       if (hasMatchup && !_isNarrow) {
-        infoBlock = `<div style="display:grid;grid-template-columns:auto auto auto auto;column-gap:10px;align-items:center;min-width:0;">${nameCell}${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
+        infoBlock = `<div style="display:grid;grid-template-columns:auto 1fr auto;column-gap:10px;align-items:start;min-width:0;">${nameCell}${teamsCell || '<span></span>'}${vsCell || '<span></span>'}</div>`;
       } else if (hasMatchup) {
-        const matchupRow = `<div style="display:grid;grid-template-columns:auto auto auto;column-gap:8px;align-items:start;margin-top:3px;">${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
+        const matchupRow = `<div style="display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:start;margin-top:3px;">${teamsCell || '<span></span>'}${vsCell || '<span></span>'}</div>`;
         infoBlock = nameCell + matchupRow;
       } else {
         infoBlock = nameCell;
