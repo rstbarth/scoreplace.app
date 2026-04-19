@@ -719,15 +719,20 @@ window._renderPersistentMatchStats = function(records, uid) {
                     var _myPts = myTeam === 1 ? _tbP1 : _tbP2;
                     var _oppPts = myTeam === 1 ? _tbP2 : _tbP1;
                     if (_myPts > _oppPts) {
+                        // Won TB: track MY (winning) score — max = highest I scored when winning
+                        // a TB, min = tightest/lowest my winning score (e.g. clean 7-x sweep).
                         agg.tbWon++;
                         agg.tbWonPointsSum += _myPts;
                         if (_myPts > agg.tbWonMax) agg.tbWonMax = _myPts;
                         if (agg.tbWonMin === null || _myPts < agg.tbWonMin) agg.tbWonMin = _myPts;
                     } else if (_oppPts > _myPts) {
+                        // Lost TB: track OPPONENT (winning) score — max = opponent's blow-out
+                        // score when they beat me, min = opponent's closest winning score (e.g.
+                        // 9-7 after extra points), not MY loser's score.
                         agg.tbLost++;
-                        agg.tbLostPointsSum += _myPts;
-                        if (_myPts > agg.tbLostMax) agg.tbLostMax = _myPts;
-                        if (agg.tbLostMin === null || _myPts < agg.tbLostMin) agg.tbLostMin = _myPts;
+                        agg.tbLostPointsSum += _oppPts;
+                        if (_oppPts > agg.tbLostMax) agg.tbLostMax = _oppPts;
+                        if (agg.tbLostMin === null || _oppPts < agg.tbLostMin) agg.tbLostMin = _oppPts;
                     }
                     agg.tbPlayed++;
                     agg.tbPointsSum += _myPts;
