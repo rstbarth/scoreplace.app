@@ -314,8 +314,9 @@ window._translations['pt'] = {
   'result.fillScore': 'Preencha o placar de ambos os jogadores.',
   'result.drawNotAllowed': 'Empate não permitido em eliminatórias.',
   'result.tbRequired': 'Informe o placar do tie-break',
-  'result.tbRequiredDetail': 'O set chegou a {trigger}. Preencha os dois campos menores (pontos do tie-break) para definir o vencedor.',
-  'result.tbNoDraw': 'O tie-break não pode terminar empatado.',
+  'result.tbRequiredDetail': 'O set terminou em {trigger} (decidido no tie-break). Preencha os dois campos menores com os pontos que cada time fez no tie-break.',
+  'result.tbWinnerMismatch': 'Placar do tie-break inconsistente',
+  'result.tbWinnerMismatchDetail': 'O vencedor do tie-break deve ser o mesmo que ganhou o set. O time com mais games precisa ter mais pontos no tie-break.',
   'result.saved': 'Resultado Salvo!',
   'result.selectAbsent': 'Selecione o Ausente',
   'result.emptyList': 'Lista Vazia',
@@ -688,7 +689,7 @@ window._translations['pt'] = {
   'rules.scoringSuperTb': 'Super tie-break',
   'rules.scoringSuperTbEnabled': 'No set decisivo, até {points} pontos (diferença mínima de 2)',
   'rules.scoringHowTitle': 'Como lançar o placar manualmente',
-  'rules.scoringHowManualTb': 'Ao lançar um resultado direto na chave (sem live-scoring), digite os games de cada time. Quando o placar do set atingir {trigger}, o sistema desloca os campos para a esquerda e abre dois novos campos para os pontos do tie-break. Digite os pontos finais (ex: {points} a {points} menos {margin}, sempre respeitando a diferença mínima de {margin}) para cada time e clique em Confirmar.',
+  'rules.scoringHowManualTb': 'Ao lançar um resultado direto na chave (sem live-scoring), digite os games de cada time. Para registrar um set decidido no tie-break, digite {trigger} (o time com mais games venceu o tie-break). Dois campos menores aparecerão ao lado dos placares para você informar os pontos que cada time fez no tie-break (ex: {points} a {points} menos {margin}, respeitando a diferença mínima de {margin}). O time com mais games precisa ter mais pontos no tie-break. Clique em Confirmar.',
   'rules.scoringHowManualNoTb': 'Ao lançar um resultado direto na chave (sem live-scoring), digite os games de cada time. Como este torneio não usa tie-break, um set só é decidido quando um dos times alcança o mínimo de games com a diferença exigida — empates no limite continuam em jogo.',
 
   // Enrollment

@@ -72,8 +72,10 @@ function renderRules(container, tournamentId) {
     const tbEnabled = sc.tiebreakEnabled;
     const tbPoints = sc.tiebreakPoints || 7;
     const tbMargin = sc.tiebreakMargin || 2;
-    // The score at which the tiebreak is triggered = gamesPerSet-gamesPerSet (e.g. 6-6).
-    const tbTrigger = gamesPerSet + '-' + gamesPerSet;
+    // TB is played when games tie at gamesPerSet (e.g. 6-6); the final set score
+    // after TB is (gamesPerSet+1)-gamesPerSet (e.g. 7-6).
+    const tbStart = gamesPerSet + '-' + gamesPerSet;
+    const tbFinal = (gamesPerSet + 1) + '-' + gamesPerSet;
     const superTb = sc.superTiebreak;
     const superTbPts = sc.superTiebreakPoints || 10;
     const rows = [
@@ -82,7 +84,7 @@ function renderRules(container, tournamentId) {
       [_t('rules.scoringGamesPerSet'), String(gamesPerSet)],
       [_t('rules.scoringCounting'), counting],
       [_t('rules.scoringAdvantage'), adv],
-      [_t('rules.scoringTiebreak'), tbEnabled ? _t('rules.scoringTbEnabled', { trigger: tbTrigger, points: tbPoints, margin: tbMargin }) : _t('rules.scoringTbDisabled')],
+      [_t('rules.scoringTiebreak'), tbEnabled ? _t('rules.scoringTbEnabled', { trigger: tbStart, points: tbPoints, margin: tbMargin }) : _t('rules.scoringTbDisabled')],
     ];
     if (superTb) rows.push([_t('rules.scoringSuperTb'), _t('rules.scoringSuperTbEnabled', { points: superTbPts })]);
     const listHtml = rows.map(([label, value]) => `
@@ -93,7 +95,7 @@ function renderRules(container, tournamentId) {
     const howToHtml = tbEnabled
       ? `<div style="margin-top:1rem;padding:0.9rem 1rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:10px;">
           <div style="font-size:0.8rem;font-weight:700;color:#c4b5fd;margin-bottom:6px;">💡 ${_t('rules.scoringHowTitle')}</div>
-          <div style="font-size:0.82rem;color:var(--text-main);line-height:1.5;">${_t('rules.scoringHowManualTb', { trigger: tbTrigger, points: tbPoints, margin: tbMargin })}</div>
+          <div style="font-size:0.82rem;color:var(--text-main);line-height:1.5;">${_t('rules.scoringHowManualTb', { trigger: tbFinal, points: tbPoints, margin: tbMargin })}</div>
         </div>`
       : `<div style="margin-top:1rem;padding:0.9rem 1rem;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:10px;">
           <div style="font-size:0.8rem;font-weight:700;color:#93c5fd;margin-bottom:6px;">💡 ${_t('rules.scoringHowTitle')}</div>

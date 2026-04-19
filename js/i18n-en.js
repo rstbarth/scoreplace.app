@@ -314,8 +314,9 @@ window._translations['en'] = {
   'result.fillScore': 'Please enter scores for both players.',
   'result.drawNotAllowed': 'Draws are not allowed in elimination.',
   'result.tbRequired': 'Enter tie-break score',
-  'result.tbRequiredDetail': 'The set reached {trigger}. Fill in the two smaller fields (tie-break points) to determine the winner.',
-  'result.tbNoDraw': 'The tie-break cannot end in a draw.',
+  'result.tbRequiredDetail': 'The set ended {trigger} (decided in the tie-break). Fill in the two smaller fields with the points each team scored in the tie-break.',
+  'result.tbWinnerMismatch': 'Tie-break score mismatch',
+  'result.tbWinnerMismatchDetail': 'The tie-break winner must be the same team that won the set. The team with more games must have more tie-break points.',
   'result.saved': 'Result Saved!',
   'result.selectAbsent': 'Select Absent Player',
   'result.emptyList': 'Empty List',
@@ -688,7 +689,7 @@ window._translations['en'] = {
   'rules.scoringSuperTb': 'Super tie-break',
   'rules.scoringSuperTbEnabled': 'In the deciding set, up to {points} points (win-by-2)',
   'rules.scoringHowTitle': 'How to enter the score manually',
-  'rules.scoringHowManualTb': 'When entering a result directly in the bracket (without live-scoring), type each team\'s games. Once the set score reaches {trigger}, the system shifts the fields to the left and opens two new fields for the tie-break points. Enter each team\'s final tie-break points (e.g., {points} to {points} minus {margin}, always respecting the win-by-{margin} rule) and click Confirm.',
+  'rules.scoringHowManualTb': 'When entering a result directly in the bracket (without live-scoring), type each team\'s games. To record a set decided on a tie-break, type {trigger} (the team with more games won the tie-break). Two smaller fields will appear next to the scores for you to enter each team\'s tie-break points (e.g., {points} to {points} minus {margin}, respecting the win-by-{margin} rule). The team with more games must have more tie-break points. Click Confirm.',
   'rules.scoringHowManualNoTb': 'When entering a result directly in the bracket (without live-scoring), type each team\'s games. Since this tournament does not use tie-breaks, a set is only decided when a team reaches the minimum games with the required margin — ties at the limit continue to play.',
 
   // Enrollment
