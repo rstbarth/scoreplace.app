@@ -1621,6 +1621,7 @@ window._translations['pt'] = {
   'predraw.adjustTitle': 'Ajuste de Chaveamento',
   'predraw.selectStrategy': 'Selecione a Estratégia de Ajuste',
   'predraw.nashRecommended': '⭐ Recomendado',
+  'predraw.nashSelected': '✓ Selecionado',
   'predraw.excluded': 'Excluídas:',
   'predraw.optReopenTitle': 'Reabrir Inscrições',
   'predraw.optReopenDesc': 'Aumentar número de inscritos para resolver pendências e potência de 2.',

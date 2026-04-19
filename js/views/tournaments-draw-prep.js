@@ -2963,11 +2963,12 @@ window.showResolutionSimulationPanel = function (tId, option) {
             const totalMatches = matchesPerRound * r;
             const isSelected = r === bestRounds;
 
-            roundOptionsHtml += '<button data-swiss-rounds="' + r + '" style="background:' + c.bg + ';border:2px solid ' + (isSelected ? '#a78bfa' : c.border) + ';box-shadow:' + (isSelected ? '0 0 16px rgba(139,92,246,0.4)' : c.glow) + ';border-radius:16px;padding:14px 12px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:4px;position:relative;" ' +
-                'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" ' +
-                'onmouseout="this.style.transform=\'\';this.style.filter=\'\'" ' +
+            roundOptionsHtml += '<button data-swiss-rounds="' + r + '" data-swiss-selected="' + (isSelected ? '1' : '0') + '" style="background:' + (isSelected ? 'linear-gradient(135deg,rgba(139,92,246,0.28),rgba(139,92,246,0.12))' : c.bg) + ';border:' + (isSelected ? '3' : '2') + 'px solid ' + (isSelected ? '#a78bfa' : c.border) + ';box-shadow:' + (isSelected ? '0 0 24px rgba(139,92,246,0.65), inset 0 0 12px rgba(139,92,246,0.18)' : c.glow) + ';border-radius:16px;padding:14px 12px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:4px;position:relative;transform:' + (isSelected ? 'scale(1.04)' : 'scale(1)') + ';" ' +
+                'onmouseover="if(this.getAttribute(\'data-swiss-selected\')!==\'1\'){this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'}" ' +
+                'onmouseout="if(this.getAttribute(\'data-swiss-selected\')!==\'1\'){this.style.transform=\'\';this.style.filter=\'\'}" ' +
                 'onclick="window._selectSwissRounds(' + r + ')">' +
-                (isBest ? '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">' + _t('predraw.nashRecommended') + '</div>' : '') +
+                (isBest ? '<div data-swiss-badge="recommended" style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">' + _t('predraw.nashRecommended') + '</div>' : '') +
+                (isSelected ? '<div data-swiss-badge="selected" style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);background:#a78bfa;color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 8px rgba(139,92,246,0.5);">' + _t('predraw.nashSelected') + '</div>' : '') +
                 '<div style="font-size:1.8rem;font-weight:900;color:#fff;line-height:1;">' + r + '</div>' +
                 '<div style="font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:700;">' + _t('predraw.simSwissRoundsLabel') + '</div>' +
                 '<div style="font-size:0.62rem;color:rgba(255,255,255,0.45);margin-top:2px;">' + totalMatches + ' ' + _t('predraw.simSwissMatchesLabel') + '</div>' +
@@ -3059,12 +3060,31 @@ window.showResolutionSimulationPanel = function (tId, option) {
             btns.forEach(function(btn) {
                 var br = parseInt(btn.getAttribute('data-swiss-rounds'));
                 var c = _swNashColor(br);
+                var existingSelectedBadge = btn.querySelector('[data-swiss-badge="selected"]');
                 if (br === r) {
+                    btn.setAttribute('data-swiss-selected', '1');
+                    btn.style.background = 'linear-gradient(135deg,rgba(139,92,246,0.28),rgba(139,92,246,0.12))';
                     btn.style.borderColor = '#a78bfa';
-                    btn.style.boxShadow = '0 0 16px rgba(139,92,246,0.4)';
+                    btn.style.borderWidth = '3px';
+                    btn.style.boxShadow = '0 0 24px rgba(139,92,246,0.65), inset 0 0 12px rgba(139,92,246,0.18)';
+                    btn.style.transform = 'scale(1.04)';
+                    btn.style.filter = '';
+                    if (!existingSelectedBadge) {
+                        var badge = document.createElement('div');
+                        badge.setAttribute('data-swiss-badge', 'selected');
+                        badge.style.cssText = 'position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);background:#a78bfa;color:white;padding:2px 10px;border-radius:6px;font-size:0.58rem;font-weight:800;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 8px rgba(139,92,246,0.5);';
+                        badge.textContent = _t('predraw.nashSelected');
+                        btn.appendChild(badge);
+                    }
                 } else {
+                    btn.setAttribute('data-swiss-selected', '0');
+                    btn.style.background = c.bg;
                     btn.style.borderColor = c.border;
+                    btn.style.borderWidth = '2px';
                     btn.style.boxShadow = c.glow;
+                    btn.style.transform = 'scale(1)';
+                    btn.style.filter = '';
+                    if (existingSelectedBadge) existingSelectedBadge.remove();
                 }
             });
             // Update Nash criteria legend (dynamic per option)

@@ -1622,6 +1622,7 @@ window._translations['en'] = {
   'predraw.adjustTitle': 'Bracket Adjustment',
   'predraw.selectStrategy': 'Select Adjustment Strategy',
   'predraw.nashRecommended': '⭐ Recommended',
+  'predraw.nashSelected': '✓ Selected',
   'predraw.excluded': 'Excluded:',
   'predraw.optReopenTitle': 'Reopen Registration',
   'predraw.optReopenDesc': 'Increase enrollment to resolve issues and reach the next power of 2.',
