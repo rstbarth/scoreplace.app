@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.12.41-alpha';
+window.SCOREPLACE_VERSION = '0.12.42-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -287,8 +287,16 @@ window._hamburgerOutsideClick = function(e) {
 // The header is position:fixed so its siblings need an explicit margin-top.
 // On narrow screens the header can wrap to 2+ rows, so a fixed 50px isn't enough.
 window._syncBackHeaderSpacer = function() {
+  var topbar = document.querySelector('.topbar');
+  var topbarH = topbar ? Math.ceil(topbar.getBoundingClientRect().height) : 60;
   var headers = document.querySelectorAll('.sticky-back-header');
   headers.forEach(function(h) {
+    // Anchor the fixed back-header directly below the topbar. The topbar
+    // can wrap on narrow screens (e.g. 90+ px tall); leaving the header at
+    // top:60px lets the topbar paint over the Voltar button — `position:sticky`
+    // beats lower z-index when they overlap. Setting top dynamically keeps
+    // them strictly vertical-stacked.
+    h.style.top = topbarH + 'px';
     var next = h.nextElementSibling;
     if (!next) return;
     var rect = h.getBoundingClientRect();
@@ -314,6 +322,11 @@ window._syncBackHeaderSpacer = function() {
     document.querySelectorAll('.sticky-back-header').forEach(function(h) {
       try { resizeObs.observe(h); } catch(e) {}
     });
+    // Also observe the topbar: when it wraps (narrow viewport, login state
+    // change, filter pills added) its height changes and we need to push
+    // the back-header down to avoid overlap.
+    var topbar = document.querySelector('.topbar');
+    if (topbar) { try { resizeObs.observe(topbar); } catch(e) {} }
   }
 
   function initDomObserver() {
