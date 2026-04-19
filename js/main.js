@@ -820,6 +820,7 @@
         '<p><b>Classificação colapsável (oculta por padrão)</b> — A tabela de classificação do Suíço/Liga agora aparece recolhida por padrão, com um cabeçalho clicável "▸ Mostrar classificação" no card. Ao clicar, expande para a tabela completa com todos os critérios de desempate e vira "▾ Ocultar classificação". Tira carga visual da tela inicial (os cards de partida e o bracket continuam em destaque) e dá acesso rápido a quem quer ver a tabela detalhada.</p>' +
         '<p><b>Rodadas Anteriores abertas por padrão</b> — O bloco "📜 Rodadas Anteriores" do Suíço/Liga volta a aparecer expandido por padrão (como já acontecia na eliminatória simples), mas mantém o cabeçalho clicável para ocultar quando o histórico fica longo.</p>' +
         '<p><b>Botão "Ocultar" padronizado nas Rodadas Anteriores</b> — Substituímos o antigo <code>&lt;details&gt;</code> do bloco "📜 Rodadas Anteriores" pelo mesmo botãozinho pill "Ocultar" / "Mostrar" já usado inline nas rodadas da eliminatória linear. Assim a UX fica consistente entre os formatos e o organizador/jogador identifica o controle de imediato.</p>' +
+        '<p><b>Botão "Voltar" no fluxo de Novo Torneio</b> — O modal rápido de criação e o formulário avançado agora trazem o botão "← Voltar" (estilo pill padrão do app) fixo no topo, sempre visível enquanto o usuário rola o formulário. Consistente com a navegação de outras telas e oferece uma saída previsível para quem abriu por engano ou mudou de ideia.</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.54-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
@@ -2050,7 +2051,14 @@
   if (document.getElementById('modal-quick-create')) return;
   const html = `
     <div class="modal-overlay" id="modal-quick-create">
-      <div class="modal" style="max-width:420px; padding:2rem;">
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-voltar-bar" style="position:sticky;top:0;z-index:11;background:var(--bg-dark);padding:12px 1.5rem 10px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;">
+          <button class="btn btn-outline btn-sm hover-lift" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            ${(window._t || function(k){return k;})('btn.back') || 'Voltar'}
+          </button>
+        </div>
+        <div style="padding:1.5rem 2rem 2rem;">
         <h2 style="margin:0 0 1.25rem; font-size:1.3rem; font-weight:700; color:var(--text-bright); text-align:center;">${(window._t || function(k){return k;})('quickCreate.title')}</h2>
         <div class="form-group" style="margin-bottom:1.25rem;">
           <label class="form-label">${(window._t || function(k){return k;})('quickCreate.sportLabel')}</label>
@@ -2083,6 +2091,7 @@
           <button class="btn btn-secondary btn-block" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');">
             ${(window._t || function(k){return k;})('btn.cancel')}
           </button>
+        </div>
         </div>
       </div>
     </div>`;

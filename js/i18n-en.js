@@ -59,6 +59,7 @@ window._translations['en'] = {
   'btn.save': 'Save',
   'btn.cancel': 'Cancel',
   'btn.back': 'Back',
+  'btn.back': 'Back',
   'btn.goDashboard': 'Go to Dashboard',
   'btn.close': 'Close',
   'btn.delete': 'Delete',

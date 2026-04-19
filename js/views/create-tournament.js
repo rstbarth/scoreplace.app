@@ -13,11 +13,16 @@ function setupCreateTournamentModal() {
     const modalHtml = `
       <div class="modal-overlay" id="modal-create-tournament">
         <div class="modal" style="max-width: 800px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-          <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.5rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-            <h2 class="card-title" id="create-modal-title">${_t('create.modalTitle')}</h2>
-            <div style="display:flex; gap:10px;">
+          <div class="modal-header" style="display:flex; flex-direction:column; align-items:stretch; gap:10px; border-bottom: 1px solid var(--border-color); padding: 0.85rem 1.25rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+            <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+              <button class="btn btn-outline btn-sm hover-lift" onclick="document.getElementById('modal-create-tournament').classList.remove('active')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;" aria-label="${_t('btn.back') || 'Voltar'}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                ${_t('btn.back') || 'Voltar'}
+              </button>
+              <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_t('create.modalTitle')}</h2>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
               <button class="btn btn-tool-amber" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
-              <button class="btn btn-secondary" onclick="document.getElementById('modal-create-tournament').classList.remove('active')">${_t('btn.cancel')}</button>
               <button class="btn btn-primary" id="btn-save-tournament">${_t('create.saveTournament')}</button>
             </div>
           </div>
