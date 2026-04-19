@@ -3819,10 +3819,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
           (timeStatsSection ? '' : durationRow) +
         '</div>';
 
-      // Tournament finish screen: hide the header Reset + Close buttons so
-      // only the green "Confirmar Resultado" action remains visible.
+      // Tournament finish screen: hide the Reset button (would undo the
+      // finished state) but KEEP the ✕ Fechar button visible — users were
+      // reporting the back button "didn't work" when the last match in a
+      // tournament finished, because this overlay (z-index 100002) covered
+      // the sticky back header and nothing else could dismiss it.
+      // _closeLiveScoring() already prompts to save/confirm the result.
       var hdrActions = document.getElementById('live-score-header-actions');
-      if (hdrActions) hdrActions.style.display = isCasual ? '' : 'none';
+      if (hdrActions) {
+        hdrActions.style.display = '';
+        if (!isCasual) {
+          var resetBtn = hdrActions.querySelector('button[onclick*="_liveScoreReset"]');
+          if (resetBtn) resetBtn.style.display = 'none';
+        }
+      }
       // Wire up Replay button — re-renders the finish view to re-trigger the SVG draw animation
       setTimeout(function() {
         var replayBtn = document.getElementById('mom-replay-btn');
