@@ -3497,11 +3497,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       }
 
-      // Restart section: visible to all users on the match screen.
-      // Compact button + proper toggle-switch side-by-side. Button uses a short
-      // label so the "Re-sortear duplas" toggle fits elegantly on narrow phones.
+      // Finish-screen action section.
+      // Tournament match: single "Confirmar Resultado" button that persists the
+      // result, advances the winner in the bracket, and closes the overlay so
+      // the user lands on the bracket (already anchored to the match card).
+      // Casual match: original "Jogar Novamente" + optional "Re-sortear duplas"
+      // toggle for doubles — both stay within thumb-reach at the top.
       var restartSection = '';
-      if (isDoubles) {
+      if (!isCasual) {
+        restartSection =
+          '<button onclick="window._liveScoreConfirmTournament()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✓ Confirmar Resultado</button>';
+      } else if (isDoubles) {
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
             '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar Novamente</button>' +
@@ -3533,6 +3539,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
           timeStatsSection +
           (timeStatsSection ? '' : durationRow) +
         '</div>';
+
+      // Tournament finish screen: hide the header Reset + Close buttons so
+      // only the green "Confirmar Resultado" action remains visible.
+      var hdrActions = document.getElementById('live-score-header-actions');
+      if (hdrActions) hdrActions.style.display = isCasual ? '' : 'none';
       // Wire up Replay button — re-renders the finish view to re-trigger the SVG draw animation
       setTimeout(function() {
         var replayBtn = document.getElementById('mom-replay-btn');
@@ -4280,6 +4291,21 @@ window._openLiveScoring = function(tId, matchId, opts) {
     );
   };
 
+  // Tournament confirm: persist the finished result, advance the winner in the
+  // bracket, close the overlay, and clean up listeners. The user lands on the
+  // bracket view already anchored to the match card (see _rerenderBracket).
+  window._liveScoreConfirmTournament = function() {
+    if (isCasual) return;
+    if (!state.isFinished) return;
+    try { _saveResult({ keepOpen: true, silent: false }); } catch(e) {}
+    if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+    try { window.removeEventListener('resize', _onResize); } catch(e) {}
+    try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+    try { _releaseWakeLock(); } catch(e) {}
+    var ov = document.getElementById('live-scoring-overlay');
+    if (ov) ov.remove();
+  };
+
   // ── Build overlay ──
   // Use dynamic viewport (100dvh) so mobile browsers' shrinking/expanding URL
   // bar never crops the pinned bottom action buttons.
@@ -4301,8 +4327,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     '</div>' +
     // Spacer
     '<div style="flex:1;"></div>' +
-    // Right: Reset + Close
-    '<div style="display:flex;gap:6px;align-items:center;flex:0 0 auto;">' +
+    // Right: Reset + Close (hidden on finish screen in tournament mode)
+    '<div id="live-score-header-actions" style="display:flex;gap:6px;align-items:center;flex:0 0 auto;">' +
       '<button onclick="window._liveScoreReset()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Resetar</button>' +
       '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
     '</div>' +
