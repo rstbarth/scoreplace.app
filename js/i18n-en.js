@@ -1624,6 +1624,8 @@ window._translations['en'] = {
   'predraw.removalLastTitle': '⏰ Last to register',
   'predraw.randomToggleLabel': 'Random Draw',
   'predraw.randomToggleDesc': 'On: pick randomly among all registered. Off: pull the last to register.',
+  'predraw.randomToggleOn': 'Random draw among all registered.',
+  'predraw.randomToggleOff': 'Applies to the last to register.',
   // Draw-prep: dissolve panel
   'predraw.reallocTitle': 'Manual Reallocation',
   'predraw.reallocDesc': 'Drag players to complete or dissolve teams.',

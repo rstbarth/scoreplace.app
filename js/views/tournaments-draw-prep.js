@@ -295,7 +295,7 @@ window._showRemainderPanel = function(tId, info, t) {
     overlay.id = 'remainder-resolution-panel';
     // Use svh (small viewport height) so iOS Safari's dynamic address bar
     // doesn't push the modal partially off-screen.
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100svh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:0.75rem;';
+    overlay.style.cssText = 'position:fixed;inset:0;width:100vw;min-height:100vh;min-height:100dvh;background:rgba(0,0,0,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:0.75rem;overflow:hidden;';
     document.body.style.overflow = 'hidden';
 
     overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:94svh;">' +
@@ -337,9 +337,9 @@ window._showRemainderPanel = function(tId, info, t) {
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:9px;">' +
                 '<div style="flex:1;min-width:0;">' +
                     '<div style="font-weight:800;color:#ede9fe;font-size:0.82rem;">' + _t('predraw.randomToggleLabel') + '</div>' +
-                    '<div style="font-size:0.68rem;color:#c4b5fd;margin-top:2px;line-height:1.35;">' + _t('predraw.randomToggleDesc') + '</div>' +
+                    '<div id="remainder-toggle-desc" style="font-size:0.7rem;color:#c4b5fd;margin-top:2px;line-height:1.35;">' + _t('predraw.randomToggleOn') + '</div>' +
                 '</div>' +
-                '<label class="toggle-switch" style="flex-shrink:0;"><input type="checkbox" id="remainder-random-toggle" checked><span class="toggle-slider"></span></label>' +
+                '<label class="toggle-switch" style="flex-shrink:0;"><input type="checkbox" id="remainder-random-toggle" checked onchange="var d=document.getElementById(\'remainder-toggle-desc\');if(d)d.textContent=this.checked?window._t(\'predraw.randomToggleOn\'):window._t(\'predraw.randomToggleOff\');"><span class="toggle-slider"></span></label>' +
             '</div>' +
             '<div style="display:flex;flex-direction:column;gap:8px;">' +
                 // Reabrir Inscrições
