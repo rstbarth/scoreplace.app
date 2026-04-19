@@ -96,15 +96,24 @@ window.generateDrawFunction = function (tId) {
         (Array.isArray(t.rounds) && t.rounds.length > 0) ||
         (Array.isArray(t.groups) && t.groups.length > 0);
     if (_hasExistingDraw) {
-        // Check if any match has a result recorded
+        // Check if any match has a result recorded — use canonical collector
+        // so results hiding in t.groups[].matches, t.thirdPlaceMatch, or
+        // t.rodadas can't be silently overwritten by a redraw.
         var _hasResults = false;
-        if (Array.isArray(t.matches)) {
-            _hasResults = t.matches.some(function(m) { return m.winner || m.score1 || m.score2; });
-        }
-        if (!_hasResults && Array.isArray(t.rounds)) {
-            _hasResults = t.rounds.some(function(r) {
-                return (r.matches || []).some(function(m) { return m.winner || m.score1 || m.score2; });
+        if (typeof window._collectAllMatches === 'function') {
+            _hasResults = window._collectAllMatches(t).some(function(m) {
+                return m && (m.winner || m.score1 || m.score2);
             });
+        } else {
+            // Defensive fallback: bracket-model.js not loaded.
+            if (Array.isArray(t.matches)) {
+                _hasResults = t.matches.some(function(m) { return m.winner || m.score1 || m.score2; });
+            }
+            if (!_hasResults && Array.isArray(t.rounds)) {
+                _hasResults = t.rounds.some(function(r) {
+                    return (r.matches || []).some(function(m) { return m.winner || m.score1 || m.score2; });
+                });
+            }
         }
         if (_hasResults) {
             showAlertDialog(_t('draw.alreadyDoneTitle'),

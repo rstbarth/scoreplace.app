@@ -1234,9 +1234,14 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const _byeBadgeFull = '<span style="display:inline-flex;align-items:center;justify-content:center;width:52px;font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:4px 0;border-radius:6px;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(34,197,94,0.2);">BYE</span>';
   const _byeBadgeMini = '<span style="font-size:0.45rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:1px 4px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;vertical-align:middle;">BYE</span>';
   let _p1Bye = false, _p2Bye = false;
-  if (t && m.round > 1 && Array.isArray(t.matches)) {
+  if (t && m.round > 1) {
     const _byeWinners = {};
-    t.matches.forEach(function(bm) { if (bm.isBye && bm.winner) _byeWinners[bm.winner] = true; });
+    if (typeof window._collectAllMatches === 'function') {
+      window._collectAllMatches(t).forEach(function(bm) { if (bm && bm.isBye && bm.winner) _byeWinners[bm.winner] = true; });
+    } else if (Array.isArray(t.matches)) {
+      // Defensive fallback: bracket-model.js not loaded.
+      t.matches.forEach(function(bm) { if (bm.isBye && bm.winner) _byeWinners[bm.winner] = true; });
+    }
     if (m.p1 && _byeWinners[m.p1]) _p1Bye = true;
     if (m.p2 && _byeWinners[m.p2]) _p2Bye = true;
   }

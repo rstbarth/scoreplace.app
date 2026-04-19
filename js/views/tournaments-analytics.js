@@ -193,9 +193,28 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
                     stats.totalDraws++;
                 }
             });
-            // Check if champion (last match winner in single elimination)
-            if ((t.status === 'finished' || t.status === 'closed') && Array.isArray(t.matches) && t.matches.length > 0) {
-                var finalMatch = t.matches[t.matches.length - 1];
+            // Check if champion (final match winner). Prefer adapter to find
+            // the true final across canonical + legacy shapes; fall back to
+            // the last entry of t.matches for single-elim legacy data.
+            if (t.status === 'finished' || t.status === 'closed') {
+                var finalMatch = null;
+                if (typeof window._getUnifiedRounds === 'function') {
+                    var cols = window._getUnifiedRounds(t) || [];
+                    var finalCol = null;
+                    for (var fci = cols.length - 1; fci >= 0; fci--) {
+                        var cc = cols[fci];
+                        if (cc && (cc.phase === 'grandfinal' || cc.phase === 'elim')) {
+                            finalCol = cc;
+                            break;
+                        }
+                    }
+                    if (finalCol && Array.isArray(finalCol.matches) && finalCol.matches.length > 0) {
+                        finalMatch = finalCol.matches[finalCol.matches.length - 1];
+                    }
+                }
+                if (!finalMatch && Array.isArray(t.matches) && t.matches.length > 0) {
+                    finalMatch = t.matches[t.matches.length - 1];
+                }
                 if (finalMatch && _nameMatch(finalMatch.winner, playerName)) {
                     stats.titles++;
                     stats.podiums++;

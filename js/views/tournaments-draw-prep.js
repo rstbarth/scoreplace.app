@@ -2199,10 +2199,23 @@ window.finishTournament = function(tId) {
         showNotification(_t('draw.alreadyClosed'), _t('draw.alreadyClosedMsg'), 'info');
         return;
     }
-    const hasResults = (Array.isArray(t.matches) && t.matches.some(function(m) { return !!m.winner; })) ||
-        (Array.isArray(t.rounds) && t.rounds.some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); })) ||
-        (Array.isArray(t.groups) && t.groups.some(function(g) { return (g.rounds || []).some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); }); }));
-    const pendingMatches = (Array.isArray(t.matches) && t.matches.filter(function(m) { return !m.isBye && m.p1 && m.p1 !== 'TBD' && m.p2 && m.p2 !== 'TBD' && !m.winner; }).length) || 0;
+    // Unified scan via canonical collector — covers all 7 legacy shapes.
+    var _allMatches = (typeof window._collectAllMatches === 'function')
+        ? window._collectAllMatches(t)
+        : null;
+    var hasResults, pendingMatches;
+    if (_allMatches) {
+        hasResults = _allMatches.some(function(m) { return m && !!m.winner; });
+        pendingMatches = _allMatches.filter(function(m) {
+            return m && !m.isBye && m.p1 && m.p1 !== 'TBD' && m.p2 && m.p2 !== 'TBD' && !m.winner;
+        }).length;
+    } else {
+        // Defensive fallback: bracket-model.js not loaded.
+        hasResults = (Array.isArray(t.matches) && t.matches.some(function(m) { return !!m.winner; })) ||
+            (Array.isArray(t.rounds) && t.rounds.some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); })) ||
+            (Array.isArray(t.groups) && t.groups.some(function(g) { return (g.rounds || []).some(function(r) { return (r.matches || []).some(function(m) { return !!m.winner; }); }); }));
+        pendingMatches = (Array.isArray(t.matches) && t.matches.filter(function(m) { return !m.isBye && m.p1 && m.p1 !== 'TBD' && m.p2 && m.p2 !== 'TBD' && !m.winner; }).length) || 0;
+    }
     let msg = _t('predraw.finishMsg');
     if (pendingMatches > 0) {
         msg = _t('predraw.finishPendingMsg', {n: pendingMatches});

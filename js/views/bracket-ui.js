@@ -138,17 +138,28 @@ window._substituteFromStandby = function (tId) {
         if (idx !== -1) partsArr[idx] = newTeamName;
         t.participants = partsArr;
 
-        // Update all match references
-        (t.matches || []).forEach(match => {
-          if (match.p1 === oldTeamName) match.p1 = newTeamName;
-          if (match.p2 === oldTeamName) match.p2 = newTeamName;
-          if (match.winner === oldTeamName) match.winner = newTeamName;
-        });
-        (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
-          if (match.p1 === oldTeamName) match.p1 = newTeamName;
-          if (match.p2 === oldTeamName) match.p2 = newTeamName;
-          if (match.winner === oldTeamName) match.winner = newTeamName;
-        }));
+        // Update all match references — canonical collector covers all 7 shapes
+        // (else Groups/thirdPlace/rodadas refs would silently survive).
+        if (typeof window._collectAllMatches === 'function') {
+          window._collectAllMatches(t).forEach(match => {
+            if (!match) return;
+            if (match.p1 === oldTeamName) match.p1 = newTeamName;
+            if (match.p2 === oldTeamName) match.p2 = newTeamName;
+            if (match.winner === oldTeamName) match.winner = newTeamName;
+          });
+        } else {
+          // Defensive fallback: bracket-model.js not loaded.
+          (t.matches || []).forEach(match => {
+            if (match.p1 === oldTeamName) match.p1 = newTeamName;
+            if (match.p2 === oldTeamName) match.p2 = newTeamName;
+            if (match.winner === oldTeamName) match.winner = newTeamName;
+          });
+          (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
+            if (match.p1 === oldTeamName) match.p1 = newTeamName;
+            if (match.p2 === oldTeamName) match.p2 = newTeamName;
+            if (match.winner === oldTeamName) match.winner = newTeamName;
+          }));
+        }
 
         window.AppStore.logAction(tId, `Substituição individual: ${absentPlayer} → ${replacementName} (time: ${newTeamName})`);
         window.AppStore.syncImmediate(tId);
@@ -199,16 +210,26 @@ window._substituteFromStandby = function (tId) {
         partsArr.push(replacementName);
         t.participants = partsArr;
 
-        (t.matches || []).forEach(match => {
-          if (match.p1 === absentTeam) match.p1 = replacementName;
-          if (match.p2 === absentTeam) match.p2 = replacementName;
-          if (match.winner === absentTeam) match.winner = replacementName;
-        });
-        (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
-          if (match.p1 === absentTeam) match.p1 = replacementName;
-          if (match.p2 === absentTeam) match.p2 = replacementName;
-          if (match.winner === absentTeam) match.winner = replacementName;
-        }));
+        if (typeof window._collectAllMatches === 'function') {
+          window._collectAllMatches(t).forEach(match => {
+            if (!match) return;
+            if (match.p1 === absentTeam) match.p1 = replacementName;
+            if (match.p2 === absentTeam) match.p2 = replacementName;
+            if (match.winner === absentTeam) match.winner = replacementName;
+          });
+        } else {
+          // Defensive fallback: bracket-model.js not loaded.
+          (t.matches || []).forEach(match => {
+            if (match.p1 === absentTeam) match.p1 = replacementName;
+            if (match.p2 === absentTeam) match.p2 = replacementName;
+            if (match.winner === absentTeam) match.winner = replacementName;
+          });
+          (t.rounds || []).forEach(r => (r.matches || []).forEach(match => {
+            if (match.p1 === absentTeam) match.p1 = replacementName;
+            if (match.p2 === absentTeam) match.p2 = replacementName;
+            if (match.winner === absentTeam) match.winner = replacementName;
+          }));
+        }
 
         window.AppStore.logAction(tId, `Desclassificação: ${absentTeam} → ${replacementName}`);
         window.AppStore.syncImmediate(tId);
@@ -1514,7 +1535,21 @@ window._showPlayerHistory = function(tId, playerName) {
   var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
   if (_unified && Array.isArray(_unified.columns) && _unified.columns.length > 0) {
     _unified.columns.forEach(function(c) {
-      if (!c || !Array.isArray(c.matches)) return;
+      if (!c) return;
+      // Groups/Monarch columns expose matches via subgroups[i].matches,
+      // not c.matches — walk both so player history covers every phase.
+      if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
+        c.subgroups.forEach(function(sg, gi) {
+          var gname = (sg && sg.name) || String.fromCharCode(65 + gi);
+          (sg && sg.matches || []).forEach(function(m) {
+            if (m && (m.p1 === playerName || m.p2 === playerName)) {
+              matches.push({ label: _t('bui.groupLabel', { n: gname }), m: m });
+            }
+          });
+        });
+        return;
+      }
+      if (!Array.isArray(c.matches)) return;
       c.matches.forEach(function(m) {
         if (m && (m.p1 === playerName || m.p2 === playerName)) {
           matches.push({ label: c.label || '', m: m });

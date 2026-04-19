@@ -1096,14 +1096,24 @@ function _executeMerge(tId, sourceCat, targetCat, mergedName) {
     newCats.push(mergedName);
     t.combinedCategories = newCats;
 
-    // Also update rounds/matches category references
-    (t.rounds || []).forEach(function(r) {
-        (r.matches || []).forEach(function(m) {
-            if (m.category === sourceCat || m.category === targetCat) {
+    // Also update category references on every match — use canonical
+    // collector so refs in t.groups/t.thirdPlaceMatch/t.rodadas also move.
+    if (typeof window._collectAllMatches === 'function') {
+        window._collectAllMatches(t).forEach(function(m) {
+            if (m && (m.category === sourceCat || m.category === targetCat)) {
                 m.category = mergedName;
             }
         });
-    });
+    } else {
+        // Defensive fallback: bracket-model.js not loaded.
+        (t.rounds || []).forEach(function(r) {
+            (r.matches || []).forEach(function(m) {
+                if (m.category === sourceCat || m.category === targetCat) {
+                    m.category = mergedName;
+                }
+            });
+        });
+    }
 
     // Also update standings category references
     (t.standings || []).forEach(function(s) {
