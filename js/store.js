@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.12.36-alpha';
+window.SCOREPLACE_VERSION = '0.12.37-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -282,6 +282,62 @@ window._hamburgerOutsideClick = function(e) {
     window._closeHamburger();
   }
 };
+
+// Keep spacer in sync with .sticky-back-header actual height.
+// The header is position:fixed so its siblings need an explicit margin-top.
+// On narrow screens the header can wrap to 2+ rows, so a fixed 50px isn't enough.
+window._syncBackHeaderSpacer = function() {
+  var headers = document.querySelectorAll('.sticky-back-header');
+  headers.forEach(function(h) {
+    var next = h.nextElementSibling;
+    if (!next) return;
+    var rect = h.getBoundingClientRect();
+    var px = Math.ceil(rect.height) + 8;
+    next.style.marginTop = px + 'px';
+  });
+};
+
+// Observe DOM for added/removed sticky headers and their size changes
+(function() {
+  if (window._backHeaderObserverInstalled) return;
+  window._backHeaderObserverInstalled = true;
+
+  var resizeObs = null;
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObs = new ResizeObserver(function() {
+      window._syncBackHeaderSpacer();
+    });
+  }
+
+  function observeExistingHeaders() {
+    if (!resizeObs) return;
+    document.querySelectorAll('.sticky-back-header').forEach(function(h) {
+      try { resizeObs.observe(h); } catch(e) {}
+    });
+  }
+
+  function initDomObserver() {
+    var vc = document.getElementById('view-container');
+    if (!vc) { setTimeout(initDomObserver, 100); return; }
+    var mo = new MutationObserver(function() {
+      observeExistingHeaders();
+      window._syncBackHeaderSpacer();
+    });
+    mo.observe(vc, { childList: true, subtree: true });
+    observeExistingHeaders();
+    window._syncBackHeaderSpacer();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDomObserver);
+  } else {
+    initDomObserver();
+  }
+
+  window.addEventListener('resize', function() {
+    window._syncBackHeaderSpacer();
+  });
+})();
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
 window.SCOREPLACE_URL = 'https://scoreplace.app';
