@@ -989,6 +989,24 @@ input[type="number"] {
   50% { transform: scale(1.05); box-shadow: 0 4px 20px rgba(16,185,129,0.6); }
 }
 
+/* ─── Inline button spinner (for enroll/unenroll feedback) ─────────────── */
+@keyframes sp-btn-spin { to { transform: rotate(360deg); } }
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sp-btn-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+button[data-spinning="1"] {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .hint-balloon { max-width: calc(100vw - 24px); min-width: 180px; }

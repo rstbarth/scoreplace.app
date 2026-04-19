@@ -662,9 +662,9 @@ function renderTournaments(container, tournamentId = null) {
         );
         const _enrollFlash = _isInviteTarget ? 'animation:enrollPulse 1.5s ease-in-out infinite;' : '';
         const enrollBtnHtml = (isParticipating && isAberto) ? `
-             <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>
+             <button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window._spinButton(this, '${_t('enroll.processing')}'); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>
           ` : (isAberto ? `
-             <button class="btn btn-sm btn-success hover-lift" style="${_enrollFlash}" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>
+             <button class="btn btn-sm btn-success hover-lift" style="${_enrollFlash}" onclick="event.stopPropagation(); window._spinButton(this, '${_t('enroll.processing')}'); window.enrollCurrentUser('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>
           ` : (isParticipating ? `
              <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
@@ -1006,7 +1006,7 @@ function renderTournaments(container, tournamentId = null) {
                    <div id="visitor-enroll-cta" style="margin-top:1.5rem;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.12));border:2px solid rgba(16,185,129,0.5);border-radius:16px;text-align:center;">
                       <h3 style="color:#4ade80;font-size:1.3rem;font-weight:800;margin-bottom:6px;">Participe deste torneio!</h3>
                       <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Clique abaixo para se inscrever.</p>
-                      <button class="btn btn-success btn-cta hover-lift" onclick="event.stopPropagation(); window.enrollCurrentUser('${t.id}')">
+                      <button class="btn btn-success btn-cta hover-lift" onclick="event.stopPropagation(); window._spinButton(this, '${_t('enroll.processing')}'); window.enrollCurrentUser('${t.id}')">
                          \u2705 Inscrever-se
                       </button>
                    </div>

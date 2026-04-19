@@ -363,9 +363,9 @@ function renderDashboard(container) {
     const canEnroll = isAberto && !isFinished && (!hasDraw || ligaAberta);
     let enrollBtnHtml = '';
     if (isParticipating && canEnroll) {
-      enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>`;
+      enrollBtnHtml = `<button class="btn btn-sm btn-danger hover-lift" onclick="event.stopPropagation(); window._spinButton(this, '${_t('enroll.processing')}'); window.deenrollCurrentUser('${t.id}')">🛑 ${_t('enroll.unenrollBtn')}</button>`;
     } else if (!isParticipating && canEnroll) {
-      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._dashEnroll('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>`;
+      enrollBtnHtml = `<button class="btn btn-sm btn-success hover-lift" onclick="event.stopPropagation(); window._spinButton(this, '${_t('enroll.processing')}'); window._dashEnroll('${t.id}')">✅ ${_t('enroll.enrollBtn')}</button>`;
     } else if (isParticipating && !canEnroll && !isFinished) {
       enrollBtnHtml = `<div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>`;
     } else if (isFinished && (isParticipating || isOrg)) {

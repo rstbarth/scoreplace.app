@@ -224,6 +224,7 @@ window._translations['pt'] = {
   'enroll.enrolled': 'Inscrito',
   'enroll.enrollBtn': 'Inscrever-se',
   'enroll.unenrollBtn': 'Desinscrever-se',
+  'enroll.processing': 'Processando…',
   'enroll.suspended': 'Inscrições suspensas durante a enquete.',
 
   // Organizer tools

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.12.92-alpha';
+window.SCOREPLACE_VERSION = '0.12.93-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -533,6 +533,25 @@ window._showSupportModal = function() {
 window._safeHtml = function(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
+
+// Replace button content with a spinner to indicate command received (enroll/unenroll etc).
+// Caller passes `this` from the onclick. Normally the view re-renders and the button is replaced;
+// a safety timeout restores the original content in case the flow is aborted (confirm cancel, etc).
+window._spinButton = function(btn, label) {
+  if (!btn || btn.getAttribute('data-spinning') === '1') return;
+  var original = btn.innerHTML;
+  btn.setAttribute('data-spinning', '1');
+  btn.disabled = true;
+  var txt = label || '';
+  btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>' + (txt ? window._safeHtml(txt) : '');
+  setTimeout(function() {
+    if (btn && btn.getAttribute('data-spinning') === '1' && document.body.contains(btn)) {
+      btn.innerHTML = original;
+      btn.disabled = false;
+      btn.removeAttribute('data-spinning');
+    }
+  }, 8000);
 };
 
 // Auto-close tournaments whose registration deadline has passed

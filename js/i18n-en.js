@@ -224,6 +224,7 @@ window._translations['en'] = {
   'enroll.enrolled': 'Enrolled',
   'enroll.enrollBtn': 'Enroll',
   'enroll.unenrollBtn': 'Withdraw',
+  'enroll.processing': 'Processing…',
   'enroll.suspended': 'Enrollment suspended during poll.',
 
   // Organizer tools
