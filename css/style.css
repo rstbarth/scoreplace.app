@@ -7,27 +7,28 @@
 
    Layer stack (bottom → top):
      content (0) < scrollbar (50) < sidebar (80)
-     < topbar (100) < back-header (101) < hamburger-dropdown (102)
-     < modal (1000) < toast (9999) < hint (100000)
+     < topbar (100) < modal (1000) < back-header (1001) < hamburger-dropdown (1002)
+     < toast (9999) < hint (100000)
 
-   ARCHITECTURE (v0.10.29 — DO NOT CHANGE):
+   ARCHITECTURE (v0.12.88 — Voltar is ALWAYS above modals):
+     The fixed-top "Voltar" button MUST remain clickable even when
+     a regular modal is open (user reported dead clicks when modals
+     covered the back header at the old z-index 101).
+     Full-screen overlays (live-scoring, TV mode, player stats) still
+     sit above everything — they provide their own close buttons.
      #hamburger-dropdown is a SIBLING of <header class="topbar">.
-     It has its own stacking context at z-index 102.
-     .sticky-back-header (Voltar) stays at 101 ALWAYS.
-     When dropdown opens, JS pushes Voltar down below it.
-     Both are visible and clickable simultaneously.
-     DO NOT move dropdown inside topbar.
+     Hamburger dropdown stays above back-header so menu shows on top.
      DO NOT add --z-back-header-lowered (removed in v0.10.24).
-     See tests.html "Z-Index Hierarchy" for 7 automated guards.
+     See tests.html "Z-Index Hierarchy" for automated guards.
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --z-content:              0;
   --z-bracket-scrollbar:   50;
   --z-sidebar:             80;
   --z-topbar:             100;
-  --z-back-header:        101;   /* MUST be topbar + 1 for clicks to work   */
-  --z-hamburger-dropdown: 102;   /* OUTSIDE topbar — own stacking context   */
   --z-modal:             1000;
+  --z-back-header:       1001;   /* ABOVE modal so Voltar is clickable at all times */
+  --z-hamburger-dropdown: 1002;  /* ABOVE back-header so menu shows on top          */
   --z-toast:             9999;
   --z-hint:            100000;
 }

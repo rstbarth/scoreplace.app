@@ -54,6 +54,16 @@ function initRouter() {
     // Close hamburger dropdown on every navigation
     if (typeof window._closeHamburger === 'function') window._closeHamburger();
 
+    // Close any active modals so navigation never leaves a ghost overlay
+    // covering the new view (user reported Voltar clicks opening a new view
+    // while the previous modal remained visibly active on top).
+    try {
+      var _activeModals = document.querySelectorAll('.modal-overlay.active');
+      for (var _i = 0; _i < _activeModals.length; _i++) {
+        _activeModals[_i].classList.remove('active');
+      }
+    } catch(e) {}
+
     // On soft refresh (remote data update), skip scroll reset and fade animation
     // to preserve user's current position and avoid visual disruption
     if (!window._isSoftRefresh) {

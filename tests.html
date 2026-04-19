@@ -1409,9 +1409,12 @@ describe('Liga Sit-Out — _chooseSitOutPlayers', function() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Z-Index Hierarchy & Hamburger Architecture
 // ═══════════════════════════════════════════════════════════════════════════════
-// ARCHITECTURE (v0.10.29+):
+// ARCHITECTURE (v0.12.88+):
 //   - Hamburger dropdown (#hamburger-dropdown) is a SIBLING of <header>, not a child.
-//   - Z-index: topbar(100) < back-header(101) < dropdown(102) < modal(1000).
+//   - Z-index: topbar(100) < modal(1000) < back-header(1001) < dropdown(1002).
+//   - Voltar (.sticky-back-header) sits ABOVE modal so clicks always work.
+//   - Full-screen overlays (live-scoring, TV mode, player stats) at 99999+ still
+//     cover the back header — they provide their own close buttons.
 //   - .topbar-menu is ALWAYS display:none in hamburger mode.
 //   - Nav content is CLONED into the dropdown by JS (_toggleHamburger).
 //   - When dropdown opens, JS pushes .sticky-back-header down via getBoundingClientRect.
@@ -1430,24 +1433,24 @@ describe('Z-Index Hierarchy', function() {
 
     // back-header MUST be above topbar for Voltar clicks to work
     expect(zBackHeader > zTopbar).toBe(true);
+    // back-header MUST be above modal so Voltar is always clickable (v0.12.88)
+    expect(zBackHeader > zModal).toBe(true);
     // hamburger dropdown MUST be above back-header so menu shows on top
     expect(zDropdown > zBackHeader).toBe(true);
-    // modal MUST be above everything
-    expect(zModal > zDropdown).toBe(true);
   });
 
-  it('--z-back-header is exactly --z-topbar + 1', function() {
+  it('--z-back-header is above --z-modal (Voltar must outrank modal)', function() {
     var style = getComputedStyle(document.documentElement);
-    var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
     var zBackHeader = parseInt(style.getPropertyValue('--z-back-header'));
-    expect(zBackHeader).toBe(zTopbar + 1);
+    var zModal = parseInt(style.getPropertyValue('--z-modal'));
+    expect(zBackHeader > zModal).toBe(true);
   });
 
-  it('--z-hamburger-dropdown is exactly --z-topbar + 2', function() {
+  it('--z-hamburger-dropdown is exactly --z-back-header + 1', function() {
     var style = getComputedStyle(document.documentElement);
-    var zTopbar = parseInt(style.getPropertyValue('--z-topbar'));
+    var zBackHeader = parseInt(style.getPropertyValue('--z-back-header'));
     var zDropdown = parseInt(style.getPropertyValue('--z-hamburger-dropdown'));
-    expect(zDropdown).toBe(zTopbar + 2);
+    expect(zDropdown).toBe(zBackHeader + 1);
   });
 
   it('--z-back-header-lowered must NOT exist (removed in v0.10.24)', function() {
