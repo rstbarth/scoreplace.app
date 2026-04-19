@@ -288,8 +288,11 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
 
     modal.innerHTML = '' +
       // Top bar inside the card: Voltar (left) + close × (right) — same pill pattern
-      // used in the Category Manager and other sub-views.
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">' +
+      // used in the Category Manager and other sub-views. Uses position:sticky so
+      // the bar stays pinned to the top of the overlay's scroll container while
+      // the modal body scrolls underneath. Negative margins extend it flush with
+      // the modal's rounded top edges.
+      '<div style="position:sticky;top:0;z-index:5;margin:-1.5rem -1.5rem 12px;padding:12px 1.5rem;background:var(--bg-card,#1e2235);border-bottom:1px solid var(--border-color);border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">' +
         '<button class="btn btn-sm hover-lift" onclick="document.getElementById(\'player-stats-overlay\').remove()" style="background:var(--info-pill-bg);color:var(--text-bright);border:1px solid var(--border-color);display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-weight:500;font-size:0.78rem;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
         '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
       '</div>' +
@@ -661,7 +664,9 @@ window._renderPersistentMatchStats = function(records, uid) {
             totalDurationMs:0, durationMatches:0,
             longestPointMs:0, shortestPointMs:null,
             avgPointMsSum:0, avgPointMatches:0,
-            tbWon:0, tbLost:0, tbPlayed:0, tbPointsSum:0, tbMaxPoints:0, tbMinPoints:null };
+            tbWon:0, tbLost:0, tbPlayed:0, tbPointsSum:0, tbMaxPoints:0, tbMinPoints:null,
+            tbWonPointsSum:0, tbLostPointsSum:0,
+            tbWonMax:0, tbWonMin:null, tbLostMax:0, tbLostMin:null };
         var curWinStreak = 0;
         for (var i = 0; i < sorted.length; i++) {
             var r = sorted[i];
@@ -710,8 +715,17 @@ window._renderPersistentMatchStats = function(records, uid) {
                     if (_tbP1 === null || _tbP2 === null) continue;
                     var _myPts = myTeam === 1 ? _tbP1 : _tbP2;
                     var _oppPts = myTeam === 1 ? _tbP2 : _tbP1;
-                    if (_myPts > _oppPts) agg.tbWon++;
-                    else if (_oppPts > _myPts) agg.tbLost++;
+                    if (_myPts > _oppPts) {
+                        agg.tbWon++;
+                        agg.tbWonPointsSum += _myPts;
+                        if (_myPts > agg.tbWonMax) agg.tbWonMax = _myPts;
+                        if (agg.tbWonMin === null || _myPts < agg.tbWonMin) agg.tbWonMin = _myPts;
+                    } else if (_oppPts > _myPts) {
+                        agg.tbLost++;
+                        agg.tbLostPointsSum += _myPts;
+                        if (_myPts > agg.tbLostMax) agg.tbLostMax = _myPts;
+                        if (agg.tbLostMin === null || _myPts < agg.tbLostMin) agg.tbLostMin = _myPts;
+                    }
                     agg.tbPlayed++;
                     agg.tbPointsSum += _myPts;
                     if (_myPts > agg.tbMaxPoints) agg.tbMaxPoints = _myPts;
@@ -801,15 +815,18 @@ window._renderPersistentMatchStats = function(records, uid) {
     // Diverging bar row: three-part header (left label · center metric · right label),
     // icons+numbers pushed to the extreme left/right edges of the row, bars diverging
     // from center proportional to totals.
-    // Left side = losses (red), right side = wins (green).
+    // Left side = losses (red), right side = wins (green) by default.
     // Casual icon is ⚡ (matches the dashboard "Partida Casual" button).
-    function _diffBarRow(centerLabel, leftLabel, rightLabel, leftCasual, leftTourn, rightCasual, rightTourn) {
+    // opts.leftClr / opts.rightClr override the default red/green (used by TB min/max
+    // rows where both sides belong to the same semantic group — all-won or all-lost).
+    function _diffBarRow(centerLabel, leftLabel, rightLabel, leftCasual, leftTourn, rightCasual, rightTourn, opts) {
+        opts = opts || {};
         var totalL = (leftCasual || 0) + (leftTourn || 0);
         var totalR = (rightCasual || 0) + (rightTourn || 0);
         var maxV = Math.max(totalL, totalR, 1);
         var lp = Math.round(totalL / maxV * 100);
         var rp = Math.round(totalR / maxV * 100);
-        var leftClr = '#ef4444', rightClr = '#22c55e';
+        var leftClr = opts.leftClr || '#ef4444', rightClr = opts.rightClr || '#22c55e';
         var col = function(icon, val, clr) {
             return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:22px;">' +
                 '<span style="font-size:0.7rem;opacity:0.85;line-height:1;">' + icon + '</span>' +
@@ -927,19 +944,20 @@ window._renderPersistentMatchStats = function(records, uid) {
         var shortPtCdisp = shortPtCms > 0 ? _fmtPointTime(shortPtCms) : '—';
         var shortPtTdisp = shortPtTms > 0 ? _fmtPointTime(shortPtTms) : '—';
 
-        // Tiebreak metrics
-        var tbAvgCraw = c.tbPlayed > 0 ? (c.tbPointsSum / c.tbPlayed) : 0;
-        var tbAvgTraw = t.tbPlayed > 0 ? (t.tbPointsSum / t.tbPlayed) : 0;
-        var tbAvgCdisp = c.tbPlayed > 0 ? tbAvgCraw.toFixed(1) : '—';
-        var tbAvgTdisp = t.tbPlayed > 0 ? tbAvgTraw.toFixed(1) : '—';
-        var tbMaxCraw = c.tbPlayed > 0 ? c.tbMaxPoints : 0;
-        var tbMaxTraw = t.tbPlayed > 0 ? t.tbMaxPoints : 0;
-        var tbMaxCdisp = c.tbPlayed > 0 ? String(c.tbMaxPoints) : '—';
-        var tbMaxTdisp = t.tbPlayed > 0 ? String(t.tbMaxPoints) : '—';
-        var tbMinCraw = c.tbPlayed > 0 ? c.tbMinPoints : 0;
-        var tbMinTraw = t.tbPlayed > 0 ? t.tbMinPoints : 0;
-        var tbMinCdisp = c.tbPlayed > 0 ? String(c.tbMinPoints) : '—';
-        var tbMinTdisp = t.tbPlayed > 0 ? String(t.tbMinPoints) : '—';
+        // Tiebreak split metrics — averages in won vs lost TBs, and min/max pts in a
+        // single won TB / single lost TB. All values are "my" points scored in that TB.
+        var tbAvgWonCraw = c.tbWon > 0 ? (c.tbWonPointsSum / c.tbWon) : 0;
+        var tbAvgWonTraw = t.tbWon > 0 ? (t.tbWonPointsSum / t.tbWon) : 0;
+        var tbAvgLostCraw = c.tbLost > 0 ? (c.tbLostPointsSum / c.tbLost) : 0;
+        var tbAvgLostTraw = t.tbLost > 0 ? (t.tbLostPointsSum / t.tbLost) : 0;
+        var tbWonMinCraw = c.tbWon > 0 && c.tbWonMin !== null ? c.tbWonMin : 0;
+        var tbWonMinTraw = t.tbWon > 0 && t.tbWonMin !== null ? t.tbWonMin : 0;
+        var tbWonMaxCraw = c.tbWon > 0 ? c.tbWonMax : 0;
+        var tbWonMaxTraw = t.tbWon > 0 ? t.tbWonMax : 0;
+        var tbLostMinCraw = c.tbLost > 0 && c.tbLostMin !== null ? c.tbLostMin : 0;
+        var tbLostMinTraw = t.tbLost > 0 && t.tbLostMin !== null ? t.tbLostMin : 0;
+        var tbLostMaxCraw = c.tbLost > 0 ? c.tbLostMax : 0;
+        var tbLostMaxTraw = t.tbLost > 0 ? t.tbLostMax : 0;
 
         var html = _sectionShell('persist-stats-unified', 'Desempenho', '📊', '#a855f7', badge);
 
@@ -966,10 +984,24 @@ window._renderPersistentMatchStats = function(records, uid) {
             _dualBarRow('Média por Ponto', avgPtCms, avgPtTms, avgPtCdisp, avgPtTdisp) +
             _dualBarRow('Ponto Mais Longo', longPtCms, longPtTms, longPtCdisp, longPtTdisp) +
             _dualBarRow('Ponto Mais Curto', shortPtCms, shortPtTms, shortPtCdisp, shortPtTdisp) +
-            _dualBarRow('TB Média', tbAvgCraw, tbAvgTraw, tbAvgCdisp, tbAvgTdisp) +
-            _dualBarRow('TB Máximo', tbMaxCraw, tbMaxTraw, tbMaxCdisp, tbMaxTdisp) +
-            _dualBarRow('TB Mínimo', tbMinCraw, tbMinTraw, tbMinCdisp, tbMinTdisp) +
         '</div>';
+
+        // Tiebreak breakdown — avg pts in lost vs won TBs (red/green), and min/max
+        // pts scored within a single won TB (both green) and within a single lost TB
+        // (both red). Only render when at least one TB has been played.
+        if ((c.tbPlayed + t.tbPlayed) > 0) {
+            html += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:2px;">' +
+                _diffBarRow('Pontos TB Médios', 'perdidos', 'vencidos',
+                    Math.round(tbAvgLostCraw * 10) / 10, Math.round(tbAvgLostTraw * 10) / 10,
+                    Math.round(tbAvgWonCraw * 10) / 10, Math.round(tbAvgWonTraw * 10) / 10) +
+                _diffBarRow('TB Vencidos', 'mínimo', 'máximo',
+                    tbWonMinCraw, tbWonMinTraw, tbWonMaxCraw, tbWonMaxTraw,
+                    { leftClr: '#22c55e', rightClr: '#22c55e' }) +
+                _diffBarRow('TB Perdidos', 'mínimo', 'máximo',
+                    tbLostMinCraw, tbLostMinTraw, tbLostMaxCraw, tbLostMaxTraw,
+                    { leftClr: '#ef4444', rightClr: '#ef4444' }) +
+            '</div>';
+        }
 
         // Top 5 Parceiros / Adversários — keep per-source separation (casual vs torneios
         // involve different relationships) but render inside the unified section.

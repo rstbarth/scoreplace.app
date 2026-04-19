@@ -118,9 +118,9 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
 
   return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + borderColor + ';">' +
-    '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
-      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
-      (infoChips.length > 0 ? '<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + infoChips.join(' · ') + '</div>' : '') +
+    '<div style="width: 100%; min-width: 0;">' +
+      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal;">' + window._safeHtml(name) + '</div>' +
+      (infoChips.length > 0 ? '<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">' + infoChips.join(' · ') + '</div>' : '') +
     '</div>' +
     '<div style="margin-top: auto; width: 100%;">' + actionHtml + '</div>' +
   '</div>';
@@ -294,32 +294,95 @@ function _renderOtrosCards(resultsDiv, users) {
       sortToggleBtn('alpha', sortAlphaLabel) +
     '</div>' +
   '</div>';
-  html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
-  users.forEach(function(u) {
+  // Action-button builder reused by both grouping paths
+  function _actionBtnFor(u) {
     var uid = u._docId || u.uid || u.email;
     var isSent = mySent.indexOf(uid) !== -1;
     var isReceived = myReceived.indexOf(uid) !== -1;
-
-    var actionBtn = '';
     var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
     var useWarning = u._hasShared;
     var btnClass = useWarning ? 'btn btn-warning btn-sm hover-lift' : 'btn btn-primary btn-sm hover-lift';
     if (isSent) {
-      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      return '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
     } else if (isReceived) {
-      actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
+      return '<div style="display: flex; gap: 4px; justify-content: center;">' +
         '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
       '</div>';
-    } else {
-      actionBtn = '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
     }
+    return '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
+  }
 
-    html += _userCardWithEncounterHtml(u, uid, actionBtn);
-  });
+  var _lang = (window._lang === 'en' ? 'en-US' : 'pt-BR');
+  var _noDateLabel = _t('explore.noEncounterDate');
+  if (_noDateLabel === 'explore.noEncounterDate') {
+    _noDateLabel = (window._lang === 'en' ? 'No encounter date' : 'Sem encontros registrados');
+  }
 
-  html += '</div>';
+  function _dayKey(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function _dayLabel(ts) {
+    var d = new Date(ts);
+    try {
+      return d.toLocaleDateString(_lang, { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch(e) { return d.toISOString().slice(0,10); }
+  }
+
+  function _renderGroupHeader(label) {
+    return '<div style="margin-top:14px;margin-bottom:8px;padding:6px 2px;font-size:0.78rem;font-weight:700;color:var(--text-bright);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border-color);">' +
+      '📅 ' + window._safeHtml(label) +
+    '</div>';
+  }
+  function _renderCardGrid(groupUsers) {
+    var inner = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+    groupUsers.forEach(function(u) {
+      var uid = u._docId || u.uid || u.email;
+      inner += _userCardWithEncounterHtml(u, uid, _actionBtnFor(u));
+    });
+    inner += '</div>';
+    return inner;
+  }
+
+  if (_sortDim === 'date') {
+    // Group by day of latest encounter / profile activity. Order groups by the
+    // chosen direction (desc = newest first, asc = oldest first). Users with no
+    // timestamp collect in a trailing "sem data" group.
+    var buckets = {};
+    var bucketOrder = [];
+    var noDate = [];
+    users.forEach(function(u) {
+      if (!u._latestTs) { noDate.push(u); return; }
+      var k = _dayKey(u._latestTs);
+      if (!k) { noDate.push(u); return; }
+      if (!buckets[k]) {
+        buckets[k] = { key: k, ts: u._latestTs, label: _dayLabel(u._latestTs), users: [] };
+        bucketOrder.push(k);
+      }
+      buckets[k].users.push(u);
+    });
+    // Ensure each bucket tracks its max ts (for sort) — keep first seen ts as representative
+    bucketOrder.sort(function(a, b) { return buckets[a].key < buckets[b].key ? -1 : (buckets[a].key > buckets[b].key ? 1 : 0); });
+    if (_sortDir === 'desc') bucketOrder.reverse();
+
+    bucketOrder.forEach(function(k) {
+      var g = buckets[k];
+      html += _renderGroupHeader(g.label);
+      html += _renderCardGrid(g.users);
+    });
+    if (noDate.length > 0) {
+      html += _renderGroupHeader(_noDateLabel);
+      html += _renderCardGrid(noDate);
+    }
+  } else {
+    // Alpha mode — no grouping, just one grid
+    html += _renderCardGrid(users);
+  }
+
   resultsDiv.innerHTML = html;
 }
 
@@ -344,24 +407,13 @@ function _userCardWithEncounterHtml(u, uid, actionHtml) {
     sharedLine = '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + (u._sharedCount || 0) + ' ' + sharedLabel + '</div>';
   }
 
-  var dateLine = '';
-  if (u._latestTs) {
-    var d = new Date(u._latestTs);
-    if (!isNaN(d.getTime())) {
-      var dateLabel = '';
-      try {
-        dateLabel = d.toLocaleDateString((window._lang === 'en' ? 'en-US' : 'pt-BR'), { day: '2-digit', month: 'short', year: 'numeric' });
-      } catch(e) { dateLabel = d.toISOString().slice(0, 10); }
-      dateLine = '<div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 2px;">' + dateLabel + '</div>';
-    }
-  }
-
+  // Date is shown as a group header above a batch of cards (see _renderOtrosCards),
+  // so we don't repeat it on each individual card.
   return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + avatarBorder + ';">' +
-    '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
-      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
+    '<div style="width: 100%; min-width: 0;">' +
+      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal;">' + window._safeHtml(name) + '</div>' +
       sharedLine +
-      dateLine +
     '</div>' +
     '<div style="margin-top: auto; width: 100%;">' + actionHtml + '</div>' +
   '</div>';
