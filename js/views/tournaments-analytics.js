@@ -288,9 +288,10 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
 
     modal.innerHTML = '' +
       // Voltar header — same pattern as tournament details (.sticky-back-header). Uses
-      // position:fixed at top:60px so Voltar always stays visible just below the topbar
-      // while the modal body scrolls underneath. A spacer pushes modal content down.
-      '<div class="sticky-back-header" style="position:fixed;top:60px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+      // position:fixed at the measured topbar bottom so Voltar always stays visible
+      // just below the topbar while the modal body scrolls underneath. A spacer pushes
+      // modal content down to make room for the pinned pill.
+      '<div class="sticky-back-header" style="position:fixed;top:' + _tbH + 'px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
         '<button class="btn btn-outline btn-sm hover-lift" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;" onclick="document.getElementById(\'player-stats-overlay\').remove()">' +
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
           ' Voltar' +
