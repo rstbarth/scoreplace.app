@@ -1975,7 +1975,6 @@ function renderStandings(t, isOrg, canEnterResult) {
     // Upcoming elim columns (Swiss-as-p2-resolution)
     if (isSwissClassification) {
       var _elimRounds = Math.log2(t.p2TargetCount);
-      var _hasThirdPlace = !!(t.thirdPlace || t.elimThirdPlace);
       if (Number.isInteger(_elimRounds) && _elimRounds > 0) {
         for (var _er = 1; _er <= _elimRounds; _er++) {
           var _fromEnd = _elimRounds - _er;
@@ -1988,9 +1987,9 @@ function renderStandings(t, isOrg, canEnterResult) {
           var _elimMatchesCount = t.p2TargetCount / Math.pow(2, _er);
           var _tbdElim = '';
           for (var _mie = 1; _mie <= _elimMatchesCount; _mie++) _tbdElim += _tbdMatchCard(_mie, 'rgba(251,191,36,0.4)');
-          // On the final round column, append a 3rd place TBD card below the final.
+          // On the final round column, always append a 3rd place TBD card below the final.
           var _thirdPlaceHtml = '';
-          if (_fromEnd === 0 && _hasThirdPlace) {
+          if (_fromEnd === 0) {
             _thirdPlaceHtml =
               '<div style="margin-top:.5rem;">' +
                 '<h4 style="color:var(--text-bright);font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 .5rem 0;border-left:3px solid #f59e0b;padding-left:8px;">🥉 ' + _t('bracket.thirdPlaceLabel') + '</h4>' +

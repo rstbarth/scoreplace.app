@@ -815,8 +815,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.54-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>3º Lugar sempre visível no chaveamento futuro</b> — Na v0.12.53 o card "🥉 3º Lugar" só aparecia quando o torneio tinha flags legadas (thirdPlace/elimThirdPlace) ligadas. Como a disputa de terceiro lugar é obrigatória no Scoreplace há tempos (não é mais opção do organizador), o card agora é sempre exibido abaixo da Final — em todo torneio eliminatório.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.53-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
-        '<p><b>Disputa de 3º Lugar no chaveamento futuro</b> — A coluna da Final ganhou, logo abaixo do card da partida final, um card tracejado "🥉 3º Lugar" para a disputa de terceiro colocado (quando o torneio tem essa opção ativada). Antes só aparecia a Final — agora o organizador e os participantes veem desde o início que haverá disputa de 3º lugar e quantos confrontos no total (mesmo padrão do bracket linear já existente, onde o 3º lugar fica empilhado na coluna da Final).</p>' +
+        '<p><b>Disputa de 3º Lugar no chaveamento futuro</b> — A coluna da Final ganhou, logo abaixo do card da partida final, um card tracejado "🥉 3º Lugar" para a disputa de terceiro colocado. Antes só aparecia a Final — agora o organizador e os participantes veem desde o início que haverá disputa de 3º lugar e quantos confrontos no total (mesmo padrão do bracket linear já existente, onde o 3º lugar fica empilhado na coluna da Final).</p>' +
         '</div>' +
         '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.52-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
