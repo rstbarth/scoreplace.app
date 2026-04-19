@@ -908,15 +908,15 @@ function renderSingleElimBracket(t, canEnterResult) {
         ${modeIcon} ${modeLabel}
       </button>` : '';
 
-  // "Mostrar rodadas ocultas" button for toolbar — more discoverable than the
-  // vertical sidebar button, appears whenever at least one round is hidden.
+  // "Mostrar rodada anterior" button for toolbar — a cada clique revela uma
+  // rodada oculta, começando pela mais recente e indo para trás.
   const showAllHiddenBtnHtml = hiddenCount > 0 ? `
       <button onclick="window._showAllHiddenRounds('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
         style="background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.4);color:#a5b4fc;border-radius:20px;padding:5px 14px;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;"
         onmouseover="this.style.background='rgba(129,140,248,0.25)';this.style.color='#c7d2fe'"
         onmouseout="this.style.background='rgba(129,140,248,0.15)';this.style.color='#a5b4fc'"
-        title="Mostrar todas as rodadas ocultas novamente">
-        👁️ Mostrar rodadas ocultas (${hiddenCount})
+        title="Revelar a rodada oculta mais recente (clique de novo para revelar a anterior)">
+        👁️ Mostrar rodada anterior (${hiddenCount} oculta${hiddenCount > 1 ? 's' : ''})
       </button>` : '';
 
   // Zoom controls with slider

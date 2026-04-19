@@ -465,11 +465,15 @@ window._toggleRoundVisibility = function (tId, roundNum) {
   _rerenderBracket(tId);
 };
 
-// Restaura todas as rodadas ocultas de uma vez (botão "Mostrar rodadas ocultas" na toolbar)
+// Revela apenas a rodada oculta mais recente (maior número) a cada clique.
+// Clique sucessivo vai "desempilhando" as rodadas ocultas, da mais nova para a mais antiga.
 window._showAllHiddenRounds = function (tId) {
-  if (window._hiddenRounds && window._hiddenRounds[tId]) {
-    window._hiddenRounds[tId].clear();
-  }
+  if (!window._hiddenRounds || !window._hiddenRounds[tId]) return;
+  const set = window._hiddenRounds[tId];
+  if (set.size === 0) return;
+  let latest = -Infinity;
+  set.forEach(r => { if (r > latest) latest = r; });
+  if (isFinite(latest)) set.delete(latest);
   _rerenderBracket(tId);
 };
 
