@@ -908,12 +908,24 @@ function renderSingleElimBracket(t, canEnterResult) {
         ${modeIcon} ${modeLabel}
       </button>` : '';
 
+  // "Mostrar rodadas ocultas" button for toolbar — more discoverable than the
+  // vertical sidebar button, appears whenever at least one round is hidden.
+  const showAllHiddenBtnHtml = hiddenCount > 0 ? `
+      <button onclick="window._showAllHiddenRounds('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
+        style="background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.4);color:#a5b4fc;border-radius:20px;padding:5px 14px;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;"
+        onmouseover="this.style.background='rgba(129,140,248,0.25)';this.style.color='#c7d2fe'"
+        onmouseout="this.style.background='rgba(129,140,248,0.15)';this.style.color='#a5b4fc'"
+        title="Mostrar todas as rodadas ocultas novamente">
+        👁️ Mostrar rodadas ocultas (${hiddenCount})
+      </button>` : '';
+
   // Zoom controls with slider
   const zoomPct = Math.round(window._bracketZoom * 100);
   const zoomSteps = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
   const zoomIdx = zoomSteps.indexOf(window._bracketZoom) >= 0 ? zoomSteps.indexOf(window._bracketZoom) : zoomSteps.length - 1;
   const toolbarHtml = `
     <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:0.75rem;gap:10px;flex-wrap:wrap;">
+      ${showAllHiddenBtnHtml}
       ${toggleBtnHtml}
       <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 10px;">
         <button onclick="window._setBracketZoom('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', -1)"

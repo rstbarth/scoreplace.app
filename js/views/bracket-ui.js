@@ -465,6 +465,14 @@ window._toggleRoundVisibility = function (tId, roundNum) {
   _rerenderBracket(tId);
 };
 
+// Restaura todas as rodadas ocultas de uma vez (botão "Mostrar rodadas ocultas" na toolbar)
+window._showAllHiddenRounds = function (tId) {
+  if (window._hiddenRounds && window._hiddenRounds[tId]) {
+    window._hiddenRounds[tId].clear();
+  }
+  _rerenderBracket(tId);
+};
+
 window._highlightWinner = function (matchId) {
   const s1El = document.getElementById(`s1-${matchId}`);
   const s2El = document.getElementById(`s2-${matchId}`);
