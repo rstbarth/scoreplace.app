@@ -609,24 +609,40 @@ function renderSingleElimBracket(t, canEnterResult) {
     _updateProgressiveClassification(t);
   }
 
+  // ── Source of truth: unified bracket model ──────────────────────────────
+  // All "what columns exist and in what order" now comes from the adapter.
+  // renderer keeps local control over styling, mirror layout, hidden rounds,
+  // zoom, and 3rd-place stacking — the adapter feeds the raw structure.
+  const unified = (typeof window._getUnifiedRounds === 'function')
+    ? window._getUnifiedRounds(t)
+    : null;
   const allMatches = t.matches || [];
 
   const roundsMap = {};
-  allMatches.forEach(m => {
-    if (!roundsMap[m.round]) roundsMap[m.round] = [];
-    roundsMap[m.round].push(m);
-  });
-
-  // Mostrar TODAS as rodadas (incluindo futuras com TBD)
-  // Sort: positive rounds ascending, negative (repechage) placed after round 1
-  const activeRounds = Object.keys(roundsMap)
-    .map(Number)
-    .sort(function(a, b) {
-      // Repechage (negative) rounds go after round 1 but before round 2
-      var aKey = a < 0 ? 1.5 + (Math.abs(a) * 0.01) : a;
-      var bKey = b < 0 ? 1.5 + (Math.abs(b) * 0.01) : b;
-      return aKey - bKey;
+  let activeRounds = [];
+  if (unified) {
+    // Elim columns are the positive/play-in/repechage rounds (excluding
+    // swiss-past, groups, thirdplace, grandfinal — those are handled separately).
+    unified.columns
+      .filter(c => c.phase === 'elim' || c.phase === 'playin' || c.phase === 'repechage')
+      .forEach(c => {
+        roundsMap[c.round] = c.matches.slice();
+        activeRounds.push(c.round);
+      });
+  } else {
+    // Fallback: legacy in-place derivation (adapter not loaded).
+    allMatches.forEach(m => {
+      if (!roundsMap[m.round]) roundsMap[m.round] = [];
+      roundsMap[m.round].push(m);
     });
+    activeRounds = Object.keys(roundsMap)
+      .map(Number)
+      .sort(function(a, b) {
+        var aKey = a < 0 ? 1.5 + (Math.abs(a) * 0.01) : a;
+        var bKey = b < 0 ? 1.5 + (Math.abs(b) * 0.01) : b;
+        return aKey - bKey;
+      });
+  }
 
   if (activeRounds.length === 0) {
     return `<p class="text-muted">${_t('bracket.noActiveRounds')}</p>`;
@@ -839,9 +855,13 @@ function renderSingleElimBracket(t, canEnterResult) {
 
   // Swiss-as-p2 past rounds prepend at the very left of the strip — one
   // column per Swiss round, keeping the full timeline (R1 → … → Final)
-  // inside a single unified horizontal scroll.
-  const swissPastColumnsHtml = (Array.isArray(t.swissRoundsData) && t.swissRoundsData.length > 0)
-    ? _buildSwissPastColumns(t).join('')
+  // inside a single unified horizontal scroll. Data comes from the unified
+  // model (adapter); _buildSwissPastColumns is the HTML builder.
+  const swissPastCols = unified
+    ? unified.columns.filter(c => c.phase === 'swiss-past')
+    : [];
+  const swissPastColumnsHtml = swissPastCols.length > 0
+    ? _buildSwissPastColumns(t, swissPastCols).join('')
     : '';
 
   const roundsHtml = swissPastColumnsHtml + (showBtnHtml ? showBtnHtml : '') + roundColumns.join('');
@@ -1537,8 +1557,12 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 // strip, matching the .bracket-round-column format used by elim columns, so
 // everything renders inside a single horizontal scroll strip (no separate
 // card below the bracket).
-function _buildSwissPastColumns(t) {
-  if (!t || !Array.isArray(t.swissRoundsData) || t.swissRoundsData.length === 0) return [];
+//
+// Data comes from the unified bracket model (adapter). The `swissPastCols`
+// argument is an array of columns with phase === 'swiss-past' (pre-filtered
+// by the caller). Each column has {label, matches, meta, ...}.
+function _buildSwissPastColumns(t, swissPastCols) {
+  if (!swissPastCols || swissPastCols.length === 0) return [];
   var _t = window._t || function(k) { return k; };
   var safe = window._safeHtml || function(s) { return String(s == null ? '' : s); };
 
@@ -1550,9 +1574,10 @@ function _buildSwissPastColumns(t) {
   });
 
   var cols = [];
-  t.swissRoundsData.forEach(function(rd, ri) {
-    if (!rd || !rd.matches || rd.matches.length === 0) return;
-    var matchesHtml = rd.matches.map(function(m) {
+  swissPastCols.forEach(function(col) {
+    var matches = (col && col.matches) ? col.matches : [];
+    if (matches.length === 0) return;
+    var matchesHtml = matches.map(function(m) {
       if (!m.p1 && !m.p2) return '';
       var isDraw = m.winner === 'draw' || m.draw;
       var p1Won = m.winner === m.p1 && !isDraw;
@@ -1572,11 +1597,11 @@ function _buildSwissPastColumns(t) {
         '</div>' +
       '</div>';
     }).join('');
-    var roundLabel = (_t('bracket.swissRoundShort', {n: ri + 1}) || ('Suíço R' + (ri + 1))) + ' ✓';
+    var roundLabel = (col.label || ('Suíço R' + col.round)) + ' ✓';
     cols.push(
       '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:0.75rem;min-width:240px;max-width:260px;opacity:0.88;">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<h4 style="color:#60a5fa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid #3b82f6;padding-left:8px;flex:1;">' + roundLabel + '</h4>' +
+          '<h4 style="color:#60a5fa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid #3b82f6;padding-left:8px;flex:1;">' + safe(roundLabel) + '</h4>' +
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:6px;">' + matchesHtml + '</div>' +
       '</div>'
