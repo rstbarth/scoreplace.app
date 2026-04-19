@@ -52,7 +52,7 @@ window._resolvePlayerUid = function(playerName) {
 // Shared visual helpers — mirror the casual-match end-of-match cards (bracket-ui.js).
 function _boxStat(label, value, icon, accent) {
     accent = accent || 'var(--text-bright,#fff)';
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">' +
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:var(--stat-box-bg);border:1px solid var(--border-color);">' +
       '<span style="font-size:1rem;">' + icon + '</span>' +
       '<span style="font-size:1.15rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + value + '</span>' +
       '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
@@ -60,7 +60,7 @@ function _boxStat(label, value, icon, accent) {
 }
 
 function _sectionShell(id, title, icon, accent, badge) {
-    return '<div id="' + id + '" style="margin-top:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid ' + accent + '44;display:flex;flex-direction:column;gap:8px;">' +
+    return '<div id="' + id + '" style="margin-top:12px;padding:12px;border-radius:14px;background:var(--info-box-bg);border:1px solid ' + accent + '44;display:flex;flex-direction:column;gap:8px;">' +
       '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:1rem;">' + icon + '</span>' +
         '<span style="font-size:0.85rem;font-weight:900;color:' + accent + ';text-transform:uppercase;letter-spacing:0.8px;">' + title + '</span>' +
@@ -78,11 +78,11 @@ function _compareBar(label, icon, leftVal, rightVal, leftClr, rightClr, fmt, max
         '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
         '<div style="display:flex;align-items:center;gap:6px;">' +
             '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + leftClr + ';font-variant-numeric:tabular-nums;">' + fmt(leftVal) + '</span>' +
-            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;">' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:var(--stat-box-bg);display:flex;justify-content:flex-end;">' +
                 '<div style="width:' + lp + '%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
             '</div>' +
-            '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
-            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
+            '<div style="width:1px;height:14px;background:var(--border-color);"></div>' +
+            '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:var(--stat-box-bg);display:flex;">' +
                 '<div style="width:' + rp + '%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
             '</div>' +
             '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + rightClr + ';font-variant-numeric:tabular-nums;">' + fmt(rightVal) + '</span>' +
@@ -92,7 +92,7 @@ function _compareBar(label, icon, leftVal, rightVal, leftClr, rightClr, fmt, max
 
 // Comparative shell — header + legend + compare-bar body (used by both legacy & persistent paths).
 function _compareShell(badge, bodyHtml) {
-    return '<div style="width:100%;padding:clamp(12px,2.2vh,18px);border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;gap:clamp(8px,1.6vh,14px);margin-top:12px;">' +
+    return '<div style="width:100%;padding:clamp(12px,2.2vh,18px);border-radius:14px;background:var(--info-box-bg);border:1px solid var(--border-color);display:flex;flex-direction:column;gap:clamp(8px,1.6vh,14px);margin-top:12px;">' +
         '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:2px;">⚖ Casual vs Torneios' + (badge ? ' · ' + badge : '') + '</div>' +
         '<div style="display:flex;align-items:center;justify-content:space-between;font-size:0.68rem;font-weight:700;">' +
             '<span style="color:#38bdf8;">📡 Casual</span>' +
@@ -245,17 +245,24 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
     var prev = document.getElementById('player-stats-overlay');
     if (prev) prev.remove();
 
+    // Measure topbar so the overlay starts below it and the app menu stays visible + interactive.
+    var _tb = document.querySelector('.topbar');
+    var _tbH = _tb ? Math.round(_tb.getBoundingClientRect().height) : 60;
+    if (!_tbH || _tbH < 40) _tbH = 60;
+
     var overlay = document.createElement('div');
     overlay.id = 'player-stats-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+    // z-index 90 < topbar (100) so the menu renders above. Starts below the topbar
+    // so clicks on menu items are never blocked. Backdrop tone blends both themes.
+    overlay.style.cssText = 'position:fixed;top:' + _tbH + 'px;left:0;width:100%;height:calc(100% - ' + _tbH + 'px);background:var(--overlay-bg,rgba(0,0,0,0.55));z-index:90;display:flex;align-items:flex-start;justify-content:center;animation:fadeIn 0.2s ease;overflow-y:auto;padding:16px 12px 40px;';
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
 
     var modal = document.createElement('div');
-    modal.style.cssText = 'background:var(--card-bg,#1e2235);border-radius:20px;padding:2rem;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;max-height:85vh;overflow-y:auto;';
+    modal.style.cssText = 'background:var(--bg-card,#1e2235);color:var(--text-main,#d1d5db);border:1px solid var(--border-color,rgba(255,255,255,0.1));border-radius:20px;padding:1.5rem;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;';
 
     // Build tournament list HTML
     var tourListHtml = stats.tournamentNames.map(function(tn) {
-        return '<a href="#tournaments/' + tn.id + '" onclick="document.getElementById(\'player-stats-overlay\').remove()" style="display:block;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.05);margin-bottom:4px;text-decoration:none;color:var(--text-bright,#fff);font-size:0.8rem;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'">' +
+        return '<a href="#tournaments/' + tn.id + '" onclick="document.getElementById(\'player-stats-overlay\').remove()" style="display:block;padding:8px 12px;border-radius:8px;background:var(--info-pill-bg);margin-bottom:4px;text-decoration:none;color:var(--text-bright,#fff);font-size:0.8rem;transition:background 0.2s;">' +
           '<span style="font-weight:600;">' + window._safeHtml(tn.name) + '</span>' +
           '<span style="color:var(--text-muted,#94a3b8);margin-left:8px;font-size:0.7rem;">' + window._safeHtml(tn.sport) + ' • ' + window._safeHtml(tn.format) + '</span>' +
         '</a>';
@@ -825,10 +832,10 @@ window._renderPersistentMatchStats = function(records, uid) {
             '</div>' +
             // Bars row: diverge from center
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
-                '<div style="height:8px;border-radius:4px 0 0 4px;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;overflow:hidden;">' +
+                '<div style="height:8px;border-radius:4px 0 0 4px;background:var(--stat-box-bg);display:flex;justify-content:flex-end;overflow:hidden;">' +
                     '<div style="width:' + lp + '%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');transition:width 0.5s ease-out;"></div>' +
                 '</div>' +
-                '<div style="height:8px;border-radius:0 4px 4px 0;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid rgba(255,255,255,0.25);">' +
+                '<div style="height:8px;border-radius:0 4px 4px 0;background:var(--stat-box-bg);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid var(--border-color);">' +
                     '<div style="width:' + rp + '%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);transition:width 0.5s ease-out;"></div>' +
                 '</div>' +
             '</div>' +
@@ -868,10 +875,10 @@ window._renderPersistentMatchStats = function(records, uid) {
             '</div>' +
             // Bars diverge from center
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
-                '<div style="height:8px;border-radius:4px 0 0 4px;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;overflow:hidden;">' +
+                '<div style="height:8px;border-radius:4px 0 0 4px;background:var(--stat-box-bg);display:flex;justify-content:flex-end;overflow:hidden;">' +
                     '<div style="width:' + cp + '%;height:100%;background:linear-gradient(90deg,' + casualClr + '44,' + casualClr + ');transition:width 0.5s ease-out;"></div>' +
                 '</div>' +
-                '<div style="height:8px;border-radius:0 4px 4px 0;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid rgba(255,255,255,0.25);">' +
+                '<div style="height:8px;border-radius:0 4px 4px 0;background:var(--stat-box-bg);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid var(--border-color);">' +
                     '<div style="width:' + tp + '%;height:100%;background:linear-gradient(90deg,' + tournClr + ',' + tournClr + '44);transition:width 0.5s ease-out;"></div>' +
                 '</div>' +
             '</div>' +
@@ -963,13 +970,13 @@ window._renderPersistentMatchStats = function(records, uid) {
         // involve different relationships) but render inside the unified section.
         var relHtml = '';
         if (casualRel) {
-            var cp = _tableHtml('⚡ Top 5 Parceiros — Casuais', casualRel.partners);
-            var ch = _tableHtml('⚡ Top 5 Adversários — Casuais', casualRel.h2h);
+            var cp = _tableHtml('⚡ Top 3 Parceiros — Casuais', casualRel.partners);
+            var ch = _tableHtml('⚡ Top 3 Adversários — Casuais', casualRel.h2h);
             relHtml += cp + ch;
         }
         if (tournRel) {
-            var tp = _tableHtml('🏆 Top 5 Parceiros — Torneios', tournRel.partners);
-            var th = _tableHtml('🏆 Top 5 Adversários — Torneios', tournRel.h2h);
+            var tp = _tableHtml('🏆 Top 3 Parceiros — Torneios', tournRel.partners);
+            var th = _tableHtml('🏆 Top 3 Adversários — Torneios', tournRel.h2h);
             relHtml += tp + th;
         }
         html += relHtml;
@@ -981,22 +988,22 @@ window._renderPersistentMatchStats = function(records, uid) {
         var arr = Object.keys(map).map(function(k) { return map[k]; });
         if (!arr.length) return '';
         arr.sort(function(a, b) { return b.played - a.played; });
-        var top = arr.slice(0, 5);
+        var top = arr.slice(0, 3);
         var h = '<div style="margin-top:10px;">' +
-            '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted,#94a3b8);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + title + '</div>';
+            '<div style="font-size:0.72rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + title + '</div>';
         for (var i = 0; i < top.length; i++) {
             var e = top[i];
             var wr = e.played > 0 ? Math.round(e.wins / e.played * 100) : 0;
             var av = e.photoURL
                 ? '<img src="' + _safe(e.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
                 : '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#fff;font-weight:700;flex-shrink:0;">' + _safe(((e.name || '?')[0] || '?').toUpperCase()) + '</div>';
-            h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:3px;">' +
+            h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--info-pill-bg);border:1px solid var(--border-color);border-radius:8px;margin-bottom:3px;">' +
                 av +
-                '<span style="flex:1;min-width:0;font-size:0.78rem;color:var(--text-color,#e5e7eb);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _safe(e.name || 'Jogador') + '</span>' +
-                '<span style="font-size:0.68rem;color:#22c55e;font-weight:700;">' + e.wins + 'V</span>' +
-                '<span style="font-size:0.68rem;color:#ef4444;font-weight:700;">' + e.losses + 'D</span>' +
+                '<span style="flex:1;min-width:0;font-size:0.78rem;color:var(--text-main,#e5e7eb);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _safe(e.name || 'Jogador') + '</span>' +
+                '<span style="font-size:0.68rem;color:var(--success-color,#22c55e);font-weight:700;">' + e.wins + 'V</span>' +
+                '<span style="font-size:0.68rem;color:var(--danger-color,#ef4444);font-weight:700;">' + e.losses + 'D</span>' +
                 (e.draws ? '<span style="font-size:0.68rem;color:var(--text-muted,#94a3b8);font-weight:700;">' + e.draws + 'E</span>' : '') +
-                '<span style="font-size:0.7rem;color:' + (wr >= 50 ? '#22c55e' : '#ef4444') + ';font-weight:800;min-width:36px;text-align:right;">' + wr + '%</span>' +
+                '<span style="font-size:0.7rem;color:' + (wr >= 50 ? 'var(--success-color,#22c55e)' : 'var(--danger-color,#ef4444)') + ';font-weight:800;min-width:36px;text-align:right;">' + wr + '%</span>' +
             '</div>';
         }
         h += '</div>';
