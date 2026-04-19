@@ -2122,18 +2122,31 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
       }
     }
 
-    if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
-    _updateMatch(t.thirdPlaceMatch);
-    if (Array.isArray(t.rounds)) { t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
+    if (typeof window._collectAllMatches === 'function') {
+      window._collectAllMatches(t).forEach(_updateMatch);
+    } else {
+      // Defensive fallback: bracket-model.js not loaded.
+      if (Array.isArray(t.matches)) t.matches.forEach(_updateMatch);
+      _updateMatch(t.thirdPlaceMatch);
+      if (Array.isArray(t.rounds)) { t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
+      if (Array.isArray(t.groups)) {
+        t.groups.forEach(function(g) {
+          if (!g) return;
+          if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
+          if (Array.isArray(g.rounds)) { g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); }); }
+        });
+      }
+      if (Array.isArray(t.rodadas)) { t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
+    }
+    // g.players is a roster field (not a match), handled separately.
     if (Array.isArray(t.groups)) {
       t.groups.forEach(function(g) {
-        if (!g) return;
-        if (Array.isArray(g.matches)) g.matches.forEach(_updateMatch);
-        if (Array.isArray(g.rounds)) { g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_updateMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_updateMatch); }); }
-        if (Array.isArray(g.players)) { var pi = g.players.indexOf(oldName); if (pi !== -1) { g.players[pi] = newName; changed = true; } }
+        if (g && Array.isArray(g.players)) {
+          var pi = g.players.indexOf(oldName);
+          if (pi !== -1) { g.players[pi] = newName; changed = true; }
+        }
       });
     }
-    if (Array.isArray(t.rodadas)) { t.rodadas.forEach(function(r) { if (Array.isArray(r)) r.forEach(_updateMatch); else if (r && Array.isArray(r.matches)) r.matches.forEach(_updateMatch); }); }
     if (t.classification && t.classification[oldName] !== undefined) { t.classification[newName] = t.classification[oldName]; delete t.classification[oldName]; changed = true; }
     ['checkedIn', 'absent', 'vips'].forEach(function(field) {
       if (!t[field]) return;
