@@ -621,22 +621,38 @@ function renderParticipants(container, tournamentId) {
       }
 
       const matchLabel = (!isStandbyPure && ind.matchNum) ? `Jogo ${ind.matchNum}` : '';
-      const standbyLabel = ind.isStandby ? '<span style="font-weight:700;color:#fbbf24;opacity:0.8;margin-right:4px;">Lista de Espera</span>' : '';
+      const standbyLabel = ind.isStandby ? '<span style="font-weight:700;color:#fbbf24;opacity:0.8;">Lista de Espera</span>' : '';
 
-      // Stack: "Jogo N" header, then team 1 on top, "vs" separator, team 2 on bottom
+      // Layout grid: [Jogo N] [teams stack] [vs]
+      //   Row 1 of teams stack: team 1 (Bot yy / Bot zz)
+      //   Row 2 of teams stack: team 2 (Bot aa / Bot bb) — left-aligned with team 1
+      //   "Jogo N" and "vs" sit on row 1 via align-items:start on the outer grid
       let infoLine = '';
       if (teamLine || opponentLine || matchLabel || standbyLabel) {
-        const headerBits = `${standbyLabel}${matchLabel ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;">${matchLabel}</span>` : ''}`;
-        const headerHtml = headerBits ? `<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.7;margin-top:2px;display:flex;align-items:center;gap:4px;">${headerBits}</div>` : '';
-        let matchupHtml = '';
+        const jogoCell = matchLabel
+          ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;font-size:0.7rem;white-space:nowrap;">${matchLabel}</span>`
+          : (standbyLabel ? `<span style="font-size:0.7rem;white-space:nowrap;">${standbyLabel}</span>` : '');
+        const vsCell = (teamLine && opponentLine)
+          ? `<span style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-style:italic;padding-top:1px;">vs</span>`
+          : '';
+        let teamsCell = '';
         if (teamLine && opponentLine) {
-          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.95;margin-top:3px;display:flex;flex-direction:column;gap:3px;line-height:1.3;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${teamLine}</div><div style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-style:italic;">vs</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${opponentLine}</div></div>`;
+          teamsCell = `<div style="display:flex;flex-direction:column;gap:2px;line-height:1.3;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${teamLine}</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${opponentLine}</div></div>`;
         } else if (teamLine) {
-          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.85;margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${teamLine}</div>`;
+          teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${teamLine}</div>`;
         } else if (opponentLine) {
-          matchupHtml = `<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.85;margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${opponentLine}</div>`;
+          teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${opponentLine}</div>`;
         }
-        infoLine = headerHtml + matchupHtml;
+        // Standby header rendered above the grid when there's no match number yet
+        const standbyHeader = (ind.isStandby && !matchLabel && standbyLabel)
+          ? `<div style="font-size:0.7rem;margin-top:2px;">${standbyLabel}</div>`
+          : '';
+        const gridCells = jogoCell + teamsCell + vsCell;
+        if (gridCells) {
+          infoLine = `${standbyHeader}<div style="display:grid;grid-template-columns:auto auto auto;column-gap:8px;align-items:start;margin-top:3px;font-size:0.72rem;color:var(--text-muted);opacity:0.95;">${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
+        } else {
+          infoLine = standbyHeader;
+        }
       }
 
       // W.O. check
