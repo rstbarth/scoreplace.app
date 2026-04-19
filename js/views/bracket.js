@@ -1682,7 +1682,26 @@ function _buildSwissPastColumns(t, swissPastCols) {
 
 function renderStandings(t, isOrg, canEnterResult) {
   var _t = window._t || function(k) { return k; };
-  const rounds = t.rounds || [];
+  // Source swiss/liga/monarch round columns from the unified adapter. Each
+  // column is flattened back into the legacy {matches, status, format,
+  // monarchGroups, round} shape so the downstream renderer (previous rounds,
+  // stats, H2H, column layout) can consume it unchanged.
+  var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+  var _swissCols = _unified ? _unified.columns.filter(function(c) {
+    return c.phase === 'swiss' || c.phase === 'monarch' || c.phase === 'liga';
+  }) : null;
+  const rounds = (_swissCols && _swissCols.length)
+    ? _swissCols.map(function(col) {
+        var raw = (col.meta && col.meta.raw) || {};
+        return {
+          matches: col.matches || [],
+          status: raw.status || (col.status === 'done' ? 'complete' : col.status),
+          format: raw.format || (col.phase === 'monarch' ? 'rei_rainha' : undefined),
+          monarchGroups: col.subgroups || raw.monarchGroups,
+          round: col.round
+        };
+      })
+    : (t.rounds || []);
   const currentRound = rounds.length;
 
   if (!currentRound) {
@@ -1996,7 +2015,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       var h2h = {};
       names.forEach(function(n) { h2h[n] = {}; names.forEach(function(m) { h2h[n][m] = { w: 0, d: 0, l: 0 }; }); });
 
-      (t.rounds || []).forEach(function(rd) {
+      rounds.forEach(function(rd) {
         (rd.matches || []).forEach(function(m) {
           if (!m.winner || !m.p1 || !m.p2) return;
           if (m.p1 === 'BYE' || m.p2 === 'BYE' || m.p1 === 'TBD' || m.p2 === 'TBD') return;
