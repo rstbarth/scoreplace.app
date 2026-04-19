@@ -2300,6 +2300,30 @@ window.toggleRegistrationStatus = function (tId) {
                 }
                 t.activePollId = null;
             }
+            // Promote standby/waitlist participants back to main list — the waitlist
+            // only existed because enrollments were closed; now that they're open again,
+            // those participants should hold regular spots instead of waiting.
+            var _promoted = 0;
+            if (Array.isArray(t.standbyParticipants) && t.standbyParticipants.length > 0) {
+                if (!Array.isArray(t.participants)) t.participants = t.participants ? Object.values(t.participants) : [];
+                t.standbyParticipants.forEach(function(sp) {
+                    var spEmail = (sp && sp.email) || '';
+                    var spUid = (sp && sp.uid) || '';
+                    var spName = (sp && (sp.displayName || sp.name)) || '';
+                    var already = t.participants.some(function(p) {
+                        if (typeof p === 'string') return (spEmail && p === spEmail) || (spName && p === spName);
+                        return (p.email && spEmail && p.email === spEmail) ||
+                               (p.uid && spUid && p.uid === spUid) ||
+                               (p.displayName && spName && p.displayName === spName);
+                    });
+                    if (!already) {
+                        t.participants.push(sp);
+                        _promoted++;
+                    }
+                });
+                t.standbyParticipants = [];
+                if (_promoted > 0) window.AppStore.logAction(tId, _promoted + ' participante(s) promovido(s) da lista de espera ao reabrir inscrições');
+            }
             window.AppStore.logAction(tId, 'Inscrições Reabertas');
             // Notify participants about reopened enrollments
             if (typeof window._notifyTournamentParticipants === 'function') {
@@ -2311,7 +2335,11 @@ window.toggleRegistrationStatus = function (tId) {
             }
             _saveTournament(function() {
                 _refreshView();
-                if (typeof showNotification === 'function') showNotification(_t('draw.enrollReopened'), _t('draw.enrollReopenedMsg'), 'info');
+                if (typeof showNotification === 'function') {
+                    var _msg = _t('draw.enrollReopenedMsg');
+                    if (_promoted > 0) _msg += ' ' + _t('draw.standbyPromoted', { count: _promoted });
+                    showNotification(_t('draw.enrollReopened'), _msg, 'info');
+                }
             });
         });
         return;

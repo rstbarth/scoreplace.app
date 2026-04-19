@@ -739,6 +739,7 @@ window._translations['en'] = {
   'draw.changesSavedMsg': 'Changes saved successfully.',
   'draw.waitlist': 'Waitlist',
   'draw.waitlistMsg': '{count} participant(s) without a team were moved to the waitlist.',
+  'draw.standbyPromoted': '{count} participant(s) moved from the waitlist to the main list.',
   'draw.wildcard': 'Wildcard Round',
   'draw.wildcardMsg': '{count} participant(s) without a team will compete in a wildcard round.',
   'draw.removedTeamless': 'Participants Removed',

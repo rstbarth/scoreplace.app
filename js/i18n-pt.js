@@ -739,6 +739,7 @@ window._translations['pt'] = {
   'draw.changesSavedMsg': 'Alterações salvas com sucesso.',
   'draw.waitlist': 'Lista de Espera',
   'draw.waitlistMsg': '{count} participante(s) sem time foram movidos para a lista de espera.',
+  'draw.standbyPromoted': '{count} participante(s) movido(s) da lista de espera para a lista principal.',
   'draw.wildcard': 'Repescagem',
   'draw.wildcardMsg': '{count} participante(s) sem time disputarão vagas em repescagem.',
   'draw.removedTeamless': 'Participantes Removidos',
