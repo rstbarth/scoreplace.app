@@ -2611,7 +2611,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
     m.liveScored = true;
 
-    // Save & sync
+    // Check-in both teams — having played the match proves both were present.
+    // Mirrors the logic in _saveSetResult so live-scored matches don't leave
+    // losers marked absent and trigger WO flows. Handles both doubles separators
+    // ("A / B" from the standard match flow and "A/B" from live-scoring names).
+    if (!t.checkedIn) t.checkedIn = {};
+    if (!t.absent) t.absent = {};
+    var _sidesToCheckIn = [m.p1, m.p2];
+    for (var _si = 0; _si < _sidesToCheckIn.length; _si++) {
+      var _side = _sidesToCheckIn[_si];
+      if (!_side || _side === 'TBD' || _side === 'BYE') continue;
+      var _names = _side.indexOf(' / ') !== -1 ? _side.split(' / ')
+                 : _side.indexOf('/') !== -1 ? _side.split('/')
+                 : [_side];
+      for (var _ni = 0; _ni < _names.length; _ni++) {
+        var _nm = _names[_ni].trim();
+        if (!_nm) continue;
+        t.checkedIn[_nm] = t.checkedIn[_nm] || Date.now();
+        delete t.absent[_nm];
+      }
+    }
+    if (!t.tournamentStarted) t.tournamentStarted = Date.now();
+
+    // Advance winner BEFORE re-render so the next round's card shows the
+    // new competitor immediately (not on the next sync tick).
+    if (typeof window._advanceWinner === 'function') window._advanceWinner(t, m);
+    if (typeof window._maybeFinishElimination === 'function') window._maybeFinishElimination(t);
+
+    // Save & sync (includes the advance mutations above)
     window.AppStore.syncImmediate(tId);
     if (typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.saveTournament) {
       window.FirestoreDB.saveTournament(t);
@@ -2635,10 +2662,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
     if (!opts.silent) showNotification(_t('bui.resultSaved'), m.winner === 'draw' ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
     _rerenderBracket(tId, matchId);
-
-    // Auto-advance etc.
-    if (typeof window._advanceWinner === 'function') window._advanceWinner(t, m);
-    if (typeof window._maybeFinishElimination === 'function') window._maybeFinishElimination(t);
   }
 
   // ── Serve tracking — progressive definition ──

@@ -247,7 +247,7 @@ window._translations['pt'] = {
   'bracket.allMatchesDone': 'Todas as partidas concluídas!',
   'bracket.round': 'Rodada {n}',
   'bracket.final': 'Final',
-  'bracket.semiFinal': 'Semifinal',
+  'bracket.semiFinal': 'Semifinais',
   'bracket.quarterFinal': 'Quartas de Final',
   'bracket.thirdPlace': 'Disputa de 3o Lugar',
   'bracket.lowerBracket': 'Repescagem',
