@@ -884,12 +884,15 @@ function _maybeGenerate3rdPlace(t) {
 
   // Inicializar thirdPlaceMatch se não existir
   if (!t.thirdPlaceMatch) {
-    t.thirdPlaceMatch = {
-      id: `match-3rd-${Date.now()}`,
-      round: finalRoundNum,
-      label: _t('bui.thirdPlaceMatch'),
-      p1: 'TBD', p2: 'TBD', winner: null
-    };
+    window._appendCanonicalColumn(t, {
+      phase: 'thirdplace',
+      matches: [{
+        id: `match-3rd-${Date.now()}`,
+        round: finalRoundNum,
+        label: _t('bui.thirdPlaceMatch'),
+        p1: 'TBD', p2: 'TBD', winner: null
+      }]
+    });
   }
 
   // Se já tem resultado confirmado no 3º lugar, não mexer

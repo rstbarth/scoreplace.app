@@ -331,7 +331,7 @@
   // desc: {
   //   phase:         'swiss' | 'monarch' | 'liga' | 'elim' | 'grandfinal' | 'thirdplace'
   //   round:         number (1-based; for t.rounds lookup)
-  //   matches:       match[] (required)
+  //   matches:       match[] (required; for thirdplace, matches[0] is the single match)
   //   status?:       'active' | 'complete' | 'pending'  (swiss-like only; defaults 'active')
   //   format?:       'rei_rainha'                       (swiss-like only; tags round)
   //   monarchGroups?: group[]                            (monarch only)
@@ -341,8 +341,14 @@
     if (!t || !desc || !Array.isArray(desc.matches)) return;
     var phase = desc.phase;
 
-    // Elim / grand / thirdplace → flat t.matches[]
-    if (phase === 'elim' || phase === 'grandfinal' || phase === 'thirdplace') {
+    // Thirdplace → single-field t.thirdPlaceMatch
+    if (phase === 'thirdplace') {
+      if (desc.matches[0]) t.thirdPlaceMatch = desc.matches[0];
+      return;
+    }
+
+    // Elim / grand → flat t.matches[]
+    if (phase === 'elim' || phase === 'grandfinal') {
       if (!Array.isArray(t.matches)) t.matches = [];
       desc.matches.forEach(function (m) {
         if (desc.bracket && !m.bracket) m.bracket = desc.bracket;

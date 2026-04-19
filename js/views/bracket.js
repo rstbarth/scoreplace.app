@@ -566,12 +566,15 @@ function _ensureFutureRounds(t) {
   // Inicializar thirdPlaceMatch se configurado e ainda não existe
   if (!t.thirdPlaceMatch) {
     const finalRound = allRoundNums[allRoundNums.length - 1];
-    t.thirdPlaceMatch = {
-      id: `match-3rd-${Date.now()}`,
-      round: finalRound || 1,
-      label: _t('bracket.thirdPlaceLabel'),
-      p1: 'TBD', p2: 'TBD', winner: null
-    };
+    window._appendCanonicalColumn(t, {
+      phase: 'thirdplace',
+      matches: [{
+        id: `match-3rd-${Date.now()}`,
+        round: finalRound || 1,
+        label: _t('bracket.thirdPlaceLabel'),
+        p1: 'TBD', p2: 'TBD', winner: null
+      }]
+    });
   }
 
   // Sempre recalcular participantes do 3º lugar baseado nas semifinais
