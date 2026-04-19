@@ -409,8 +409,10 @@
     if (t.thirdPlaceMatch) out.push(t.thirdPlaceMatch);
     if (Array.isArray(t.rodadas)) {
       t.rodadas.forEach(function (r) {
-        if (r && Array.isArray(r.matches)) out = out.concat(r.matches);
-        else if (Array.isArray(r)) out = out.concat(r);
+        if (!r) return;
+        if (Array.isArray(r.matches)) out = out.concat(r.matches);
+        if (Array.isArray(r.jogos)) out = out.concat(r.jogos);
+        if (Array.isArray(r)) out = out.concat(r);
       });
     }
     return out;

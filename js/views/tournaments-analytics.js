@@ -127,26 +127,18 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
         return a.toLowerCase().trim() === b.toLowerCase().trim();
     };
 
-    // Helper: extract all matches from a tournament
+    // Helper: extract all matches from a tournament (delegates to canonical collector)
     var _getAllMatches = function(t) {
+        if (typeof window._collectAllMatches === 'function') return window._collectAllMatches(t);
+        // Defensive fallback if bracket-model.js didn't load
         var all = [];
         if (Array.isArray(t.matches)) all = all.concat(t.matches);
-        if (Array.isArray(t.rounds)) {
-            t.rounds.forEach(function(r) {
-                if (Array.isArray(r.matches)) all = all.concat(r.matches);
-            });
-        }
-        if (Array.isArray(t.groups)) {
-            t.groups.forEach(function(g) {
-                if (Array.isArray(g.matches)) all = all.concat(g.matches);
-            });
-        }
-        if (Array.isArray(t.rodadas)) {
-            t.rodadas.forEach(function(rd) {
-                if (Array.isArray(rd.matches)) all = all.concat(rd.matches);
-                if (Array.isArray(rd.jogos)) all = all.concat(rd.jogos);
-            });
-        }
+        if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (Array.isArray(r.matches)) all = all.concat(r.matches); });
+        if (Array.isArray(t.groups)) t.groups.forEach(function(g) { if (Array.isArray(g.matches)) all = all.concat(g.matches); });
+        if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(rd) {
+            if (Array.isArray(rd.matches)) all = all.concat(rd.matches);
+            if (Array.isArray(rd.jogos)) all = all.concat(rd.jogos);
+        });
         if (t.thirdPlaceMatch) all.push(t.thirdPlaceMatch);
         return all;
     };
@@ -532,29 +524,56 @@ window._buildActivityLog = function(tournamentId) {
         events.push({ date: t.tournamentStartedAt || null, icon: '▶️', text: 'Torneio iniciado', color: '#10b981' });
     }
 
-    // 6. Match results
+    // 6. Match results — prefer canonical adapter so the activity log shows
+    // humane round names ("Final", "Semifinais", "Quartas", "Grupo A") instead
+    // of generic "Rodada N" / "Partida N".
     var allMatches = [];
-    if (Array.isArray(t.matches)) {
-        t.matches.forEach(function(m, idx) { allMatches.push({ m: m, label: m.round ? 'Rodada ' + m.round : 'Partida ' + (idx+1) }); });
-    }
-    if (Array.isArray(t.rounds)) {
-        t.rounds.forEach(function(r, ri) {
-            (r.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri+1) }); });
+    var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+    var _hasUnified = _unified && Array.isArray(_unified.columns) && _unified.columns.length > 0;
+    if (_hasUnified) {
+        _unified.columns.forEach(function(c) {
+            if (!c) return;
+            if (c.phase === 'thirdplace') {
+                // Match is included but with its dedicated label
+                (c.matches || []).forEach(function(m) {
+                    if (m && m.winner) allMatches.push({ m: m, label: 'Disputa 3º lugar' });
+                });
+                return;
+            }
+            if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
+                c.subgroups.forEach(function(sg, gi) {
+                    var label = 'Grupo ' + ((sg && sg.name) || String.fromCharCode(65 + gi));
+                    (sg && sg.matches || []).forEach(function(m) { allMatches.push({ m: m, label: label }); });
+                });
+                return;
+            }
+            var lbl = c.label || ('Rodada ' + c.round);
+            (c.matches || []).forEach(function(m) { allMatches.push({ m: m, label: lbl }); });
         });
-    }
-    if (Array.isArray(t.groups)) {
-        t.groups.forEach(function(g, gi) {
-            (g.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Grupo ' + (gi+1) }); });
-        });
-    }
-    if (Array.isArray(t.rodadas)) {
-        t.rodadas.forEach(function(rd, ri) {
-            var ms = rd.matches || rd.jogos || [];
-            ms.forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri+1) }); });
-        });
-    }
-    if (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
-        allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+    } else {
+        // Legacy fallback (adapter not loaded or no columns)
+        if (Array.isArray(t.matches)) {
+            t.matches.forEach(function(m, idx) { allMatches.push({ m: m, label: m.round ? 'Rodada ' + m.round : 'Partida ' + (idx+1) }); });
+        }
+        if (Array.isArray(t.rounds)) {
+            t.rounds.forEach(function(r, ri) {
+                (r.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri+1) }); });
+            });
+        }
+        if (Array.isArray(t.groups)) {
+            t.groups.forEach(function(g, gi) {
+                (g.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Grupo ' + (gi+1) }); });
+            });
+        }
+        if (Array.isArray(t.rodadas)) {
+            t.rodadas.forEach(function(rd, ri) {
+                var ms = rd.matches || rd.jogos || [];
+                ms.forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri+1) }); });
+            });
+        }
+        if (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+            allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+        }
     }
 
     allMatches.forEach(function(item) {
