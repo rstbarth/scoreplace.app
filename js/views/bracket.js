@@ -279,7 +279,7 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
     const border = isReady ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.2)';
     const labelColor = isReady ? '#4ade80' : '#fbbf24';
     return `
-    <div style="padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:10px;display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1;max-width:360px;">
+    <div style="padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:10px;display:flex;flex-direction:column;gap:4px;">
       <div style="font-size:0.8rem;font-weight:800;color:${labelColor};letter-spacing:0.5px;">${_t('bracket.matchNum', {n: e.friendlyNum})}</div>
       ${renderSideRow(e.match.p1)}
       <div style="font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.2);letter-spacing:2px;padding:0 2px;">VS</div>
@@ -299,7 +299,7 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
           <span style="font-size:1rem;">🟡</span>
           <span style="font-size:0.85rem;font-weight:600;color:#fbbf24;">${partialMatches.length} aguardando presença</span>
         </div>` : ''}
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 220px));gap:8px;">
         ${matchCards}
       </div>
     </div>`;

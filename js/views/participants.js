@@ -776,7 +776,6 @@ function renderParticipants(container, tournamentId) {
             <div style="width:${pctPresent}%;height:100%;background:linear-gradient(90deg,#10b981,#4ade80);border-radius:6px;transition:width 0.3s;"></div>
         </div>
         <span style="font-size:0.8rem;color:#94a3b8;font-weight:700;">${pctPresent}%</span>
-        ${(checkedCount > 0 || absentConfirmedCount > 0) ? `<button class="btn btn-micro" onclick="window._resetCheckIn('${tId}')" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Limpar</button>` : ''}
     </div>
   ` : '';
 
