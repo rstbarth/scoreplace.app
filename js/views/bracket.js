@@ -689,8 +689,11 @@ function renderSingleElimBracket(t, canEnterResult) {
 
   let globalMatchNum = 0;
 
-  // 3rd place match
-  const thirdPlaceMatch = t.thirdPlaceMatch || { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null };
+  // 3rd place match — pull from adapter's thirdplace column (falls back to t.thirdPlaceMatch)
+  const _thirdCol = unified ? unified.columns.find(c => c.phase === 'thirdplace') : null;
+  const thirdPlaceMatch = (_thirdCol && _thirdCol.matches[0])
+    || t.thirdPlaceMatch
+    || { id: 'match-3rd-placeholder', p1: 'TBD', p2: 'TBD', winner: null };
   const hasThirdPlace = activeRounds.length >= 2;
 
   // Numbering: 3rd place = last semifinal + 1, final = 3rd place + 1
