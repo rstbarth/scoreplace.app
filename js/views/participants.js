@@ -623,37 +623,27 @@ function renderParticipants(container, tournamentId) {
       const matchLabel = (!isStandbyPure && ind.matchNum) ? `Jogo ${ind.matchNum}` : '';
       const standbyLabel = ind.isStandby ? '<span style="font-weight:700;color:#fbbf24;opacity:0.8;">Lista de Espera</span>' : '';
 
-      // Layout grid: [Jogo N] [teams stack] [vs]
-      //   Row 1 of teams stack: team 1 (Bot yy / Bot zz)
-      //   Row 2 of teams stack: team 2 (Bot aa / Bot bb) — left-aligned with team 1
-      //   "Jogo N" and "vs" sit on row 1 via align-items:start on the outer grid
-      let infoLine = '';
-      if (teamLine || opponentLine || matchLabel || standbyLabel) {
-        const jogoCell = matchLabel
-          ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;font-size:0.7rem;white-space:nowrap;">${matchLabel}</span>`
-          : (standbyLabel ? `<span style="font-size:0.7rem;white-space:nowrap;">${standbyLabel}</span>` : '');
-        const vsCell = (teamLine && opponentLine)
-          ? `<span style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-style:italic;padding-top:1px;">vs</span>`
-          : '';
-        let teamsCell = '';
-        if (teamLine && opponentLine) {
-          teamsCell = `<div style="display:flex;flex-direction:column;gap:2px;line-height:1.3;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${teamLine}</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${opponentLine}</div></div>`;
-        } else if (teamLine) {
-          teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${teamLine}</div>`;
-        } else if (opponentLine) {
-          teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;">${opponentLine}</div>`;
-        }
-        // Standby header rendered above the grid when there's no match number yet
-        const standbyHeader = (ind.isStandby && !matchLabel && standbyLabel)
-          ? `<div style="font-size:0.7rem;margin-top:2px;">${standbyLabel}</div>`
-          : '';
-        const gridCells = jogoCell + teamsCell + vsCell;
-        if (gridCells) {
-          infoLine = `${standbyHeader}<div style="display:grid;grid-template-columns:auto auto auto;column-gap:8px;align-items:start;margin-top:3px;font-size:0.72rem;color:var(--text-muted);opacity:0.95;">${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
-        } else {
-          infoLine = standbyHeader;
-        }
+      // Matchup cells (used in the card-level grid, where the player name sits
+      // on the same row as team 1 / "vs"). Team 2 lives inside teamsCell on its
+      // own row, so the card becomes 2 lines total (name+team1+vs / team2).
+      const jogoCell = matchLabel
+        ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.6;font-size:0.72rem;white-space:nowrap;align-self:center;">${matchLabel}</span>`
+        : '';
+      const vsCell = (teamLine && opponentLine)
+        ? `<span style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-style:italic;align-self:start;padding-top:1px;">vs</span>`
+        : '';
+      let teamsCell = '';
+      if (teamLine && opponentLine) {
+        teamsCell = `<div style="display:flex;flex-direction:column;gap:2px;line-height:1.3;font-size:0.72rem;color:var(--text-muted);opacity:0.95;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${teamLine}</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${opponentLine}</div></div>`;
+      } else if (teamLine) {
+        teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;font-size:0.72rem;color:var(--text-muted);opacity:0.95;min-width:0;">${teamLine}</div>`;
+      } else if (opponentLine) {
+        teamsCell = `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;line-height:1.3;font-size:0.72rem;color:var(--text-muted);opacity:0.95;min-width:0;">${opponentLine}</div>`;
       }
+      const standbyHeader = (ind.isStandby && !matchLabel && standbyLabel)
+        ? `<div style="font-size:0.7rem;margin-top:2px;">${standbyLabel}</div>`
+        : '';
+      const hasMatchup = !!(jogoCell || teamsCell || vsCell);
 
       // W.O. check
       const woMatch = ind.matchNum && t.matches ? t.matches[ind.matchNum - 1] : null;
@@ -705,12 +695,25 @@ function renderParticipants(container, tournamentId) {
       const _pAvatar = _pCached || _pInitials;
       const _pAvatarErr = `onerror="this.onerror=null;this.src='${_pInitials}'"` ;
 
+      const nameCell = `<div style="display:flex;align-items:center;gap:6px;min-width:0;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>`;
+      // Inline layout (name + Jogo + teams + vs on one row + team 2 below) only when there's horizontal room.
+      // Mobile (< 768px) falls back to name on top, matchup block below.
+      const _isNarrow = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
+      let infoBlock;
+      if (hasMatchup && !_isNarrow) {
+        infoBlock = `<div style="display:grid;grid-template-columns:auto auto auto auto;column-gap:10px;align-items:center;min-width:0;">${nameCell}${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
+      } else if (hasMatchup) {
+        const matchupRow = `<div style="display:grid;grid-template-columns:auto auto auto;column-gap:8px;align-items:start;margin-top:3px;">${jogoCell || '<span></span>'}${teamsCell || '<span></span>'}${vsCell}</div>`;
+        infoBlock = nameCell + matchupRow;
+      } else {
+        infoBlock = nameCell;
+      }
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;">
             <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};" />
             <div style="flex:1;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}</div>
-                ${infoLine}
+                ${standbyHeader}
+                ${infoBlock}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
                 ${woBadge}
