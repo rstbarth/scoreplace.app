@@ -280,6 +280,8 @@ window._translations['pt'] = {
   'bracket.noRoundsDesc': 'O organizador deve realizar o sorteio para iniciar a primeira rodada.',
   'bracket.startFirstRound': '🎲 Iniciar Primeira Rodada',
   'bracket.closeRound': '✓ Encerrar Rodada e Gerar Próxima',
+  'bracket.awaitingPrevRound': 'Aguardando rodada anterior',
+  'bracket.awaitingPrevRoundDesc': 'Os confrontos desta rodada serão sorteados automaticamente quando a rodada anterior for concluída.',
   'bracket.tournamentFinished': '🏆 Torneio Encerrado!',
   'bracket.standingsTitle': 'Classificação — Rodada {n}',
   'bracket.standingsTitleCat': 'Classificação — {cat} — Rodada {n}',

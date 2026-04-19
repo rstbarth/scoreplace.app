@@ -1586,6 +1586,17 @@ function renderStandings(t, isOrg, canEnterResult) {
   const maxRounds = t.swissRounds || 99;
   const isFinished = isSuico && currentRound >= maxRounds && allComplete;
 
+  // Safety net: auto-advance a stuck Swiss round. If all matches are complete
+  // but the round was never marked 'complete' (and we're below maxRounds),
+  // dispatch close-and-advance. Idempotent via status check.
+  if (isSuico && allComplete && currentRound < maxRounds && currentRoundData.status !== 'complete') {
+    setTimeout(function() {
+      if (typeof window._closeRound === 'function') {
+        window._closeRound(t.id, currentRound - 1);
+      }
+    }, 0);
+  }
+
   // Liga/Ranking: show auto-draw countdown if applicable
   let rankingCountdownHtml = '';
   if (isLigaFmt && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
@@ -1887,7 +1898,23 @@ function renderStandings(t, isOrg, canEnterResult) {
     });
   }
 
-  return standingsTablesHtml + currentRoundHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  // Placeholder cards for upcoming Swiss rounds — so users can see all rounds
+  // of the tournament upfront, filling in as games happen.
+  var upcomingRoundsHtml = '';
+  if (isSuico && currentRound < maxRounds) {
+    for (var _upR = currentRound + 1; _upR <= maxRounds; _upR++) {
+      upcomingRoundsHtml +=
+        '<div class="card" style="margin-top:1rem;opacity:0.55;border-style:dashed;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">' +
+            '<h3 class="card-title" style="margin:0;">' + _t('bracket.round', {n: _upR}) + ' / ' + maxRounds + '</h3>' +
+            '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingPrevRound') + '</span>' +
+          '</div>' +
+          '<p style="color:var(--text-muted);font-size:0.82rem;margin:10px 0 0 0;">' + _t('bracket.awaitingPrevRoundDesc') + '</p>' +
+        '</div>';
+    }
+  }
+
+  return standingsTablesHtml + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────

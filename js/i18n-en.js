@@ -280,6 +280,8 @@ window._translations['en'] = {
   'bracket.noRoundsDesc': 'The organizer must perform the draw to start the first round.',
   'bracket.startFirstRound': '🎲 Start First Round',
   'bracket.closeRound': '✓ Close Round and Generate Next',
+  'bracket.awaitingPrevRound': 'Awaiting previous round',
+  'bracket.awaitingPrevRoundDesc': 'The pairings for this round will be drawn automatically once the previous round is complete.',
   'bracket.tournamentFinished': '🏆 Tournament Finished!',
   'bracket.standingsTitle': 'Standings — Round {n}',
   'bracket.standingsTitleCat': 'Standings — {cat} — Round {n}',
