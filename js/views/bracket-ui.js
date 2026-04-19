@@ -1157,18 +1157,40 @@ window._editResultInline = function(tId, matchId) {
   var _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
   var inputStyle = 'width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(245,158,11,0.4);color:var(--text-bright);border-radius:6px;padding:4px 6px;';
 
+  // If this is a GSM set match with tiebreak enabled, also render hidden TB inputs
+  // pre-filled with any existing tiebreak points from the saved set.
+  var _useSets = t.scoring && t.scoring.type === 'sets';
+  var _tbEnabled = _useSets && t.scoring.tiebreakEnabled !== false;
+  var _existingTb = (m.sets && m.sets[0] && m.sets[0].tiebreak) || null;
+  var _tbInputStyle = 'width:40px;text-align:center;font-size:0.75rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.4);color:var(--text-bright);border-radius:5px;padding:3px 4px;';
+
   // Replace score containers by their explicit IDs
   var p1ScoreDiv = document.getElementById('score-p1-' + matchId);
   if (p1ScoreDiv) {
+    var tb1Html = _tbEnabled
+      ? '<input type="number" id="tb1-' + matchId + '" min="0" placeholder="tb" title="Tie-break"' +
+        (_existingTb && _existingTb.pointsP1 != null ? ' value="' + _existingTb.pointsP1 + '"' : '') +
+        ' style="' + _tbInputStyle + 'display:none;margin-left:4px;" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">'
+      : '';
     p1ScoreDiv.innerHTML = '<input type="number" id="s1-' + matchId + '" min="0" placeholder="0"' +
       (m.scoreP1 != null ? ' value="' + m.scoreP1 + '"' : '') +
-      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
+      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">' + tb1Html;
   }
   var p2ScoreDiv = document.getElementById('score-p2-' + matchId);
   if (p2ScoreDiv) {
+    var tb2Html = _tbEnabled
+      ? '<input type="number" id="tb2-' + matchId + '" min="0" placeholder="tb" title="Tie-break"' +
+        (_existingTb && _existingTb.pointsP2 != null ? ' value="' + _existingTb.pointsP2 + '"' : '') +
+        ' style="' + _tbInputStyle + 'display:none;margin-left:4px;" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">'
+      : '';
     p2ScoreDiv.innerHTML = '<input type="number" id="s2-' + matchId + '" min="0" placeholder="0"' +
       (m.scoreP2 != null ? ' value="' + m.scoreP2 + '"' : '') +
-      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">';
+      ' style="' + inputStyle + '" oninput="window._highlightWinner(\'' + _esc(matchId) + '\')">' + tb2Html;
+  }
+
+  // Reveal TB inputs now if the score is a TB scoreline (e.g. 7-6)
+  if (typeof window._highlightWinner === 'function') {
+    try { window._highlightWinner(matchId); } catch(e) {}
   }
 
   // Swap Edit button → Confirm button in the header
