@@ -1898,9 +1898,14 @@ function renderStandings(t, isOrg, canEnterResult) {
     });
   }
 
-  // Placeholder cards for upcoming Swiss rounds — so users can see all rounds
-  // of the tournament upfront, filling in as games happen.
+  // Placeholder cards for upcoming rounds — users see all rounds upfront,
+  // filling in as games happen. Two phases may appear: Swiss classification
+  // (if Swiss rounds remain) and, when Swiss is p2 resolution, the
+  // elimination phase that follows.
   var upcomingRoundsHtml = '';
+  var isSwissClassification = isSuico && t.p2Resolution === 'swiss' && t.currentStage === 'swiss' && t.p2TargetCount;
+
+  // Upcoming Swiss rounds
   if (isSuico && currentRound < maxRounds) {
     for (var _upR = currentRound + 1; _upR <= maxRounds; _upR++) {
       upcomingRoundsHtml +=
@@ -1914,7 +1919,44 @@ function renderStandings(t, isOrg, canEnterResult) {
     }
   }
 
-  return standingsTablesHtml + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  // Upcoming elimination phase placeholders (when Swiss is only the p2 resolution)
+  if (isSwissClassification) {
+    var _elimRounds = Math.log2(t.p2TargetCount);
+    if (Number.isInteger(_elimRounds) && _elimRounds > 0) {
+      upcomingRoundsHtml +=
+        '<div style="margin-top:1.5rem;padding:10px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:10px;font-weight:700;color:#fbbf24;font-size:0.85rem;">' +
+          _t('bracket.phaseElim', {n: t.p2TargetCount}) +
+        '</div>';
+      for (var _er = 1; _er <= _elimRounds; _er++) {
+        var _fromEnd = _elimRounds - _er;
+        var _phaseLabel;
+        if (_fromEnd === 0) _phaseLabel = _t('bracket.final');
+        else if (_fromEnd === 1) _phaseLabel = _t('bracket.semiFinal');
+        else if (_fromEnd === 2) _phaseLabel = _t('bracket.quarterFinal');
+        else if (_fromEnd === 3) _phaseLabel = _t('bracket.roundOf16');
+        else _phaseLabel = _t('bracket.round', {n: _er});
+        upcomingRoundsHtml +=
+          '<div class="card" style="margin-top:0.75rem;opacity:0.55;border-style:dashed;border-color:rgba(251,191,36,0.4);">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">' +
+              '<h3 class="card-title" style="margin:0;color:#fbbf24;">🏆 ' + _phaseLabel + '</h3>' +
+              '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingSwissEnd') + '</span>' +
+            '</div>' +
+            '<p style="color:var(--text-muted);font-size:0.82rem;margin:10px 0 0 0;">' + _t('bracket.awaitingSwissEndDesc', {n: t.p2TargetCount}) + '</p>' +
+          '</div>';
+      }
+    }
+  }
+
+  // Classification phase header (shown above current round when Swiss is the p2 resolution)
+  var phaseHeaderHtml = '';
+  if (isSwissClassification) {
+    phaseHeaderHtml =
+      '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
+        _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
+      '</div>';
+  }
+
+  return standingsTablesHtml + phaseHeaderHtml + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
