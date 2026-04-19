@@ -589,6 +589,50 @@
     }
   }
 
+  // ============================================================================
+  // SET SCORE FORMATTING
+  // Shared helpers for rendering set scores with per-team tiebreak scores as
+  // superscript in parentheses. Normalizes two tiebreak shapes:
+  //   - casual:     set.tiebreak = { p1, p2 }
+  //   - tournament: set.tiebreak = { pointsP1, pointsP2 }
+  // opts.html=true → <sup style="…">(n)</sup>; else Unicode superscript digits.
+  // ============================================================================
+  var _SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻' };
+  function _supDigits(n) {
+    return String(n == null ? '' : n).split('').map(function(c){ return _SUP[c] || c; }).join('');
+  }
+  function _getSetTB(set) {
+    if (!set || !set.tiebreak) return null;
+    var tb = set.tiebreak;
+    var p1 = tb.pointsP1 != null ? tb.pointsP1 : tb.p1;
+    var p2 = tb.pointsP2 != null ? tb.pointsP2 : tb.p2;
+    if (p1 == null && p2 == null) return null;
+    return { p1: p1 == null ? 0 : p1, p2: p2 == null ? 0 : p2 };
+  }
+  window._formatSetForPlayer = function(set, playerNum, opts) {
+    opts = opts || {};
+    if (!set) return '';
+    var g = playerNum === 1 ? set.gamesP1 : set.gamesP2;
+    var out = (g == null ? '' : String(g));
+    var tb = _getSetTB(set);
+    if (tb) {
+      var myPts = playerNum === 1 ? tb.p1 : tb.p2;
+      if (opts.html) {
+        out += '<sup style="font-size:0.55em;font-weight:600;">(' + myPts + ')</sup>';
+      } else {
+        out += '⁽' + _supDigits(myPts) + '⁾';
+      }
+    }
+    return out;
+  };
+  window._formatSetCombined = function(set, opts) {
+    opts = opts || {};
+    if (!set) return '';
+    var p1 = window._formatSetForPlayer(set, 1, opts);
+    var p2 = window._formatSetForPlayer(set, 2, opts);
+    return p1 + '-' + p2;
+  };
+
   // Expose for manual invocation: window._bracketModelSanityChecks()
   window._bracketModelSanityChecks = _runSanityChecks;
 

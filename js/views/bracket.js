@@ -1206,15 +1206,10 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
       if (!s0) return '';
       return String(playerNum === 1 ? s0.gamesP1 : s0.gamesP2);
     }
-    return match.sets.map(s => {
-      const g = playerNum === 1 ? s.gamesP1 : s.gamesP2;
-      const tb = s.tiebreak;
-      if (tb) {
-        const won = playerNum === 1 ? (s.gamesP1 > s.gamesP2) : (s.gamesP2 > s.gamesP1);
-        return g + (!won && tb ? '(' + (playerNum === 1 ? tb.pointsP1 : tb.pointsP2) + ')' : '');
-      }
-      return String(g);
-    }).join(' ');
+    return match.sets.map(s => (typeof window._formatSetForPlayer === 'function')
+      ? window._formatSetForPlayer(s, playerNum, { html: false })
+      : String(playerNum === 1 ? s.gamesP1 : s.gamesP2)
+    ).join(' ');
   };
 
   // Inline score inputs: only for undecided matches with both players known
@@ -1290,13 +1285,15 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     ? _isFixedSetMatch
       ? (() => {
           var _s0 = m.sets[0];
-          var _tbText = _s0 && _s0.tiebreak ? ' TB(' + _s0.tiebreak.pointsP1 + '-' + _s0.tiebreak.pointsP2 + ')' : '';
+          var _combined = (typeof window._formatSetCombined === 'function')
+            ? window._formatSetCombined(_s0, { html: true })
+            : (_s0.gamesP1 + '-' + _s0.gamesP2);
           return `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
-            ⚡ ${_s0.gamesP1}-${_s0.gamesP2}${_tbText}
+            ⚡ ${_combined}
           </div>`;
         })()
       : `<div style="text-align:center;font-size:0.82rem;color:var(--text-main);font-weight:600;margin-top:4px;font-family:monospace;">
-          ${m.sets.map(s => s.gamesP1 + '-' + s.gamesP2 + (s.tiebreak ? '(' + Math.max(s.tiebreak.pointsP1, s.tiebreak.pointsP2) + ')' : '')).join('  ')}
+          ${m.sets.map(s => (typeof window._formatSetCombined === 'function') ? window._formatSetCombined(s, { html: true }) : (s.gamesP1 + '-' + s.gamesP2)).join('  ')}
         </div>`
     : '';
 
