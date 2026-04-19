@@ -379,6 +379,43 @@
     }
   };
 
+  // ── Canonical read helper: flatten every match across legacy shapes ───────
+  // Returns a flat array of all matches attached to t, regardless of which
+  // legacy storage field holds them (t.matches, t.rounds[].matches,
+  // t.groups[].matches, t.groups[].rounds[].matches, t.thirdPlaceMatch, and
+  // legacy t.rodadas). Preserves the match objects by reference — callers may
+  // mutate or simply scan. Used by helpers that need "every match in the
+  // tournament" semantics (W.O. detection, share-by-id, attendance scan).
+  window._collectAllMatches = function _collectAllMatches(t) {
+    if (!t || typeof t !== 'object') return [];
+    var out = [];
+    if (Array.isArray(t.matches)) out = out.concat(t.matches);
+    if (Array.isArray(t.rounds)) {
+      t.rounds.forEach(function (r) {
+        if (r && Array.isArray(r.matches)) out = out.concat(r.matches);
+      });
+    }
+    if (Array.isArray(t.groups)) {
+      t.groups.forEach(function (g) {
+        if (g && Array.isArray(g.matches)) out = out.concat(g.matches);
+        if (g && Array.isArray(g.rounds)) {
+          g.rounds.forEach(function (gr) {
+            if (gr && Array.isArray(gr.matches)) out = out.concat(gr.matches);
+            else if (Array.isArray(gr)) out = out.concat(gr);
+          });
+        }
+      });
+    }
+    if (t.thirdPlaceMatch) out.push(t.thirdPlaceMatch);
+    if (Array.isArray(t.rodadas)) {
+      t.rodadas.forEach(function (r) {
+        if (r && Array.isArray(r.matches)) out = out.concat(r.matches);
+        else if (Array.isArray(r)) out = out.concat(r);
+      });
+    }
+    return out;
+  };
+
   // ── Main entry ────────────────────────────────────────────────────────────
   window._getUnifiedRounds = function _getUnifiedRounds(t) {
     if (!t || typeof t !== 'object') {

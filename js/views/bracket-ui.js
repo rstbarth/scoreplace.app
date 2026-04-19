@@ -245,13 +245,9 @@ window._autoSubstituteWO = function(tId) {
   var replacementName = getName(nextPresent);
 
   // Collect ALL undecided matches from every structure
-  var allMatches = [];
-  if (Array.isArray(t.matches)) t.matches.forEach(function(m) { allMatches.push(m); });
-  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (Array.isArray(r.matches)) r.matches.forEach(function(m) { allMatches.push(m); }); });
-  if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-    if (Array.isArray(g.matches)) g.matches.forEach(function(m) { allMatches.push(m); });
-    if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr.matches)) gr.matches.forEach(function(m) { allMatches.push(m); }); });
-  });
+  var allMatches = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : [];
 
   // Find first W.O. match (player marked absent in undecided match)
   var woMatch = null, woSlot = null, absentMemberName = null;
@@ -1118,15 +1114,11 @@ window._editResultInline = function(tId, matchId) {
 window._shareMatchResult = function(tId, matchId) {
   var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
   if (!t) return;
-  var m = null;
   // Find match in all structures
-  var sources = [];
-  if (Array.isArray(t.matches)) sources = sources.concat(t.matches);
-  if (t.thirdPlaceMatch) sources.push(t.thirdPlaceMatch);
-  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); });
-  if (Array.isArray(t.groups)) t.groups.forEach(function(g) { if (g && Array.isArray(g.matches)) sources = sources.concat(g.matches); if (g && Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) sources = sources.concat(gr); }); });
-  if (Array.isArray(t.rodadas)) t.rodadas.forEach(function(r) { if (r && Array.isArray(r.matches)) sources = sources.concat(r.matches); else if (Array.isArray(r)) sources = sources.concat(r); });
-  m = sources.find(function(mx) { return mx && String(mx.id) === String(matchId); });
+  var sources = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : [];
+  var m = sources.find(function(mx) { return mx && String(mx.id) === String(matchId); });
   if (!m || !m.winner) return;
 
   var isDraw = m.winner === 'draw' || m.draw;
@@ -1279,10 +1271,9 @@ window._tvBuildNextMatches = function(t) {
 
 // Build attendance/presence summary for TV mode
 window._tvBuildAttendance = function(t) {
-  var allMatches = [];
-  if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
-  if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { allMatches = allMatches.concat(r.matches || []); });
-  if (Array.isArray(t.groups)) t.groups.forEach(function(g) { allMatches = allMatches.concat(g.matches || []); });
+  var allMatches = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : [];
   var pending = allMatches.filter(function(m) { return m.p1 && m.p2 && !m.winner && !m.isBye; });
   if (pending.length === 0) return '';
   var waitingPresence = pending.filter(function(m) { return !m.presenceP1 || !m.presenceP2; });
