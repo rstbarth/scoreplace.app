@@ -287,7 +287,12 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
 
     modal.innerHTML = '' +
-      '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>' +
+      // Top bar inside the card: Voltar (left) + close × (right) — same pill pattern
+      // used in the Category Manager and other sub-views.
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">' +
+        '<button class="btn btn-sm hover-lift" onclick="document.getElementById(\'player-stats-overlay\').remove()" style="background:var(--info-pill-bg);color:var(--text-bright);border:1px solid var(--border-color);display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-weight:500;font-size:0.78rem;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
+        '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
+      '</div>' +
       '<div style="text-align:center;margin-bottom:1rem;">' +
         avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
