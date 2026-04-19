@@ -145,23 +145,10 @@ window.generateDrawFunction = function (tId) {
         }
     }
 
-    // ── Verificação de times incompletos (antes da potência de 2) ────
-    const _teamSize = parseInt(t.teamSize) || 1;
-    if (_teamSize > 1 && !t.incompleteTeamResolved) {
-        const _parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-        let _individuals = 0;
-        let _preFormedTeams = 0;
-        _parts.forEach(p => {
-            const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-            if (name.includes(' / ')) _preFormedTeams++;
-            else _individuals++;
-        });
-        const _remainder = _individuals % _teamSize;
-        if (_remainder > 0) {
-            window._showIncompleteTeamDialog(tId, _remainder, _teamSize, _individuals, _preFormedTeams);
-            return;
-        }
-    }
+    // ── Times incompletos: tratados pelo painel unificado (_showRemainderPanel)
+    //    chamado via showUnifiedResolutionPanel em _handleSortearClick. Aqui
+    //    não precisamos mais interceptar — se chegou até generateDrawFunction,
+    //    o organizador já decidiu o que fazer com o resto.
 
     // ── Verificação de número ímpar (formatos não-eliminatórios, exceto Grupos, Suíço e Liga) ──────
     const isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';

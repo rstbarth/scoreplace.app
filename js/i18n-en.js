@@ -1622,6 +1622,8 @@ window._translations['en'] = {
   'predraw.removalSubExclusion': 'Remove {label} from the tournament. How to choose who leaves?',
   'predraw.removalRandTitle': '🎲 Random draw',
   'predraw.removalLastTitle': '⏰ Last to register',
+  'predraw.randomToggleLabel': 'Random Draw',
+  'predraw.randomToggleDesc': 'On: pick randomly among all registered. Off: pull the last to register.',
   // Draw-prep: dissolve panel
   'predraw.reallocTitle': 'Manual Reallocation',
   'predraw.reallocDesc': 'Drag players to complete or dissolve teams.',

@@ -293,67 +293,77 @@ window._showRemainderPanel = function(tId, info, t) {
 
     var overlay = document.createElement('div');
     overlay.id = 'remainder-resolution-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    // Use svh (small viewport height) so iOS Safari's dynamic address bar
+    // doesn't push the modal partially off-screen.
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100svh;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:0.75rem;';
     document.body.style.overflow = 'hidden';
 
-    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:90vh;">' +
+    overlay.innerHTML = '<div style="background:var(--bg-card,#1e293b);width:94%;max-width:560px;border-radius:28px;border:1px solid rgba(139,92,246,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.7),0 0 60px rgba(139,92,246,0.1);overflow:hidden;animation:modalFadeIn 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;max-height:94svh;">' +
         '<style>@keyframes modalFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}</style>' +
         // Sticky top bar with cancel
-        '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 50%,#7c3aed 100%);padding:12px 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
-            '<div style="display:flex;align-items:center;gap:12px;">' +
-                '<span style="font-size:1.5rem;">👥</span>' +
+        '<div style="position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 50%,#7c3aed 100%);padding:10px 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.3rem;">👥</span>' +
                 '<div>' +
-                    '<h3 style="margin:0;color:#ede9fe;font-size:1.1rem;font-weight:900;letter-spacing:-0.02em;">' + _t('predraw.remainderTitle') + '</h3>' +
-                    '<p style="margin:2px 0 0;color:#c4b5fd;font-size:0.75rem;">' + _t('predraw.remainderSubtitle', {label: remLabel, p: (remCount > 1 ? 'm' : '')}) + '</p>' +
+                    '<h3 style="margin:0;color:#ede9fe;font-size:1rem;font-weight:900;letter-spacing:-0.02em;">' + _t('predraw.remainderTitle') + '</h3>' +
+                    '<p style="margin:2px 0 0;color:#c4b5fd;font-size:0.72rem;">' + _t('predraw.remainderSubtitle', {label: remLabel, p: (remCount > 1 ? 'm' : '')}) + '</p>' +
                 '</div>' +
             '</div>' +
-            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#ede9fe;border:2px solid rgba(237,233,254,0.3);padding:8px 20px;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(237,233,254,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(237,233,254,0.3)\'">' + _t('predraw.cancelBtn') + '</button>' +
+            '<button onclick="window._cancelRemainderPanel(\'' + tIdSafe + '\')" style="background:rgba(0,0,0,0.25);color:#ede9fe;border:2px solid rgba(237,233,254,0.3);padding:6px 16px;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background=\'rgba(0,0,0,0.4)\';this.style.borderColor=\'rgba(237,233,254,0.5)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.25)\';this.style.borderColor=\'rgba(237,233,254,0.3)\'">' + _t('predraw.cancelBtn') + '</button>' +
         '</div>' +
         // Scrollable content
         '<div style="overflow-y:auto;flex:1;">' +
         // Info summary
-        '<div style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);padding:1.5rem 2rem;">' +
-            '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' +
-                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
-                    '<div style="font-size:1.8rem;font-weight:900;color:#a78bfa;line-height:1;">' + teamsFormed + '</div>' +
-                    '<div style="font-size:0.7rem;color:#c4b5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.teamsFormed') + '</div>' +
+        '<div style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);padding:0.9rem 1.25rem;">' +
+            '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:90px;background:rgba(255,255,255,0.08);border-radius:12px;padding:8px 10px;text-align:center;">' +
+                    '<div style="font-size:1.4rem;font-weight:900;color:#a78bfa;line-height:1;">' + teamsFormed + '</div>' +
+                    '<div style="font-size:0.62rem;color:#c4b5fd;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">' + _t('predraw.teamsFormed') + '</div>' +
                 '</div>' +
-                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
-                    '<div style="font-size:1.8rem;font-weight:900;color:#f59e0b;line-height:1;">' + remCount + '</div>' +
-                    '<div style="font-size:0.7rem;color:#fcd34d;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.remainderLabel') + '</div>' +
+                '<div style="flex:1;min-width:90px;background:rgba(255,255,255,0.08);border-radius:12px;padding:8px 10px;text-align:center;">' +
+                    '<div style="font-size:1.4rem;font-weight:900;color:#f59e0b;line-height:1;">' + remCount + '</div>' +
+                    '<div style="font-size:0.62rem;color:#fcd34d;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">' + _t('predraw.remainderLabel') + '</div>' +
                 '</div>' +
-                '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.08);border-radius:16px;padding:14px 18px;text-align:center;">' +
-                    '<div style="font-size:1.8rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.totalRawParticipants + '</div>' +
-                    '<div style="font-size:0.7rem;color:#93c5fd;margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + _t('predraw.totalEnrolled') + '</div>' +
+                '<div style="flex:1;min-width:90px;background:rgba(255,255,255,0.08);border-radius:12px;padding:8px 10px;text-align:center;">' +
+                    '<div style="font-size:1.4rem;font-weight:900;color:#60a5fa;line-height:1;">' + info.totalRawParticipants + '</div>' +
+                    '<div style="font-size:0.62rem;color:#93c5fd;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">' + _t('predraw.totalEnrolled') + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +
         // Options
-        '<div style="padding:1.8rem 2rem 2rem;">' +
-            '<h4 style="margin:0 0 1rem;color:#94a3b8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;">' + _t('predraw.whatToDo') + '</h4>' +
-            '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div style="padding:0.85rem 1.25rem 1.1rem;">' +
+            '<h4 style="margin:0 0 0.5rem;color:#94a3b8;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.8px;font-weight:700;">' + _t('predraw.whatToDo') + '</h4>' +
+            // Sorteio Geral toggle (default ON = random; OFF = last)
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:9px;">' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-weight:800;color:#ede9fe;font-size:0.82rem;">' + _t('predraw.randomToggleLabel') + '</div>' +
+                    '<div style="font-size:0.68rem;color:#c4b5fd;margin-top:2px;line-height:1.35;">' + _t('predraw.randomToggleDesc') + '</div>' +
+                '</div>' +
+                '<label class="toggle-switch" style="flex-shrink:0;"><input type="checkbox" id="remainder-random-toggle" checked><span class="toggle-slider"></span></label>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:8px;">' +
                 // Reabrir Inscrições
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
-                    '<span style="font-size:1.6rem;flex-shrink:0;">↩️</span>' +
+                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showReopenPanel(\'' + tIdSafe + '\',window._remainderInfo)" style="background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.25);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:12px;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(59,130,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(59,130,246,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.3rem;flex-shrink:0;">↩️</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#60a5fa;">' + _t('predraw.p2PollReopenTitle') + '</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.reopenRemainderDesc', {label: (remCount > 1 ? _t('predraw.remainderTeamMany') : _t('predraw.remainderTeamOne'))}) + '</div>' +
+                        '<div style="font-weight:800;font-size:0.88rem;color:#60a5fa;">' + _t('predraw.p2PollReopenTitle') + '</div>' +
+                        '<div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:2px;line-height:1.3;">' + _t('predraw.reopenRemainderDesc', {label: (remCount > 1 ? _t('predraw.remainderTeamMany') : _t('predraw.remainderTeamOne'))}) + '</div>' +
                     '</div>' +
                 '</button>' +
-                // Lista de Espera
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'standby\',window._remainderInfo)" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
-                    '<span style="font-size:1.6rem;flex-shrink:0;">⏱️</span>' +
+                // Lista de Espera (reads toggle for method)
+                '<button onclick="window._applyRemainderAction(\'' + tIdSafe + '\',\'standby\')" style="background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.25);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:12px;" onmouseover="this.style.borderColor=\'rgba(168,85,247,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(168,85,247,0.15)\'" onmouseout="this.style.borderColor=\'rgba(168,85,247,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.3rem;flex-shrink:0;">⏱️</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#c084fc;">' + _t('predraw.waitlistTitle') + '</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.standbyRemainderDesc', {label: remLabel}) + '</div>' +
+                        '<div style="font-weight:800;font-size:0.88rem;color:#c084fc;">' + _t('predraw.waitlistTitle') + '</div>' +
+                        '<div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:2px;line-height:1.3;">' + _t('predraw.standbyRemainderDesc', {label: remLabel}) + '</div>' +
                     '</div>' +
                 '</button>' +
-                // Exclusão
-                '<button onclick="document.getElementById(\'remainder-resolution-panel\').remove();document.body.style.overflow=\'\';window._showRemovalSubChoice(\'' + tIdSafe + '\',\'exclusion\',window._remainderInfo)" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:14px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
-                    '<span style="font-size:1.6rem;flex-shrink:0;">🚫</span>' +
+                // Exclusão (reads toggle for method)
+                '<button onclick="window._applyRemainderAction(\'' + tIdSafe + '\',\'exclusion\')" style="background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.25);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;color:#e2e8f0;transition:all 0.2s;display:flex;align-items:center;gap:12px;" onmouseover="this.style.borderColor=\'rgba(239,68,68,0.5)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 20px rgba(239,68,68,0.15)\'" onmouseout="this.style.borderColor=\'rgba(239,68,68,0.25)\';this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+                    '<span style="font-size:1.3rem;flex-shrink:0;">🚫</span>' +
                     '<div>' +
-                        '<div style="font-weight:800;font-size:0.95rem;color:#f87171;">' + _t('predraw.exclusionTitle') + '</div>' +
-                        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + _t('predraw.exclusionRemainderDesc', {label: remLabel}) + '</div>' +
+                        '<div style="font-weight:800;font-size:0.88rem;color:#f87171;">' + _t('predraw.exclusionTitle') + '</div>' +
+                        '<div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:2px;line-height:1.3;">' + _t('predraw.exclusionRemainderDesc', {label: remLabel}) + '</div>' +
                     '</div>' +
                 '</button>' +
             '</div>' +
@@ -375,6 +385,17 @@ window._cancelRemainderPanel = function(tId) {
     var panel = document.getElementById('remainder-resolution-panel');
     if (panel) panel.remove();
     document.body.style.overflow = '';
+};
+
+// Remainder panel: read "Sorteio Geral" toggle and dispatch directly to _executeRemoval.
+// Replaces the old two-step flow (remainder panel → sub-choice panel).
+window._applyRemainderAction = function(tId, mode) {
+    var toggleEl = document.getElementById('remainder-random-toggle');
+    var method = (toggleEl && toggleEl.checked) ? 'random' : 'last';
+    var panel = document.getElementById('remainder-resolution-panel');
+    if (panel) panel.remove();
+    document.body.style.overflow = '';
+    window._executeRemoval(tId, mode, method);
 };
 
 // ============ SUB-CHOICE & REMOVAL (standalone, works from both panels) ============
@@ -1077,161 +1098,6 @@ window._saveDissolveResolution = function (tId) {
     document.getElementById('dissolve-panel').remove();
     if (document.getElementById('incomplete-teams-panel')) document.getElementById('incomplete-teams-panel').remove();
     window.showPowerOf2Panel(tId);
-};
-
-// ─── VERIFICAÇÃO 1.5: TIMES INCOMPLETOS ───
-window._showIncompleteTeamDialog = function (tId, remainder, teamSize, totalIndividuals, preFormedTeams) {
-    let existing = document.getElementById('incomplete-team-dialog');
-    if (existing) existing.remove();
-
-    const totalTeamsPossible = Math.floor(totalIndividuals / teamSize);
-    const overlay = document.createElement('div');
-    overlay.id = 'incomplete-team-dialog';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:100000;';
-
-    overlay.innerHTML = `
-      <div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:16px;max-width:480px;width:92%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-        <div style="background:rgba(245,158,11,0.1);border-bottom:1px solid var(--border-color);padding:1.25rem;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:2rem;">⚠️</span>
-          <div>
-            <div style="font-size:1.1rem;font-weight:700;color:var(--text-color);">${_t('predraw.incompleteTitle')}</div>
-            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">${_t('predraw.incompleteSubtitle')}</div>
-          </div>
-        </div>
-        <div style="padding:1.25rem;color:var(--text-muted);font-size:0.9rem;line-height:1.7;">
-          <p>${_t('predraw.incompleteNeedsTeams', {n: teamSize})}</p>
-          <div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap;">
-            <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
-              <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${totalIndividuals}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompleteIndividuals')}</div>
-            </div>
-            ${preFormedTeams > 0 ? `
-            <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
-              <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${preFormedTeams}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompleteFormed')}</div>
-            </div>` : ''}
-            <div style="flex:1;min-width:100px;background:rgba(0,0,0,0.15);padding:10px;border-radius:10px;text-align:center;">
-              <div style="font-size:1.3rem;font-weight:800;color:var(--text-bright);">${totalTeamsPossible}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">${_t('predraw.incompletePossible')}</div>
-            </div>
-            <div style="flex:1;min-width:100px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:10px;text-align:center;">
-              <div style="font-size:1.3rem;font-weight:800;color:#fbbf24;">${remainder}</div>
-              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:#fbbf24;opacity:0.9;">${_t('predraw.incompleteNoTeam')}</div>
-            </div>
-          </div>
-          <p style="font-size:0.85rem;">${_t('predraw.incompleteBody', {n: remainder, s: (remainder > 1 ? 's' : ''), a: (remainder > 1 ? 'ão' : ''), ele: (remainder > 1 ? 'eles' : 'ele')})}</p>
-          <p style="font-size:0.75rem;opacity:0.6;font-style:italic;">${_t('predraw.incompleteAnonymous')}</p>
-        </div>
-        <div style="padding:0 1.25rem 1.25rem;display:flex;flex-direction:column;gap:8px;">
-          <button id="itd-standby" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.1);color:#fbbf24;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(251,191,36,0.2)'" onmouseout="this.style.background='rgba(251,191,36,0.1)'">
-            <span style="font-size:1.2rem;">⏳</span>
-            <div>
-              <div>${_t('predraw.itdStandby')}</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdStandbyDesc')}</div>
-            </div>
-          </button>
-          <button id="itd-playin" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.2)'" onmouseout="this.style.background='rgba(99,102,241,0.1)'">
-            <span style="font-size:1.2rem;">🔄</span>
-            <div>
-              <div>${_t('predraw.itdPlayin')}</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdPlayinDesc')}</div>
-            </div>
-          </button>
-          <button id="itd-remove" style="width:100%;padding:12px 16px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;text-align:left;display:flex;align-items:center;gap:10px;transition:background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
-            <span style="font-size:1.2rem;">❌</span>
-            <div>
-              <div>${_t('predraw.itdRemove')}</div>
-              <div style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-top:2px;">${_t('predraw.itdRemoveDesc')}</div>
-            </div>
-          </button>
-          <button id="itd-cancel" style="width:100%;padding:10px 16px;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text-muted);text-align:center;margin-top:4px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-            ${_t('predraw.cancelLabel')}
-          </button>
-        </div>
-      </div>`;
-
-    document.body.appendChild(overlay);
-
-    const close = () => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 200); };
-
-    overlay.querySelector('#itd-cancel').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-
-    overlay.querySelector('#itd-standby').addEventListener('click', () => {
-        window._resolveIncompleteTeams(tId, 'standby');
-        close();
-    });
-    overlay.querySelector('#itd-playin').addEventListener('click', () => {
-        window._resolveIncompleteTeams(tId, 'playin');
-        close();
-    });
-    overlay.querySelector('#itd-remove').addEventListener('click', () => {
-        window._resolveIncompleteTeams(tId, 'remove');
-        close();
-    });
-};
-
-window._resolveIncompleteTeams = function (tId, option) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
-    if (!t) return;
-    const teamSize = parseInt(t.teamSize) || 1;
-    const vips = t.vips || {};
-    const parts = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-
-    // Separar individuais (VIPs protegidos) e times pré-formados
-    let individuals = [];
-    let vipIndividuals = [];
-    let preFormed = [];
-    parts.forEach(p => {
-        const name = typeof p === 'string' ? p : (p.displayName || p.name || '');
-        if (name.includes(' / ')) {
-            preFormed.push(p);
-        } else if (vips[name]) {
-            vipIndividuals.push(p); // VIPs nunca vão para overflow
-        } else {
-            individuals.push(p);
-        }
-    });
-
-    // Embaralhar apenas não-VIPs ANTES de separar sobras
-    for (let i = individuals.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [individuals[i], individuals[j]] = [individuals[j], individuals[i]];
-    }
-
-    // Sobras saem apenas dos não-VIPs
-    const totalNonTeam = vipIndividuals.length + individuals.length;
-    const remainder = totalNonTeam % teamSize;
-    const overflow = remainder > 0 ? individuals.splice(individuals.length - remainder, remainder) : [];
-    // Reunir VIPs + não-VIPs restantes
-    individuals = [...vipIndividuals, ...individuals];
-
-    // Reconstruir participants sem as sobras
-    t.participants = [...preFormed, ...individuals];
-
-    if (option === 'standby') {
-        if (!Array.isArray(t.standbyParticipants)) t.standbyParticipants = [];
-        overflow.forEach(p => t.standbyParticipants.push(p));
-        const count = overflow.length;
-        window.AppStore.logAction(tId, `${count} participante(s) sem time movido(s) para lista de espera (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification(_t('draw.waitlist'), _t('draw.waitlistMsg', {count: count}), 'info');
-    } else if (option === 'playin') {
-        if (!Array.isArray(t.playinParticipants)) t.playinParticipants = [];
-        overflow.forEach(p => t.playinParticipants.push(p));
-        const count = overflow.length;
-        window.AppStore.logAction(tId, `${count} participante(s) sem time movido(s) para repescagem (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification(_t('draw.wildcard'), _t('draw.wildcardMsg', {count: count}), 'info');
-    } else if (option === 'remove') {
-        const count = overflow.length;
-        window.AppStore.logAction(tId, `${count} participante(s) sem time removido(s) do torneio (sorteio aleatório)`);
-        if (typeof showNotification === 'function') showNotification(_t('draw.removedTeamless'), _t('draw.removedTeamlessMsg', {count: count}), 'warning');
-    }
-
-    t.incompleteTeamResolved = true;
-    window.AppStore.sync();
-
-    // Continuar com o sorteio
-    window.generateDrawFunction(tId);
 };
 
 // ─── VERIFICAÇÃO 2: NÚMERO ÍMPAR DE TIMES/INSCRITOS ───

@@ -815,6 +815,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Resolução do resto: painel único com toggle "Sorteio Geral"</b> — Ao clicar em <b>Sortear</b> num torneio em que sobram participantes sem formar time/chave completa, o app mostrava <i>dois painéis diferentes</i> dependendo do caminho: um amarelo ("Times Incompletos") com Repescagem/Lista de Espera/Exclusão, e outro roxo ("Participantes Restantes") com Reabrir/Lista de Espera/Exclusão. Além disso, escolher Lista de Espera ou Exclusão abria <i>mais um painel</i> perguntando se deveria sortear entre todos ou remover os últimos inscritos — 3 telas para uma decisão.</p>' +
+        '<p>Agora é tudo num painel só (o roxo). Acima das opções aparece um toggle <b>Sorteio Geral</b>, ligado por padrão: com ele ativo, o app sorteia aleatoriamente entre todos os inscritos; desligado, retira os que se inscreveram por último. Clicar em Lista de Espera ou Exclusão aplica a ação imediatamente segundo o toggle, sem tela intermediária. O painel amarelo antigo foi removido, assim como o painel de sub-escolha.</p>' +
+        '<p>Correção de layout: o painel estava cortando embaixo em telas estreitas (iOS Safari com a barra de endereço dinâmica). Trocado <code>100vh</code> por <code>100svh</code> e <code>90vh</code> por <code>94svh</code> para que a última opção apareça inteira.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Nomes tradicionais de rodada só até Oitavas</b> — "Dezesseis avos" e "Trinta e dois avos" não são nomes usados na prática — torneios reais começam a nomear rodadas a partir das Oitavas de Final (8 jogos). Rodadas anteriores voltam a ser exibidas como "Rodada 1", "Rodada 2", etc. Chaveamentos com mais de 16 participantes agora mostram: Rodada 1 → Oitavas → Quartas → Semifinais → Final.</p>' +
         '</div>' +

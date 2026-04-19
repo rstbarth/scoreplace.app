@@ -1621,6 +1621,8 @@ window._translations['pt'] = {
   'predraw.removalSubExclusion': 'Remover {label} do torneio. Como escolher quem sai?',
   'predraw.removalRandTitle': '🎲 Sorteio entre todos',
   'predraw.removalLastTitle': '⏰ Últimos inscritos',
+  'predraw.randomToggleLabel': 'Sorteio Geral',
+  'predraw.randomToggleDesc': 'Ativado: escolhe aleatoriamente entre todos os inscritos. Desativado: retira os últimos a se inscrever.',
   // Draw-prep: dissolve panel
   'predraw.reallocTitle': 'Realocação Manual',
   'predraw.reallocDesc': 'Arraste jogadores para completar ou dissolver times.',
