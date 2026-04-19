@@ -1872,13 +1872,18 @@ window._autoFixStaleNames = async function(forceTournamentId) {
         });
       });
     };
-    if (Array.isArray(t.matches)) t.matches.forEach(_scanMatch);
-    if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatch); });
-    if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-      if (!g) return;
-      if (Array.isArray(g.matches)) g.matches.forEach(_scanMatch);
-      if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_scanMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_scanMatch); });
-    });
+    if (typeof window._collectAllMatches === 'function') {
+      window._collectAllMatches(t).forEach(_scanMatch);
+    } else {
+      // Defensive fallback: bracket-model.js not loaded.
+      if (Array.isArray(t.matches)) t.matches.forEach(_scanMatch);
+      if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatch); });
+      if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_scanMatch);
+        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_scanMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_scanMatch); });
+      });
+    }
   });
 
   var uids = Object.keys(uidMap);
@@ -1982,13 +1987,21 @@ window._autoFixStaleNames = async function(forceTournamentId) {
       });
     };
     var _scanMatchStale = function(m) { if (!m) return; _checkStaleInStr(m.p1); _checkStaleInStr(m.p2); _checkStaleInStr(m.winner); };
-    if (Array.isArray(t.matches)) t.matches.forEach(_scanMatchStale);
-    if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatchStale); });
+    if (typeof window._collectAllMatches === 'function') {
+      window._collectAllMatches(t).forEach(_scanMatchStale);
+    } else {
+      // Defensive fallback: bracket-model.js not loaded.
+      if (Array.isArray(t.matches)) t.matches.forEach(_scanMatchStale);
+      if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_scanMatchStale); });
+      if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+        if (!g) return;
+        if (Array.isArray(g.matches)) g.matches.forEach(_scanMatchStale);
+        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_scanMatchStale); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_scanMatchStale); });
+      });
+    }
+    // g.players is a roster field (not a match), handled separately.
     if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-      if (!g) return;
-      if (Array.isArray(g.matches)) g.matches.forEach(_scanMatchStale);
-      if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_scanMatchStale); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_scanMatchStale); });
-      if (Array.isArray(g.players)) g.players.forEach(function(pl) { _checkStaleInStr(pl); });
+      if (g && Array.isArray(g.players)) g.players.forEach(function(pl) { _checkStaleInStr(pl); });
     });
     if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item) {
       if (typeof item === 'string') _checkStaleInStr(item);
@@ -2030,13 +2043,21 @@ window._autoFixStaleNames = async function(forceTournamentId) {
         if (m.p2) _allStrings.push(m.p2);
         if (m.winner) _allStrings.push(m.winner);
       };
-      if (Array.isArray(t.matches)) t.matches.forEach(_collectFromMatch);
-      if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_collectFromMatch); });
+      if (typeof window._collectAllMatches === 'function') {
+        window._collectAllMatches(t).forEach(_collectFromMatch);
+      } else {
+        // Defensive fallback: bracket-model.js not loaded.
+        if (Array.isArray(t.matches)) t.matches.forEach(_collectFromMatch);
+        if (Array.isArray(t.rounds)) t.rounds.forEach(function(r) { if (r && Array.isArray(r.matches)) r.matches.forEach(_collectFromMatch); });
+        if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
+          if (!g) return;
+          if (Array.isArray(g.matches)) g.matches.forEach(_collectFromMatch);
+          if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_collectFromMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_collectFromMatch); });
+        });
+      }
+      // g.players is a roster field (not a match), handled separately.
       if (Array.isArray(t.groups)) t.groups.forEach(function(g) {
-        if (!g) return;
-        if (Array.isArray(g.matches)) g.matches.forEach(_collectFromMatch);
-        if (Array.isArray(g.rounds)) g.rounds.forEach(function(gr) { if (Array.isArray(gr)) gr.forEach(_collectFromMatch); else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(_collectFromMatch); });
-        if (Array.isArray(g.players)) g.players.forEach(function(pl) { _allStrings.push(pl); });
+        if (g && Array.isArray(g.players)) g.players.forEach(function(pl) { _allStrings.push(pl); });
       });
       if (Array.isArray(t.sorteioRealizado)) t.sorteioRealizado.forEach(function(item) {
         if (typeof item === 'string') _allStrings.push(item);
