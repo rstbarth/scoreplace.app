@@ -485,10 +485,18 @@ window._executeRemoval = function(tId, mode, method) {
     }
     t.status = 'closed';
 
+    // Log to history so it appears in the final-review panel
+    var removedNames = removed.map(function(p) {
+        return typeof p === 'string' ? p : (p.displayName || p.name || '?');
+    }).join(', ');
+    var methodLabel = method === 'random' ? 'sorteio geral' : 'últimos inscritos';
+    var actionVerb = mode === 'standby' ? 'movido(s) para lista de espera' : 'removido(s) do torneio';
+    var logMsg = 'Resolução do resto (' + methodLabel + '): ' + removeCount + ' participante(s) ' + actionVerb + ' — ' + removedNames;
+    if (window.AppStore && typeof window.AppStore.logAction === 'function') {
+        window.AppStore.logAction(tId, logMsg);
+    }
+
     window.FirestoreDB.saveTournament(t).then(function() {
-        var removedNames = removed.map(function(p) {
-            return typeof p === 'string' ? p : (p.displayName || p.name || '?');
-        }).join(', ');
         var actionLabel = mode === 'standby' ? _t('predraw.movedToWaitlist') : _t('predraw.removedLabel');
         if (typeof showNotification !== 'undefined') {
             showNotification(_t('draw.adjustDone'), removedNames + ' ' + actionLabel + '.', 'success');

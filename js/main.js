@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Painel "Tudo Pronto para o Sorteio!": botões sempre visíveis + registro no histórico</b> — O painel final estava cortando embaixo em telas altas: o botão "Voltar e Revisar" aparecia parcialmente atrás da barra de endereço do iOS. Reestruturado em flex-column com rodapé fixo — os botões "Rodar Sorteio Agora" e "Voltar e Revisar" ficam sempre visíveis, o meio (checklist e histórico) rola internamente se precisar. A resolução do resto (Lista de Espera, Exclusão) agora também é gravada no Histórico de Resoluções, com indicação do método (sorteio geral ou últimos inscritos) e os nomes dos afetados.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Painel do resto: cobertura total e descrição dinâmica do toggle</b> — Em telas altas (iPhone com barra de endereço recolhida), o overlay escuro deixava aparecer o conteúdo do torneio abaixo do painel. Trocado para cobertura absoluta (<code>inset:0</code> + <code>100dvh</code>) com opacidade 0.96 e blur de fundo, garantindo isolamento visual total. A descrição do toggle "Sorteio Geral" agora alterna em tempo real: com ele ativo mostra "Sorteio entre todos os inscritos."; desligado, "Aplica aos últimos inscritos.".</p>' +
         '</div>' +

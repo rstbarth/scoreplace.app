@@ -11,71 +11,75 @@ window.showFinalReviewPanel = function (tId) {
 
     const overlay = document.createElement('div');
     overlay.id = 'final-review-panel';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem 0;';
+    overlay.style.cssText = 'position:fixed;inset:0;width:100vw;min-height:100vh;min-height:100dvh;background:rgba(0,0,0,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:0.75rem;overflow:hidden;';
     document.body.style.overflow = 'hidden';
 
+    const tIdSafe = String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
     overlay.innerHTML = `
-        <div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:24px;border:1px solid rgba(34,197,94,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.8);overflow:hidden;animation: modalFadeIn 0.3s ease-out;">
-            <!-- Header -->
-            <div style="background:linear-gradient(135deg,#14532d 0%,#22c55e 100%);padding:1.5rem 2rem;">
-                <div style="display:flex;align-items:center;gap:15px;">
-                    <span style="font-size:2.5rem;">🎉</span>
+        <div style="background:var(--bg-card,#1e293b);width:94%;max-width:600px;border-radius:24px;border:1px solid rgba(34,197,94,0.3);box-shadow:0 30px 100px rgba(0,0,0,0.8);overflow:hidden;display:flex;flex-direction:column;max-height:94svh;animation:modalFadeIn 0.3s ease-out;">
+            <!-- Header (sticky-like, doesn't scroll) -->
+            <div style="background:linear-gradient(135deg,#14532d 0%,#22c55e 100%);padding:1rem 1.25rem;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:1.8rem;">🎉</span>
                     <div>
-                        <h3 style="margin:0;color:#f0fdf4;font-size:1.25rem;font-weight:800;">${_t('tdraw.readyTitle')}</h3>
-                        <p style="margin:4px 0 0;color:#bbf7d0;font-size:0.9rem;">${_t('tdraw.readySubtitle')}</p>
+                        <h3 style="margin:0;color:#f0fdf4;font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;">${_t('tdraw.readyTitle')}</h3>
+                        <p style="margin:2px 0 0;color:#bbf7d0;font-size:0.78rem;line-height:1.35;">${_t('tdraw.readySubtitle')}</p>
                     </div>
                 </div>
             </div>
 
-            <div style="padding:2rem;">
+            <!-- Scrollable middle -->
+            <div style="overflow-y:auto;flex:1;padding:1rem 1.25rem;">
                 <!-- Summary Checklist -->
-                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:2rem;">
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
-                        <span style="color:#22c55e;font-size:1.2rem;">✅</span>
-                        <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.enrollClosed')}</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.enrollClosedDesc')}</div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
+                    <div style="display:flex;align-items:center;gap:10px;background:rgba(34,197,94,0.1);padding:9px 12px;border-radius:10px;border:1px solid rgba(34,197,94,0.2);">
+                        <span style="color:#22c55e;font-size:1.05rem;flex-shrink:0;">✅</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;color:white;font-size:0.85rem;">${_t('tdraw.enrollClosed')}</div>
+                            <div style="font-size:0.7rem;color:#94a3b8;line-height:1.3;">${_t('tdraw.enrollClosedDesc')}</div>
                         </div>
                     </div>
 
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
-                        <span style="color:#22c55e;font-size:1.2rem;">✅</span>
-                        <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.teamsConsolidated')}</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.teamsConsolidatedDesc')}</div>
+                    <div style="display:flex;align-items:center;gap:10px;background:rgba(34,197,94,0.1);padding:9px 12px;border-radius:10px;border:1px solid rgba(34,197,94,0.2);">
+                        <span style="color:#22c55e;font-size:1.05rem;flex-shrink:0;">✅</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;color:white;font-size:0.85rem;">${_t('tdraw.teamsConsolidated')}</div>
+                            <div style="font-size:0.7rem;color:#94a3b8;line-height:1.3;">${_t('tdraw.teamsConsolidatedDesc')}</div>
                         </div>
                     </div>
 
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.1);padding:12px 15px;border-radius:12px;border:1px solid rgba(34,197,94,0.2);">
-                        <span style="color:#22c55e;font-size:1.2rem;">✅</span>
-                        <div style="flex:1;">
-                            <div style="font-weight:700;color:white;font-size:0.9rem;">${_t('tdraw.bracketStructure')}</div>
-                            <div style="font-size:0.75rem;color:#94a3b8;">${_t('tdraw.p2AchievedVia', {resolution: window._safeHtml(t.p2Resolution || 'Natural')})}</div>
+                    <div style="display:flex;align-items:center;gap:10px;background:rgba(34,197,94,0.1);padding:9px 12px;border-radius:10px;border:1px solid rgba(34,197,94,0.2);">
+                        <span style="color:#22c55e;font-size:1.05rem;flex-shrink:0;">✅</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;color:white;font-size:0.85rem;">${_t('tdraw.bracketStructure')}</div>
+                            <div style="font-size:0.7rem;color:#94a3b8;line-height:1.3;">${_t('tdraw.p2AchievedVia', {resolution: window._safeHtml(t.p2Resolution || 'Natural')})}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- History / Log -->
-                <div style="margin-bottom:2rem;">
-                    <h4 style="margin:0 0 10px;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">${_t('tdraw.resolutionHistory')}</h4>
-                    <div style="background:rgba(0,0,0,0.2);border-radius:16px;padding:1rem;max-height:120px;overflow-y:auto;font-family:monospace;font-size:0.8rem;color:#cbd5e1;">
+                <div>
+                    <h4 style="margin:0 0 6px;color:#94a3b8;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;">${_t('tdraw.resolutionHistory')}</h4>
+                    <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:0.75rem;max-height:100px;overflow-y:auto;font-family:monospace;font-size:0.72rem;color:#cbd5e1;">
                         ${(t.history || []).slice().reverse().map(log => `
-                            <div style="margin-bottom:6px;display:flex;gap:10px;">
-                                <span style="color:#64748b;">[${new Date(log.date).toLocaleTimeString()}]</span>
+                            <div style="margin-bottom:5px;display:flex;gap:8px;">
+                                <span style="color:#64748b;flex-shrink:0;">[${new Date(log.date).toLocaleTimeString()}]</span>
                                 <span>${window._safeHtml(log.message)}</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
+            </div>
 
-                <div style="display:flex;flex-direction:column;gap:10px;">
-                    <button onclick="window.generateDrawFunction('${String(tId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:15px;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:10px;">
-                        <span>🎲</span> ${_t('tdraw.rollDrawNow')}
-                    </button>
-                    <button onclick="document.getElementById('final-review-panel').remove();document.body.style.overflow='';" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:12px;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;">
-                        ${_t('tdraw.backAndReview')}
-                    </button>
-                </div>
+            <!-- Sticky footer (always visible) -->
+            <div style="padding:0.85rem 1.25rem;border-top:1px solid rgba(255,255,255,0.08);background:var(--bg-card,#1e293b);display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+                <button onclick="window.generateDrawFunction('${tIdSafe}')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;padding:13px;border-radius:14px;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 8px 24px rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <span>🎲</span> ${_t('tdraw.rollDrawNow')}
+                </button>
+                <button onclick="document.getElementById('final-review-panel').remove();document.body.style.overflow='';" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:none;padding:10px;border-radius:10px;font-weight:600;font-size:0.85rem;cursor:pointer;">
+                    ${_t('tdraw.backAndReview')}
+                </button>
             </div>
         </div>
     `;
