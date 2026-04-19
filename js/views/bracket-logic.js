@@ -928,6 +928,13 @@ window._closeRound = function (tId, roundIdx) {
 };
 
 function _doCloseRound(t, tId, roundIdx) {
+  // Guard: only close the most recent round. A stale call (from a duplicate
+  // auto-close path, e.g. _saveResultInline + render-time safety net both
+  // dispatching for the same round) would otherwise advance the next-round
+  // generation or even trigger a premature Swiss→elim transition.
+  if (roundIdx !== (t.rounds || []).length - 1) return;
+  if (t.rounds[roundIdx] && t.rounds[roundIdx].status === 'complete') return;
+
   t.rounds[roundIdx].status = 'complete';
   t.standings = _computeStandings(t);
 
