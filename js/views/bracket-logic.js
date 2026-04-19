@@ -1287,19 +1287,10 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
   allMatches = allMatches.concat(remainderMatches);
   allMatches = allMatches.concat(sitOutMatches);
 
-  if (!t.rounds) t.rounds = [];
-  if (t.rounds.length < roundNum) {
-    t.rounds.push({
-      round: roundNum, status: 'active', format: 'rei_rainha',
-      matches: allMatches, monarchGroups: groups
-    });
-  } else {
-    // Append matches for this category to existing round
-    t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(allMatches);
-    if (!t.rounds[roundNum - 1].monarchGroups) t.rounds[roundNum - 1].monarchGroups = [];
-    t.rounds[roundNum - 1].monarchGroups = t.rounds[roundNum - 1].monarchGroups.concat(groups);
-    t.rounds[roundNum - 1].format = 'rei_rainha';
-  }
+  window._appendCanonicalColumn(t, {
+    phase: 'monarch', round: roundNum, status: 'active',
+    format: 'rei_rainha', matches: allMatches, monarchGroups: groups
+  });
 };
 
 function _generateNextRoundForPlayers(t, category) {
@@ -1392,12 +1383,9 @@ function _generateNextRoundForPlayers(t, category) {
       newMatches.push(soObj);
     });
 
-    if (!t.rounds) t.rounds = [];
-    if (t.rounds.length < roundNum) {
-      t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
-    } else {
-      t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(newMatches);
-    }
+    window._appendCanonicalColumn(t, {
+      phase: 'liga', round: roundNum, status: 'active', matches: newMatches
+    });
     return;
   }
 
@@ -1468,10 +1456,7 @@ function _generateNextRoundForPlayers(t, category) {
     newMatches.push(byeObj);
   });
 
-  if (!t.rounds) t.rounds = [];
-  if (t.rounds.length < roundNum) {
-    t.rounds.push({ round: roundNum, status: 'active', matches: newMatches });
-  } else {
-    t.rounds[roundNum - 1].matches = t.rounds[roundNum - 1].matches.concat(newMatches);
-  }
+  window._appendCanonicalColumn(t, {
+    phase: 'swiss', round: roundNum, status: 'active', matches: newMatches
+  });
 }

@@ -321,6 +321,58 @@
     return cols;
   }
 
+  // ── Canonical write helper ────────────────────────────────────────────────
+  // Append matches (and optional monarchGroups) into the correct legacy field
+  // on t based on the column's phase. Generators should prefer this over
+  // directly manipulating t.rounds / t.matches so the write discipline lives
+  // in one place. Idempotent on re-append to the same round: matches are
+  // concatenated into the existing round entry.
+  //
+  // desc: {
+  //   phase:         'swiss' | 'monarch' | 'liga' | 'elim' | 'grandfinal' | 'thirdplace'
+  //   round:         number (1-based; for t.rounds lookup)
+  //   matches:       match[] (required)
+  //   status?:       'active' | 'complete' | 'pending'  (swiss-like only; defaults 'active')
+  //   format?:       'rei_rainha'                       (swiss-like only; tags round)
+  //   monarchGroups?: group[]                            (monarch only)
+  //   bracket?:      'upper' | 'lower' | 'grand'         (elim only; tags m.bracket)
+  // }
+  window._appendCanonicalColumn = function _appendCanonicalColumn(t, desc) {
+    if (!t || !desc || !Array.isArray(desc.matches)) return;
+    var phase = desc.phase;
+
+    // Elim / grand / thirdplace → flat t.matches[]
+    if (phase === 'elim' || phase === 'grandfinal' || phase === 'thirdplace') {
+      if (!Array.isArray(t.matches)) t.matches = [];
+      desc.matches.forEach(function (m) {
+        if (desc.bracket && !m.bracket) m.bracket = desc.bracket;
+        t.matches.push(m);
+      });
+      return;
+    }
+
+    // Swiss / liga / monarch → t.rounds[round-1]
+    if (!Array.isArray(t.rounds)) t.rounds = [];
+    var idx = desc.round - 1;
+    var existing = t.rounds[idx];
+    if (!existing) {
+      var col = {
+        round: desc.round,
+        status: desc.status || 'active',
+        matches: desc.matches.slice()
+      };
+      if (desc.format) col.format = desc.format;
+      if (Array.isArray(desc.monarchGroups)) col.monarchGroups = desc.monarchGroups.slice();
+      t.rounds[idx] = col;
+    } else {
+      existing.matches = existing.matches.concat(desc.matches);
+      if (Array.isArray(desc.monarchGroups)) {
+        existing.monarchGroups = (existing.monarchGroups || []).concat(desc.monarchGroups);
+      }
+      if (desc.format) existing.format = desc.format;
+    }
+  };
+
   // ── Main entry ────────────────────────────────────────────────────────────
   window._getUnifiedRounds = function _getUnifiedRounds(t) {
     if (!t || typeof t !== 'object') {
