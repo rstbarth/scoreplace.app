@@ -262,6 +262,7 @@ window._translations['en'] = {
   'bracket.showStandings': 'Show standings',
   'bracket.hideStandings': 'Hide standings',
   'bracket.swissRecapTitle': 'Classification Phase — Top {n}',
+  'bracket.swissRoundShort': 'Swiss R{n}',
   'bracket.player': 'Participant',
   'bracket.champion': 'Champion',
   'bracket.runnerUp': 'Runner-up',

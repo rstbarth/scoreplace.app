@@ -209,13 +209,14 @@ function renderBracket(container, tournamentId, isInline) {
   }
 
   // ── Bracket ────────────────────────────────────────────────────────────────
+  // Swiss-as-p2 past rounds render as columns inside the main bracket strip
+  // (see renderSingleElimBracket / renderDoubleElimBracket). No separate card.
   const standbyHtml = _renderStandbyPanel(t, isOrg);
-  const swissRecapHtml = _renderSwissClassificationRecap(t);
   try {
     if (isDupla) {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml + swissRecapHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
     } else {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml + swissRecapHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
     }
   } catch (bracketErr) {
     console.error('[Bracket] Render error:', bracketErr);
@@ -836,7 +837,14 @@ function renderSingleElimBracket(t, canEnterResult) {
     });
   }
 
-  const roundsHtml = (showBtnHtml ? showBtnHtml : '') + roundColumns.join('');
+  // Swiss-as-p2 past rounds prepend at the very left of the strip — one
+  // column per Swiss round, keeping the full timeline (R1 → … → Final)
+  // inside a single unified horizontal scroll.
+  const swissPastColumnsHtml = (Array.isArray(t.swissRoundsData) && t.swissRoundsData.length > 0)
+    ? _buildSwissPastColumns(t).join('')
+    : '';
+
+  const roundsHtml = swissPastColumnsHtml + (showBtnHtml ? showBtnHtml : '') + roundColumns.join('');
 
   // Champion
   const champion = _getChampion(t, activeRounds);
@@ -1524,88 +1532,57 @@ function renderGroupStage(t, isOrg, canEnterResult) {
 
 // ─── Save group match result ────────────────────────────────────────────────
 
-// Render a collapsible recap of the completed Swiss classification phase
-// (only for tournaments that used Swiss-as-p2-resolution, now transitioned
-// to the elimination phase). Contains final Swiss standings and per-round
-// match results, controlled by a simple Ocultar/Mostrar pill button.
-function _renderSwissClassificationRecap(t) {
-  if (!t || !Array.isArray(t.swissRoundsData) || t.swissRoundsData.length === 0) return '';
+// Build Swiss classification columns for tournaments that used Swiss-as-p2
+// resolution. Each past Swiss round becomes one column in the main bracket
+// strip, matching the .bracket-round-column format used by elim columns, so
+// everything renders inside a single horizontal scroll strip (no separate
+// card below the bracket).
+function _buildSwissPastColumns(t) {
+  if (!t || !Array.isArray(t.swissRoundsData) || t.swissRoundsData.length === 0) return [];
   var _t = window._t || function(k) { return k; };
   var safe = window._safeHtml || function(s) { return String(s == null ? '' : s); };
 
-  // Standings table (final Swiss standings snapshot)
-  var standings = Array.isArray(t.swissStandings) && t.swissStandings.length
-    ? t.swissStandings
-    : (typeof window._computeStandings === 'function' ? [] : []);
+  // Names of participants who advanced to the elimination phase
   var advancedNames = {};
   (Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {})).forEach(function(p) {
     var n = typeof p === 'string' ? p : (p.displayName || p.name || '');
     if (n) advancedNames[n] = true;
   });
 
-  var medal = function(i) { return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + 'º'; };
-  var standingsRows = standings.map(function(s, i) {
-    var isAdv = advancedNames[s.name];
-    return '<tr style="border-bottom:1px solid var(--border-color);' + (isAdv ? 'background:rgba(16,185,129,0.05);' : '') + '">' +
-      '<td style="padding:8px 10px;font-weight:700;color:' + (i < 3 ? '#fbbf24' : 'var(--text-muted)') + ';">' + medal(i) + '</td>' +
-      '<td style="padding:8px 10px;color:var(--text-bright);font-weight:' + (isAdv ? '700' : '500') + ';">' + safe(s.name) + (isAdv ? ' <span style="font-size:0.7rem;color:#4ade80;">✓</span>' : '') + '</td>' +
-      '<td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--primary-color);">' + (s.points || 0) + '</td>' +
-      '<td style="padding:8px 10px;text-align:center;color:#4ade80;">' + (s.wins || 0) + '</td>' +
-      '<td style="padding:8px 10px;text-align:center;color:#94a3b8;">' + (s.draws || 0) + '</td>' +
-      '<td style="padding:8px 10px;text-align:center;color:#f87171;">' + (s.losses || 0) + '</td>' +
-    '</tr>';
-  }).join('');
-
-  var standingsTable = standings.length > 0
-    ? '<div style="overflow-x:auto;margin-bottom:1rem;">' +
-        '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-          '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
-            '<th style="padding:8px 10px;text-align:left;color:var(--text-muted);">#</th>' +
-            '<th style="padding:8px 10px;text-align:left;color:var(--text-muted);">' + safe(_t('bracket.player') || 'Participante') + '</th>' +
-            '<th style="padding:8px 10px;text-align:center;color:var(--text-muted);">Pts</th>' +
-            '<th style="padding:8px 10px;text-align:center;color:var(--text-muted);">V</th>' +
-            '<th style="padding:8px 10px;text-align:center;color:var(--text-muted);">E</th>' +
-            '<th style="padding:8px 10px;text-align:center;color:var(--text-muted);">D</th>' +
-          '</tr></thead>' +
-          '<tbody>' + standingsRows + '</tbody>' +
-        '</table>' +
-      '</div>'
-    : '';
-
-  // Round-by-round matches
-  var roundsHtml = '';
+  var cols = [];
   t.swissRoundsData.forEach(function(rd, ri) {
-    if (!rd || !rd.matches || !rd.matches.length) return;
+    if (!rd || !rd.matches || rd.matches.length === 0) return;
     var matchesHtml = rd.matches.map(function(m) {
       if (!m.p1 && !m.p2) return '';
       var isDraw = m.winner === 'draw' || m.draw;
-      var p1Style = m.winner === m.p1 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
-      var p2Style = m.winner === m.p2 ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
-      var score = (m.scoreP1 != null) ? (m.scoreP1 + ' x ' + m.scoreP2) : (m.winner ? (isDraw ? (_t('bracket.draw') || 'Empate') : '') : (_t('bracket.pending') || '—'));
-      return '<div style="min-width:200px;flex:1;max-width:280px;background:rgba(0,0,0,0.15);border-radius:8px;padding:8px 12px;font-size:0.8rem;">' +
+      var p1Won = m.winner === m.p1 && !isDraw;
+      var p2Won = m.winner === m.p2 && !isDraw;
+      var p1Style = p1Won ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
+      var p2Style = p2Won ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
+      var score = (m.scoreP1 != null && m.scoreP2 != null)
+        ? (m.scoreP1 + ' x ' + m.scoreP2)
+        : (isDraw ? (_t('bracket.draw') || 'Empate') : '—');
+      var p1Adv = advancedNames[m.p1] ? ' <span style="color:#4ade80;font-size:0.7rem;">✓</span>' : '';
+      var p2Adv = advancedNames[m.p2] ? ' <span style="color:#4ade80;font-size:0.7rem;">✓</span>' : '';
+      return '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(59,130,246,0.12);border-radius:8px;padding:8px 10px;font-size:0.78rem;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">' +
-          '<span style="' + p1Style + '">' + safe(m.p1 || 'TBD') + '</span>' +
-          '<span style="font-size:0.7rem;color:var(--text-muted);">' + safe(score) + '</span>' +
-          '<span style="' + p2Style + '">' + safe(m.p2 || 'TBD') + '</span>' +
+          '<span style="' + p1Style + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">' + safe(m.p1 || 'TBD') + p1Adv + '</span>' +
+          '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;flex-shrink:0;">' + safe(score) + '</span>' +
+          '<span style="' + p2Style + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;text-align:right;">' + safe(m.p2 || 'TBD') + p2Adv + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
-    roundsHtml += '<div style="margin-bottom:12px;">' +
-      '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">' + safe(_t('bracket.round', {n: ri + 1}) || ('Rodada ' + (ri + 1))) + '</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + matchesHtml + '</div>' +
-    '</div>';
+    var roundLabel = (_t('bracket.swissRoundShort', {n: ri + 1}) || ('Suíço R' + (ri + 1))) + ' ✓';
+    cols.push(
+      '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:0.75rem;min-width:240px;max-width:260px;opacity:0.88;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<h4 style="color:#60a5fa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid #3b82f6;padding-left:8px;flex:1;">' + roundLabel + '</h4>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;">' + matchesHtml + '</div>' +
+      '</div>'
+    );
   });
-
-  var targetCount = t.p2TargetCount || Object.keys(advancedNames).length;
-  var title = '🎯 ' + (_t('bracket.swissRecapTitle', {n: targetCount}) || ('Fase Classificatória — Top ' + targetCount));
-
-  return '<div class="card prev-rounds-card" style="margin-top:1rem;">' +
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
-      '<h3 style="margin:0;flex:1;font-weight:700;font-size:1rem;color:var(--text-bright);">' + title + '</h3>' +
-      '<button class="btn btn-micro btn-outline" onclick="window._togglePrevRoundsBlock(this)">Mostrar</button>' +
-    '</div>' +
-    '<div class="prev-rounds-content" style="display:none;">' + standingsTable + roundsHtml + '</div>' +
-  '</div>';
+  return cols;
 }
 
 function renderStandings(t, isOrg, canEnterResult) {
