@@ -506,35 +506,37 @@ window._fixOrphanedMatchNames = function(t) {
 
 window._getTournamentProgress = function(t) {
     if (!t) return { total: 0, completed: 0, pct: 0 };
-    var allMatches = [];
-    // Collect matches from all structures
-    if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
-    if (Array.isArray(t.rounds)) {
-        t.rounds.forEach(function(r) {
-            if (Array.isArray(r.matches)) allMatches = allMatches.concat(r.matches);
-        });
+    var allMatches = (typeof window._collectAllMatches === 'function')
+        ? window._collectAllMatches(t).slice()
+        : [];
+    // Defensive fallback: helper not loaded yet — replicate legacy inline scan.
+    if (allMatches.length === 0 && typeof window._collectAllMatches !== 'function') {
+        if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
+        if (Array.isArray(t.rounds)) {
+            t.rounds.forEach(function(r) {
+                if (Array.isArray(r.matches)) allMatches = allMatches.concat(r.matches);
+            });
+        }
+        if (Array.isArray(t.groups)) {
+            t.groups.forEach(function(g) {
+                if (Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
+                if (Array.isArray(g.rounds)) {
+                    g.rounds.forEach(function(gr) {
+                        if (Array.isArray(gr.matches)) allMatches = allMatches.concat(gr.matches);
+                    });
+                }
+            });
+        }
+        if (Array.isArray(t.rodadas)) {
+            t.rodadas.forEach(function(rd) {
+                if (Array.isArray(rd.matches)) allMatches = allMatches.concat(rd.matches);
+                if (Array.isArray(rd.jogos)) allMatches = allMatches.concat(rd.jogos);
+            });
+        }
+        if (t.thirdPlaceMatch) allMatches.push(t.thirdPlaceMatch);
     }
-    if (Array.isArray(t.groups)) {
-        t.groups.forEach(function(g) {
-            if (Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
-            // Also check g.rounds[].matches[] (used by Rei/Rainha and Grupos + Elim.)
-            if (Array.isArray(g.rounds)) {
-                g.rounds.forEach(function(gr) {
-                    if (Array.isArray(gr.matches)) allMatches = allMatches.concat(gr.matches);
-                });
-            }
-        });
-    }
-    if (Array.isArray(t.rodadas)) {
-        t.rodadas.forEach(function(rd) {
-            if (Array.isArray(rd.matches)) allMatches = allMatches.concat(rd.matches);
-            if (Array.isArray(rd.jogos)) allMatches = allMatches.concat(rd.jogos);
-        });
-    }
-    if (t.thirdPlaceMatch) {
-        allMatches.push(t.thirdPlaceMatch);
-    } else {
-        // For elimination formats with 2+ rounds, always count 3rd place match even if not yet created
+    // For elimination formats with 2+ rounds, always count 3rd place even if not yet created.
+    if (!t.thirdPlaceMatch) {
         var _fmt = (t.format || '').toLowerCase();
         var _isElim = _fmt.indexOf('eliminat') === 0;
         var _hasMultipleRounds = (Array.isArray(t.matches) && t.matches.some(function(m) { return m.round >= 2; }));

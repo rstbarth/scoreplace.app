@@ -226,20 +226,66 @@ window._exportTournamentCSV = function(tournamentId) {
     if (!hasStandings) {
         rows.push(['Partida', 'Jogador 1', 'Jogador 2', 'Placar 1', 'Placar 2', 'Vencedor', 'Rodada/Fase']);
         var allMatches = [];
-        if (Array.isArray(t.matches)) {
-            t.matches.forEach(function(m, idx) {
-                allMatches.push({ m: m, label: m.round || m.label || ('Partida ' + (idx + 1)) });
-            });
-        }
-        if (Array.isArray(t.groups)) {
-            t.groups.forEach(function(g, gi) {
-                (g.matches || []).forEach(function(m, mi) {
-                    allMatches.push({ m: m, label: 'Grupo ' + (gi + 1) + ' - Partida ' + (mi + 1) });
+        // Prefer canonical adapter so labels match bracket headers ("Final",
+        // "Semifinais", "Grupo A", "Disputa 3º lugar") across all formats.
+        var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
+        var _hasUnified = _unified && Array.isArray(_unified.columns) && _unified.columns.length > 0;
+        if (_hasUnified) {
+            _unified.columns.forEach(function(c) {
+                // CSV export includes completed rounds — only skip swiss recap
+                // (swiss-past is already reflected in standings for swiss/liga).
+                if (!c || c.phase === 'swiss-past') return;
+                if (c.phase === 'thirdplace') {
+                    (c.matches || []).forEach(function(m) {
+                        allMatches.push({ m: m, label: 'Disputa 3º lugar' });
+                    });
+                    return;
+                }
+                if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
+                    c.subgroups.forEach(function(sg, gi) {
+                        var gname = (sg && sg.name) || String.fromCharCode(65 + gi);
+                        (sg && sg.matches || []).forEach(function(m, mi) {
+                            allMatches.push({ m: m, label: 'Grupo ' + gname + ' - Partida ' + (mi + 1) });
+                        });
+                    });
+                    return;
+                }
+                var lbl = c.label || ('Rodada ' + c.round);
+                (c.matches || []).forEach(function(m) {
+                    allMatches.push({ m: m, label: lbl });
                 });
             });
-        }
-        if (t.thirdPlaceMatch) {
-            allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+        } else {
+            // Defensive fallback: legacy scan across all shapes.
+            if (Array.isArray(t.matches)) {
+                t.matches.forEach(function(m, idx) {
+                    allMatches.push({ m: m, label: m.round || m.label || ('Partida ' + (idx + 1)) });
+                });
+            }
+            if (Array.isArray(t.rounds)) {
+                t.rounds.forEach(function(r, ri) {
+                    (r.matches || []).forEach(function(m, mi) {
+                        allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) });
+                    });
+                });
+            }
+            if (Array.isArray(t.groups)) {
+                t.groups.forEach(function(g, gi) {
+                    (g.matches || []).forEach(function(m, mi) {
+                        allMatches.push({ m: m, label: 'Grupo ' + (gi + 1) + ' - Partida ' + (mi + 1) });
+                    });
+                });
+            }
+            if (Array.isArray(t.rodadas)) {
+                t.rodadas.forEach(function(rd, ri) {
+                    (rd.matches || []).concat(rd.jogos || []).forEach(function(m) {
+                        allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) });
+                    });
+                });
+            }
+            if (t.thirdPlaceMatch) {
+                allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+            }
         }
         var matchNum = 0;
         allMatches.forEach(function(item) {
