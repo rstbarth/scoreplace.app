@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.53-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Disputa de 3º Lugar no chaveamento futuro</b> — A coluna da Final ganhou, logo abaixo do card da partida final, um card tracejado "🥉 3º Lugar" para a disputa de terceiro colocado (quando o torneio tem essa opção ativada). Antes só aparecia a Final — agora o organizador e os participantes veem desde o início que haverá disputa de 3º lugar e quantos confrontos no total (mesmo padrão do bracket linear já existente, onde o 3º lugar fica empilhado na coluna da Final).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.12.52-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cada rodada numa coluna (sistema linear) no chaveamento Suíço</b> — Na v0.12.51 as rodadas futuras apareciam empilhadas verticalmente como cards de largura total, uma embaixo da outra. Agora a visualização segue o mesmo sistema do chaveamento eliminatório linear: cada rodada ocupa uma coluna vertical, e as colunas ficam lado a lado numa tira horizontal com scroll. A rodada atual (com inputs de placar, botões de confirmar, Encerrar Rodada) fica na primeira coluna; as rodadas Suíço pendentes seguem à direita; e, quando o Suíço é resolução de potência de 2, as rodadas eliminatórias (Oitavas → Quartas → Semi → Final, tracejadas em dourado) seguem depois. O cabeçalho "🎯 Fase Classificatória → 🏆 Fase Eliminatória" fica acima da tira, unificado. Assim o organizador enxerga o fluxo completo da esquerda pra direita, igual ao bracket linear, sem ter que scrollar pra baixo pra ver as próximas rodadas.</p>' +
         '</div>' +
