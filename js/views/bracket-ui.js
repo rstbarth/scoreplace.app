@@ -1881,8 +1881,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     superTiebreak: useSets ? (sc.superTiebreak === true) : false,
     superTiebreakPoints: useSets ? (sc.superTiebreakPoints || 10) : 10,
     countingType: useSets ? (sc.countingType || 'numeric') : 'numeric',
-    // deuceRule: game-level 40-40 → AD. Migrates legacy sc.advantageRule.
-    deuceRule: useSets ? (sc.deuceRule === true || sc.advantageRule === true) : false,
+    // deuceRule: game-level 40-40 → AD. Prefer explicit deuceRule; fall back to legacy advantageRule.
+    deuceRule: useSets ? (sc.deuceRule !== undefined ? sc.deuceRule === true : sc.advantageRule === true) : false,
     // twoPointAdvantage: set-level 2-game lead. Default ON.
     twoPointAdvantage: useSets ? (sc.twoPointAdvantage !== false) : false,
     isFixedSet: useSets && sc.fixedSet === true,
@@ -4733,8 +4733,14 @@ window._openCasualMatch = function() {
       var prefs = JSON.parse(localStorage.getItem('scoreplace_casual_prefs') || '{}');
       if (prefs[selectedSport]) {
         var stored = prefs[selectedSport];
-        // Migrate legacy advantageRule → deuceRule (+ twoPointAdvantage default on)
-        if (stored.advantageRule !== undefined && stored.deuceRule === undefined) stored.deuceRule = !!stored.advantageRule;
+        // Migrate legacy advantageRule → deuceRule and DROP the old key so it
+        // doesn't override a user-toggled deuceRule via the state-init OR fallback.
+        if (stored.advantageRule !== undefined) {
+          if (stored.deuceRule === undefined) stored.deuceRule = !!stored.advantageRule;
+          delete stored.advantageRule;
+          prefs[selectedSport] = stored;
+          try { localStorage.setItem('scoreplace_casual_prefs', JSON.stringify(prefs)); } catch(e) {}
+        }
         if (stored.twoPointAdvantage === undefined) stored.twoPointAdvantage = true;
         return stored;
       }
