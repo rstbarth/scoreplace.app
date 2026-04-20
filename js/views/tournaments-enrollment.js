@@ -66,7 +66,7 @@ window.enrollCurrentUser = function (tId) {
         if (!inscricoesAbertas) {
             if (_allowsLateEnrollment(t) && t.status !== 'finished') {
                 // Late enrollment — send to standby
-                var participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '' };
+                var participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', ligaActive: true };
                 _enrollToStandby(t, tId, participantObj, function() {
                     const container = document.getElementById('view-container');
                     if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
@@ -113,7 +113,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
         catsArr = [selectedCategories];
     }
 
-    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', selfEnrolled: true };
+    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', selfEnrolled: true, ligaActive: true };
     if (user.gender) participantObj.gender = user.gender;
     if (catsArr) {
         participantObj.categories = catsArr;
@@ -261,7 +261,7 @@ window.submitTeamEnroll = function (tId) {
     }
 
     const teamString = teamNames.join(' / ');
-    const participantObj = { name: teamString, email: user.email, displayName: teamString, uid: user.uid || '' };
+    const participantObj = { name: teamString, email: user.email, displayName: teamString, uid: user.uid || '', ligaActive: true };
     // Registrar origem da equipe via extraUpdates
     var _teamOrigins = t.teamOrigins || {};
     _teamOrigins[teamString] = 'inscrita';
@@ -427,7 +427,7 @@ window.addParticipantFunction = function (tId) {
         _addMsg,
         (pName) => {
             if (!pName || !pName.trim()) return;
-            var participantObj = { name: pName.trim(), displayName: pName.trim() };
+            var participantObj = { name: pName.trim(), displayName: pName.trim(), ligaActive: true };
             // If late enrollment, add to standby instead
             if (_closedOrDrawn) {
                 _enrollToStandby(t, tId, participantObj, function() {
