@@ -148,19 +148,34 @@
 
   // ─── Accept host invite ───────────────────────────────────────────────────
   // Helper: mark all pending invite notifications as read for a user+tournament
-  function _markInviteNotifsRead(uid, tId, types) {
-    if (!uid || !tId || !window.FirestoreDB || !window.FirestoreDB.db) return;
-    types.forEach(function(typ) {
-      window.FirestoreDB.db.collection('users').doc(uid).collection('notifications')
-        .where('type', '==', typ).where('tournamentId', '==', String(tId)).where('read', '==', false)
-        .get().then(function(snap) {
-          snap.forEach(function(d) { d.ref.update({ read: true }); });
-        }).catch(function() {});
-    });
-    // Refresh badge
-    if (typeof window._updateNotificationBadge === 'function') {
-      setTimeout(window._updateNotificationBadge, 500);
+  // Accepts a UID or email; if email (or UID doc not found), looks up the user by email first.
+  function _markInviteNotifsRead(uidOrEmail, tId, types) {
+    if (!uidOrEmail || !tId || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    var db = window.FirestoreDB.db;
+    function _doMark(uid) {
+      if (!uid) return;
+      types.forEach(function(typ) {
+        db.collection('users').doc(uid).collection('notifications')
+          .where('type', '==', typ).where('tournamentId', '==', String(tId)).where('read', '==', false)
+          .get().then(function(snap) {
+            snap.forEach(function(d) { d.ref.update({ read: true }); });
+          }).catch(function() {});
+      });
+      if (typeof window._updateNotificationBadge === 'function') {
+        setTimeout(window._updateNotificationBadge, 500);
+      }
     }
+    // Looks like an email? Resolve to UID via users collection.
+    if (String(uidOrEmail).indexOf('@') !== -1) {
+      db.collection('users').where('email', '==', uidOrEmail).limit(1).get().then(function(snap) {
+        if (!snap.empty) _doMark(snap.docs[0].id);
+      }).catch(function() {});
+      return;
+    }
+    // Assume UID — verify the doc exists; if not, nothing to do.
+    db.collection('users').doc(uidOrEmail).get().then(function(doc) {
+      if (doc.exists) _doMark(uidOrEmail);
+    }).catch(function() { _doMark(uidOrEmail); });
   }
 
   window._acceptHostInvite = function(tId, inviteType) {
@@ -213,13 +228,14 @@
           window.FirestoreDB.saveTournament(t);
           // Notify organizer that cohost was accepted
           var orgUid = t.creatorUid || '';
-          _notifyByEmail(orgUid || t.organizerEmail, {
+          var orgRef = orgUid || t.creatorEmail || t.organizerEmail;
+          _notifyByEmail(orgRef, {
             type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
             message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.acceptedCohost') + ' "' + t.name + '".',
             level: 'important'
           });
-          // Mark organizer's "sent" notification as read
-          if (orgUid) _markInviteNotifsRead(orgUid, tId, ['cohost_invite_sent']);
+          // Mark organizer's "sent" notification as read (uid or email — helper resolves)
+          if (orgRef) _markInviteNotifsRead(orgRef, tId, ['cohost_invite_sent']);
           // Notify the acceptor (confirmation)
           _notifyByEmail(user.uid, {
             type: 'host_invite_accepted', tournamentId: String(t.id), tournamentName: t.name,
@@ -271,13 +287,14 @@
           window.FirestoreDB.saveTournament(t);
           // Notify organizer that cohost was rejected
           var orgUid = t.creatorUid || '';
-          _notifyByEmail(orgUid || t.organizerEmail, {
+          var orgRef = orgUid || t.creatorEmail || t.organizerEmail;
+          _notifyByEmail(orgRef, {
             type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
             message: (user.displayName || _tH('org.theUser')) + ' ' + _tH('org.rejectedCohost') + ' "' + t.name + '".',
             level: 'important'
           });
-          // Mark organizer's "sent" notification as read
-          if (orgUid) _markInviteNotifsRead(orgUid, tId, ['cohost_invite_sent']);
+          // Mark organizer's "sent" notification as read (uid or email — helper resolves)
+          if (orgRef) _markInviteNotifsRead(orgRef, tId, ['cohost_invite_sent']);
           // Notify the rejecter (confirmation)
           _notifyByEmail(user.uid, {
             type: 'host_invite_rejected', tournamentId: String(t.id), tournamentName: t.name,
