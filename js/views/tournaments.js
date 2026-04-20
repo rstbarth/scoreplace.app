@@ -707,31 +707,8 @@ function renderTournaments(container, tournamentId = null) {
              <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
 
-        // Liga active toggle: participants can opt out of upcoming rounds
+        // Liga active toggle moved to public availability panel (see _ligaAvailabilityHtml)
         let ligaActiveToggleHtml = '';
-        if (isParticipating && window._isLigaFormat(t) && t.status === 'active') {
-          const _myPart = (() => {
-            const user = window.AppStore.currentUser;
-            if (!user || !t.participants) return null;
-            const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-            return arr.find(p => {
-              if (typeof p !== 'object') return false;
-              if (p.uid && user.uid && p.uid === user.uid) return true;
-              if (p.email && p.email === user.email) return true;
-              return false;
-            });
-          })();
-          const _ligaIsActive = _myPart ? (_myPart.ligaActive !== false) : true;
-          ligaActiveToggleHtml = `
-            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 10px;background:${_ligaIsActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'};border:1px solid ${_ligaIsActive ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'};border-radius:8px;">
-              <label class="toggle-switch" style="flex-shrink:0;">
-                <input type="checkbox" ${_ligaIsActive ? 'checked' : ''} onchange="window._toggleLigaActive('${String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this.checked)">
-                <span class="toggle-slider"></span>
-              </label>
-              <span style="font-size:0.75rem;font-weight:600;color:${_ligaIsActive ? '#34d399' : '#f87171'};">${_ligaIsActive ? '🟢 Participando dos sorteios' : '🔴 Fora dos próximos sorteios'}</span>
-            </div>
-          `;
-        }
 
         // ─── Pending co-org/transfer invite banner ───
         let pendingInviteBannerHtml = '';
@@ -1379,6 +1356,7 @@ function renderTournaments(container, tournamentId = null) {
 
     let participantsHtml = '';
     var _organizersHtml = '';
+    var _ligaAvailabilityHtml = '';
 
     // ── One-time checks per tournament view (run once, not on every re-render from sort/scroll) ──
     var _checksKey = tournamentId ? ('_tournChecks_' + tournamentId) : null;
@@ -1470,6 +1448,83 @@ function renderTournaments(container, tournamentId = null) {
         _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
           '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">ORGANIZAÇÃO</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + _orgCards + '</div></div>';
+      })();
+    }
+
+    // ── Liga: public availability panel (everyone sees all states; only own is editable) ──
+    if (tournamentId && visible.length === 1) {
+      (function() {
+        var _tr = window._t || function(k) { return k; };
+        var _tourn = visible[0];
+        if (!window._isLigaFormat || !window._isLigaFormat(_tourn)) return;
+        var _parts = Array.isArray(_tourn.participants) ? _tourn.participants : (_tourn.participants ? Object.values(_tourn.participants) : []);
+        if (_parts.length === 0) return;
+
+        var _cu = window.AppStore && window.AppStore.currentUser;
+        var _safeTid = String(_tourn.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        function _buildRow(p, isActive, isSelf) {
+          if (typeof p !== 'object') return '';
+          var label = p.displayName || p.name || p.email || '';
+          if (!label) return '';
+          var seed = encodeURIComponent(label);
+          var photoCache = (window._playerPhotoCache && window._playerPhotoCache[label.toLowerCase()]) || '';
+          var useReal = photoCache && photoCache.indexOf('dicebear.com') === -1;
+          var avatar = useReal ? photoCache : ('https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf');
+          var fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+
+          var bg = isActive ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)';
+          var border = isActive ? 'rgba(16,185,129,0.30)' : 'rgba(239,68,68,0.30)';
+          var txtColor = isActive ? '#34d399' : '#f87171';
+          var statusTxt = isActive ? '🟢 ' + _tr('liga.active') : '🔴 ' + _tr('liga.inactive');
+
+          var toggleAttrs = isSelf
+            ? ('onchange="window._toggleLigaActive(\'' + _safeTid + '\', this.checked)"')
+            : 'disabled';
+          var toggleWrapStyle = isSelf ? '' : 'opacity:0.55;cursor:not-allowed;';
+          var selfBadge = isSelf
+            ? ('<span style="font-size:0.6rem;font-weight:700;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:1px 6px;border-radius:10px;letter-spacing:0.3px;">' + _tr('liga.you') + '</span>')
+            : '';
+
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:' + bg + ';border:1px solid ' + border + ';border-radius:10px;">' +
+            '<img src="' + avatar + '" onerror="this.onerror=null;this.src=\'' + fallback + '\'" data-player-name="' + window._safeHtml(label) + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ' + border + ';">' +
+            '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">' +
+              '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + window._safeHtml(label) + '">' + window._safeHtml(label) + '</span>' + selfBadge + '</div>' +
+              '<div style="font-size:0.7rem;font-weight:600;color:' + txtColor + ';">' + statusTxt + '</div>' +
+            '</div>' +
+            '<label class="toggle-switch toggle-sm" style="flex-shrink:0;' + toggleWrapStyle + '">' +
+              '<input type="checkbox" ' + (isActive ? 'checked' : '') + ' ' + toggleAttrs + '>' +
+              '<span class="toggle-slider"></span>' +
+            '</label>' +
+          '</div>';
+        }
+
+        var activeRows = '';
+        var inactiveRows = '';
+        var activeCount = 0, inactiveCount = 0;
+        _parts.forEach(function(p) {
+          if (typeof p !== 'object') return;
+          var isActive = p.ligaActive !== false;
+          var isSelf = !!(_cu && window._userMatchesParticipant && window._userMatchesParticipant(_cu, p));
+          var row = _buildRow(p, isActive, isSelf);
+          if (isActive) { activeRows += row; activeCount++; }
+          else { inactiveRows += row; inactiveCount++; }
+        });
+
+        var gridCss = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;';
+        _ligaAvailabilityHtml = '<div class="mt-4 mb-4">' +
+          '<h3 style="margin-bottom:0.75rem;font-size:1.15rem;color:var(--text-bright);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '🎲 ' + _tr('liga.availabilityTitle') +
+            '<span style="font-size:0.72rem;font-weight:600;background:rgba(16,185,129,0.15);color:#34d399;padding:3px 9px;border-radius:10px;">' + activeCount + ' ' + _tr('liga.activeShort') + '</span>' +
+            (inactiveCount > 0 ? '<span style="font-size:0.72rem;font-weight:600;background:rgba(239,68,68,0.15);color:#f87171;padding:3px 9px;border-radius:10px;">' + inactiveCount + ' ' + _tr('liga.inactiveShort') + '</span>' : '') +
+          '</h3>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">' + _tr('liga.availabilityHelp') + '</div>' +
+          '<div style="' + gridCss + '">' + activeRows + '</div>' +
+          (inactiveRows ? ('<div style="margin-top:14px;">' +
+            '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#f87171;margin-bottom:6px;">' + _tr('liga.inactiveListTitle') + '</div>' +
+            '<div style="' + gridCss + '">' + inactiveRows + '</div>' +
+          '</div>') : '') +
+        '</div>';
       })();
     }
 
@@ -1877,6 +1932,8 @@ function renderTournaments(container, tournamentId = null) {
     </div>
 
     ${tournamentId ? _organizersHtml : ''}
+
+    ${tournamentId ? _ligaAvailabilityHtml : ''}
 
     ${hasDrawn ? '' : participantsHtml}
 
