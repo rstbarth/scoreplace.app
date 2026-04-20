@@ -72,10 +72,10 @@ function renderRules(container, tournamentId) {
     const tbEnabled = sc.tiebreakEnabled;
     const tbPoints = sc.tiebreakPoints || 7;
     const tbMargin = sc.tiebreakMargin || 2;
-    // TB is played when games tie at gamesPerSet (e.g. 6-6); the final set score
-    // after TB is (gamesPerSet+1)-gamesPerSet (e.g. 7-6).
-    const tbStart = gamesPerSet + '-' + gamesPerSet;
-    const tbFinal = (gamesPerSet + 1) + '-' + gamesPerSet;
+    // TB is played when games tie at (gamesPerSet - 1) (e.g. 5-5); the final set
+    // score after TB is gamesPerSet-(gamesPerSet-1) (e.g. 6-5).
+    const tbStart = (gamesPerSet - 1) + '-' + (gamesPerSet - 1);
+    const tbFinal = gamesPerSet + '-' + (gamesPerSet - 1);
     const superTb = sc.superTiebreak;
     const superTbPts = sc.superTiebreakPoints || 10;
     const rows = [

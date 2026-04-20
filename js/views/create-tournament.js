@@ -359,51 +359,45 @@ function setupCreateTournamentModal() {
                 <div id="weather-content"></div>
               </div>
 
-              <!-- Estimativas de Tempo -->
-              <div id="time-estimates-container" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
-                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.timeEstSection')}</p>
-                <div class="d-flex gap-2 mb-2">
-                  <div class="form-group full-width">
-                    <label class="form-label">${_t('create.callTimeLabel')}</label>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <input type="number" class="form-control" id="tourn-call-time" min="0" max="60" value="5" style="flex:1;" oninput="window._recalcDuration()">
-                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
+              <!-- Estimativas de Tempo (compact) -->
+              <div id="time-estimates-container" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 1rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.72rem; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">⏱ ${_t('create.timeEstSection')}</span>
+                  <span id="duration-estimate-inline" style="font-size: 0.8rem; font-weight: 700; color: var(--text-bright); white-space: nowrap;">—</span>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.callTimeDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.callTimeLabel')}</span>
+                    <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
+                      <input type="number" id="tourn-call-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.callTimeDesc')}</small>
-                  </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">${_t('create.warmupLabel')}</label>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <input type="number" class="form-control" id="tourn-warmup-time" min="0" max="60" value="5" style="flex:1;" oninput="window._recalcDuration()">
-                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.warmupDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.warmupLabel')}</span>
+                    <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
+                      <input type="number" id="tourn-warmup-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.warmupDesc')}</small>
-                  </div>
-                  <div class="form-group full-width">
-                    <label class="form-label">${_t('create.gameDurLabel')}</label>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <input type="number" class="form-control" id="tourn-game-duration" min="5" max="300" value="30" style="flex:1;" oninput="window._recalcDuration()">
-                      <span style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">min</span>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.gameDurDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.gameDurLabel')}</span>
+                    <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
+                      <input type="number" id="tourn-game-duration" min="5" max="300" value="30" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
-                    <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.gameDurDesc')}</small>
-                  </div>
+                  </label>
                 </div>
 
-                <!-- Estimativa Calculada -->
-                <div id="duration-estimate-box" style="display:none; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 0.75rem 1rem; margin-top: 0.5rem;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <div>
-                      <span style="font-size:0.8rem; color:#f59e0b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">${_t('create.estDuration')}</span>
-                      <div id="duration-estimate-text" style="font-size:1.1rem; font-weight:bold; color:var(--text-bright); margin-top:2px;">—</div>
-                    </div>
-                    <div id="duration-estimate-detail" style="font-size:0.8rem; color:var(--text-muted); text-align:right;">
-                    </div>
+                <!-- Extra diagnostics (shown only when relevant) -->
+                <div id="duration-estimate-box" style="display:none; margin-top: 0.5rem;">
+                  <div id="duration-estimate-text" style="display:none;">—</div>
+                  <div id="duration-estimate-detail" style="display:none;"></div>
+                  <div id="duration-warning" style="display:none; padding:6px 10px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:6px; font-size:0.78rem; color:#f87171;">
                   </div>
-                  <div id="duration-warning" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:6px; font-size:0.8rem; color:#f87171;">
+                  <div id="capacity-warning" style="display:none; margin-top:6px; padding:6px 10px; border-radius:6px; font-size:0.78rem;">
                   </div>
-                  <div id="capacity-warning" style="display:none; margin-top:8px; padding:6px 10px; border-radius:6px; font-size:0.8rem;">
-                  </div>
-                  <div id="suggestions-panel" style="display:none; margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+                  <div id="suggestions-panel" style="display:none; margin-top:6px; flex-direction:column; gap:6px;">
                   </div>
                 </div>
               </div>
@@ -2137,7 +2131,13 @@ function setupCreateTournamentModal() {
 
     const slotTime = callTime + warmup + gameDur; // total minutes per match slot
 
-    if (slotTime <= 0) { box.style.display = 'none'; return; }
+    // Helper to mirror the main duration text into the compact header badge.
+    const _setInlineBadge = (html) => {
+      const inline = document.getElementById('duration-estimate-inline');
+      if (inline) inline.innerHTML = html || '—';
+    };
+
+    if (slotTime <= 0) { box.style.display = 'none'; _setInlineBadge('—'); return; }
 
     const n = maxParts || 0;
 
@@ -2358,6 +2358,7 @@ function setupCreateTournamentModal() {
 
       box.style.display = 'block';
       document.getElementById('duration-estimate-text').textContent = _t('create.minPerMatch', { n: slotTime });
+      _setInlineBadge(_t('create.minPerMatch', { n: slotTime }));
       document.getElementById('duration-estimate-detail').innerHTML =
         courts + ' ' + _t('create.court') + (courts > 1 ? 's' : '') + ' | ' + _t('create.timeAvailable') + ': ' + _fmtMin(availableMin);
 
@@ -2378,6 +2379,7 @@ function setupCreateTournamentModal() {
     if (n < 2) {
       box.style.display = 'block';
       document.getElementById('duration-estimate-text').textContent = _t('create.minPerMatch', { n: slotTime });
+      _setInlineBadge(_t('create.minPerMatch', { n: slotTime }));
       document.getElementById('duration-estimate-detail').innerHTML = _t('create.durationDetail', { call: callTime, warmup: warmup, game: gameDur });
       return;
     }
@@ -2405,6 +2407,7 @@ function setupCreateTournamentModal() {
       mainEstimate += ' <span style="font-size:0.85rem; opacity:0.7;">(' + det.playInMatches + ' ' + _t('create.qualifier') + (det.playInMatches > 1 ? 's' : '') + ' + ' + det.mainMatches + ' ' + _t('create.bracket') + ')</span>';
     }
     document.getElementById('duration-estimate-text').innerHTML = mainEstimate;
+    _setInlineBadge(durationText + ' · ' + numMatches + ' ' + _t('create.matchCount'));
     document.getElementById('duration-estimate-detail').innerHTML =
       courts + ' ' + _t('create.court') + (courts > 1 ? 's' : '') + ' | ' +
       slotTime + _t('create.minSlot') + ' | ' +

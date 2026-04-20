@@ -736,7 +736,8 @@ window._highlightWinner = function (matchId) {
           for (var mi = 0; mi < _matches.length; mi++) {
             if (_matches[mi] && _matches[mi].id === matchId) {
               if (_tour.scoring && _tour.scoring.type === 'sets' && _tour.scoring.tiebreakEnabled !== false) {
-                _trigger = parseInt(_tour.scoring.gamesPerSet) || 6;
+                // Tiebreak triggers at (gamesPerSet - 1) — e.g. 5-5 in a 6-game set
+                _trigger = (parseInt(_tour.scoring.gamesPerSet) || 6) - 1;
               }
               break;
             }
@@ -1056,7 +1057,9 @@ window._saveSetResult = function(tId, matchId) {
 
       const setData = { gamesP1: g1, gamesP2: g2 };
 
-      if (g1 === sc.gamesPerSet && g2 === sc.gamesPerSet) {
+      // Tiebreak triggers at (gamesPerSet - 1) — e.g. 5-5 in a 6-game set
+      var _tbAt = sc.gamesPerSet - 1;
+      if (g1 === _tbAt && g2 === _tbAt) {
         const tbP1 = parseInt(document.getElementById('tb-p1')?.value) || 0;
         const tbP2 = parseInt(document.getElementById('tb-p2')?.value) || 0;
         setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
@@ -1200,7 +1203,8 @@ window._saveResultInline = function (tId, matchId) {
   const useSets = t.scoring && t.scoring.type === 'sets';
   const isFixedSet = useSets && t.scoring.fixedSet;
   const tbEnabled = useSets && t.scoring.tiebreakEnabled !== false;
-  const tbTrigger = tbEnabled ? (parseInt(t.scoring.gamesPerSet) || 6) : null;
+  // Tiebreak triggers at (gamesPerSet - 1) — e.g. 5-5 in a 6-game set (final 6-5)
+  const tbTrigger = tbEnabled ? ((parseInt(t.scoring.gamesPerSet) || 6) - 1) : null;
 
   // Tiebreak mode: a trigger+1 / trigger score (e.g. 7-6) implies the set was
   // decided on a tie-break. The winner of the set is already known from s1/s2;
