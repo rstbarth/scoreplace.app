@@ -736,11 +736,28 @@ function _updateProgressiveClassification(t) {
     return { scored: totalScored, conceded: totalConceded, diff: totalScored - totalConceded, wins: matchesWon };
   }
 
-  // Collect losers per round-group (same position block)
+  // Collect losers per round-group (same position block).
+  // Process rounds from FINAL → R1 so definitive positions (1, 2, and 3/4 from
+  // the 3rd place match) are recorded first. Players who made it further are
+  // then skipped when we reach their earlier-round entry — this is critical
+  // because stale/edited match data can list the same player as a loser in
+  // multiple rounds. Without reverse order + skip, the earlier-round positionGroup
+  // overwrites the canonical final position (e.g. final loser landing at pos 9
+  // instead of pos 2 when they also appear in a stale R1 match).
   var positionGroups = []; // [{posStart, losers: [{name, stats, history}]}]
+  var placed = {}; // name -> true: already assigned a definitive position
 
-  rounds.forEach(function(roundNum, idx) {
-    var roundFromEnd = totalRounds - 1 - idx;
+  // Record 3rd place match winner/loser up-front so semi/earlier rounds skip them.
+  if (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
+    placed[t.thirdPlaceMatch.winner] = true;
+    var _tp_loser = t.thirdPlaceMatch.winner === t.thirdPlaceMatch.p1 ? t.thirdPlaceMatch.p2 : t.thirdPlaceMatch.p1;
+    if (_tp_loser && _tp_loser !== 'TBD') placed[_tp_loser] = true;
+  }
+
+  var reverseOrder = rounds.slice().reverse(); // [final, semi, qf, ..., r1]
+  reverseOrder.forEach(function(roundNum) {
+    var originalIdx = rounds.indexOf(roundNum);
+    var roundFromEnd = totalRounds - 1 - originalIdx;
     var matchesInRound = allMatches.filter(function(m) {
       return m.round === roundNum && m.bracket !== 'lower' && m.bracket !== 'grand';
     });
@@ -753,6 +770,8 @@ function _updateProgressiveClassification(t) {
         if (!loser || loser === 'TBD' || loser === 'BYE') return;
         t.classification[m.winner] = 1;
         t.classification[loser] = 2;
+        placed[m.winner] = true;
+        placed[loser] = true;
       });
     } else if (roundFromEnd === 1) {
       // Semi: if 3rd place match exists, positions 3 & 4 are handled below.
@@ -763,11 +782,13 @@ function _updateProgressiveClassification(t) {
           if (!m.winner || m.winner === 'draw' || m.isBye) return;
           var stats = _getLoserStats(m);
           if (!stats.loser || stats.loser === 'TBD' || stats.loser === 'BYE') return;
+          if (placed[stats.loser]) return;
           var history = _getPlayerHistory(stats.loser);
           semiLosers.push({ name: stats.loser, stats: stats, history: history });
         });
         if (semiLosers.length > 0) {
           positionGroups.push({ posStart: 3, losers: semiLosers });
+          semiLosers.forEach(function(e) { placed[e.name] = true; });
         }
       }
     } else {
@@ -778,12 +799,14 @@ function _updateProgressiveClassification(t) {
         if (!m.winner || m.winner === 'draw' || m.isBye) return;
         var stats = _getLoserStats(m);
         if (!stats.loser || stats.loser === 'TBD' || stats.loser === 'BYE') return;
+        if (placed[stats.loser]) return;
         var history = _getPlayerHistory(stats.loser);
         losers.push({ name: stats.loser, stats: stats, history: history });
       });
 
       if (losers.length > 0) {
         positionGroups.push({ posStart: posStart, losers: losers });
+        losers.forEach(function(e) { placed[e.name] = true; });
       }
     }
   });
@@ -812,7 +835,8 @@ function _updateProgressiveClassification(t) {
     });
   });
 
-  // Handle 3rd place match result
+  // Handle 3rd place match result (applied LAST so it wins over any
+  // contradictory entry a pathological dataset could produce).
   if (t.thirdPlaceMatch && t.thirdPlaceMatch.winner) {
     t.classification[t.thirdPlaceMatch.winner] = 3;
     var tp_loser = t.thirdPlaceMatch.winner === t.thirdPlaceMatch.p1 ? t.thirdPlaceMatch.p2 : t.thirdPlaceMatch.p1;
