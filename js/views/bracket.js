@@ -186,7 +186,7 @@ function renderBracket(container, tournamentId, isInline) {
 
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderStandings(t, isOrg, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult, readyBannerHtml) + standbyHtml;
     _applyMyMatchesFilter();
     return;
   }
@@ -298,9 +298,7 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
     return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">${dots}</div>`;
   };
 
-  const allMatches = [...readyMatches, ...partialMatches];
-
-  const matchCards = allMatches.map(e => {
+  const renderCard = (e) => {
     const isReady = e.p1s === 'full' && e.p2s === 'full';
     const bg = isReady ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.08)';
     const border = isReady ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.2)';
@@ -312,23 +310,28 @@ window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
       <div style="font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.2);letter-spacing:2px;padding:0 2px;">VS</div>
       ${renderSideRow(e.match.p2)}
     </div>`;
-  }).join('');
+  };
+
+  const gridStyle = 'display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 220px));gap:8px;margin-top:10px;';
+
+  const readySection = readyMatches.length > 0 ? `
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:1rem;">🟢</span>
+      <span style="font-size:0.9rem;font-weight:700;color:#4ade80;">${readyMatches.length} jogo${readyMatches.length > 1 ? 's' : ''} pronto${readyMatches.length > 1 ? 's' : ''} para chamar</span>
+    </div>
+    <div style="${gridStyle}">${readyMatches.map(renderCard).join('')}</div>` : '';
+
+  const partialSection = partialMatches.length > 0 ? `
+    <div style="display:flex;align-items:center;gap:8px;${readyMatches.length > 0 ? 'margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);' : ''}">
+      <span style="font-size:1rem;">🟡</span>
+      <span style="font-size:0.85rem;font-weight:600;color:#fbbf24;">${partialMatches.length} aguardando presença</span>
+    </div>
+    <div style="${gridStyle}">${partialMatches.map(renderCard).join('')}</div>` : '';
 
   return `
     <div style="margin-bottom:1.5rem;padding:16px 20px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:14px;">
-      ${readyMatches.length > 0 ? `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="font-size:1rem;">🟢</span>
-          <span style="font-size:0.9rem;font-weight:700;color:#4ade80;">${readyMatches.length} jogo${readyMatches.length > 1 ? 's' : ''} pronto${readyMatches.length > 1 ? 's' : ''} para chamar</span>
-        </div>` : ''}
-      ${partialMatches.length > 0 ? `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;${readyMatches.length > 0 ? 'padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);' : ''}">
-          <span style="font-size:1rem;">🟡</span>
-          <span style="font-size:0.85rem;font-weight:600;color:#fbbf24;">${partialMatches.length} aguardando presença</span>
-        </div>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 220px));gap:8px;">
-        ${matchCards}
-      </div>
+      ${readySection}
+      ${partialSection}
     </div>`;
 };
 
@@ -1728,7 +1731,7 @@ function _buildSwissPastColumns(t, swissPastCols) {
   return cols;
 }
 
-function renderStandings(t, isOrg, canEnterResult) {
+function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
   var _t = window._t || function(k) { return k; };
   // Source swiss/liga/monarch round columns from the unified adapter. Each
   // column is flattened back into the legacy {matches, status, format,
@@ -2250,18 +2253,7 @@ function renderStandings(t, isOrg, canEnterResult) {
       }
     }
 
-    // Phase banner above the scroll (compact — info about the two phases).
-    var _phaseBanner = '';
-    if (isSwissClassification) {
-      _phaseBanner =
-        '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
-          _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
-          ' <span style="color:var(--text-muted);font-weight:500;">→</span> ' +
-          '<span style="color:#fbbf24;">🏆 ' + _t('bracket.phaseElim', {n: t.p2TargetCount}) + '</span>' +
-        '</div>';
-    }
-
-    roundsScrollHtml = _phaseBanner +
+    roundsScrollHtml =
       '<div class="bracket-sticky-scroll-wrapper" style="overflow-x:auto;overflow-y:visible;display:block;width:100%;max-width:100%;margin-top:1rem;">' +
         '<div class="bracket-scroll-content" style="display:inline-flex;gap:32px;align-items:flex-start;padding:1rem 0;min-width:max-content;">' +
           _roundColumns.join('') +
@@ -2272,7 +2264,6 @@ function renderStandings(t, isOrg, canEnterResult) {
 
   // ─── Legacy stacked-card layout (Liga/Ranking, Rei/Rainha rounds) ──────────
   var upcomingRoundsHtml = '';
-  var phaseHeaderHtml = '';
   if (!useColumnLayout) {
     if (isSuico && currentRound < maxRounds) {
       var _legacySwissPerRound = (currentRoundData.matches || []).filter(function(m) { return !m.isSitOut; }).length;
@@ -2290,18 +2281,32 @@ function renderStandings(t, isOrg, canEnterResult) {
           '</div>';
       }
     }
-    if (isSwissClassification) {
-      phaseHeaderHtml =
-        '<div style="margin-top:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
+  }
+
+  // Phase banner (Suíço classificação → Eliminatória). Shown FIRST, before standings.
+  var _phaseBannerHtml = '';
+  if (isSwissClassification) {
+    if (useColumnLayout) {
+      _phaseBannerHtml =
+        '<div style="margin-bottom:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
+          _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
+          ' <span style="color:var(--text-muted);font-weight:500;">→</span> ' +
+          '<span style="color:#fbbf24;">🏆 ' + _t('bracket.phaseElim', {n: t.p2TargetCount}) + '</span>' +
+        '</div>';
+    } else {
+      _phaseBannerHtml =
+        '<div style="margin-bottom:1rem;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;font-weight:700;color:#60a5fa;font-size:0.85rem;">' +
           _t('bracket.phaseClassif') + ' — ' + maxRounds + ' ' + (maxRounds === 1 ? 'rodada' : 'rodadas') +
         '</div>';
     }
   }
 
+  var _readyBanner = readyBannerHtml || '';
+
   if (useColumnLayout) {
-    return standingsTablesHtml + roundsScrollHtml + statsHtml + h2hHtml + previousRoundsHtml;
+    return _phaseBannerHtml + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml + previousRoundsHtml;
   }
-  return standingsTablesHtml + phaseHeaderHtml + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  return _phaseBannerHtml + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
