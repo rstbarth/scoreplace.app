@@ -1796,19 +1796,26 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
   const posColor = i => i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : 'var(--text-muted)';
 
   const _useSetsStandings = t.scoring && t.scoring.type === 'sets';
+  const _useAdvStandings = !!(t.advancedScoring && t.advancedScoring.enabled);
   const _buildStandingsRows = function(computed) {
     return computed.map((s, i) => {
       var _setsDiff = (s.setsWon || 0) - (s.setsLost || 0);
       var _gamesDiff = (s.gamesWon || 0) - (s.gamesLost || 0);
+      var _safeName = s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      var _safeTid = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      var _advCell = _useAdvStandings
+        ? `<td style="padding:11px 14px;text-align:center;color:#fbbf24;font-weight:700;cursor:pointer;" onclick="window._showAdvancedPointsBreakdown('${_safeTid}','${_safeName}','${String(s.category || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver detalhamento">${s.advancedPoints || 0}</td>`
+        : '';
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
-      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}','${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${s.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
+      <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${_safeTid}','${_safeName}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${_safeName}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
       <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
       <td style="padding:11px 14px;text-align:center;color:#f87171;">${s.losses}</td>
       <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>` +
+      _advCell +
       (_useSetsStandings ? `
       <td style="padding:11px 14px;text-align:center;color:${_setsDiff >= 0 ? '#06b6d4' : '#f87171'};">${_setsDiff >= 0 ? '+' : ''}${_setsDiff}</td>
       <td style="padding:11px 14px;text-align:center;color:${_gamesDiff >= 0 ? '#8b5cf6' : '#f87171'};">${_gamesDiff >= 0 ? '+' : ''}${_gamesDiff}</td>` : '') + `
@@ -2007,11 +2014,14 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     </div>`;
 
   const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
-  var _gsmColIdx = 8; // next col after J when GSM is active
+  var _advColIdx = 7; // PA column (when adv enabled) sits after Saldo
+  var _gsmStartIdx = _useAdvStandings ? 8 : 7;
+  const _advHeader = _useAdvStandings ? `
+              <th style="${_thStyle}text-align:center;color:#fbbf24;" data-sort-col="${_advColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Pontos Avançados">⚡ PA <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
   const _gsmHeaders = _useSetsStandings ? `
-              <th style="${_thStyle}text-align:center;color:#06b6d4;" data-sort-col="7" data-sort-type="num" onclick="window._sortStandingsTable(this)">±S <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:#8b5cf6;" data-sort-col="8" data-sort-type="num" onclick="window._sortStandingsTable(this)">±G <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
-  var _jColIdx = _useSetsStandings ? 9 : 7;
+              <th style="${_thStyle}text-align:center;color:#06b6d4;" data-sort-col="${_gsmStartIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)">±S <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#8b5cf6;" data-sort-col="${_gsmStartIdx + 1}" data-sort-type="num" onclick="window._sortStandingsTable(this)">±G <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
+  var _jColIdx = 7 + (_useAdvStandings ? 1 : 0) + (_useSetsStandings ? 2 : 0);
   const _tableHeader = `<thead>
             <tr style="border-bottom:2px solid var(--border-color);">
               <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="0" data-sort-type="num" onclick="window._sortStandingsTable(this)"># <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">▼</span></th>
@@ -2021,6 +2031,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
               <th style="${_thStyle}text-align:center;color:#94a3b8;" data-sort-col="4" data-sort-type="num" onclick="window._sortStandingsTable(this)">E <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
               <th style="${_thStyle}text-align:center;color:#f87171;" data-sort-col="5" data-sort-type="num" onclick="window._sortStandingsTable(this)">D <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
               <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="6" data-sort-type="num" onclick="window._sortStandingsTable(this)">Saldo <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              ${_advHeader}
               ${_gsmHeaders}
               <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="${_jColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
             </tr>

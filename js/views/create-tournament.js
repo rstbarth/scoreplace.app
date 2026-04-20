@@ -420,6 +420,59 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="gsm-fixedSetGames" value="6">
               </div>
 
+              <!-- Sistema de Pontos Avançado (apenas Liga / Suíço) -->
+              <div id="adv-scoring-section" style="display:none; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <div class="toggle-row" style="padding:0; margin-bottom:10px;">
+                  <div class="toggle-row-label"><span style="font-size:0.85rem;font-weight:700;color:#fbbf24;">⚡ ${_t('create.advScoringTitle')}</span><div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${_t('create.advScoringDesc')}</div></div>
+                  <label class="toggle-switch toggle-sm"><input type="checkbox" id="adv-scoring-enabled" onchange="window._onAdvScoringToggle()"><span class="toggle-slider"></span></label>
+                </div>
+                <div id="adv-scoring-body" style="display:none; margin-top:12px;">
+                  <p style="font-size:0.7rem; color:#10b981; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin:0 0 8px;">${_t('create.advScoringGroupA')}</p>
+                  <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;">
+                    <div class="adv-row" data-adv-key="participation" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled" checked><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advParticipation')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advParticipationDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="150" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                    <div class="adv-row" data-adv-key="match_won" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled" checked><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advMatchWon')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advMatchWonDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="150" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                    <div class="adv-row" data-adv-key="game_won" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled" checked><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advGameWon')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advGameWonDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="50" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                    <div class="adv-row" data-adv-key="game_lost" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled" checked><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advGameLost')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advGameLostDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="-20" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                    <div class="adv-row" data-adv-key="tiebreak_point" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled" checked><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advTiebreakPoint')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advTiebreakPointDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="2" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                  </div>
+                  <p style="font-size:0.7rem; color:#f87171; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin:0 0 8px;">${_t('create.advScoringGroupB')}</p>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:8px; padding:6px 10px; background:rgba(248,113,113,0.06); border-radius:6px; border-left:2px solid #f87171;">ⓘ ${_t('create.advScoringGroupBWarn')}</div>
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div class="adv-row" data-adv-key="killing_point" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled"><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advKillingPoint')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advKillingPointDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="10" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                    <div class="adv-row" data-adv-key="point_scored" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px;">
+                      <label class="toggle-switch toggle-sm" style="flex-shrink:0;"><input type="checkbox" class="adv-enabled"><span class="toggle-slider"></span></label>
+                      <div style="flex:1; min-width:0;"><div style="font-size:0.82rem; font-weight:600;">${_t('create.advPointScored')}</div><div style="font-size:0.68rem; color:var(--text-muted);">${_t('create.advPointScoredDesc')}</div></div>
+                      <input type="number" class="adv-value form-control" value="1" style="width:70px; flex-shrink:0; text-align:center; padding:4px 6px; font-size:0.85rem;">
+                    </div>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:10px; font-style:italic;">${_t('create.advScoringFloorNote')}</div>
+                </div>
+              </div>
+
               <!-- Inscrição e Limite -->
               <div class="d-flex gap-2 mb-3">
                 <div class="form-group full-width">
@@ -570,6 +623,7 @@ function setupCreateTournamentModal() {
                   <li draggable="true" data-tb="vitorias" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbWins')}</li>
                   <li draggable="true" data-tb="buchholz" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbBuchholz')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbBuchholzAbbr')})</small></li>
                   <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbSonneborn')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbSonnebornAbbr')})</small></li>
+                  <li draggable="true" data-tb="pontos_avancados" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ⚡ ${_t('create.tbAdvancedPoints')} <small style="opacity:0.5; font-size:0.75rem;">${_t('create.tbAdvancedPointsNote')}</small></li>
                   <li draggable="true" data-tb="sorteio" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbRandom')}</li>
                 </ul>
               </div>
@@ -1353,10 +1407,25 @@ function setupCreateTournamentModal() {
     var estimContainer = document.getElementById('time-estimates-container');
     if (estimContainer) estimContainer.style.display = (isLiga || isSuico) ? 'none' : '';
 
+    // Sistema de Pontos Avançado: apenas Liga ou Suíço (puro, sem Rei/Rainha)
+    var advSection = document.getElementById('adv-scoring-section');
+    if (advSection) {
+      var showAdv = (isLiga || isSuico) && !isMonarch;
+      advSection.style.display = showAdv ? 'block' : 'none';
+    }
+    var tbAdv = document.querySelector('#tiebreaker-list li[data-tb="pontos_avancados"]');
+    if (tbAdv) tbAdv.style.display = (isLiga || isSuico) ? '' : 'none';
+
     window._updateAutoCloseVisibility();
     window._updateRegDateVisibility();
     window._onInscricaoChange();
     window._recalcDuration();
+  };
+
+  window._onAdvScoringToggle = function () {
+    var on = document.getElementById('adv-scoring-enabled').checked;
+    var body = document.getElementById('adv-scoring-body');
+    if (body) body.style.display = on ? 'block' : 'none';
   };
 
   // _onRankingManualChange mantida como alias para backward compat
@@ -2856,6 +2925,24 @@ function setupCreateTournamentModal() {
       }
     }
 
+    // Restore Advanced Scoring config
+    if (t.advancedScoring && t.advancedScoring.categories) {
+      var _advEnEl = document.getElementById('adv-scoring-enabled');
+      if (_advEnEl) {
+        _advEnEl.checked = !!t.advancedScoring.enabled;
+        window._onAdvScoringToggle();
+      }
+      Object.keys(t.advancedScoring.categories).forEach(function(key) {
+        var row = document.querySelector('#adv-scoring-body .adv-row[data-adv-key="' + key + '"]');
+        if (!row) return;
+        var cfg = t.advancedScoring.categories[key] || {};
+        var en = row.querySelector('.adv-enabled');
+        var val = row.querySelector('.adv-value');
+        if (en && typeof cfg.enabled === 'boolean') en.checked = cfg.enabled;
+        if (val && typeof cfg.value === 'number') val.value = cfg.value;
+      });
+    }
+
     // Categorias (gênero + habilidade)
     if (t.genderCategories && t.genderCategories.length > 0) {
       document.getElementById('tourn-gender-categories').value = t.genderCategories.join(',');
@@ -3088,6 +3175,30 @@ function setupCreateTournamentModal() {
         const tbList = document.getElementById('tiebreaker-list');
         if (tbList) {
           tourData.tiebreakers = Array.from(tbList.querySelectorAll('li')).map(li => li.dataset.tb).filter(Boolean);
+        }
+
+        // Sistema de Pontos Avançado (apenas Liga/Suíço puro)
+        if ((formatValue === 'liga' || formatValue === 'suico') && drawModeValue !== 'rei_rainha') {
+          var _advEnabled = document.getElementById('adv-scoring-enabled');
+          if (_advEnabled) {
+            var _advCats = {};
+            Array.from(document.querySelectorAll('#adv-scoring-body .adv-row')).forEach(function(row) {
+              var key = row.dataset.advKey;
+              if (!key) return;
+              var en = row.querySelector('.adv-enabled');
+              var val = row.querySelector('.adv-value');
+              _advCats[key] = {
+                enabled: !!(en && en.checked),
+                value: val ? (parseInt(val.value, 10) || 0) : 0
+              };
+            });
+            tourData.advancedScoring = {
+              enabled: !!_advEnabled.checked,
+              categories: _advCats
+            };
+          }
+        } else {
+          tourData.advancedScoring = null;
         }
 
         // Categorias (gênero + habilidade) — todos os formatos

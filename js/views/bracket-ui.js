@@ -1970,6 +1970,55 @@ window._showPlayerHistory = function(tId, playerName) {
   showAlertDialog(_t('bui.h2hTitle', { name: playerName }), summary + tableHtml, null, { type: 'info' });
 };
 
+// ─── Advanced Points breakdown popup ─────────────────────────────────────────
+window._showAdvancedPointsBreakdown = function(tId, playerName, category) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tId); });
+  if (!t || typeof window._calcAdvancedPoints !== 'function') return;
+  var result = window._calcAdvancedPoints(t, playerName, category || null);
+  var itemLabels = {
+    participation: '🎾 Participação',
+    match_won: '🏆 Vitória',
+    game_won: '✅ Game ganho',
+    game_lost: '❌ Game perdido',
+    tiebreak_point: '⚡ Ponto em tie-break',
+    killing_point: '💥 Killing point',
+    point_scored: '➕ Ponto feito',
+    floor: '⚓ Piso (mín. 0)'
+  };
+  var rows = '';
+  if (result.breakdown.length === 0) {
+    rows = '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--text-muted);">Sem partidas computadas.</td></tr>';
+  } else {
+    result.breakdown.forEach(function(mb) {
+      var resIcon = mb.draw ? '🤝' : (mb.won ? '✅' : '❌');
+      var oppLabel = (mb.opponent || 'BYE');
+      var itemsHtml = mb.items.map(function(it) {
+        var lbl = itemLabels[it.key] || it.key;
+        var sign = it.value >= 0 ? '+' : '';
+        return '<div style="font-size:0.72rem;color:var(--text-muted);">' + lbl + ' × ' + it.count + ' = <b style="color:' + (it.value >= 0 ? '#4ade80' : '#f87171') + ';">' + sign + it.value + '</b></div>';
+      }).join('');
+      rows += '<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">' +
+        '<td style="padding:8px 10px;font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">R' + (mb.round || '?') + ' ' + resIcon + '</td>' +
+        '<td style="padding:8px 10px;font-size:0.8rem;color:var(--text-bright);">' + window._safeHtml(oppLabel) + '</td>' +
+        '<td style="padding:8px 10px;">' + itemsHtml + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:800;color:#fbbf24;font-size:0.9rem;">' + mb.total + '</td>' +
+        '</tr>';
+    });
+  }
+  var summary = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap;">' +
+    '<span style="font-size:1.4rem;font-weight:900;color:#fbbf24;">⚡ ' + (result.total || 0) + '</span>' +
+    '<span style="color:var(--text-muted);font-size:0.8rem;">pontos avançados em ' + result.breakdown.length + ' partida' + (result.breakdown.length === 1 ? '' : 's') + '</span>' +
+    '</div>';
+  var tableHtml = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Rodada</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Adversário</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Detalhamento</th>' +
+    '<th style="padding:6px 10px;text-align:right;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Total</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  showAlertDialog('⚡ Pontos Avançados — ' + playerName, summary + tableHtml, null, { type: 'info' });
+};
+
 window._saveGroupResult = window._saveResultInline; // Reuse existing inline save
 
 // ─── Advance from Groups to Elimination ─────────────────────────────────────

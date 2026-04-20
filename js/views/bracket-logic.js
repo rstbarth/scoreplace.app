@@ -107,6 +107,141 @@ function _checkGroupRoundComplete(t, groupIndex) {
   }
 }
 
+// Advanced Points System — Liga/Suíço puro (v0.14.51+)
+// Calcula pontuação por eventos derivados do placar (games, TB pts) + eventos live (killing, pontos).
+// Retorna { total, breakdown } com detalhamento por partida para transparência.
+// Invariantes preservados por design de valores: vitória sempre > derrota; dominância recompensada;
+// floor per-match em 0 evita totais negativos.
+function _calcAdvancedPoints(t, playerName, category) {
+  if (!t || !t.advancedScoring || !t.advancedScoring.enabled || !playerName) {
+    return { total: 0, breakdown: [] };
+  }
+  var cats = t.advancedScoring.categories || {};
+  function getVal(key) {
+    var c = cats[key];
+    return (c && c.enabled) ? (parseInt(c.value, 10) || 0) : 0;
+  }
+  var vParticipation = getVal('participation');
+  var vMatchWon = getVal('match_won');
+  var vGameWon = getVal('game_won');
+  var vGameLost = getVal('game_lost');
+  var vTbPoint = getVal('tiebreak_point');
+  var vKilling = getVal('killing_point');
+  var vPointScored = getVal('point_scored');
+
+  function _playerInSide(side, name) {
+    if (Array.isArray(side)) return side.indexOf(name) !== -1;
+    if (typeof side !== 'string') return false;
+    if (side === name) return true;
+    var parts = side.split(' / ');
+    return parts.indexOf(name) !== -1;
+  }
+
+  var total = 0;
+  var breakdown = [];
+
+  (t.rounds || []).forEach(function(round) {
+    (round.matches || []).forEach(function(m) {
+      if (category && m.category !== category) return;
+      if (m.isBye || !m.winner || m.isSitOut) return;
+
+      var isMonarch = m.isMonarch && Array.isArray(m.team1) && Array.isArray(m.team2);
+      var side1 = isMonarch ? m.team1 : m.p1;
+      var side2 = isMonarch ? m.team2 : m.p2;
+      var isInP1 = _playerInSide(side1, playerName);
+      var isInP2 = _playerInSide(side2, playerName);
+      if (!isInP1 && !isInP2) return;
+
+      var isDraw = m.winner === 'draw' || m.draw;
+      var won;
+      if (isDraw) {
+        won = false;
+      } else if (isMonarch) {
+        won = (isInP1 && m.winner === m.p1) || (isInP2 && m.winner === m.p2);
+      } else {
+        won = (isInP1 && m.winner === m.p1) || (isInP2 && m.winner === m.p2) || m.winner === playerName;
+      }
+
+      var mBreakdown = { round: round.round || round.roundNumber || 0, opponent: isInP1 ? (m.p2 || '') : (m.p1 || ''), won: won, draw: isDraw, items: [] };
+      var mTotal = 0;
+
+      if (vParticipation) {
+        mTotal += vParticipation;
+        mBreakdown.items.push({ key: 'participation', count: 1, unit: vParticipation, value: vParticipation });
+      }
+      if (won && vMatchWon) {
+        mTotal += vMatchWon;
+        mBreakdown.items.push({ key: 'match_won', count: 1, unit: vMatchWon, value: vMatchWon });
+      }
+
+      var gamesWon = 0, gamesLost = 0, tbPtsWon = 0;
+      if (Array.isArray(m.sets) && m.sets.length > 0) {
+        m.sets.forEach(function(s) {
+          var g1 = parseInt(s.gamesP1) || 0;
+          var g2 = parseInt(s.gamesP2) || 0;
+          if (isInP1) { gamesWon += g1; gamesLost += g2; }
+          else { gamesWon += g2; gamesLost += g1; }
+          if (s.tiebreak) {
+            var tp1 = parseInt(s.tiebreak.pointsP1) || 0;
+            var tp2 = parseInt(s.tiebreak.pointsP2) || 0;
+            tbPtsWon += isInP1 ? tp1 : tp2;
+          }
+        });
+      } else {
+        var s1 = parseInt(m.scoreP1) || 0;
+        var s2 = parseInt(m.scoreP2) || 0;
+        gamesWon = isInP1 ? s1 : s2;
+        gamesLost = isInP1 ? s2 : s1;
+      }
+      if (vGameWon && gamesWon > 0) {
+        var gw = gamesWon * vGameWon;
+        mTotal += gw;
+        mBreakdown.items.push({ key: 'game_won', count: gamesWon, unit: vGameWon, value: gw });
+      }
+      if (vGameLost && gamesLost > 0) {
+        var gl = gamesLost * vGameLost;
+        mTotal += gl;
+        mBreakdown.items.push({ key: 'game_lost', count: gamesLost, unit: vGameLost, value: gl });
+      }
+      if (vTbPoint && tbPtsWon > 0) {
+        var tbp = tbPtsWon * vTbPoint;
+        mTotal += tbp;
+        mBreakdown.items.push({ key: 'tiebreak_point', count: tbPtsWon, unit: vTbPoint, value: tbp });
+      }
+
+      // Eventos live (requer pontuação ao vivo — m.liveStats)
+      if (vKilling && m.liveStats) {
+        var myKill = isInP1 ? (parseInt(m.liveStats.killingP1) || 0) : (parseInt(m.liveStats.killingP2) || 0);
+        if (myKill > 0) {
+          var kTotal = myKill * vKilling;
+          mTotal += kTotal;
+          mBreakdown.items.push({ key: 'killing_point', count: myKill, unit: vKilling, value: kTotal });
+        }
+      }
+      if (vPointScored && m.liveStats) {
+        var myPts = isInP1 ? (parseInt(m.liveStats.pointsP1) || 0) : (parseInt(m.liveStats.pointsP2) || 0);
+        if (myPts > 0) {
+          var pTotal = myPts * vPointScored;
+          mTotal += pTotal;
+          mBreakdown.items.push({ key: 'point_scored', count: myPts, unit: vPointScored, value: pTotal });
+        }
+      }
+
+      // Floor per-match em 0
+      if (mTotal < 0) {
+        mBreakdown.items.push({ key: 'floor', count: 1, unit: -mTotal, value: -mTotal });
+        mTotal = 0;
+      }
+      mBreakdown.total = mTotal;
+      total += mTotal;
+      breakdown.push(mBreakdown);
+    });
+  });
+
+  return { total: total, breakdown: breakdown };
+}
+window._calcAdvancedPoints = _calcAdvancedPoints;
+
 window._computeStandings = _computeStandings; // expose globally for finishTournament
 function _computeStandings(t, category) {
   const scoreMap = {};
@@ -267,10 +402,20 @@ function _computeStandings(t, category) {
   // Compute gamesDiff for each player
   standings.forEach(function(s) { s.gamesDiff = (s.gamesWon || 0) - (s.gamesLost || 0); s.setsDiff = (s.setsWon || 0) - (s.setsLost || 0); });
 
+  // Advanced Points: compute per player if enabled
+  if (t.advancedScoring && t.advancedScoring.enabled && typeof _calcAdvancedPoints === 'function') {
+    standings.forEach(function(s) {
+      s.advancedPoints = _calcAdvancedPoints(t, s.name, category).total;
+    });
+  }
+
   // Apply configured tiebreaker order — auto-add GSM criteria when tournament uses sets
   var defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz'];
   if (t.scoring && t.scoring.type === 'sets') {
     defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'tiebreaks_vencidos', 'vitorias', 'buchholz'];
+  }
+  if (t.advancedScoring && t.advancedScoring.enabled) {
+    defaultTb = ['pontos_avancados'].concat(defaultTb);
   }
   const tiebreakers = t.tiebreakers || defaultTb;
 
@@ -341,6 +486,10 @@ function _computeStandings(t, category) {
           break;
         case 'tiebreaks_vencidos':
           diff = (b.tiebreaksWon || 0) - (a.tiebreaksWon || 0);
+          if (diff !== 0) return diff;
+          break;
+        case 'pontos_avancados':
+          diff = (b.advancedPoints || 0) - (a.advancedPoints || 0);
           if (diff !== 0) return diff;
           break;
         case 'sorteio':
