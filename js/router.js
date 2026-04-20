@@ -1,4 +1,9 @@
 function initRouter() {
+  // Disable browser scroll restoration — we manage scroll ourselves. Without
+  // this, bfcache + hashchange combinations let the browser repopulate scrollY
+  // AFTER our jump-to-top runs, leaving Voltar looking broken.
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch(e) {}
+
   const links = document.querySelectorAll('.nav-link');
   const viewContainer = document.getElementById('view-container');
 

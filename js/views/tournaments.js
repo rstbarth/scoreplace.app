@@ -2016,7 +2016,14 @@ function renderTournaments(container, tournamentId = null) {
     }
 
     // --- Invited visitor: scroll to enrollment CTA and show hint ---
-    if (tournamentId && !window.AppStore.currentUser) {
+    // Gate by sessionStorage so Voltar back to the same tournament doesn't
+    // trigger another smooth-scroll (which left the user parked mid-page and
+    // made the Voltar button look broken).
+    var _ctaScrollKey = tournamentId ? ('_ctaScrolled_' + tournamentId) : null;
+    var _alreadyScrolledCta = false;
+    try { _alreadyScrolledCta = _ctaScrollKey && !!sessionStorage.getItem(_ctaScrollKey); } catch(e) {}
+    if (tournamentId && !window.AppStore.currentUser && !_alreadyScrolledCta) {
+      try { if (_ctaScrollKey) sessionStorage.setItem(_ctaScrollKey, '1'); } catch(e) {}
       var _isInvite = false;
       try {
         var _h = window.location.hash || '';

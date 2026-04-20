@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.19-alpha';
+window.SCOREPLACE_VERSION = '0.14.20-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -261,10 +261,18 @@ window._closeHamburger = function() {
 
 // ─── UNIFIED BACK HEADER ────────────────────────────────────────────────────
 // Canonical emitter for the fixed "Voltar" bar that sits under the topbar.
-// Every view was rolling its own markup (~10 copies with divergent styles,
-// onclicks, flex layouts) which made it easy for one copy to drift and lose
-// click-through (e.g. missing event.stopPropagation, wrong z-index). All
-// views now call this helper so there is ONE place to fix bugs.
+// ALL views route through this helper — there is exactly one place that
+// renders a Voltar button and exactly one click path that handles it.
+//
+// Architecture:
+//   - The button carries `data-back-nav` + `data-back-href` attributes.
+//   - A single delegated listener on <body> (installed in _installBackNavDelegate
+//     below) handles every Voltar click in the app. This is more robust than
+//     inline onclick strings which are fragile to escaping bugs and easy to
+//     lose silently when the button is re-parented by CSS tricks.
+//   - On click: _dismissAllOverlays() runs, then window.location.hash is set.
+//     A programmatic callback override is supported via registry instead of
+//     inline JS.
 //
 // opts:
 //   href           — hash to navigate to (default '#dashboard')
@@ -274,17 +282,14 @@ window._closeHamburger = function() {
 //   rightHtml      — optional HTML after the middle slot
 //   belowHtml      — optional second row inside the sticky wrapper
 //   extraStyle     — optional inline style on the outer wrapper
-//   onClickOverride— optional JS string replacing the default hash-set
-//                    (used by modal-overlay variants like player stats)
+//   onClickOverride— optional JS string (legacy) OR function. If a function is
+//                    passed, it's registered and invoked by the delegate.
+window._backNavCallbacks = window._backNavCallbacks || {};
 window._renderBackHeader = function(opts) {
   opts = opts || {};
   var _label = (opts.label == null) ? 'Voltar' : String(opts.label);
-  // Default: dismiss overlays + set hash. onClickOverride replaces the whole
-  // onclick body (caller handles everything).
   var _href = opts.href || '#dashboard';
-  var _safeHref = String(_href).replace(/'/g, "\\'");
-  var _clickJs = opts.onClickOverride
-    || ("if(window._dismissAllOverlays)window._dismissAllOverlays();window.location.hash='" + _safeHref + "';");
+  var _safeHrefAttr = String(_href).replace(/"/g, '&quot;');
   var _extraStyle = opts.extraStyle ? (' style="' + opts.extraStyle + '"') : '';
   var _svg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
   var _middle = (opts.middleHtml == null || opts.middleHtml === '')
@@ -292,12 +297,27 @@ window._renderBackHeader = function(opts) {
     : opts.middleHtml;
   var _right = opts.rightHtml || '';
   var _below = opts.belowHtml || '';
+
+  // Override support: inline JS (legacy string) OR function (registered).
+  var _overrideAttr = '';
+  if (opts.onClickOverride) {
+    if (typeof opts.onClickOverride === 'function') {
+      var _cbId = 'back_cb_' + Math.random().toString(36).slice(2, 10);
+      window._backNavCallbacks[_cbId] = opts.onClickOverride;
+      _overrideAttr = ' data-back-cb="' + _cbId + '"';
+    } else {
+      // Legacy inline-JS override (kept for backward compat).
+      _overrideAttr = ' data-back-inline="' + String(opts.onClickOverride).replace(/"/g, '&quot;') + '"';
+    }
+  }
+
   return (
     '<div class="sticky-back-header"' + _extraStyle + '>' +
       '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">' +
         '<button class="btn btn-outline btn-sm hover-lift" type="button" ' +
-                'style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;" ' +
-                'onclick="event.stopPropagation();' + _clickJs + '">' +
+                'data-back-nav="1" data-back-href="' + _safeHrefAttr + '"' + _overrideAttr + ' ' +
+                'aria-label="' + _label + '" ' +
+                'style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;">' +
           _svg + ' ' + _label +
         '</button>' +
         _middle +
@@ -307,6 +327,61 @@ window._renderBackHeader = function(opts) {
     '</div>'
   );
 };
+
+// Single delegated click handler for every Voltar button in the app.
+// Installed once at load; survives view re-renders because it lives on <body>.
+window._installBackNavDelegate = function() {
+  if (window._backNavDelegateInstalled) return;
+  window._backNavDelegateInstalled = true;
+  var _onBackNav = function(e) {
+    // Walk up from target to find [data-back-nav] (button may wrap SVG/text)
+    var el = e.target;
+    while (el && el !== document.body) {
+      if (el.nodeType === 1 && el.getAttribute && el.getAttribute('data-back-nav') === '1') break;
+      el = el.parentNode;
+    }
+    if (!el || el === document.body) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Dismiss overlays first so no stale full-screen modal masks the target view.
+    try { if (typeof window._dismissAllOverlays === 'function') window._dismissAllOverlays(); } catch(err) {}
+
+    // Override path: callback function registered in _backNavCallbacks.
+    var cbId = el.getAttribute('data-back-cb');
+    if (cbId && typeof window._backNavCallbacks[cbId] === 'function') {
+      try { window._backNavCallbacks[cbId](e); } catch(err) { console.warn('[scoreplace-back] cb error', err); }
+      return;
+    }
+    // Override path: legacy inline JS string (Function exec).
+    var inline = el.getAttribute('data-back-inline');
+    if (inline) {
+      try { (new Function(inline))(); } catch(err) { console.warn('[scoreplace-back] inline error', err); }
+      return;
+    }
+    // Default path: navigate to the hash. If we're already there (edge case
+    // where caller passed href === current hash), force a re-render by briefly
+    // toggling the hash, so the user still gets the expected back behavior.
+    var href = el.getAttribute('data-back-href') || '#dashboard';
+    if (window.location.hash === href) {
+      window.location.hash = '#dashboard';
+      if (href !== '#dashboard') {
+        setTimeout(function() { window.location.hash = href; }, 0);
+      }
+    } else {
+      window.location.hash = href;
+    }
+  };
+  // Capture-phase so we beat view-local listeners (no one else should also
+  // handle a click on a [data-back-nav] element).
+  document.body.addEventListener('click', _onBackNav, true);
+};
+// Install as soon as body exists.
+if (document.body) {
+  window._installBackNavDelegate();
+} else {
+  document.addEventListener('DOMContentLoaded', function() { window._installBackNavDelegate(); });
+}
 
 // ─── DISMISS ALL OVERLAYS ───────────────────────────────────────────────────
 // .sticky-back-header lives at z-index 101, but the app creates 40+ ad-hoc
