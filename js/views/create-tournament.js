@@ -13,25 +13,9 @@ function setupCreateTournamentModal() {
     const modalHtml = `
       <div class="modal-overlay" id="modal-create-tournament">
         <div class="modal" style="max-width: 800px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-          <div class="modal-header create-modal-header" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; border-bottom: 1px solid var(--border-color); padding: 0.6rem 0.75rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-            <button class="btn btn-outline btn-sm hover-lift" onclick="window._discardCreateTournament()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:18px;flex-shrink:0;font-size:0.78rem;" aria-label="${_t('btn.back') || 'Voltar'}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-              <span class="hdr-label">${_t('btn.back') || 'Voltar'}</span>
-            </button>
-            <button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()" style="padding:5px 10px;font-size:0.75rem;flex-shrink:0;" title="${_t('create.loadTemplate') || 'Carregar Template'}">💾<span class="hdr-label" style="margin-left:4px;">${_t('create.loadTemplate') || 'Carregar'}</span></button>
-            <button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" onclick="window._saveCurrentFormAsTemplate()" style="padding:5px 10px;font-size:0.75rem;flex-shrink:0;" title="${_t('create.saveTemplate') || 'Salvar Template'}">⭐<span class="hdr-label" style="margin-left:4px;">${_t('create.saveTemplate') || 'Salvar Template'}</span></button>
-            <div style="flex:1;min-width:4px;"></div>
-            <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;display:none;">${_t('create.modalTitle')}</h2>
-            <button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" onclick="window._discardCreateTournament()" style="padding:5px 10px;border-radius:10px;font-size:0.78rem;flex-shrink:0;">${_t('btn.discard') || 'Descartar'}</button>
-            <button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" style="padding:5px 14px;border-radius:10px;font-size:0.78rem;flex-shrink:0;font-weight:700;">${_t('btn.save') || 'Salvar'}</button>
-          </div>
-          <style>
-            @media(max-width:600px){
-              .create-modal-header .hdr-label{display:none;}
-              .create-modal-header .btn{padding:5px 8px!important;}
-              #btn-load-template-create, #btn-save-template-create{font-size:0.9rem!important;}
-            }
-          </style>
+          <!-- Back header placeholder — populated by _renderBackHeader + action buttons in setupCreateTournamentModal -->
+          <div id="create-tournament-header-host"></div>
+          <h2 id="create-modal-title" style="display:none;">${_t('create.modalTitle')}</h2>
           <div class="modal-body" style="padding: 1.5rem; color: var(--text-main); overflow-x: hidden; max-width: 100%; box-sizing: border-box;">
             <form id="form-create-tournament" onsubmit="event.preventDefault();" style="max-width: 100%; overflow-x: hidden;">
               <input type="hidden" id="edit-tournament-id">
@@ -604,6 +588,11 @@ function setupCreateTournamentModal() {
       </div>
     `;
     document.body.appendChild(createInteractiveElement(modalHtml));
+
+    // Render the centralized back header with action buttons (Voltar + Carregar + Salvar Template + Descartar + Salvar)
+    if (typeof window._renderCreateTournamentHeader === 'function') {
+      window._renderCreateTournamentHeader();
+    }
 
     // Add Google Places Autocomplete styling for dark theme
     if (!document.getElementById('google-places-style')) {
@@ -3865,9 +3854,84 @@ window._prefillFromTemplate = function(tpl) {
 // Closes the create-tournament modal without saving. Used by the "Voltar"
 // and "Descartar" buttons in the sticky modal header.
 window._discardCreateTournament = function() {
-  var modal = document.getElementById('modal-create-tournament');
-  if (modal) modal.classList.remove('active');
+  if (typeof closeModal === 'function') closeModal('modal-create-tournament');
+  else {
+    var modal = document.getElementById('modal-create-tournament');
+    if (modal) modal.classList.remove('active');
+  }
 };
+
+// ─── Render the sticky back-header for the create/edit tournament modal ──
+// Uses the centralized window._renderBackHeader helper with action buttons
+// (Carregar Template, Salvar Template, Descartar, Salvar) wired into the
+// rightHtml slot. The Voltar button's onClickOverride closes the modal —
+// equivalent to Descartar. This keeps ONE single back-header in the whole
+// app (avoids the "2 Voltar" duplicate users reported).
+window._renderCreateTournamentHeader = function() {
+  var host = document.getElementById('create-tournament-header-host');
+  if (!host || typeof window._renderBackHeader !== 'function') return;
+  var _t = window._t || function(k) { return k; };
+  var btnStyle = 'padding:5px 10px;font-size:0.75rem;flex-shrink:0;border-radius:10px;';
+  var actionsHtml =
+    '<div class="create-hdr-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">' +
+      '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" onclick="window._showTemplatePickerInCreate()" style="' + btnStyle + '" title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾<span class="hdr-label" style="margin-left:4px;">' + (_t('create.loadTemplate') || 'Carregar') + '</span></button>' +
+      '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" onclick="window._saveCurrentFormAsTemplate()" style="' + btnStyle + '" title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐<span class="hdr-label" style="margin-left:4px;">' + (_t('create.saveTemplate') || 'Salvar Template') + '</span></button>' +
+      '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" onclick="window._discardCreateTournament()" style="' + btnStyle + '">' + (_t('btn.discard') || 'Descartar') + '</button>' +
+      '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" style="' + btnStyle + 'padding:5px 14px;font-weight:700;">' + (_t('btn.save') || 'Salvar') + '</button>' +
+    '</div>';
+  host.innerHTML = window._renderBackHeader({
+    href: '#dashboard',
+    label: _t('btn.back') || 'Voltar',
+    onClickOverride: window._discardCreateTournament,
+    rightHtml: actionsHtml
+  });
+  // Shrink labels on small screens (inline style for sticky-back-header override)
+  if (!document.getElementById('create-tournament-header-style')) {
+    var st = document.createElement('style');
+    st.id = 'create-tournament-header-style';
+    st.textContent =
+      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;background:var(--bg-card);padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);z-index:10;}' +
+      '@media(max-width:600px){' +
+        '#modal-create-tournament .create-hdr-actions .hdr-label{display:none;}' +
+        '#modal-create-tournament .create-hdr-actions .btn{padding:5px 8px!important;}' +
+      '}';
+    document.head.appendChild(st);
+  }
+};
+
+// ─── Hide/restore underlying sticky-back-headers when the modal is open ───
+// The app keeps the view's Voltar at z-index 1001 (ABOVE modal at 1000) so
+// Voltar is always clickable. But when a modal provides its own back header
+// we must hide the underlying one to avoid a duplicate Voltar on-screen.
+(function() {
+  var KEY = '_ctSuspendedBackHeaders';
+  function suspend() {
+    var modal = document.getElementById('modal-create-tournament');
+    if (!modal) return;
+    var suspended = [];
+    document.querySelectorAll('.sticky-back-header').forEach(function(h) {
+      if (modal.contains(h)) return; // skip the modal's own back header
+      suspended.push({ el: h, prev: h.style.display });
+      h.style.display = 'none';
+    });
+    window[KEY] = suspended;
+  }
+  function restore() {
+    var suspended = window[KEY] || [];
+    suspended.forEach(function(s) { s.el.style.display = s.prev || ''; });
+    window[KEY] = null;
+  }
+  var _oOpen = window.openModal;
+  window.openModal = function(id) {
+    if (typeof _oOpen === 'function') _oOpen(id);
+    if (id === 'modal-create-tournament') suspend();
+  };
+  var _oClose = window.closeModal;
+  window.closeModal = function(id) {
+    if (id === 'modal-create-tournament') restore();
+    if (typeof _oClose === 'function') _oClose(id);
+  };
+})();
 
 // ─── Save current form as template ────────────────────────────────────────
 // Reads the current create-tournament form values and saves them as a
