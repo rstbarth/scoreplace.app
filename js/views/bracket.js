@@ -1443,6 +1443,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
         return { name: g.name, players: g.players || [], matches: rawMatches };
       });
 
+  var _useSetsMonarch = !!(t.scoring && t.scoring.type === 'gsm');
   subgroups.forEach(function(sg, gi) {
     // _computeMonarchStandings tolerates both shapes: group.matches or
     // group.rounds[0].matches. We pass the flat form, which is what subgroup
@@ -1452,33 +1453,51 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
     var groupDone = matches.length > 0 && matches.every(function(m) { return !!m.winner; });
     if (!groupDone) allGroupsDone = false;
 
-    // Standings table
-    var medal = function(i) { return i === 0 ? '👑' : (i + 1) + 'º'; };
+    // Standings table — no crown; qualified rows still highlighted via CLASSIF badge
     var classified = t.monarchClassified || 1;
     var standingsRows = standings.map(function(s, i) {
       var diff = s.pointsFor - s.pointsAgainst;
+      var setDiff = s.setsWon - s.setsLost;
+      var gameDiff = s.gamesWon - s.gamesLost;
+      var winRatePct = s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0;
       var bg = i < classified ? 'rgba(251,191,36,0.08)' : '';
       var clr = i < classified ? '#fbbf24' : 'var(--text-muted)';
-      return '<tr style="border-bottom:1px solid var(--border-color);' + (bg ? 'background:' + bg + ';' : '') + '">' +
-        '<td style="padding:6px 10px;font-weight:700;color:' + clr + ';text-align:center;">' + medal(i) + '</td>' +
+      var row = '<tr style="border-bottom:1px solid var(--border-color);' + (bg ? 'background:' + bg + ';' : '') + '">' +
+        '<td style="padding:6px 10px;font-weight:700;color:' + clr + ';text-align:center;">' + (i + 1) + 'º</td>' +
         '<td style="padding:6px 10px;font-weight:600;color:var(--text-bright);">' + (typeof window._nameWithCrown === 'function' && window._currentBracketTournament ? window._nameWithCrown(s.name, window._currentBracketTournament) : window._safeHtml(s.name)) + (i < classified ? ' <span style="font-size:0.6rem;color:#fbbf24;font-weight:800;">CLASSIF.</span>' : '') + '</td>' +
         '<td style="padding:6px 10px;text-align:center;color:#4ade80;font-weight:700;">' + s.wins + '</td>' +
         '<td style="padding:6px 10px;text-align:center;color:#f87171;">' + s.losses + '</td>' +
-        '<td style="padding:6px 10px;text-align:center;color:var(--text-bright);">' + s.pointsFor + '</td>' +
-        '<td style="padding:6px 10px;text-align:center;color:var(--text-muted);">' + s.pointsAgainst + '</td>' +
-        '<td style="padding:6px 10px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';">' + (diff >= 0 ? '+' : '') + diff + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:var(--text-bright);font-weight:600;" title="Pontos pró (somados em todos os jogos)">' + s.pointsFor + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';" title="Saldo (pró − contra)">' + (diff >= 0 ? '+' : '') + diff + '</td>';
+      if (_useSetsMonarch) {
+        row += '<td style="padding:6px 10px;text-align:center;color:#06b6d4;" title="Sets V-D">' + s.setsWon + '-' + s.setsLost + '</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:' + (setDiff >= 0 ? '#06b6d4' : '#f87171') + ';" title="Saldo de sets">' + (setDiff >= 0 ? '+' : '') + setDiff + '</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#8b5cf6;" title="Games V-D">' + s.gamesWon + '-' + s.gamesLost + '</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:' + (gameDiff >= 0 ? '#8b5cf6' : '#f87171') + ';" title="Saldo de games">' + (gameDiff >= 0 ? '+' : '') + gameDiff + '</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#f59e0b;" title="Tie-breaks V-D">' + s.tiebreaksWon + '-' + s.tiebreaksLost + '</td>';
+      }
+      row += '<td style="padding:6px 10px;text-align:center;color:var(--text-muted);font-weight:600;" title="Aproveitamento (V/J)">' + winRatePct + '%</td>' +
       '</tr>';
+      return row;
     }).join('');
 
-    var standingsTable = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:1rem;">' +
+    var extraHeaders = _useSetsMonarch ? (
+      '<th style="padding:6px 10px;text-align:center;color:#06b6d4;font-size:0.7rem;" title="Sets vencidos − perdidos">Sets</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:#06b6d4;font-size:0.7rem;" title="Saldo de sets">±S</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:#8b5cf6;font-size:0.7rem;" title="Games vencidos − perdidos">Games</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:#8b5cf6;font-size:0.7rem;" title="Saldo de games">±G</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:#f59e0b;font-size:0.7rem;" title="Tie-breaks vencidos − perdidos">TB</th>'
+    ) : '';
+    var standingsTable = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:1rem;">' +
       '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
       '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">#</th>' +
       '<th style="padding:6px 10px;color:var(--text-muted);font-size:0.7rem;">Jogador</th>' +
       '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">V</th>' +
       '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">D</th>' +
-      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">PF</th>' +
-      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">PC</th>' +
-      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;">Saldo</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;" title="Pontos pró (cada ponto conta)">Pts</th>' +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;" title="Saldo de pontos (pró − contra)">Saldo</th>' +
+      extraHeaders +
+      '<th style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:0.7rem;" title="Aproveitamento">%</th>' +
       '</tr></thead><tbody>' + standingsRows + '</tbody></table>';
 
     // Match cards
@@ -1494,9 +1513,9 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
         statusBadge +
       '</div>' +
       '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (sg.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
-      standingsTable +
       '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">' + _t('bracket.monarchMatchRotation') + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:8px;">' + matchCards + '</div>' +
+      '<div style="overflow-x:auto;">' + standingsTable + '</div>' +
     '</div>';
   });
 
@@ -1873,26 +1892,50 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         ${isFinished ? `<span style="color:#fbbf24;font-weight:700;">${_t('bracket.tournamentFinished')}</span>` : ''}
       </div>
       ${_isReiRainhaRound ? (() => {
+        var _useSetsMonarch = !!(t.scoring && t.scoring.type === 'gsm');
         return currentRoundData.monarchGroups.map(function(g) {
           var gStandings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
           var gDone = g.matches.length > 0 && g.matches.every(function(m) { return !!m.winner; });
           var gRows = gStandings.map(function(s, si) {
             var diff = s.pointsFor - s.pointsAgainst;
-            return '<tr style="border-bottom:1px solid var(--border-color);">' +
-              '<td style="padding:5px 8px;font-weight:700;color:' + (si === 0 ? '#fbbf24' : 'var(--text-muted)') + ';text-align:center;">' + (si === 0 ? '👑' : (si+1)+'º') + '</td>' +
+            var setDiff = s.setsWon - s.setsLost;
+            var gameDiff = s.gamesWon - s.gamesLost;
+            var winRatePct = s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0;
+            var row = '<tr style="border-bottom:1px solid var(--border-color);">' +
+              '<td style="padding:5px 8px;font-weight:700;color:var(--text-muted);text-align:center;">' + (si+1) + 'º</td>' +
               '<td style="padding:5px 8px;font-weight:600;color:var(--text-bright);">' + window._safeHtml(s.name) + '</td>' +
               '<td style="padding:5px 8px;text-align:center;color:#4ade80;font-weight:700;">' + s.wins + '</td>' +
               '<td style="padding:5px 8px;text-align:center;color:#f87171;">' + s.losses + '</td>' +
-              '<td style="padding:5px 8px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';">' + (diff>=0?'+':'') + diff + '</td>' +
+              '<td style="padding:5px 8px;text-align:center;color:var(--text-bright);font-weight:600;">' + s.pointsFor + '</td>' +
+              '<td style="padding:5px 8px;text-align:center;color:' + (diff >= 0 ? '#4ade80' : '#f87171') + ';">' + (diff>=0?'+':'') + diff + '</td>';
+            if (_useSetsMonarch) {
+              row += '<td style="padding:5px 8px;text-align:center;color:#06b6d4;">' + s.setsWon + '-' + s.setsLost + '</td>' +
+                '<td style="padding:5px 8px;text-align:center;color:' + (setDiff >= 0 ? '#06b6d4' : '#f87171') + ';">' + (setDiff>=0?'+':'') + setDiff + '</td>' +
+                '<td style="padding:5px 8px;text-align:center;color:#8b5cf6;">' + s.gamesWon + '-' + s.gamesLost + '</td>' +
+                '<td style="padding:5px 8px;text-align:center;color:' + (gameDiff >= 0 ? '#8b5cf6' : '#f87171') + ';">' + (gameDiff>=0?'+':'') + gameDiff + '</td>' +
+                '<td style="padding:5px 8px;text-align:center;color:#f59e0b;">' + s.tiebreaksWon + '-' + s.tiebreaksLost + '</td>';
+            }
+            row += '<td style="padding:5px 8px;text-align:center;color:var(--text-muted);font-weight:600;">' + winRatePct + '%</td>' +
             '</tr>';
+            return row;
           }).join('');
-          var gTable = '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-bottom:0.75rem;">' +
+          var extraHeaders = _useSetsMonarch ? (
+            '<th style="padding:5px 8px;text-align:center;color:#06b6d4;font-size:0.65rem;" title="Sets vencidos - perdidos">Sets</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:#06b6d4;font-size:0.65rem;" title="Saldo de sets">±S</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:#8b5cf6;font-size:0.65rem;" title="Games vencidos - perdidos">Games</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:#8b5cf6;font-size:0.65rem;" title="Saldo de games">±G</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:#f59e0b;font-size:0.65rem;" title="Tie-breaks vencidos - perdidos">TB</th>'
+          ) : '';
+          var gTable = '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:0.75rem;">' +
             '<thead><tr style="border-bottom:2px solid var(--border-color);">' +
             '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">#</th>' +
             '<th style="padding:5px 8px;color:var(--text-muted);font-size:0.65rem;">Jogador</th>' +
             '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">V</th>' +
             '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">D</th>' +
-            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;">Saldo</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;" title="Pontos feitos em todos os jogos (pró)">Pts</th>' +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;" title="Saldo de pontos (pró − contra)">Saldo</th>' +
+            extraHeaders +
+            '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;" title="Aproveitamento (V/J)">%</th>' +
             '</tr></thead><tbody>' + gRows + '</tbody></table>';
           var gCards = g.matches.map(function(m, mi) {
             return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult, t.id, mi + 1) + '</div>';
@@ -1901,8 +1944,8 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           return '<div style="background:rgba(251,191,36,0.03);border:1px solid rgba(251,191,36,0.15);border-left:3px solid ' + (gDone?'#4ade80':'#fbbf24') + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;">Jogadores: ' + g.players.map(function(n){return window._safeHtml(n);}).join(', ') + '</div>' +
-            gTable +
             '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + gCards + '</div>' +
+            '<div style="overflow-x:auto;">' + gTable + '</div>' +
           '</div>';
         }).join('');
       })() : (() => {

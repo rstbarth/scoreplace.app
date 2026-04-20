@@ -5,7 +5,13 @@ var _t = window._t || function(k) { return k; };
 window._computeMonarchStandings = function(group) {
   var stats = {};
   (group.players || []).forEach(function(name) {
-    stats[name] = { name: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, played: 0 };
+    stats[name] = {
+      name: name, wins: 0, losses: 0, played: 0,
+      pointsFor: 0, pointsAgainst: 0,
+      setsWon: 0, setsLost: 0,
+      gamesWon: 0, gamesLost: 0,
+      tiebreaksWon: 0, tiebreaksLost: 0
+    };
   });
 
   var matches = (group.rounds && group.rounds[0]) ? group.rounds[0].matches : (group.matches || []);
@@ -15,11 +21,33 @@ window._computeMonarchStandings = function(group) {
     var s2 = parseInt(m.scoreP2) || 0;
     var team1Won = m.winner === m.p1;
 
+    // GSM breakdown (sets/games/tiebreaks) — if sets[] recorded, aggregate per side
+    var sw1 = 0, sw2 = 0, gw1 = 0, gw2 = 0, tb1 = 0, tb2 = 0;
+    if (Array.isArray(m.sets) && m.sets.length > 0) {
+      m.sets.forEach(function(st) {
+        var g1 = parseInt(st.gamesP1) || 0;
+        var g2 = parseInt(st.gamesP2) || 0;
+        gw1 += g1; gw2 += g2;
+        if (g1 > g2) sw1++; else if (g2 > g1) sw2++;
+        if (st.tiebreak) {
+          var tp1 = parseInt(st.tiebreak.pointsP1) || 0;
+          var tp2 = parseInt(st.tiebreak.pointsP2) || 0;
+          if (tp1 > tp2) tb1++; else if (tp2 > tp1) tb2++;
+        }
+      });
+    }
+
     m.team1.forEach(function(name) {
       if (!stats[name]) return;
       stats[name].played++;
       stats[name].pointsFor += s1;
       stats[name].pointsAgainst += s2;
+      stats[name].setsWon += sw1;
+      stats[name].setsLost += sw2;
+      stats[name].gamesWon += gw1;
+      stats[name].gamesLost += gw2;
+      stats[name].tiebreaksWon += tb1;
+      stats[name].tiebreaksLost += tb2;
       if (team1Won) stats[name].wins++; else stats[name].losses++;
     });
     m.team2.forEach(function(name) {
@@ -27,16 +55,41 @@ window._computeMonarchStandings = function(group) {
       stats[name].played++;
       stats[name].pointsFor += s2;
       stats[name].pointsAgainst += s1;
+      stats[name].setsWon += sw2;
+      stats[name].setsLost += sw1;
+      stats[name].gamesWon += gw2;
+      stats[name].gamesLost += gw1;
+      stats[name].tiebreaksWon += tb2;
+      stats[name].tiebreaksLost += tb1;
       if (!team1Won) stats[name].wins++; else stats[name].losses++;
     });
   });
 
+  // Compute winRate (aproveitamento) as tiebreaker for players with fewer games
+  Object.keys(stats).forEach(function(k) {
+    stats[k].winRate = stats[k].played > 0 ? stats[k].wins / stats[k].played : 0;
+  });
+
+  // Tiebreaker order (desc unless noted):
+  // 1. wins  2. setsDiff  3. setsWon  4. gamesDiff  5. gamesWon
+  // 6. tiebreaksDiff  7. tiebreaksWon  8. pointsDiff  9. pointsFor  10. winRate  11. played (asc)
   return Object.values(stats).sort(function(a, b) {
     if (b.wins !== a.wins) return b.wins - a.wins;
+    var aSetD = a.setsWon - a.setsLost, bSetD = b.setsWon - b.setsLost;
+    if (bSetD !== aSetD) return bSetD - aSetD;
+    if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
+    var aGD = a.gamesWon - a.gamesLost, bGD = b.gamesWon - b.gamesLost;
+    if (bGD !== aGD) return bGD - aGD;
+    if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
+    var aTBD = a.tiebreaksWon - a.tiebreaksLost, bTBD = b.tiebreaksWon - b.tiebreaksLost;
+    if (bTBD !== aTBD) return bTBD - aTBD;
+    if (b.tiebreaksWon !== a.tiebreaksWon) return b.tiebreaksWon - a.tiebreaksWon;
     var aDiff = a.pointsFor - a.pointsAgainst;
     var bDiff = b.pointsFor - b.pointsAgainst;
     if (bDiff !== aDiff) return bDiff - aDiff;
-    return b.pointsFor - a.pointsFor;
+    if (b.pointsFor !== a.pointsFor) return b.pointsFor - a.pointsFor;
+    if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+    return a.played - b.played;
   });
 };
 
