@@ -2415,6 +2415,10 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
   if (useColumnLayout) {
     return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml;
   }
+  // Liga: put the current round (with "Seu jogo" + "Demais jogos da rodada") at the top of the page, above the standings.
+  if (isLigaFmt) {
+    return _phaseBannerHtml + _progressBar + _readyBanner + currentRoundHtml + standingsTablesHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  }
   return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
