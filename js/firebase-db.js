@@ -85,17 +85,31 @@ window.FirestoreDB = {
         return { alreadyEnrolled: false, enrollmentClosed: true, participants: participants };
       }
 
+      var pUid = participantObj.uid || '';
+      function _memberMatches(m) {
+        if (!m) return false;
+        if (typeof m === 'string') {
+          var s = m.trim();
+          return (pEmail && s.toLowerCase() === pEmail.toLowerCase()) || (pName && s === pName);
+        }
+        if (pUid && m.uid && m.uid === pUid) return true;
+        if (pEmail && m.email && m.email.toLowerCase() === pEmail.toLowerCase()) return true;
+        if (pName && m.displayName && m.displayName === pName) return true;
+        if (pName && m.name && m.name === pName) return true;
+        return false;
+      }
       var already = participants.some(function(p) {
         if (typeof p === 'string') {
-          return (pEmail && p === pEmail) || (pName && p === pName);
+          var parts = p.split(' / ').map(function(s) { return s.trim(); }).filter(Boolean);
+          return parts.some(_memberMatches);
         }
-        var pE = p.email || '';
-        var pD = p.displayName || '';
-        var pN = p.name || '';
-        var pU = p.uid || '';
-        return (pEmail && (pE === pEmail)) ||
-               (pName && (pD === pName || pN === pName)) ||
-               (participantObj.uid && pU && pU === participantObj.uid);
+        if (_memberMatches(p)) return true;
+        if (Array.isArray(p.participants) && p.participants.some(_memberMatches)) return true;
+        var label = p.displayName || p.name || '';
+        if (label && label.indexOf(' / ') !== -1) {
+          return label.split(' / ').map(function(s) { return s.trim(); }).filter(Boolean).some(_memberMatches);
+        }
+        return false;
       });
       if (already) return { alreadyEnrolled: true, participants: participants };
 

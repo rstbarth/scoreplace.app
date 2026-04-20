@@ -127,12 +127,10 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
     }
 
     // --- Optimistic UI: update locally FIRST, then sync to Firestore ---
-    // Check if already enrolled locally
-    var partsArr = Array.isArray(t.participants) ? t.participants : (t.participants ? Object.values(t.participants) : []);
-    var alreadyIn = partsArr.some(function(p) {
-        if (typeof p === 'string') return p === user.email || p === user.displayName;
-        return (p.email && p.email === user.email) || (p.uid && user.uid && p.uid === user.uid);
-    });
+    // Check if already enrolled locally — covers individual entries AND team membership
+    var alreadyIn = typeof window._isUserEnrolledInTournament === 'function'
+      ? window._isUserEnrolledInTournament(user, t)
+      : false;
     if (alreadyIn) {
         if (typeof showNotification !== 'undefined') showNotification(_t('enroll.alreadyEnrolled'), _t('enroll.alreadyEnrolledMsg'), 'info');
         window._scrollToParticipant(tId, user.displayName);

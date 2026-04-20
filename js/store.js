@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.38-alpha';
+window.SCOREPLACE_VERSION = '0.14.39-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1455,6 +1455,49 @@ window._nameWithCrown = function(name, tournament) {
     return safe + ' ' + window._CROWN_MINI;
   }
   return safe;
+};
+
+// ─── Enrollment lookup: matches user against a participant (incl. team members) ─
+// A participant can be:
+//  • string "Name"                           → match vs user.displayName/email
+//  • string "Name1 / Name2"                  → team — match any member
+//  • object { uid, email, displayName, ... } → top-level fields
+//  • object { ..., participants: [ m1, m2 ] }→ team — recurse into each member
+//  • object whose displayName/name contains " / " → treat label as team string
+window._userMatchesParticipant = function(user, p) {
+  if (!user || !p) return false;
+  var ue = (user.email || '').toLowerCase();
+  var un = user.displayName || '';
+  var uu = user.uid || '';
+  function matchMember(m) {
+    if (!m) return false;
+    if (typeof m === 'string') {
+      var s = m.trim();
+      return (ue && s.toLowerCase() === ue) || (un && s === un);
+    }
+    if (uu && m.uid && m.uid === uu) return true;
+    if (ue && m.email && m.email.toLowerCase() === ue) return true;
+    if (un && m.displayName && m.displayName === un) return true;
+    if (un && m.name && m.name === un) return true;
+    return false;
+  }
+  if (typeof p === 'string') {
+    var parts = p.split(' / ').map(function(s) { return s.trim(); }).filter(Boolean);
+    return parts.some(matchMember);
+  }
+  if (matchMember(p)) return true;
+  if (Array.isArray(p.participants) && p.participants.some(matchMember)) return true;
+  var label = p.displayName || p.name || '';
+  if (label && label.indexOf(' / ') !== -1) {
+    return label.split(' / ').map(function(s) { return s.trim(); }).filter(Boolean).some(matchMember);
+  }
+  return false;
+};
+
+window._isUserEnrolledInTournament = function(user, tournament) {
+  if (!user || !tournament) return false;
+  var arr = Array.isArray(tournament.participants) ? tournament.participants : (tournament.participants ? Object.values(tournament.participants) : []);
+  return arr.some(function(p) { return window._userMatchesParticipant(user, p); });
 };
 
 // ─── Competitors helper: filter out non-competing organizers from participants ─

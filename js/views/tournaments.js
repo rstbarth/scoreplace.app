@@ -590,22 +590,9 @@ function renderTournaments(container, tournamentId = null) {
 
         let isParticipating = false;
         if (t.participants && window.AppStore.currentUser) {
-            const user = window.AppStore.currentUser;
-            const arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
-            if (arr.length > 0) {
-                isParticipating = arr.some(p => {
-                    if (typeof p === 'string') {
-                        // Exact match only — skip team strings (contain " / ")
-                        if (p.indexOf(' / ') !== -1) return false;
-                        return p === user.email || p === user.displayName;
-                    }
-                    // For objects: prioritize uid match, then exact email, then exact displayName
-                    if (p.uid && user.uid && p.uid === user.uid) return true;
-                    if (p.email && p.email === user.email) return true;
-                    if (p.displayName && p.displayName === user.displayName) return true;
-                    return false;
-                });
-            }
+            isParticipating = typeof window._isUserEnrolledInTournament === 'function'
+              ? window._isUserEnrolledInTournament(window.AppStore.currentUser, t)
+              : false;
         }
 
         // Card gradients adaptam ao tema — consistentes com dashboard.js
@@ -1429,8 +1416,6 @@ function renderTournaments(container, tournamentId = null) {
         var _crownSvg = window._CROWN_SVG || '<svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>';
         var _isCreatorNow = window.AppStore.isCreator(_t);
         var _competitors = typeof window._getCompetitors === 'function' ? window._getCompetitors(_t) : (_t.participants ? (Array.isArray(_t.participants) ? _t.participants : Object.values(_t.participants)) : []);
-        var _enrolledEmails = {};
-        _competitors.forEach(function(p) { var e = typeof p === 'object' ? (p.email || '') : ''; if (e) _enrolledEmails[e] = true; });
 
         var _orgCards = '';
         // Helper: build organizer card with avatar + crown next to name
@@ -1474,25 +1459,17 @@ function renderTournaments(container, tournamentId = null) {
           _t.organizerName = _orgDisplayName;
         }
 
-        // Primary organizer — only in org section if NOT enrolled
-        if (!_enrolledEmails[_t.organizerEmail]) {
-          _orgCards += _buildOrgCard(_orgDisplayName, 'Organizador', _orgBgPrimary, false, '');
-        }
+        // Primary organizer — always shown in Organização, regardless of self-enrollment
+        _orgCards += _buildOrgCard(_orgDisplayName, 'Organizador', _orgBgPrimary, false, '');
         if (Array.isArray(_t.coHosts)) {
           _t.coHosts.forEach(function(ch) {
             if (ch.status !== 'active') return;
-            if (_enrolledEmails[ch.email]) return;
             _orgCards += _buildOrgCard(ch.displayName || ch.email, 'Co-organizador', _orgBgCohost, _isCreatorNow, ch.email);
           });
         }
-        if (_orgCards || _competitors.length === 0) {
-          if (!_orgCards && _competitors.length === 0) {
-            _orgCards = _buildOrgCard(_orgDisplayName, 'Organizador', _orgBgPrimary, false, '');
-          }
-          _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
-            '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">ORGANIZAÇÃO</div>' +
-            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + _orgCards + '</div></div>';
-        }
+        _organizersHtml = '<div style="margin-top:1.25rem;margin-bottom:0.5rem;">' +
+          '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">ORGANIZAÇÃO</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + _orgCards + '</div></div>';
       })();
     }
 
