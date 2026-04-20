@@ -742,11 +742,13 @@ function renderSingleElimBracket(t, canEnterResult) {
   const roundColumns = [];
 
   // "Mostrar" button for hidden rounds — each click reveals ONE round
-  // (the latest hidden, LIFO), not all at once.
+  // (the latest hidden, LIFO), not all at once. The button is position:sticky
+  // so it follows the vertical scroll and stays visible at the top, middle and
+  // bottom of the bracket area (sticks below topbar + back-header at top:120px).
   const showBtnHtml = hiddenCount > 0 ? `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">
+    <div style="display:flex;flex-direction:column;align-items:center;min-width:48px;gap:8px;align-self:stretch;">
       <button onclick="window._showAllHiddenRounds('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
-        style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;"
+        style="position:sticky;top:120px;writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;margin-top:1rem;"
         onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--text-bright)'"
         onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--text-muted)'"
         title="Mostrar rodadas ocultas (${hiddenCount})">
@@ -2185,11 +2187,13 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
     // "◀ Mostrar (N)" pill at left edge when some completed rounds are hidden.
     // Cada clique revela apenas a rodada mais recente ocultada (maior número) —
     // não todas de uma vez. Usa _showAllHiddenRounds (LIFO) em vez de
-    // _toggleRoundVisibility (que expande "tudo até esta rodada").
+    // _toggleRoundVisibility (que expande "tudo até esta rodada"). O botão é
+    // position:sticky com top:120px para seguir o scroll vertical: fica visível
+    // no topo, meio e pé do chaveamento enquanto o usuário rola.
     var _showHiddenBtnHtml = _hiddenSwissCount > 0
-      ? '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">' +
+      ? '<div style="display:flex;flex-direction:column;align-items:center;min-width:48px;gap:8px;align-self:stretch;">' +
           '<button onclick="window._showAllHiddenRounds(\'' + _tIdEsc + '\')" ' +
-            'style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" ' +
+            'style="position:sticky;top:120px;writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;margin-top:1rem;" ' +
             'onmouseover="this.style.background=\'rgba(255,255,255,0.1)\';this.style.color=\'var(--text-bright)\'" ' +
             'onmouseout="this.style.background=\'rgba(255,255,255,0.05)\';this.style.color=\'var(--text-muted)\'" ' +
             'title="Mostrar rodadas ocultas (' + _hiddenSwissCount + ')">' +

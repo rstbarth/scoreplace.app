@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.15-alpha';
+window.SCOREPLACE_VERSION = '0.14.16-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -309,14 +309,20 @@ window._renderBackHeader = function(opts) {
 };
 
 // ─── DISMISS ALL OVERLAYS ───────────────────────────────────────────────────
-// Any full-screen overlay whose z-index exceeds .sticky-back-header (1001)
-// can mask the Voltar button. If such an overlay outlives a navigation,
-// Voltar becomes unclickable everywhere. This function rips down all known
-// high-z overlays and deactivates standard .modal-overlay.active.
+// .sticky-back-header lives at z-index 101, but the app creates 40+ ad-hoc
+// overlays at z 9999–999999 (TV mode, set scoring, draw prep, categories,
+// host transfer, re-auth, etc). If ANY of them survives a hashchange, it
+// masks the Voltar button invisibly. This function rips them ALL down,
+// not just a named list: any position:fixed direct child of <body> whose
+// computed z-index > 101 and whose bounding box covers most of the viewport
+// is treated as a leftover overlay. Safe-list elements (topbar, hamburger,
+// back-header, toast notifications, offline banner) are preserved.
 // Called by the router on every hashchange and by Voltar's default onclick.
 window._dismissAllOverlays = function(opts) {
   opts = opts || {};
   var keep = opts.keep || [];
+
+  // 1. Named overlays (fast path — always remove unless kept).
   var overlayIds = [
     'tv-mode-overlay',
     'set-scoring-overlay',
@@ -330,14 +336,55 @@ window._dismissAllOverlays = function(opts) {
     var el = document.getElementById(id);
     if (el && el.parentNode) el.parentNode.removeChild(el);
   });
-  // TV mode locks body scroll + enters fullscreen — undo both if we ripped it.
+
+  // 2. Generic sweep — any fixed-position body child above z 101 that looks
+  //    like a full-screen overlay.
+  try {
+    var kids = document.body ? Array.prototype.slice.call(document.body.children) : [];
+    var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    kids.forEach(function(el) {
+      if (!el || !el.parentNode) return;
+      if (keep.indexOf(el.id) !== -1) return;
+      // Safe-list: elements that must NEVER be swept.
+      if (el.classList && (
+        el.classList.contains('topbar') ||
+        el.classList.contains('sticky-back-header') ||
+        el.classList.contains('hamburger-dropdown') ||
+        el.classList.contains('notification-banner') ||
+        el.classList.contains('notification-toast') ||
+        el.classList.contains('toast-notification') ||
+        el.classList.contains('offline-banner')
+      )) return;
+      if (el.id === 'hamburger-dropdown' || el.id === 'view-container' ||
+          el.id === 'skip-link' || el.id === 'aria-live-region' ||
+          /^notification/i.test(el.id || '') || /^toast/i.test(el.id || '')) return;
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
+      var cs;
+      try { cs = window.getComputedStyle(el); } catch(e) { return; }
+      if (!cs) return;
+      if (cs.position !== 'fixed') return;
+      var z = parseInt(cs.zIndex, 10);
+      if (!z || z <= 101) return;
+      // Heuristic: treat as full-screen overlay only if it covers >50% of the viewport.
+      // Small toasts, floating pills, and dropdowns are left alone.
+      var r;
+      try { r = el.getBoundingClientRect(); } catch(e) { return; }
+      if (!r || r.width < vw * 0.5 || r.height < vh * 0.5) return;
+      el.parentNode.removeChild(el);
+    });
+  } catch(e) {}
+
+  // 3. TV mode locks body scroll + enters fullscreen — undo both.
   try { document.body.style.overflow = ''; } catch(e) {}
+  try { document.documentElement.style.overflow = ''; } catch(e) {}
   try {
     if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
       document.exitFullscreen().catch(function(){});
     }
   } catch(e) {}
-  // Standard modal-overlay deactivation.
+
+  // 4. Standard modal-overlay deactivation.
   try {
     var modals = document.querySelectorAll('.modal-overlay.active');
     for (var i = 0; i < modals.length; i++) {
