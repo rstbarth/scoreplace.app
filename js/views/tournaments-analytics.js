@@ -419,7 +419,7 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
     modal.innerHTML = '' +
       ((typeof window._renderBackHeader === 'function')
         ? window._renderBackHeader({
-            extraStyle: 'position:fixed;top:' + _tbH + 'px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;padding:8px 16px;',
+            extraStyle: 'top:' + _tbH + 'px;',
             onClickOverride: "var _o=document.getElementById('player-stats-overlay');if(_o)_o.remove();",
             rightHtml: '<button onclick="var _o=document.getElementById(\'player-stats-overlay\');if(_o)_o.remove();" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>'
           })
