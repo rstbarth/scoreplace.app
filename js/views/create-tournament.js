@@ -184,6 +184,35 @@ function setupCreateTournamentModal() {
               <!-- Campos específicos: Liga (unificado com antigo Ranking) -->
               <div id="liga-fields" style="display:none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.ligaConfig')}</p>
+                <div class="form-group" style="margin-bottom:0.5rem;">
+                  <div class="toggle-row">
+                    <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">${_t('create.ligaSeasonToggle')}</span><div class="toggle-desc">${_t('create.ligaSeasonDesc')}</div></div></div>
+                    <label class="toggle-switch"><input type="checkbox" id="liga-season-toggle" checked><span class="toggle-slider"></span></label>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0.5rem;">
+                  <div class="toggle-row">
+                    <div class="toggle-row-label"><div><span style="font-weight:bold; color:var(--text-color);">${_t('create.ligaBalancedToggle')}</span><div class="toggle-desc">${_t('create.ligaBalancedDesc')}</div></div></div>
+                    <label class="toggle-switch"><input type="checkbox" id="liga-balanced-toggle" checked onchange="window._onLigaBalancedToggle()"><span class="toggle-slider"></span></label>
+                  </div>
+                </div>
+                <div id="liga-balanced-config" style="margin-bottom:0.75rem; padding: 8px 10px; background: rgba(16,185,129,0.06); border: 1px dashed rgba(16,185,129,0.25); border-radius: 8px;">
+                  <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div class="form-group" style="margin:0; flex:0 0 auto;">
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.ligaClusterSize')}</label>
+                      <input type="number" class="form-control" id="liga-cluster-size" min="2" max="32" value="8" style="width:70px;padding:6px 8px;font-size:0.85rem;text-align:center;">
+                    </div>
+                    <div class="form-group" style="margin:0; flex:1; min-width:180px;">
+                      <label class="form-label" style="font-size:0.7rem;margin-bottom:2px;">${_t('create.ligaBalanceBy')}</label>
+                      <input type="hidden" id="liga-balance-by" value="individual">
+                      <div id="liga-balance-buttons" style="display:flex;gap:6px;">
+                        <button type="button" class="liga-balance-btn liga-balance-active" data-value="individual" onclick="window._selectLigaBalance(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;text-align:center;white-space:nowrap;">${_t('create.ligaBalanceIndividual')}</button>
+                        <button type="button" class="liga-balance-btn" data-value="team" onclick="window._selectLigaBalance(this)" style="flex:1;min-width:0;padding:7px 8px;border-radius:10px;font-size:0.72rem;cursor:pointer;transition:all 0.15s;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;text-align:center;white-space:nowrap;">${_t('create.ligaBalanceTeam')}</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:6px;">${_t('create.ligaClusterSizeHint')}</div>
+                </div>
                 <input type="hidden" id="liga-season-duration" value="indefinida">
                 <div id="liga-custom-duration-container" style="display:none;"><input type="hidden" id="liga-custom-months" value="6"></div>
                 <input type="hidden" id="liga-round-format" value="standard">
@@ -1463,6 +1492,30 @@ function setupCreateTournamentModal() {
     });
     var xContainer = document.getElementById('liga-inactivity-x-container');
     if (xContainer) xContainer.style.display = val === 'remove' ? 'block' : 'none';
+  };
+
+  // Liga: balanced-draw toggle — shows/hides cluster config block
+  window._onLigaBalancedToggle = function() {
+    var chk = document.getElementById('liga-balanced-toggle');
+    var cfg = document.getElementById('liga-balanced-config');
+    if (chk && cfg) cfg.style.display = chk.checked ? 'block' : 'none';
+  };
+
+  // Liga: select balance-by (individual | team)
+  window._selectLigaBalance = function(btn) {
+    var val = btn.getAttribute('data-value');
+    var hidden = document.getElementById('liga-balance-by');
+    if (hidden) hidden.value = val;
+    var btns = document.querySelectorAll('#liga-balance-buttons .liga-balance-btn');
+    btns.forEach(function(b) {
+      if (b.getAttribute('data-value') === val) {
+        b.classList.add('liga-balance-active');
+        b.style.border = '2px solid #34d399'; b.style.background = 'rgba(16,185,129,0.15)'; b.style.color = '#34d399';
+      } else {
+        b.classList.remove('liga-balance-active');
+        b.style.border = '2px solid rgba(255,255,255,0.18)'; b.style.background = 'rgba(255,255,255,0.06)'; b.style.color = 'var(--text-main)';
+      }
+    });
   };
 
   // Liga: sync draw date to tournament start date
@@ -2894,6 +2947,21 @@ function setupCreateTournamentModal() {
     if (_inactX) document.getElementById('liga-inactivity-x').value = _inactX;
     document.getElementById('liga-open-enrollment').checked = _openEnroll !== false;
 
+    // v0.14.52: Temporada + Equilibrado toggles
+    var _seasonLoad = document.getElementById('liga-season-toggle');
+    if (_seasonLoad) _seasonLoad.checked = (t.temporada !== false);
+    var _balLoad = document.getElementById('liga-balanced-toggle');
+    if (_balLoad) _balLoad.checked = (t.equilibrado !== false);
+    if (t.clusterSize) {
+      var _clusterLoad = document.getElementById('liga-cluster-size');
+      if (_clusterLoad) _clusterLoad.value = t.clusterSize;
+    }
+    if (t.balanceBy) {
+      var _balBtn = document.querySelector('#liga-balance-buttons .liga-balance-btn[data-value="' + t.balanceBy + '"]');
+      if (_balBtn) window._selectLigaBalance(_balBtn);
+    }
+    if (typeof window._onLigaBalancedToggle === 'function') window._onLigaBalancedToggle();
+
     // Agendamento (shared field drawFirstDate, drawFirstTime, drawIntervalDays, drawManual)
     if (t.format === 'Liga' && t.drawFirstDate) document.getElementById('liga-first-draw-date').value = t.drawFirstDate;
     if (t.format === 'Liga' && t.drawFirstTime) document.getElementById('liga-first-draw-time').value = t.drawFirstTime;
@@ -3124,6 +3192,15 @@ function setupCreateTournamentModal() {
 
         // Liga (unificado — inclui antigo Ranking)
         if (formatValue === 'liga') {
+          // Novos toggles (v0.14.52): Temporada + Equilibrado
+          var _seasonEl = document.getElementById('liga-season-toggle');
+          var _balEl = document.getElementById('liga-balanced-toggle');
+          tourData.temporada = _seasonEl ? !!_seasonEl.checked : true;
+          tourData.equilibrado = _balEl ? !!_balEl.checked : true;
+          var _clusterEl = document.getElementById('liga-cluster-size');
+          tourData.clusterSize = _clusterEl ? (parseInt(_clusterEl.value) || 8) : 8;
+          var _balByEl = document.getElementById('liga-balance-by');
+          tourData.balanceBy = (_balByEl && _balByEl.value) ? _balByEl.value : 'individual';
           // Configurações
           tourData.ligaNewPlayerScore = document.getElementById('liga-new-player-score').value;
           tourData.ligaInactivity = document.getElementById('liga-inactivity').value;
