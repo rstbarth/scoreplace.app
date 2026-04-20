@@ -744,10 +744,11 @@ function renderSingleElimBracket(t, canEnterResult) {
   // Build round columns
   const roundColumns = [];
 
-  // "Mostrar" button for hidden rounds
+  // "Mostrar" button for hidden rounds — each click reveals ONE round
+  // (the latest hidden, LIFO), not all at once.
   const showBtnHtml = hiddenCount > 0 ? `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">
-      <button onclick="window._toggleRoundVisibility('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${maxHiddenRound})"
+      <button onclick="window._showAllHiddenRounds('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
         style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;"
         onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--text-bright)'"
         onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--text-muted)'"
@@ -2185,9 +2186,12 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
     }
 
     // "◀ Mostrar (N)" pill at left edge when some completed rounds are hidden.
+    // Cada clique revela apenas a rodada mais recente ocultada (maior número) —
+    // não todas de uma vez. Usa _showAllHiddenRounds (LIFO) em vez de
+    // _toggleRoundVisibility (que expande "tudo até esta rodada").
     var _showHiddenBtnHtml = _hiddenSwissCount > 0
       ? '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">' +
-          '<button onclick="window._toggleRoundVisibility(\'' + _tIdEsc + '\', ' + _maxHiddenSwissRound + ')" ' +
+          '<button onclick="window._showAllHiddenRounds(\'' + _tIdEsc + '\')" ' +
             'style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" ' +
             'onmouseover="this.style.background=\'rgba(255,255,255,0.1)\';this.style.color=\'var(--text-bright)\'" ' +
             'onmouseout="this.style.background=\'rgba(255,255,255,0.05)\';this.style.color=\'var(--text-muted)\'" ' +
