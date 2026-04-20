@@ -183,7 +183,7 @@ function renderBracket(container, tournamentId, isInline) {
 
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult, readyBannerHtml) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarHtml) + standbyHtml;
     _applyMyMatchesFilter();
     return;
   }
@@ -1731,7 +1731,7 @@ function _buildSwissPastColumns(t, swissPastCols) {
   return cols;
 }
 
-function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
+function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarHtml) {
   var _t = window._t || function(k) { return k; };
   // Source swiss/liga/monarch round columns from the unified adapter. Each
   // column is flattened back into the legacy {matches, status, format,
@@ -2363,10 +2363,11 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
 
   var _readyBanner = readyBannerHtml || '';
 
+  var _progressBar = progressBarHtml || '';
   if (useColumnLayout) {
-    return _phaseBannerHtml + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml;
+    return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml;
   }
-  return _phaseBannerHtml + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
+  return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
 
 // ─── Compute standings ────────────────────────────────────────────────────────
