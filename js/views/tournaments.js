@@ -1608,8 +1608,16 @@ function renderTournaments(container, tournamentId = null) {
                 // Use shared organizer emails set
                 var _orgEmails = _orgEmailsShared;
 
-                // Sort: respect user sort preference, with organizers first as secondary
+                // Sort: respect user sort preference, with organizers first as secondary.
+                // For active_asc/active_desc we skip the organizer-first rule so the
+                // availability axis is the dominant ordering (what the user asked for).
                 var _sortedParts = parts.slice().sort(function(a, b) {
+                  if (_tIsLiga && (_enrollSort === 'active_asc' || _enrollSort === 'active_desc')) {
+                    var aActive = _tIsActive(a) ? 0 : 1;
+                    var bActive = _tIsActive(b) ? 0 : 1;
+                    if (aActive !== bActive) return (_enrollSort === 'active_desc' ? -1 : 1) * (aActive - bActive);
+                    return parts.indexOf(a) - parts.indexOf(b);
+                  }
                   var aEmail = (typeof a === 'object' ? (a.email || '') : '');
                   var bEmail = (typeof b === 'object' ? (b.email || '') : '');
                   var aIsOrg = _orgEmails[aEmail] ? 0 : 1;
@@ -1719,6 +1727,8 @@ function renderTournaments(container, tournamentId = null) {
 
                     // Liga: per-card active/inactive toggle (default ON; undefined ⇒ active).
                     // Editable only for the current user's own entry; others render disabled.
+                    // Positioned top-right aligned with the name — toggle is fixed, state label
+                    // sits to the left of the toggle and its width varies with text ("ativado" / "desativado").
                     var ligaCardToggle = '';
                     if (_tIsLiga) {
                         var _lgActive = _tIsActive(p);
@@ -1733,8 +1743,8 @@ function renderTournaments(container, tournamentId = null) {
                         var _lgTitle = _lgSelf
                             ? (_lgActive ? (_t('liga.clickToInactive') || 'Clique para ficar de fora do próximo sorteio') : (_t('liga.clickToActive') || 'Clique para voltar ao próximo sorteio'))
                             : (_t('liga.othersReadOnly') || 'Só o próprio participante pode alterar');
-                        ligaCardToggle = '<div style="display:inline-flex;align-items:center;gap:5px;" title="' + window._safeHtml(_lgTitle) + '">' +
-                            '<span style="font-size:0.68rem;font-weight:700;color:' + _lgStateColor + ';letter-spacing:0.2px;">' + _lgStateLabel + '</span>' +
+                        ligaCardToggle = '<div style="display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px;position:relative;z-index:2;" title="' + window._safeHtml(_lgTitle) + '">' +
+                            '<span style="font-size:0.68rem;font-weight:700;color:' + _lgStateColor + ';letter-spacing:0.2px;white-space:nowrap;text-align:right;">' + _lgStateLabel + '</span>' +
                             '<label class="toggle-switch toggle-sm" style="flex-shrink:0;' + _lgWrapStyle + '" onclick="event.stopPropagation();">' +
                                 '<input type="checkbox" ' + (_lgActive ? 'checked' : '') + ' ' + _lgToggleAttrs + '>' +
                                 '<span class="toggle-slider"></span>' +
@@ -1742,13 +1752,12 @@ function renderTournaments(container, tournamentId = null) {
                         '</div>';
                     }
 
-                    // Bottom row: type label + Liga toggle on left, action buttons on right
+                    // Bottom row: type label on the left, action buttons on the right
                     var bottomRow = '';
-                    if (typeLabel || actionsHtml || ligaCardToggle) {
+                    if (typeLabel || actionsHtml) {
                         var actionsInline = actionsHtml.replace('margin-top:6px;', 'margin-top:0;');
                         var leftSide = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">' +
                             (typeLabel ? '<span style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;">' + typeLabel + '</span>' : '') +
-                            ligaCardToggle +
                         '</div>';
                         bottomRow = '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;">' +
                             leftSide +
@@ -1758,13 +1767,14 @@ function renderTournaments(container, tournamentId = null) {
 
                     return `
                       <div class="participant-card" data-participant-name="${window._safeHtml(pName)}" data-merge-name="${window._safeHtml(pName)}" ${dragProps} style="${cardStyle} border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:all 0.2s;${isOrg ? 'cursor:grab;' : ''}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                          <div style="position:absolute;right:8px;top:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
+                          <div style="position:absolute;right:8px;bottom:6px;font-size:${String(bgNum).length > 2 ? '1.6rem' : '2rem'};font-weight:900;color:rgba(255,255,255,0.08);line-height:1;pointer-events:none;user-select:none;">${bgNum}</div>
                           <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0;">
                               <div style="display:flex;align-items:center;gap:12px;">
-                                  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
+                                  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;min-width:0;">
                                       ${pNameHtml}
                                       ${catBadgeRow}
                                   </div>
+                                  ${ligaCardToggle}
                               </div>
                               ${bottomRow}
                           </div>

@@ -1529,15 +1529,13 @@ window._checkLigaAutoDraws = async function() {
 
     // Only the organizer (or an active co-host) fires the draw — avoids
     // multiple participant browsers racing on the same tournament.
-    if (typeof store.isOrganizer === 'function') {
-      var origMode = store.viewMode;
-      store.viewMode = 'organizer';
-      var isOrg = store.isOrganizer(t);
-      store.viewMode = origMode;
-      if (!isOrg) continue;
-    } else {
-      if (!store.currentUser || t.organizerEmail !== store.currentUser.email) continue;
+    // Check directly against the user's email so we don't mutate viewMode mid-flight.
+    var _myEmail = store.currentUser.email;
+    var _isOrg = (t.organizerEmail === _myEmail) || (t.creatorEmail === _myEmail);
+    if (!_isOrg && Array.isArray(t.coHosts)) {
+      _isOrg = t.coHosts.some(function(ch) { return ch.email === _myEmail && ch.status === 'active'; });
     }
+    if (!_isOrg) continue;
 
     // Must be auto-scheduled with a first date
     if (t.drawManual) continue;
@@ -1662,8 +1660,30 @@ async function _fireLigaAutoDraw(t, scheduledTime) {
     console.warn('[auto-draw] syncImmediate failed for tournament ' + t.id, e);
   }
 
-  // If the user is currently viewing this tournament, refresh the view
-  if (typeof window._rerenderBracket === 'function' && String(window._lastActiveTournamentId) === String(t.id)) {
-    try { window._rerenderBracket(t.id); } catch (e) { /* ignore */ }
+  // Auto-refresh whatever view the user is currently looking at so the draw
+  // appears without a manual reload.
+  try {
+    var _hash = (window.location && window.location.hash) || '';
+    var _container = document.getElementById('view-container');
+    if (_hash.indexOf('#tournaments/' + t.id) === 0 && typeof window.renderTournaments === 'function' && _container) {
+      window.renderTournaments(_container, t.id);
+    } else if (_hash.indexOf('#bracket/' + t.id) === 0 && typeof window._rerenderBracket === 'function') {
+      window._rerenderBracket(t.id);
+    } else if (_hash === '' || _hash === '#' || _hash.indexOf('#dashboard') === 0) {
+      if (typeof window.renderDashboard === 'function' && _container) {
+        window.renderDashboard(_container);
+      }
+    }
+  } catch (e) { /* best-effort UI refresh */ }
+
+  // Show an in-app toast for the organizer so they know the draw just happened.
+  if (typeof window.showNotification === 'function') {
+    var _toastTitle = hasExistingDraw
+      ? ('🎲 Nova rodada sorteada — ' + (t.name || 'Torneio'))
+      : ('🎲 Sorteio automático realizado — ' + (t.name || 'Torneio'));
+    var _toastMsg = hasExistingDraw
+      ? ('Rodada ' + t.rounds.length + ' gerada para a Liga.')
+      : ('Rodada 1 gerada para a Liga.');
+    window.showNotification(_toastTitle, _toastMsg, 'success');
   }
 }
