@@ -544,7 +544,7 @@ window.showUnifiedResolutionPanel = function(tId) {
 
     const info = window._diagnoseAll(t);
 
-    // If no issues, proceed directly to draw generation
+    // If no issues, proceed directly to actual draw (skip Final Review step)
     if (!info.hasIssues) {
         // Auto-restore enrollment
         if (t._suspendedByPanel) {
@@ -553,7 +553,11 @@ window.showUnifiedResolutionPanel = function(tId) {
             delete t._previousStatus;
             window.FirestoreDB.saveTournament(t);
         }
-        window.showFinalReviewPanel(tId);
+        if (typeof window.generateDrawFunction === 'function') {
+            window.generateDrawFunction(tId);
+        } else {
+            window.showFinalReviewPanel(tId);
+        }
         return;
     }
 
@@ -3264,7 +3268,12 @@ window._confirmP2Resolution = function (tId, option) {
     if (document.getElementById('unified-resolution-panel')) document.getElementById('unified-resolution-panel').remove();
     document.body.style.overflow = '';
 
-    window.showFinalReviewPanel(tId);
+    // Go directly to actual draw — skip Final Review Panel (user already confirmed in simulation)
+    if (typeof window.generateDrawFunction === 'function') {
+        window.generateDrawFunction(tId);
+    } else {
+        window.showFinalReviewPanel(tId);
+    }
 };
 
 
