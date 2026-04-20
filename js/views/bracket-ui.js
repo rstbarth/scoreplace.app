@@ -691,6 +691,30 @@ window._showAllHiddenRounds = function (tId) {
   _rerenderBracket(tId);
 };
 
+// ── Swiss-past hidden columns (elim phase, past Swiss qualifier rounds) ──
+// Kept in a separate Set per tournament so the round numbers don't collide
+// with elim round numbers in window._hiddenRounds. Same LIFO reveal semantics
+// as _toggleRoundVisibility / _showAllHiddenRounds.
+if (!window._hiddenSwissPast) window._hiddenSwissPast = {};
+
+window._toggleSwissPastVisibility = function (tId, roundNum) {
+  if (!window._hiddenSwissPast[tId]) window._hiddenSwissPast[tId] = new Set();
+  const set = window._hiddenSwissPast[tId];
+  if (set.has(roundNum)) set.delete(roundNum);
+  else set.add(roundNum);
+  _rerenderBracket(tId);
+};
+
+window._showAllHiddenSwissPast = function (tId) {
+  if (!window._hiddenSwissPast || !window._hiddenSwissPast[tId]) return;
+  const set = window._hiddenSwissPast[tId];
+  if (set.size === 0) return;
+  let latest = -Infinity;
+  set.forEach(r => { if (r > latest) latest = r; });
+  if (isFinite(latest)) set.delete(latest);
+  _rerenderBracket(tId);
+};
+
 window._highlightWinner = function (matchId) {
   const s1El = document.getElementById(`s1-${matchId}`);
   const s2El = document.getElementById(`s2-${matchId}`);

@@ -704,7 +704,15 @@ function renderSingleElimBracket(t, canEnterResult) {
   let maxHiddenRound = -1;
   hiddenSet.forEach(r => { if (r > maxHiddenRound) maxHiddenRound = r; });
 
-  let globalMatchNum = 0;
+  // Swiss-past match numbers are reserved first so the elim phase continues the
+  // count rather than restarting at Jogo 1. There can never be more than one
+  // Jogo N in the same tournament.
+  const _swissPastCols = unified ? unified.columns.filter(c => c.phase === 'swiss-past') : [];
+  const swissPastMatchOffset = _swissPastCols.reduce(function(sum, col) {
+    return sum + ((col && col.matches) ? col.matches.length : 0);
+  }, 0);
+
+  let globalMatchNum = swissPastMatchOffset;
 
   // 3rd place match — pull from adapter's thirdplace column (falls back to t.thirdPlaceMatch)
   const _thirdCol = unified ? unified.columns.find(c => c.phase === 'thirdplace') : null;
@@ -717,8 +725,8 @@ function renderSingleElimBracket(t, canEnterResult) {
   // Count matches in all rounds EXCEPT the final round (last positive round gets its own number)
   const finalRoundNumForCount = positiveRounds.length > 0 ? positiveRounds[positiveRounds.length - 1] : null;
   const preFinalsMatchCount = activeRounds.filter(r => r !== finalRoundNumForCount).reduce((sum, r) => sum + (roundsMap[r] || []).filter(m => !window._isByeMatch(m)).length, 0);
-  const thirdPlaceMatchNum = hasThirdPlace ? preFinalsMatchCount + 1 : 0;
-  const finalMatchNum = hasThirdPlace ? preFinalsMatchCount + 2 : preFinalsMatchCount + 1;
+  const thirdPlaceMatchNum = hasThirdPlace ? swissPastMatchOffset + preFinalsMatchCount + 1 : 0;
+  const finalMatchNum = hasThirdPlace ? swissPastMatchOffset + preFinalsMatchCount + 2 : swissPastMatchOffset + preFinalsMatchCount + 1;
 
   // Determine visible rounds (not hidden)
   const visibleRounds = activeRounds.filter(r => !hiddenSet.has(r));
@@ -1695,24 +1703,54 @@ function _buildSwissPastColumns(t, swissPastCols) {
   });
 
   var cols = [];
+  var _tIdEsc = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var hiddenSet = (window._hiddenSwissPast && window._hiddenSwissPast[t.id]) || new Set();
+  var hiddenCount = 0;
+
+  // "◀ Mostrar (N)" pill for Swiss past hidden columns. Matches the elim
+  // pill style (vertical sticky button) and lives at the very left of the
+  // scroll strip, before any visible swiss-past columns.
+  swissPastCols.forEach(function(col) {
+    if (hiddenSet.has(col.round)) hiddenCount++;
+  });
+  if (hiddenCount > 0) {
+    cols.push(
+      '<div style="display:flex;flex-direction:column;align-items:center;min-width:48px;gap:8px;align-self:stretch;">' +
+        '<button onclick="window._showAllHiddenSwissPast(\'' + _tIdEsc + '\')" ' +
+          'style="position:sticky;top:120px;writing-mode:vertical-lr;text-orientation:mixed;background:rgba(59,130,246,0.08);border:1px dashed rgba(59,130,246,0.3);color:#60a5fa;border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;margin-top:1rem;" ' +
+          'onmouseover="this.style.background=\'rgba(59,130,246,0.15)\'" ' +
+          'onmouseout="this.style.background=\'rgba(59,130,246,0.08)\'" ' +
+          'title="Mostrar rodadas Suíças ocultas (' + hiddenCount + ')">' +
+          '◀ Mostrar Suíço (' + hiddenCount + ')' +
+        '</button>' +
+      '</div>'
+    );
+  }
+
   // Cumulative match index across Swiss rounds so the card numbering stays
   // consistent with what the user saw during the qualifier phase.
   var _cumMatchNum = 0;
   swissPastCols.forEach(function(col) {
     var matches = (col && col.matches) ? col.matches : [];
     if (matches.length === 0) return;
+    // Accumulate numbering even for hidden columns so visible columns keep
+    // the same "Jogo N" labels regardless of which columns are hidden.
+    var startNum = _cumMatchNum;
+    _cumMatchNum += matches.length;
+    if (hiddenSet.has(col.round)) return;
     // Render using the same renderMatchCard used during the qualifier phase —
     // completed rounds keep the exact same visual presentation they had while
     // in progress (just read-only, canEnterResult=false).
     var matchesHtml = matches.map(function(m, mi) {
-      return renderMatchCard(m, false, t.id, _cumMatchNum + mi + 1);
+      return renderMatchCard(m, false, t.id, startNum + mi + 1);
     }).join('');
-    _cumMatchNum += matches.length;
     var roundLabel = (col.label || ('Suíço R' + col.round)) + ' ✓';
+    var hideBtn = '<button class="btn btn-micro btn-outline" onclick="window._toggleSwissPastVisibility(\'' + _tIdEsc + '\', ' + (col.round || 0) + ')">Ocultar</button>';
     cols.push(
       '<div class="bracket-round-column" data-round-num="' + (col.round || 0) + '" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
           '<h4 style="color:#60a5fa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid #3b82f6;padding-left:8px;flex:1;">' + safe(roundLabel) + '</h4>' +
+          hideBtn +
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + matchesHtml + '</div>' +
       '</div>'

@@ -64,8 +64,20 @@ function initRouter() {
     // On soft refresh (remote data update), skip scroll reset and fade animation
     // to preserve user's current position and avoid visual disruption
     if (!window._isSoftRefresh) {
-      // Scroll to top on navigation
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Jump to top (instant, not smooth — smooth gets cancelled by late layout
+      // shifts from the new view's render, leaving the user parked mid-page
+      // and making Voltar look broken). Repeat across rAF + setTimeouts so the
+      // jump survives any scroll-into-view calls inside the view render.
+      var _jumpTop = function() {
+        try { window.scrollTo(0, 0); } catch(e) {}
+        if (document.documentElement) document.documentElement.scrollTop = 0;
+        if (document.body) document.body.scrollTop = 0;
+      };
+      _jumpTop();
+      requestAnimationFrame(_jumpTop);
+      setTimeout(_jumpTop, 50);
+      setTimeout(_jumpTop, 150);
+      setTimeout(_jumpTop, 350);
 
       // Fade-in animation
       viewContainer.style.opacity = '0';
@@ -98,19 +110,6 @@ function initRouter() {
       case '':
       case 'dashboard':
         renderDashboard(viewContainer);
-        // Always jump to top when entering the dashboard. Multiple attempts cover smooth-scroll
-        // cancellation, post-render layout shifts, and any late-firing restore behaviour.
-        if (!window._isSoftRefresh) {
-          var _jumpTop = function() {
-            window.scrollTo(0, 0);
-            if (document.documentElement) document.documentElement.scrollTop = 0;
-            if (document.body) document.body.scrollTop = 0;
-          };
-          _jumpTop();
-          requestAnimationFrame(_jumpTop);
-          setTimeout(_jumpTop, 50);
-          setTimeout(_jumpTop, 150);
-        }
         break;
       case 'tournament':
       case 'tournaments':
