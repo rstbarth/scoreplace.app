@@ -1287,7 +1287,16 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
     _recordSitOut(t, sitOutPlayers, category);
   }
 
-  // Divide playing players into groups of 4 (by standings order — similar level)
+  // Liga: shuffle active players so each round draws new groups of 4.
+  // Pure Rei/Rainha (non-Liga): keep standings order (balanced by skill).
+  if (isLiga) {
+    for (var sh = playingPlayers.length - 1; sh > 0; sh--) {
+      var shj = Math.floor(Math.random() * (sh + 1));
+      var shtmp = playingPlayers[sh]; playingPlayers[sh] = playingPlayers[shj]; playingPlayers[shj] = shtmp;
+    }
+  }
+
+  // Divide playing players into groups of 4
   var numGroups = Math.floor(playingPlayers.length / 4);
   var groups = [];
 

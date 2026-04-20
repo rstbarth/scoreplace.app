@@ -1879,6 +1879,11 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
 
   const _isReiRainhaRound = currentRoundData.format === 'rei_rainha' && Array.isArray(currentRoundData.monarchGroups) && currentRoundData.monarchGroups.length > 0;
 
+  // Liga user-match split: when user has at least one match in the current round,
+  // we render their matches in the "current round" card and push the remaining
+  // matches into a separate card that gets interposed AFTER the standings table.
+  let ligaOtherMatchesHtml = '';
+
   const currentRoundHtml = `
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
@@ -1981,16 +1986,20 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             const myHtml = myIdx.map(i => buildCard(allMatches[i], i)).join('');
             const otherHtml = otherIdx.map(i => buildCard(allMatches[i], i)).join('');
             const myLabel = myIdx.length === 1 ? 'Seu jogo' : 'Seus jogos';
-            return `<div style="margin-bottom:1rem;">
+            // Stash the "other matches" in a separate card that the Liga branch of
+            // the final return interposes AFTER the standings table.
+            ligaOtherMatchesHtml = `<div class="card" style="margin-bottom:1rem;">
+              <details>
+                <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:0.9rem;font-weight:600;color:var(--text-muted);">
+                  <span>▸ Demais jogos da rodada (${otherIdx.length})</span>
+                </summary>
+                <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:1rem;">${otherHtml}</div>
+              </details>
+            </div>`;
+            return `<div>
               <div style="font-size:0.75rem;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.6rem;">⭐ ${myLabel}</div>
               <div style="display:flex;flex-wrap:wrap;gap:16px;">${myHtml}</div>
-            </div>
-            <details style="margin-top:0.75rem;">
-              <summary style="cursor:pointer;user-select:none;font-size:0.8rem;font-weight:600;color:var(--text-muted);padding:8px 0;border-top:1px solid var(--border-color);">
-                ▸ Demais jogos da rodada (${otherIdx.length})
-              </summary>
-              <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:0.75rem;">${otherHtml}</div>
-            </details>`;
+            </div>`;
           }
         }
         return `<div style="display:flex;flex-wrap:wrap;gap:16px;">${allMatches.map((m, idx) => buildCard(m, idx)).join('')}</div>`;
@@ -2458,9 +2467,10 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
   if (useColumnLayout) {
     return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml;
   }
-  // Liga: put the current round (with "Seu jogo" + "Demais jogos da rodada") at the top of the page, above the standings.
+  // Liga: user's matches at the top, then the round's standings table, then
+  // the collapsible "Demais jogos da rodada" card.
   if (isLigaFmt) {
-    return _phaseBannerHtml + _progressBar + _readyBanner + currentRoundHtml + standingsTablesHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
+    return _phaseBannerHtml + _progressBar + _readyBanner + currentRoundHtml + standingsTablesHtml + ligaOtherMatchesHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
   }
   return _phaseBannerHtml + _progressBar + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
