@@ -1724,32 +1724,34 @@ function renderTournaments(container, tournamentId = null) {
                         var _lgActive = _tIsActive(p);
                         var _lgSelf = !!(_tCurUser && window._userMatchesParticipant && typeof p === 'object' && window._userMatchesParticipant(_tCurUser, p));
                         var _lgSafeTid = String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                        var _lgStateLabel = _lgActive ? (_t('liga.active') || 'Ativo') : (_t('liga.inactive') || 'De fora');
+                        var _lgStateLabel = _lgActive ? 'ativado' : 'desativado';
                         var _lgStateColor = _lgActive ? '#34d399' : '#f87171';
-                        var _lgDot = _lgActive ? '🟢' : '🔴';
                         var _lgToggleAttrs = _lgSelf
                             ? ('onclick="event.stopPropagation();" onchange="window._toggleLigaActive(\'' + _lgSafeTid + '\', this.checked)"')
                             : ('onclick="event.stopPropagation();" disabled');
-                        var _lgWrapStyle = _lgSelf ? '' : 'opacity:0.7;cursor:not-allowed;';
+                        var _lgWrapStyle = _lgSelf ? '' : 'opacity:0.6;cursor:not-allowed;';
                         var _lgTitle = _lgSelf
                             ? (_lgActive ? (_t('liga.clickToInactive') || 'Clique para ficar de fora do próximo sorteio') : (_t('liga.clickToActive') || 'Clique para voltar ao próximo sorteio'))
                             : (_t('liga.othersReadOnly') || 'Só o próprio participante pode alterar');
-                        ligaCardToggle = '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:5px 8px;background:rgba(0,0,0,0.22);border-radius:8px;align-self:flex-start;" title="' + window._safeHtml(_lgTitle) + '">' +
-                            '<span style="font-size:0.7rem;">' + _lgDot + '</span>' +
-                            '<span style="font-size:0.7rem;font-weight:700;color:' + _lgStateColor + ';letter-spacing:0.3px;">' + _lgStateLabel + '</span>' +
-                            '<label class="toggle-switch toggle-sm" style="flex-shrink:0;margin-left:2px;' + _lgWrapStyle + '" onclick="event.stopPropagation();">' +
+                        ligaCardToggle = '<div style="display:inline-flex;align-items:center;gap:5px;" title="' + window._safeHtml(_lgTitle) + '">' +
+                            '<span style="font-size:0.68rem;font-weight:700;color:' + _lgStateColor + ';letter-spacing:0.2px;">' + _lgStateLabel + '</span>' +
+                            '<label class="toggle-switch toggle-sm" style="flex-shrink:0;' + _lgWrapStyle + '" onclick="event.stopPropagation();">' +
                                 '<input type="checkbox" ' + (_lgActive ? 'checked' : '') + ' ' + _lgToggleAttrs + '>' +
                                 '<span class="toggle-slider"></span>' +
                             '</label>' +
                         '</div>';
                     }
 
-                    // Bottom row: type label on left, action buttons on right (same line)
+                    // Bottom row: type label + Liga toggle on left, action buttons on right
                     var bottomRow = '';
-                    if (typeLabel || actionsHtml) {
+                    if (typeLabel || actionsHtml || ligaCardToggle) {
                         var actionsInline = actionsHtml.replace('margin-top:6px;', 'margin-top:0;');
+                        var leftSide = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">' +
+                            (typeLabel ? '<span style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;">' + typeLabel + '</span>' : '') +
+                            ligaCardToggle +
+                        '</div>';
                         bottomRow = '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;">' +
-                            '<div style="font-size:0.65rem;color:var(--text-muted);opacity:0.5;">' + typeLabel + '</div>' +
+                            leftSide +
                             actionsInline +
                             '</div>';
                     }
@@ -1762,7 +1764,6 @@ function renderTournaments(container, tournamentId = null) {
                                   <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
                                       ${pNameHtml}
                                       ${catBadgeRow}
-                                      ${ligaCardToggle}
                                   </div>
                               </div>
                               ${bottomRow}

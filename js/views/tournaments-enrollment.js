@@ -588,33 +588,50 @@ window.deleteTournamentFunction = function (tId) {
 
 // Liga active toggle: participant opts in/out of upcoming draws
 window._toggleLigaActive = function(tId, isActive) {
-  var tournaments = window.AppStore.state.tournaments;
-  var t = tournaments.find(function(x) { return x.id === tId; });
+  var store = window.AppStore;
+  if (!store || !Array.isArray(store.tournaments)) return;
+  var t = store.tournaments.find(function(x) { return String(x.id) === String(tId); });
   if (!t || !t.participants) return;
-  var user = window.AppStore.currentUser;
+  var user = store.currentUser;
   if (!user) return;
   var arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants);
   var found = arr.find(function(p) {
-    if (typeof p !== 'object') return false;
+    if (typeof p !== 'object' || !p) return false;
     if (p.uid && user.uid && p.uid === user.uid) return true;
-    if (p.email && p.email === user.email) return true;
+    if (p.email && user.email && p.email === user.email) return true;
     return false;
   });
-  if (found) {
-    found.ligaActive = isActive;
-    window.FirestoreDB.saveTournament(t).then(function() {
+  if (!found) return;
+  found.ligaActive = !!isActive;
+  // Save to Firestore. Use syncImmediate when we're the organizer (goes through
+  // AppStore cache); otherwise hit Firestore directly (participants can't
+  // always round-trip through syncImmediate).
+  var savePromise;
+  if (typeof store.isOrganizer === 'function' && store.isOrganizer(t) && typeof store.syncImmediate === 'function') {
+    savePromise = store.syncImmediate(t.id);
+  } else if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+    savePromise = window.FirestoreDB.saveTournament(t);
+  } else {
+    savePromise = Promise.resolve();
+  }
+  Promise.resolve(savePromise).then(function() {
+    if (typeof window.showNotification === 'function') {
       window.showNotification(
         isActive ? _t('enroll.ligaActive') : _t('enroll.ligaInactive'),
         isActive ? _t('enroll.ligaActiveMsg') : _t('enroll.ligaInactiveMsg'),
         isActive ? 'success' : 'warning'
       );
-      // Re-render tournament detail
-      if (typeof window.renderTournaments === 'function') {
-        var container = document.getElementById('view-container');
-        if (container) window.renderTournaments(container, tId);
-      }
-    });
-  }
+    }
+    if (typeof window.renderTournaments === 'function') {
+      var container = document.getElementById('view-container');
+      if (container) window.renderTournaments(container, tId);
+    }
+  }).catch(function(e) {
+    console.warn('[toggle-liga] save failed', e);
+    if (typeof window.showNotification === 'function') {
+      window.showNotification('Erro', 'Não foi possível salvar a alteração.', 'error');
+    }
+  });
 };
 
 })();
