@@ -13,17 +13,19 @@ function setupCreateTournamentModal() {
     const modalHtml = `
       <div class="modal-overlay" id="modal-create-tournament">
         <div class="modal" style="max-width: 800px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-          <div class="modal-header" style="display:flex; flex-direction:column; align-items:stretch; gap:10px; border-bottom: 1px solid var(--border-color); padding: 0.85rem 1.25rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-            <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-              <button class="btn btn-outline btn-sm hover-lift" onclick="document.getElementById('modal-create-tournament').classList.remove('active')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;" aria-label="${_t('btn.back') || 'Voltar'}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                ${_t('btn.back') || 'Voltar'}
+          <div class="modal-header" style="display:flex; flex-direction:column; align-items:stretch; gap:8px; border-bottom: 1px solid var(--border-color); padding: 0.75rem 1rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+              <button class="btn btn-outline btn-sm hover-lift" onclick="window._discardCreateTournament()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:18px;flex-shrink:0;font-size:0.78rem;" aria-label="${_t('btn.back') || 'Voltar'}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span class="back-label-text">${_t('btn.back') || 'Voltar'}</span>
               </button>
-              <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_t('create.modalTitle')}</h2>
+              <div style="flex:1;"></div>
+              <button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" onclick="window._discardCreateTournament()" style="padding:5px 12px;border-radius:10px;font-size:0.78rem;flex-shrink:0;">${_t('btn.discard') || 'Descartar'}</button>
+              <button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" style="padding:5px 14px;border-radius:10px;font-size:0.78rem;flex-shrink:0;font-weight:700;">${_t('btn.save') || 'Salvar'}</button>
             </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
-              <button class="btn btn-tool-amber" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()">💾 Template</button>
-              <button class="btn btn-primary" id="btn-save-tournament">${_t('create.saveTournament')}</button>
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+              <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem;">${_t('create.modalTitle')}</h2>
+              <button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()" style="padding:5px 12px;font-size:0.75rem;flex-shrink:0;">💾 Template</button>
             </div>
           </div>
           <div class="modal-body" style="padding: 1.5rem; color: var(--text-main); overflow-x: hidden; max-width: 100%; box-sizing: border-box;">
@@ -3853,6 +3855,14 @@ window._prefillFromTemplate = function(tpl) {
       combined: tpl.combinedCategories || []
     };
   }
+};
+
+// ─── Discard create/edit tournament ───────────────────────────────────────
+// Closes the create-tournament modal without saving. Used by the "Voltar"
+// and "Descartar" buttons in the sticky modal header.
+window._discardCreateTournament = function() {
+  var modal = document.getElementById('modal-create-tournament');
+  if (modal) modal.classList.remove('active');
 };
 
 // ─── Template picker inside create-tournament modal ───────────────────────

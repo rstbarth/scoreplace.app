@@ -60,6 +60,7 @@ window._translations['en'] = {
   'btn.cancel': 'Cancel',
   'btn.back': 'Back',
   'btn.back': 'Back',
+  'btn.discard': 'Discard',
   'btn.goDashboard': 'Go to Dashboard',
   'btn.close': 'Close',
   'btn.delete': 'Delete',

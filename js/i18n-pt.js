@@ -60,6 +60,7 @@ window._translations['pt'] = {
   'btn.cancel': 'Cancelar',
   'btn.back': 'Voltar',
   'btn.back': 'Voltar',
+  'btn.discard': 'Descartar',
   'btn.goDashboard': 'Ir para o Dashboard',
   'btn.close': 'Fechar',
   'btn.delete': 'Apagar',
