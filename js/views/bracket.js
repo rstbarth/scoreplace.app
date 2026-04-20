@@ -1695,36 +1695,26 @@ function _buildSwissPastColumns(t, swissPastCols) {
   });
 
   var cols = [];
+  // Cumulative match index across Swiss rounds so the card numbering stays
+  // consistent with what the user saw during the qualifier phase.
+  var _cumMatchNum = 0;
   swissPastCols.forEach(function(col) {
     var matches = (col && col.matches) ? col.matches : [];
     if (matches.length === 0) return;
-    var matchesHtml = matches.map(function(m) {
-      if (!m.p1 && !m.p2) return '';
-      var isDraw = m.winner === 'draw' || m.draw;
-      var p1Won = m.winner === m.p1 && !isDraw;
-      var p2Won = m.winner === m.p2 && !isDraw;
-      var p1Style = p1Won ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
-      var p2Style = p2Won ? 'color:#4ade80;font-weight:700;' : (isDraw ? 'color:#94a3b8;' : 'color:var(--text-muted);opacity:0.7;');
-      var score = (m.scoreP1 != null && m.scoreP2 != null)
-        ? (m.scoreP1 + ' x ' + m.scoreP2)
-        : (isDraw ? (_t('bracket.draw') || 'Empate') : '—');
-      var p1Adv = advancedNames[m.p1] ? ' <span style="color:#4ade80;font-size:0.7rem;">✓</span>' : '';
-      var p2Adv = advancedNames[m.p2] ? ' <span style="color:#4ade80;font-size:0.7rem;">✓</span>' : '';
-      return '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(59,130,246,0.12);border-radius:8px;padding:8px 10px;font-size:0.78rem;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">' +
-          '<span style="' + p1Style + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">' + safe(m.p1 || 'TBD') + p1Adv + '</span>' +
-          '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;flex-shrink:0;">' + safe(score) + '</span>' +
-          '<span style="' + p2Style + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;text-align:right;">' + safe(m.p2 || 'TBD') + p2Adv + '</span>' +
-        '</div>' +
-      '</div>';
+    // Render using the same renderMatchCard used during the qualifier phase —
+    // completed rounds keep the exact same visual presentation they had while
+    // in progress (just read-only, canEnterResult=false).
+    var matchesHtml = matches.map(function(m, mi) {
+      return renderMatchCard(m, false, t.id, _cumMatchNum + mi + 1);
     }).join('');
+    _cumMatchNum += matches.length;
     var roundLabel = (col.label || ('Suíço R' + col.round)) + ' ✓';
     cols.push(
-      '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:0.75rem;min-width:240px;max-width:260px;opacity:0.88;">' +
+      '<div class="bracket-round-column" data-round-num="' + (col.round || 0) + '" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
           '<h4 style="color:#60a5fa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid #3b82f6;padding-left:8px;flex:1;">' + safe(roundLabel) + '</h4>' +
         '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:6px;">' + matchesHtml + '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + matchesHtml + '</div>' +
       '</div>'
     );
   });
