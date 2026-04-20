@@ -73,6 +73,152 @@ function _rerenderBracket(tId, anchorMatchId) {
   });
 }
 window._rerenderBracket = _rerenderBracket;
+
+// Shared helper: resolve {name, team, uid, photoURL} list from m.p1/m.p2 by
+// looking up uids/photos in t.participants. Returns null if either side is
+// BYE/TBD or no participant has a registered uid.
+function _buildMatchPlayersList(t, m) {
+  if (!t || !m) return null;
+  if (m.p1 === 'BYE' || m.p2 === 'BYE' || m.p1 === 'TBD' || m.p2 === 'TBD') return null;
+  var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var _splitSide = function(side) {
+    if (!side || typeof side !== 'string') return [];
+    return side.indexOf(' / ') !== -1 ? side.split(' / ').map(function(x){return x.trim();}).filter(Boolean) : [side.trim()];
+  };
+  var _resolveMeta = function(name) {
+    var meta = { uid: null, photoURL: null };
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (!p || typeof p === 'string') continue;
+      var pn = p.displayName || p.name || '';
+      if (pn === name) { meta.uid = p.uid || null; meta.photoURL = p.photoURL || p.photoUrl || null; return meta; }
+      if (Array.isArray(p.participants)) {
+        for (var j = 0; j < p.participants.length; j++) {
+          var sub = p.participants[j];
+          var sn = sub && (sub.displayName || sub.name || '');
+          if (sn === name) { meta.uid = (sub && sub.uid) || null; meta.photoURL = (sub && (sub.photoURL || sub.photoUrl)) || null; return meta; }
+        }
+      }
+    }
+    return meta;
+  };
+  var p1Names = _splitSide(m.p1);
+  var p2Names = _splitSide(m.p2);
+  if (p1Names.length === 0 || p2Names.length === 0) return null;
+  var players = [];
+  for (var a = 0; a < p1Names.length; a++) { var mA = _resolveMeta(p1Names[a]); players.push({ name: p1Names[a], team: 1, uid: mA.uid, photoURL: mA.photoURL }); }
+  for (var b = 0; b < p2Names.length; b++) { var mB = _resolveMeta(p2Names[b]); players.push({ name: p2Names[b], team: 2, uid: mB.uid, photoURL: mB.photoURL }); }
+  var hasAnyUid = players.some(function(p){ return !!p.uid; });
+  if (!hasAnyUid) return null;
+  return { players: players, p1Count: p1Names.length, p2Count: p2Names.length };
+}
+
+// Build and persist a minimal per-user matchHistory record for an inline
+// tournament result. Called from _saveResultInline after syncImmediate so
+// every participant's Estatísticas Detalhadas survives tournament deletion.
+// Inline scoring has no pointLog/gameLog, so only games/sets aggregate —
+// point-level analytics (holds, breaks, deuce, streaks) stay zero here.
+function _persistInlineTournamentMatchRecord(t, m, s1, s2, tbP1, tbP2, isTiebreakEntry, useSets) {
+  if (!window.FirestoreDB || !window.FirestoreDB.saveUserMatchRecords) return;
+  var pl = _buildMatchPlayersList(t, m);
+  if (!pl) return;
+  var players = pl.players;
+  var winnerTeam = 0;
+  if (m.draw || m.winner === 'draw') winnerTeam = 0;
+  else if (m.winner === m.p1) winnerTeam = 1;
+  else if (m.winner === m.p2) winnerTeam = 2;
+  var setsArr = [];
+  if (useSets) {
+    var setEntry = { gamesP1: s1, gamesP2: s2 };
+    if (isTiebreakEntry && !isNaN(tbP1) && !isNaN(tbP2)) setEntry.tiebreak = { p1: tbP1, p2: tbP2 };
+    setsArr.push(setEntry);
+  }
+  var setsT1 = useSets ? (s1 > s2 ? 1 : 0) : 0;
+  var setsT2 = useSets ? (s2 > s1 ? 1 : 0) : 0;
+  var zeroStats = { holdServed:0, held:0, longestStreak:0, biggestLead:0, servePtsPlayed:0, servePtsWon:0, receivePtsPlayed:0, receivePtsWon:0, deucePtsPlayed:0, deucePtsWon:0, breaks:0 };
+  var team1 = Object.assign({ points: s1, games: s1, sets: setsT1 }, zeroStats);
+  var team2 = Object.assign({ points: s2, games: s2, sets: setsT2 }, zeroStats);
+  var recordId = 't_' + String(t.id) + '_' + String(m.id);
+  var record = {
+    matchId: recordId,
+    matchType: 'tournament',
+    tournamentId: t.id || null,
+    tournamentName: t.name || null,
+    sport: t.sport || t.modality || '',
+    isDoubles: pl.p1Count > 1 || pl.p2Count > 1,
+    finishedAt: new Date().toISOString(),
+    startedAt: null,
+    durationMs: null,
+    timeStats: null,
+    players: players,
+    playerUids: players.filter(function(p){return !!p.uid;}).map(function(p){return p.uid;}),
+    winnerTeam: winnerTeam,
+    scoreSummary: s1 + '-' + s2,
+    sets: setsArr,
+    stats: { team1: team1, team2: team2 },
+    playerStats: {}
+  };
+  try {
+    var prom = window.FirestoreDB.saveUserMatchRecords(record);
+    if (prom && typeof prom.catch === 'function') prom.catch(function(){});
+  } catch(e) {}
+}
+
+// GSM (set-by-set) variant used by _saveSetResult. m.sets already holds the
+// full per-set data so the record is richer than the inline path.
+function _persistGSMTournamentMatchRecord(t, m, sets, p1Sets, p2Sets, totalGamesP1, totalGamesP2) {
+  if (!window.FirestoreDB || !window.FirestoreDB.saveUserMatchRecords) return;
+  var pl = _buildMatchPlayersList(t, m);
+  if (!pl) return;
+  var winnerTeam = 0;
+  if (m.draw || m.winner === 'draw') winnerTeam = 0;
+  else if (m.winner === m.p1) winnerTeam = 1;
+  else if (m.winner === m.p2) winnerTeam = 2;
+  var setsArr = (sets || []).map(function(s) {
+    var e = { gamesP1: s.gamesP1, gamesP2: s.gamesP2 };
+    if (s.tiebreak) {
+      var _tb = s.tiebreak;
+      var _p1 = (typeof _tb.p1 === 'number') ? _tb.p1 : (typeof _tb.pointsP1 === 'number' ? _tb.pointsP1 : null);
+      var _p2 = (typeof _tb.p2 === 'number') ? _tb.p2 : (typeof _tb.pointsP2 === 'number' ? _tb.pointsP2 : null);
+      if (_p1 !== null && _p2 !== null) e.tiebreak = { p1: _p1, p2: _p2 };
+    }
+    if (s.fixedSet) e.fixedSet = true;
+    return e;
+  });
+  var zeroStats = { holdServed:0, held:0, longestStreak:0, biggestLead:0, servePtsPlayed:0, servePtsWon:0, receivePtsPlayed:0, receivePtsWon:0, deucePtsPlayed:0, deucePtsWon:0, breaks:0 };
+  var team1 = Object.assign({ points: totalGamesP1 || 0, games: totalGamesP1 || 0, sets: p1Sets || 0 }, zeroStats);
+  var team2 = Object.assign({ points: totalGamesP2 || 0, games: totalGamesP2 || 0, sets: p2Sets || 0 }, zeroStats);
+  var scoreSummary = setsArr.map(function(s) {
+    var base = s.gamesP1 + '-' + s.gamesP2;
+    if (s.tiebreak) base += '(' + Math.min(s.tiebreak.p1, s.tiebreak.p2) + ')';
+    return base;
+  }).join(' ');
+  var recordId = 't_' + String(t.id) + '_' + String(m.id);
+  var record = {
+    matchId: recordId,
+    matchType: 'tournament',
+    tournamentId: t.id || null,
+    tournamentName: t.name || null,
+    sport: t.sport || t.modality || '',
+    isDoubles: pl.p1Count > 1 || pl.p2Count > 1,
+    finishedAt: new Date().toISOString(),
+    startedAt: null,
+    durationMs: null,
+    timeStats: null,
+    players: pl.players,
+    playerUids: pl.players.filter(function(p){return !!p.uid;}).map(function(p){return p.uid;}),
+    winnerTeam: winnerTeam,
+    scoreSummary: scoreSummary,
+    sets: setsArr,
+    stats: { team1: team1, team2: team2 },
+    playerStats: {}
+  };
+  try {
+    var prom = window.FirestoreDB.saveUserMatchRecords(record);
+    if (prom && typeof prom.catch === 'function') prom.catch(function(){});
+  } catch(e) {}
+}
+
 window._substituteFromStandby = function (tId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
@@ -972,6 +1118,9 @@ window._saveSetResult = function(tId, matchId) {
   window.AppStore.logAction(tId, 'Resultado: ' + m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner);
   window.AppStore.syncImmediate(tId);
 
+  // Persist per-user matchHistory record (GSM path) — uses richer m.sets data.
+  try { _persistGSMTournamentMatchRecord(t, m, sets, p1Sets, p2Sets, totalGamesP1, totalGamesP2); } catch(e) {}
+
   if (typeof window._sendUserNotification === 'function') {
     const _resultText = m.p1 + ' vs ' + m.p2 + ' — ' + scoreText + ' — Vencedor: ' + m.winner;
     const _notifData = {
@@ -1138,6 +1287,11 @@ window._saveResultInline = function (tId, matchId) {
 
   window.AppStore.logAction(tId, `Resultado: ${m.p1} ${s1} × ${s2} ${m.p2}${m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner}`);
   window.AppStore.syncImmediate(tId);
+
+  // Persist a per-user matchHistory record so the player's Estatísticas
+  // Detalhadas survive tournament deletion. Inline scoring has no pointLog,
+  // so we derive minimal stats (games/points/sets) from s1/s2 directly.
+  try { _persistInlineTournamentMatchRecord(t, m, s1, s2, tbP1, tbP2, isTiebreakEntry, useSets); } catch(e) {}
 
   // Notify match participants about the result
   if (typeof window._sendUserNotification === 'function') {

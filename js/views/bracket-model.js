@@ -91,15 +91,30 @@
     return 'pending';
   }
 
+  // True when the tournament uses Swiss as a qualifier stage within a
+  // non-Swiss elimination-style format (Eliminatórias / Dupla Eliminatória /
+  // Fase de Grupos + Eliminatórias). In that case Swiss rounds must be labeled
+  // "RODADA SUIÇA N/M" to distinguish them from the elimination rounds that
+  // follow. Pure Suíço / Liga / Ranking tournaments keep the plain "Rodada N".
+  function _isSwissQualifierTournament(t) {
+    if (!t) return false;
+    var fmt = t.format || '';
+    if (fmt === 'Suíço' || fmt === 'Suíço Clássico' || fmt === 'Liga' || fmt === 'Ranking') return false;
+    return true;
+  }
+
   // ── Swiss past rounds (used when Swiss was p2 resolution) ────────────────
   function _buildSwissPastColumns(t) {
     if (!Array.isArray(t.swissRoundsData) || t.swissRoundsData.length === 0) return [];
+    var total = (t.swissRounds ? parseInt(t.swissRounds) : 0) || t.swissRoundsData.length;
     return t.swissRoundsData.map(function (rd, ri) {
       var matches = (rd && rd.matches) ? rd.matches : [];
+      var label = _tr('bracket.swissRoundFull', 'RODADA SUIÇA ' + (ri + 1) + '/' + total,
+        { n: ri + 1, total: total });
       return {
         id: 'swiss-past-r' + (ri + 1),
         phase: 'swiss-past',
-        label: _tr('bracket.swissRoundShort', LABELS.swissShort + (ri + 1), { n: ri + 1 }),
+        label: label,
         round: ri + 1,
         status: 'done',
         historical: true,
@@ -114,6 +129,8 @@
   // ── Swiss / Liga / Liga-rei-rainha from t.rounds[] ───────────────────────
   function _buildSwissColumns(t) {
     if (!Array.isArray(t.rounds) || t.rounds.length === 0) return [];
+    var isSwissQualifier = _isSwissQualifierTournament(t);
+    var swissTotal = (t.swissRounds ? parseInt(t.swissRounds) : 0) || t.rounds.length;
     return t.rounds.map(function (r, ri) {
       var matches = (r && r.matches) ? r.matches : [];
       var isMonarchRound = r && r.format === 'rei_rainha';
@@ -121,6 +138,9 @@
       if (isMonarchRound) {
         label = _tr('bracket.round', 'Rodada ' + (ri + 1), { n: ri + 1 }) +
           ' • ' + _tr('bracket.monarchShort', 'Rei/Rainha');
+      } else if (isSwissQualifier) {
+        label = _tr('bracket.swissRoundFull', 'RODADA SUIÇA ' + (ri + 1) + '/' + swissTotal,
+          { n: ri + 1, total: swissTotal });
       } else {
         label = _tr('bracket.round', 'Rodada ' + (ri + 1), { n: ri + 1 });
       }

@@ -1096,7 +1096,7 @@ window._renderPersistentMatchStats = function(records, uid) {
 
     return '<div style="border-top:1px solid var(--border-color,rgba(255,255,255,0.1));padding-top:10px;">' +
         '<div style="font-size:0.82rem;font-weight:700;color:var(--text-bright,#fff);margin-bottom:4px;">📊 Estatísticas Detalhadas</div>' +
-        '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Partidas casuais ⚡ e torneios 🏆 lado a lado — dados persistentes preservados mesmo se o torneio ou a partida for apagada.</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted,#94a3b8);margin-bottom:6px;">Partidas casuais ⚡ e torneios 🏆.</div>' +
         _unifiedStatsHtml(casual, tournament, casualRel, tournRel) +
     '</div>';
 };
