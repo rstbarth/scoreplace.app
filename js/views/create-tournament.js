@@ -475,7 +475,7 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="wo-scope" value="individual">
                 <div style="display:flex;flex-direction:column;gap:8px;" id="wo-scope-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualDesc')}</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" id="wo-indiv-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualOnDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -487,11 +487,11 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="late-enrollment" value="closed">
                 <div style="display:flex;flex-direction:column;gap:8px;" id="late-enrollment-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedDesc')}</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" id="late-closed-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedOnDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDesc')}</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" id="late-expand-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDisabledDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -962,6 +962,8 @@ function setupCreateTournamentModal() {
       row.style.border = indiv.checked ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.08)';
       row.style.background = indiv.checked ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)';
     }
+    var desc = document.getElementById('wo-indiv-desc');
+    if (desc) desc.textContent = _t(indiv.checked ? 'create.woIndividualOnDesc' : 'create.woIndividualOffDesc');
   };
 
   // ── Late Enrollment sync (two independent toggles) ──
@@ -984,8 +986,19 @@ function setupCreateTournamentModal() {
       rows[0].style.background = closed.checked ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
     }
     if (rows[1]) {
-      rows[1].style.border = expand.checked ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.08)';
-      rows[1].style.background = expand.checked ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
+      var expandEffective = !closed.checked && expand.checked;
+      rows[1].style.border = expandEffective ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.08)';
+      rows[1].style.background = expandEffective ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
+      rows[1].style.opacity = closed.checked ? '0.55' : '1';
+    }
+    var closedDesc = document.getElementById('late-closed-desc');
+    if (closedDesc) closedDesc.textContent = _t(closed.checked ? 'create.lateEnrollClosedOnDesc' : 'create.lateEnrollClosedOffDesc');
+    var expandDesc = document.getElementById('late-expand-desc');
+    if (expandDesc) {
+      var key;
+      if (closed.checked) key = 'create.lateEnrollExpandDisabledDesc';
+      else key = expand.checked ? 'create.lateEnrollExpandOnDesc' : 'create.lateEnrollExpandOffDesc';
+      expandDesc.textContent = _t(key);
     }
   };
 
