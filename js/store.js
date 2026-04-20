@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.22-alpha';
+window.SCOREPLACE_VERSION = '0.14.23-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -427,6 +427,7 @@ window._dismissAllOverlays = function(opts) {
       if (keep.indexOf(el.id) !== -1) return;
       // Safe-list: elements that must NEVER be swept.
       if (el.classList && (
+        el.classList.contains('modal-overlay') ||
         el.classList.contains('topbar') ||
         el.classList.contains('sticky-back-header') ||
         el.classList.contains('hamburger-dropdown') ||
