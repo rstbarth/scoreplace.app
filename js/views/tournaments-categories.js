@@ -943,6 +943,7 @@ function _attachCatManagerDragDrop(tId) {
         if (targetEl && targetEl !== _touchDragEl) {
             targetEl.style.border = '2px solid #fbbf24';
         }
+        if (typeof window._dragAutoScrollOnTouchMove === 'function') window._dragAutoScrollOnTouchMove(e);
     }
 
     function _onTouchEnd(e) {
@@ -965,6 +966,7 @@ function _attachCatManagerDragDrop(tId) {
         _touchDragEl = null;
         _touchClone = null;
         _dragData = null;
+        if (typeof window._dragAutoScrollStop === 'function') window._dragAutoScrollStop();
     }
 
     var modalContent = document.getElementById('cat-manager-modal');

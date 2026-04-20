@@ -685,6 +685,7 @@ function setupCreateTournamentModal() {
           _touchDragClone.style.left = touch.clientX + 'px';
           _touchDragClone.style.top = (touch.clientY - 20) + 'px';
         }
+        if (typeof window._dragAutoScrollOnTouchMove === 'function') window._dragAutoScrollOnTouchMove(e);
       };
 
       window._onTiebreakerTouchEnd = function(e) {
@@ -710,6 +711,7 @@ function setupCreateTournamentModal() {
 
         _touchDragEl = null;
         _touchDragClone = null;
+        if (typeof window._dragAutoScrollStop === 'function') window._dragAutoScrollStop();
       };
     }
   }

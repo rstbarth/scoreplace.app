@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.35-alpha';
+window.SCOREPLACE_VERSION = '0.14.36-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1498,3 +1498,72 @@ window.updateViewModeVisibility = function() {
     viewModeContainer.style.setProperty('display', 'none', 'important');
   }
 };
+
+// ─── Auto-scroll during drag (HTML5 + touch) ───────────────────────────────
+// Scrolls the nearest scrollable container (or window) when the pointer
+// approaches the top/bottom viewport edge during a drag. HTML5 drags are
+// handled automatically via document-level dragover. Custom touch-drag code
+// should call window._dragAutoScrollOnTouchMove(event) from its touchmove
+// handler and window._dragAutoScrollStop() from its touchend handler.
+(function(){
+  var EDGE = 80;       // px from viewport edge where auto-scroll kicks in
+  var MAX_SPEED = 18;  // px per animation frame at the very edge
+  var IDLE_MS = 150;   // stop auto-scroll if no pointer event within this window
+  var rafId = null;
+  var lastY = -1;
+  var lastEvt = 0;
+  var container = null;
+
+  function isScrollable(el) {
+    if (!el || el === document.documentElement || el === document.body) return false;
+    var cs = getComputedStyle(el);
+    var oy = cs.overflowY;
+    return (oy === 'auto' || oy === 'scroll') && el.scrollHeight - el.clientHeight > 1;
+  }
+  function findScrollable(startEl) {
+    var el = startEl;
+    while (el && el !== document.body) {
+      if (isScrollable(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+  function tick() {
+    if (Date.now() - lastEvt > IDLE_MS || lastY < 0) {
+      rafId = null; container = null; return;
+    }
+    var vh = window.innerHeight;
+    var delta = 0;
+    if (lastY < EDGE) delta = -Math.ceil(MAX_SPEED * (EDGE - lastY) / EDGE);
+    else if (lastY > vh - EDGE) delta = Math.ceil(MAX_SPEED * (lastY - (vh - EDGE)) / EDGE);
+    if (delta !== 0) {
+      if (container) container.scrollTop += delta;
+      else window.scrollBy(0, delta);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  function schedule(x, y) {
+    lastY = y;
+    lastEvt = Date.now();
+    if (!container) {
+      var el = document.elementFromPoint(x, y);
+      container = findScrollable(el);
+    }
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  }
+  function stop() {
+    lastY = -1;
+    container = null;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  document.addEventListener('dragover', function(e){ schedule(e.clientX, e.clientY); }, { passive: true });
+  document.addEventListener('dragend', stop, { passive: true });
+  document.addEventListener('drop', stop, { passive: true });
+
+  window._dragAutoScrollOnTouchMove = function(e) {
+    var t = e && e.touches && e.touches[0];
+    if (t) schedule(t.clientX, t.clientY);
+  };
+  window._dragAutoScrollStop = stop;
+})();
