@@ -1905,9 +1905,53 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + gCards + '</div>' +
           '</div>';
         }).join('');
-      })() : `<div style="display:flex;flex-wrap:wrap;gap:16px;">
-        ${(() => { const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0); return (currentRoundData.matches || []).map((m, idx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, prevMatches + idx + 1)}</div>`).join(''); })()}
-      </div>`}
+      })() : (() => {
+        const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0);
+        const allMatches = currentRoundData.matches || [];
+        const buildCard = (m, absIdx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, prevMatches + absIdx + 1)}</div>`;
+        const _cu = window.AppStore && window.AppStore.currentUser;
+        const _cuName = _cu ? (_cu.displayName || '') : '';
+        const _cuEmail = _cu ? (_cu.email || '') : '';
+        const _matchHasMe = (m) => {
+          if (!_cu) return false;
+          const sides = [m.p1 || '', m.p2 || ''];
+          for (let si = 0; si < sides.length; si++) {
+            const s = sides[si];
+            if (!s || s === 'TBD' || s === 'BYE') continue;
+            if (_cuName && (s === _cuName || s.indexOf(_cuName) !== -1)) return true;
+            if (_cuEmail && s === _cuEmail) return true;
+            if (s.indexOf('/') !== -1) {
+              const members = s.split('/').map(n => n.trim());
+              for (let mi = 0; mi < members.length; mi++) {
+                if (_cuName && members[mi] === _cuName) return true;
+                if (_cuEmail && members[mi] === _cuEmail) return true;
+              }
+            }
+          }
+          return false;
+        };
+        if (isLigaFmt && _cu) {
+          const myIdx = [];
+          const otherIdx = [];
+          allMatches.forEach((m, i) => { if (_matchHasMe(m)) myIdx.push(i); else otherIdx.push(i); });
+          if (myIdx.length > 0 && otherIdx.length > 0) {
+            const myHtml = myIdx.map(i => buildCard(allMatches[i], i)).join('');
+            const otherHtml = otherIdx.map(i => buildCard(allMatches[i], i)).join('');
+            const myLabel = myIdx.length === 1 ? 'Seu jogo' : 'Seus jogos';
+            return `<div style="margin-bottom:1rem;">
+              <div style="font-size:0.75rem;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.6rem;">⭐ ${myLabel}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:16px;">${myHtml}</div>
+            </div>
+            <details style="margin-top:0.75rem;">
+              <summary style="cursor:pointer;user-select:none;font-size:0.8rem;font-weight:600;color:var(--text-muted);padding:8px 0;border-top:1px solid var(--border-color);">
+                ▸ Demais jogos da rodada (${otherIdx.length})
+              </summary>
+              <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:0.75rem;">${otherHtml}</div>
+            </details>`;
+          }
+        }
+        return `<div style="display:flex;flex-wrap:wrap;gap:16px;">${allMatches.map((m, idx) => buildCard(m, idx)).join('')}</div>`;
+      })()}
     </div>`;
 
   const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
