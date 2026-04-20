@@ -1018,7 +1018,6 @@ function renderTournaments(container, tournamentId = null) {
                    <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
                      <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
-                     <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
@@ -1034,7 +1033,6 @@ function renderTournaments(container, tournamentId = null) {
                    <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
                      <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
-                     <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
                      <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
@@ -1093,7 +1091,6 @@ function renderTournaments(container, tournamentId = null) {
                <div class="tournament-action-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;">
                  <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#rules/${t.id}'">📋 Regras</button>
                  <button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash='#participants/${t.id}'">👥 Inscritos</button>
-                 <button class="btn btn-outline btn-sm hover-lift" style="color:#fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}')">📱 QR Code</button>
                  <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._printBracket()">🖨️ Imprimir</button>
                  <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 Exportar CSV</button>
                  <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tvMode('${t.id}')">📺 Modo TV</button>
@@ -1146,7 +1143,6 @@ function renderTournaments(container, tournamentId = null) {
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
-              <button class="btn btn-outline btn-sm hover-lift" style="color: #fbbf24;" onclick="event.stopPropagation(); window._showQRCode('${t.id}');">📱 QR Code</button>
             </div>` : ''}
 
             <!-- Below Name: Calendário + Data -->
