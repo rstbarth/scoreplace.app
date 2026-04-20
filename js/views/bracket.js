@@ -179,12 +179,14 @@ function renderBracket(container, tournamentId, isInline) {
 
   // ── "Só meus jogos" toggle is now inside the sticky header (headerHtml) ──
 
+  // Banner "Jogos Prontos" — shown at the top of every bracket view after tournament start
+  const readyBannerHtml = (typeof window._renderReadyMatchesBanner === 'function') ? window._renderReadyMatchesBanner(t) : '';
   // Waitlist panel — shown at the end of every bracket view (Liga/Suíço/Grupos/Monarch/Elim)
   const standbyHtml = _renderStandbyPanel(t, isOrg);
 
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult) + standbyHtml;
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderStandings(t, isOrg, canEnterResult) + standbyHtml;
     _applyMyMatchesFilter();
     return;
   }
@@ -192,7 +194,7 @@ function renderBracket(container, tournamentId, isInline) {
   // ── Fase de Grupos ─────────────────────────────────────────────────────────
   if (isGrupos && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderGroupStage(t, isOrg, canEnterResult) + standbyHtml;
       _applyMyMatchesFilter();
       return;
     }
@@ -203,7 +205,7 @@ function renderBracket(container, tournamentId, isInline) {
   var isMonarch = t.format === 'Rei/Rainha da Praia';
   if (isMonarch && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + _renderMonarchStage(t, isOrg, canEnterResult) + standbyHtml;
       _applyMyMatchesFilter();
       return;
     }
@@ -228,9 +230,9 @@ function renderBracket(container, tournamentId, isInline) {
   // (see renderSingleElimBracket / renderDoubleElimBracket). No separate card.
   try {
     if (isDupla) {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
     } else {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + readyBannerHtml + renderSingleElimBracket(t, canEnterResult) + standbyHtml;
     }
   } catch (bracketErr) {
     console.error('[Bracket] Render error:', bracketErr);
@@ -247,18 +249,25 @@ function renderBracket(container, tournamentId, isInline) {
 // ─── Banner de Jogos Prontos (ambos presentes) ──────────────────────────────
 window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
   var _t = window._t || function(k) { return k; };
-  if (!t || !t.tournamentStarted || !t.checkedIn || !t.matches) return '';
+  if (!t || !t.tournamentStarted || !t.checkedIn) return '';
   const ci = t.checkedIn;
   const hasAnyCheckin = Object.keys(ci).length > 0;
   if (!hasAnyCheckin) return '';
+
+  // Collect matches from every structure (flat, Swiss rounds, groups, rodadas) so the
+  // banner is not silently empty on Liga/Suíço/Grupos/Monarch.
+  const allMatchesForBanner = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : (Array.isArray(t.matches) ? t.matches.slice() : []);
+  if (!allMatchesForBanner.length) return '';
 
   // Find matches where both sides are fully checked in and not yet decided
   const readyMatches = [];
   const partialMatches = [];
   const waitingMatches = [];
 
-  t.matches.forEach((m, idx) => {
-    if (m.winner || m.isBye || !m.p1 || m.p1 === 'TBD' || !m.p2 || m.p2 === 'TBD') return;
+  allMatchesForBanner.forEach((m, idx) => {
+    if (!m || m.winner || m.isBye || !m.p1 || m.p1 === 'TBD' || !m.p2 || m.p2 === 'TBD') return;
     const p1s = _getCheckInStatus(t.id, m.p1);
     const p2s = _getCheckInStatus(t.id, m.p2);
     const friendlyNum = idx + 1;
