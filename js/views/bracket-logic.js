@@ -1507,3 +1507,163 @@ function _generateNextRoundForPlayers(t, category) {
     phase: 'swiss', round: roundNum, status: 'active', matches: newMatches
   });
 }
+
+// ─── Liga auto-draw poller ──────────────────────────────────────────────────
+// Runs periodically on the organizer's browser. For every Liga tournament
+// where drawManual is off and drawFirstDate/Time are set, fires the scheduled
+// draw when its time has arrived. First draw seeds standings + round 1;
+// subsequent draws generate the next round. Stops once t.endDate has passed.
+window._checkLigaAutoDraws = async function() {
+  var store = window.AppStore;
+  if (!store || !Array.isArray(store.tournaments) || !store.currentUser) return;
+
+  var now = new Date();
+  var tournaments = store.tournaments.slice();
+
+  for (var i = 0; i < tournaments.length; i++) {
+    var t = tournaments[i];
+    if (!t) continue;
+
+    // Only Liga tournaments
+    if (!(window._isLigaFormat && window._isLigaFormat(t))) continue;
+
+    // Only the organizer (or an active co-host) fires the draw — avoids
+    // multiple participant browsers racing on the same tournament.
+    if (typeof store.isOrganizer === 'function') {
+      var origMode = store.viewMode;
+      store.viewMode = 'organizer';
+      var isOrg = store.isOrganizer(t);
+      store.viewMode = origMode;
+      if (!isOrg) continue;
+    } else {
+      if (!store.currentUser || t.organizerEmail !== store.currentUser.email) continue;
+    }
+
+    // Must be auto-scheduled with a first date
+    if (t.drawManual) continue;
+    if (!t.drawFirstDate) continue;
+
+    // Skip finished
+    if (t.status === 'finished') continue;
+
+    // Stop if end date has passed
+    if (t.endDate) {
+      var endD = new Date(t.endDate + 'T23:59:59');
+      if (!isNaN(endD.getTime()) && endD < now) continue;
+    }
+
+    var firstDrawStr = t.drawFirstDate + 'T' + (t.drawFirstTime || '19:00');
+    var firstDraw = new Date(firstDrawStr);
+    if (isNaN(firstDraw.getTime())) continue;
+
+    // Not yet time for the first draw
+    if (firstDraw > now) continue;
+
+    // Compute the most recent scheduled draw that is ≤ now
+    var intervalDays = parseInt(t.drawIntervalDays) || 7;
+    if (intervalDays < 1) intervalDays = 1;
+    var intervalMs = intervalDays * 86400000;
+    var elapsed = now.getTime() - firstDraw.getTime();
+    var intervals = Math.floor(elapsed / intervalMs);
+    var mostRecentScheduled = new Date(firstDraw.getTime() + intervals * intervalMs);
+
+    // Skip if we already fired for this scheduled time
+    var lastFired = t.lastAutoDrawAt ? new Date(t.lastAutoDrawAt) : null;
+    if (lastFired && !isNaN(lastFired.getTime()) && lastFired >= mostRecentScheduled) continue;
+
+    try {
+      await _fireLigaAutoDraw(t, mostRecentScheduled);
+    } catch (e) {
+      console.warn('[auto-draw] failed for tournament ' + t.id, e);
+    }
+  }
+};
+
+async function _fireLigaAutoDraw(t, scheduledTime) {
+  var hasExistingDraw = (Array.isArray(t.rounds) && t.rounds.length > 0);
+  var allParts = Array.isArray(t.participants) ? t.participants.slice() : Object.values(t.participants || {});
+
+  // Need at least 2 active participants to draw
+  var activeParts = allParts.filter(function(p) {
+    if (typeof p !== 'object' || !p) return true;
+    return p.ligaActive !== false;
+  });
+  if (activeParts.length < 2) {
+    console.log('[auto-draw] Skipping tournament ' + t.id + ': fewer than 2 active participants');
+    return;
+  }
+
+  if (!hasExistingDraw) {
+    // First draw: shuffle participants, seed standings with ALL participants
+    // (inactive still appear in standings — they just sit out until reactivated)
+    for (var si = allParts.length - 1; si > 0; si--) {
+      var sj = Math.floor(Math.random() * (si + 1));
+      var tmp = allParts[si]; allParts[si] = allParts[sj]; allParts[sj] = tmp;
+    }
+
+    t.standings = allParts.map(function(p) {
+      var name = typeof p === 'string' ? p : (p.displayName || p.name || '');
+      var entry = { name: name, points: 0, wins: 0, losses: 0, pointsDiff: 0, played: 0 };
+      if (typeof p === 'object' && p && typeof window._getParticipantCategories === 'function') {
+        var pcs = window._getParticipantCategories(p);
+        if (pcs && pcs.length > 0) { entry.category = pcs[0]; entry.categories = pcs; }
+      }
+      return entry;
+    });
+    t.rounds = [];
+    t.status = 'active';
+    t.drawVisibility = t.drawVisibility || 'public';
+
+    _generateNextRound(t);
+
+    var firstRound = t.rounds[t.rounds.length - 1];
+    var firstMatchCount = (firstRound && firstRound.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+
+    window.AppStore.logAction(t.id, 'Sorteio automático realizado — Rodada 1 gerada com ' + firstMatchCount + ' partida(s)');
+
+    if (typeof window._notifyTournamentParticipants === 'function') {
+      var _tFn1 = window._t || function(k, v) { return v && v.name ? v.name : k; };
+      window._notifyTournamentParticipants(t, {
+        type: 'draw',
+        level: 'important',
+        title: _tFn1('tdraw.round1NotifTitle', { name: t.name || 'Torneio' }) || ((t.name || 'Torneio') + ' — Rodada 1'),
+        message: _tFn1('tdraw.round1NotifMsg', { count: firstMatchCount }) || ('Sorteio automático: ' + firstMatchCount + ' partida(s) geradas.'),
+        tournamentId: t.id
+      });
+    }
+  } else {
+    // Subsequent draw — generate next round from current standings.
+    // _generateNextRound handles active-player filtering and sit-outs internally.
+    _generateNextRound(t);
+
+    var newRound = t.rounds[t.rounds.length - 1];
+    var newMatchCount = (newRound && newRound.matches || []).filter(function(m) { return !m.isSitOut; }).length;
+
+    window.AppStore.logAction(t.id, 'Rodada ' + t.rounds.length + ' gerada automaticamente com ' + newMatchCount + ' partida(s)');
+
+    if (typeof window._notifyTournamentParticipants === 'function') {
+      var _tFn2 = window._t || function(k, v) { return v && v.n ? v.n : k; };
+      window._notifyTournamentParticipants(t, {
+        type: 'new_round',
+        level: 'important',
+        title: _tFn2('bui.newRoundTitle', { n: t.rounds.length, name: t.name || 'Torneio' }) || ((t.name || 'Torneio') + ' — Rodada ' + t.rounds.length),
+        message: _tFn2('bui.newRoundNotifMsg', { n: newMatchCount }) || ('Nova rodada gerada automaticamente com ' + newMatchCount + ' partida(s).'),
+        tournamentId: t.id
+      });
+    }
+  }
+
+  t.lastAutoDrawAt = scheduledTime.toISOString();
+  t.updatedAt = new Date().toISOString();
+
+  try {
+    await window.AppStore.syncImmediate(t.id);
+  } catch (e) {
+    console.warn('[auto-draw] syncImmediate failed for tournament ' + t.id, e);
+  }
+
+  // If the user is currently viewing this tournament, refresh the view
+  if (typeof window._rerenderBracket === 'function' && String(window._lastActiveTournamentId) === String(t.id)) {
+    try { window._rerenderBracket(t.id); } catch (e) { /* ignore */ }
+  }
+}

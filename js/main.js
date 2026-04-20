@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.14.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Sorteio automático em torneios Liga com data/hora do primeiro sorteio + intervalo de repetição</b> — Em torneios Liga onde o toggle "Sorteio manual" está desligado e os campos "Data/hora do primeiro sorteio" e "Repetir a cada X dias" estão preenchidos, o sorteio, a geração do chaveamento e a notificação aos inscritos passam a acontecer automaticamente, sem precisar de clique do organizador. O navegador do organizador (ou de um co-host ativo) executa um poller (<code>window._checkLigaAutoDraws</code>) a cada 60s: identifica torneios Liga agendados, calcula a última janela de sorteio que já passou (<code>firstDraw + N * interval</code>), compara com <code>t.lastAutoDrawAt</code>, e se não houve disparo nesta janela, executa. A primeira rodada embaralha os inscritos, semeia o <code>t.standings</code> e chama <code>_generateNextRound(t)</code>; rodadas subsequentes chamam direto <code>_generateNextRound(t)</code>, que já filtra via <code>_getActiveLigaPlayers(t)</code> — ou seja, somente participantes com <code>ligaActive !== false</code> são pareados, e os "de fora" ficam registrados em <code>sitOutHistory</code> como informativo (sem penalidade). Após cada rodada, a notificação "Nova Rodada" é enviada a todos os inscritos via <code>_notifyTournamentParticipants</code> (nível <code>important</code>), e o Firestore é atualizado via <code>syncImmediate</code>. O poller para quando <code>t.endDate</code> é atingido (torneio já encerrado) ou quando o status for <code>finished</code>, ou se há menos de 2 ativos. <b>Idempotência:</b> só o organizador/co-host dispara (evita corrida entre múltiplos navegadores); <code>t.lastAutoDrawAt</code> (ISO da hora agendada) evita duplicação. Implementação em <code>js/views/bracket-logic.js</code> (nova função <code>_checkLigaAutoDraws</code> + helper interno <code>_fireLigaAutoDraw</code>), <code>js/views/auth.js</code> (kick inicial 3s após login), <code>js/main.js</code> (setInterval 60s). O helper existente <code>_calcNextDrawDate(t)</code> já é usado para exibir o countdown na UI — agora também é consistente com o momento em que o sorteio efetivo ocorre.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.14.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Toggle de disponibilidade integrado ao card do participante + novo sort "ativos/de fora"</b> — O painel público dedicado "Disponibilidade para o próximo sorteio" (introduzido na v0.14.42) foi removido. O toggle agora vive dentro do próprio card de cada inscrito na seção "Inscritos Confirmados", em uma pílula compacta logo abaixo do nome com o texto de estado ("🟢 Ativo" / "🔴 De fora"). Continua valendo: só o próprio usuário edita seu toggle (os demais aparecem em <code>disabled</code>, visíveis mas não clicáveis); todos os inscritos enxergam o estado de todos; o filtro de sorteio (<code>_getActiveLigaPlayers</code>) continua excluindo inativos da próxima rodada e <code>_recordSitOut</code> registra os de fora como informativo. Adicionado também um terceiro botão de ordenação ao lado de "A-Z↓" e "🕐↓" na barra de cabeçalho da seção (só aparece em torneios Liga): "🟢↓" inverte para "🔴↑" no segundo clique, ordenando os cards por status de disponibilidade (ativos primeiro ou de fora primeiro). Por fim, novas inscrições em Liga agora gravam <code>ligaActive: true</code> explicitamente no objeto do participante (para quem já estava inscrito antes da feature, o valor <code>undefined</code> continua sendo interpretado como ativo pela lógica de display <code>p.ligaActive !== false</code>). Implementação em <code>js/views/tournaments.js</code> (toggle no card + novo botão de sort), <code>js/views/tournaments-enrollment.js</code> (default <code>ligaActive: true</code> nos 4 pontos de inscrição), <code>js/i18n-pt.js</code> e <code>js/i18n-en.js</code> (5 chaves novas: <code>clickToInactive</code>, <code>clickToActive</code>, <code>othersReadOnly</code>, <code>sortActiveFirst</code>, <code>sortInactiveFirst</code>).</p>' +
         '</div>' +
@@ -2692,6 +2696,27 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
   if (!navigator.onLine) {
     showBanner('Sem conexão — modo offline', 'rgba(239,68,68,0.95)', '#fff', false);
   }
+})();
+
+// === Liga auto-draw poller ===
+// Ticks every minute. Only fires draws on the organizer's browser for Liga
+// tournaments with drawManual=off and drawFirstDate set.
+(function() {
+  function tick() {
+    if (typeof window._checkLigaAutoDraws !== 'function') return;
+    try {
+      var p = window._checkLigaAutoDraws();
+      if (p && typeof p.catch === 'function') {
+        p.catch(function(e) { console.warn('[auto-draw poller]', e); });
+      }
+    } catch (e) {
+      console.warn('[auto-draw poller]', e);
+    }
+  }
+  // Run shortly after load (once the store and user are ready)
+  setTimeout(tick, 8000);
+  // Re-run every 60 seconds
+  setInterval(tick, 60000);
 })();
 
 // === Quick Search (Ctrl+K / Cmd+K) ===

@@ -1103,6 +1103,11 @@ async function simulateLoginSuccess(user) {
     if (typeof window._initFCM === 'function') {
       window._initFCM().catch(function(e) { console.warn('FCM init error:', e); });
     }
+    // Kick Liga auto-draw poller once immediately after login; the interval
+    // keeps it ticking thereafter (wired in main.js).
+    if (typeof window._checkLigaAutoDraws === 'function') {
+      window._checkLigaAutoDraws().catch(function(e) { console.warn('Liga auto-draw error:', e); });
+    }
   }, 3000);
 
   // Update the topbar button with user avatar and name
