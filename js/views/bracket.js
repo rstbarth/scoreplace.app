@@ -351,26 +351,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
   const ci = t.checkedIn || {};
   const ab = t.absent || {};
 
-  const listItems = standby.map((p, i) => {
-    const name = getName(p);
-    const safeName = name.replace(/'/g, "\\'");
-    const mc = !!ci[name];
-    const isAb = !!ab[name];
-    const toggleColor = mc ? '#10b981' : '#64748b';
-    const statusLabel = mc ? _t('bracket.checkedIn') : _t('bracket.notCheckedIn');
-    const statusColor = mc ? '#4ade80' : '#64748b';
-
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${mc ? 'rgba(16,185,129,0.08)' : isAb ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)'};border-radius:10px;border-left:4px solid ${i === 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
-        <div style="width:26px;height:26px;border-radius:50%;background:${i === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:${i === 0 ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
-        <span style="font-weight:600;font-size:0.88rem;color:${i === 0 ? '#fbbf24' : '#94a3b8'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-        ${i === 0 ? '<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:6px;white-space:nowrap;">Próximo</span>' : ''}
-        <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${_tIdSafe}', '${safeName}');"><span class="toggle-slider"></span></label>
-        <span style="font-size:0.65rem;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
-        <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAb ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">${isAb ? 'Reverter' : 'W.O.'}</button>
-      </div>`;
-  }).join('');
-
   // Count W.O. players in main bracket (not standby) — these are candidates for substitution
   const woPlayers = [];
   if (t.matches) {
@@ -385,6 +365,32 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
       });
     });
   }
+  const hasWOSlot = woPlayers.length > 0;
+
+  const listItems = standby.map((p, i) => {
+    const name = getName(p);
+    const safeName = name.replace(/'/g, "\\'");
+    const mc = !!ci[name];
+    const isAb = !!ab[name];
+    const toggleColor = mc ? '#10b981' : '#64748b';
+    const statusLabel = mc ? _t('bracket.checkedIn') : _t('bracket.notCheckedIn');
+    const statusColor = mc ? '#4ade80' : '#64748b';
+    // Per-item "Assumir" button: appears for present standbys when there's a W.O. slot to fill (organizer only)
+    const assumeBtn = (isOrg && mc && hasWOSlot && !isAb)
+      ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._autoSubstituteWO('${_tIdSafe}', '${safeName}')" style="border:1px solid rgba(16,185,129,0.5);background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(5,150,105,0.15));color:#4ade80;font-weight:800;font-size:0.68rem;white-space:nowrap;" title="Assumir posição do jogador ausente">🔄 Assumir</button>`
+      : '';
+
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${mc ? 'rgba(16,185,129,0.08)' : isAb ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)'};border-radius:10px;border-left:4px solid ${i === 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
+        <div style="width:26px;height:26px;border-radius:50%;background:${i === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:${i === 0 ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
+        <span style="font-weight:600;font-size:0.88rem;color:${i === 0 ? '#fbbf24' : '#94a3b8'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+        ${i === 0 ? '<span style="font-size:0.6rem;font-weight:800;color:#f59e0b;text-transform:uppercase;background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:6px;white-space:nowrap;">Próximo</span>' : ''}
+        <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${_tIdSafe}', '${safeName}');"><span class="toggle-slider"></span></label>
+        <span style="font-size:0.65rem;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
+        ${assumeBtn}
+        <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAb ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">${isAb ? 'Reverter' : 'W.O.'}</button>
+      </div>`;
+  }).join('');
 
   // Substitution: simple button that auto-picks next present standby to replace first W.O.
   let subsSection = '';

@@ -242,7 +242,7 @@ window._substituteFromStandby = function (tId) {
 };
 
 // Auto-substitute: find first W.O. player in bracket and replace with first present standby
-window._autoSubstituteWO = function(tId) {
+window._autoSubstituteWO = function(tId, overrideReplacementName) {
   var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
   if (!t) return;
 
@@ -257,8 +257,16 @@ window._autoSubstituteWO = function(tId) {
   var standby = _sp.slice();
   _wl.forEach(function(w) { var wn = getName(w); if (wn && !_spNames.has(wn)) standby.push(w); });
 
-  // Find first present standby player
-  var nextPresent = standby.find(function(p) { return !!ci[getName(p)]; });
+  // Pick replacement: specific override (manual pick) or first present in queue
+  var nextPresent = null;
+  if (overrideReplacementName) {
+    nextPresent = standby.find(function(p) { return getName(p) === overrideReplacementName; });
+    if (nextPresent && !ci[getName(nextPresent)]) {
+      if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
+      return;
+    }
+  }
+  if (!nextPresent) nextPresent = standby.find(function(p) { return !!ci[getName(p)]; });
   if (!nextPresent) {
     if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
     return;
