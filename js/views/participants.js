@@ -695,8 +695,24 @@ function renderParticipants(container, tournamentId) {
       const _pAvatar = _pCached || _pInitials;
       const _pAvatarErr = `onerror="this.onerror=null;this.src='${_pInitials}'"` ;
 
+      // "Jogo N" color reflects match-level attendance: green when all players present, amber when partial, muted when none.
+      let _jogoColor = 'var(--text-muted)';
+      let _jogoOpacity = '0.55';
+      let _jogoWeight = '700';
+      if (matchLabel && ind.matchNum && !isStandbyPure) {
+        const _mm = [];
+        if (ind.teamName) ind.teamName.split(/\s*\/\s*/).forEach(n => { if (n && n.trim()) _mm.push(n.trim()); });
+        else if (ind.name) _mm.push(ind.name);
+        if (ind.opponent) ind.opponent.split(/\s*\/\s*/).forEach(n => { if (n && n.trim()) _mm.push(n.trim()); });
+        const _uniq = Array.from(new Set(_mm));
+        if (_uniq.length > 0) {
+          const _presentCount = _uniq.filter(n => !!checkedIn[n]).length;
+          if (_presentCount === _uniq.length) { _jogoColor = '#4ade80'; _jogoOpacity = '0.95'; _jogoWeight = '800'; }
+          else if (_presentCount > 0) { _jogoColor = '#fbbf24'; _jogoOpacity = '0.95'; _jogoWeight = '800'; }
+        }
+      }
       const jogoInline = matchLabel
-        ? `<span style="font-weight:700;color:var(--text-muted);opacity:0.55;font-size:0.72rem;white-space:nowrap;margin-left:6px;">${matchLabel}</span>`
+        ? `<span style="font-weight:${_jogoWeight};color:${_jogoColor};opacity:${_jogoOpacity};font-size:0.72rem;white-space:nowrap;margin-left:6px;">${matchLabel}</span>`
         : '';
       const nameCell = `<div style="display:flex;align-items:baseline;gap:6px;min-width:0;"><span style="font-weight:600;font-size:0.92rem;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWO ? 'text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);' : ''}${isOrg ? 'cursor:text;' : ''}" ${isOrg ? `onclick="event.stopPropagation();window._editParticipantName('${tId}','${safeName}')" title="Clique para editar"` : ''}>${_safeName}</span>${vipTag}${isStandby ? presenceDot : ''}${jogoInline}</div>`;
       // Inline layout: name+Jogo anchored to top-left, teams stack to the right, "vs" at top-right.
