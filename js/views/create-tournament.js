@@ -478,10 +478,6 @@ function setupCreateTournamentModal() {
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
-                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.woTeam')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woTeamDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-team" onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
-                  </div>
                 </div>
               </div>
 
@@ -494,13 +490,9 @@ function setupCreateTournamentModal() {
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
-                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">⏳</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollStandby')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollStandbyDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-standby" onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
-                  </div>
-                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+                  <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
               </div>
@@ -954,63 +946,45 @@ function setupCreateTournamentModal() {
     window._syncResultEntryToggles();
   };
 
-  // ── W.O. Scope sync (mutually exclusive toggles) ──
+  // ── W.O. Scope sync (single toggle) ──
+  // ON  → 'individual' (only absent player eliminated; partner continues)
+  // OFF → 'team'       (whole team eliminated on W.O.)
   window._syncWoScope = function() {
     var indiv = document.getElementById('wo-toggle-individual');
-    var team = document.getElementById('wo-toggle-team');
-    if (!indiv || !team) return;
-    // Mutually exclusive — only one can be on
-    if (indiv.checked && team.checked) {
-      // Turn off the other based on which was just toggled
-      if (document.activeElement === indiv || indiv.matches(':focus-within')) { team.checked = false; }
-      else { indiv.checked = false; }
-    }
-    // Prevent both off
-    if (!indiv.checked && !team.checked) { indiv.checked = true; }
-    var value = team.checked ? 'team' : 'individual';
+    if (!indiv) return;
+    var value = indiv.checked ? 'individual' : 'team';
     var hidden = document.getElementById('wo-scope');
     if (hidden) hidden.value = value;
-    // Update visual active state
-    var rows = document.querySelectorAll('#wo-scope-buttons .toggle-row');
-    rows.forEach(function(r, i) {
-      var isActive = (i === 0 && value === 'individual') || (i === 1 && value === 'team');
-      r.style.border = isActive ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.08)';
-      r.style.background = isActive ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)';
-    });
+    var row = document.querySelector('#wo-scope-buttons .toggle-row');
+    if (row) {
+      row.style.border = indiv.checked ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.08)';
+      row.style.background = indiv.checked ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)';
+    }
   };
 
-  // ── Late Enrollment sync (mutually exclusive — radio-like) ──
+  // ── Late Enrollment sync (two independent toggles) ──
+  // Fechadas ON  → 'closed' (no one can enroll after deadline)
+  // Fechadas OFF → 'standby' (new enrollments go to waitlist)
+  // Novos Confrontos (independent) → when ON AND Fechadas OFF, waitlist auto-expands into new matchups → 'expand'
   window._syncLateEnrollment = function() {
     var closed = document.getElementById('late-toggle-closed');
-    var standby = document.getElementById('late-toggle-standby');
     var expand = document.getElementById('late-toggle-expand');
-    if (!closed || !standby || !expand) return;
-    // Determine which was just toggled on
-    var active = document.activeElement;
-    var value = 'closed';
-    if (active === expand || expand.matches(':focus-within')) {
-      if (expand.checked) { closed.checked = false; standby.checked = false; value = 'expand'; }
-    } else if (active === standby || standby.matches(':focus-within')) {
-      if (standby.checked) { closed.checked = false; expand.checked = false; value = 'standby'; }
-    } else if (active === closed || closed.matches(':focus-within')) {
-      if (closed.checked) { standby.checked = false; expand.checked = false; value = 'closed'; }
-    }
-    // Fallback — ensure at least one is on
-    if (!closed.checked && !standby.checked && !expand.checked) { closed.checked = true; value = 'closed'; }
-    // Determine final value
-    if (expand.checked) value = 'expand';
-    else if (standby.checked) value = 'standby';
-    else value = 'closed';
+    if (!closed || !expand) return;
+    var value;
+    if (closed.checked) value = 'closed';
+    else value = expand.checked ? 'expand' : 'standby';
     var hidden = document.getElementById('late-enrollment');
     if (hidden) hidden.value = value;
-    // Update visual active state
+    // Update visual active state independently per toggle
     var rows = document.querySelectorAll('#late-enrollment-buttons .toggle-row');
-    var values = ['closed', 'standby', 'expand'];
-    rows.forEach(function(r, i) {
-      var isActive = values[i] === value;
-      r.style.border = isActive ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.08)';
-      r.style.background = isActive ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
-    });
+    if (rows[0]) {
+      rows[0].style.border = closed.checked ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.08)';
+      rows[0].style.background = closed.checked ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
+    }
+    if (rows[1]) {
+      rows[1].style.border = expand.checked ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.08)';
+      rows[1].style.background = expand.checked ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
+    }
   };
 
   // ── Monarch Classified Selection ──
@@ -2707,17 +2681,16 @@ function setupCreateTournamentModal() {
     document.getElementById('tourn-max-participants').value = t.maxParticipants || '';
     document.getElementById('tourn-auto-close').checked = !!t.autoCloseOnFull;
     window._setVisibility(t.isPublic !== false ? 'public' : 'private');
-    // W.O. Scope
+    // W.O. Scope (single toggle: ON=individual, OFF=team)
     var _woScope = t.woScope || 'individual';
     document.getElementById('wo-scope').value = _woScope;
     document.getElementById('wo-toggle-individual').checked = _woScope === 'individual';
-    document.getElementById('wo-toggle-team').checked = _woScope === 'team';
     window._syncWoScope();
-    // Late Enrollment
+    // Late Enrollment (Fechadas + Novos Confrontos)
     var _lateEnroll = t.lateEnrollment || 'closed';
     document.getElementById('late-enrollment').value = _lateEnroll;
     document.getElementById('late-toggle-closed').checked = _lateEnroll === 'closed';
-    document.getElementById('late-toggle-standby').checked = _lateEnroll === 'standby';
+    // Novos Confrontos: ON when mode is 'expand'. For new tournaments with Fechadas OFF, default ON.
     document.getElementById('late-toggle-expand').checked = _lateEnroll === 'expand';
     window._syncLateEnrollment();
     // Restore result entry toggles (backward compat: string or array)
@@ -3823,19 +3796,17 @@ window._prefillFromTemplate = function(tpl) {
     window._gsmApplyConfig(tpl.scoring);
   }
 
-  // W.O. Scope
+  // W.O. Scope (single toggle: ON=individual, OFF=team)
   if (tpl.woScope) {
     document.getElementById('wo-scope').value = tpl.woScope;
     document.getElementById('wo-toggle-individual').checked = tpl.woScope === 'individual';
-    document.getElementById('wo-toggle-team').checked = tpl.woScope === 'team';
     if (typeof window._syncWoScope === 'function') window._syncWoScope();
   }
 
-  // Late Enrollment
+  // Late Enrollment (Fechadas + Novos Confrontos)
   if (tpl.lateEnrollment) {
     document.getElementById('late-enrollment').value = tpl.lateEnrollment;
     document.getElementById('late-toggle-closed').checked = tpl.lateEnrollment === 'closed';
-    document.getElementById('late-toggle-standby').checked = tpl.lateEnrollment === 'standby';
     document.getElementById('late-toggle-expand').checked = tpl.lateEnrollment === 'expand';
     if (typeof window._syncLateEnrollment === 'function') window._syncLateEnrollment();
   }
