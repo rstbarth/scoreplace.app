@@ -33,12 +33,19 @@ body.hamburger-open .topbar {
 }
 .hamburger-dropdown {
   display: none;
-  position: relative;  /* normal flow — pushes content below it */
+  /* Pinned to the top under the topbar — never scrolls with content.
+     JS sets `top` dynamically to match the topbar's measured height so
+     multi-line topbars don't overlap. */
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
   z-index: var(--z-hamburger-dropdown);  /* 102 — above back-header (101) */
   background: var(--bg-darker);
   border-bottom: 1px solid var(--border-color);
   padding: 2px 1rem 4px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  box-sizing: border-box;
 }
 .hamburger-dropdown.open {
   display: flex;

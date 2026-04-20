@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.20-alpha';
+window.SCOREPLACE_VERSION = '0.14.21-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -235,8 +235,12 @@ window._toggleHamburger = function(btn) {
   document.body.classList.add('hamburger-open');
   if (btn) btn.setAttribute('aria-expanded', 'true');
 
-  // Push back-header (Voltar) down so it appears below the dropdown
-  window._adjustBackHeaderForHamburger();
+  // Push back-header (Voltar) down so it appears below the dropdown.
+  // Double rAF ensures the dropdown has painted before we measure its height.
+  window._reflowChrome();
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() { window._reflowChrome(); });
+  });
 
   // Close on click outside — remove first to prevent accumulation on rapid open
   document.removeEventListener('click', window._hamburgerOutsideClick);
@@ -256,7 +260,7 @@ window._closeHamburger = function() {
   if (btn) btn.setAttribute('aria-expanded', 'false');
   document.removeEventListener('click', window._hamburgerOutsideClick);
   // Restore back-header to default position
-  window._adjustBackHeaderForHamburger();
+  window._reflowChrome();
 };
 
 // ─── UNIFIED BACK HEADER ────────────────────────────────────────────────────
@@ -468,21 +472,40 @@ window._dismissAllOverlays = function(opts) {
   } catch(e) {}
 };
 
-// Push .sticky-back-header down when hamburger is open, restore when closed.
-// The dropdown is position:relative in the document flow, so it takes space.
-// But back-header is position:fixed, so we must manually adjust its top.
-window._adjustBackHeaderForHamburger = function() {
-  var backHeader = document.querySelector('.sticky-back-header');
-  if (!backHeader) return;
+// ─── UNIFIED CHROME LAYOUT ───────────────────────────────────────────────────
+// Single source of truth for the position of topbar + hamburger dropdown +
+// back header. Everything else used to compute its own position from stale
+// state (dropdown was position:relative and got scrolled off when the user
+// scrolled before opening it; back-header tracked that off-screen dropdown).
+// Now both the dropdown and the back-header are position:fixed and anchored
+// to the measured topbar height, so they stay pinned regardless of scroll.
+//
+// Layout (top-down): topbar → (if open) dropdown → back-header → content.
+window._reflowChrome = function() {
+  var topbar = document.querySelector('.topbar');
+  var topbarH = topbar ? Math.ceil(topbar.getBoundingClientRect().height) : 60;
   var dd = document.getElementById('hamburger-dropdown');
-  if (dd && dd.classList.contains('open')) {
-    // Use actual bottom of dropdown as reference (accounts for all padding/margins)
-    var ddRect = dd.getBoundingClientRect();
-    backHeader.style.top = Math.ceil(ddRect.bottom) + 'px';
-  } else {
-    backHeader.style.top = '60px';
+  var ddOpen = dd && dd.classList.contains('open');
+  var ddH = 0;
+  if (dd) {
+    // Pin the dropdown under the topbar regardless of scroll
+    dd.style.top = topbarH + 'px';
+    if (ddOpen) ddH = Math.ceil(dd.getBoundingClientRect().height);
   }
+  var backHeaders = document.querySelectorAll('.sticky-back-header');
+  var bhOffset = topbarH + ddH;
+  backHeaders.forEach(function(bh) {
+    bh.style.top = bhOffset + 'px';
+    // Keep the content spacer under the back-header in sync with its height.
+    var next = bh.nextElementSibling;
+    if (next) {
+      var bhH = Math.ceil(bh.getBoundingClientRect().height);
+      next.style.marginTop = (bhH + 8) + 'px';
+    }
+  });
 };
+// Legacy aliases — external callers may reference the old names.
+window._adjustBackHeaderForHamburger = window._reflowChrome;
 
 window._hamburgerOutsideClick = function(e) {
   var dd = document.getElementById('hamburger-dropdown');
@@ -492,29 +515,12 @@ window._hamburgerOutsideClick = function(e) {
   }
 };
 
-// Keep spacer in sync with .sticky-back-header actual height.
-// The header is position:fixed so its siblings need an explicit margin-top.
-// On narrow screens the header can wrap to 2+ rows, so a fixed 50px isn't enough.
-window._syncBackHeaderSpacer = function() {
-  var topbar = document.querySelector('.topbar');
-  var topbarH = topbar ? Math.ceil(topbar.getBoundingClientRect().height) : 60;
-  var headers = document.querySelectorAll('.sticky-back-header');
-  headers.forEach(function(h) {
-    // Anchor the fixed back-header directly below the topbar. The topbar
-    // can wrap on narrow screens (e.g. 90+ px tall); leaving the header at
-    // top:60px lets the topbar paint over the Voltar button — `position:sticky`
-    // beats lower z-index when they overlap. Setting top dynamically keeps
-    // them strictly vertical-stacked.
-    h.style.top = topbarH + 'px';
-    var next = h.nextElementSibling;
-    if (!next) return;
-    var rect = h.getBoundingClientRect();
-    var px = Math.ceil(rect.height) + 8;
-    next.style.marginTop = px + 'px';
-  });
-};
+// Legacy alias — every caller now routes through _reflowChrome.
+window._syncBackHeaderSpacer = window._reflowChrome;
 
-// Observe DOM for added/removed sticky headers and their size changes
+// Observe DOM for added/removed sticky headers and their size changes.
+// All triggers funnel into _reflowChrome so chrome positioning has exactly
+// one source of truth.
 (function() {
   if (window._backHeaderObserverInstalled) return;
   window._backHeaderObserverInstalled = true;
@@ -522,7 +528,7 @@ window._syncBackHeaderSpacer = function() {
   var resizeObs = null;
   if (typeof ResizeObserver !== 'undefined') {
     resizeObs = new ResizeObserver(function() {
-      window._syncBackHeaderSpacer();
+      window._reflowChrome();
     });
   }
 
@@ -531,11 +537,13 @@ window._syncBackHeaderSpacer = function() {
     document.querySelectorAll('.sticky-back-header').forEach(function(h) {
       try { resizeObs.observe(h); } catch(e) {}
     });
-    // Also observe the topbar: when it wraps (narrow viewport, login state
-    // change, filter pills added) its height changes and we need to push
-    // the back-header down to avoid overlap.
+    // Also observe the topbar and hamburger dropdown: when their height
+    // changes (topbar wraps on narrow viewport, dropdown opens/closes or
+    // its content changes) we need to reflow everything below.
     var topbar = document.querySelector('.topbar');
     if (topbar) { try { resizeObs.observe(topbar); } catch(e) {} }
+    var dd = document.getElementById('hamburger-dropdown');
+    if (dd) { try { resizeObs.observe(dd); } catch(e) {} }
   }
 
   function initDomObserver() {
@@ -543,11 +551,11 @@ window._syncBackHeaderSpacer = function() {
     if (!vc) { setTimeout(initDomObserver, 100); return; }
     var mo = new MutationObserver(function() {
       observeExistingHeaders();
-      window._syncBackHeaderSpacer();
+      window._reflowChrome();
     });
     mo.observe(vc, { childList: true, subtree: true });
     observeExistingHeaders();
-    window._syncBackHeaderSpacer();
+    window._reflowChrome();
   }
 
   if (document.readyState === 'loading') {
@@ -557,8 +565,14 @@ window._syncBackHeaderSpacer = function() {
   }
 
   window.addEventListener('resize', function() {
-    window._syncBackHeaderSpacer();
+    window._reflowChrome();
   });
+  // Scroll: both dropdown and back-header are position:fixed so they don't
+  // move with scroll, but measured heights can change (e.g. dropdown opens
+  // mid-scroll and we need to update the back-header offset immediately).
+  window.addEventListener('scroll', function() {
+    window._reflowChrome();
+  }, { passive: true });
 })();
 
 // ─── Constantes globais ─────────────────────────────────────────────────────
