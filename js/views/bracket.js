@@ -351,20 +351,22 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
   const ci = t.checkedIn || {};
   const ab = t.absent || {};
 
-  // Count W.O. players in main bracket (not standby) — these are candidates for substitution
+  // Count W.O. players in main bracket (not standby) — these are candidates for substitution.
+  // Use _collectAllMatches to cover every structure (flat matches, Swiss rounds, groups, rodadas).
   const woPlayers = [];
-  if (t.matches) {
-    t.matches.filter(m => !m.winner && !m.isBye).forEach(m => {
-      ['p1', 'p2'].forEach(slot => {
-        const name = m[slot];
-        if (!name || name === 'TBD' || name === 'BYE') return;
-        // Check if any member of this team/player is marked absent
-        const members = name.includes(' / ') ? name.split(' / ').map(n => n.trim()) : [name];
-        const hasAbsent = members.some(n => !!ab[n]);
-        if (hasAbsent) woPlayers.push({ name, matchId: m.id, slot });
-      });
+  const _allMatchesForWO = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : (Array.isArray(t.matches) ? t.matches : []);
+  _allMatchesForWO.filter(m => !m.winner && !m.isBye).forEach(m => {
+    ['p1', 'p2'].forEach(slot => {
+      const name = m[slot];
+      if (!name || name === 'TBD' || name === 'BYE') return;
+      // Check if any member of this team/player is marked absent
+      const members = name.includes(' / ') ? name.split(' / ').map(n => n.trim()) : [name];
+      const hasAbsent = members.some(n => !!ab[n]);
+      if (hasAbsent) woPlayers.push({ name, matchId: m.id, slot });
     });
-  }
+  });
   const hasWOSlot = woPlayers.length > 0;
 
   const listItems = standby.map((p, i) => {
