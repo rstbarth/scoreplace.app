@@ -1025,7 +1025,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
       var matches = col.matches || [];
       return `
       <div style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
-        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${_t('bracket.round', {n: col.round})}</h5>
+        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${col.label || (col.round < 0 ? (Math.abs(col.round) > 1 ? _t('bracket.repechageN', {n: Math.abs(col.round)}) : _t('bracket.repechage')) : _t('bracket.round', {n: col.round}))}</h5>
         ${matches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}
       </div>`;
     }).join('');

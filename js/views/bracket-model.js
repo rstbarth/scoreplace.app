@@ -231,6 +231,10 @@
           label = _labelElimRound(roundNum, positiveRounds);
         } else if (br === 'grand') {
           label = _tr('bracket.grandFinal', LABELS.grandfinal);
+        } else if (roundNum < 0) {
+          // Repechage (power-of-2 resolution): negative round = pre-qualifier between R1 and R2
+          label = _tr('bracket.repechage', LABELS.repechage) +
+            (Math.abs(roundNum) > 1 ? ' ' + Math.abs(roundNum) : '');
         } else {
           // upper/lower bracket: keep simple round label
           label = _tr('bracket.round', 'Rodada ' + roundNum, { n: roundNum });

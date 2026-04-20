@@ -254,6 +254,8 @@ window._translations['pt'] = {
   'bracket.waitingDraw': 'Aguardando Sorteio',
   'bracket.allMatchesDone': 'Todas as partidas concluídas!',
   'bracket.round': 'Rodada {n}',
+  'bracket.repechage': 'Repescagem',
+  'bracket.repechageN': 'Repescagem {n}',
   'bracket.final': 'Final',
   'bracket.semiFinal': 'Semifinais',
   'bracket.quarterFinal': 'Quartas de Final',
