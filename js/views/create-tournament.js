@@ -371,25 +371,25 @@ function setupCreateTournamentModal() {
                   <span style="font-size: 0.72rem; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">⏱ ${_t('create.timeEstSection')}</span>
                   <span id="duration-estimate-inline" style="font-size: 0.8rem; font-weight: 700; color: var(--text-bright); white-space: nowrap;">—</span>
                 </div>
-                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.callTimeDesc')}">
-                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.callTimeLabel')}</span>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-items:end;">
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0; min-width:0;" title="${_t('create.callTimeDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_t('create.callTimeLabel')}</span>
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
-                      <input type="number" id="tourn-call-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <input type="number" id="tourn-call-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; width:100%; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
                       <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
                   </label>
-                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.warmupDesc')}">
-                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.warmupLabel')}</span>
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0; min-width:0;" title="${_t('create.warmupDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_t('create.warmupLabel')}</span>
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
-                      <input type="number" id="tourn-warmup-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <input type="number" id="tourn-warmup-time" min="0" max="60" value="5" oninput="window._recalcDuration()" style="flex:1; min-width:0; width:100%; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
                       <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
                   </label>
-                  <label style="display:flex; flex-direction:column; gap:2px; margin:0;" title="${_t('create.gameDurDesc')}">
-                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500;">${_t('create.gameDurLabel')}</span>
+                  <label style="display:flex; flex-direction:column; gap:2px; margin:0; min-width:0;" title="${_t('create.gameDurDesc')}">
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_t('create.gameDurLabel')}</span>
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:2px 6px;">
-                      <input type="number" id="tourn-game-duration" min="5" max="300" value="30" oninput="window._recalcDuration()" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
+                      <input type="number" id="tourn-game-duration" min="5" max="300" value="30" oninput="window._recalcDuration()" style="flex:1; min-width:0; width:100%; background:transparent; border:none; color:var(--text-bright); font-size:0.9rem; font-weight:600; padding:4px 0; outline:none;">
                       <span style="font-size:0.7rem; color:var(--text-muted);">min</span>
                     </div>
                   </label>
