@@ -13,21 +13,25 @@ function setupCreateTournamentModal() {
     const modalHtml = `
       <div class="modal-overlay" id="modal-create-tournament">
         <div class="modal" style="max-width: 800px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-          <div class="modal-header" style="display:flex; flex-direction:column; align-items:stretch; gap:8px; border-bottom: 1px solid var(--border-color); padding: 0.75rem 1rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-            <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-              <button class="btn btn-outline btn-sm hover-lift" onclick="window._discardCreateTournament()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:18px;flex-shrink:0;font-size:0.78rem;" aria-label="${_t('btn.back') || 'Voltar'}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                <span class="back-label-text">${_t('btn.back') || 'Voltar'}</span>
-              </button>
-              <div style="flex:1;"></div>
-              <button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" onclick="window._discardCreateTournament()" style="padding:5px 12px;border-radius:10px;font-size:0.78rem;flex-shrink:0;">${_t('btn.discard') || 'Descartar'}</button>
-              <button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" style="padding:5px 14px;border-radius:10px;font-size:0.78rem;flex-shrink:0;font-weight:700;">${_t('btn.save') || 'Salvar'}</button>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-              <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem;">${_t('create.modalTitle')}</h2>
-              <button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()" style="padding:5px 12px;font-size:0.75rem;flex-shrink:0;">💾 Template</button>
-            </div>
+          <div class="modal-header create-modal-header" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; border-bottom: 1px solid var(--border-color); padding: 0.6rem 0.75rem; position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+            <button class="btn btn-outline btn-sm hover-lift" onclick="window._discardCreateTournament()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:18px;flex-shrink:0;font-size:0.78rem;" aria-label="${_t('btn.back') || 'Voltar'}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              <span class="hdr-label">${_t('btn.back') || 'Voltar'}</span>
+            </button>
+            <button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" onclick="window._showTemplatePickerInCreate()" style="padding:5px 10px;font-size:0.75rem;flex-shrink:0;" title="${_t('create.loadTemplate') || 'Carregar Template'}">💾<span class="hdr-label" style="margin-left:4px;">${_t('create.loadTemplate') || 'Carregar'}</span></button>
+            <button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" onclick="window._saveCurrentFormAsTemplate()" style="padding:5px 10px;font-size:0.75rem;flex-shrink:0;" title="${_t('create.saveTemplate') || 'Salvar Template'}">⭐<span class="hdr-label" style="margin-left:4px;">${_t('create.saveTemplate') || 'Salvar Template'}</span></button>
+            <div style="flex:1;min-width:4px;"></div>
+            <h2 class="card-title" id="create-modal-title" style="margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;display:none;">${_t('create.modalTitle')}</h2>
+            <button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" onclick="window._discardCreateTournament()" style="padding:5px 10px;border-radius:10px;font-size:0.78rem;flex-shrink:0;">${_t('btn.discard') || 'Descartar'}</button>
+            <button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" style="padding:5px 14px;border-radius:10px;font-size:0.78rem;flex-shrink:0;font-weight:700;">${_t('btn.save') || 'Salvar'}</button>
           </div>
+          <style>
+            @media(max-width:600px){
+              .create-modal-header .hdr-label{display:none;}
+              .create-modal-header .btn{padding:5px 8px!important;}
+              #btn-load-template-create, #btn-save-template-create{font-size:0.9rem!important;}
+            }
+          </style>
           <div class="modal-body" style="padding: 1.5rem; color: var(--text-main); overflow-x: hidden; max-width: 100%; box-sizing: border-box;">
             <form id="form-create-tournament" onsubmit="event.preventDefault();" style="max-width: 100%; overflow-x: hidden;">
               <input type="hidden" id="edit-tournament-id">
@@ -3863,6 +3867,80 @@ window._prefillFromTemplate = function(tpl) {
 window._discardCreateTournament = function() {
   var modal = document.getElementById('modal-create-tournament');
   if (modal) modal.classList.remove('active');
+};
+
+// ─── Save current form as template ────────────────────────────────────────
+// Reads the current create-tournament form values and saves them as a
+// reusable template via window._saveTemplate.
+window._saveCurrentFormAsTemplate = function() {
+  var _t = window._t || function(k) { return k; };
+  if (!window.AppStore || !window.AppStore.currentUser || !window.AppStore.currentUser.uid) {
+    if (typeof showNotification === 'function') showNotification(_t('template.loginRequired') || 'Faça login para salvar templates', '', 'warning');
+    return;
+  }
+  var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+  var getChecked = function(id) { var el = document.getElementById(id); return el ? !!el.checked : false; };
+  var name = (get('tourn-name') || '').trim();
+  var defaultName = name || _t('create.newTournament') || 'Novo Torneio';
+  var sportRaw = get('select-sport') || '';
+  var sportClean = sportRaw.replace(/^[^\w\u00C0-\u024F]+/u, '').trim();
+  var formatValue = get('select-formato');
+  var drawModeValue = get('draw-mode');
+  var formatMap = { liga:'Liga', suico:'Suíço Clássico', elim_simples:'Eliminatórias Simples', elim_dupla:'Dupla Eliminatória', grupos_mata:'Fase de Grupos + Eliminatórias' };
+  var format;
+  if (drawModeValue === 'rei_rainha' && formatValue !== 'liga') format = 'Rei/Rainha da Praia';
+  else format = formatMap[formatValue] || 'Eliminatórias Simples';
+  var genderCats = (get('tourn-gender-categories') || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var skillCats = (get('tourn-skill-categories') || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var combinedCats = [];
+  if (genderCats.length && skillCats.length) {
+    genderCats.forEach(function(g) { skillCats.forEach(function(s) { combinedCats.push(g + ' ' + s); }); });
+  } else if (genderCats.length) combinedCats = genderCats.slice();
+  else if (skillCats.length) combinedCats = skillCats.slice();
+  var scoring = {
+    type: get('gsm-type') || 'simple',
+    setsToWin: parseInt(get('gsm-setsToWin')) || 1,
+    gamesPerSet: parseInt(get('gsm-gamesPerSet')) || 6,
+    tiebreakEnabled: get('gsm-tiebreakEnabled') === 'true',
+    tiebreakPoints: parseInt(get('gsm-tiebreakPoints')) || 7,
+    tiebreakMargin: parseInt(get('gsm-tiebreakMargin')) || 2,
+    superTiebreak: get('gsm-superTiebreak') === 'true',
+    superTiebreakPoints: parseInt(get('gsm-superTiebreakPoints')) || 10,
+    countingType: get('gsm-countingType') || 'numeric',
+    advantageRule: get('gsm-advantageRule') === 'true'
+  };
+  if (typeof showInputDialog !== 'function') return;
+  showInputDialog(_t('template.namePrompt') || 'Nome do template', defaultName, function(templateName) {
+    if (!templateName || !templateName.trim()) return;
+    var template = {
+      name: templateName.trim(),
+      sport: sportClean,
+      format: format,
+      scoring: scoring,
+      genderCategories: genderCats,
+      skillCategories: skillCats,
+      combinedCategories: combinedCats,
+      enrollmentMode: get('select-inscricao') || 'individual',
+      maxParticipants: parseInt(get('tourn-max-participants')) || '',
+      courtCount: parseInt(get('tourn-court-count')) || '',
+      gameDuration: parseInt(get('tourn-game-duration')) || '',
+      venue: (get('tourn-venue') || '').trim(),
+      venueLat: get('tourn-venue-lat') || null,
+      venueLon: get('tourn-venue-lon') || null,
+      venueAddress: get('tourn-venue-address') || '',
+      teamSize: parseInt(get('tourn-team-size')) || 1
+    };
+    if (typeof window._saveTemplate !== 'function') return;
+    window._saveTemplate(template).then(function(result) {
+      if (result === 'ok') {
+        if (typeof showNotification === 'function') showNotification(_t('template.saved') || 'Template salvo', template.name, 'success');
+      } else if (result === 'limit') {
+        if (typeof showNotification === 'function') showNotification(_t('template.limitFree') || 'Limite de templates atingido', '', 'warning');
+      } else {
+        if (typeof showNotification === 'function') showNotification(_t('template.saveError') || 'Erro ao salvar', '', 'error');
+      }
+    });
+  });
 };
 
 // ─── Template picker inside create-tournament modal ───────────────────────

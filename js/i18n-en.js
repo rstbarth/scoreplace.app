@@ -110,6 +110,11 @@ window._translations['en'] = {
   'template.use': 'Use',
   'template.saveError': 'Error saving template',
   'template.saveErrorMsg': 'Please try again.',
+  'template.loginRequired': 'Log in to save templates',
+
+  // Create tournament header buttons
+  'create.loadTemplate': 'Load',
+  'create.saveTemplate': 'Save Template',
 
   // Tournament status
   'status.open': 'Open Enrollment',
