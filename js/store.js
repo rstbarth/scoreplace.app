@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.14-alpha';
+window.SCOREPLACE_VERSION = '0.14.15-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -257,6 +257,93 @@ window._closeHamburger = function() {
   document.removeEventListener('click', window._hamburgerOutsideClick);
   // Restore back-header to default position
   window._adjustBackHeaderForHamburger();
+};
+
+// ─── UNIFIED BACK HEADER ────────────────────────────────────────────────────
+// Canonical emitter for the fixed "Voltar" bar that sits under the topbar.
+// Every view was rolling its own markup (~10 copies with divergent styles,
+// onclicks, flex layouts) which made it easy for one copy to drift and lose
+// click-through (e.g. missing event.stopPropagation, wrong z-index). All
+// views now call this helper so there is ONE place to fix bugs.
+//
+// opts:
+//   href           — hash to navigate to (default '#dashboard')
+//   label          — button text (default 'Voltar')
+//   middleHtml     — optional HTML between the button and the right slot
+//                    (auto-adds a flex:1 spacer if omitted)
+//   rightHtml      — optional HTML after the middle slot
+//   belowHtml      — optional second row inside the sticky wrapper
+//   extraStyle     — optional inline style on the outer wrapper
+//   onClickOverride— optional JS string replacing the default hash-set
+//                    (used by modal-overlay variants like player stats)
+window._renderBackHeader = function(opts) {
+  opts = opts || {};
+  var _label = (opts.label == null) ? 'Voltar' : String(opts.label);
+  // Default: dismiss overlays + set hash. onClickOverride replaces the whole
+  // onclick body (caller handles everything).
+  var _href = opts.href || '#dashboard';
+  var _safeHref = String(_href).replace(/'/g, "\\'");
+  var _clickJs = opts.onClickOverride
+    || ("if(window._dismissAllOverlays)window._dismissAllOverlays();window.location.hash='" + _safeHref + "';");
+  var _extraStyle = opts.extraStyle ? (' style="' + opts.extraStyle + '"') : '';
+  var _svg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
+  var _middle = (opts.middleHtml == null || opts.middleHtml === '')
+    ? '<div style="flex:1;"></div>'
+    : opts.middleHtml;
+  var _right = opts.rightHtml || '';
+  var _below = opts.belowHtml || '';
+  return (
+    '<div class="sticky-back-header"' + _extraStyle + '>' +
+      '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">' +
+        '<button class="btn btn-outline btn-sm hover-lift" type="button" ' +
+                'style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;" ' +
+                'onclick="event.stopPropagation();' + _clickJs + '">' +
+          _svg + ' ' + _label +
+        '</button>' +
+        _middle +
+        _right +
+      '</div>' +
+      _below +
+    '</div>'
+  );
+};
+
+// ─── DISMISS ALL OVERLAYS ───────────────────────────────────────────────────
+// Any full-screen overlay whose z-index exceeds .sticky-back-header (1001)
+// can mask the Voltar button. If such an overlay outlives a navigation,
+// Voltar becomes unclickable everywhere. This function rips down all known
+// high-z overlays and deactivates standard .modal-overlay.active.
+// Called by the router on every hashchange and by Voltar's default onclick.
+window._dismissAllOverlays = function(opts) {
+  opts = opts || {};
+  var keep = opts.keep || [];
+  var overlayIds = [
+    'tv-mode-overlay',
+    'set-scoring-overlay',
+    'qr-modal-overlay',
+    'player-stats-overlay',
+    'scan-qr-overlay',
+    'scan-qr-room-overlay'
+  ];
+  overlayIds.forEach(function(id) {
+    if (keep.indexOf(id) !== -1) return;
+    var el = document.getElementById(id);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  });
+  // TV mode locks body scroll + enters fullscreen — undo both if we ripped it.
+  try { document.body.style.overflow = ''; } catch(e) {}
+  try {
+    if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+      document.exitFullscreen().catch(function(){});
+    }
+  } catch(e) {}
+  // Standard modal-overlay deactivation.
+  try {
+    var modals = document.querySelectorAll('.modal-overlay.active');
+    for (var i = 0; i < modals.length; i++) {
+      if (keep.indexOf(modals[i].id) === -1) modals[i].classList.remove('active');
+    }
+  } catch(e) {}
 };
 
 // Push .sticky-back-header down when hamburger is open, restore when closed.

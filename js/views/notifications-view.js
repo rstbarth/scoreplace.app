@@ -17,12 +17,9 @@ function renderNotifications(container) {
 
   container.innerHTML =
     '<div style="max-width: 700px; margin: 0 auto;">' +
-      '<div class="sticky-back-header">' +
-      '<button class="btn btn-outline btn-sm hover-lift" onclick="window.location.hash=\'#dashboard\'" style="display: inline-flex; align-items: center; gap: 6px;">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
-        _t('notif.back') +
-      '</button>' +
-      '</div>' +
+      (typeof window._renderBackHeader === 'function'
+        ? window._renderBackHeader({ href: '#dashboard', label: _t('notif.back') })
+        : '') +
       '<h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-bright);">' + _t('notif.title') + '</h2>' +
       '<div id="notif-list" style="display: flex; flex-direction: column; gap: 10px;">' +
         '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">' + _t('notif.loading') + '</div>' +

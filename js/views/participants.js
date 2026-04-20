@@ -874,22 +874,22 @@ function renderParticipants(container, tournamentId) {
   const standbyPanelHtml = (typeof window._renderStandbyPanel === 'function') ? window._renderStandbyPanel(t, isOrg) : '';
 
   container.innerHTML = `
-    <div class="sticky-back-header" style="padding-bottom:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-        <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${t.id}'" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Voltar
-        </button>
-        <div style="flex:1;min-width:0;overflow:hidden;">
-          <h2 style="margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_t('participants.title')} — ${window._safeHtml(t.name)}</h2>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;">
-          <span class="badge badge-info" style="font-size:0.65rem;">${t.format || _t('participants.defaultFormat')}</span>
-          <span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.65rem;">${individualCount}</span>
-        </div>
-      </div>
-      ${checkInControls}
-    </div>
+    ${(typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+          href: '#tournaments/' + t.id,
+          extraStyle: 'padding-bottom:0;',
+          middleHtml: '<div style="flex:1;min-width:0;overflow:hidden;">' +
+            '<h2 style="margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+              _t('participants.title') + ' — ' + window._safeHtml(t.name) +
+            '</h2>' +
+          '</div>',
+          rightHtml: '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+            '<span class="badge badge-info" style="font-size:0.65rem;">' + (t.format || _t('participants.defaultFormat')) + '</span>' +
+            '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);font-size:0.65rem;">' + individualCount + '</span>' +
+          '</div>',
+          belowHtml: checkInControls
+        })
+      : ''}
     ${startBanner}
     ${startedBadge}
     ${readyBannerHtml}

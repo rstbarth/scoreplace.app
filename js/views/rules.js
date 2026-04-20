@@ -128,13 +128,7 @@ function renderRules(container, tournamentId) {
   const isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
 
   container.innerHTML = `
-    <div class="sticky-back-header">
-      <button class="btn btn-outline btn-sm hover-lift" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;"
-        onclick="window.location.hash='#tournaments/${t.id}'">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        ${_t('rules.back')}
-      </button>
-    </div>
+    ${window._renderBackHeader({ href: '#tournaments/' + t.id, label: _t('rules.back') })}
 
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>

@@ -298,17 +298,13 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
 
     modal.innerHTML = '' +
-      // Voltar header — same pattern as tournament details (.sticky-back-header). Uses
-      // position:fixed at the measured topbar bottom so Voltar always stays visible
-      // just below the topbar while the modal body scrolls underneath. A spacer pushes
-      // modal content down to make room for the pinned pill.
-      '<div class="sticky-back-header" style="position:fixed;top:' + _tbH + 'px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-        '<button class="btn btn-outline btn-sm hover-lift" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;" onclick="document.getElementById(\'player-stats-overlay\').remove()">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
-          ' Voltar' +
-        '</button>' +
-        '<button onclick="document.getElementById(\'player-stats-overlay\').remove()" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
-      '</div>' +
+      ((typeof window._renderBackHeader === 'function')
+        ? window._renderBackHeader({
+            extraStyle: 'position:fixed;top:' + _tbH + 'px;left:0;right:0;z-index:101;max-width:520px;margin:0 auto;padding:8px 16px;',
+            onClickOverride: "var _o=document.getElementById('player-stats-overlay');if(_o)_o.remove();",
+            rightHtml: '<button onclick="var _o=document.getElementById(\'player-stats-overlay\');if(_o)_o.remove();" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>'
+          })
+        : '') +
       '<div style="height:50px;"></div>' +
       '<div style="text-align:center;margin-bottom:1rem;">' +
         avatarHtml +

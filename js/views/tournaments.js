@@ -1383,13 +1383,9 @@ function renderTournaments(container, tournamentId = null) {
         }).join('');
     }
 
-    let headerHtml = `
-    <div class="sticky-back-header">
-      <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;" onclick="event.stopPropagation(); window.location.hash='#dashboard';">
-         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-         Voltar
-      </button>
-    </div>
+    let headerHtml = (typeof window._renderBackHeader === 'function'
+      ? window._renderBackHeader({ href: '#dashboard' })
+      : '') + `
     <div class="d-flex justify-between align-center mb-4">
       <div>
         <h2>${_t('tournament.title')}</h2>
@@ -1860,18 +1856,13 @@ function renderTournaments(container, tournamentId = null) {
             return '<button onclick="var el=document.getElementById(\'group-section-' + i + '\');if(el){el.scrollIntoView({behavior:\'smooth\',block:\'start\'});}" style="min-width:28px;height:28px;padding:0 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1.5px solid ' + c + ';background:' + c + '20;color:' + c + ';transition:all 0.15s;white-space:nowrap;line-height:1;" onmouseover="this.style.background=\'' + c + '40\'" onmouseout="this.style.background=\'' + c + '20\'">' + letter + '</button>';
           }).join('') + '</div>' : '';
 
-        headerHtml = `
-        <div class="sticky-back-header" style="padding-bottom:8px;">
-          <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
-            <button class="btn btn-outline btn-sm hover-lift" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;flex-shrink:0;" onclick="event.stopPropagation(); window.location.hash='#dashboard';">
-               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-               Voltar
-            </button>
-            ${_grpNavHtml ? '<div style="flex:1;min-width:0;overflow-x:auto;">' + _grpNavHtml + '</div>' : '<div style="flex:1;"></div>'}
-            ${_myToggleHtml}
-          </div>
-        </div>
-      `;
+        headerHtml = (typeof window._renderBackHeader === 'function'
+          ? window._renderBackHeader({
+              href: '#dashboard',
+              middleHtml: _grpNavHtml ? ('<div style="flex:1;min-width:0;overflow-x:auto;">' + _grpNavHtml + '</div>') : '<div style="flex:1;"></div>',
+              rightHtml: _myToggleHtml
+            })
+          : '');
     }
 
     // Se o torneio já tem chaveamento, ocultar inscritos (terá botão na tela de chaves)

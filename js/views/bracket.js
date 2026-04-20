@@ -126,16 +126,13 @@ function renderBracket(container, tournamentId, isInline) {
 
   const headerHtml = isInline ? `
     <div class="mb-3">${actionBtnsHtml}</div>` : `
-    <div class="sticky-back-header" style="padding-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
-        <button class="btn btn-outline hover-lift btn-sm" onclick="window.location.hash='#tournaments/${_tIdSafe}'" style="flex-shrink:0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Voltar
-        </button>
-        ${_groupNavHtml ? '<div style="flex:1;min-width:0;overflow-x:auto;">' + _groupNavHtml + '</div>' : '<div style="flex:1;"></div>'}
-        ${_myMatchesToggleHtml}
-      </div>
-    </div>
+    ${(typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+          href: '#tournaments/' + _tIdSafe,
+          middleHtml: _groupNavHtml ? ('<div style="flex:1;min-width:0;overflow-x:auto;">' + _groupNavHtml + '</div>') : '<div style="flex:1;"></div>',
+          rightHtml: _myMatchesToggleHtml
+        })
+      : ''}
     <div class="d-flex justify-between align-center mb-4" style="flex-wrap:wrap;gap:1rem;">
       <div>
         <h2 style="margin:0;">${isLiga || isSuico ? _t('bracket.title.standings') + ' — ' : isGrupos ? _t('bracket.title.groups') + ' — ' : t.format === 'Rei/Rainha da Praia' ? '👑 ' + _t('bracket.title.monarch') + ' — ' : _t('bracket.title.bracket') + ' — '}${window._safeHtml(t.name)}</h2>
