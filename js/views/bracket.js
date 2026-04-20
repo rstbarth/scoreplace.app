@@ -179,9 +179,12 @@ function renderBracket(container, tournamentId, isInline) {
 
   // ── "Só meus jogos" toggle is now inside the sticky header (headerHtml) ──
 
+  // Waitlist panel — shown at the end of every bracket view (Liga/Suíço/Grupos/Monarch/Elim)
+  const standbyHtml = _renderStandbyPanel(t, isOrg);
+
   // ── Liga / Suíço (Liga inclui antigo Ranking) ──────────────────────────────
   if (isLiga || isSuico) {
-    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult);
+    container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderStandings(t, isOrg, canEnterResult) + standbyHtml;
     _applyMyMatchesFilter();
     return;
   }
@@ -189,7 +192,7 @@ function renderBracket(container, tournamentId, isInline) {
   // ── Fase de Grupos ─────────────────────────────────────────────────────────
   if (isGrupos && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderGroupStage(t, isOrg, canEnterResult) + standbyHtml;
       _applyMyMatchesFilter();
       return;
     }
@@ -200,7 +203,7 @@ function renderBracket(container, tournamentId, isInline) {
   var isMonarch = t.format === 'Rei/Rainha da Praia';
   if (isMonarch && t.groups && t.groups.length > 0) {
     if (t.currentStage === 'groups') {
-      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult);
+      container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + _renderMonarchStage(t, isOrg, canEnterResult) + standbyHtml;
       _applyMyMatchesFilter();
       return;
     }
@@ -223,7 +226,6 @@ function renderBracket(container, tournamentId, isInline) {
   // ── Bracket ────────────────────────────────────────────────────────────────
   // Swiss-as-p2 past rounds render as columns inside the main bracket strip
   // (see renderSingleElimBracket / renderDoubleElimBracket). No separate card.
-  const standbyHtml = _renderStandbyPanel(t, isOrg);
   try {
     if (isDupla) {
       container.innerHTML = headerHtml + startTournamentBanner + progressBarHtml + renderDoubleElimBracket(t, canEnterResult) + standbyHtml;
@@ -396,23 +398,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
       </div>`;
   }).join('');
 
-  // Substitution: simple button that auto-picks next present standby to replace first W.O.
-  let subsSection = '';
-  if (isOrg && standby.length > 0 && woPlayers.length > 0) {
-    // Find first present standby
-    const nextPresent = standby.find(p => !!ci[getName(p)]);
-    const nextName = nextPresent ? getName(nextPresent) : null;
-    subsSection = `
-      <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <span style="font-size:1rem;">🔄</span>
-          <h4 style="margin:0;color:#f1f5f9;font-size:0.85rem;font-weight:700;">Substituição</h4>
-        </div>
-        <p style="margin:0 0 1rem;font-size:0.78rem;color:#64748b;line-height:1.5;">${woPlayers.length} jogador${woPlayers.length > 1 ? 'es' : ''} com W.O. ${nextName ? 'O próximo presente na fila é <strong style="color:#fbbf24;">' + nextName + '</strong>.' : '<span style="color:#f87171;">Nenhum jogador da lista de espera está marcado como presente.</span>'}</p>
-        ${nextName ? `<button class="btn btn-warning hover-lift" style="width:100%;" onclick="window._autoSubstituteWO('${_tIdSafe}')">🔄 Substituir W.O. pelo próximo presente</button>` : ''}
-      </div>`;
-  }
-
   return `
     <div id="standby-panel-section" style="margin-top:2rem;background:var(--bg-card);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:1.5rem;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
@@ -423,7 +408,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
       <div style="display:flex;flex-direction:column;gap:6px;">
         ${listItems}
       </div>
-      ${subsSection}
     </div>`;
 };
 
