@@ -1024,7 +1024,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
       var matches = col.matches || [];
       return `
       <div style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">
-        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;">${col.label || (col.round < 0 ? (Math.abs(col.round) > 1 ? _t('bracket.repechageN', {n: Math.abs(col.round)}) : _t('bracket.repechage')) : _t('bracket.round', {n: col.round}))}</h5>
+        <h5 style="color:${color};font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.5rem;border-left:3px solid ${color};padding-left:8px;">${col.label || (col.round < 0 ? (Math.abs(col.round) > 1 ? _t('bracket.repechageN', {n: Math.abs(col.round)}) : _t('bracket.repechage')) : _t('bracket.round', {n: col.round}))}</h5>
         ${matches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}
       </div>`;
     }).join('');
@@ -1043,7 +1043,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
       ${renderSection(lowerCols, 'Chaveamento Inferior', '#f59e0b')}
       ${grandMatches.length ? `
         <div style="margin-top:1rem;padding-top:1.5rem;border-top:1px solid var(--border-color);">
-          <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">🏆 ${_t('bracket.grandFinal')}</h4>
+          <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;border-left:3px solid #fbbf24;padding-left:10px;">🏆 ${_t('bracket.grandFinal')}</h4>
           <div style="max-width:280px;">${grandMatches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
         </div>` : ''}
     </div>`;
@@ -1261,29 +1261,6 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
-  // Detect if a player advanced via BYE (from a R1 BYE match)
-  const _byeBadgeFull = '<span style="display:inline-flex;align-items:center;justify-content:center;width:52px;font-size:0.55rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:4px 0;border-radius:6px;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(34,197,94,0.2);">BYE</span>';
-  const _byeBadgeMini = '<span style="font-size:0.45rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,0.12);padding:1px 4px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;vertical-align:middle;">BYE</span>';
-  let _p1Bye = false, _p2Bye = false;
-  if (t && m.round > 1) {
-    const _byeWinners = {};
-    const _isBye = window._isByeMatch || function(bm) { return bm && (bm.isBye || bm.p2 === 'BYE' || bm.p2 === 'BYE (Avança Direto)'); };
-    if (typeof window._collectAllMatches === 'function') {
-      window._collectAllMatches(t).forEach(function(bm) { if (_isBye(bm) && bm.winner) _byeWinners[bm.winner] = true; });
-    } else if (Array.isArray(t.matches)) {
-      // Defensive fallback: bracket-model.js not loaded.
-      t.matches.forEach(function(bm) { if (_isBye(bm) && bm.winner) _byeWinners[bm.winner] = true; });
-    }
-    if (m.p1 && _byeWinners[m.p1]) _p1Bye = true;
-    if (m.p2 && _byeWinners[m.p2]) _p2Bye = true;
-  }
-
-  const _scoreOrBye = (pBye, inputHtml, scoreHtml, showInput) => {
-    if (showInput) return inputHtml;
-    if (pBye && !scoreHtml) return _byeBadge;
-    return scoreHtml || '';
-  };
-
   const _tbEnabled = !!(useSets && t.scoring && t.scoring.tiebreakEnabled !== false);
   const _tbInputStyle = 'width:40px;text-align:center;font-size:0.75rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:5px;padding:3px 4px;';
   const p1TbInput = showInputs && _tbEnabled
@@ -1315,7 +1292,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div style="${rowStyle(p1IsWinner, 'p1')}">
       ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
       <div id="score-p1-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
-        ${_p1Bye && (showInputs || p1ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p1Score : (_p1Bye && !p1ScoreVal ? _byeBadgeFull : (p1ScoreVal || ''))}
+        ${showInputs ? p1Score : (p1ScoreVal || '')}
       </div>
     </div>`;
 
@@ -1323,7 +1300,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     <div style="${rowStyle(p2IsWinner, 'p2')}">
       ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
       <div id="score-p2-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
-        ${_p2Bye && (showInputs || p2ScoreVal) ? _byeBadgeMini : ''}${showInputs ? p2Score : (_p2Bye && !p2ScoreVal ? _byeBadgeFull : (p2ScoreVal || ''))}
+        ${showInputs ? p2Score : (p2ScoreVal || '')}
       </div>
     </div>`;
 
@@ -1636,7 +1613,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       }).join('');
       return `
         <div style="margin-bottom:0.75rem;">
-          <h5 style="font-size:0.7rem;color:${roundLabelColor};text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;">${roundLabel}</h5>
+          <h5 style="font-size:0.7rem;color:${roundLabelColor};text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;border-left:3px solid ${roundLabelColor};padding-left:8px;">${roundLabel}</h5>
           <div style="display:flex;flex-wrap:wrap;gap:12px;">${matchesInRound}</div>
         </div>`;
     }).join('');
@@ -1665,7 +1642,7 @@ function renderGroupStage(t, isOrg, canEnterResult) {
         </div>
         ${matchesHtml ? `
           <div style="border-top:1px solid var(--border-color);padding-top:1rem;">
-            <h4 style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;">Jogos</h4>
+            <h4 style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;border-left:3px solid var(--text-muted);padding-left:8px;">Jogos</h4>
             ${matchesHtml}
           </div>` : ''}
       </div>`;
@@ -1887,7 +1864,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
-        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}${isSwissQualifier ? _swissQualifierLabel(currentRound) : (_t('bracket.round', {n: currentRound}) + (isSuico ? ` / ${maxRounds}` : ''))} ${currentRoundData.status === 'complete' ? '— ' + _t('bracket.complete') + ' ✓' : '— ' + _t('bracket.ongoing')}</h3>
+        <h3 class="card-title" style="margin:0;border-left:3px solid ${_isReiRainhaRound ? '#fbbf24' : 'var(--primary-color)'};padding-left:10px;">${_isReiRainhaRound ? '👑 ' : ''}${isSwissQualifier ? _swissQualifierLabel(currentRound) : (_t('bracket.round', {n: currentRound}) + (isSuico ? ` / ${maxRounds}` : ''))} ${currentRoundData.status === 'complete' ? '— ' + _t('bracket.complete') + ' ✓' : '— ' + _t('bracket.ongoing')}</h3>
         ${isOrg && !isFinished && allComplete ? `
           <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
@@ -1962,7 +1939,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     return `<div class="card" style="margin-bottom:1rem;">
       <details>
         <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:.75rem;">
-          <h3 class="card-title" style="margin:0;">${title}</h3>
+          <h3 class="card-title" style="margin:0;border-left:3px solid #38bdf8;padding-left:10px;">${title}</h3>
           <span class="standings-toggle-indicator" style="font-size:.85rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">
             <span class="standings-toggle-show">▸ ${_t('bracket.showStandings')}</span>
             <span class="standings-toggle-hide" style="display:none;">▾ ${_t('bracket.hideStandings')}</span>
@@ -2010,7 +1987,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     if (prevRoundsInner) {
       previousRoundsHtml = '<div class="card prev-rounds-card" style="margin-top: 1rem;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
-          '<h3 style="margin:0;flex:1;font-weight:700;font-size:1rem;color:var(--text-bright);">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</h3>' +
+          '<h3 style="margin:0;flex:1;font-weight:700;font-size:1rem;color:var(--text-bright);border-left:3px solid #94a3b8;padding-left:10px;">📜 ' + _t('bracket.previousRounds') + ' (' + (currentRound - 1) + ')</h3>' +
           '<button class="btn btn-micro btn-outline" onclick="window._togglePrevRoundsBlock(this)">Ocultar</button>' +
         '</div>' +
         '<div class="prev-rounds-content">' + prevRoundsInner + '</div>' +
@@ -2078,7 +2055,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
 
       if (statItems.length > 0) {
         statsHtml = '<div class="card" style="margin-top: 1rem;">' +
-          '<h3 class="card-title" style="margin: 0 0 12px 0; font-size: 0.95rem;">' + _t('bracket.statsTitle') + '</h3>' +
+          '<h3 class="card-title" style="margin: 0 0 12px 0; font-size: 0.95rem;border-left:3px solid #fbbf24;padding-left:10px;">' + _t('bracket.statsTitle') + '</h3>' +
           '<div style="display: flex; flex-wrap: wrap; gap: 10px;">' + statItems.join('') + '</div></div>';
       }
     }
@@ -2361,7 +2338,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         upcomingRoundsHtml +=
           '<div class="card" style="margin-top:1rem;opacity:0.8;border-style:dashed;">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">' +
-              '<h3 class="card-title" style="margin:0;">' + (isSwissQualifier ? _swissQualifierLabel(_legR) : (_t('bracket.round', {n: _legR}) + ' / ' + maxRounds)) + '</h3>' +
+              '<h3 class="card-title" style="margin:0;border-left:3px solid rgba(148,163,184,0.35);padding-left:10px;">' + (isSwissQualifier ? _swissQualifierLabel(_legR) : (_t('bracket.round', {n: _legR}) + ' / ' + maxRounds)) + '</h3>' +
               '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingPrevRound') + '</span>' +
             '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + _legCards + '</div>' +
