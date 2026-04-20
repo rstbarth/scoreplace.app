@@ -1035,10 +1035,7 @@ function renderDashboard(container) {
       </div>
     </div>
 
-    <!-- Organizer Analytics -->
-    ${_buildAnalyticsSection(organizados)}
-
-    <!-- Filter Bar -->
+    <!-- Filter Bar (organizer analytics moved into hero 📊 Estatísticas modal in v0.14.32) -->
     ${filterBarHtml}
 
     <!-- Upcoming Matches -->

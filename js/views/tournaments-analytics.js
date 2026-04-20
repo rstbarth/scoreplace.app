@@ -102,6 +102,121 @@ function _compareShell(badge, bodyHtml) {
     '</div>';
 }
 
+// Organizer analytics block — rendered inside the _showPlayerStats modal
+// when viewing own profile and user has organized 2+ tournaments. Uses the
+// modal's _boxStat/_sectionShell helpers so it harmonizes visually with the
+// rest of the stats overlay.
+function _buildOrganizerAnalyticsForModal(playerName) {
+    var t = window._t || function(k) { return k; };
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.displayName) return '';
+    var viewingSelf = String(cu.displayName).toLowerCase().trim() === String(playerName).toLowerCase().trim();
+    if (!viewingSelf) return '';
+
+    var tours = (window.AppStore && Array.isArray(window.AppStore.tournaments)) ? window.AppStore.tournaments : [];
+    var myEmail = (cu.email || '').toLowerCase().trim();
+    var myUid = cu.uid || '';
+    var organizados = tours.filter(function(tr) {
+        var oe = String(tr.organizerEmail || tr.creatorEmail || '').toLowerCase().trim();
+        var ou = String(tr.organizerUid || tr.creatorUid || '').trim();
+        return (myEmail && oe === myEmail) || (myUid && ou === myUid);
+    });
+    if (organizados.length < 2) return '';
+
+    var total = organizados.length;
+
+    // Unique participants
+    var participantSet = {};
+    var totalParts = 0;
+    organizados.forEach(function(tr) {
+        var parts = tr.participants || [];
+        parts.forEach(function(p) {
+            var key = (typeof p === 'string') ? p : (p.email || p.displayName || p.uid || JSON.stringify(p));
+            participantSet[key] = true;
+        });
+        totalParts += parts.length;
+    });
+    var uniqueCount = Object.keys(participantSet).length;
+    var avgParts = total > 0 ? Math.round(totalParts / total) : 0;
+
+    // By format / sport
+    var formatCounts = {};
+    var sportCounts = {};
+    organizados.forEach(function(tr) {
+        var f = tr.format || t('common.other');
+        formatCounts[f] = (formatCounts[f] || 0) + 1;
+        var s = tr.sport ? String(tr.sport).replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : t('common.other');
+        sportCounts[s] = (sportCounts[s] || 0) + 1;
+    });
+
+    // Best month
+    var monthCounts = {};
+    organizados.forEach(function(tr) {
+        var d = tr.createdAt || tr.startDate;
+        if (d) {
+            var dt = new Date(d);
+            if (!isNaN(dt.getTime())) {
+                var mk = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+                monthCounts[mk] = (monthCounts[mk] || 0) + 1;
+            }
+        }
+    });
+    var bestMonth = '';
+    var bestMonthCount = 0;
+    Object.keys(monthCounts).forEach(function(mk) {
+        if (monthCounts[mk] > bestMonthCount) {
+            bestMonthCount = monthCounts[mk];
+            bestMonth = mk;
+        }
+    });
+    var bestMonthLabel = bestMonth ? (function() {
+        var parts = bestMonth.split('-');
+        var months = t('dashboard.monthAbbrevs').split(',');
+        return months[parseInt(parts[1], 10) - 1] + '/' + parts[0];
+    })() : '-';
+
+    // Bar chart using modal's dark visual language
+    function barChart(counts, accent) {
+        var max = 0;
+        Object.keys(counts).forEach(function(k) { if (counts[k] > max) max = counts[k]; });
+        if (max === 0) return '';
+        var html = '';
+        Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; }).forEach(function(k) {
+            var pct = Math.round((counts[k] / max) * 100);
+            html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+                '<span style="min-width:90px;font-size:0.7rem;color:var(--text-muted,#94a3b8);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(k) + '</span>' +
+                '<div style="flex:1;height:10px;background:var(--stat-box-bg);border-radius:5px;overflow:hidden;">' +
+                    '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,' + accent + '66,' + accent + ');border-radius:5px;"></div>' +
+                '</div>' +
+                '<span style="min-width:20px;font-size:0.72rem;color:var(--text-bright,#fff);font-weight:700;font-variant-numeric:tabular-nums;">' + counts[k] + '</span>' +
+            '</div>';
+        });
+        return html;
+    }
+
+    var accent = '#a855f7';
+    var badge = total + ' ' + (total > 1 ? 'torneios' : 'torneio');
+
+    var sectionLabel = t('analytics.organizerSection');
+    if (!sectionLabel || sectionLabel === 'analytics.organizerSection') sectionLabel = 'Organização';
+    return _sectionShell('organizer-analytics-modal', sectionLabel, '📊', accent, badge) +
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">' +
+            _boxStat(t('analytics.totalTournaments'), total, '🏆', accent) +
+            _boxStat(t('analytics.uniqueParticipants'), uniqueCount, '👥', '#38bdf8') +
+            _boxStat(t('analytics.avgParticipants'), avgParts, '📈', '#22c55e') +
+            _boxStat(t('analytics.bestMonth'), bestMonthLabel, '🗓️', '#fbbf24') +
+        '</div>' +
+        '<div style="margin-top:10px;">' +
+            '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">' + t('analytics.byFormat') + '</div>' +
+            barChart(formatCounts, accent) +
+        '</div>' +
+        '<div style="margin-top:8px;">' +
+            '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">' + t('analytics.bySport') + '</div>' +
+            barChart(sportCounts, '#38bdf8') +
+        '</div>' +
+    '</div>';
+}
+
 // Show Player Stats Modal — consolidated stats across all tournaments + persistent
 // matchHistory (casual + tournament) so records survive deletion of the source.
 window._showPlayerStats = function(playerName, currentTournamentId) {
@@ -297,6 +412,10 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       ? (window._renderPersistentMatchStats(_collectLocalRecordsForPlayer(playerName, resolvedUid), resolvedUid) + _tourListFooter)
       : _buildLegacyStatsHtml(stats, sportsStr, winRate, tourListHtml);
 
+    // Organizer analytics — only when viewing own stats and user has organized
+    // 2+ tournaments. Harmonized with modal's _boxStat/_sectionShell helpers.
+    var _organizerSectionHtml = _buildOrganizerAnalyticsForModal(playerName);
+
     modal.innerHTML = '' +
       ((typeof window._renderBackHeader === 'function')
         ? window._renderBackHeader({
@@ -313,7 +432,9 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
       // Main body: persistent matchHistory stats (primary)
       '<div id="player-stats-persistent">' +
         _initialStatsHtml +
-      '</div>';
+      '</div>' +
+      // Organizer analytics (if applicable)
+      _organizerSectionHtml;
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);

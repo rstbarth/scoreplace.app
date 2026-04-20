@@ -54,6 +54,7 @@ window._translations['en'] = {
   'analytics.byFormat': 'By Format',
   'analytics.bySport': 'By Sport',
   'analytics.bestMonth': 'Most Active Month',
+  'analytics.organizerSection': 'Organizer',
 
   // Common buttons
   'btn.save': 'Save',
