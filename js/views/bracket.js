@@ -1815,6 +1815,12 @@ function renderStandings(t, isOrg, canEnterResult) {
   const isLigaFmt = window._isLigaFormat ? window._isLigaFormat(t) : (t.format === 'Liga' || t.format === 'Ranking');
   const maxRounds = t.swissRounds || 99;
   const isFinished = isSuico && currentRound >= maxRounds && allComplete;
+  // Swiss-as-qualifier: Swiss rounds in a tournament whose final format is
+  // elimination/double-elim/groups (NOT pure Suíço/Liga). Label as "RODADA SUIÇA N/M".
+  const isSwissQualifier = isSuico && t.format !== 'Suíço' && t.format !== 'Suíço Clássico' && !isLigaFmt;
+  const _swissQualifierLabel = function(n) {
+    return _t('bracket.swissRoundFull', {n: n, total: maxRounds});
+  };
 
   // Safety net: auto-advance a stuck Swiss round. If all matches are complete
   // but the round was never marked 'complete' (and we're below maxRounds),
@@ -1855,7 +1861,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
-        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}${_t('bracket.round', {n: currentRound})}${isSuico ? ` / ${maxRounds}` : ''} ${currentRoundData.status === 'complete' ? '— ' + _t('bracket.complete') + ' ✓' : '— ' + _t('bracket.ongoing')}</h3>
+        <h3 class="card-title" style="margin:0;">${_isReiRainhaRound ? '👑 ' : ''}${isSwissQualifier ? _swissQualifierLabel(currentRound) : (_t('bracket.round', {n: currentRound}) + (isSuico ? ` / ${maxRounds}` : ''))} ${currentRoundData.status === 'complete' ? '— ' + _t('bracket.complete') + ' ✓' : '— ' + _t('bracket.ongoing')}</h3>
         ${isOrg && !isFinished && allComplete ? `
           <button onclick="window._closeRound('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${currentRound - 1})"
             style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;font-size:0.85rem;">
@@ -2173,7 +2179,7 @@ function renderStandings(t, isOrg, canEnterResult) {
     var _currentMatchesHtml = (currentRoundData.matches || []).map(function(m, idx) {
       return renderMatchCard(m, canEnterResult, t.id, _prevMatchCount + idx + 1);
     }).join('');
-    var _currentLabel = _t('bracket.round', {n: currentRound}) + ' / ' + maxRounds;
+    var _currentLabel = isSwissQualifier ? _swissQualifierLabel(currentRound) : (_t('bracket.round', {n: currentRound}) + ' / ' + maxRounds);
     var _currentStatusBadge = currentRoundData.status === 'complete'
       ? '<span style="color:#4ade80;font-size:0.7rem;font-weight:700;white-space:nowrap;">✓ ' + _t('bracket.complete') + '</span>'
       : (isFinished ? '<span style="color:#fbbf24;font-weight:700;font-size:0.7rem;white-space:nowrap;">' + _t('bracket.tournamentFinished') + '</span>' : '');
@@ -2201,7 +2207,7 @@ function renderStandings(t, isOrg, canEnterResult) {
         _roundColumns.push(
           '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;opacity:0.9;">' +
             '<div style="display:flex;align-items:center;gap:8px;">' +
-              '<h4 style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid rgba(148,163,184,0.35);padding-left:8px;flex:1;">' + _t('bracket.round', {n: _upR}) + ' / ' + maxRounds + '</h4>' +
+              '<h4 style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid rgba(148,163,184,0.35);padding-left:8px;flex:1;">' + (isSwissQualifier ? _swissQualifierLabel(_upR) : (_t('bracket.round', {n: _upR}) + ' / ' + maxRounds)) + '</h4>' +
             '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">⏳ ' + _t('bracket.awaitingPrevRound') + '</div>' +
             '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + _tbdSwiss + '</div>' +
@@ -2281,7 +2287,7 @@ function renderStandings(t, isOrg, canEnterResult) {
         upcomingRoundsHtml +=
           '<div class="card" style="margin-top:1rem;opacity:0.8;border-style:dashed;">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">' +
-              '<h3 class="card-title" style="margin:0;">' + _t('bracket.round', {n: _legR}) + ' / ' + maxRounds + '</h3>' +
+              '<h3 class="card-title" style="margin:0;">' + (isSwissQualifier ? _swissQualifierLabel(_legR) : (_t('bracket.round', {n: _legR}) + ' / ' + maxRounds)) + '</h3>' +
               '<span style="font-size:0.75rem;color:var(--text-muted);">⏳ ' + _t('bracket.awaitingPrevRound') + '</span>' +
             '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:12px;">' + _legCards + '</div>' +
