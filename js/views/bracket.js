@@ -2173,6 +2173,59 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
     var _roundColumns = [];
     var _tIdEsc = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
+    // Hidden rounds state — mirrors Eliminatórias behaviour.
+    var _hiddenSwissSet = (window._hiddenRounds && window._hiddenRounds[t.id]) || new Set();
+    var _hiddenSwissCount = 0;
+    var _maxHiddenSwissRound = -1;
+    for (var _hri = 1; _hri < currentRound; _hri++) {
+      if (_hiddenSwissSet.has(_hri)) {
+        _hiddenSwissCount++;
+        if (_hri > _maxHiddenSwissRound) _maxHiddenSwissRound = _hri;
+      }
+    }
+
+    // "◀ Mostrar (N)" pill at left edge when some completed rounds are hidden.
+    var _showHiddenBtnHtml = _hiddenSwissCount > 0
+      ? '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;gap:8px;align-self:stretch;">' +
+          '<button onclick="window._toggleRoundVisibility(\'' + _tIdEsc + '\', ' + _maxHiddenSwissRound + ')" ' +
+            'style="writing-mode:vertical-lr;text-orientation:mixed;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.15);color:var(--text-muted);border-radius:8px;padding:12px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" ' +
+            'onmouseover="this.style.background=\'rgba(255,255,255,0.1)\';this.style.color=\'var(--text-bright)\'" ' +
+            'onmouseout="this.style.background=\'rgba(255,255,255,0.05)\';this.style.color=\'var(--text-muted)\'" ' +
+            'title="Mostrar rodadas ocultas (' + _hiddenSwissCount + ')">' +
+            '◀ Mostrar (' + _hiddenSwissCount + ')' +
+          '</button>' +
+        '</div>'
+      : '';
+
+    // Completed Swiss rounds — shown as scroll columns to the LEFT of the
+    // current round. Each gets an "Ocultar" button; state lives in
+    // window._hiddenRounds[t.id]. Consistent with Eliminatórias behaviour.
+    var _completedColsHtml = '';
+    var _cumMatchCount = 0;
+    for (var _pri = 0; _pri < currentRound - 1; _pri++) {
+      var _prRound = rounds[_pri];
+      var _prMatches = (_prRound && _prRound.matches) || [];
+      if (_hiddenSwissSet.has(_pri + 1)) {
+        _cumMatchCount += _prMatches.length;
+        continue;
+      }
+      var _prCardsHtml = _prMatches.map(function(m, idx) {
+        return renderMatchCard(m, canEnterResult, t.id, _cumMatchCount + idx + 1);
+      }).join('');
+      _cumMatchCount += _prMatches.length;
+      var _prLabel = isSwissQualifier ? _swissQualifierLabel(_pri + 1) : (_t('bracket.round', {n: _pri + 1}) + ' / ' + maxRounds);
+      var _prHideBtn = '<button class="btn btn-micro btn-outline" onclick="window._toggleRoundVisibility(\'' + _tIdEsc + '\', ' + (_pri + 1) + ')">Ocultar</button>';
+      _completedColsHtml +=
+        '<div class="bracket-round-column" data-round-num="' + (_pri + 1) + '" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">' + _prLabel + '</h4>' +
+            '<span style="color:#4ade80;font-size:0.7rem;font-weight:700;white-space:nowrap;">✓ ' + _t('bracket.complete') + '</span>' +
+            _prHideBtn +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:1.5rem;">' + _prCardsHtml + '</div>' +
+        '</div>';
+    }
+
     // Current round column — real match cards (with inputs when allowed).
     var _prevMatchCount = rounds.slice(0, currentRound - 1).reduce(function(s, r) { return s + (r.matches || []).length; }, 0);
     var _currentMatchesHtml = (currentRoundData.matches || []).map(function(m, idx) {
@@ -2186,7 +2239,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
       ? '<button onclick="window._closeRound(\'' + _tIdEsc + '\', ' + (currentRound - 1) + ')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:8px;padding:5px 12px;font-weight:600;cursor:pointer;font-size:0.72rem;white-space:nowrap;">' + _t('bracket.closeRound') + '</button>'
       : '';
     _roundColumns.push(
-      '<div class="bracket-round-column" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
+      '<div class="bracket-round-column" data-round-num="' + currentRound + '" style="display:flex;flex-direction:column;gap:1rem;min-width:280px;">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
           '<h4 style="color:var(--text-bright);font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0;border-left:3px solid var(--primary-color);padding-left:8px;flex:1;">' + _currentLabel + '</h4>' +
           _currentStatusBadge + _closeBtn +
@@ -2256,6 +2309,8 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
     roundsScrollHtml =
       '<div class="bracket-sticky-scroll-wrapper" style="overflow-x:auto;overflow-y:visible;display:block;width:100%;max-width:100%;margin-top:1rem;">' +
         '<div class="bracket-scroll-content" style="display:inline-flex;gap:32px;align-items:flex-start;padding:1rem 0;min-width:max-content;">' +
+          _showHiddenBtnHtml +
+          _completedColsHtml +
           _roundColumns.join('') +
           '<div style="min-width:80px;flex-shrink:0;">&nbsp;</div>' +
         '</div>' +
@@ -2304,7 +2359,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml) {
   var _readyBanner = readyBannerHtml || '';
 
   if (useColumnLayout) {
-    return _phaseBannerHtml + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml + previousRoundsHtml;
+    return _phaseBannerHtml + standingsTablesHtml + _readyBanner + roundsScrollHtml + statsHtml + h2hHtml;
   }
   return _phaseBannerHtml + standingsTablesHtml + _readyBanner + currentRoundHtml + upcomingRoundsHtml + statsHtml + h2hHtml + previousRoundsHtml;
 }
