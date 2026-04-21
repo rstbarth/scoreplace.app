@@ -378,6 +378,57 @@
     return html;
   }
 
+  // List of tournaments at this venue — upcoming + past (last 6 months).
+  // Pulled from AppStore cache; no extra fetch. Empty string when none.
+  function _buildTournamentsHtml(venue) {
+    var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
+    var here = tournaments.filter(function(t) {
+      if (!t) return false;
+      return window.VenueDB.venueKey(t.venuePlaceId, t.venue) === venue.placeId;
+    });
+    if (here.length === 0) return '';
+    var now = Date.now();
+    var sixMonthsAgo = now - 183 * 24 * 3600 * 1000;
+    var upcoming = [];
+    var past = [];
+    here.forEach(function(t) {
+      var start = t.startDate ? new Date(t.startDate).getTime() : 0;
+      if (!start || isNaN(start)) return;
+      if (start >= now) upcoming.push({ t: t, ts: start });
+      else if (start >= sixMonthsAgo) past.push({ t: t, ts: start });
+    });
+    upcoming.sort(function(a, b) { return a.ts - b.ts; });
+    past.sort(function(a, b) { return b.ts - a.ts; });
+    if (upcoming.length === 0 && past.length === 0) return '';
+
+    var row = function(entry) {
+      var t = entry.t;
+      var d = new Date(entry.ts);
+      var when = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+      var sport = t.sport ? String(t.sport).replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
+      var parts = Array.isArray(t.participants) ? t.participants.length : 0;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;cursor:pointer;" onclick="window.location.hash=\'#tournaments/' + _safe(t.id) + '\'">' +
+        '<span style="min-width:72px;color:var(--text-muted);font-size:0.72rem;">' + when + '</span>' +
+        '<span style="flex:1;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏆 ' + _safe(t.name || 'Torneio') + '</span>' +
+        (sport ? '<span style="color:var(--text-muted);font-size:0.7rem;">' + _safe(sport) + '</span>' : '') +
+        (parts ? '<span style="color:var(--text-muted);font-size:0.7rem;margin-left:4px;">· ' + parts + '</span>' : '') +
+      '</div>';
+    };
+
+    var html = '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;margin-bottom:8px;">🏆 Torneios neste local</div>';
+    if (upcoming.length > 0) {
+      html += '<div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:4px 0 2px 0;">Próximos</div>';
+      upcoming.slice(0, 4).forEach(function(e) { html += row(e); });
+    }
+    if (past.length > 0) {
+      html += '<div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 2px 0;">Recentes</div>';
+      past.slice(0, 4).forEach(function(e) { html += row(e); });
+    }
+    html += '</div>';
+    return html;
+  }
+
   // Owner-only analytics: counts of presences (last 7 days) + tournaments today.
   // All derived from client-side queries we already have — no Cloud Function.
   async function _buildOwnerStatsHtml(venue) {
@@ -419,7 +470,25 @@
   // Detail: compact modal with contact actions + quick links into the rest of the app.
   window._venuesOpenDetail = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
-    if (!v) return;
+    if (!v) {
+      // Invalid deep link or deleted venue — surface a friendly message
+      // instead of silently doing nothing.
+      var prev = document.getElementById('venues-detail-overlay');
+      if (prev) prev.remove();
+      var overlay = document.createElement('div');
+      overlay.id = 'venues-detail-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10010;display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.innerHTML =
+        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:24px;max-width:420px;width:100%;text-align:center;">' +
+          '<div style="font-size:2rem;margin-bottom:8px;">🧭</div>' +
+          '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;margin-bottom:6px;">Local não encontrado</div>' +
+          '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Este link pode estar desatualizado, ou o dono liberou a reivindicação. Volte à busca para explorar outros locais.</div>' +
+          '<button class="btn btn-primary" onclick="document.getElementById(\'venues-detail-overlay\').remove()">Entendi</button>' +
+        '</div>';
+      overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+      document.body.appendChild(overlay);
+      return;
+    }
     // Fire-and-forget viewCount bump. Skip when the owner is viewing their own
     // venue so owner curiosity doesn't inflate numbers. Also skip for anonymous
     // visitors — rules require auth, so writing would fail silently anyway.
@@ -482,6 +551,7 @@
           (contactBits.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' + contactBits.join('') + '</div>' : '') +
           '<div id="venue-owner-stats-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
+          '<div id="venue-tournaments-slot" style="margin-bottom:12px;"></div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
             '<button class="btn btn-sm" onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefillJson) + ')}catch(e){}window.location.hash="#presence"\' style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;">📍 Ver presenças</button>' +

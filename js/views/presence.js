@@ -59,10 +59,12 @@
     // Profile map picker stores locations as { lat, lng, label } — no placeId
     // and the human-readable text lives in `label`, not `name`. Map both
     // possible shapes so entries saved by the old and new code both work.
+    // Strip the address tail so the dropdown shows only the venue name.
     (cu && Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [])
       .forEach(function(p) {
         if (!p) return;
-        push(p.placeId, (p.name || p.label), p.lat, (p.lng != null ? p.lng : p.lon));
+        var cleaned = _cleanVenueName(p.name || p.label || '');
+        push(p.placeId, cleaned || p.label, p.lat, (p.lng != null ? p.lng : p.lon));
       });
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
     tournaments.forEach(function(t) {
@@ -87,17 +89,27 @@
     return out;
   }
 
+  // Geocoder labels come as "Name — Address". Strip the address so our UI
+  // shows just the venue name (user asked for this explicitly).
+  function _cleanVenueName(label) {
+    if (!label) return '';
+    // Split on any em-dash/en-dash/hyphen surrounded by spaces.
+    var idx = String(label).search(/\s[—–-]\s/);
+    return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
+  }
+
   function _defaultVenue() {
     // Profile preference takes priority — user explicitly saved these.
     var cu = window.AppStore && window.AppStore.currentUser;
     var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
     if (prefLocs.length > 0) {
       var p = prefLocs[0];
+      var humanName = _cleanVenueName(p.name || p.label || '');
       return {
-        placeId: window.PresenceDB.venueKey(p.placeId || '', p.name || ''),
-        name: p.name || p.placeId || '',
+        placeId: window.PresenceDB.venueKey(p.placeId || '', humanName || p.label || ''),
+        name: humanName || p.placeId || '',
         lat: p.lat || null,
-        lon: p.lng || p.lon || null
+        lon: (p.lng != null ? p.lng : p.lon) || null
       };
     }
     var venues = _venuesFromTournaments();
@@ -223,6 +235,15 @@
       venueOpts = '<option value="">— nenhum local conhecido —</option>';
     }
     venueOpts += '<option value="__custom__">✏️ Digitar outro local…</option>';
+    // When the dropdown is empty (no preferredLocations AND no tournament
+    // venues) we surface a CTA pointing straight to the profile so the user
+    // can add places — without it the "— nenhum —" option feels like a dead end.
+    var emptyHint = (venues.length === 0)
+      ? '<div style="margin-top:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:10px;padding:10px 12px;font-size:0.78rem;color:var(--text-bright);">' +
+          '<span style="margin-right:4px;">💡</span>Adicione seus locais de jogo em <b>Perfil → Locais de preferência</b> e eles aparecerão aqui automaticamente. ' +
+          '<a href="#" onclick="event.preventDefault(); if(typeof window._showProfileModal===\'function\')window._showProfileModal(); else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="color:#a5b4fc;font-weight:700;text-decoration:underline;">Abrir perfil</a>' +
+        '</div>'
+      : '';
 
     var sportsActive = state.sports || [];
     var sportsPills = sports.map(function(s) {
@@ -244,6 +265,7 @@
           venueOpts +
         '</select>' +
         '<input id="presence-venue-custom" type="text" placeholder="Nome do local" style="display:none;width:100%;padding:8px 10px;margin-top:6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;" oninput="window._presenceOnCustomVenue(this.value)">' +
+        emptyHint +
       '</div>' +
       '<div style="margin-top:10px;">' +
         '<label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Modalidades <span style="font-weight:400;">(selecione uma ou mais)</span></label>' +
