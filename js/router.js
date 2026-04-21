@@ -158,6 +158,14 @@ function initRouter() {
           return;
         }
         break;
+      case 'venues':
+        if (typeof window.renderVenues === 'function') {
+          window.renderVenues(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');

@@ -109,6 +109,53 @@ window.VenueDB = {
     }
   },
 
+  // Paginated list for the public discovery view. Only one server-side
+  // inequality/array-contains is allowed per query, so we pick the most
+  // selective filter for the server and apply the rest client-side on the
+  // returned page. Precedence: sport (array-contains) > city (equality) >
+  // no filter. Results sorted by name alphabetically.
+  async listVenues(filters, opts) {
+    if (!this.db) return [];
+    filters = filters || {};
+    opts = opts || {};
+    var limit = Math.max(1, Math.min(100, opts.limit || 50));
+    var ref = this.db.collection('venues');
+    var q;
+    try {
+      if (filters.sport) {
+        q = ref.where('sports', 'array-contains', filters.sport).limit(limit);
+      } else if (filters.city) {
+        // Normalize for match — we store the raw city. Equality with exact
+        // case match would miss "são paulo" vs "São Paulo"; keep a loose
+        // client-side filter instead of requiring a lowercased denorm field
+        // for this first iteration.
+        q = ref.limit(limit);
+      } else {
+        q = ref.limit(limit);
+      }
+      var snap = await q.get();
+      var list = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        d._id = doc.id;
+        list.push(d);
+      });
+      // Client-side filters for the parts we couldn't push to the server.
+      var cityQ = (filters.city || '').trim().toLowerCase();
+      var priceQ = filters.priceRange || '';
+      var minCourts = parseInt(filters.minCourts, 10) || 0;
+      return list.filter(function(v) {
+        if (cityQ && !(v.city || '').toLowerCase().includes(cityQ)) return false;
+        if (priceQ && v.priceRange !== priceQ) return false;
+        if (minCourts > 0 && (!v.courtCount || v.courtCount < minCourts)) return false;
+        return true;
+      }).sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    } catch (e) {
+      console.error('Erro ao listar venues:', e);
+      return [];
+    }
+  },
+
   async loadMyVenues(uid) {
     if (!this.db || !uid) return [];
     try {
