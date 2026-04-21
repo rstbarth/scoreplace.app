@@ -9,7 +9,8 @@
 // intuitively in the SPA).
 
 (function() {
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Futsal', 'Vôlei', 'Basquete'];
+  // Mesma lista de modalidades de create-tournament.js / venue-owner.js.
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
   var PRICE_OPTIONS = [
     { val: '',    label: 'Qualquer' },
     { val: '$',   label: '$' },
@@ -19,17 +20,40 @@
 
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
 
+  // Filtros persistem entre sessões — usuário não precisa reajustar cada vez.
+  var FILTER_STORAGE_KEY = 'scoreplace_venues_filters';
+  function _loadSavedFilters() {
+    try {
+      var raw = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) || {};
+    } catch (e) { return {}; }
+  }
+  function _saveFilters() {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+        location: state.location,
+        sport: state.sport,
+        priceRange: state.priceRange,
+        minCourts: state.minCourts,
+        distanceKm: state.distanceKm
+      }));
+    } catch (e) {}
+  }
+  var _saved = _loadSavedFilters();
+
   var state = {
-    location: '',           // endereço livre OU cidade — alimenta o Geocoder
-    sport: '',
-    priceRange: '',
-    minCourts: 1,           // usuário pediu mínimo 1 por padrão
-    distanceKm: 10,         // raio de pesquisa em km ao redor de center
-    center: null,           // {lat, lng} — centro derivado do Geocoder para filtro de distância
+    location: _saved.location || '',  // endereço livre OU cidade — alimenta o Geocoder
+    sport: _saved.sport || '',
+    priceRange: _saved.priceRange || '',
+    minCourts: _saved.minCourts || 1, // default 1
+    distanceKm: _saved.distanceKm || 10, // raio em km ao redor de center
+    center: null,                     // {lat, lng} — derivado do Geocoder
     loading: false,
     results: [],
-    googleResults: [],      // Google Places nearby results (não reivindicados)
-    mode: 'map'             // 'list' | 'map' — map is the default (more useful for discovery)
+    googleResults: [],                // Google Places nearby results
+    googleLoaded: false,              // flag para exibir empty state correto
+    mode: 'map'                       // 'list' | 'map' — map is default
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
@@ -279,22 +303,30 @@
   }
   function _googleSuggestionsHtml() {
     var g = state.googleResults || [];
-    if (g.length === 0) return '';
-    var html = '<div style="margin-top:18px;">' +
+    var filterLabel = _safe([
+      state.sport || 'qualquer modalidade',
+      state.minCourts >= 1 ? ('min. ' + state.minCourts + ' quadra' + (state.minCourts === 1 ? '' : 's')) : '',
+      state.location || 'sem local',
+      state.distanceKm ? ('raio ' + state.distanceKm + 'km') : '',
+      state.priceRange || 'qualquer preço'
+    ].filter(Boolean).join(' · '));
+    var header = '<div style="margin-top:18px;">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
         '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">📍 Locais no Google</span>' +
         '<span style="font-size:0.72rem;color:var(--text-muted);">resultados externos</span>' +
       '</div>' +
-      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">' +
-        'Filtro aplicado: ' + _safe([
-          state.sport || 'qualquer modalidade',
-          state.minCourts >= 1 ? ('min. ' + state.minCourts + ' quadra' + (state.minCourts === 1 ? '' : 's')) : '',
-          state.location || 'sem local',
-          state.distanceKm ? ('raio ' + state.distanceKm + 'km') : '',
-          state.priceRange || 'qualquer preço'
-        ].filter(Boolean).join(' · ')) +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">';
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">Filtro aplicado: ' + filterLabel + '</div>';
+    // Estados: ainda carregando / sem center / sem resultados / com resultados.
+    if (state.loading) {
+      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Buscando no Google…</div></div>';
+    }
+    if (!state.center) {
+      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">⚠️ Digite um endereço em "Local" ou use o botão GPS 📍 para ativar a busca no Google.</div></div>';
+    }
+    if (g.length === 0) {
+      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum resultado no Google para esta combinação. Tente aumentar o raio ou remover filtros.</div></div>';
+    }
+    var html = header + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">';
     g.forEach(function(p) {
       var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
         (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
@@ -479,18 +511,21 @@
   // Debounce user typing in city filter so we don't spam Firestore on each keystroke.
   window._venuesOnLocation = function(v) {
     state.location = v;
+    _saveFilters();
     clearTimeout(window._venuesLocationDebounce);
     window._venuesLocationDebounce = setTimeout(refresh, 350);
   };
-  window._venuesSetSport = function(v) { state.sport = v; refresh(); };
-  window._venuesSetPrice = function(v) { state.priceRange = v; refresh(); render(document.getElementById('view-container')); };
+  window._venuesSetSport = function(v) { state.sport = v; _saveFilters(); refresh(); };
+  window._venuesSetPrice = function(v) { state.priceRange = v; _saveFilters(); refresh(); render(document.getElementById('view-container')); };
   window._venuesSetMinCourts = function(v) {
     state.minCourts = parseInt(v, 10) || 1;
+    _saveFilters();
     clearTimeout(window._venuesCourtsDebounce);
     window._venuesCourtsDebounce = setTimeout(refresh, 250);
   };
   window._venuesSetDistance = function(v) {
     state.distanceKm = Math.max(1, Math.min(500, parseInt(v, 10) || 10));
+    _saveFilters();
     clearTimeout(window._venuesDistDebounce);
     window._venuesDistDebounce = setTimeout(refresh, 250);
   };
@@ -1161,9 +1196,17 @@
   // opens the detail modal right after the listing renders so shared links
   // land on the venue directly.
   window.renderVenues = function(container, deepLinkPlaceId) {
+    // Re-hidrata filtros do localStorage a cada abertura da view — state é
+    // singleton, mas o usuário pode ter mudado preferências em outra aba ou
+    // voltado depois de um logout/login.
+    var fresh = _loadSavedFilters();
+    if (fresh.location) state.location = fresh.location;
+    if (fresh.sport != null) state.sport = fresh.sport;
+    if (fresh.priceRange != null) state.priceRange = fresh.priceRange;
+    if (fresh.minCourts) state.minCourts = fresh.minCourts;
+    if (fresh.distanceKm) state.distanceKm = fresh.distanceKm;
     render(container);
     if (deepLinkPlaceId && typeof window._venuesOpenDetail === 'function') {
-      // Wait a tick so the main view is in the DOM before we overlay the modal.
       setTimeout(function() { window._venuesOpenDetail(deepLinkPlaceId); }, 150);
     }
   };

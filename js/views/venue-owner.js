@@ -21,7 +21,10 @@
 
   // Common sports offered — checkbox list with the same canonical names
   // the rest of the app uses.
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Futsal', 'Vôlei', 'Basquete'];
+  // Modalidades suportadas — alinhadas com create-tournament.js. Não
+  // incluímos Futsal/Vôlei/Basquete ainda (features subjacentes só
+  // cobrem modalidades de raquete por enquanto).
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
 
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
 
@@ -149,7 +152,13 @@
     if (box) { box.style.display = 'none'; box.innerHTML = ''; }
     try {
       var place = prediction.toPlace();
-      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'id'] });
+      // Campos expandidos — pré-preenche telefone, website, horário,
+      // faixa de preço do Google Places quando disponíveis. Reduz atrito
+      // para o usuário cadastrando; o dono pode editar depois.
+      await place.fetchFields({ fields: [
+        'displayName', 'formattedAddress', 'location', 'addressComponents', 'id',
+        'nationalPhoneNumber', 'websiteURI', 'regularOpeningHours', 'priceLevel'
+      ] });
       var city = '';
       if (place.addressComponents) {
         for (var i = 0; i < place.addressComponents.length; i++) {
@@ -163,14 +172,28 @@
       var lat = place.location ? place.location.lat() : null;
       var lon = place.location ? place.location.lng() : null;
       var pid = place.id || '';
+      // Campos extras do Google para pré-preenchimento.
+      var googlePhone = place.nationalPhoneNumber || '';
+      var googleWebsite = place.websiteURI || '';
+      var googleHours = '';
+      if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
+        googleHours = place.regularOpeningHours.weekdayDescriptions.join(' · ');
+      }
+      // Mapeia priceLevel do Google (FREE/INEXPENSIVE/MODERATE/EXPENSIVE/VERY_EXPENSIVE)
+      // → nossa escala $/$$/$$$.
+      var googlePriceRange = '';
+      var pl = place.priceLevel;
+      if (pl === 'PRICE_LEVEL_INEXPENSIVE' || pl === 'INEXPENSIVE' || pl === 1) googlePriceRange = '$';
+      else if (pl === 'PRICE_LEVEL_MODERATE' || pl === 'MODERATE' || pl === 2) googlePriceRange = '$$';
+      else if (pl === 'PRICE_LEVEL_EXPENSIVE' || pl === 'EXPENSIVE' || pl === 3 || pl === 'PRICE_LEVEL_VERY_EXPENSIVE' || pl === 4) googlePriceRange = '$$$';
       // Clear the search input so it doesn't look stale next to the form.
       var search = document.getElementById('venue-owner-search');
       if (search) search.value = name;
 
-      // If already claimed by someone else, VenueDB.loadVenue shows that.
+      // Dedup por placeId — se venue já existe, abre em modo EDIÇÃO
+      // (colaborativo enquanto sem dono, oficial quando é meu).
       var existing = await window.VenueDB.loadVenue(window.VenueDB.venueKey(pid, name));
       var cu = window.AppStore && window.AppStore.currentUser;
-      var mine = existing && cu && existing.ownerUid === cu.uid;
       var otherOwner = existing && existing.ownerUid && (!cu || existing.ownerUid !== cu.uid);
       if (otherOwner) {
         _renderForm(null, {
@@ -178,10 +201,31 @@
         });
         return;
       }
+      // Banner quando estamos editando registro existente (de terceiro).
+      var alreadyCommunity = existing && !existing.ownerUid && existing.createdByName;
+      // Sugestões do Google usadas apenas como DEFAULT quando o venue
+      // ainda não tem o campo preenchido. Não sobrescreve dados manuais.
+      var ex = existing ? Object.assign({}, existing) : {};
+      if (!ex.contact) ex.contact = {};
+      if (!ex.contact.phone && googlePhone) ex.contact.phone = googlePhone;
+      if (!ex.website && googleWebsite) ex.website = googleWebsite;
+      if (!ex.hours && googleHours) ex.hours = googleHours;
+      if (!ex.priceRange && googlePriceRange) ex.priceRange = googlePriceRange;
       _renderForm({
         placeId: window.VenueDB.venueKey(pid, name),
         name: name, address: addr, city: city, lat: lat, lon: lon
-      }, { existing: mine ? existing : null });
+      }, {
+        existing: existing ? ex : null,
+        googlePrefill: (existing ? false : (!!(googlePhone || googleWebsite || googleHours || googlePriceRange))),
+        googlePrefillData: existing ? null : {
+          contact: { phone: googlePhone },
+          website: googleWebsite,
+          hours: googleHours,
+          priceRange: googlePriceRange
+        },
+        collaborativeBanner: !!alreadyCommunity,
+        creatorName: alreadyCommunity ? existing.createdByName : ''
+      });
     } catch (err) {
       console.error('Place details error:', err);
     }
@@ -196,19 +240,38 @@
       return;
     }
     if (!place) { wrap.innerHTML = ''; return; }
-    var ex = opts.existing || {};
+    // Quando é venue NOVO e o Google forneceu campos, usamos como default.
+    var ex = opts.existing || (opts.googlePrefillData || {});
+    if (opts.googlePrefillData && !opts.existing) {
+      // merge contact subdocument
+      if (opts.googlePrefillData.contact && !ex.contact) ex.contact = opts.googlePrefillData.contact;
+    }
     var sportsChecked = Array.isArray(ex.sports) ? ex.sports : [];
     var sportsHtml = SPORTS.map(function(s) {
       var checked = sportsChecked.indexOf(s) !== -1 ? 'checked' : '';
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;margin-right:10px;color:var(--text-bright);cursor:pointer;"><input type="checkbox" data-sport="' + _safe(s) + '" ' + checked + '> ' + _safe(s) + '</label>';
     }).join('');
-    var titleLabel = opts.existing ? '✏️ Editar local' : '🏢 Reivindicar local';
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var imOwner = cu && opts.existing && opts.existing.ownerUid === cu.uid;
+    var titleLabel;
+    if (imOwner) titleLabel = '✏️ Editar meu local';
+    else if (opts.existing) titleLabel = '✏️ Editar local cadastrado por ' + _safe(opts.creatorName || 'outro usuário');
+    else titleLabel = '💾 Cadastrar local novo';
+
+    var collabBanner = (opts.collaborativeBanner && !imOwner)
+      ? '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">🤝 Este local já foi cadastrado por <b>' + _safe(opts.creatorName || '') + '</b>. Você pode completar ou corrigir as informações colaborativamente até o proprietário assumir.</div>'
+      : '';
+    var googleBanner = (opts.googlePrefill && !opts.existing)
+      ? '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">📍 Informações pré-preenchidas do Google (horário, preço, telefone). Edite o que for necessário antes de salvar.</div>'
+      : '';
 
     wrap.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;margin-top:6px;">' +
         '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;margin-bottom:6px;">' + titleLabel + '</div>' +
         '<div style="font-size:0.85rem;color:var(--text-bright);margin-bottom:4px;">' + _safe(place.name) + '</div>' +
         '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">' + _safe(place.address || '') + '</div>' +
+        collabBanner +
+        googleBanner +
         '<div style="margin-bottom:10px;">' +
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Modalidades oferecidas</div>' +
           '<div id="venue-owner-sports" style="display:flex;flex-wrap:wrap;gap:4px 8px;">' + sportsHtml + '</div>' +
