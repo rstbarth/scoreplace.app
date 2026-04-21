@@ -25,10 +25,88 @@
     priceRange: '',
     minCourts: 0,
     loading: false,
-    results: []
+    results: [],
+    mode: 'list'    // 'list' | 'map'
   };
 
+  // Google Maps state — persisted across re-renders so we don't re-init.
+  var _map = null;
+  var _markers = [];
+  var _mapsLibs = null;
+
+  async function _ensureMap() {
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return;
+    if (!_mapsLibs) {
+      try {
+        var Maps = await google.maps.importLibrary('maps');
+        var Marker = await google.maps.importLibrary('marker');
+        _mapsLibs = { Map: Maps.Map, AdvancedMarkerElement: Marker.AdvancedMarkerElement, PinElement: Marker.PinElement };
+      } catch (e) { console.warn('Google Maps load failed:', e); return; }
+    }
+    var el = document.getElementById('venues-map');
+    if (!el) return;
+    if (!_map) {
+      _map = new _mapsLibs.Map(el, {
+        center: { lat: -15.78, lng: -47.93 }, // Brasil center
+        zoom: 4,
+        mapId: 'scoreplace-venues-map',
+        disableDefaultUI: false,
+        clickableIcons: false,
+        gestureHandling: 'greedy'
+      });
+    } else {
+      // Nudge the map to recompute size when it was display:none during init.
+      google.maps.event.trigger(_map, 'resize');
+    }
+    _renderMarkers();
+  }
+
+  function _clearMarkers() {
+    _markers.forEach(function(m) { if (m && m.map) m.map = null; });
+    _markers = [];
+  }
+
+  function _renderMarkers() {
+    if (!_map || !_mapsLibs) return;
+    _clearMarkers();
+    var bounds = new google.maps.LatLngBounds();
+    var anyPoints = 0;
+    state.results.forEach(function(v) {
+      if (v.lat == null || v.lon == null) return;
+      var pos = { lat: Number(v.lat), lng: Number(v.lon) };
+      var pin = new _mapsLibs.PinElement({
+        background: v.plan === 'pro' ? '#6366f1' : '#f59e0b',
+        borderColor: '#1e293b',
+        glyph: '🏢',
+        glyphColor: '#fff',
+        scale: 1.1
+      });
+      var marker = new _mapsLibs.AdvancedMarkerElement({
+        map: _map,
+        position: pos,
+        title: v.name || '',
+        content: pin.element
+      });
+      marker.addListener('click', function() {
+        if (typeof window._venuesOpenDetail === 'function') window._venuesOpenDetail(v._id);
+      });
+      _markers.push(marker);
+      bounds.extend(pos);
+      anyPoints += 1;
+    });
+    if (anyPoints === 1) {
+      _map.setCenter(bounds.getCenter());
+      _map.setZoom(14);
+    } else if (anyPoints > 1) {
+      _map.fitBounds(bounds, 60);
+    }
+  }
+
   function render(container) {
+    // Reset map handle — a re-render recreates #venues-map so the Maps
+    // instance we had is bound to a detached node.
+    _map = null;
+    _markers = [];
     var back = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
       : '';
@@ -70,9 +148,41 @@
             '</div>' +
           '</div>' +
         '</div>' +
-        '<div id="venues-results" style="margin-bottom:2rem;"></div>' +
+        '<div style="display:flex;gap:4px;margin-bottom:10px;" id="venues-view-toggle">' +
+          '<button type="button" id="venues-tab-list" onclick="window._venuesSetMode(\'list\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">▦ Lista</button>' +
+          '<button type="button" id="venues-tab-map" onclick="window._venuesSetMode(\'map\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">🗺️ Mapa</button>' +
+        '</div>' +
+        '<div id="venues-content" style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:2rem;">' +
+          '<div id="venues-results"></div>' +
+          '<div id="venues-map-wrap" style="display:none;">' +
+            '<div id="venues-map" style="width:100%;height:460px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
+          '</div>' +
+        '</div>' +
       '</div>';
+    _applyViewMode();
     refresh();
+  }
+
+  // List vs Map (mobile), side-by-side on wide screens when mode=split.
+  // For simplicity we keep two exclusive modes: 'list' (default) and 'map'.
+  window._venuesSetMode = function(mode) {
+    state.mode = mode;
+    _applyViewMode();
+    if (mode === 'map') _ensureMap();
+  };
+  function _applyViewMode() {
+    var mode = state.mode || 'list';
+    var btnList = document.getElementById('venues-tab-list');
+    var btnMap = document.getElementById('venues-tab-map');
+    var resultsBox = document.getElementById('venues-results');
+    var mapWrap = document.getElementById('venues-map-wrap');
+    if (!resultsBox || !mapWrap || !btnList || !btnMap) return;
+    var activeStyle = 'background:#6366f1;color:#fff;border:2px solid #6366f1;font-weight:700;';
+    var idleStyle = 'background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;';
+    btnList.style.cssText = 'flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;' + (mode === 'list' ? activeStyle : idleStyle);
+    btnMap.style.cssText = 'flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;' + (mode === 'map' ? activeStyle : idleStyle);
+    resultsBox.style.display = (mode === 'list') ? 'block' : 'none';
+    mapWrap.style.display = (mode === 'map') ? 'block' : 'none';
   }
 
   function renderResults() {
@@ -130,6 +240,7 @@
       state.results = list;
       state.loading = false;
       renderResults();
+      if (_map) _renderMarkers();
     }).catch(function(e) {
       state.loading = false;
       state.results = [];
