@@ -149,6 +149,8 @@
     _renderRadiusCircle();
     var bounds = new google.maps.LatLngBounds();
     var anyPoints = 0;
+
+    // 1) Pins dos locais cadastrados na scoreplace (âmbar = free, índigo = pro).
     state.results.forEach(function(v) {
       if (v.lat == null || v.lon == null) return;
       var pos = { lat: Number(v.lat), lng: Number(v.lon) };
@@ -172,7 +174,58 @@
       bounds.extend(pos);
       anyPoints += 1;
     });
-    if (anyPoints === 1) {
+
+    // 2) Pins de sugestões do Google Places — cinza translúcido pra diferenciar
+    // visualmente dos locais cadastrados (que ganham cor cheia). Antes os
+    // Google suggestions só apareciam na lista abaixo do mapa, o que deixava
+    // a visão espacial vazia em áreas sem venues claimed. Click abre o local
+    // no Google Maps em nova aba (não abre modal interna porque ainda não
+    // existe na base da scoreplace — o dono pode reivindicar depois).
+    var g = state.googleResults || [];
+    g.forEach(function(p) {
+      if (p.lat == null || p.lng == null) return;
+      // Skip se já tem um venue cadastrado com o mesmo placeId — evita duplicar
+      // o mesmo lugar com pin cheio + pin translúcido no mesmo ponto.
+      var dupInClaimed = state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; });
+      if (dupInClaimed) return;
+      var pos = { lat: Number(p.lat), lng: Number(p.lng) };
+      var pin = new _mapsLibs.PinElement({
+        background: '#64748b',       // slate-500 — discreto vs âmbar/índigo dos claimed
+        borderColor: '#1e293b',
+        glyph: '🔎',
+        glyphColor: '#e2e8f0',
+        scale: 0.9                    // menor que claimed pra reforçar hierarquia visual
+      });
+      var marker = new _mapsLibs.AdvancedMarkerElement({
+        map: _map,
+        position: pos,
+        title: (p.name || '') + ' (sugestão Google)',
+        content: pin.element
+      });
+      marker.addListener('click', function() {
+        var url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
+          (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+        try { window.open(url, '_blank', 'noopener'); } catch(e) {}
+      });
+      _markers.push(marker);
+      bounds.extend(pos);
+      anyPoints += 1;
+    });
+
+    // Zoom/fit lógica: com center resolvido (GPS ou geocoder), mantemos o
+    // usuário centrado e o raio visível em vez de pular pra bounds dos pins,
+    // que faria o mapa dar zoom-out excessivo quando um pin está longe.
+    // Só usamos fitBounds quando NÃO temos center (fallback) e existem pins.
+    if (state.center) {
+      // Center já foi setado em refresh() — aqui só garantimos zoom minimo
+      // pra mostrar o raio inteiro: zoom 13 cobre ~10km, zoom 11 cobre ~40km.
+      // Heurística simples: zoom = 14 - log2(distanceKm / 2) aproximado.
+      var z = 13;
+      if (state.distanceKm > 30) z = 10;
+      else if (state.distanceKm > 15) z = 11;
+      else if (state.distanceKm > 7) z = 12;
+      if (_map.getZoom && _map.getZoom() < z - 1) _map.setZoom(z);
+    } else if (anyPoints === 1) {
       _map.setCenter(bounds.getCenter());
       _map.setZoom(14);
     } else if (anyPoints > 1) {
