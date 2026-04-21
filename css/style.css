@@ -314,3 +314,30 @@ html {
 body, .topbar, .card {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+/* ─── iOS input auto-zoom fix ─────────────────────────────────────────
+ * Safari no iPhone dá zoom automático quando o usuário toca num input
+ * cujo font-size é menor que 16px. Isso cortava o layout inteiro (topbar
+ * saindo da tela, modais truncadas). A contramedida padrão é forçar
+ * font-size:16px em TODOS os campos editáveis em devices touch — o zoom
+ * só dispara abaixo desse limiar.
+ *
+ * Usamos @media (hover: none) + (pointer: coarse) para pegar iOS/Android
+ * sem afetar layout desktop (onde 14px fica bonito em inputs compactos).
+ */
+@media (hover: none) and (pointer: coarse) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

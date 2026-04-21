@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.92-alpha';
+window.SCOREPLACE_VERSION = '0.14.93-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1122,12 +1122,28 @@ window.AppStore = {
     this._profileUnsubscribe = window.FirestoreDB.db
       .collection('users').doc(cu.uid)
       .onSnapshot(function(doc) {
-        // Skip the initial snapshot (profile already loaded). Seed
-        // lastCasualRoom from it so we don't treat the first emission as a
-        // "change" on the next snapshot.
+        // First snapshot: aproveitamos para RESUMIR uma partida ao vivo
+        // em andamento. Cenário real: o celular cai da mão durante o
+        // placar ao vivo, a aba fecha, o user volta — espera cair
+        // direto na partida, não na dashboard. Se o perfil tem um
+        // activeCasualRoom e o hash atual não aponta para essa sala,
+        // navega. Se o user já está em #casual/... (deep link direto
+        // ou reload na própria página), deixamos quieto.
         if (isFirst) {
           isFirst = false;
-          if (doc.exists) lastCasualRoom = doc.data().activeCasualRoom || null;
+          if (doc.exists) {
+            var firstRoom = doc.data().activeCasualRoom || null;
+            lastCasualRoom = firstRoom;
+            if (firstRoom) {
+              var hash = window.location.hash || '';
+              var expected = '#casual/' + firstRoom;
+              var alreadyInMatch = hash === expected ||
+                                   hash.indexOf('#casual/' + firstRoom) === 0;
+              if (!alreadyInMatch) {
+                window.location.hash = expected;
+              }
+            }
+          }
           return;
         }
         if (!doc.exists) return;
