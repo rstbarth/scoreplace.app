@@ -168,7 +168,14 @@ function renderDashboard(container) {
   const participacoesSorted = [...participacoes].sort(sortByDate);
   const organizadosSorted = [...organizados].sort(sortByDate);
 
-  const abertosParaVoce = visible.filter(t => {
+  // "Abertos para você" comes from the public discovery feed (a separate
+  // paginated query on isPublic=true + status=open) rather than the user's
+  // scoped listener. The listener only returns tournaments where the user
+  // is a member, so filtering it for non-member discovery always yields [].
+  const discovery = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery))
+    ? window.AppStore.publicDiscovery
+    : [];
+  const abertosParaVoce = discovery.filter(t => {
     const isOrg = organizados.some(org => org.id === t.id);
     const isPart = participacoes.some(pt => pt.id === t.id);
     if (isOrg || isPart) return false;
@@ -693,6 +700,13 @@ function renderDashboard(container) {
     var c = document.getElementById('view-container');
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
+  window._loadMoreDiscovery = function() {
+    if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') return;
+    window.AppStore.loadPublicDiscovery({ append: true }).then(function() {
+      var c = document.getElementById('view-container');
+      if (c && typeof renderDashboard === 'function') renderDashboard(c);
+    });
+  };
   // Restore saved view preference
   if (!window._dashView) {
     try { window._dashView = localStorage.getItem('scoreplace_dashView') || 'cards'; } catch(e) { window._dashView = 'cards'; }
@@ -906,6 +920,10 @@ function renderDashboard(container) {
       : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
     if (_sortedFiltered.length > visibleItems.length) {
       filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: _sortedFiltered.length - visibleItems.length}) + '</button></div>';
+    } else if (curFilter === 'abertos' && window.AppStore && window.AppStore._publicDiscoveryHasMore) {
+      // When viewing the public discovery feed and the client has rendered
+      // everything loaded, offer to fetch the next server page via cursor.
+      filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._loadMoreDiscovery()" class="btn hover-lift" style="background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">🔍 ' + _t('dashboard.discoverMore') + '</button></div>';
     }
   }
 

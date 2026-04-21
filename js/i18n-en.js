@@ -25,6 +25,7 @@ window._translations['en'] = {
   'dashboard.youParticipated': 'You participated',
   'dashboard.youOrganized': 'You organized',
   'dashboard.loadMore': 'Load more ({count} remaining)',
+  'dashboard.discoverMore': 'Discover more tournaments',
   'dashboard.noTournaments': 'No tournaments found.',
   'dashboard.nextMatches': 'Your Next Matches',
   'dashboard.myStats': 'My Statistics',

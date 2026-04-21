@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.55-alpha';
+window.SCOREPLACE_VERSION = '0.14.56-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -909,6 +909,12 @@ window.AppStore = {
   currentUser: null,
   viewMode: 'organizer',
   tournaments: [],
+  // Public discovery feed — public open tournaments the user isn't in yet.
+  // Populated on demand via loadPublicDiscovery(). Independent of
+  // `tournaments` (which is scoped to the user's own).
+  publicDiscovery: [],
+  _publicDiscoveryCursor: null,
+  _publicDiscoveryHasMore: false,
   _invitedTournamentIds: [],  // Track tournament IDs from invite links
   _deletedTournamentIds: (function() { try { var d = localStorage.getItem('scoreplace_deleted_ids'); return d ? JSON.parse(d) : []; } catch(e) { return []; } })(),
   _syncDebounce: null,
@@ -1136,6 +1142,39 @@ window.AppStore = {
       }, function(err) {
         console.warn('Profile listener error:', err);
       });
+  },
+
+  // Load the public discovery feed (public + open tournaments the user
+  // isn't in). Paginated via cursor. Pass { append: true } to fetch the next
+  // page; otherwise replaces the current list (pull-to-refresh style).
+  async loadPublicDiscovery(opts) {
+    if (!window.FirestoreDB || typeof window.FirestoreDB.loadPublicOpenTournaments !== 'function') return;
+    opts = opts || {};
+    var cursor = opts.append ? this._publicDiscoveryCursor : null;
+    var myEmail = this.currentUser && this.currentUser.email
+      ? String(this.currentUser.email).toLowerCase()
+      : '';
+    try {
+      var res = await window.FirestoreDB.loadPublicOpenTournaments({
+        limit: opts.limit || 20,
+        cursor: cursor
+      });
+      // Drop tournaments the user already has a relationship with — they
+      // already see those via the scoped listener. Uses the denormalized
+      // memberEmails[] so no extra reads.
+      var filtered = (res.tournaments || []).filter(function(t) {
+        if (!myEmail) return true;
+        if (!Array.isArray(t.memberEmails)) return true;
+        return t.memberEmails.indexOf(myEmail) === -1;
+      });
+      this.publicDiscovery = opts.append
+        ? this.publicDiscovery.concat(filtered)
+        : filtered;
+      this._publicDiscoveryCursor = res.nextCursor;
+      this._publicDiscoveryHasMore = !!res.hasMore;
+    } catch (e) {
+      console.warn('Erro ao carregar descoberta pública:', e);
+    }
   },
 
   // Load tournaments from Firestore (one-time, fallback for listener failure).

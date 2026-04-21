@@ -1102,6 +1102,14 @@ async function simulateLoginSuccess(user) {
     if (typeof window._checkNearbyTournaments === 'function') {
       window._checkNearbyTournaments().catch(function(e) { console.warn('Nearby check error:', e); });
     }
+    // Prime the discovery feed (public open tournaments the user isn't in).
+    // Used by the dashboard "Descobrir torneios" section — separate query
+    // so it scales independently of the user's scoped listener.
+    if (window.AppStore && typeof window.AppStore.loadPublicDiscovery === 'function') {
+      window.AppStore.loadPublicDiscovery().then(function() {
+        if (typeof window._softRefreshView === 'function') window._softRefreshView();
+      }).catch(function(e) { console.warn('Discovery load error:', e); });
+    }
     // Initialize FCM push notifications (requests permission + saves token)
     if (typeof window._initFCM === 'function') {
       window._initFCM().catch(function(e) { console.warn('FCM init error:', e); });

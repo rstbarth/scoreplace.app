@@ -266,6 +266,49 @@ window.FirestoreDB = {
     }
   },
 
+  // Paginated discovery feed: public tournaments currently open for
+  // enrollment. Used by the dashboard "Descobrir torneios" section so users
+  // find events they aren't in yet. Server-side filters cap reads to
+  // O(open public tournaments), not O(whole DB). Pass `cursor` (the last
+  // DocumentSnapshot from a previous call) to page; returns { tournaments,
+  // nextCursor, hasMore }.
+  //
+  // Requires a composite index on (isPublic asc, status asc, createdAt desc).
+  // Firestore suggests the exact index via a console link on first query if
+  // it isn't there yet.
+  async loadPublicOpenTournaments(opts) {
+    if (!this.db) return { tournaments: [], nextCursor: null, hasMore: false };
+    opts = opts || {};
+    var limit = Math.max(1, Math.min(50, opts.limit || 20));
+    try {
+      var q = this.db.collection('tournaments')
+        .where('isPublic', '==', true)
+        .where('status', '==', 'open')
+        .orderBy('createdAt', 'desc');
+      if (opts.cursor) q = q.startAfter(opts.cursor);
+      q = q.limit(limit + 1); // fetch one extra to detect end-of-feed
+      var snap = await q.get();
+      var tournaments = [];
+      var lastDoc = null;
+      var count = 0;
+      snap.forEach(function(doc) {
+        count++;
+        if (count <= limit) {
+          tournaments.push(doc.data());
+          lastDoc = doc;
+        }
+      });
+      return {
+        tournaments: tournaments,
+        nextCursor: lastDoc,
+        hasMore: count > limit
+      };
+    } catch (e) {
+      console.error('Erro ao carregar torneios públicos:', e);
+      return { tournaments: [], nextCursor: null, hasMore: false };
+    }
+  },
+
   // Scan open tournaments across the whole DB — used by the nearby/sport-match
   // notification check, which has to look outside the current user's scoped
   // load (that's the whole point: show tournaments they aren't part of yet).
