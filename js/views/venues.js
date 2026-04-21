@@ -26,7 +26,7 @@
     minCourts: 0,
     loading: false,
     results: [],
-    mode: 'list'    // 'list' | 'map'
+    mode: 'map'     // 'list' | 'map' — map is the default (more useful for discovery)
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
@@ -107,6 +107,14 @@
     // instance we had is bound to a detached node.
     _map = null;
     _markers = [];
+    // Seed city with the user's profile city on first entry so the feed
+    // lands on "their" city by default. Only when state.city is still empty
+    // (i.e. user hasn't typed/cleared it) to preserve intentional edits.
+    if (!state.city) {
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var profileCity = cu && cu.city ? String(cu.city).trim() : '';
+      if (profileCity) state.city = profileCity;
+    }
     var back = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
       : '';
@@ -149,8 +157,8 @@
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:4px;margin-bottom:10px;" id="venues-view-toggle">' +
-          '<button type="button" id="venues-tab-list" onclick="window._venuesSetMode(\'list\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">▦ Lista</button>' +
           '<button type="button" id="venues-tab-map" onclick="window._venuesSetMode(\'map\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">🗺️ Mapa</button>' +
+          '<button type="button" id="venues-tab-list" onclick="window._venuesSetMode(\'list\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">▦ Lista</button>' +
         '</div>' +
         '<div id="venues-content" style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:2rem;">' +
           '<div id="venues-results"></div>' +
@@ -160,6 +168,9 @@
         '</div>' +
       '</div>';
     _applyViewMode();
+    // Map is now the default mode → kick off lazy init so the user sees the
+    // map ready on first paint instead of an empty dark frame.
+    if (state.mode === 'map') _ensureMap();
     refresh();
   }
 
