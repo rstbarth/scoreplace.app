@@ -449,16 +449,28 @@
   };
 
   // Reverse geocode lat/lng into a legible "endereço, bairro, cidade".
-  // Lazy-loads the Geocoder library. Returns null if not available.
+  // Lazy-loads o Geocoder. Preferimos street_address → route → premise →
+  // primeiro resultado, evitando retornar plus codes ou cell towers que o
+  // Google às vezes devolve como results[0]. Retorna null se indisponível.
   async function _reverseGeocode(lat, lng) {
     if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return null;
     try {
       await google.maps.importLibrary('geocoding');
       var geocoder = new google.maps.Geocoder();
       return await new Promise(function(resolve) {
-        geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
-          if (status === 'OK' && results && results[0]) resolve(results[0].formatted_address);
-          else resolve(null);
+        geocoder.geocode({ location: { lat: lat, lng: lng }, language: 'pt-BR', region: 'br' }, function(results, status) {
+          if (status !== 'OK' || !results || results.length === 0) { resolve(null); return; }
+          var preferred = ['street_address', 'route', 'premise', 'neighborhood', 'sublocality', 'locality'];
+          for (var i = 0; i < preferred.length; i++) {
+            var t = preferred[i];
+            for (var j = 0; j < results.length; j++) {
+              if ((results[j].types || []).indexOf(t) !== -1) {
+                resolve(results[j].formatted_address);
+                return;
+              }
+            }
+          }
+          resolve(results[0].formatted_address);
         });
       });
     } catch (e) { return null; }
@@ -478,8 +490,11 @@
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
       state.center = { lat: lat, lng: lng };
+      // Tenta o reverse geocoder; se falhar, mostra texto amigável em vez
+      // de coordenadas cruas (o usuário pediu: nada de "-23.6, -46.7").
+      // O state.center mantém lat/lng precisos para o filtro de raio.
       var address = await _reverseGeocode(lat, lng);
-      state.location = address || (lat.toFixed(4) + ', ' + lng.toFixed(4));
+      state.location = address || 'Minha localização atual';
       var inp = document.getElementById('venues-location');
       if (inp) inp.value = state.location;
       if (btn) { btn.disabled = false; btn.textContent = '📍'; }

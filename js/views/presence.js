@@ -13,8 +13,13 @@
 // ========================================
 
 (function() {
-  var START_HOUR = 6;
-  var END_HOUR = 23;
+  // Sliding window de 13 horas no gráfico (6 antes + atual + 6 depois). Hora
+  // atual fica sempre centralizada. Ver _currentWindow() — valores
+  // recalculados em cada render.
+  var WINDOW_HOURS = 13;
+  // Auto-refresh: o gráfico se redesenha a cada minuto para mostrar a janela
+  // rolando naturalmente conforme o tempo passa.
+  var _chartTickInterval = null;
 
   // Sport → emoji map (shared with the rest of the app — mirrors dashboard.js
   // getSportIcon). Keeps icons in the chips consistent everywhere.
@@ -394,13 +399,27 @@
     return out;
   }
 
+  // Janela de horas centrada na hora atual. Permite valores fora de 0–23
+  // (ex: 10pm atual → slot 02h de amanhã aparece como 2 sem dados). Para
+  // comparar com presenças, normalizamos via (h+24)%24 ao indexar buckets.
+  function _currentWindow() {
+    var nowH = new Date().getHours();
+    var half = Math.floor(WINDOW_HOURS / 2);
+    var out = [];
+    for (var i = -half; i <= WINDOW_HOURS - half - 1; i++) out.push(nowH + i);
+    return { hours: out, nowH: nowH };
+  }
+
   function renderChart() {
     var box = document.getElementById('presence-chart');
     if (!box) return;
 
-    // Buckets by hour — friends count + others count
+    var win = _currentWindow();
+
+    // Buckets 0..23 — indexamos por hora real do doc (presences são sempre
+    // de hoje pela query). Horas fora do dia no window ficam como 0.
     var buckets = {};
-    for (var h = START_HOUR; h <= END_HOUR; h++) buckets[h] = { friends: 0, me: 0, others: 0 };
+    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0, me: 0, others: 0 };
 
     var allPresences = state.presences.slice();
     // Add tournament-derived occupancy
@@ -409,8 +428,8 @@
     });
 
     allPresences.forEach(function(p) {
-      var startH = Math.max(START_HOUR, Math.min(END_HOUR, _hourOf(p.startsAt)));
-      var endH = Math.max(START_HOUR, Math.min(END_HOUR, _hourOf(p.endsAt)));
+      var startH = _hourOf(p.startsAt);
+      var endH = _hourOf(p.endsAt);
       if (startH == null || endH == null) return;
       var klass = _classify(p);
       for (var h = startH; h <= endH; h++) {
@@ -421,22 +440,27 @@
       }
     });
 
+    // Max só olha os slots da janela — mantém proporção visual estável.
     var maxPerBucket = 1;
-    Object.keys(buckets).forEach(function(h) {
-      var total = buckets[h].friends + buckets[h].me + buckets[h].others;
+    win.hours.forEach(function(slot) {
+      if (slot < 0 || slot > 23) return;
+      var b = buckets[slot];
+      var total = b.friends + b.me + b.others;
       if (total > maxPerBucket) maxPerBucket = total;
     });
 
     var bars = '';
-    for (var h = START_HOUR; h <= END_HOUR; h++) {
-      var b = buckets[h];
+    win.hours.forEach(function(slot) {
+      var inDay = slot >= 0 && slot <= 23;
+      var labelH = ((slot % 24) + 24) % 24;
+      var b = inDay ? buckets[slot] : { friends: 0, me: 0, others: 0 };
       var total = b.friends + b.me + b.others;
       var totalPct = total > 0 ? Math.round((total / maxPerBucket) * 100) : 0;
       var friendsPct = total > 0 ? Math.round((b.friends + b.me) / total * 100) : 0;
-      var isNow = (new Date()).getHours() === h;
-      var labelColor = isNow ? 'var(--primary-color)' : 'var(--text-muted)';
-      bars += '<div title="' + h + 'h: ' + (b.friends + b.me) + ' amigo(s) · ' + b.others + ' outro(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;">' +
-        '<div style="height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:rgba(150,150,150,0.08);overflow:hidden;position:relative;">' +
+      var isNow = slot === win.nowH;
+      var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
+      bars += '<div title="' + labelH + 'h: ' + (b.friends + b.me) + ' amigo(s) · ' + b.others + ' outro(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
+        '<div style="height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:' + (isNow ? 'rgba(99,102,241,0.1)' : 'rgba(150,150,150,0.08)') + ';overflow:hidden;position:relative;' + (isNow ? 'outline:2px solid rgba(99,102,241,0.4);' : '') + '">' +
           (total > 0
             ? '<div style="height:' + totalPct + '%;width:100%;display:flex;flex-direction:column-reverse;">' +
                 '<div style="flex:' + (100 - friendsPct) + ';background:#6b7280;"></div>' +
@@ -444,9 +468,9 @@
               '</div>'
             : '') +
         '</div>' +
-        '<span style="font-size:0.65rem;color:' + labelColor + ';font-weight:' + (isNow ? 700 : 500) + ';">' + h + '</span>' +
+        '<span style="font-size:0.65rem;color:' + labelColor + ';font-weight:' + (isNow ? 700 : 500) + ';">' + labelH + '</span>' +
       '</div>';
-    }
+    });
 
     box.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
@@ -651,6 +675,22 @@
       }
     } catch (e) {}
     window._presenceUnsubscribe = null;
+    if (_chartTickInterval) { clearInterval(_chartTickInterval); _chartTickInterval = null; }
+  }
+
+  // Re-render the chart every minute so the window keeps the current hour
+  // centered — as time passes, the whole bar strip slides right to reveal
+  // the next hour and drop the oldest.
+  function _startChartAutoTick() {
+    if (_chartTickInterval) return;
+    _chartTickInterval = setInterval(function() {
+      if (!document.getElementById('presence-chart')) {
+        clearInterval(_chartTickInterval);
+        _chartTickInterval = null;
+        return;
+      }
+      renderChart();
+    }, 60 * 1000);
   }
 
   // Attach a real-time listener for the venue/day — one snapshot whenever
@@ -742,6 +782,7 @@
     // Subscribe to real-time updates so friends' new presences appear
     // without the user having to reload.
     _attachListener();
+    _startChartAutoTick();
     state.loading = true;
     state.dayKey = window.PresenceDB.dayKey(new Date());
     var cu = window.AppStore && window.AppStore.currentUser;
