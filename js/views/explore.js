@@ -97,6 +97,47 @@ function _isRealPhoto(url) {
   return url && url.indexOf('dicebear.com') === -1 && url.indexOf('placeholder') === -1;
 }
 
+// Compact card for the "Meus Amigos" section only. Drops the extra action
+// button area in favor of a tiny ✕ at top-right for unfriending; shows just
+// photo + name + city (when different from mine) + preferred sport — no age.
+// Falls back to the larger _userCardHtml for other sections.
+function _friendCompactCardHtml(u, uid) {
+  var cu = window.AppStore.currentUser || {};
+  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var avatarSeed = encodeURIComponent(name || uid || 'User');
+  var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+  var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
+  var fallbackPhoto = initialsUrl;
+
+  // City: only show if present AND different from mine (case/accent-insensitive).
+  var subtitleChips = [];
+  var myCity = (cu.city || '').toString().trim().toLowerCase();
+  var theirCity = (u.city || '').toString().trim();
+  if (theirCity && theirCity.toLowerCase() !== myCity) subtitleChips.push(theirCity);
+  // Sport: first preferred sport (normalized, no emoji).
+  if (u.preferredSports) {
+    var firstSport = String(u.preferredSports).split(/[,;]/)[0].trim();
+    var clean = window.PresenceDB && typeof window.PresenceDB.normalizeSport === 'function'
+      ? window.PresenceDB.normalizeSport(firstSport)
+      : firstSport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim();
+    if (clean) subtitleChips.push(clean);
+  }
+  var subtitle = subtitleChips.join(' · ');
+
+  var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+
+  return '<div class="card hover-lift" style="position:relative;padding:10px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:12px;min-width:0;">' +
+    // Tiny ✕ at top-right to unfriend
+    '<button type="button" title="Desfazer amizade" onclick="event.stopPropagation(); _removeFriend(\'' + safeUid + '\')" ' +
+      'style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.78rem;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);margin-top:4px;">' +
+    '<div style="width:100%;min-width:0;">' +
+      '<div style="font-weight:600;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      (subtitle ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(subtitle) + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
 function _userCardHtml(u, uid, actionHtml, isFriend) {
   var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
   var avatarSeed = encodeURIComponent(name || uid || 'User');
@@ -645,13 +686,12 @@ function _renderMyFriends(myUid, friendIds) {
 
     var html = '<div style="margin-bottom: 1.5rem;">' +
       '<div style="font-weight: 600; font-size: 0.9rem; color: var(--success-color); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.myFriends') + ' (' + profiles.length + ')</div>' +
-      '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+      // Tighter grid for compact friend cards (more per row, less scrolling).
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
-      var safeUidFriend = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var unfriendBtn = '<button class="btn btn-danger btn-sm" style="width: 100%; opacity: 0.7;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'" onclick="event.stopPropagation(); _removeFriend(\'' + safeUidFriend + '\')">' + (window._t || function(k){return k;})('explore.unfriend') + '</button>';
-      html += _userCardHtml(u, uid, unfriendBtn, true);
+      html += _friendCompactCardHtml(u, uid);
     });
 
     html += '</div></div>';
