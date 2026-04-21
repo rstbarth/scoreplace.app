@@ -4162,20 +4162,21 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return '<div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:8px 10px;border-radius:12px;background:' + bgClr + ';border:1px solid ' + bdrClr + ';">' + cards + '</div>';
     };
 
-    // Arrow button builder — extra large for easy tapping
+    // Arrow button builder — extra large for courtside tapping (passo 1 do
+    // caminho mobile-first: tap target gordo, tipografia XL, cores atuais).
     var _upBtn = function(player) {
       var clr = player === 1 ? '#3b82f6' : '#ef4444';
-      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:3.2rem;font-weight:900;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(80px,15vh,120px);box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+      return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:clamp(3.8rem,9vw,5rem);font-weight:900;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(120px,22vh,180px);box-shadow:0 4px 14px rgba(0,0,0,0.4);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
     };
     var _downBtn = function(player) {
-      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:1rem;font-weight:700;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(36px,5vh,50px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
+      return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:1.2rem;font-weight:700;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(52px,8vh,72px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
     };
 
     // Finish button (isFinished handled above with early return)
     var finishBtn = '';
     if (!useSets) {
-      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:14px;border-radius:14px;font-size:0.95rem;font-weight:700;border:2px solid rgba(16,185,129,0.3);cursor:pointer;' +
-        'background:rgba(16,185,129,0.1);color:#10b981;">Encerrar Partida</button></div>';
+      finishBtn = '<div style="padding:0 1rem;flex-shrink:0;margin-top:auto;padding-bottom:1rem;"><button onclick="window._liveScoreFinish()" style="width:100%;padding:20px;border-radius:16px;font-size:1.15rem;font-weight:800;border:2px solid rgba(16,185,129,0.35);cursor:pointer;min-height:64px;' +
+        'background:rgba(16,185,129,0.12);color:#10b981;">Encerrar Partida</button></div>';
     }
 
     // ── FULLSCREEN LAYOUT ──
@@ -4245,10 +4246,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       };
       var _lsUpBtn = function(player) {
         var clr = player === 1 ? '#3b82f6' : '#ef4444';
-        return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:2rem;font-weight:900;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(44px,10vh,70px);box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
+        return '<button onclick="window._liveScorePoint(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:' + clr + ';color:#fff;font-size:clamp(2.4rem,6vw,3.2rem);font-weight:900;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(72px,16vh,110px);box-shadow:0 3px 10px rgba(0,0,0,0.3);transition:transform 0.08s;" ontouchstart="this.style.transform=\'scale(0.96)\'" ontouchend="this.style.transform=\'\'">▲</button>';
       };
       var _lsDownBtn = function(player) {
-        return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.8rem;font-weight:700;border-radius:0 0 10px 10px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(24px,4vh,36px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
+        return '<button onclick="window._liveScoreMinus(' + player + ')" style="width:100%;padding:0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.95rem;font-weight:700;border-radius:0 0 12px 12px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;min-height:clamp(40px,6vh,56px);border-top:1px solid rgba(255,255,255,0.06);" ontouchstart="this.style.background=\'rgba(255,255,255,0.15)\'" ontouchend="this.style.background=\'\'">▼</button>';
       };
       var _lsBtns = function(player) {
         if (state.isFinished) return '';
