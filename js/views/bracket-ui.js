@@ -2677,6 +2677,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.tieRulePending) return; // Waiting for tie resolution dialog
     if (_needsServePick()) return; // Waiting for serve selection
 
+    // Haptic feedback — pulso curto a cada ponto. Confirma tap sem precisar
+    // olhar a tela (útil com celular na trave). Android + iOS 18+ suportam.
+    try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+
     // Track match start time on first point
     if (!_matchStartTime) _matchStartTime = Date.now();
 
@@ -4750,6 +4754,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
   window._liveScoreMinus = function(player) {
     if (state.isFinished) return;
     if (state.tieRulePending) return;
+    // Haptic distintivo do +ponto — padrão de 2 pulsos curtos para sinalizar
+    // "desfeito" vs 1 pulso do ponto adicionado.
+    try { if (navigator.vibrate) navigator.vibrate([15, 40, 15]); } catch (e) {}
     if (player === 1) {
       if (state.currentGameP1 > 0) state.currentGameP1--;
     } else {

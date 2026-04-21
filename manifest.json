@@ -3,10 +3,10 @@
   "short_name": "scoreplace",
   "description": "Plataforma de gestão de torneios esportivos e board games",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
   "theme_color": "#fbbf24",
-  "orientation": "portrait-primary",
   "lang": "pt-BR",
   "icons": [
     {
@@ -20,6 +20,29 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Partida Casual",
+      "short_name": "Partida",
+      "description": "Iniciar partida casual com placar ao vivo",
+      "url": "/#dashboard?quickCasual=1",
+      "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Presença no local",
+      "short_name": "Presença",
+      "description": "Ver quem está no clube agora",
+      "url": "/#presence",
+      "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Descobrir Locais",
+      "short_name": "Locais",
+      "description": "Encontrar locais para jogar",
+      "url": "/#venues",
+      "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
     }
   ],
   "categories": ["sports", "games", "utilities"]
