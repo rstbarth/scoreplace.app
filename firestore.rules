@@ -108,14 +108,21 @@ service cloud.firestore {
 
     // ─── Venues (claimable business listings) ────────────────────────────────
     // Public read so discovery works without login. Create: authed + caller
-    // must set ownerUid to their own uid (the "claim"). Update/delete: owner
-    // only. Releasing ownership (setting ownerUid = null) is allowed as part
-    // of an owner-initiated update.
+    // must set ownerUid to their own uid (the "claim"). Update: owner may
+    // update anything; any authenticated user may update ONLY viewCount +
+    // lastViewedAt (so opening the detail modal can bump the counter).
+    // Delete: owner only.
+    function isViewCountBump() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['viewCount', 'lastViewedAt']);
+    }
     match /venues/{venueId} {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
+        && (resource.data.ownerUid == request.auth.uid || isViewCountBump());
+      allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
     }
   }

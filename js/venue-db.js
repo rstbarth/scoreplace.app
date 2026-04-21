@@ -149,10 +149,37 @@ window.VenueDB = {
         if (priceQ && v.priceRange !== priceQ) return false;
         if (minCourts > 0 && (!v.courtCount || v.courtCount < minCourts)) return false;
         return true;
-      }).sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+      }).sort(function(a, b) {
+        // Pro always ranks above Free; within a tier, verified first, then name.
+        var ap = a.plan === 'pro' ? 1 : 0;
+        var bp = b.plan === 'pro' ? 1 : 0;
+        if (ap !== bp) return bp - ap;
+        var av = a.verified ? 1 : 0;
+        var bv = b.verified ? 1 : 0;
+        if (av !== bv) return bv - av;
+        return (a.name || '').localeCompare(b.name || '');
+      });
     } catch (e) {
       console.error('Erro ao listar venues:', e);
       return [];
+    }
+  },
+
+  // Atomic increment of the viewCount field using server-side FieldValue.
+  // Called each time the detail modal opens (except for the owner, so the
+  // owner's own curiosity doesn't inflate numbers). Write-only from client;
+  // no reads needed. Small cost even at scale.
+  async incrementViewCount(key) {
+    if (!this.db || !key) return;
+    try {
+      await this.db.collection('venues').doc(key).update({
+        viewCount: firebase.firestore.FieldValue.increment(1),
+        lastViewedAt: Date.now()
+      });
+    } catch (e) {
+      // Doc might not allow writes from visitor (rules: owner-only update).
+      // That's expected — only owner-related writes will succeed in firestore.
+      // For a permissive counter we'd relax rules; doing so lands in B5 proper.
     }
   },
 

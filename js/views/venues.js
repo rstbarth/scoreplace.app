@@ -213,8 +213,12 @@
       if (v.city) meta.push(v.city);
       var verified = v.verified ? '<span title="Verificado" style="color:#10b981;font-size:0.82rem;margin-left:4px;">✓</span>' : '';
       var proBadge = v.plan === 'pro' ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">PRO</span>' : '';
+      var isPro = v.plan === 'pro';
+      var cardStyle = isPro
+        ? 'background:linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--bg-card) 60%);border:1px solid rgba(99,102,241,0.4);box-shadow:0 0 16px rgba(99,102,241,0.18);border-radius:14px;padding:14px;cursor:pointer;'
+        : 'background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;cursor:pointer;';
       html +=
-        '<div class="hover-lift" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;cursor:pointer;" onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')">' +
+        '<div class="hover-lift" style="' + cardStyle + '" onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')">' +
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
             '<span style="font-size:1.2rem;">🏢</span>' +
             '<div style="font-weight:700;color:var(--text-bright);font-size:0.95rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + verified + proBadge + '</div>' +
@@ -374,10 +378,55 @@
     return html;
   }
 
+  // Owner-only analytics: counts of presences (last 7 days) + tournaments today.
+  // All derived from client-side queries we already have — no Cloud Function.
+  async function _buildOwnerStatsHtml(venue) {
+    if (!window.PresenceDB) return '';
+    var dayKey = window.PresenceDB.dayKey(new Date());
+    var weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    var presencesToday = [];
+    try { presencesToday = await window.PresenceDB.loadForVenueDay(venue.placeId, dayKey); } catch (e) {}
+    // Lightweight count of presences this week by scanning 7 days backward.
+    // For a modest number of venues this is cheap; when it grows we'll
+    // denormalize via Cloud Function.
+    var weekCount = 0;
+    try {
+      var days = [];
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(Date.now() - i * 24 * 3600 * 1000);
+        days.push(window.PresenceDB.dayKey(d));
+      }
+      for (var j = 0; j < days.length; j++) {
+        var list = await window.PresenceDB.loadForVenueDay(venue.placeId, days[j]);
+        weekCount += list.length;
+      }
+    } catch (e) {}
+    var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
+    var totalTournaments = tournaments.filter(function(t) {
+      return t && window.VenueDB.venueKey(t.venuePlaceId, t.venue) === venue.placeId;
+    }).length;
+    var views = venue.viewCount || 0;
+    return '<div style="background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));border:1px solid rgba(99,102,241,0.35);border-radius:10px;padding:12px;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.85rem;margin-bottom:8px;">📊 Seu painel (dono)</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#a5b4fc;">' + views + '</div><div style="font-size:0.68rem;color:var(--text-muted);">visualizações</div></div>' +
+        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#fbbf24;">' + weekCount + '</div><div style="font-size:0.68rem;color:var(--text-muted);">check-ins (7 dias)</div></div>' +
+        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#10b981;">' + totalTournaments + '</div><div style="font-size:0.68rem;color:var(--text-muted);">torneios no local</div></div>' +
+      '</div>' +
+    '</div>';
+  }
+
   // Detail: compact modal with contact actions + quick links into the rest of the app.
   window._venuesOpenDetail = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
     if (!v) return;
+    // Fire-and-forget viewCount bump. Skip when the owner is viewing their own
+    // venue so owner curiosity doesn't inflate numbers. Also skip for anonymous
+    // visitors — rules require auth, so writing would fail silently anyway.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (cu && cu.uid && v.ownerUid !== cu.uid && typeof window.VenueDB.incrementViewCount === 'function') {
+      window.VenueDB.incrementViewCount(placeId);
+    }
     var prev = document.getElementById('venues-detail-overlay');
     if (prev) prev.remove();
     var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).map(function(s) {
@@ -431,6 +480,7 @@
           (v.hours ? '<div style="font-size:0.82rem;color:var(--text-bright);margin-bottom:10px;">⏰ ' + _safe(v.hours) + '</div>' : '') +
           (v.description ? '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">' + _safe(v.description) + '</div>' : '') +
           (contactBits.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' + contactBits.join('') + '</div>' : '') +
+          '<div id="venue-owner-stats-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
@@ -447,6 +497,13 @@
       var slot = document.getElementById('venue-movimento-slot');
       if (slot && html) slot.innerHTML = html;
     });
+    // Owner sees private analytics. Anyone else: slot stays empty.
+    if (cu && cu.uid && v.ownerUid === cu.uid) {
+      _buildOwnerStatsHtml(v).then(function(html) {
+        var slot = document.getElementById('venue-owner-stats-slot');
+        if (slot && html) slot.innerHTML = html;
+      });
+    }
   };
 
   // Bridge to tournament creation — stashes venue so create-tournament can read.

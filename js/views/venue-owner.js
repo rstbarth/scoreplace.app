@@ -229,6 +229,11 @@
     document.querySelectorAll('#venue-owner-sports input[type=checkbox]').forEach(function(cb) {
       if (cb.checked) sports.push(cb.getAttribute('data-sport'));
     });
+    // User's personal Pro plan is inherited as the venue's plan on claim/edit.
+    // Lets a Pro user's venues rank in the "Pro first" sort without a separate
+    // venue-level subscription (B5b will add that as a direct upgrade path).
+    var isUserPro = (typeof window._isPro === 'function' && window._isPro()) ||
+                    (cu.plan === 'pro' && (!cu.planExpiresAt || new Date(cu.planExpiresAt) > new Date()));
     var payload = {
       placeId: place.placeId,
       name: place.name,
@@ -248,7 +253,8 @@
         email: document.getElementById('venue-owner-email').value.trim()
       },
       ownerUid: cu.uid,
-      ownerEmail: (cu.email || '').toLowerCase()
+      ownerEmail: (cu.email || '').toLowerCase(),
+      plan: isUserPro ? 'pro' : 'free'
     };
     try {
       await window.VenueDB.claimVenue(place.placeId, payload);
@@ -278,11 +284,21 @@
       var courts = v.courtCount ? (v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's')) : '';
       var price = v.priceRange || '';
       var meta = [sportsText, courts, price].filter(Boolean).join(' · ');
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;margin-bottom:6px;">' +
+      var proBadge = v.plan === 'pro'
+        ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">PRO</span>'
+        : '';
+      var upgradeBtn = v.plan !== 'pro'
+        ? '<button class="btn btn-sm" onclick="window._venueOwnerUpgrade(\'' + _safe(v.placeId) + '\')" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;font-size:0.7rem;padding:4px 10px;font-weight:700;" title="Destacar este local">🚀 Pro</button>'
+        : '';
+      var viewStats = v.viewCount
+        ? ' · ' + v.viewCount + ' visualiza' + (v.viewCount === 1 ? 'ção' : 'ções')
+        : '';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-darker);border:1px solid ' + (v.plan === 'pro' ? 'rgba(99,102,241,0.4)' : 'var(--border-color)') + ';border-radius:10px;margin-bottom:6px;' + (v.plan === 'pro' ? 'box-shadow:0 0 12px rgba(99,102,241,0.25);' : '') + '">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(meta) + '</div>' +
+          '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + proBadge + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(meta) + _safe(viewStats) + '</div>' +
         '</div>' +
+        upgradeBtn +
         '<button class="btn btn-sm btn-secondary" onclick="window._venueOwnerEditExisting(\'' + _safe(v.placeId) + '\')" style="font-size:0.7rem;padding:4px 8px;">Editar</button>' +
         '<button class="btn btn-sm" onclick="window._venueOwnerRelease(\'' + _safe(v.placeId) + '\')" style="background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);font-size:0.7rem;padding:4px 8px;" title="Liberar (não é mais dono)">✕</button>' +
       '</div>';
@@ -298,6 +314,40 @@
     }, { existing: v });
     var form = document.getElementById('venue-owner-form-wrap');
     if (form) form.scrollIntoView({ block: 'center' });
+  };
+
+  // Pro upgrade — v0.14.69 interim: queues an interest email and shows the
+  // owner what Pro unlocks. A full Stripe checkout for venue-level Pro needs
+  // a matching Cloud Function + Stripe Price ID, which lives outside the
+  // client and is deferred until the first interested proprietor surfaces.
+  window._venueOwnerUpgrade = function(placeId) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || typeof window.showConfirmDialog !== 'function') return;
+    var msg = '<b>Plano Pro do local (R$49/mês)</b><br><br>' +
+      '• Destaque no topo da busca em <code>#venues</code><br>' +
+      '• Badge PRO visível + marker com cor diferenciada no mapa<br>' +
+      '• Painel de analytics (visualizações, presenças, torneios)<br>' +
+      '• Fotos ilimitadas (em breve)<br>' +
+      '• Prioridade em filtros de cidade/modalidade<br><br>' +
+      'Checkout Stripe chega em breve. Clique "Tenho interesse" para nos avisar — entramos em contato para ativar manualmente neste alpha.';
+    window.showConfirmDialog(
+      '🚀 Promover local para Pro',
+      msg,
+      async function() {
+        if (window.FirestoreDB && typeof window.FirestoreDB.queueEmail === 'function') {
+          await window.FirestoreDB.queueEmail(
+            'scoreplace.app@gmail.com',
+            'Interesse em Pro para venue — ' + (cu.displayName || cu.email),
+            '<p>Proprietário: ' + (cu.displayName || '') + ' (' + (cu.email || '') + ')</p>' +
+            '<p>Venue placeId: ' + placeId + '</p>' +
+            '<p>Versão: ' + (window.SCOREPLACE_VERSION || '?') + '</p>'
+          );
+        }
+        if (window.showNotification) window.showNotification('Interesse registrado!', 'Entraremos em contato em até 24h pelo e-mail do seu perfil.', 'success');
+      },
+      null,
+      { confirmText: 'Tenho interesse', cancelText: 'Fechar', type: 'info' }
+    );
   };
 
   window._venueOwnerRelease = function(placeId) {
