@@ -153,19 +153,25 @@
               '</select>' +
             '</div>' +
           '</div>' +
-          '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">' +
-            '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Faixa de preço</label>' +
-              '<div style="display:flex;gap:4px;">' + priceBtns + '</div>' +
-            '</div>' +
+          // Mín. quadras + Distância: grid 2 colunas dedicado pra manter os
+          // inputs sempre alinhados entre si, independente da largura da tela.
+          // Antes ficavam na mesma linha da Faixa de preço e desalinhavam
+          // quando o wrap decidia quebrar.
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Mín. quadras</label>' +
-              '<input type="number" min="1" max="99" value="' + (state.minCourts || 1) + '" placeholder="1" oninput="window._venuesSetMinCourts(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<input type="number" min="1" max="99" value="' + (state.minCourts || 1) + '" placeholder="1" oninput="window._venuesSetMinCourts(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
             '</div>' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Distância (km)</label>' +
-              '<input type="number" min="1" max="500" value="' + (state.distanceKm || 10) + '" placeholder="10" oninput="window._venuesSetDistance(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<input type="number" min="1" max="500" value="' + (state.distanceKm || 10) + '" placeholder="10" oninput="window._venuesSetDistance(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
             '</div>' +
+          '</div>' +
+          // Faixa de preço fica em linha própria, full-width, para os 4 botões
+          // respirarem e nunca comprimirem ao ponto de cortar rótulos.
+          '<div>' +
+            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Faixa de preço</label>' +
+            '<div style="display:flex;gap:4px;">' + priceBtns + '</div>' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:4px;margin-bottom:10px;" id="venues-view-toggle">' +
