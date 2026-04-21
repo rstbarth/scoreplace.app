@@ -315,9 +315,15 @@
   function renderMyActive() {
     var box = document.getElementById('presence-myactive');
     if (!box) return;
+    var selSports = (state.sports || []).map(window.PresenceDB.normalizeSport);
+    var selSet = {}; selSports.forEach(function(s) { selSet[s] = true; });
+    // Match if ANY of the presence's sports overlaps with ANY selected sport —
+    // with multi-sport presences the primary `sport` alone isn't enough.
     var here = state.myActive.filter(function(p) {
-      return p.placeId === (state.venue && state.venue.placeId) &&
-             window.PresenceDB.normalizeSport(p.sport) === window.PresenceDB.normalizeSport(state.sport);
+      if (p.placeId !== (state.venue && state.venue.placeId)) return false;
+      var pSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+      if (selSports.length === 0) return true;
+      return pSports.some(function(s) { return selSet[window.PresenceDB.normalizeSport(s)]; });
     });
     if (here.length === 0) { box.innerHTML = ''; return; }
     var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
@@ -327,6 +333,10 @@
         var leftMs = p.endsAt - Date.now();
         var leftMin = Math.max(0, Math.round(leftMs / 60000));
         label = '✅ Você está aqui · expira em ' + leftMin + ' min';
+      } else if (p.openEnded) {
+        // Open-ended plan: show only the start, since the user explicitly
+        // didn't commit to an end time.
+        label = '🗓️ Você planejou estar aqui a partir de ' + _fmtTime(p.startsAt);
       } else {
         label = '🗓️ Você planejou estar aqui ' + _fmtTime(p.startsAt) + '–' + _fmtTime(p.endsAt);
       }
@@ -617,6 +627,21 @@
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
+  // Set of docIds cancelled locally in this session. Defends against two
+  // edge cases that were letting cancelled presences reappear in "Agora no
+  // local": (a) a real-time snapshot arriving right before the server write
+  // lands still has cancelled=false; (b) optimistic-write rollback if the
+  // server ever rejects. Any id here is treated as cancelled by every
+  // render/filter path, no matter what the snapshot says. Entries expire
+  // after 60s — enough for the write to settle — so the set stays tiny.
+  var _cancelledIds = {};
+  function _markCancelled(id) {
+    if (!id) return;
+    _cancelledIds[id] = Date.now();
+    setTimeout(function() { delete _cancelledIds[id]; }, 60000);
+  }
+  function _isCancelled(id) { return !!_cancelledIds[id]; }
+
   // Tear down any previous Firestore listener — called before attaching a
   // new one and when the user navigates away.
   function _teardownListener() {
@@ -648,6 +673,7 @@
           snap.forEach(function(doc) {
             var d = doc.data();
             if (!d || d.cancelled) return;
+            if (_isCancelled(doc.id)) return; // just cancelled locally, snapshot may still be stale
             d._id = doc.id;
             list.push(d);
           });
@@ -664,6 +690,15 @@
             return p.visibility === 'public';
           });
           state.presences = filtered;
+          // Also refresh state.myActive from the same snapshot so the
+          // "Você está aqui · Cancelar" banner persists for the whole stay.
+          // Previously we only loaded it once on mount and it could fall out
+          // of sync with real-time updates.
+          var nowTs = Date.now();
+          state.myActive = list.filter(function(p) {
+            return p.uid === myUid && p.endsAt > nowTs;
+          });
+          renderMyActive();
           renderChart();
           renderNow();
           renderUpcoming();
@@ -1063,14 +1098,22 @@
 
   window._presenceCancel = function(docId) {
     if (!docId) return;
+    // Mark locally BEFORE the async write so any listener snapshot that
+    // arrives while the write is in flight still treats the doc as gone.
+    _markCancelled(docId);
+    state.myActive = state.myActive.filter(function(p) { return p._id !== docId; });
+    state.presences = state.presences.filter(function(p) { return p._id !== docId; });
+    renderMyActive();
+    renderChart();
+    renderNow();
+    renderUpcoming();
     window.PresenceDB.cancelPresence(docId).then(function(ok) {
-      if (!ok) return;
-      state.myActive = state.myActive.filter(function(p) { return p._id !== docId; });
-      state.presences = state.presences.filter(function(p) { return p._id !== docId; });
-      renderMyActive();
-      renderChart();
-      renderNow();
-      renderUpcoming();
+      if (!ok) {
+        // Server rejected — un-mark so the doc comes back on the next snapshot.
+        delete _cancelledIds[docId];
+        if (window.showNotification) window.showNotification('Não foi possível cancelar. Tente novamente.', 'error');
+        return;
+      }
       if (window.showNotification) window.showNotification('Presença cancelada.', 'info');
     });
   };
