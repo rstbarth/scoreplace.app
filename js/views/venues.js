@@ -451,14 +451,16 @@
     // distance filter. If the user hasn't typed a city, fall back to their
     // profile's preferred location or the Brazil default.
     var center = null;
-    if (state.location) {
+    // GPS tem prioridade absoluta — não jogamos fora o lat/lng preciso
+    // do dispositivo em troca do resultado aproximado do geocoder.
+    if (state.centerFromGps && state.center) {
+      center = state.center;
+    } else if (state.location) {
       center = await _geocodeCity(state.location);
     }
-    if (!center) {
-      var cu = window.AppStore && window.AppStore.currentUser;
-      var pref = cu && Array.isArray(cu.preferredLocations) && cu.preferredLocations[0];
-      if (pref && pref.lat != null && pref.lng != null) center = { lat: pref.lat, lng: pref.lng };
-    }
+    // Fallback preferredLocations removido: o usuário pediu explicitamente
+    // que "quando clica na localização é pra usar o gps e não puxar dos
+    // locais preferidos do perfil". Sem center válido → sem filtro de raio.
     state.center = center;
 
     // 1) Our own claimed venues. Não filtramos mais pelo texto do campo
@@ -511,6 +513,9 @@
   // Debounce user typing in city filter so we don't spam Firestore on each keystroke.
   window._venuesOnLocation = function(v) {
     state.location = v;
+    // Usuário está digitando um endereço — solta o lock do GPS para o
+    // geocoder recalcular o centro a partir do texto.
+    state.centerFromGps = false;
     _saveFilters();
     clearTimeout(window._venuesLocationDebounce);
     window._venuesLocationDebounce = setTimeout(refresh, 350);
@@ -572,11 +577,13 @@
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
       state.center = { lat: lat, lng: lng };
-      // Tenta o reverse geocoder; se falhar, mostra texto amigável em vez
-      // de coordenadas cruas (o usuário pediu: nada de "-23.6, -46.7").
-      // O state.center mantém lat/lng precisos para o filtro de raio.
+      // Flag que sinaliza "centro veio do GPS, não mexe" — o refresh() não
+      // deve rodar o geocoder em cima do endereço e sobrescrever o lat/lng
+      // preciso do dispositivo.
+      state.centerFromGps = true;
       var address = await _reverseGeocode(lat, lng);
       state.location = address || 'Minha localização atual';
+      _saveFilters();
       var inp = document.getElementById('venues-location');
       if (inp) inp.value = state.location;
       if (btn) { btn.disabled = false; btn.textContent = '📍'; }
@@ -589,14 +596,33 @@
     }, { timeout: 8000, maximumAge: 5 * 60 * 1000 });
   };
 
-  // Silent, one-shot geolocation try at first view open. Skipped if we
-  // already tried this session. Uses Permissions API to only fire when
-  // we know permission is already granted — avoids surprise prompt.
+  // Auto-geolocate na primeira abertura da view. Comportamento:
+  //   - Mobile (pointer coarse): sempre pede GPS, mesmo com permissão em
+  //     "prompt" — justamente o caso que o usuário pediu ("assim que abrir
+  //     a página"). Se o user negar, cai no fallback da cidade do perfil.
+  //   - Desktop: só dispara GPS se a permissão JÁ está `granted`, para não
+  //     poluir a primeira visita com um prompt intrusivo.
+  //   - Em ambos os casos, só tenta uma vez por sessão (sessionStorage flag).
+  function _isMobile() {
+    try {
+      return window.matchMedia && (
+        window.matchMedia('(pointer: coarse)').matches ||
+        window.matchMedia('(max-width: 768px)').matches
+      );
+    } catch (e) { return false; }
+  }
   function _tryAutoGeolocate() {
     try {
       if (sessionStorage.getItem('_venuesGeoTried') === '1') return;
       sessionStorage.setItem('_venuesGeoTried', '1');
     } catch (e) {}
+    var isMob = _isMobile();
+    if (isMob) {
+      // Dispara direto — o próprio browser mostra o prompt só se necessário.
+      window._venuesUseMyLocation(false);
+      return;
+    }
+    // Desktop: só dispara se permissão já é 'granted'.
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' }).then(function(res) {
         if (res && res.state === 'granted') window._venuesUseMyLocation(false);
