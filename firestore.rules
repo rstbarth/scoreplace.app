@@ -2,36 +2,92 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Tournaments — public read, authenticated write
-    match /tournaments/{tournamentId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    // Authenticated user's email, lowercased. Empty string when unavailable.
+    function authEmail() {
+      return request.auth != null && request.auth.token.email != null
+        ? request.auth.token.email.lower() : '';
     }
 
-    // User profiles and subcollections
+    // Caller is an admin of the tournament: creator, current organizer, or
+    // an active co-host. All are denormalized into `adminEmails[]` by
+    // saveTournament so the rule stays O(1).
+    function isTournamentAdmin(data) {
+      return authEmail() != ''
+        && data.adminEmails is list
+        && authEmail() in data.adminEmails;
+    }
+
+    // Keys legitimately touched by the enroll/deenroll transactions when run
+    // by a non-admin (i.e. a participant joining or leaving). Anything
+    // outside this set requires admin rights.
+    function isEnrollmentOnlyDiff() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['participants', 'memberEmails', 'status', 'teamOrigins']);
+    }
+
+    // ─── Tournaments ─────────────────────────────────────────────────────────
+    match /tournaments/{tournamentId} {
+      // Anonymous users: only public tournaments. Authenticated users may
+      // read any tournament (needed for invite links and enroll/deenroll
+      // transactions, which have to read before writing). Private
+      // tournaments remain hidden from unauth visitors.
+      allow read: if (resource.data.isPublic == true) || (request.auth != null);
+
+      // Create: the caller must be the declared creator. Prevents forging
+      // tournaments on someone else's behalf.
+      allow create: if request.auth != null
+        && request.resource.data.creatorEmail is string
+        && request.resource.data.creatorEmail.lower() == authEmail();
+
+      // Update: full update if admin, otherwise only the enrollment-shaped
+      // diff. Keeps any authed user able to join/leave while blocking them
+      // from modifying organizer-controlled fields (name, dates, format,
+      // adminEmails, etc.).
+      allow update: if request.auth != null
+        && (isTournamentAdmin(resource.data) || isEnrollmentOnlyDiff());
+
+      // Delete: admins only.
+      allow delete: if request.auth != null && isTournamentAdmin(resource.data);
+    }
+
+    // ─── User profiles ───────────────────────────────────────────────────────
     match /users/{userId} {
-      allow read: if true;
+      // Authenticated only — strips PII (email, phone, preferredCeps,
+      // fcmToken, etc.) from anonymous visitors. Needed for friend search
+      // (searchUsers range query) and participant detail views.
+      allow read: if request.auth != null;
+
+      // Users may only write their own profile.
       allow write: if request.auth != null && request.auth.uid == userId;
 
+      // Notifications — senders create (cross-user), owner manages.
       match /notifications/{notifId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Casual matches — public read (for QR/room code join), authenticated write
+    // ─── Casual matches ──────────────────────────────────────────────────────
+    // Public read so anonymous QR / room-code joins work — no PII. Writes
+    // require auth; the claim-slot transaction adds uid to playerUids, so
+    // we can't scope update to "already-in-playerUids" without breaking the
+    // join flow. Left permissive for authenticated users.
     match /casualMatches/{matchId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Friend requests
+    // ─── Friend requests ─────────────────────────────────────────────────────
+    // TODO(security): scope read/write to the request's from/to uids once
+    // the doc structure is cemented. Authed-only for now.
     match /friendRequests/{requestId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
 
-    // Mail (for firestore-send-email extension)
+    // ─── Mail (firestore-send-email extension) ───────────────────────────────
     match /mail/{mailId} {
       allow read: if false;
       allow write: if request.auth != null;

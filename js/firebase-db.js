@@ -76,6 +76,28 @@ window.FirestoreDB = {
     return Object.keys(set);
   },
 
+  // Subset of memberEmails restricted to organizer-level principals —
+  // creator, current organizer, active co-hosts. Used by Firestore rules to
+  // authorize full-edit and delete operations in O(1). Participants never
+  // appear here; only admins.
+  _computeAdminEmails(data) {
+    if (!data) return [];
+    var set = {};
+    var push = function(e) {
+      if (!e || typeof e !== 'string') return;
+      var norm = e.trim().toLowerCase();
+      if (norm) set[norm] = true;
+    };
+    push(data.creatorEmail);
+    push(data.organizerEmail);
+    if (Array.isArray(data.coHosts)) {
+      data.coHosts.forEach(function(ch) {
+        if (ch && ch.status === 'active') push(ch.email);
+      });
+    }
+    return Object.keys(set);
+  },
+
   async saveTournament(tourData, options) {
     if (!this.db) return;
     var docId = String(tourData.id);
@@ -87,9 +109,14 @@ window.FirestoreDB = {
       delete cleanData.participants;
       // Also skip memberEmails — it's derived from participants, and
       // overwriting it here would wipe enrollments made concurrently.
+      // adminEmails is not participant-derived, but we skip it too so the
+      // sync() path never clobbers coHost changes made concurrently with a
+      // stale local cache.
       delete cleanData.memberEmails;
+      delete cleanData.adminEmails;
     } else {
       cleanData.memberEmails = this._computeMemberEmails(cleanData);
+      cleanData.adminEmails = this._computeAdminEmails(cleanData);
     }
     await this.db.collection('tournaments').doc(docId).set(cleanData, { merge: true });
   },
