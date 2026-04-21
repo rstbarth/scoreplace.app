@@ -2902,13 +2902,13 @@ setupEnrollModal();
         icon: '📲',
         title: 'Instalar no iPhone',
         body:
-          'Adicione o scoreplace à tela de início para abrir em tela cheia e ativar os atalhos de partida:<br>' +
-          '<b>1.</b> Toque no botão <b>Compartilhar</b> ' +
-          // Square-and-up-arrow glyph (Safari share icon visual cue)
+          'Abra em tela cheia e ative os atalhos:<br>' +
+          '<b>1.</b> Toque no ícone <b>Compartilhar</b> — quadrado com seta pra cima ' +
           '<span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin:0 2px;vertical-align:middle;font-size:0.72rem;">⬆</span>' +
-          ' (na barra inferior do Safari).<br>' +
-          '<b>2.</b> Role até <b>"Adicionar à Tela de Início"</b>.<br>' +
-          '<b>3.</b> Toque em <b>Adicionar</b> no canto superior direito.'
+          '. Fica no <b>centro da barra de baixo do Safari</b> (entre os botões de abas e voltar).<br>' +
+          '<b>2.</b> A lista abre com apps em cima e ações embaixo. <b>Role pra baixo</b> até ver <b>"Adicionar à Tela de Início"</b> (pode ser "Add to Home Screen" se estiver em inglês). Se não achar, toque em <b>"Editar Ações"</b> no final da lista e ative a opção.<br>' +
+          '<b>3.</b> Toque nela, depois em <b>Adicionar</b> no canto superior direito.<br><br>' +
+          '<span style="color:var(--text-muted);">⚠️ Não funciona em <b>Navegação Privativa</b> — precisa ser aba normal. Requer iOS 13 ou superior.</span>'
       });
     }
   } catch (e) {}
