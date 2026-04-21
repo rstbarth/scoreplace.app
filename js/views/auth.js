@@ -133,30 +133,16 @@ if (firebase && firebase.auth) {
     if (window.AppStore) {
       window.AppStore.currentUser = null;
       if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
-      // Start real-time listener for public tournaments only
-      if (window.FirestoreDB && window.FirestoreDB.db) {
-        var _pubFirstSnap = true;
-        window.AppStore._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
-          .where('isPublic', '==', true)
-          .onSnapshot(function(snap) {
-            var publicTournaments = [];
-            snap.forEach(function(doc) { publicTournaments.push(doc.data()); });
-            window.AppStore.tournaments = publicTournaments;
-            window.AppStore._saveToCache();
-            // First snapshot = initial load, subsequent = remote changes
-            if (_pubFirstSnap) {
-              _pubFirstSnap = false;
-              if (typeof initRouter === 'function') initRouter();
-            } else if (typeof window._softRefreshView === 'function') {
-              window._softRefreshView();
-            }
-          }, function(err) {
-            console.warn('Public tournaments listener error:', err);
-            window.AppStore.tournaments = [];
-          });
-      } else {
-        window.AppStore.tournaments = [];
-      }
+      // Visitor mode — no background fetch. Before v0.14.59 we started a
+      // listener on every public tournament for anonymous users, which
+      // scaled with the size of the DB (full snapshot per visitor per
+      // remote change). Visitors only ever land on the landing page or
+      // follow direct #tournaments/{id} links; the router handles the
+      // latter via FirestoreDB.loadTournamentById() (tournaments.js:445),
+      // so a blanket feed buys nothing. Kick the router once and stop.
+      window.AppStore.tournaments = [];
+      window.AppStore._saveToCache();
+      if (typeof initRouter === 'function') initRouter();
     }
   }
 
