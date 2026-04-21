@@ -317,6 +317,10 @@
           // para scrollar a página verticalmente no mobile sem "entrar" no mapa.
           // Combined com gestureHandling:'cooperative' resolve o bug "preso no mapa".
           '<div id="venues-map-wrap" style="display:none;padding:0 10px;">' +
+            // Summary bar: contagem de cadastrados vs sugestões Google no
+            // raio atual. Dá contexto sem forçar o usuário a scrollar até a
+            // seção "📍 Locais no Google" pra ver quantos existem.
+            '<div id="venues-map-summary" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:20px;"></div>' +
             '<div id="venues-map" style="width:100%;height:380px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
             '<div id="venues-map-extras"></div>' +
           '</div>' +
@@ -492,10 +496,60 @@
     return html;
   }
 
+  // Summary acima do mapa: contagem rápida + botão "expandir raio"
+  // quando a combinação filtros + raio não retorna nada, ajudando o usuário
+  // a sair do beco sem saída sem precisar mexer manualmente nos inputs.
+  function _hydrateMapSummary() {
+    var bar = document.getElementById('venues-map-summary');
+    if (!bar) return;
+    if (state.loading) {
+      bar.innerHTML = '<span>Buscando locais…</span>';
+      return;
+    }
+    var claimed = state.results.length;
+    var google = (state.googleResults || []).length;
+    var total = claimed + google;
+    var parts = [];
+    if (claimed > 0) {
+      parts.push('<span>🏢 <b style="color:var(--text-bright);">' + claimed + '</b> ' +
+        (claimed === 1 ? 'cadastrado' : 'cadastrados') + '</span>');
+    }
+    if (google > 0) {
+      parts.push('<span>🔎 <b style="color:var(--text-bright);">' + google + '</b> ' +
+        (google === 1 ? 'sugestão' : 'sugestões') + ' Google</span>');
+    }
+    // Zero resultados + raio pequeno → oferece expandir com um clique.
+    // Só dispara se o usuário tem center (senão geocode falhou) e o raio
+    // atual tem espaço pra crescer antes do cap de 500km.
+    if (total === 0 && state.center) {
+      var nextRadius = Math.min(500, Math.max(20, (state.distanceKm || 10) * 3));
+      if (nextRadius > (state.distanceKm || 10)) {
+        parts.push(
+          '<span style="color:var(--text-muted);">Sem resultados no raio de ' + (state.distanceKm || 10) + 'km.</span>' +
+          '<button type="button" onclick="window._venuesExpandRadius(' + nextRadius + ')" ' +
+          'style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:8px;padding:4px 10px;font-size:0.78rem;font-weight:600;cursor:pointer;">' +
+          '🔍 Expandir para ' + nextRadius + 'km</button>'
+        );
+      } else {
+        parts.push('<span style="color:var(--text-muted);">Sem resultados. Tente remover filtros.</span>');
+      }
+    }
+    bar.innerHTML = parts.join(' · ') || '<span style="color:var(--text-muted);">Ajustando filtros…</span>';
+  }
+
+  // Triplica o raio em um clique — helper do summary bar quando 0 resultados.
+  window._venuesExpandRadius = function(newKm) {
+    state.distanceKm = Math.max(1, Math.min(500, parseInt(newKm, 10) || 30));
+    _saveFilters();
+    // Re-render o formulário inteiro pra refletir o novo valor no input numérico.
+    render(document.getElementById('view-container'));
+  };
+
   // Extras abaixo do mapa: locais da plataforma (com as tags) → CTA cadastrar
   // → sugestões do Google com o mesmo raio/modalidade. Mantém narrativa
   // consistente entre lista e mapa.
   function _hydrateMapExtras() {
+    _hydrateMapSummary();
     var slot = document.getElementById('venues-map-extras');
     if (!slot) return;
     var parts = [];
@@ -509,6 +563,8 @@
   async function refresh() {
     state.loading = true;
     renderResults();
+    // Reflete "Buscando…" no summary acima do mapa também, não só na lista.
+    _hydrateMapSummary();
     // Resolve city → lat/lng so we can center the map AND apply the
     // distance filter. If the user hasn't typed a city, fall back to their
     // profile's preferred location or the Brazil default.
