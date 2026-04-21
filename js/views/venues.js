@@ -73,9 +73,51 @@
     _markers = [];
   }
 
+  // Circle that visualizes the current search radius around state.center.
+  // Redrawn on every _renderMarkers so it tracks center + distanceKm.
+  var _radiusCircle = null;
+  var _centerMarker = null;
+  function _renderRadiusCircle() {
+    if (!_map || !window.google || !window.google.maps) return;
+    if (_radiusCircle) { _radiusCircle.setMap(null); _radiusCircle = null; }
+    if (_centerMarker) { _centerMarker.map = null; _centerMarker = null; }
+    if (!state.center) return;
+    // Círculo do raio — visual do que a busca cobre.
+    if (state.distanceKm) {
+      _radiusCircle = new google.maps.Circle({
+        strokeColor: '#6366f1',
+        strokeOpacity: 0.55,
+        strokeWeight: 2,
+        fillColor: '#6366f1',
+        fillOpacity: 0.08,
+        map: _map,
+        center: state.center,
+        radius: state.distanceKm * 1000
+      });
+    }
+    // Pin na posição do usuário — cor distinta (verde) dos pins de venue.
+    if (_mapsLibs && _mapsLibs.AdvancedMarkerElement && _mapsLibs.PinElement) {
+      var pin = new _mapsLibs.PinElement({
+        background: '#10b981',
+        borderColor: '#064e3b',
+        glyph: '📍',
+        glyphColor: '#fff',
+        scale: 1.2
+      });
+      _centerMarker = new _mapsLibs.AdvancedMarkerElement({
+        map: _map,
+        position: state.center,
+        title: 'Sua localização',
+        content: pin.element,
+        zIndex: 999 // por cima dos pins de venue
+      });
+    }
+  }
+
   function _renderMarkers() {
     if (!_map || !_mapsLibs) return;
     _clearMarkers();
+    _renderRadiusCircle();
     var bounds = new google.maps.LatLngBounds();
     var anyPoints = 0;
     state.results.forEach(function(v) {
@@ -118,10 +160,15 @@
     // lands on "their" city by default. Only when state.location is still
     // empty (i.e. user hasn't typed/cleared it) to preserve intentional edits.
     // "Local" aceita cidade ou endereço completo ("Av. Paulista 1000, SP").
+    // NB: tentamos GPS primeiro (mais preciso); cidade do perfil vira fallback
+    // quando o usuário nega permissão ou o geolocation não está disponível.
     if (!state.location) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
       if (profileCity) state.location = profileCity;
+      // Fire-and-forget GPS lookup — if it resolves, overwrites the city
+      // fallback with a much more precise "endereço, bairro, cidade".
+      _tryAutoGeolocate();
     }
     var back = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
@@ -144,7 +191,10 @@
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
-              '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<div style="display:flex;gap:6px;">' +
+                '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+                '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;padding:0 10px;border-radius:8px;background:#6366f1;border:none;color:#fff;font-size:1rem;cursor:pointer;">📍</button>' +
+              '</div>' +
             '</div>' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
@@ -370,12 +420,12 @@
     renderResults();
     _hydrateMapExtras();
     if (_map) {
-      _renderMarkers();
       if (center) {
         _map.setCenter(center);
         // When coming from Brazil default + a now-known center, zoom in.
         if (_map.getZoom && _map.getZoom() <= 5) _map.setZoom(12);
       }
+      _renderMarkers(); // desenha venues + círculo do raio
     }
   }
 
@@ -397,6 +447,65 @@
     clearTimeout(window._venuesDistDebounce);
     window._venuesDistDebounce = setTimeout(refresh, 250);
   };
+
+  // Reverse geocode lat/lng into a legible "endereço, bairro, cidade".
+  // Lazy-loads the Geocoder library. Returns null if not available.
+  async function _reverseGeocode(lat, lng) {
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return null;
+    try {
+      await google.maps.importLibrary('geocoding');
+      var geocoder = new google.maps.Geocoder();
+      return await new Promise(function(resolve) {
+        geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+          if (status === 'OK' && results && results[0]) resolve(results[0].formatted_address);
+          else resolve(null);
+        });
+      });
+    } catch (e) { return null; }
+  }
+
+  // Ask the browser for GPS and populate state.location + state.center from
+  // the resolved address. Flag `userTriggered` distinguishes an explicit 📍
+  // click (we tell the user if denied) from the silent auto-try on view load.
+  window._venuesUseMyLocation = function(userTriggered) {
+    if (!navigator.geolocation) {
+      if (userTriggered && window.showNotification) window.showNotification('GPS indisponível neste dispositivo.', '', 'error');
+      return;
+    }
+    var btn = document.getElementById('venues-geo-btn');
+    if (btn && userTriggered) { btn.disabled = true; btn.textContent = '⏳'; }
+    navigator.geolocation.getCurrentPosition(async function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      state.center = { lat: lat, lng: lng };
+      var address = await _reverseGeocode(lat, lng);
+      state.location = address || (lat.toFixed(4) + ', ' + lng.toFixed(4));
+      var inp = document.getElementById('venues-location');
+      if (inp) inp.value = state.location;
+      if (btn) { btn.disabled = false; btn.textContent = '📍'; }
+      refresh();
+    }, function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = '📍'; }
+      if (userTriggered && window.showNotification) {
+        window.showNotification('Não foi possível obter sua localização.', err && err.message ? err.message : 'Verifique a permissão no navegador.', 'info');
+      }
+    }, { timeout: 8000, maximumAge: 5 * 60 * 1000 });
+  };
+
+  // Silent, one-shot geolocation try at first view open. Skipped if we
+  // already tried this session. Uses Permissions API to only fire when
+  // we know permission is already granted — avoids surprise prompt.
+  function _tryAutoGeolocate() {
+    try {
+      if (sessionStorage.getItem('_venuesGeoTried') === '1') return;
+      sessionStorage.setItem('_venuesGeoTried', '1');
+    } catch (e) {}
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then(function(res) {
+        if (res && res.state === 'granted') window._venuesUseMyLocation(false);
+      }).catch(function() {});
+    }
+  }
 
   // ── Geocoding: center the map on the typed city (or user's profile city).
   // Uses google.maps.Geocoder lazily. Cached so we don't repeat the same
@@ -446,13 +555,17 @@
     try {
       var placesLib = await google.maps.importLibrary('places');
       if (!placesLib || !placesLib.Place || typeof placesLib.Place.searchByText !== 'function') return [];
+      // textQuery combina modalidade + localidade digitada; locationRestriction
+      // força o raio como *filtro*, não apenas *viés* (o locationBias deixava
+      // Google trazer resultados distantes). Máximo 50km — limite do API.
       var query = (sport || 'quadra') + ' ' + (state.location || '');
+      var restrictRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
       var req = {
         textQuery: query.trim(),
         fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
-        locationBias: {
+        locationRestriction: {
           center: new google.maps.LatLng(center.lat, center.lng),
-          radius: Math.min(500, radiusKm) * 1000
+          radius: restrictRadiusM
         },
         maxResultCount: 15,
         language: 'pt-BR',
