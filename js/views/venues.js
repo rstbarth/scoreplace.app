@@ -271,10 +271,10 @@
   function _registerCtaHtml() {
     return '<div style="margin-top:14px;background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));border:1px solid rgba(99,102,241,0.4);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
       '<div style="flex:1;min-width:180px;">' +
-        '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">🏢 É dono de um local?</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Cadastre seu clube, arena ou quadra e seja encontrado pelos jogadores.</div>' +
+        '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">🏢 Cadastre ou edite locais</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Qualquer jogador pode cadastrar clubes, arenas ou quadras que frequenta — como na Wikipedia. O proprietário pode reivindicar depois para adicionar a tag <b>Informações oficiais</b> e bloquear edições de terceiros.</div>' +
       '</div>' +
-      '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#my-venues\'" style="white-space:nowrap;">Cadastrar meu local</button>' +
+      '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#my-venues\'" style="white-space:nowrap;">Cadastrar local</button>' +
     '</div>';
   }
   function _googleSuggestionsHtml() {
@@ -950,6 +950,7 @@
           '<div id="venue-owner-stats-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-tournaments-slot" style="margin-bottom:12px;"></div>' +
+          '<div id="venue-reviews-slot" style="margin-bottom:12px;"></div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
             '<button class="btn btn-sm" onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefillJson) + ')}catch(e){}window.location.hash="#presence"\' style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;">📍 Ver presenças</button>' +
@@ -972,6 +973,180 @@
         if (slot && html) slot.innerHTML = html;
       });
     }
+    // Avaliações — estrelas + textos. Renderiza resumo + lista + botão
+    // "Deixar avaliação".
+    _hydrateReviews(v);
+  };
+
+  // Star widget com 5 posições. `value` determina quantas ficam cheias;
+  // `interactive` faz cada estrela clicável para setar via window._venuesPickStars.
+  function _starsHtml(value, size, interactive) {
+    size = size || '1rem';
+    var out = '';
+    for (var i = 1; i <= 5; i++) {
+      var filled = i <= value;
+      var char = filled ? '★' : '☆';
+      var color = filled ? '#fbbf24' : 'rgba(148,163,184,0.5)';
+      if (interactive) {
+        out += '<span onclick="window._venuesPickStars(' + i + ')" style="cursor:pointer;font-size:' + size + ';color:' + color + ';padding:0 2px;" data-star="' + i + '">' + char + '</span>';
+      } else {
+        out += '<span style="font-size:' + size + ';color:' + color + ';">' + char + '</span>';
+      }
+    }
+    return out;
+  }
+
+  async function _hydrateReviews(venue) {
+    var slot = document.getElementById('venue-reviews-slot');
+    if (!slot || !window.VenueDB) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var reviews = [];
+    try { reviews = await window.VenueDB.loadReviews(venue.placeId, 50); } catch (e) {}
+    var count = reviews.length;
+    var avg = 0;
+    if (count > 0) {
+      var sum = 0;
+      for (var i = 0; i < count; i++) sum += (parseInt(reviews[i].rating, 10) || 0);
+      avg = sum / count;
+    }
+    var header = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">⭐ Avaliações</div>' +
+      (count > 0
+        ? '<div style="display:inline-flex;align-items:center;gap:6px;">' +
+            '<span style="font-weight:700;color:#fbbf24;font-size:0.95rem;">' + avg.toFixed(1) + '</span>' +
+            _starsHtml(Math.round(avg), '0.9rem', false) +
+            '<span style="color:var(--text-muted);font-size:0.78rem;">(' + count + (count === 1 ? ' avaliação' : ' avaliações') + ')</span>' +
+          '</div>'
+        : '<span style="color:var(--text-muted);font-size:0.8rem;">Seja o primeiro a avaliar.</span>') +
+      (cu && cu.uid
+        ? '<button class="btn btn-sm btn-primary hover-lift" style="margin-left:auto;font-size:0.78rem;padding:4px 10px;" onclick="window._venuesOpenReviewDialog(\'' + _safe(venue.placeId) + '\')">✍️ Deixar avaliação</button>'
+        : '')
+    + '</div>';
+
+    var list = '';
+    reviews.slice(0, 8).forEach(function(r) {
+      var hasText = r.text && r.text.trim();
+      var anon = r.anonymous && !hasText;
+      var name = anon ? 'Anônimo' : (r.displayName || 'Usuário');
+      var initials = name.trim().split(/\s+/).map(function(s){return s.charAt(0);}).join('').substring(0,2).toUpperCase();
+      var avatar = (!anon && r.photoURL)
+        ? '<img src="' + _safe(r.photoURL) + '" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+        : '<div style="width:32px;height:32px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.78rem;flex-shrink:0;">' + _safe(anon ? '?' : initials) + '</div>';
+      var when = '';
+      if (r.updatedAt) {
+        try { when = new Date(r.updatedAt).toLocaleDateString((window._currentLang === 'en' ? 'en-US' : 'pt-BR'), { day: '2-digit', month: 'short' }); } catch (e) {}
+      }
+      var canDelete = cu && cu.uid === r.uid;
+      var delBtn = canDelete
+        ? '<button title="Apagar" onclick="window._venuesDeleteReview(\'' + _safe(venue.placeId) + '\',\'' + _safe(r._id) + '\')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:0.8rem;padding:0 4px;opacity:0.5;">✕</button>'
+        : '';
+      list += '<div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--border-color);">' +
+        avatar +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+            '<span style="font-weight:600;color:var(--text-bright);font-size:0.85rem;">' + _safe(name) + '</span>' +
+            _starsHtml(r.rating, '0.8rem', false) +
+            (when ? '<span style="color:var(--text-muted);font-size:0.72rem;">· ' + _safe(when) + '</span>' : '') +
+            delBtn +
+          '</div>' +
+          (hasText ? '<div style="font-size:0.82rem;color:var(--text-main);margin-top:4px;line-height:1.45;white-space:pre-wrap;">' + _safe(r.text) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+
+    slot.innerHTML = '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;">' + header + list + '</div>';
+  }
+
+  // Form flutuante: estrelas (obrigatório) + texto opcional. Se houver texto
+  // o review é sempre identificado; se só estrelas, pode ser anônimo.
+  window._venuesOpenReviewDialog = async function(placeId) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return;
+    // Pre-load review existente deste usuário para permitir editar.
+    var existing = null;
+    try {
+      var ex = await window.VenueDB.loadReviews(placeId, 100);
+      for (var i = 0; i < ex.length; i++) if (ex[i].uid === cu.uid) { existing = ex[i]; break; }
+    } catch (e) {}
+    window._venuesReviewState = {
+      placeId: placeId,
+      rating: existing ? (existing.rating || 0) : 0,
+      text: existing ? (existing.text || '') : '',
+      anonymous: existing ? !!existing.anonymous : false
+    };
+    var prev = document.getElementById('venues-review-overlay');
+    if (prev) prev.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'venues-review-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:18px;max-width:440px;width:100%;">' +
+        '<h3 style="margin:0 0 10px 0;color:var(--text-bright);">✍️ Deixar avaliação</h3>' +
+        '<div id="venues-review-stars" style="margin-bottom:10px;font-size:1.6rem;text-align:center;"></div>' +
+        '<textarea id="venues-review-text" rows="3" placeholder="Escreva sua opinião (opcional). Com texto, seu nome aparece." style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;font-size:0.9rem;margin-bottom:10px;">' + _safe(window._venuesReviewState.text) + '</textarea>' +
+        '<label style="display:flex;align-items:center;gap:6px;margin-bottom:14px;font-size:0.78rem;color:var(--text-muted);cursor:pointer;">' +
+          '<input type="checkbox" id="venues-review-anon"' + (window._venuesReviewState.anonymous ? ' checked' : '') + '>' +
+          '<span>Avaliação anônima (só se estrelas, sem texto)</span>' +
+        '</label>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'venues-review-overlay\').remove()">Cancelar</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); window._venuesSubmitReview()">Publicar</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    _renderReviewStars();
+  };
+
+  function _renderReviewStars() {
+    var el = document.getElementById('venues-review-stars');
+    if (!el) return;
+    el.innerHTML = _starsHtml(window._venuesReviewState.rating || 0, '1.6rem', true);
+  }
+
+  window._venuesPickStars = function(n) {
+    if (!window._venuesReviewState) return;
+    window._venuesReviewState.rating = n;
+    _renderReviewStars();
+  };
+
+  window._venuesSubmitReview = async function() {
+    var st = window._venuesReviewState;
+    if (!st) return;
+    var rating = st.rating || 0;
+    if (rating < 1 || rating > 5) {
+      if (window.showNotification) window.showNotification('Escolha de 1 a 5 estrelas.', '', 'error');
+      return;
+    }
+    var textEl = document.getElementById('venues-review-text');
+    var anonEl = document.getElementById('venues-review-anon');
+    var text = textEl ? textEl.value.trim() : '';
+    var anonymous = !!(anonEl && anonEl.checked) && !text;
+    try {
+      await window.VenueDB.saveReview(st.placeId, rating, text, anonymous);
+      var ov = document.getElementById('venues-review-overlay');
+      if (ov) ov.remove();
+      if (window.showNotification) window.showNotification('Avaliação publicada.', '', 'success');
+      // Re-hidrata o bloco de reviews na modal de detalhe, se aberta.
+      var venueDoc = await window.VenueDB.loadVenue(st.placeId);
+      if (venueDoc) _hydrateReviews(venueDoc);
+    } catch (e) {
+      console.error(e);
+      if (window.showNotification) window.showNotification('Erro ao publicar avaliação.', String(e.message || e), 'error');
+    }
+  };
+
+  window._venuesDeleteReview = async function(placeId, reviewId) {
+    if (!placeId || !reviewId) return;
+    if (typeof window.showConfirmDialog !== 'function') return;
+    window.showConfirmDialog('Apagar sua avaliação?', 'Esta ação não pode ser desfeita.', async function() {
+      var ok = await window.VenueDB.deleteReview(placeId, reviewId);
+      if (ok) {
+        if (window.showNotification) window.showNotification('Avaliação apagada.', '', 'info');
+        var v = await window.VenueDB.loadVenue(placeId);
+        if (v) _hydrateReviews(v);
+      }
+    }, null, { confirmText: 'Apagar', cancelText: 'Cancelar', type: 'danger' });
   };
 
   // Bridge to tournament creation — stashes venue so create-tournament can read.

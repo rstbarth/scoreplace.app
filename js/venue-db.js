@@ -217,6 +217,69 @@ window.VenueDB = {
     }
   },
 
+  // ── Reviews (estrelas + texto opcional) ─────────────────────────────────
+  // Um review por usuário por venue — usamos uid como doc id.
+
+  async saveReview(venueKey, rating, text, anonymous) {
+    if (!this.db || !venueKey) throw new Error('venueKey obrigatório');
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) throw new Error('login obrigatório');
+    var n = parseInt(rating, 10);
+    if (!(n >= 1 && n <= 5)) throw new Error('rating 1-5');
+    var txt = String(text || '').trim().slice(0, 1000);
+    // Star-only reviews (sem texto) podem ficar anônimos no display;
+    // gravamos displayName de qualquer jeito para moderação, mas flag
+    // anonymous=true diz à UI para ocultar o nome.
+    var hideName = !!anonymous && !txt;
+    var now = Date.now();
+    var payload = {
+      uid: cu.uid,
+      displayName: cu.displayName || '',
+      photoURL: cu.photoURL || '',
+      rating: n,
+      text: txt,
+      anonymous: hideName,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.db.collection('venues').doc(venueKey)
+      .collection('reviews').doc(cu.uid)
+      .set(payload, { merge: true });
+    return payload;
+  },
+
+  async loadReviews(venueKey, limit) {
+    if (!this.db || !venueKey) return [];
+    try {
+      var q = this.db.collection('venues').doc(venueKey)
+        .collection('reviews').orderBy('updatedAt', 'desc');
+      if (limit) q = q.limit(limit);
+      var snap = await q.get();
+      var list = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        d._id = doc.id;
+        list.push(d);
+      });
+      return list;
+    } catch (e) {
+      console.error('Erro ao carregar reviews:', e);
+      return [];
+    }
+  },
+
+  async deleteReview(venueKey, reviewId) {
+    if (!this.db || !venueKey || !reviewId) return false;
+    try {
+      await this.db.collection('venues').doc(venueKey)
+        .collection('reviews').doc(reviewId).delete();
+      return true;
+    } catch (e) {
+      console.error('Erro ao apagar review:', e);
+      return false;
+    }
+  },
+
   async loadMyVenues(uid) {
     if (!this.db || !uid) return [];
     try {
