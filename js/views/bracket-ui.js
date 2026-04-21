@@ -4763,6 +4763,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
+  // Rebuild _proposedOrder from current player arrays and re-fill serveOrder.
+  // Used by reset/restart so the serve ball re-appears on a fresh match.
+  function _reinitServeOrderForNewMatch() {
+    _proposedOrder.length = 0;
+    var _mx = Math.max(p1Players.length, p2Players.length);
+    for (var _pi = 0; _pi < _mx; _pi++) {
+      if (_pi < p1Players.length) _proposedOrder.push({ team: 1, name: p1Players[_pi], pIdx: _pi });
+      if (_pi < p2Players.length) _proposedOrder.push({ team: 2, name: p2Players[_pi], pIdx: _pi });
+    }
+    if (!state.serveSkipped && _proposedOrder.length >= serveSlots) {
+      state.serveOrder = _proposedOrder.map(function(p) { return { team: p.team, name: p.name }; });
+    }
+  }
+
   // Reset handler: zero all points, restart from scratch — always available
   window._liveScoreReset = function() {
     showConfirmDialog(
@@ -4786,6 +4800,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.tieRule = sc.tieRule || null;
         _matchStartTime = null;
         _matchEndTime = null;
+        _reinitServeOrderForNewMatch();
         _render();
       }
     );
@@ -4839,6 +4854,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         _matchStartTime = null;
         _matchEndTime = null;
         _courtLeft = 1;
+        _reinitServeOrderForNewMatch();
         _render();
       }
     );

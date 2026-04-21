@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.52-alpha';
+window.SCOREPLACE_VERSION = '0.14.53-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
