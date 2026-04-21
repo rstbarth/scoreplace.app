@@ -1150,6 +1150,15 @@
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-tournaments-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-reviews-slot" style="margin-bottom:12px;"></div>' +
+          // Check-in inline: o usuário clicando "Estou aqui" na modal fecha o
+          // loop discovery→ação em um toque só, sem navegar até #presence.
+          // Só aparece para usuários logados; anônimos veem os outros botões.
+          (cu && cu.uid
+            ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
+                '<button id="venue-quickcheckin-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickCheckIn("' + _safe(v.placeId) + '")\' style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:8px 14px;">📍 Estou aqui agora</button>' +
+                '<button id="venue-quickplan-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickPlan("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:8px 14px;">🗓️ Planejar ida</button>' +
+              '</div>'
+            : '') +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
             '<button class="btn btn-sm" onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefillJson) + ')}catch(e){}window.location.hash="#presence"\' style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;">📍 Ver presenças</button>' +
@@ -1354,6 +1363,161 @@
     var ov = document.getElementById('venues-detail-overlay');
     if (ov) ov.remove();
     if (typeof openModal === 'function') openModal('modal-quick-create');
+  };
+
+  // ── Quick check-in from the venue detail modal ───────────────────────────
+  // Closes the discovery→action loop in a single tap: user opens modal, sees
+  // venue info, taps "Estou aqui". Same payload shape as presence.js writes,
+  // just assembled inline so we don't need to navigate to #presence first.
+  // Picks sport intelligently: venue's primary sport → user's preferred
+  // sport → falls back to showing a picker if multiple options exist.
+  function _pickSportForVenue(v) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var venueSports = Array.isArray(v.sports) ? v.sports.slice() : [];
+    if (venueSports.length === 1) return { sports: venueSports };
+    if (venueSports.length === 0) {
+      // Sem modalidades declaradas — usa a preferência do usuário se houver.
+      var pref = (cu && Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0)
+        ? [cu.preferredSports[0]]
+        : [];
+      return { sports: pref };
+    }
+    // 2+ modalidades no venue: intersecta com preferências pra reduzir picker.
+    if (cu && Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0) {
+      var inter = venueSports.filter(function(s) { return cu.preferredSports.indexOf(s) !== -1; });
+      if (inter.length === 1) return { sports: inter };
+      if (inter.length > 1) return { needsPicker: true, options: inter };
+    }
+    return { needsPicker: true, options: venueSports };
+  }
+
+  // Picker overlay pra quando um venue oferece múltiplas modalidades e a
+  // preferência do usuário não desempata. Botões simples retornando o sport
+  // escolhido via callback.
+  function _pickSportOverlay(options, cb) {
+    var prev = document.getElementById('venue-sport-pick-overlay');
+    if (prev) prev.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'venue-sport-pick-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
+    var btns = options.map(function(s) {
+      return '<button class="btn btn-primary hover-lift" onclick=\'document.getElementById("venue-sport-pick-overlay").remove(); window._venueSportPickerCb && window._venueSportPickerCb("' + _safe(s) + '")\' style="margin:4px;">' + _safe(s) + '</button>';
+    }).join('');
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center;">' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;margin-bottom:6px;">Qual modalidade agora?</div>' +
+        '<div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:14px;">Você pode estar jogando mais de uma — escolha a principal.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;justify-content:center;">' + btns + '</div>' +
+        '<button class="btn btn-secondary btn-sm" onclick=\'document.getElementById("venue-sport-pick-overlay").remove(); window._venueSportPickerCb && window._venueSportPickerCb(null)\' style="margin-top:10px;">Cancelar</button>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) {
+      if (ev.target === overlay) { overlay.remove(); if (window._venueSportPickerCb) window._venueSportPickerCb(null); }
+    });
+    document.body.appendChild(overlay);
+    window._venueSportPickerCb = cb;
+  }
+
+  async function _doQuickCheckIn(v, sports) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !window.PresenceDB) return;
+    if (cu.presenceVisibility === 'off') {
+      if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
+      return;
+    }
+    var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
+    if (normSports.length === 0) {
+      if (window.showNotification) window.showNotification('Modalidade não identificada.', 'error');
+      return;
+    }
+    var now = Date.now();
+    var payload = {
+      uid: cu.uid,
+      email_lower: (cu.email || '').toLowerCase(),
+      displayName: cu.displayName || '',
+      photoURL: cu.photoURL || '',
+      placeId: v.placeId,
+      venueName: v.name || '',
+      venueLat: v.lat || null,
+      venueLon: v.lon || null,
+      sport: normSports[0],
+      sports: normSports,
+      type: 'checkin',
+      startsAt: now,
+      endsAt: now + window.PresenceDB.CHECKIN_WINDOW_MS,
+      dayKey: window.PresenceDB.dayKey(new Date(now)),
+      visibility: cu.presenceVisibility || 'friends',
+      cancelled: false,
+      createdAt: now
+    };
+    try {
+      await window.PresenceDB.savePresence(payload);
+      if (window.showNotification) {
+        window.showNotification(
+          'Presença registrada em ' + (v.name || 'local') + '!',
+          'Seus amigos já podem ver.',
+          'success'
+        );
+      }
+      // Re-hidrata o bloco "Movimento no local" pra refletir a nova presença
+      // sem o usuário precisar fechar e reabrir a modal.
+      _buildMovimentoHtml(v).then(function(html) {
+        var slot = document.getElementById('venue-movimento-slot');
+        if (slot && html) slot.innerHTML = html;
+      });
+      // Desabilita o botão após sucesso pra evitar double-tap duplicata
+      var btn = document.getElementById('venue-quickcheckin-btn');
+      if (btn) {
+        btn.textContent = '✅ Presença registrada';
+        btn.style.opacity = '0.65';
+        btn.style.cursor = 'default';
+        btn.disabled = true;
+      }
+    } catch (e) {
+      console.error('Quick check-in failed:', e);
+      if (window.showNotification) window.showNotification('Erro ao registrar presença.', 'error');
+    }
+  }
+
+  window._venuesQuickCheckIn = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    var resolved = _pickSportForVenue(v);
+    if (resolved.needsPicker) {
+      _pickSportOverlay(resolved.options, function(picked) {
+        if (!picked) return;
+        _doQuickCheckIn(v, [picked]);
+      });
+    } else if (resolved.sports && resolved.sports.length > 0) {
+      _doQuickCheckIn(v, resolved.sports);
+    } else {
+      // Sem modalidade nem no venue nem no perfil — manda pro fluxo completo
+      // em #presence onde o picker está montado com todas as opções.
+      try {
+        sessionStorage.setItem('_presencePrefill', JSON.stringify({
+          placeId: v.placeId, venueName: v.name, lat: v.lat, lon: v.lon
+        }));
+      } catch(e) {}
+      window.location.hash = '#presence';
+    }
+  };
+
+  // Planejar ida: redireciona pra #presence com prefill. Overlay de
+  // schedule requer data/hora, então não cabe inline na venue modal.
+  window._venuesQuickPlan = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    try {
+      sessionStorage.setItem('_presencePrefill', JSON.stringify({
+        placeId: v.placeId,
+        venueName: v.name,
+        sport: (v.sports && v.sports[0]) || '',
+        lat: v.lat, lon: v.lon,
+        _openPlanDialog: true
+      }));
+    } catch(e) {}
+    var ov = document.getElementById('venues-detail-overlay');
+    if (ov) ov.remove();
+    window.location.hash = '#presence';
   };
 
   // Public entry point. `deepLinkPlaceId` (optional, from #venues/<placeId>)

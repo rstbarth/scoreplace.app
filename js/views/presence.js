@@ -1180,5 +1180,13 @@
     }
     state.dayKey = window.PresenceDB.dayKey(new Date());
     render(container);
+    // Auto-abrir o modal "Planejar ida" quando veio da modal de venue via
+    // botão "🗓️ Planejar ida" — evita que o usuário precise localizar o
+    // botão na view depois da navegação.
+    if (pre && pre._openPlanDialog) {
+      setTimeout(function() {
+        if (typeof window._presencePlanDialog === 'function') window._presencePlanDialog();
+      }, 450);
+    }
   };
 })();
