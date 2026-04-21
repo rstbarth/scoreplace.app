@@ -23,10 +23,13 @@
     city: '',
     sport: '',
     priceRange: '',
-    minCourts: 0,
+    minCourts: 1,           // usuário pediu mínimo 1 por padrão
+    distanceKm: 10,         // raio de pesquisa em km ao redor de cityLatLon
+    cityLatLon: null,       // {lat, lng} — centro derivado do Geocoder para filtro de distância
     loading: false,
     results: [],
-    mode: 'map'     // 'list' | 'map' — map is the default (more useful for discovery)
+    googleResults: [],      // Google Places nearby results (não reivindicados)
+    mode: 'map'             // 'list' | 'map' — map is the default (more useful for discovery)
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
@@ -46,9 +49,13 @@
     var el = document.getElementById('venues-map');
     if (!el) return;
     if (!_map) {
+      // Prefer the resolved city center; if we don't have one yet just
+      // show Brazil — the async geocode will re-center once it resolves.
+      var initialCenter = state.cityLatLon || { lat: -15.78, lng: -47.93 };
+      var initialZoom = state.cityLatLon ? 12 : 4;
       _map = new _mapsLibs.Map(el, {
-        center: { lat: -15.78, lng: -47.93 }, // Brasil center
-        zoom: 4,
+        center: initialCenter,
+        zoom: initialZoom,
         mapId: 'scoreplace-venues-map',
         disableDefaultUI: false,
         clickableIcons: false,
@@ -145,14 +152,18 @@
               '</select>' +
             '</div>' +
           '</div>' +
-          '<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">' +
+          '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Faixa de preço</label>' +
               '<div style="display:flex;gap:4px;">' + priceBtns + '</div>' +
             '</div>' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Mín. quadras</label>' +
-              '<input type="number" min="0" max="99" value="' + (state.minCourts || '') + '" placeholder="0" oninput="window._venuesSetMinCourts(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<input type="number" min="1" max="99" value="' + (state.minCourts || 1) + '" placeholder="1" oninput="window._venuesSetMinCourts(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+            '</div>' +
+            '<div>' +
+              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Distância (km)</label>' +
+              '<input type="number" min="1" max="500" value="' + (state.distanceKm || 10) + '" placeholder="10" oninput="window._venuesSetDistance(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -164,6 +175,7 @@
           '<div id="venues-results"></div>' +
           '<div id="venues-map-wrap" style="display:none;">' +
             '<div id="venues-map" style="width:100%;height:460px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
+            '<div id="venues-map-extras"></div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -196,6 +208,48 @@
     mapWrap.style.display = (mode === 'map') ? 'block' : 'none';
   }
 
+  // "Cadastre seu local" block + Google suggestions list.
+  // Both exist as standalone HTML blobs so we can stitch them together under
+  // claimed results, the empty state, or even the map view.
+  function _registerCtaHtml() {
+    return '<div style="margin-top:14px;background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));border:1px solid rgba(99,102,241,0.4);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+      '<div style="flex:1;min-width:180px;">' +
+        '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">🏢 É dono de um local?</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Cadastre seu clube, arena ou quadra e seja encontrado pelos jogadores.</div>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal();else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;">Cadastrar meu local</button>' +
+    '</div>';
+  }
+  function _googleSuggestionsHtml() {
+    var g = state.googleResults || [];
+    if (g.length === 0) return '';
+    var html = '<div style="margin-top:18px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">📍 Locais no Google</span>' +
+        '<span style="font-size:0.72rem;color:var(--text-muted);">resultados externos</span>' +
+      '</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">' +
+        'Filtro aplicado: ' + _safe([
+          state.sport || 'qualquer modalidade',
+          state.minCourts >= 1 ? ('min. ' + state.minCourts + ' quadra' + (state.minCourts === 1 ? '' : 's')) : '',
+          state.city || 'sem cidade',
+          state.distanceKm ? ('raio ' + state.distanceKm + 'km') : '',
+          state.priceRange || 'qualquer preço'
+        ].filter(Boolean).join(' · ')) +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">';
+    g.forEach(function(p) {
+      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
+        (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+      html += '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:block;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:10px 12px;text-decoration:none;">' +
+        '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🗺️ ' + _safe(p.name) + '</div>' +
+        (p.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(p.address) + '</div>' : '') +
+      '</a>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
   function renderResults() {
     var box = document.getElementById('venues-results');
     if (!box) return;
@@ -207,9 +261,11 @@
       box.innerHTML =
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:2rem;text-align:center;color:var(--text-muted);">' +
           '<div style="font-size:2rem;margin-bottom:8px;">🗺️</div>' +
-          '<div style="font-size:0.95rem;font-weight:600;color:var(--text-bright);margin-bottom:4px;">Nenhum local encontrado</div>' +
-          '<div style="font-size:0.82rem;">Ajuste os filtros ou convide o dono do seu local a se cadastrar. Ele pode reivindicar em Perfil → "Sou dono de um local".</div>' +
-        '</div>';
+          '<div style="font-size:0.95rem;font-weight:600;color:var(--text-bright);margin-bottom:4px;">Nenhum local cadastrado aqui ainda</div>' +
+          '<div style="font-size:0.82rem;">Ajuste os filtros ou cadastre o seu. Veja abaixo sugestões do Google.</div>' +
+        '</div>' +
+        _registerCtaHtml() +
+        _googleSuggestionsHtml();
       return;
     }
     var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">' + state.results.length + ' ' + (state.results.length === 1 ? 'local' : 'locais') + ' encontrado' + (state.results.length === 1 ? '' : 's') + '</div>';
@@ -240,28 +296,76 @@
         '</div>';
     });
     html += '</div>';
+    html += _registerCtaHtml() + _googleSuggestionsHtml();
     box.innerHTML = html;
   }
 
-  function refresh() {
+  // Expose Google suggestions rendering so the Map view can show them too
+  // — mirrors the content below the list so neither mode is a dead-end.
+  function _hydrateMapExtras() {
+    var slot = document.getElementById('venues-map-extras');
+    if (!slot) return;
+    slot.innerHTML = _registerCtaHtml() + _googleSuggestionsHtml();
+  }
+
+  async function refresh() {
     state.loading = true;
     renderResults();
-    window.VenueDB.listVenues({
-      city: state.city,
-      sport: state.sport,
-      priceRange: state.priceRange,
-      minCourts: state.minCourts
-    }).then(function(list) {
+    // Resolve city → lat/lng so we can center the map AND apply the
+    // distance filter. If the user hasn't typed a city, fall back to their
+    // profile's preferred location or the Brazil default.
+    var center = null;
+    if (state.city) {
+      center = await _geocodeCity(state.city);
+    }
+    if (!center) {
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var pref = cu && Array.isArray(cu.preferredLocations) && cu.preferredLocations[0];
+      if (pref && pref.lat != null && pref.lng != null) center = { lat: pref.lat, lng: pref.lng };
+    }
+    state.cityLatLon = center;
+
+    // 1) Our own claimed venues
+    try {
+      var list = await window.VenueDB.listVenues({
+        city: state.city,
+        sport: state.sport,
+        priceRange: state.priceRange,
+        minCourts: state.minCourts
+      });
+      // Apply distance filter when we have a center — keeps results relevant.
+      if (center && state.distanceKm > 0) {
+        list = list.filter(function(v) {
+          if (v.lat == null || v.lon == null) return true; // sem coords = mantém, aparece na lista
+          var d = _haversineKm(center, { lat: Number(v.lat), lng: Number(v.lon) });
+          return d <= state.distanceKm;
+        });
+      }
       state.results = list;
-      state.loading = false;
-      renderResults();
-      if (_map) _renderMarkers();
-    }).catch(function(e) {
-      state.loading = false;
-      state.results = [];
-      renderResults();
+    } catch (e) {
       console.warn('listVenues failed:', e);
-    });
+      state.results = [];
+    }
+
+    // 2) Google Places nearby — external suggestions. Only fires when we
+    // have a real center so we don't waste the Places quota.
+    if (center) {
+      state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sport);
+    } else {
+      state.googleResults = [];
+    }
+
+    state.loading = false;
+    renderResults();
+    _hydrateMapExtras();
+    if (_map) {
+      _renderMarkers();
+      if (center) {
+        _map.setCenter(center);
+        // When coming from Brazil default + a now-known center, zoom in.
+        if (_map.getZoom && _map.getZoom() <= 5) _map.setZoom(12);
+      }
+    }
   }
 
   // Debounce user typing in city filter so we don't spam Firestore on each keystroke.
@@ -273,10 +377,94 @@
   window._venuesSetSport = function(v) { state.sport = v; refresh(); };
   window._venuesSetPrice = function(v) { state.priceRange = v; refresh(); render(document.getElementById('view-container')); };
   window._venuesSetMinCourts = function(v) {
-    state.minCourts = parseInt(v, 10) || 0;
+    state.minCourts = parseInt(v, 10) || 1;
     clearTimeout(window._venuesCourtsDebounce);
     window._venuesCourtsDebounce = setTimeout(refresh, 250);
   };
+  window._venuesSetDistance = function(v) {
+    state.distanceKm = Math.max(1, Math.min(500, parseInt(v, 10) || 10));
+    clearTimeout(window._venuesDistDebounce);
+    window._venuesDistDebounce = setTimeout(refresh, 250);
+  };
+
+  // ── Geocoding: center the map on the typed city (or user's profile city).
+  // Uses google.maps.Geocoder lazily. Cached so we don't repeat the same
+  // lookup. Result also feeds the Haversine filter for the distance slider.
+  var _geocodeCache = {};
+  async function _geocodeCity(city) {
+    if (!city) return null;
+    var key = city.toLowerCase().trim();
+    if (_geocodeCache[key]) return _geocodeCache[key];
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return null;
+    try {
+      await google.maps.importLibrary('geocoding');
+      var geocoder = new google.maps.Geocoder();
+      return await new Promise(function(resolve) {
+        geocoder.geocode({ address: city + ', Brasil' }, function(results, status) {
+          if (status === 'OK' && results && results[0] && results[0].geometry) {
+            var loc = results[0].geometry.location;
+            var coords = { lat: loc.lat(), lng: loc.lng() };
+            _geocodeCache[key] = coords;
+            resolve(coords);
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    } catch (e) { return null; }
+  }
+
+  function _haversineKm(a, b) {
+    if (!a || !b) return Infinity;
+    var R = 6371;
+    var toRad = function(d) { return d * Math.PI / 180; };
+    var dLat = toRad(b.lat - a.lat);
+    var dLng = toRad(b.lng - a.lng);
+    var s = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat)) *
+            Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  }
+
+  // Places nearby: lightweight discovery of external venues (not yet claimed
+  // in scoreplace) so the user sees what Google knows about the area. Free
+  // tier allows ~17k queries/month — debounced + gated on a real center so
+  // we don't burn quota. Returns up to 15 places.
+  async function _loadGoogleNearby(center, radiusKm, sport) {
+    if (!center || !window.google || !window.google.maps || !window.google.maps.importLibrary) return [];
+    try {
+      var placesLib = await google.maps.importLibrary('places');
+      if (!placesLib || !placesLib.Place || typeof placesLib.Place.searchByText !== 'function') return [];
+      var query = (sport || 'quadra') + ' ' + (state.city || '');
+      var req = {
+        textQuery: query.trim(),
+        fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
+        locationBias: {
+          center: new google.maps.LatLng(center.lat, center.lng),
+          radius: Math.min(500, radiusKm) * 1000
+        },
+        maxResultCount: 15,
+        language: 'pt-BR',
+        region: 'br'
+      };
+      var result = await placesLib.Place.searchByText(req);
+      var out = (result && result.places) || [];
+      return out.map(function(p) {
+        var loc = p.location;
+        return {
+          placeId: p.id,
+          name: p.displayName || '',
+          address: p.formattedAddress || '',
+          lat: loc ? loc.lat() : null,
+          lng: loc ? loc.lng() : null,
+          types: p.types || []
+        };
+      });
+    } catch (e) {
+      console.warn('Places nearby err:', e && e.message);
+      return [];
+    }
+  }
 
   // Build a compact timeline slice for the venue detail modal: friends'
   // avatars who are here now + "+N outros", plus a one-line summary for
