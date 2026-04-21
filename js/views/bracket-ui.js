@@ -2696,6 +2696,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Log every point scored with rich context for analytics, including the
     // timestamp so we can compute time-per-point analytics (avg/longest/fastest
     // interval, longest rally gap, etc.).
+    // Correção rápida: se acabamos de desfazer um tap errado há <7s e este
+    // novo ponto é a correção, reaproveita o timestamp original. Faz com
+    // que o intervalo "ponto anterior → ponto correto" não inclua os
+    // segundos gastos na correção em si.
+    var _pointTs = Date.now();
+    if (state._recentUndoTs && (_pointTs - state._recentUndoTs) < 7000) {
+      _pointTs = state._recentUndoTs;
+    }
+    state._recentUndoTs = null;
     state.pointLog.push({
       team: player,
       server: _srvNow ? _srvNow.name : null,
@@ -2703,7 +2712,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       p1Before: _p1Before,
       p2Before: _p2Before,
       isTiebreak: _wasTiebreak,
-      t: Date.now()
+      t: _pointTs
     });
 
     if (!useSets || state.isFixedSet) {
@@ -4761,6 +4770,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (state.currentGameP1 > 0) state.currentGameP1--;
     } else {
       if (state.currentGameP2 > 0) state.currentGameP2--;
+    }
+    // Remove a última entrada do pointLog correspondente a ESTE jogador
+    // para manter stats de tempo coerentes. Se o tap errado foi há menos
+    // de 7s, memoriza o timestamp para o próximo _addPoint reutilizar —
+    // assim o intervalo "antes → correto" ignora a digitação errônea.
+    var log = state.pointLog || [];
+    for (var i = log.length - 1; i >= 0; i--) {
+      if (log[i].team === player) {
+        var popped = log.splice(i, 1)[0];
+        if (popped && popped.t && (Date.now() - popped.t) < 7000) {
+          state._recentUndoTs = popped.t; // reaproveitado no próximo ponto
+        }
+        break;
+      }
     }
     // For fixed set, sync back to the set object
     if (state.isFixedSet) {

@@ -2845,6 +2845,39 @@ setupProfileModal();
 setupResultModal();
 setupEnrollModal();
 
+// Banner "Abra no Safari" para usuários em Chrome iOS (ou Firefox/Edge iOS).
+// PWA install + shortcuts só rodam via Safari no iPhone — todos os outros
+// browsers iOS são WebKit com skin, sem a funcionalidade de Add to Home Screen.
+// Banner dismissable, uma vez só (localStorage). Deploy silencioso.
+(function suggestSafariOnNonSafariIOS() {
+  try {
+    if (localStorage.getItem('scoreplace_safari_hint_dismissed') === '1') return;
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    if (!isIOS) return;
+    // Chrome iOS tem "CriOS", Firefox iOS "FxiOS", Edge iOS "EdgiOS".
+    // Safari é o único que NÃO tem nenhum desses sufixos no UA iOS.
+    var isNonSafariIOS = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    if (!isNonSafariIOS) return;
+    // Já instalado como PWA? display-mode: standalone OU navigator.standalone (Safari)
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
+    if (window.navigator.standalone === true) return;
+
+    var banner = document.createElement('div');
+    banner.id = 'safari-hint-banner';
+    banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10050;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:12px 14px;color:#fff;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-size:0.82rem;';
+    banner.innerHTML =
+      '<div style="flex-shrink:0;font-size:1.2rem;">🧭</div>' +
+      '<div style="flex:1;min-width:0;line-height:1.4;">' +
+        '<div style="font-weight:700;color:#fbbf24;margin-bottom:2px;">Para melhor experiência, use Safari</div>' +
+        '<div style="color:var(--text-main);font-size:0.76rem;">No iPhone, instalar como app e atalhos de partida só funcionam pelo Safari. Copie o link e abra por lá.</div>' +
+      '</div>' +
+      '<button onclick="try{localStorage.setItem(\'scoreplace_safari_hint_dismissed\',\'1\')}catch(e){}this.parentElement.remove()" style="flex-shrink:0;background:transparent;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;padding:4px 8px;">✕</button>';
+    var add = function() { document.body.appendChild(banner); };
+    if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+  } catch (e) {}
+})();
+
 // Tema aplicado automaticamente via IIFE em store.js (initThemeSystem removido — função não existia)
 
 // Load cached tournaments for instant first-paint (before Firebase auth resolves)
