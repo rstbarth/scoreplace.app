@@ -190,38 +190,120 @@ function _computeSharedInfo(user, myEmail, myName) {
 }
 
 // ---- Search non-friend users ----
+// Drop users the caller already has a relationship with so they don't appear
+// twice (they're already in the friends / received / sent sections above).
+function _dedupeAgainstRelationships(users, myUid, myFriends, mySent, myReceived) {
+  var friendEmails = window._friendEmails || [];
+  var friendNames = window._friendNames || [];
+  return (users || []).filter(function(u) {
+    var uid = u._docId || u.uid || u.email;
+    var email = u.email || '';
+    var name = u.displayName || '';
+    if (uid === myUid) return false;
+    if (myFriends.indexOf(uid) !== -1) return false;
+    if (email && myFriends.indexOf(email) !== -1) return false;
+    if (email && friendEmails.indexOf(email) !== -1) return false;
+    if (name && friendNames.indexOf(name) !== -1) return false;
+    if (mySent.indexOf(uid) !== -1) return false;
+    if (email && mySent.indexOf(email) !== -1) return false;
+    if (myReceived.indexOf(uid) !== -1) return false;
+    if (email && myReceived.indexOf(email) !== -1) return false;
+    return true;
+  });
+}
+
+// Shared renderer for the "recently active" empty-state path. Enriches
+// timestamps + shared-tournament info the same way the search path does so
+// sort and card rendering work identically. Appends an "Ampliar busca" button
+// at the bottom when showing the recent-users default so the user can widen
+// the time window without retyping.
+function _renderSearchResults(resultsDiv, users, query, recentDays) {
+  var _t = window._t || function(k) { return k; };
+  if (users.length === 0) {
+    var emptyMsg = recentDays
+      ? 'Nenhum usuário nos últimos ' + recentDays + ' dias.'
+      : _t('explore.noUsers');
+    resultsDiv.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">' + emptyMsg + '</div>' +
+      _renderExpandButton(recentDays);
+    return;
+  }
+  var cu = window.AppStore.currentUser || {};
+  var _myEmail = cu.email || '';
+  var _myName = cu.displayName || '';
+  users.forEach(function(u) {
+    var shareInfo = _computeSharedInfo(u, _myEmail, _myName);
+    u._sharedCount = shareInfo.count;
+    if (shareInfo.latest > 0) {
+      u._latestTs = shareInfo.latest;
+      u._hasShared = true;
+    } else {
+      var ts = 0;
+      var raw = u.updatedAt || u.createdAt || u.lastSeenAt;
+      if (raw) { var parsed = new Date(raw).getTime(); if (!isNaN(parsed)) ts = parsed; }
+      u._latestTs = ts;
+      u._hasShared = false;
+    }
+  });
+  var sortMode = window._otrosSortMode || 'date-desc';
+  _sortOtrosArray(users, sortMode);
+  window._otrosUsers = users;
+  _renderOtrosCards(resultsDiv, users);
+  if (recentDays) {
+    // Append the expand CTA below the rendered grid so it's easy to find.
+    var btnHtml = _renderExpandButton(recentDays);
+    if (btnHtml) resultsDiv.insertAdjacentHTML('beforeend', btnHtml);
+  }
+}
+
+// Button that widens the recent-users window (7 → 30 → 90 → ∞). Hides once
+// we already fetched without a cutoff (nothing more to expand to).
+function _renderExpandButton(currentDays) {
+  if (!currentDays) return '';
+  var next = currentDays < 30 ? 30 : (currentDays < 90 ? 90 : 365);
+  var label = currentDays < 30 ? 'Ampliar para 30 dias'
+    : currentDays < 90 ? 'Ampliar para 90 dias'
+    : 'Ampliar para o ano todo';
+  return '<div style="text-align:center;margin-top:1rem;">' +
+    '<button class="btn btn-outline btn-sm hover-lift" onclick="window._exploreExpandRecent(' + next + ')" style="font-size:0.82rem;padding:8px 18px;">🔎 ' + label + '</button>' +
+  '</div>';
+}
+
+window._exploreExpandRecent = function(days) {
+  window._exploreRecentDays = days;
+  var cu = window.AppStore.currentUser;
+  if (!cu) return;
+  var myUid = cu.uid || cu.email;
+  var input = document.getElementById('explore-search-input');
+  var q = input ? input.value.trim() : '';
+  _performUserSearch(q, myUid, cu.friends || [], cu.friendRequestsSent || [], cu.friendRequestsReceived || []);
+};
+
 function _performUserSearch(query, myUid, myFriends, mySent, myReceived) {
   var resultsDiv = document.getElementById('explore-results');
   if (!resultsDiv) return;
   var _t = window._t || function(k) { return k; };
   resultsDiv.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted);">' + _t('explore.searching') + '</div>';
 
-  window.FirestoreDB.searchUsers(query).then(function(users) {
-    // Filter out self, friends, received-invitations, and sent-invitations
-    // (those live in their own sections)
-    var friendEmails = window._friendEmails || [];
-    var friendNames = window._friendNames || [];
-    users = users.filter(function(u) {
-      var uid = u._docId || u.uid || u.email;
-      var email = u.email || '';
-      var name = u.displayName || '';
-      if (uid === myUid) return false;
-      if (myFriends.indexOf(uid) !== -1) return false;
-      if (email && myFriends.indexOf(email) !== -1) return false;
-      if (email && friendEmails.indexOf(email) !== -1) return false;
-      if (name && friendNames.indexOf(name) !== -1) return false;
-      // Hide people I already invited (shown in "Convites Pendentes")
-      if (mySent.indexOf(uid) !== -1) return false;
-      if (email && mySent.indexOf(email) !== -1) return false;
-      // Hide people who invited me (shown in received section)
-      if (myReceived.indexOf(uid) !== -1) return false;
-      if (email && myReceived.indexOf(email) !== -1) return false;
-      return true;
+  // Empty search box — lean on "recently active users" so the page never feels
+  // like a dead-end. User can expand the window via the button rendered below.
+  var q = String(query || '').trim();
+  if (!q) {
+    var days = window._exploreRecentDays || 7;
+    window.FirestoreDB.listRecentUsers(days, 30).then(function(users) {
+      users = _dedupeAgainstRelationships(users, myUid, myFriends, mySent, myReceived);
+      _renderSearchResults(resultsDiv, users, '', days);
+    }).catch(function(err) {
+      resultsDiv.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--danger-color);">' + _t('explore.searchError') + ': ' + window._safeHtml(err.message || err.toString()) + '</div>';
     });
+    return;
+  }
+
+  window.FirestoreDB.searchUsers(query).then(function(users) {
+    users = _dedupeAgainstRelationships(users, myUid, myFriends, mySent, myReceived);
 
     if (users.length === 0) {
       resultsDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">' +
-        (query ? _t('explore.noResultsFor') + ' "' + window._safeHtml(query) + '"' : _t('explore.noUsers')) +
+        _t('explore.noResultsFor') + ' "' + window._safeHtml(query) + '"' +
       '</div>';
       return;
     }
@@ -482,8 +564,12 @@ function _renderSentRequests(myUid, sentIds) {
     var titleLabel = _t('explore.sentPending');
     if (titleLabel === 'explore.sentPending') titleLabel = 'Convites Pendentes';
 
-    var html = '<div style="margin-bottom: 1.5rem;">' +
-      '<div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + titleLabel + ' (' + profiles.length + ')</div>' +
+    var html = '<div style="margin-bottom: 1.5rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">' +
+        '<span style="font-size:1rem;">✉️</span>' +
+        '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + profiles.length + ')</div>' +
+      '</div>' +
+      '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Aguardando resposta. Clique em ✕ no card para cancelar.</div>' +
       '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
     profiles.forEach(function(u) {

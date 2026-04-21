@@ -406,6 +406,46 @@ window.FirestoreDB = {
     }
   },
 
+  // Recently-active users (created or updated in the last N days). Used to
+  // populate the Explore page with suggestions when the search box is empty —
+  // feels better than a "Nenhum usuário encontrado" dead end. Ordered by the
+  // most recent signal (`updatedAt` preferred, `createdAt` as a fallback for
+  // profiles that never re-saved after signup). Requires a single-field index
+  // on `updatedAt desc`, which Firestore provides automatically.
+  async listRecentUsers(days, limit) {
+    if (!this.db) return [];
+    var d = Math.max(1, parseInt(days, 10) || 7);
+    var lim = Math.max(1, Math.min(50, parseInt(limit, 10) || 30));
+    var cutoff = new Date(Date.now() - d * 24 * 3600 * 1000).toISOString();
+    try {
+      var results = {};
+      var addFromSnap = function(snap) {
+        snap.forEach(function(doc) {
+          if (results[doc.id]) return;
+          var data = doc.data();
+          data._docId = doc.id;
+          if (data.acceptFriendRequests !== false) results[doc.id] = data;
+        });
+      };
+      // Two parallel queries — some profiles have updatedAt (active users),
+      // others only carry createdAt from first login. Union them client-side.
+      await Promise.all([
+        this.db.collection('users')
+          .where('updatedAt', '>=', cutoff)
+          .orderBy('updatedAt', 'desc')
+          .limit(lim).get().then(addFromSnap).catch(function(e) { console.warn('recent-updatedAt err', e && e.message); }),
+        this.db.collection('users')
+          .where('createdAt', '>=', cutoff)
+          .orderBy('createdAt', 'desc')
+          .limit(lim).get().then(addFromSnap).catch(function(e) { console.warn('recent-createdAt err', e && e.message); })
+      ]);
+      return Object.keys(results).map(function(k) { return results[k]; });
+    } catch (e) {
+      console.error('Erro ao carregar usuários recentes:', e);
+      return [];
+    }
+  },
+
   // ---- Explore: list users who accept friend requests ----
 
   // Search users by name or email prefix. Server-side range queries on the
