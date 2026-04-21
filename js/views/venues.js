@@ -152,6 +152,117 @@
     window._venuesCourtsDebounce = setTimeout(refresh, 250);
   };
 
+  // Build a compact timeline slice for the venue detail modal: friends'
+  // avatars who are here now + "+N outros", plus a one-line summary for
+  // next hours. Uses the same classification rules as the presence view.
+  async function _buildMovimentoHtml(venue) {
+    if (!window.PresenceDB) return '';
+    var dayKey = window.PresenceDB.dayKey(new Date());
+    var presences = [];
+    try { presences = await window.PresenceDB.loadForVenueDay(venue.placeId, dayKey); } catch (e) {}
+    // Tournaments happening today at this venue (all sports) — from AppStore cache.
+    var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
+    var tHere = tournaments.filter(function(t) {
+      if (!t || !t.startDate) return false;
+      if (window.VenueDB.venueKey(t.venuePlaceId, t.venue) !== venue.placeId) return false;
+      var d = new Date(t.startDate);
+      return !isNaN(d.getTime()) && window.PresenceDB.dayKey(d) === dayKey;
+    });
+
+    if (presences.length === 0 && tHere.length === 0) {
+      return '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;font-size:0.82rem;color:var(--text-muted);text-align:center;">Ninguém registrou presença ou torneio hoje neste local.</div>';
+    }
+
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    var friendsUids = {};
+    (cu && cu.friends ? cu.friends : []).forEach(function(u) { friendsUids[u] = true; });
+
+    var now = Date.now();
+    var activeNow = presences.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
+    var planned = presences.filter(function(p) { return p.type === 'planned' && p.startsAt > now; });
+
+    // Split active into friends (with avatar) and others (counted)
+    var friendAvatars = [];
+    var seen = {};
+    var otherNow = 0;
+    activeNow.forEach(function(p) {
+      var mine = (p.uid === myUid);
+      var fr = p.uid && friendsUids[p.uid];
+      if (mine || fr) {
+        var k = p.uid || p.displayName;
+        if (seen[k]) return;
+        seen[k] = true;
+        var name = p.displayName || 'Amigo';
+        var initials = name.trim().split(/\s+/).map(function(s){return s.charAt(0);}).join('').substring(0,2).toUpperCase();
+        var border = mine ? '#10b981' : '#fbbf24';
+        var avatar = p.photoURL
+          ? '<img title="' + _safe(name) + '" src="' + _safe(p.photoURL) + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid ' + border + ';margin-left:-6px;">'
+          : '<div title="' + _safe(name) + '" style="width:32px;height:32px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;border:2px solid ' + border + ';margin-left:-6px;">' + _safe(initials) + '</div>';
+        friendAvatars.push(avatar);
+      } else if (p.visibility === 'public') {
+        otherNow += 1;
+      }
+    });
+
+    // Also fold tournaments into the "now" count for UX consistency.
+    tHere.forEach(function(t) {
+      var start = new Date(t.startDate);
+      var end = t.endDate ? new Date(t.endDate) : new Date(start.getTime() + 3 * 3600 * 1000);
+      if (start.getTime() <= now && end.getTime() > now) {
+        otherNow += Math.max(1, (Array.isArray(t.participants) ? t.participants.length : 1));
+      }
+    });
+
+    var html = '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-weight:700;color:var(--text-bright);font-size:0.85rem;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span>' +
+      'Agora no local' +
+    '</div>';
+    if (friendAvatars.length === 0 && otherNow === 0) {
+      html += '<div style="font-size:0.78rem;color:var(--text-muted);">Ninguém registrou presença agora.</div>';
+    } else {
+      html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+      if (friendAvatars.length > 0) html += '<div style="display:flex;margin-left:6px;">' + friendAvatars.join('') + '</div>';
+      if (otherNow > 0) html += '<span style="background:rgba(107,114,128,0.2);border:1px solid rgba(107,114,128,0.3);color:var(--text-bright);font-size:0.72rem;font-weight:600;padding:2px 10px;border-radius:999px;">👥 +' + otherNow + '</span>';
+      html += '</div>';
+    }
+
+    // Upcoming today: group by hour bucket
+    if (planned.length > 0 || tHere.some(function(t){ return new Date(t.startDate).getTime() > now; })) {
+      html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-color);font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:6px;">🗓️ Mais tarde hoje</div>';
+      var allUpcoming = [];
+      planned.forEach(function(p) { allUpcoming.push({ ts: p.startsAt, kind: 'presence', item: p }); });
+      tHere.forEach(function(t) {
+        var ts = new Date(t.startDate).getTime();
+        if (ts > now) allUpcoming.push({ ts: ts, kind: 'tournament', item: t });
+      });
+      allUpcoming.sort(function(a, b) { return a.ts - b.ts; });
+      allUpcoming.slice(0, 5).forEach(function(row) {
+        var d = new Date(row.ts);
+        var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        if (row.kind === 'tournament') {
+          html += '<div style="display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--text-bright);margin-bottom:4px;">' +
+            '<span style="min-width:44px;font-weight:600;">' + hhmm + '</span>' +
+            '<span style="background:rgba(251,191,36,0.18);border:1px solid rgba(251,191,36,0.35);color:#fbbf24;padding:2px 8px;border-radius:999px;font-size:0.7rem;cursor:pointer;" onclick="window.location.hash=\'#tournaments/' + _safe(row.item.id) + '\'">🏆 ' + _safe(row.item.name || 'Torneio') + '</span>' +
+          '</div>';
+        } else {
+          var p = row.item;
+          var who = (p.uid === myUid) ? 'Você' : (friendsUids[p.uid] ? (p.displayName || 'Amigo') : null);
+          if (who) {
+            html += '<div style="display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--text-bright);margin-bottom:4px;">' +
+              '<span style="min-width:44px;font-weight:600;">' + hhmm + '</span>' +
+              '<span>' + _safe(who) + (p.sport ? ' · ' + _safe(p.sport) : '') + '</span>' +
+            '</div>';
+          }
+        }
+      });
+    }
+
+    html += '</div>';
+    return html;
+  }
+
   // Detail: compact modal with contact actions + quick links into the rest of the app.
   window._venuesOpenDetail = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
@@ -209,6 +320,7 @@
           (v.hours ? '<div style="font-size:0.82rem;color:var(--text-bright);margin-bottom:10px;">⏰ ' + _safe(v.hours) + '</div>' : '') +
           (v.description ? '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">' + _safe(v.description) + '</div>' : '') +
           (contactBits.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' + contactBits.join('') + '</div>' : '') +
+          '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
             '<button class="btn btn-sm" onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefillJson) + ')}catch(e){}window.location.hash="#presence"\' style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;">📍 Ver presenças</button>' +
@@ -218,6 +330,12 @@
       '</div>';
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+    // Async: fetch presences + tournaments, inject into the slot so the
+    // modal body stays snappy on open.
+    _buildMovimentoHtml(v).then(function(html) {
+      var slot = document.getElementById('venue-movimento-slot');
+      if (slot && html) slot.innerHTML = html;
+    });
   };
 
   // Bridge to tournament creation — stashes venue so create-tournament can read.

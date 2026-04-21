@@ -100,6 +100,33 @@ window.PresenceDB = {
     }
   },
 
+  // Load ALL presences at a venue on a given day — across every sport.
+  // Used by the venue detail modal to show total movement without the user
+  // having to pick a modality first. Requires composite index (placeId asc,
+  // dayKey asc); Firestore will surface a one-click creation link on the
+  // first query if it's missing.
+  async loadForVenueDay(placeId, dayKey) {
+    if (!this.db || !placeId || !dayKey) return [];
+    try {
+      var snap = await this.db.collection('presences')
+        .where('placeId', '==', placeId)
+        .where('dayKey', '==', dayKey)
+        .get();
+      var list = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (d && !d.cancelled) {
+          d._id = doc.id;
+          list.push(d);
+        }
+      });
+      return list;
+    } catch (e) {
+      console.error('Erro ao carregar presenças do venue:', e);
+      return [];
+    }
+  },
+
   // Load a single user's own active presences (check-in still running OR any
   // planned presence in the future). Used by dashboard to show "you're checked
   // in at X" and by the presence view to avoid duplicate check-ins.
