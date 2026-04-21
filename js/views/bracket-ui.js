@@ -5027,6 +5027,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (leavePromise && typeof leavePromise.catch === 'function') leavePromise.catch(function(){});
           } catch(e) {}
         }
+        // Clear activeCasualRoom from the profile + suppress resume for
+        // 6s so a stale snapshot doesn't yank the user back into the
+        // match they just closed. (MutationObserver normally handles
+        // this when going via setup→live; explicit clear here covers
+        // the direct-join case where no observer was attached.)
+        if (isCasual) {
+          try {
+            var _cuC = window.AppStore && window.AppStore.currentUser;
+            if (_cuC && _cuC.uid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+              window._suppressCasualResumeUntil = Date.now() + 6000;
+              window.FirestoreDB.saveUserProfile(_cuC.uid, { activeCasualRoom: null }).catch(function(){});
+            }
+          } catch(e) {}
+        }
         _cleanup();
         // Navigate the user back to the dashboard so they're not stuck
         // on the setup/join screen of a match they just abandoned.
@@ -6478,6 +6492,10 @@ window._openCasualMatch = function() {
         var _cu = window.AppStore && window.AppStore.currentUser;
         var _uid = _cu && (_cu.uid || _cu.email);
         if (_uid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+          // Suppress profile-listener resume for 6s so a stale snapshot
+          // delivered after this close doesn't hijack navigation back
+          // into the match the user just left.
+          window._suppressCasualResumeUntil = Date.now() + 6000;
           window.FirestoreDB.saveUserProfile(_uid, { activeCasualRoom: null }).catch(function() {});
         }
       } catch (e) {}
@@ -6601,6 +6619,10 @@ window._openCasualMatch = function() {
       var _cu2 = window.AppStore && window.AppStore.currentUser;
       var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
       if (_uid2 && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+        // Suppress profile-listener resume for 6s — the user deliberately
+        // clicked Fechar; a stale ABC snapshot delivered after this write
+        // must not re-open the match.
+        window._suppressCasualResumeUntil = Date.now() + 6000;
         window.FirestoreDB.saveUserProfile(_uid2, { activeCasualRoom: null }).catch(function() {});
       }
     } catch(e) {}

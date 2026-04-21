@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.99-alpha';
+window.SCOREPLACE_VERSION = '0.15.0-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1139,7 +1139,15 @@ window.AppStore = {
               var expected = '#casual/' + firstRoom;
               var alreadyInMatch = hash === expected ||
                                    hash.indexOf('#casual/' + firstRoom) === 0;
-              if (!alreadyInMatch) {
+              // ALSO check for the DOM overlays — without this, clicking
+              // "Iniciar" (which removes #casual-match-overlay and opens
+              // #live-scoring-overlay) triggers a redirect back to the
+              // setup overlay mid-transition, and clicking "Fechar"
+              // reopens the match because the profile clear is async
+              // and this branch fires before activeCasualRoom=null lands.
+              var hasOverlay = !!document.getElementById('casual-match-overlay') ||
+                               !!document.getElementById('live-scoring-overlay');
+              if (!alreadyInMatch && !hasOverlay) {
                 window.location.hash = expected;
               }
             }
@@ -1166,7 +1174,14 @@ window.AppStore = {
           var alreadyOnCasual = currentHash.indexOf('#casual/') === 0 ||
                                 document.getElementById('casual-match-overlay') ||
                                 document.getElementById('live-scoring-overlay');
-          if (!alreadyOnCasual) {
+          // Suppression: if the user just closed a match (_casualSetupClose
+          // or finished live-scoring), Firestore may still deliver a stale
+          // snapshot with the old room value due to optimistic writes or
+          // out-of-order delivery. Within 6s of a deliberate close, ignore
+          // any "room is set" snapshots — the null snapshot is the truth.
+          var suppressedUntil = window._suppressCasualResumeUntil || 0;
+          var isSuppressed = Date.now() < suppressedUntil;
+          if (!alreadyOnCasual && !isSuppressed) {
             window.location.hash = '#casual/' + newRoom;
           }
         }
