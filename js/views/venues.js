@@ -357,12 +357,59 @@
     box.innerHTML = html;
   }
 
-  // Expose Google suggestions rendering so the Map view can show them too
-  // — mirrors the content below the list so neither mode is a dead-end.
+  // HTML dos cards dos venues da plataforma (extraído do renderResults p/
+  // ser reusado abaixo do mapa também). Inclui título contextual se houver.
+  function _platformVenuesHtml() {
+    if (state.loading) return '<div style="text-align:center;color:var(--text-muted);padding:1.5rem;">Carregando locais…</div>';
+    if (state.results.length === 0) return '';
+    var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">📋 ' + state.results.length + ' ' + (state.results.length === 1 ? 'local cadastrado' : 'locais cadastrados') + ' na plataforma</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">';
+    state.results.forEach(function(v) {
+      var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).slice(0, 4).map(function(s) {
+        return '<span style="display:inline-block;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:0.65rem;padding:1px 7px;border-radius:999px;margin-right:3px;">' + _safe(s) + '</span>';
+      }).join('');
+      var meta = [];
+      if (v.courtCount) meta.push(v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's'));
+      if (v.priceRange) meta.push(v.priceRange);
+      if (v.city) meta.push(v.city);
+      var officialTag = v.ownerUid
+        ? '<span title="Informações confirmadas pelo proprietário" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:0.62rem;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;">✅ OFICIAL</span>'
+        : (v.createdByName
+            ? '<span title="Cadastrado por um usuário — informações não confirmadas pelo proprietário" style="background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;font-size:0.62rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;">por ' + _safe(v.createdByName) + '</span>'
+            : '');
+      var proBadge = v.plan === 'pro' ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.58rem;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;">PRO</span>' : '';
+      var isPro = v.plan === 'pro';
+      var cardStyle = isPro
+        ? 'background:linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--bg-card) 60%);border:1px solid rgba(99,102,241,0.4);box-shadow:0 0 16px rgba(99,102,241,0.18);border-radius:12px;padding:12px;cursor:pointer;'
+        : 'background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px;cursor:pointer;';
+      html +=
+        '<div class="hover-lift" style="' + cardStyle + '" onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')">' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">' +
+            '<span style="font-size:1.1rem;">🏢</span>' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + proBadge + '</div>' +
+          '</div>' +
+          '<div style="margin-bottom:4px;">' + officialTag + '</div>' +
+          (v.address ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + _safe(v.address) + '</div>' : '') +
+          (sportsHtml ? '<div style="margin-bottom:4px;">' + sportsHtml + '</div>' : '') +
+          (meta.length ? '<div style="font-size:0.72rem;color:var(--text-bright);font-weight:600;">' + _safe(meta.join(' · ')) + '</div>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  // Extras abaixo do mapa: locais da plataforma (com as tags) → CTA cadastrar
+  // → sugestões do Google com o mesmo raio/modalidade. Mantém narrativa
+  // consistente entre lista e mapa.
   function _hydrateMapExtras() {
     var slot = document.getElementById('venues-map-extras');
     if (!slot) return;
-    slot.innerHTML = _registerCtaHtml() + _googleSuggestionsHtml();
+    var parts = [];
+    var platform = _platformVenuesHtml();
+    if (platform) parts.push('<div style="margin-top:16px;">' + platform + '</div>');
+    parts.push(_registerCtaHtml());
+    parts.push(_googleSuggestionsHtml());
+    slot.innerHTML = parts.join('');
   }
 
   async function refresh() {
@@ -868,16 +915,29 @@
     var overlay = document.createElement('div');
     overlay.id = 'venues-detail-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10010;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+    // Tags de proveniência: "✅ Informações oficiais" quando reivindicado;
+    // "📝 Cadastrado por [nome]" quando é cadastro comunitário.
+    var ownershipTag = v.ownerUid
+      ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;">✅ Informações oficiais</span>'
+      : (v.createdByName
+          ? '<span title="Este local foi cadastrado por um usuário da comunidade. Pode não refletir 100% a realidade até o proprietário reivindicar." style="display:inline-flex;align-items:center;gap:4px;background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;">📝 Cadastrado por ' + _safe(v.createdByName) + '</span>'
+          : '');
+    // Botão "Reivindicar como dono" quando ninguém reivindicou ainda e o
+    // caller é um usuário autenticado diferente do caso trivial (ownerUid já é self).
+    var claimBtn = (cu && cu.uid && !v.ownerUid)
+      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); document.getElementById("venues-detail-overlay").remove(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;">🏢 Reivindicar como dono</button>'
+      : '';
     overlay.innerHTML =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
         '<div style="position:sticky;top:0;background:var(--bg-card);padding:16px 18px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;z-index:2;">' +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏢 ' + _safe(v.name) + (v.verified ? ' <span title="Verificado" style="color:#10b981;">✓</span>' : '') + '</div>' +
+            '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏢 ' + _safe(v.name) + '</div>' +
             (v.address ? '<div style="font-size:0.74rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + _safe(v.address) + '</div>' : '') +
           '</div>' +
           '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'venues-detail-overlay\').remove()" style="flex-shrink:0;">Fechar</button>' +
         '</div>' +
         '<div style="padding:16px 18px;">' +
+          (ownershipTag || claimBtn ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + claimBtn + '</div>' : '') +
           (sportsHtml ? '<div style="margin-bottom:10px;">' + sportsHtml + '</div>' : '') +
           '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:0.85rem;color:var(--text-bright);margin-bottom:12px;">' +
             (v.courtCount ? '<div>🎾 ' + v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's') + (v.courtType ? ' (' + _safe(v.courtType) + ')' : '') + '</div>' : '') +

@@ -137,22 +137,40 @@ service cloud.firestore {
         && resource.data.uid == request.auth.uid;
     }
 
-    // ─── Venues (claimable business listings) ────────────────────────────────
-    // Public read so discovery works without login. Create: authed + caller
-    // must set ownerUid to their own uid (the "claim"). Update: owner may
-    // update anything; any authenticated user may update ONLY viewCount +
-    // lastViewedAt (so opening the detail modal can bump the counter).
-    // Delete: owner only.
+    // ─── Venues (community listings, opcionalmente reivindicáveis) ───────────
+    // Qualquer usuário autenticado pode cadastrar um local novo; o dono
+    // formal (ownerUid) é uma reivindicação opcional. Leitura pública para
+    // descoberta anônima.
+    //
+    // Create:
+    //   - authed, createdByUid == auth.uid
+    //   - ownerUid pode ser null (cadastro comunitário) ou == auth.uid
+    //     (reivindicação na criação).
+    // Update:
+    //   - dono formal (ownerUid == auth.uid) pode alterar tudo
+    //   - se não há dono, qualquer authed pode alterar desde que não promova
+    //     outra pessoa a dono (ownerUid deve permanecer null ou virar self)
+    //   - qualquer authed pode incrementar viewCount/lastViewedAt
+    // Delete: dono formal (ownerUid == auth.uid).
     function isViewCountBump() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['viewCount', 'lastViewedAt']);
     }
+    function venueOwnershipOk() {
+      return request.resource.data.ownerUid == null
+        || request.resource.data.ownerUid == request.auth.uid;
+    }
     match /venues/{venueId} {
       allow read: if true;
       allow create: if request.auth != null
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.createdByUid == request.auth.uid
+        && venueOwnershipOk();
       allow update: if request.auth != null
-        && (resource.data.ownerUid == request.auth.uid || isViewCountBump());
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || isViewCountBump()
+          || (resource.data.ownerUid == null && venueOwnershipOk())
+        );
       allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
     }

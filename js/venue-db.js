@@ -51,30 +51,64 @@ window.VenueDB = {
     }
   },
 
-  // Claim a venue via transaction to prevent two people grabbing the same
-  // placeId at once. If already claimed by somebody else → throw.
-  async claimVenue(key, data) {
+  // Save a venue. Any authenticated user may create or update; the caller
+  // decides if they're also claiming ownership (via data.claimAsOwner).
+  // Transaction prevents two people racing the same placeId.
+  //
+  // Ownership rules:
+  //   - If doc has ownerUid === me, I can update anything.
+  //   - If doc has ownerUid !== me (someone else owns it), block.
+  //   - If ownerUid is null/missing and I pass claimAsOwner=true, I claim it.
+  //   - Otherwise the doc stays "community": only createdByUid/Name set.
+  async saveVenue(key, data) {
     if (!this.db || !key) throw new Error('key obrigatória');
     var self = this;
     var ref = this.db.collection('venues').doc(key);
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    var myName = (cu && cu.displayName) || (cu && cu.email) || '';
     return this.db.runTransaction(async function(tx) {
       var doc = await tx.get(ref);
       var now = Date.now();
       var base = doc.exists ? doc.data() : {};
-      if (base.ownerUid && base.ownerUid !== data.ownerUid) {
+      // Bloqueia alteração se já tem outro dono formal.
+      if (base.ownerUid && base.ownerUid !== myUid) {
         throw new Error('venue-já-reivindicado');
       }
-      var clean = window.FirestoreDB._cleanUndefined(Object.assign({}, base, data, {
+      var nextOwnerUid = base.ownerUid || null;
+      var nextOwnerEmail = base.ownerEmail || null;
+      var claimedAt = base.claimedAt || null;
+      if (data.claimAsOwner && myUid) {
+        nextOwnerUid = myUid;
+        nextOwnerEmail = (cu.email || '').toLowerCase();
+        claimedAt = claimedAt || now;
+      }
+      // Limpa o sentinel — não vai para o Firestore.
+      var payload = Object.assign({}, data);
+      delete payload.claimAsOwner;
+      var merged = Object.assign({}, base, payload, {
         placeId: key,
-        claimedAt: base.claimedAt || now,
+        ownerUid: nextOwnerUid,
+        ownerEmail: nextOwnerEmail,
+        claimedAt: claimedAt,
+        createdByUid: base.createdByUid || myUid || null,
+        createdByName: base.createdByName || myName || '',
         updatedAt: now,
         createdAt: base.createdAt || now,
         plan: base.plan || 'free',
         verified: base.verified || false
-      }));
+      });
+      var clean = window.FirestoreDB._cleanUndefined(merged);
       tx.set(ref, clean, { merge: true });
       return clean;
     });
+  },
+
+  // Retrocompat: claimVenue continua funcionando para chamadas legadas.
+  // Apenas delega pro saveVenue marcando claimAsOwner=true.
+  async claimVenue(key, data) {
+    var payload = Object.assign({}, data, { claimAsOwner: true });
+    return this.saveVenue(key, payload);
   },
 
   // Update a venue — only the owner can call this (enforced by rules).
@@ -186,14 +220,23 @@ window.VenueDB = {
   async loadMyVenues(uid) {
     if (!this.db || !uid) return [];
     try {
-      var snap = await this.db.collection('venues')
-        .where('ownerUid', '==', uid).get();
+      // Duas queries paralelas: venues que sou o dono formal + venues que eu
+      // cadastrei (comunidade, sem reivindicação). Dedup por doc id.
+      var seen = {};
       var list = [];
-      snap.forEach(function(doc) {
-        var d = doc.data();
-        d._id = doc.id;
-        list.push(d);
-      });
+      var addSnap = function(snap) {
+        snap.forEach(function(doc) {
+          if (seen[doc.id]) return;
+          seen[doc.id] = true;
+          var d = doc.data();
+          d._id = doc.id;
+          list.push(d);
+        });
+      };
+      await Promise.all([
+        this.db.collection('venues').where('ownerUid', '==', uid).get().then(addSnap).catch(function(e) { console.warn('ownerUid query:', e && e.message); }),
+        this.db.collection('venues').where('createdByUid', '==', uid).get().then(addSnap).catch(function(e) { console.warn('createdByUid query:', e && e.message); })
+      ]);
       list.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
       return list;
     } catch (e) {

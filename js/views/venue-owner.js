@@ -50,7 +50,7 @@
     if (!container) return;
     container.innerHTML =
       '<div style="margin-top:1rem;">' +
-        '<label class="form-label" style="font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">🏢 Sou dono de um local para jogar</label>' +
+        '<label class="form-label" style="font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">🏢 Cadastre locais</label>' +
         '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px 0;">Gerenciamento completo agora fica em <a href="#my-venues" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')" style="color:#a5b4fc;font-weight:600;">Meus locais</a>.</p>' +
         _ownerInnerHtml() +
       '</div>';
@@ -78,10 +78,10 @@
     container.innerHTML = back +
       '<div style="max-width:820px;margin:0 auto;padding:0 4px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">' +
-          '<h2 style="margin:0;font-size:1.45rem;font-weight:800;color:var(--text-bright);flex:1;">🏢 Meus locais</h2>' +
+          '<h2 style="margin:0;font-size:1.45rem;font-weight:800;color:var(--text-bright);flex:1;">🏢 Cadastre locais</h2>' +
         '</div>' +
         '<p style="color:var(--text-muted);font-size:0.88rem;margin:0 0 1rem 0;">' +
-          'Cadastre clubes, arenas ou quadras que você administra. Locais cadastrados aparecem na busca pública de jogadores — <b>conta diferente do seu perfil de jogador</b>: aqui são dados do negócio (endereço, quadras, preços, fotos, contatos, texto promocional).' +
+          'Cadastre clubes, arenas ou quadras — seu ou de qualquer lugar aberto ao público que você conhece. Locais cadastrados aparecem na busca pública de jogadores. Se você é o <b>proprietário</b>, marque a opção no formulário para adicionar a tag <b>✅ Informações oficiais</b>.' +
         '</p>' +
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:16px;">' +
           _ownerInnerHtml() +
@@ -257,9 +257,26 @@
         '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">✉️ E-mail de contato' +
           '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="contato@..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
         '</label>' +
+        // Checkbox de reivindicação — só aparece quando ainda não há dono
+        // OU quando o dono atual sou eu. Se alguém já reivindicou, o form
+        // nem é aberto (bloqueado upstream em _selectPlace).
+        (function() {
+          var cu = window.AppStore && window.AppStore.currentUser;
+          var imOwner = cu && ex.ownerUid === cu.uid;
+          var orphan = !ex.ownerUid;
+          if (!imOwner && !orphan) return '';
+          var checked = imOwner ? 'checked' : '';
+          var label = imOwner
+            ? 'Você reivindicou este local como proprietário'
+            : 'Sou o proprietário deste local';
+          return '<label style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-bottom:12px;cursor:pointer;font-size:0.82rem;color:var(--text-bright);">' +
+            '<input type="checkbox" id="venue-owner-claim" ' + checked + '>' +
+            '<span>🏢 ' + label + ' <span style="color:var(--text-muted);font-weight:400;">— adiciona a tag "Informações oficiais" no local</span></span>' +
+          '</label>';
+        })() +
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
           '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
-          '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? 'Salvar alterações' : '✅ Reivindicar local') + '</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? '💾 Salvar alterações' : '💾 Cadastrar local') + '</button>' +
         '</div>' +
       '</div>';
   }
@@ -288,6 +305,8 @@
     var photos = photosRaw.split(/\r?\n/).map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 10);
     var priceList = (document.getElementById('venue-owner-pricelist') || {}).value.trim();
     var facebook = (document.getElementById('venue-owner-facebook') || {}).value.trim();
+    var claimBox = document.getElementById('venue-owner-claim');
+    var claimAsOwner = !!(claimBox && claimBox.checked);
     var payload = {
       placeId: place.placeId,
       name: place.name,
@@ -309,21 +328,26 @@
         facebook: facebook,
         email: document.getElementById('venue-owner-email').value.trim()
       },
-      ownerUid: cu.uid,
-      ownerEmail: (cu.email || '').toLowerCase(),
-      plan: isUserPro ? 'pro' : 'free'
+      plan: (claimAsOwner && isUserPro) ? 'pro' : 'free',
+      claimAsOwner: claimAsOwner
     };
     try {
-      await window.VenueDB.claimVenue(place.placeId, payload);
-      if (window.showNotification) window.showNotification('Local reivindicado com sucesso!', 'Jogadores que buscam sua modalidade poderão encontrar você.', 'success');
+      await window.VenueDB.saveVenue(place.placeId, payload);
+      if (window.showNotification) {
+        var msg = claimAsOwner
+          ? 'Jogadores que buscam sua modalidade poderão encontrar você.'
+          : 'Obrigado por contribuir! Se você é o proprietário, marque a opção de proprietário na próxima edição.';
+        var title = claimAsOwner ? 'Local reivindicado ✅' : 'Local cadastrado 🙌';
+        window.showNotification(title, msg, 'success');
+      }
       window._venueOwnerCancel();
       window._loadMyVenuesList();
     } catch (e) {
       if (String(e.message).indexOf('venue-já-reivindicado') !== -1) {
-        if (window.showNotification) window.showNotification('Este local já foi reivindicado por outro usuário.', 'Escreva para scoreplace.app@gmail.com se você é o verdadeiro dono.', 'error');
+        if (window.showNotification) window.showNotification('Este local já tem um proprietário formal.', 'Escreva para scoreplace.app@gmail.com se você é o verdadeiro dono.', 'error');
       } else {
         console.error(e);
-        if (window.showNotification) window.showNotification('Erro ao reivindicar local.', String(e.message || e), 'error');
+        if (window.showNotification) window.showNotification('Erro ao salvar local.', String(e.message || e), 'error');
       }
     }
   };
