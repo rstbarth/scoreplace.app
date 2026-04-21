@@ -424,14 +424,14 @@ function _renderOtrosCards(resultsDiv, users) {
     var useWarning = u._hasShared;
     var btnClass = useWarning ? 'btn btn-warning btn-sm hover-lift' : 'btn btn-primary btn-sm hover-lift';
     if (isSent) {
-      return '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      return '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
     } else if (isReceived) {
       return '<div style="display: flex; gap: 4px; justify-content: center;">' +
-        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
+        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
       '</div>';
     }
-    return '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
+    return '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
   }
 
   var _lang = (window._lang === 'en' ? 'en-US' : 'pt-BR');
@@ -576,8 +576,8 @@ function _renderPendingRequests(myUid, receivedIds) {
           '<div style="font-size: 0.75rem; color: var(--text-muted);">' + (window._t || function(k){return k;})('explore.wantsToBeFriend') + '</div>' +
         '</div>' +
         '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
-          '<button class="btn btn-success btn-sm" onclick="_acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="_rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
+          '<button class="btn btn-success btn-sm" onclick="window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
         '</div>' +
       '</div>';
     });
@@ -618,7 +618,7 @@ function _renderSentRequests(myUid, sentIds) {
     profiles.forEach(function(u) {
       var uid = u._docId;
       var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
       html += _userCardHtml(u, uid, cancelBtn, false);
     });
 
@@ -970,17 +970,17 @@ function _renderConhecidosCards(div, profiles) {
     var safeUidConhecido = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
     var actionBtn = '';
     if (isSent) {
-      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
+      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
     } else if (isReceived) {
       actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
-        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
+        '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
       '</div>';
     } else {
       // Check if user accepts friend requests
       var canInvite = u.acceptFriendRequests !== false;
       if (canInvite) {
-        actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
+        actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
       } else {
         actionBtn = '';
       }

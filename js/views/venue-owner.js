@@ -210,7 +210,7 @@
         '</div>' +
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
           '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
-          '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? 'Salvar alterações' : '✅ Reivindicar local') + '</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? 'Salvar alterações' : '✅ Reivindicar local') + '</button>' +
         '</div>' +
       '</div>';
   }

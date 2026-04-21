@@ -2261,7 +2261,7 @@ function setupProfileModal() {
           '<h2 class="card-title" style="margin:0;font-size:1.1rem;">' + _t('profile.myProfile') + '</h2>' +
           '<div style="display:flex;gap:8px;align-items:center;">' +
             '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">' + _t('btn.cancel') + '</button>' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="if(typeof saveUserProfile===\'function\')saveUserProfile()">' + _t('btn.save') + '</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()">' + _t('btn.save') + '</button>' +
           '</div>' +
         '</div>' +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +

@@ -308,7 +308,7 @@
     var hasSport = !!state.sport;
     var disabled = (!hasVenue || !hasSport) ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
     box.innerHTML =
-      '<button class="btn btn-success hover-lift" ' + disabled + ' onclick="window._presenceCheckIn()" style="flex:1;min-width:140px;padding:10px 14px;font-weight:700;">📍 Estou aqui agora</button>' +
+      '<button class="btn btn-success hover-lift" ' + disabled + ' onclick="window._spinButton(this, \'Registrando...\'); window._presenceCheckIn()" style="flex:1;min-width:140px;padding:10px 14px;font-weight:700;">📍 Estou aqui agora</button>' +
       '<button class="btn btn-indigo hover-lift" ' + disabled + ' onclick="window._presencePlanDialog()" style="flex:1;min-width:140px;padding:10px 14px;font-weight:700;">🗓️ Planejar ida</button>';
   }
 
@@ -488,10 +488,19 @@
           subtitle = 'há ' + mins + ' min';
         }
         var avatar = p.photoURL
-          ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';">'
-          : '<div style="width:44px;height:44px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';">' + _safe(_initials(name)) + '</div>';
+          ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:44px;height:44px;min-width:44px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';">'
+          : '<div style="width:44px;height:44px;min-width:44px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';">' + _safe(_initials(name)) + '</div>';
+        // Prefix sports icons so friends see which modalities this person is
+        // available to play right now. Same _sportsIcons helper used in
+        // Próximas horas — keeps the two sections visually consistent.
+        var nowSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+        var nowIcons = _sportsIcons(nowSports);
+        var iconsHtml = nowIcons
+          ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + nowIcons + '</span>'
+          : '';
         friendsHtml.push(
-          '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
+            iconsHtml +
             avatar +
             '<div style="flex:1;min-width:0;">' +
               '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + (klass === 'me' ? ' (você)' : '') + '</div>' +
@@ -608,6 +617,64 @@
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
+  // Tear down any previous Firestore listener — called before attaching a
+  // new one and when the user navigates away.
+  function _teardownListener() {
+    try {
+      if (typeof window._presenceUnsubscribe === 'function') {
+        window._presenceUnsubscribe();
+      }
+    } catch (e) {}
+    window._presenceUnsubscribe = null;
+  }
+
+  // Attach a real-time listener for the venue/day — one snapshot whenever
+  // any presence there is created/updated/cancelled. Filters by sport and
+  // visibility client-side. Without this, friends' check-ins only showed up
+  // after the user reloaded.
+  function _attachListener() {
+    _teardownListener();
+    var db = window.FirestoreDB && window.FirestoreDB.db;
+    if (!db || !state.venue || !state.venue.placeId || !state.dayKey) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return;
+    var myUid = cu.uid;
+    try {
+      window._presenceUnsubscribe = db.collection('presences')
+        .where('placeId', '==', state.venue.placeId)
+        .where('dayKey', '==', state.dayKey)
+        .onSnapshot(function(snap) {
+          var list = [];
+          snap.forEach(function(doc) {
+            var d = doc.data();
+            if (!d || d.cancelled) return;
+            d._id = doc.id;
+            list.push(d);
+          });
+          // Apply sport filter (match any of state.sports) and visibility.
+          var sel = (state.sports || []).map(window.PresenceDB.normalizeSport);
+          var selSet = {}; sel.forEach(function(s) { selSet[s] = true; });
+          var filtered = list.filter(function(p) {
+            var docSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+            var sportMatch = sel.length === 0 || docSports.some(function(s) { return selSet[window.PresenceDB.normalizeSport(s)]; });
+            if (!sportMatch) return false;
+            if (!p.uid) return p.visibility === 'public';
+            if (p.uid === myUid) return true;
+            if (state.friendsUids[p.uid]) return true;
+            return p.visibility === 'public';
+          });
+          state.presences = filtered;
+          renderChart();
+          renderNow();
+          renderUpcoming();
+        }, function(err) {
+          console.warn('Presence listener error:', err && err.message);
+        });
+    } catch (e) {
+      console.warn('Failed to attach presence listener:', e);
+    }
+  }
+
   function refreshData() {
     var cu = window.AppStore && window.AppStore.currentUser;
     // When muted, we don't fetch or display anyone's presences — consistent
@@ -627,6 +694,7 @@
     var hasSports = Array.isArray(state.sports) && state.sports.length > 0;
     if (!state.venue || !state.venue.placeId || !hasSports) {
       // Can't query without both — just render empty chart
+      _teardownListener();
       state.presences = [];
       state.tournaments = [];
       state.myActive = [];
@@ -636,6 +704,9 @@
       renderMyActive();
       return;
     }
+    // Subscribe to real-time updates so friends' new presences appear
+    // without the user having to reload.
+    _attachListener();
     state.loading = true;
     state.dayKey = window.PresenceDB.dayKey(new Date());
     var cu = window.AppStore && window.AppStore.currentUser;
@@ -875,7 +946,7 @@
         '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'presence-plan-overlay\').remove()">Cancelar</button>' +
-          '<button class="btn btn-primary" onclick="window._presenceConfirmPlan()">Confirmar</button>' +
+          '<button class="btn btn-primary" onclick="window._spinButton(this, \'Salvando...\'); window._presenceConfirmPlan()">Confirmar</button>' +
         '</div>' +
       '</div>';
     overlay.addEventListener('click', function(ev) {
@@ -1006,6 +1077,9 @@
 
   // Entry point
   window.renderPresence = function(container) {
+    // Any listener from a previous visit must go — otherwise it keeps
+    // pushing snapshots into stale state/DOM.
+    _teardownListener();
     // Initialize state from prefill or defaults
     var pre = _readPrefill();
     if (pre && pre.placeId) {
