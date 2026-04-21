@@ -20,12 +20,12 @@
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
 
   var state = {
-    city: '',
+    location: '',           // endereço livre OU cidade — alimenta o Geocoder
     sport: '',
     priceRange: '',
     minCourts: 1,           // usuário pediu mínimo 1 por padrão
-    distanceKm: 10,         // raio de pesquisa em km ao redor de cityLatLon
-    cityLatLon: null,       // {lat, lng} — centro derivado do Geocoder para filtro de distância
+    distanceKm: 10,         // raio de pesquisa em km ao redor de center
+    center: null,           // {lat, lng} — centro derivado do Geocoder para filtro de distância
     loading: false,
     results: [],
     googleResults: [],      // Google Places nearby results (não reivindicados)
@@ -51,8 +51,8 @@
     if (!_map) {
       // Prefer the resolved city center; if we don't have one yet just
       // show Brazil — the async geocode will re-center once it resolves.
-      var initialCenter = state.cityLatLon || { lat: -15.78, lng: -47.93 };
-      var initialZoom = state.cityLatLon ? 12 : 4;
+      var initialCenter = state.center || { lat: -15.78, lng: -47.93 };
+      var initialZoom = state.center ? 12 : 4;
       _map = new _mapsLibs.Map(el, {
         center: initialCenter,
         zoom: initialZoom,
@@ -115,12 +115,13 @@
     _map = null;
     _markers = [];
     // Seed city with the user's profile city on first entry so the feed
-    // lands on "their" city by default. Only when state.city is still empty
-    // (i.e. user hasn't typed/cleared it) to preserve intentional edits.
-    if (!state.city) {
+    // lands on "their" city by default. Only when state.location is still
+    // empty (i.e. user hasn't typed/cleared it) to preserve intentional edits.
+    // "Local" aceita cidade ou endereço completo ("Av. Paulista 1000, SP").
+    if (!state.location) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
-      if (profileCity) state.city = profileCity;
+      if (profileCity) state.location = profileCity;
     }
     var back = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
@@ -142,8 +143,8 @@
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:14px;">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
             '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Cidade</label>' +
-              '<input type="text" id="venues-city" value="' + _safe(state.city) + '" placeholder="Ex: São Paulo, Floripa…" oninput="window._venuesOnCity(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
+              '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
             '</div>' +
             '<div>' +
               '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
@@ -232,7 +233,7 @@
         'Filtro aplicado: ' + _safe([
           state.sport || 'qualquer modalidade',
           state.minCourts >= 1 ? ('min. ' + state.minCourts + ' quadra' + (state.minCourts === 1 ? '' : 's')) : '',
-          state.city || 'sem cidade',
+          state.location || 'sem local',
           state.distanceKm ? ('raio ' + state.distanceKm + 'km') : '',
           state.priceRange || 'qualquer preço'
         ].filter(Boolean).join(' · ')) +
@@ -315,20 +316,24 @@
     // distance filter. If the user hasn't typed a city, fall back to their
     // profile's preferred location or the Brazil default.
     var center = null;
-    if (state.city) {
-      center = await _geocodeCity(state.city);
+    if (state.location) {
+      center = await _geocodeCity(state.location);
     }
     if (!center) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var pref = cu && Array.isArray(cu.preferredLocations) && cu.preferredLocations[0];
       if (pref && pref.lat != null && pref.lng != null) center = { lat: pref.lat, lng: pref.lng };
     }
-    state.cityLatLon = center;
+    state.center = center;
 
-    // 1) Our own claimed venues
+    // 1) Our own claimed venues. Não filtramos mais pelo texto do campo
+    // "Local" no doc — o raio (Haversine) cobre a proximidade, e texto livre
+    // como "Av. Paulista 1000" nunca casaria com v.city gravado como "São
+    // Paulo". Se o geocoder falhar e não resolver um centro, não filtramos
+    // nada de localidade (mostra todos os venues). Campo `city` ainda é
+    // aceito pelo VenueDB para compat mas passamos vazio aqui.
     try {
       var list = await window.VenueDB.listVenues({
-        city: state.city,
         sport: state.sport,
         priceRange: state.priceRange,
         minCourts: state.minCourts
@@ -369,10 +374,10 @@
   }
 
   // Debounce user typing in city filter so we don't spam Firestore on each keystroke.
-  window._venuesOnCity = function(v) {
-    state.city = v;
-    clearTimeout(window._venuesCityDebounce);
-    window._venuesCityDebounce = setTimeout(refresh, 350);
+  window._venuesOnLocation = function(v) {
+    state.location = v;
+    clearTimeout(window._venuesLocationDebounce);
+    window._venuesLocationDebounce = setTimeout(refresh, 350);
   };
   window._venuesSetSport = function(v) { state.sport = v; refresh(); };
   window._venuesSetPrice = function(v) { state.priceRange = v; refresh(); render(document.getElementById('view-container')); };
@@ -435,7 +440,7 @@
     try {
       var placesLib = await google.maps.importLibrary('places');
       if (!placesLib || !placesLib.Place || typeof placesLib.Place.searchByText !== 'function') return [];
-      var query = (sport || 'quadra') + ' ' + (state.city || '');
+      var query = (sport || 'quadra') + ' ' + (state.location || '');
       var req = {
         textQuery: query.trim(),
         fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
