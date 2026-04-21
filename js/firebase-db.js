@@ -266,6 +266,28 @@ window.FirestoreDB = {
     }
   },
 
+  // Scan open tournaments across the whole DB — used by the nearby/sport-match
+  // notification check, which has to look outside the current user's scoped
+  // load (that's the whole point: show tournaments they aren't part of yet).
+  // Filters to `status == 'open'` so we don't drag closed/finished docs along.
+  async loadOpenTournaments() {
+    if (!this.db) return [];
+    try {
+      var snap = await this.db.collection('tournaments')
+        .where('status', '==', 'open')
+        .get();
+      var tournaments = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (d) tournaments.push(d);
+      });
+      return tournaments;
+    } catch (e) {
+      console.error('Erro ao carregar torneios abertos:', e);
+      return [];
+    }
+  },
+
   // Fetch one tournament by id — used by direct/invite links when the
   // tournament isn't in the scoped load (e.g. public tournament the user
   // hasn't joined yet).

@@ -331,7 +331,16 @@ window._checkNearbyTournaments = async function() {
     if (userLocs.length === 0 && userCeps.length === 0) return;
 
     var NEARBY_RADIUS_KM = 15; // notify if tournament is within 15km
-    var tournaments = window.AppStore.tournaments || [];
+    // AppStore.tournaments is scoped to the user's own tournaments — this
+    // check needs the opposite (public open tournaments the user ISN'T in
+    // yet), so we query directly. Filtered to status='open' server-side so
+    // we don't pull the whole DB.
+    var tournaments = [];
+    if (window.FirestoreDB && typeof window.FirestoreDB.loadOpenTournaments === 'function') {
+        tournaments = await window.FirestoreDB.loadOpenTournaments();
+    } else {
+        tournaments = window.AppStore.tournaments || [];
+    }
     var uid = cu.uid || cu.email;
     var _t = window._t || function(k) { return k; };
 

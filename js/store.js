@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.54-alpha';
+window.SCOREPLACE_VERSION = '0.14.55-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -993,13 +993,21 @@ window.AppStore = {
   },
 
   // Start real-time listener — auto-updates tournaments on any Firestore change
-  startRealtimeListener() {
+  //
+  // Scoped to the user's own tournaments via the denormalized `memberEmails[]`
+  // field (creator + organizer + active co-hosts + participants). Without a
+  // scope, every snapshot downloaded every tournament in the database on
+  // every change anywhere — doesn't scale past a handful of users.
+  startRealtimeListener(email) {
     if (this._realtimeUnsubscribe) return; // Already listening
     if (!window.FirestoreDB || !window.FirestoreDB.db) return;
 
     var store = this;
     var isFirstSnapshot = true;
-    this._realtimeUnsubscribe = window.FirestoreDB.db.collection('tournaments')
+    var coll = window.FirestoreDB.db.collection('tournaments');
+    var norm = email ? String(email).trim().toLowerCase() : '';
+    var query = norm ? coll.where('memberEmails', 'array-contains', norm) : coll;
+    this._realtimeUnsubscribe = query
       .onSnapshot(function(snap) {
         var tournaments = [];
         var deletedIds = store._deletedTournamentIds || [];
@@ -1130,12 +1138,16 @@ window.AppStore = {
       });
   },
 
-  // Load all tournaments from Firestore (one-time, fallback)
+  // Load tournaments from Firestore (one-time, fallback for listener failure).
+  // Scoped to the current user's own tournaments via `memberEmails[]`.
   async loadFromFirestore() {
     if (!window.FirestoreDB || !window.FirestoreDB.db) return;
     this._loading = true;
     try {
-      var tournaments = await window.FirestoreDB.loadAllTournaments();
+      var email = this.currentUser && this.currentUser.email;
+      var tournaments = email
+        ? await window.FirestoreDB.loadMyTournaments(email)
+        : await window.FirestoreDB.loadAllTournaments();
       var deletedIds = this._deletedTournamentIds || [];
       if (deletedIds.length > 0) {
         tournaments = tournaments.filter(function(t) {
