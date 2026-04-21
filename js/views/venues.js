@@ -83,7 +83,12 @@
         mapId: 'scoreplace-venues-map',
         disableDefaultUI: false,
         clickableIcons: false,
-        gestureHandling: 'greedy'
+        // 'cooperative' on mobile requires two-finger pan to move the map
+        // (single-finger scroll the page). On desktop, requires Ctrl+scroll
+        // to zoom. Prevents the user from getting "stuck" on the map while
+        // trying to scroll the page vertically. Combined with the side
+        // gutter below, vertical scrolling always has a safe touch zone.
+        gestureHandling: 'cooperative'
       });
     } else {
       // Nudge the map to recompute size when it was display:none during init.
@@ -255,8 +260,11 @@
         '</div>' +
         '<div id="venues-content" style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:2rem;">' +
           '<div id="venues-results"></div>' +
-          '<div id="venues-map-wrap" style="display:none;">' +
-            '<div id="venues-map" style="width:100%;height:460px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
+          // Gutter de 10px em cada lado do mapa: garante zona de toque segura
+          // para scrollar a página verticalmente no mobile sem "entrar" no mapa.
+          // Combined com gestureHandling:'cooperative' resolve o bug "preso no mapa".
+          '<div id="venues-map-wrap" style="display:none;padding:0 10px;">' +
+            '<div id="venues-map" style="width:100%;height:380px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
             '<div id="venues-map-extras"></div>' +
           '</div>' +
         '</div>' +
@@ -678,22 +686,38 @@
   // in scoreplace) so the user sees what Google knows about the area. Free
   // tier allows ~17k queries/month — debounced + gated on a real center so
   // we don't burn quota. Returns up to 15 places.
+  //
+  // Default query strategy (vamos refinar depois):
+  // - Sem modalidade: busca ampla com múltiplos termos esportivos
+  //   ("quadra esportiva clube arena") pra cobrir beach tennis, tênis,
+  //   padel, pickleball etc num único call — antes só "quadra" perdia
+  //   clubes que o Google indexa como "arena" ou "clube".
+  // - Com modalidade: usa a modalidade diretamente (Google indexa bem
+  //   "beach tennis", "padel", etc em PT-BR).
+  // - locationBias em vez de locationRestriction: vies SEM trava, então
+  //   lugares muito relevantes fora do raio também aparecem. O filtro
+  //   haversine client-side já cuida do raio exato via state.distanceKm
+  //   — então o API só precisa achar candidatos. Isso mata o cenário
+  //   "zero resultados" em áreas com poucos venues no raio estrito.
   async function _loadGoogleNearby(center, radiusKm, sport) {
     if (!center || !window.google || !window.google.maps || !window.google.maps.importLibrary) return [];
     try {
       var placesLib = await google.maps.importLibrary('places');
       if (!placesLib || !placesLib.Place || typeof placesLib.Place.searchByText !== 'function') return [];
-      // textQuery combina modalidade + localidade digitada; locationRestriction
-      // força o raio como *filtro*, não apenas *viés* (o locationBias deixava
-      // Google trazer resultados distantes). Máximo 50km — limite do API.
-      var query = (sport || 'quadra') + ' ' + (state.location || '');
-      var restrictRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
+      var defaultTerms = 'quadra esportiva clube arena tênis padel beach tennis pickleball';
+      var queryParts = [sport ? sport : defaultTerms];
+      if (state.location) queryParts.push(state.location);
+      var query = queryParts.join(' ').trim();
+      // Bias é mais permissivo que restriction — Google ainda prioriza
+      // o raio escolhido mas não descarta candidatos relevantes próximos.
+      // O haversine local filtra depois conforme state.distanceKm.
+      var biasRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
       var req = {
-        textQuery: query.trim(),
+        textQuery: query,
         fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
-        locationRestriction: {
+        locationBias: {
           center: new google.maps.LatLng(center.lat, center.lng),
-          radius: restrictRadiusM
+          radius: biasRadiusM
         },
         maxResultCount: 15,
         language: 'pt-BR',
