@@ -53,20 +53,51 @@ service cloud.firestore {
     }
 
     // ─── User profiles ───────────────────────────────────────────────────────
+    // Diff that only touches the friend-relationship arrays. Used to let a
+    // caller modify another user's friends / friendRequestsReceived /
+    // friendRequestsSent arrays WITHOUT being able to touch profile fields.
+    // The sendFriendRequest / accept / reject / cancel flows need this because
+    // each one updates the OTHER party's arrays.
+    function isFriendArrayDiff() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['friends', 'friendRequestsSent', 'friendRequestsReceived']);
+    }
     match /users/{userId} {
       // Authenticated only — strips PII (email, phone, preferredCeps,
       // fcmToken, etc.) from anonymous visitors. Needed for friend search
       // (searchUsers range query) and participant detail views.
       allow read: if request.auth != null;
 
-      // Users may only write their own profile.
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Create: only the user themselves (first-time profile creation).
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Update: owner may touch anything; any other authenticated user may
+      // update ONLY the three friend arrays (so sendFriendRequest can add
+      // the caller's uid to the target's friendRequestsReceived, accept can
+      // add caller to target's friends, etc.). Prevents cross-user edits of
+      // profile PII while keeping the friendship flow working.
+      allow update: if request.auth != null
+        && (request.auth.uid == userId || isFriendArrayDiff());
+
+      // Delete: owner only.
+      allow delete: if request.auth != null && request.auth.uid == userId;
 
       // Notifications — senders create (cross-user), owner manages.
       match /notifications/{notifId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null;
         allow update, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Match history (stats across tournaments + casual matches) — only
+      // the user themselves, same as profile.
+      match /matchHistory/{matchId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Templates — only owner.
+      match /templates/{templateId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 

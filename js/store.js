@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.71-alpha';
+window.SCOREPLACE_VERSION = '0.14.72-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1114,11 +1114,22 @@ window.AppStore = {
 
     var store = this;
     var isFirst = true;
+    // Remember the last synced casual room so we only hijack navigation when
+    // the value CHANGES — without this, every profile save (e.g. the user
+    // editing Locais, nome, tema) re-fires the redirect and yanks them into
+    // an old casual match they thought they'd left.
+    var lastCasualRoom = null;
     this._profileUnsubscribe = window.FirestoreDB.db
       .collection('users').doc(cu.uid)
       .onSnapshot(function(doc) {
-        // Skip the initial snapshot (profile already loaded)
-        if (isFirst) { isFirst = false; return; }
+        // Skip the initial snapshot (profile already loaded). Seed
+        // lastCasualRoom from it so we don't treat the first emission as a
+        // "change" on the next snapshot.
+        if (isFirst) {
+          isFirst = false;
+          if (doc.exists) lastCasualRoom = doc.data().activeCasualRoom || null;
+          return;
+        }
         if (!doc.exists) return;
         var data = doc.data();
         // Sync theme in real-time across all logged-in devices
@@ -1132,13 +1143,18 @@ window.AppStore = {
           }
         }
         // Sync active casual room — navigate other devices to the same match
-        if (data.activeCasualRoom) {
+        // BUT only when the value transitioned (not on every unrelated save).
+        var newRoom = data.activeCasualRoom || null;
+        if (newRoom && newRoom !== lastCasualRoom) {
           var currentHash = window.location.hash || '';
-          var alreadyOnCasual = currentHash.indexOf('#casual/') === 0 || document.getElementById('casual-match-overlay') || document.getElementById('live-scoring-overlay');
+          var alreadyOnCasual = currentHash.indexOf('#casual/') === 0 ||
+                                document.getElementById('casual-match-overlay') ||
+                                document.getElementById('live-scoring-overlay');
           if (!alreadyOnCasual) {
-            window.location.hash = '#casual/' + data.activeCasualRoom;
+            window.location.hash = '#casual/' + newRoom;
           }
         }
+        lastCasualRoom = newRoom;
       }, function(err) {
         console.warn('Profile listener error:', err);
       });

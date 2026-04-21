@@ -56,8 +56,14 @@
       list.push({ placeId: key, name: name || pid || '', lat: lat || null, lon: lon || null });
     };
     var cu = window.AppStore && window.AppStore.currentUser;
+    // Profile map picker stores locations as { lat, lng, label } — no placeId
+    // and the human-readable text lives in `label`, not `name`. Map both
+    // possible shapes so entries saved by the old and new code both work.
     (cu && Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [])
-      .forEach(function(p) { if (p) push(p.placeId, p.name, p.lat, p.lng || p.lon); });
+      .forEach(function(p) {
+        if (!p) return;
+        push(p.placeId, (p.name || p.label), p.lat, (p.lng != null ? p.lng : p.lon));
+      });
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
     tournaments.forEach(function(t) {
       if (!t) return;
@@ -115,6 +121,28 @@
     return 'Beach Tennis';
   }
 
+  // All sports the user marked as preferred in profile, normalized. Used to
+  // seed the multi-select pills so someone who plays Padel + Beach Tennis at
+  // the same clube sees both in one view.
+  function _defaultSports() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var out = [];
+    var seen = {};
+    var push = function(s) {
+      var norm = window.PresenceDB.normalizeSport(s);
+      if (norm && !seen[norm]) { seen[norm] = true; out.push(norm); }
+    };
+    if (cu && cu.preferredSports) {
+      String(cu.preferredSports).split(/[,;]/).forEach(push);
+    }
+    if (out.length === 0) {
+      var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
+      tournaments.forEach(function(t) { if (t) push(t.sport); });
+    }
+    if (out.length === 0) out = ['Beach Tennis'];
+    return out;
+  }
+
   // Read prefill set by dashboard/tournaments page, if any.
   function _readPrefill() {
     try {
@@ -129,7 +157,8 @@
 
   var state = {
     venue: null,      // {placeId, name, lat, lon}
-    sport: '',
+    sport: '',        // Primary sport — used for writes (check-in, plan)
+    sports: [],       // Multi-filter — the set of modalities to merge in display
     dayKey: '',
     presences: [],    // from PresenceDB (filtered visibility)
     tournaments: [],  // same venue+sport+day, treated as scheduled "presences"
@@ -195,30 +224,30 @@
     }
     venueOpts += '<option value="__custom__">✏️ Digitar outro local…</option>';
 
-    var sportOpts = '';
-    sports.forEach(function(s) {
-      var sel = (s === state.sport) ? ' selected' : '';
-      sportOpts += '<option value="' + _safe(s) + '"' + sel + '>' + _safe(s) + '</option>';
-    });
+    var sportsActive = state.sports || [];
+    var sportsPills = sports.map(function(s) {
+      var active = sportsActive.indexOf(s) !== -1;
+      var style = 'padding:6px 12px;border-radius:999px;font-size:0.75rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;font-weight:' + (active ? '700' : '500') + ';' +
+        'border:' + (active ? '2px solid #fbbf24' : '1.5px solid var(--border-color)') + ';' +
+        'background:' + (active ? 'rgba(251,191,36,0.18)' : 'transparent') + ';' +
+        'color:' + (active ? '#fbbf24' : 'var(--text-muted)') + ';';
+      return '<button type="button" onclick="window._presenceToggleSport(\'' + _safe(s) + '\')" style="' + style + '">' + _safe(s) + '</button>';
+    }).join('');
 
     var today = new Date();
     var dateLabel = String(today.getDate()).padStart(2,'0') + '/' + String(today.getMonth()+1).padStart(2,'0') + '/' + today.getFullYear();
 
     picker.innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-        '<div>' +
-          '<label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
-          '<select id="presence-venue-select" onchange="window._presenceOnVenueChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-            venueOpts +
-          '</select>' +
-          '<input id="presence-venue-custom" type="text" placeholder="Nome do local" style="display:none;width:100%;padding:8px 10px;margin-top:6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;" oninput="window._presenceOnCustomVenue(this.value)">' +
-        '</div>' +
-        '<div>' +
-          '<label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
-          '<select id="presence-sport-select" onchange="window._presenceOnSportChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-            sportOpts +
-          '</select>' +
-        '</div>' +
+      '<div>' +
+        '<label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
+        '<select id="presence-venue-select" onchange="window._presenceOnVenueChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+          venueOpts +
+        '</select>' +
+        '<input id="presence-venue-custom" type="text" placeholder="Nome do local" style="display:none;width:100%;padding:8px 10px;margin-top:6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;" oninput="window._presenceOnCustomVenue(this.value)">' +
+      '</div>' +
+      '<div style="margin-top:10px;">' +
+        '<label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Modalidades <span style="font-weight:400;">(selecione uma ou mais)</span></label>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + sportsPills + '</div>' +
       '</div>' +
       '<div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted);">Hoje, ' + _safe(dateLabel) + ' · avatares = amigos · números = outros usuários</div>';
   }
@@ -533,7 +562,8 @@
       if (up) up.innerHTML = '';
       return;
     }
-    if (!state.venue || !state.venue.placeId || !state.sport) {
+    var hasSports = Array.isArray(state.sports) && state.sports.length > 0;
+    if (!state.venue || !state.venue.placeId || !hasSports) {
       // Can't query without both — just render empty chart
       state.presences = [];
       state.tournaments = [];
@@ -549,11 +579,23 @@
     var cu = window.AppStore && window.AppStore.currentUser;
     var myUid = cu && cu.uid;
 
-    // Presences
-    window.PresenceDB.loadForVenueSportDay(state.venue.placeId, state.sport, state.dayKey).then(function(list) {
-      // Filter by visibility: drop "friends"-scoped presences from people we
-      // aren't friends with (UI enforcement; full rules in follow-up PR)
-      state.presences = list.filter(function(p) {
+    // Presences — one call per sport, merge results. Small N (1–8 modalities);
+    // Firestore costs scale linearly with selected sports, which is fine.
+    var selSports = state.sports.map(window.PresenceDB.normalizeSport);
+    Promise.all(selSports.map(function(s) {
+      return window.PresenceDB.loadForVenueSportDay(state.venue.placeId, s, state.dayKey);
+    })).then(function(pages) {
+      var merged = [];
+      var seen = {};
+      pages.forEach(function(list) {
+        list.forEach(function(p) {
+          if (!p || !p._id || seen[p._id]) return;
+          seen[p._id] = true;
+          merged.push(p);
+        });
+      });
+      // Visibility filter: drop "friends"-scoped presences from non-friends.
+      state.presences = merged.filter(function(p) {
         if (!p.uid) return p.visibility === 'public';
         if (p.uid === myUid) return true;
         if (state.friendsUids[p.uid]) return true;
@@ -564,14 +606,14 @@
       renderUpcoming();
     });
 
-    // Tournaments at same venue + sport + day (from AppStore, no extra fetch)
+    // Tournaments at same venue + ANY of the selected sports + day.
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
-    var normSport = window.PresenceDB.normalizeSport(state.sport);
+    var selSportSet = {}; selSports.forEach(function(s) { selSportSet[s] = true; });
     state.tournaments = tournaments.filter(function(t) {
       if (!t) return false;
       var tKey = window.PresenceDB.venueKey(t.venuePlaceId, t.venue);
       if (tKey !== state.venue.placeId) return false;
-      if (window.PresenceDB.normalizeSport(t.sport) !== normSport) return false;
+      if (!selSportSet[window.PresenceDB.normalizeSport(t.sport)]) return false;
       if (!t.startDate) return false;
       return window.PresenceDB.dayKey(new Date(t.startDate)) === state.dayKey;
     });
@@ -621,6 +663,25 @@
 
   window._presenceOnSportChange = function(value) {
     state.sport = value || '';
+    state.sports = value ? [value] : [];
+    renderActions();
+    refreshData();
+  };
+
+  // Multi-select: toggle a sport pill. When all pills get turned off we fall
+  // back to the first preferred sport so queries have something to go on.
+  window._presenceToggleSport = function(sport) {
+    if (!sport) return;
+    if (!Array.isArray(state.sports)) state.sports = state.sport ? [state.sport] : [];
+    var idx = state.sports.indexOf(sport);
+    if (idx === -1) state.sports.push(sport);
+    else state.sports.splice(idx, 1);
+    if (state.sports.length === 0) {
+      // Guard: at least one must stay selected, otherwise writes have no target.
+      state.sports = [sport];
+    }
+    state.sport = state.sports[0];
+    renderPicker();
     renderActions();
     refreshData();
   };
@@ -632,9 +693,9 @@
     return until > Date.now();
   }
 
-  window._presenceCheckIn = function() {
+  window._presenceCheckIn = function(forcedSport) {
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (!cu || !cu.uid || !state.venue || !state.sport) return;
+    if (!cu || !cu.uid || !state.venue) return;
     if (cu.presenceVisibility === 'off') {
       if (window.showNotification) window.showNotification('Presença desligada no seu perfil. Ative em Amigos ou Todos para registrar.', 'info');
       return;
@@ -643,6 +704,17 @@
       if (window.showNotification) window.showNotification('Presença silenciada. Desative em Perfil → Presença para registrar.', 'info');
       return;
     }
+    // Multi-sport filter is for browsing; for writes, pick exactly one since
+    // the user is physically playing a single modality right now. Prompt if
+    // multiple are selected and no forcedSport was passed in yet.
+    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    if (!forcedSport && sports.length > 1 && typeof window.showConfirmDialog === 'function') {
+      _pickSportThen('check-in', sports, function(chosen) { window._presenceCheckIn(chosen); });
+      return;
+    }
+    var sportToWrite = forcedSport || sports[0] || state.sport;
+    if (!sportToWrite) return;
+    state.sport = sportToWrite;
     // Prevent duplicate check-in at same venue+sport
     var dup = state.myActive.filter(function(p) {
       return p.type === 'checkin' && p.placeId === state.venue.placeId &&
@@ -685,9 +757,42 @@
     });
   };
 
-  window._presencePlanDialog = function() {
+  // Picker overlay used when the user has multiple sports active and we
+  // need to resolve which one to write. Renders a lightweight row of
+  // buttons; clicking one calls the continuation.
+  function _pickSportThen(action, sports, cb) {
+    var prev = document.getElementById('presence-sport-pick-overlay');
+    if (prev) prev.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'presence-sport-pick-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    var btns = sports.map(function(s) {
+      return '<button class="btn btn-primary" onclick="document.getElementById(\'presence-sport-pick-overlay\').remove(); window._presencePickedSport=\'' + _safe(s) + '\'; (window._presencePickedCb&&window._presencePickedCb(\'' + _safe(s) + '\'))" style="margin:4px;">' + _safe(s) + '</button>';
+    }).join('');
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:18px;max-width:360px;width:100%;">' +
+        '<h3 style="margin:0 0 10px 0;color:var(--text-bright);font-size:1rem;">Qual modalidade agora?</h3>' +
+        '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 10px 0;">Você selecionou várias. Escolha a que vai jogar para ' + (action === 'plan' ? 'planejar' : 'registrar') + ' presença.</p>' +
+        '<div style="display:flex;flex-wrap:wrap;">' + btns + '</div>' +
+        '<div style="text-align:right;margin-top:8px;">' +
+          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'presence-sport-pick-overlay\').remove();">Cancelar</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    window._presencePickedCb = cb;
+    document.body.appendChild(overlay);
+  }
+
+  window._presencePlanDialog = function(forcedSport) {
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (!cu || !cu.uid || !state.venue || !state.sport) return;
+    if (!cu || !cu.uid || !state.venue) return;
+    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    if (!forcedSport && sports.length > 1) {
+      _pickSportThen('plan', sports, function(chosen) { window._presencePlanDialog(chosen); });
+      return;
+    }
+    if (forcedSport) state.sport = forcedSport;
+    if (!state.sport) return;
     var now = new Date();
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var defEnd = new Date(defStart.getTime() + 2 * 60 * 60 * 1000);
@@ -836,7 +941,13 @@
     } else {
       state.venue = _defaultVenue();
     }
-    state.sport = (pre && pre.sport) || _defaultSport();
+    if (pre && pre.sport) {
+      state.sport = pre.sport;
+      state.sports = [pre.sport];
+    } else {
+      state.sports = _defaultSports();
+      state.sport = state.sports[0];
+    }
     state.dayKey = window.PresenceDB.dayKey(new Date());
     render(container);
   };
