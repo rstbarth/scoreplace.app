@@ -1213,6 +1213,12 @@ async function simulateLoginSuccess(user) {
     if (typeof window._applyPresenceVisibilityUI === 'function') window._applyPresenceVisibilityUI(_pv);
     if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI({ active: _active, days: _daysLeft });
     setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+    // Inject venue-owner section (lazy — only needs DOM once the modal is visible)
+    setTimeout(function() {
+      if (typeof window._renderVenueOwnerSection === 'function') {
+        window._renderVenueOwnerSection(document.getElementById('venue-owner-section'));
+      }
+    }, 200);
     setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
     var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -2413,6 +2419,9 @@ function setupProfileModal() {
                 '</div>' +
               '</div>' +
             '</div>' +
+            // Venue owner — claim + edit physical places you run
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            '<div id="venue-owner-section"></div>' +
             // Buttons
             /* Salvar/Sair buttons moved to sticky header */ '' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
