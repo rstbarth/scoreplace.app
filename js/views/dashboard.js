@@ -1037,6 +1037,7 @@ function renderDashboard(container) {
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button id="btn-presence" class="btn hover-lift" title="Ver quem está no local" style="background: #f59e0b; color: #1a0f00; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px; font-weight:700;" onclick="window.location.hash='#presence'">📍 Presença</button>
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="if(typeof window._showAppInviteQR==='function')window._showAppInviteQR()">📱 ${_t('invite.inviteFriends')}</button>
           <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showSupportModal()">💚 ${_t('common.support')}</button>
           <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
@@ -1059,6 +1060,9 @@ function renderDashboard(container) {
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
 
+    <!-- Friends' Presences (loaded async) -->
+    <div id="dashboard-presences-widget" style="margin-bottom:1.25rem;"></div>
+
     <!-- View Toggle + Tournament Cards -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
       <div style="display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
@@ -1079,8 +1083,93 @@ function renderDashboard(container) {
     proBtn.style.display = isPro ? 'none' : 'inline-flex';
   }
 
+  // ─── Friends' presences widget (async load) ───
+  _hydrateFriendsPresenceWidget();
+
   // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───
   _checkPendingInvitesAndRedirect(visible);
+}
+
+// Load friends' active or upcoming presences and render a compact widget.
+// Clicking a row pre-fills the presence view with the same venue+sport.
+function _hydrateFriendsPresenceWidget() {
+  var box = document.getElementById('dashboard-presences-widget');
+  if (!box || !window.PresenceDB || !window.AppStore) return;
+  var cu = window.AppStore.currentUser;
+  if (!cu || !cu.uid) return;
+  var friends = Array.isArray(cu.friends) ? cu.friends : [];
+  if (friends.length === 0) return;
+
+  window.PresenceDB.loadForFriends(friends).then(function(list) {
+    if (!list || list.length === 0) return;
+    // Dedupe per (uid, placeId, sport) keeping the soonest-starting entry.
+    var bestByKey = {};
+    list.forEach(function(p) {
+      var k = (p.uid || '') + '|' + p.placeId + '|' + window.PresenceDB.normalizeSport(p.sport);
+      var prev = bestByKey[k];
+      if (!prev || p.startsAt < prev.startsAt) bestByKey[k] = p;
+    });
+    var rows = Object.keys(bestByKey).map(function(k) { return bestByKey[k]; });
+    // Sort: currently checked-in first, then soonest-starting planned
+    var now = Date.now();
+    rows.sort(function(a, b) {
+      var aActive = a.type === 'checkin' && a.startsAt <= now && a.endsAt > now;
+      var bActive = b.type === 'checkin' && b.startsAt <= now && b.endsAt > now;
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      return a.startsAt - b.startsAt;
+    });
+    rows = rows.slice(0, 6);
+
+    var _safe = window._safeHtml || function(s) { return String(s || ''); };
+    var html =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+          '<span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>' +
+          '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Amigos no local</span>' +
+          '<a href="#presence" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Ver tudo →</a>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;">';
+
+    rows.forEach(function(p) {
+      var name = p.displayName || 'Amigo';
+      var initials = name.trim().split(/\s+/).map(function(s) { return s.charAt(0); }).join('').substring(0,2).toUpperCase();
+      var avatar = p.photoURL
+        ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #fbbf24;flex-shrink:0;">'
+        : '<div style="width:38px;height:38px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;border:2px solid #fbbf24;flex-shrink:0;">' + _safe(initials) + '</div>';
+
+      var isActive = p.type === 'checkin' && p.startsAt <= now && p.endsAt > now;
+      var statusStr;
+      if (isActive) {
+        var mins = Math.max(0, Math.round((now - p.startsAt) / 60000));
+        statusStr = '🟢 agora · há ' + mins + ' min';
+      } else {
+        var d = new Date(p.startsAt);
+        statusStr = '🗓️ ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+
+      var prefillPayload = {
+        placeId: p.placeId,
+        venueName: p.venueName,
+        sport: p.sport,
+        lat: p.venueLat,
+        lon: p.venueLon
+      };
+      var prefillJson = _safe(JSON.stringify(prefillPayload));
+      html +=
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-darker);border-radius:10px;cursor:pointer;" onclick="try{sessionStorage.setItem(\'_presencePrefill\',\'' + prefillJson.replace(/'/g,"&#39;") + '\');}catch(e){}window.location.hash=\'#presence\'">' +
+          avatar +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe((p.venueName || p.placeId) + ' · ' + p.sport) + '</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);">' + _safe(statusStr) + '</div>' +
+          '</div>' +
+        '</div>';
+    });
+    html += '</div></div>';
+    box.innerHTML = html;
+  }).catch(function(e) {
+    console.warn('Erro ao carregar presenças de amigos:', e);
+  });
 }
 
 // Check all tournaments for pending co-org invites or pending transfers targeting current user

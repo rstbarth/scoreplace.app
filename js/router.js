@@ -150,6 +150,14 @@ function initRouter() {
           return;
         }
         break;
+      case 'presence':
+        if (typeof window.renderPresence === 'function') {
+          window.renderPresence(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');

@@ -92,5 +92,18 @@ service cloud.firestore {
       allow read: if false;
       allow write: if request.auth != null;
     }
+
+    // ─── Presences (check-ins + planned "I'll play here") ─────────────────────
+    // Any authenticated user may read; client filters by visibility and friends.
+    // Create: must match caller's uid. Update/delete: owner only.
+    // TODO(security): lock reads to friends + public via a denormalized
+    // friendUids[] once the feature is validated.
+    match /presences/{presenceId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+    }
   }
 }
