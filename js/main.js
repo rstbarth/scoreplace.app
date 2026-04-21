@@ -2898,17 +2898,19 @@ setupEnrollModal();
       // Safari iOS sem install — ensina o fluxo (não há API programática
       // de install no iOS; só via Share sheet).
       mkBanner({
-        key: 'scoreplace_ios_install_dismissed',
+        // key bumpada v2 para mostrar o tutorial melhorado mesmo para
+        // usuários que tinham dispensado a versão anterior sem conseguir instalar.
+        key: 'scoreplace_ios_install_dismissed_v2',
         icon: '📲',
         title: 'Instalar no iPhone',
         body:
           'Abra em tela cheia e ative os atalhos:<br>' +
-          '<b>1.</b> Toque no ícone <b>Compartilhar</b> — quadrado com seta pra cima ' +
-          '<span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin:0 2px;vertical-align:middle;font-size:0.72rem;">⬆</span>' +
-          '. Fica no <b>centro da barra de baixo do Safari</b> (entre os botões de abas e voltar).<br>' +
-          '<b>2.</b> A lista abre com apps em cima e ações embaixo. <b>Role pra baixo</b> até ver <b>"Adicionar à Tela de Início"</b> (pode ser "Add to Home Screen" se estiver em inglês). Se não achar, toque em <b>"Editar Ações"</b> no final da lista e ative a opção.<br>' +
+          '<b>1.</b> Abrir o menu de <b>Compartilhar</b>:<br>' +
+          '&nbsp;&nbsp;&nbsp;• Se o Safari mostra o ícone <span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin:0 2px;vertical-align:middle;font-size:0.72rem;">⬆</span> direto na barra de baixo, toque nele.<br>' +
+          '&nbsp;&nbsp;&nbsp;• Em <b>iOS 17+</b> (tab bar compacto) o ícone fica escondido: toque nos <b>três pontinhos <span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin:0 2px;vertical-align:middle;font-size:0.72rem;">•••</span></b> no canto direito da barra → depois em <b>"Compartilhar"</b>. Alternativa: toque em <b>"Aa"</b> ao lado da URL → "Compartilhar".<br>' +
+          '<b>2.</b> Na lista que abre, <b>role pra baixo</b> até <b>"Adicionar à Tela de Início"</b>. Se não achar, toque em <b>"Editar Ações"</b> no final da lista e ative a opção.<br>' +
           '<b>3.</b> Toque nela, depois em <b>Adicionar</b> no canto superior direito.<br><br>' +
-          '<span style="color:var(--text-muted);">⚠️ Não funciona em <b>Navegação Privativa</b> — precisa ser aba normal. Requer iOS 13 ou superior.</span>'
+          '<span style="color:var(--text-muted);">⚠️ Não funciona em <b>Navegação Privativa</b> — precisa ser aba normal. Requer iOS 13+.</span>'
       });
     }
   } catch (e) {}
