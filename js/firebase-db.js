@@ -39,6 +39,43 @@ window.FirestoreDB = {
 
   // ---- Tournaments ----
 
+  // Denormalized field `memberEmails[]` holds every email that has a
+  // relationship with the tournament (creator + organizer + active co-hosts +
+  // participants). A single `array-contains` query against this field
+  // replaces the current pattern of loading the entire collection at login
+  // and filtering client-side. Kept in sync on every write path below.
+  _computeMemberEmails(data) {
+    if (!data) return [];
+    var set = {};
+    var push = function(e) {
+      if (!e || typeof e !== 'string') return;
+      var norm = e.trim().toLowerCase();
+      if (norm) set[norm] = true;
+    };
+    push(data.creatorEmail);
+    push(data.organizerEmail);
+    if (Array.isArray(data.coHosts)) {
+      data.coHosts.forEach(function(ch) {
+        if (ch && ch.status === 'active') push(ch.email);
+      });
+    }
+    var parts = Array.isArray(data.participants) ? data.participants : [];
+    parts.forEach(function(p) {
+      if (!p) return;
+      if (typeof p === 'string') {
+        // Name-only or team string ("Ana / Bruno") — no email to extract.
+        // A bare string that happens to be an email is rare but handled.
+        if (p.indexOf('@') > 0 && p.indexOf(' / ') === -1) push(p);
+        return;
+      }
+      push(p.email);
+      if (Array.isArray(p.participants)) {
+        p.participants.forEach(function(sub) { if (sub) push(sub.email); });
+      }
+    });
+    return Object.keys(set);
+  },
+
   async saveTournament(tourData, options) {
     if (!this.db) return;
     var docId = String(tourData.id);
@@ -48,6 +85,11 @@ window.FirestoreDB = {
     // This is critical: sync() and organizer edits should NOT touch participants.
     if (options && options.skipParticipants) {
       delete cleanData.participants;
+      // Also skip memberEmails — it's derived from participants, and
+      // overwriting it here would wipe enrollments made concurrently.
+      delete cleanData.memberEmails;
+    } else {
+      cleanData.memberEmails = this._computeMemberEmails(cleanData);
     }
     await this.db.collection('tournaments').doc(docId).set(cleanData, { merge: true });
   },
@@ -115,7 +157,10 @@ window.FirestoreDB = {
 
       participants.push(self._cleanUndefined(participantObj));
 
-      var updateData = { participants: participants };
+      var updateData = {
+        participants: participants,
+        memberEmails: self._computeMemberEmails(Object.assign({}, data, { participants: participants }))
+      };
       if (extraUpdates) {
         Object.keys(extraUpdates).forEach(function(k) {
           updateData[k] = self._cleanUndefined(extraUpdates[k]);
@@ -139,6 +184,7 @@ window.FirestoreDB = {
   async deenrollParticipant(tournamentId, userEmail, userDisplayName, userUid) {
     if (!this.db) throw new Error('Firestore not initialized');
     var docRef = this.db.collection('tournaments').doc(String(tournamentId));
+    var self = this;
     return this.db.runTransaction(async function(transaction) {
       var doc = await transaction.get(docRef);
       if (!doc.exists) throw new Error('Tournament not found');
@@ -161,7 +207,10 @@ window.FirestoreDB = {
         return { notFound: true, participants: participants };
       }
 
-      transaction.update(docRef, { participants: newParticipants });
+      transaction.update(docRef, {
+        participants: newParticipants,
+        memberEmails: self._computeMemberEmails(Object.assign({}, data, { participants: newParticipants }))
+      });
       return { notFound: false, participants: newParticipants };
     });
   },
@@ -189,6 +238,45 @@ window.FirestoreDB = {
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);
       return [];
+    }
+  },
+
+  // Scoped load: returns only tournaments the user has a relationship with
+  // (creator / organizer / active co-host / participant) via the denormalized
+  // `memberEmails` field. Replaces `loadAllTournaments()` at login once the
+  // backfill is complete and the composite index is live. Kept side-by-side
+  // for now so the swap is a one-line change.
+  async loadMyTournaments(email) {
+    if (!this.db || !email) return [];
+    var norm = String(email).trim().toLowerCase();
+    if (!norm) return [];
+    try {
+      var snap = await this.db.collection('tournaments')
+        .where('memberEmails', 'array-contains', norm)
+        .get();
+      var tournaments = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (d) tournaments.push(d);
+      });
+      return tournaments;
+    } catch (e) {
+      console.error('Erro ao carregar torneios do usuário:', e);
+      return [];
+    }
+  },
+
+  // Fetch one tournament by id — used by direct/invite links when the
+  // tournament isn't in the scoped load (e.g. public tournament the user
+  // hasn't joined yet).
+  async loadTournamentById(id) {
+    if (!this.db || !id) return null;
+    try {
+      var doc = await this.db.collection('tournaments').doc(String(id)).get();
+      return doc.exists ? doc.data() : null;
+    } catch (e) {
+      console.error('Erro ao carregar torneio:', e);
+      return null;
     }
   },
 
