@@ -1730,10 +1730,17 @@ window._checkLigaAutoDraws = async function() {
 
   var now = new Date();
   var tournaments = store.tournaments.slice();
+  // Tombstone set — ids que o usuário acabou de apagar localmente. A lista
+  // é limpa quando o delete server-side confirma em tournaments-enrollment.
+  var _deletedIds = (store._deletedTournamentIds || []).map(String);
 
   for (var i = 0; i < tournaments.length; i++) {
     var t = tournaments[i];
     if (!t) continue;
+
+    // Torneio apagado (ou em processo de apagar) — nunca disparar auto-draw,
+    // sob pena de ressuscitar o doc via saveTournament({merge: true}).
+    if (_deletedIds.indexOf(String(t.id)) !== -1) continue;
 
     // Only Liga tournaments
     if (!(window._isLigaFormat && window._isLigaFormat(t))) continue;
@@ -1789,6 +1796,12 @@ window._checkLigaAutoDraws = async function() {
 };
 
 async function _fireLigaAutoDraw(t, scheduledTime) {
+  // First guard — the upstream _checkLigaAutoDraws already checks deleted
+  // ids, but this function is also called directly from "generate round
+  // now" paths; keep the belt-and-suspenders check.
+  var _del = (window.AppStore._deletedTournamentIds || []).map(String);
+  if (_del.indexOf(String(t.id)) !== -1) return;
+
   var hasExistingDraw = (Array.isArray(t.rounds) && t.rounds.length > 0);
   var allParts = Array.isArray(t.participants) ? t.participants.slice() : Object.values(t.participants || {});
 
@@ -1864,6 +1877,20 @@ async function _fireLigaAutoDraw(t, scheduledTime) {
 
   t.lastAutoDrawAt = scheduledTime.toISOString();
   t.updatedAt = new Date().toISOString();
+
+  // Second guard — after all the async heavy lifting above, the user may
+  // have deleted the tournament in the meantime. Bail before the save so
+  // we don't recreate a deleted doc via set({merge:true}).
+  var _del = (window.AppStore._deletedTournamentIds || []).map(String);
+  if (_del.indexOf(String(t.id)) !== -1) {
+    console.log('[auto-draw] Tournament ' + t.id + ' was deleted during draw — skipping save.');
+    return;
+  }
+  var _stillInStore = (window.AppStore.tournaments || []).some(function(x) { return String(x.id) === String(t.id); });
+  if (!_stillInStore) {
+    console.log('[auto-draw] Tournament ' + t.id + ' vanished from store (listener removed it) — skipping save.');
+    return;
+  }
 
   try {
     await window.AppStore.syncImmediate(t.id);
