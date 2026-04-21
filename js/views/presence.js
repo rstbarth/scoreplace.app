@@ -43,26 +43,26 @@
     return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   }
 
-  // Build a deduplicated list of venues the user has a relationship with —
-  // tournaments they organize or participate in. Returns [{placeId, name, lat, lon}].
+  // Build a deduplicated list of venues the user has a relationship with:
+  // profile-saved preferred locations first, then tournament venues.
+  // Returns [{placeId, name, lat, lon}].
   function _venuesFromTournaments() {
     var list = [];
     var seen = {};
+    var push = function(pid, name, lat, lon) {
+      var key = window.PresenceDB.venueKey(pid || '', name || '');
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      list.push({ placeId: key, name: name || pid || '', lat: lat || null, lon: lon || null });
+    };
+    var cu = window.AppStore && window.AppStore.currentUser;
+    (cu && Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [])
+      .forEach(function(p) { if (p) push(p.placeId, p.name, p.lat, p.lng || p.lon); });
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
     tournaments.forEach(function(t) {
       if (!t) return;
-      var pid = t.venuePlaceId || '';
-      var name = t.venue || '';
-      if (!pid && !name) return;
-      var key = window.PresenceDB.venueKey(pid, name);
-      if (!key || seen[key]) return;
-      seen[key] = true;
-      list.push({
-        placeId: key,
-        name: name || pid,
-        lat: t.venueLat || null,
-        lon: t.venueLon || null
-      });
+      if (!t.venuePlaceId && !t.venue) return;
+      push(t.venuePlaceId, t.venue, t.venueLat, t.venueLon);
     });
     return list;
   }
@@ -82,12 +82,31 @@
   }
 
   function _defaultVenue() {
+    // Profile preference takes priority — user explicitly saved these.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    if (prefLocs.length > 0) {
+      var p = prefLocs[0];
+      return {
+        placeId: window.PresenceDB.venueKey(p.placeId || '', p.name || ''),
+        name: p.name || p.placeId || '',
+        lat: p.lat || null,
+        lon: p.lng || p.lon || null
+      };
+    }
     var venues = _venuesFromTournaments();
     if (venues.length > 0) return venues[0];
     return null;
   }
 
   function _defaultSport() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var pref = cu && cu.preferredSports;
+    if (pref) {
+      var first = String(pref).split(/[,;]/)[0];
+      var norm = window.PresenceDB.normalizeSport(first);
+      if (norm) return norm;
+    }
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
     for (var i = 0; i < tournaments.length; i++) {
       var s = window.PresenceDB.normalizeSport(tournaments[i] && tournaments[i].sport);
@@ -594,6 +613,10 @@
   window._presenceCheckIn = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue || !state.sport) return;
+    if (cu.presenceVisibility === 'off') {
+      if (window.showNotification) window.showNotification('Presença desligada no seu perfil. Ative em Amigos ou Todos para registrar.', 'info');
+      return;
+    }
     // Prevent duplicate check-in at same venue+sport
     var dup = state.myActive.filter(function(p) {
       return p.type === 'checkin' && p.placeId === state.venue.placeId &&
@@ -618,7 +641,7 @@
       startsAt: now,
       endsAt: now + window.PresenceDB.CHECKIN_WINDOW_MS,
       dayKey: window.PresenceDB.dayKey(new Date(now)),
-      visibility: 'friends',
+      visibility: ((window.AppStore.currentUser && window.AppStore.currentUser.presenceVisibility) || 'friends'),
       cancelled: false,
       createdAt: now
     };
@@ -675,6 +698,10 @@
   window._presenceConfirmPlan = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue || !state.sport) return;
+    if (cu.presenceVisibility === 'off') {
+      if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
+      return;
+    }
     var startStr = (document.getElementById('plan-start') || {}).value;
     var endStr = (document.getElementById('plan-end') || {}).value;
     if (!startStr || !endStr) return;
@@ -704,7 +731,7 @@
       startsAt: startsAt,
       endsAt: endsAt,
       dayKey: window.PresenceDB.dayKey(new Date(startsAt)),
-      visibility: 'friends',
+      visibility: ((window.AppStore.currentUser && window.AppStore.currentUser.presenceVisibility) || 'friends'),
       cancelled: false,
       createdAt: Date.now()
     };

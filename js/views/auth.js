@@ -1198,6 +1198,14 @@ async function simulateLoginSuccess(user) {
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
     window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
     var cepsEl = document.getElementById('profile-edit-ceps'); if (cepsEl) cepsEl.value = cu.preferredCeps || '';
+    // Presence settings: mute auto-expires — if stored until < now, revert to 'none'
+    var _pv = cu.presenceVisibility || 'friends';
+    var _pm = cu.presenceMute || 'none';
+    if (cu.presenceMuteUntil && Number(cu.presenceMuteUntil) > 0 && Number(cu.presenceMuteUntil) < Date.now()) {
+      _pm = 'none';
+    }
+    if (typeof window._applyPresenceVisibilityUI === 'function') window._applyPresenceVisibilityUI(_pv);
+    if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI(_pm);
     setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
     setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
@@ -2333,6 +2341,29 @@ function setupProfileModal() {
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: _t('profile.notifEmail'), icon: '✉️', checked: true, color: '#3b82f6' }) : '') +
               '</div>' +
             '</div>' +
+            // Presença — visibilidade + silenciar
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
+            '<div class="form-group" style="margin-bottom: 1rem;">' +
+              '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">📍 Presença no local</label>' +
+              '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">Quem pode ver quando você registra que está num local jogando.</p>' +
+              '<div id="presence-visibility-group" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:10px;">' +
+                '<button type="button" data-pv="friends" onclick="window._setPresenceVisibility(\'friends\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">👥 Amigos</button>' +
+                '<button type="button" data-pv="public" onclick="window._setPresenceVisibility(\'public\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🌐 Todos</button>' +
+                '<button type="button" data-pv="off" onclick="window._setPresenceVisibility(\'off\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🚫 Ninguém</button>' +
+              '</div>' +
+              '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 4px 0;">Silenciar sugestões automáticas de check-in</p>' +
+              '<div id="presence-mute-group" style="display:flex;gap:4px;flex-wrap:wrap;">' +
+                '<button type="button" data-pm="none" onclick="window._setPresenceMute(\'none\')" class="btn btn-sm" style="flex:1;min-width:54px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">Ativas</button>' +
+                '<button type="button" data-pm="1d" onclick="window._setPresenceMute(\'1d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">1 dia</button>' +
+                '<button type="button" data-pm="7d" onclick="window._setPresenceMute(\'7d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">7 dias</button>' +
+                '<button type="button" data-pm="15d" onclick="window._setPresenceMute(\'15d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">15 dias</button>' +
+                '<button type="button" data-pm="30d" onclick="window._setPresenceMute(\'30d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">30 dias</button>' +
+                '<button type="button" data-pm="forever" onclick="window._setPresenceMute(\'forever\')" class="btn btn-sm" style="flex:1;min-width:54px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">Sempre</button>' +
+              '</div>' +
+              '<input type="hidden" id="profile-presence-visibility" value="friends">' +
+              '<input type="hidden" id="profile-presence-mute" value="none">' +
+            '</div>' +
+            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Locais de preferência (mapa)
             '<div class="form-group" style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + _t('profile.labelLocations') + '</label>' +
@@ -2487,6 +2518,64 @@ function setupProfileModal() {
         btn.style.boxShadow = isActive ? ('0 0 10px ' + color + '40') : 'none';
         btn.style.fontWeight = isActive ? '700' : '500';
       });
+    };
+
+    // ─── Presence visibility + mute toggles ─────────────────────────────────
+    var _presenceVisColors = { friends: '#3b82f6', public: '#22c55e', off: '#ef4444' };
+
+    window._setPresenceVisibility = function(val) {
+      var hidden = document.getElementById('profile-presence-visibility');
+      if (hidden) hidden.value = val;
+      window._applyPresenceVisibilityUI(val);
+    };
+    window._applyPresenceVisibilityUI = function(val) {
+      var hidden = document.getElementById('profile-presence-visibility');
+      if (hidden) hidden.value = val;
+      var group = document.getElementById('presence-visibility-group');
+      if (!group) return;
+      group.querySelectorAll('button[data-pv]').forEach(function(btn) {
+        var v = btn.getAttribute('data-pv');
+        var isActive = (v === val);
+        var color = _presenceVisColors[v] || '#6366f1';
+        btn.style.background = isActive ? color : 'transparent';
+        btn.style.color = isActive ? '#fff' : 'var(--text-muted)';
+        btn.style.border = isActive ? ('2px solid ' + color) : '1.5px solid var(--border-color)';
+        btn.style.boxShadow = isActive ? ('0 0 10px ' + color + '40') : 'none';
+        btn.style.fontWeight = isActive ? '700' : '500';
+      });
+    };
+
+    window._setPresenceMute = function(val) {
+      var hidden = document.getElementById('profile-presence-mute');
+      if (hidden) hidden.value = val;
+      window._applyPresenceMuteUI(val);
+    };
+    window._applyPresenceMuteUI = function(val) {
+      var hidden = document.getElementById('profile-presence-mute');
+      if (hidden) hidden.value = val;
+      var group = document.getElementById('presence-mute-group');
+      if (!group) return;
+      group.querySelectorAll('button[data-pm]').forEach(function(btn) {
+        var v = btn.getAttribute('data-pm');
+        var isActive = (v === val);
+        btn.style.background = isActive ? '#6366f1' : 'transparent';
+        btn.style.color = isActive ? '#fff' : 'var(--text-muted)';
+        btn.style.border = isActive ? '2px solid #6366f1' : '1.5px solid var(--border-color)';
+        btn.style.boxShadow = isActive ? '0 0 8px #6366f140' : 'none';
+        btn.style.fontWeight = isActive ? '700' : '500';
+      });
+    };
+
+    // Translate a mute token into an absolute timestamp (ms). Returns 0 if no mute.
+    window._presenceMuteToUntil = function(tok) {
+      if (!tok || tok === 'none') return 0;
+      if (tok === 'forever') return 253402300799000; // year 9999
+      var now = Date.now();
+      if (tok === '1d') return now + 24*3600*1000;
+      if (tok === '7d') return now + 7*24*3600*1000;
+      if (tok === '15d') return now + 15*24*3600*1000;
+      if (tok === '30d') return now + 30*24*3600*1000;
+      return 0;
     };
 
     // ─── Profile Map: location picker ────────────────────────────────────────
@@ -2862,6 +2951,15 @@ function setupProfileModal() {
       window.AppStore.currentUser.notifyLevel = notifyLevel;
       window.AppStore.currentUser.preferredCeps = preferredCeps;
       window.AppStore.currentUser.preferredLocations = preferredLocations;
+      // Presence settings
+      var _pvEl = document.getElementById('profile-presence-visibility');
+      var _pmEl = document.getElementById('profile-presence-mute');
+      var _pv = (_pvEl && _pvEl.value) || 'friends';
+      var _pm = (_pmEl && _pmEl.value) || 'none';
+      window.AppStore.currentUser.presenceVisibility = _pv;
+      window.AppStore.currentUser.presenceMute = _pm;
+      window.AppStore.currentUser.presenceMuteUntil = (typeof window._presenceMuteToUntil === 'function')
+        ? window._presenceMuteToUntil(_pm) : 0;
 
       // Calcula idade se tem data de nascimento
       if (birthDate) {
