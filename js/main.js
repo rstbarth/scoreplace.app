@@ -2845,36 +2845,72 @@ setupProfileModal();
 setupResultModal();
 setupEnrollModal();
 
-// Banner "Abra no Safari" para usuários em Chrome iOS (ou Firefox/Edge iOS).
-// PWA install + shortcuts só rodam via Safari no iPhone — todos os outros
-// browsers iOS são WebKit com skin, sem a funcionalidade de Add to Home Screen.
-// Banner dismissable, uma vez só (localStorage). Deploy silencioso.
-(function suggestSafariOnNonSafariIOS() {
+// Dois banners complementares para usuários iOS:
+//   1. Chrome/Firefox/Edge iOS → sugere abrir no Safari (install só lá)
+//   2. Safari iOS ainda não instalou como PWA → explica o passo a passo
+// Ambos dismissable, persistidos em localStorage, não atrapalham quem já
+// instalou (detectado via display-mode standalone + navigator.standalone).
+(function iosInstallHints() {
   try {
-    if (localStorage.getItem('scoreplace_safari_hint_dismissed') === '1') return;
     var ua = navigator.userAgent || '';
     var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     if (!isIOS) return;
-    // Chrome iOS tem "CriOS", Firefox iOS "FxiOS", Edge iOS "EdgiOS".
-    // Safari é o único que NÃO tem nenhum desses sufixos no UA iOS.
-    var isNonSafariIOS = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-    if (!isNonSafariIOS) return;
-    // Já instalado como PWA? display-mode: standalone OU navigator.standalone (Safari)
+    // Já instalado como PWA? Não mostra nada.
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
 
-    var banner = document.createElement('div');
-    banner.id = 'safari-hint-banner';
-    banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10050;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:12px 14px;color:#fff;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-size:0.82rem;';
-    banner.innerHTML =
-      '<div style="flex-shrink:0;font-size:1.2rem;">🧭</div>' +
-      '<div style="flex:1;min-width:0;line-height:1.4;">' +
-        '<div style="font-weight:700;color:#fbbf24;margin-bottom:2px;">Para melhor experiência, use Safari</div>' +
-        '<div style="color:var(--text-main);font-size:0.76rem;">No iPhone, instalar como app e atalhos de partida só funcionam pelo Safari. Copie o link e abra por lá.</div>' +
-      '</div>' +
-      '<button onclick="try{localStorage.setItem(\'scoreplace_safari_hint_dismissed\',\'1\')}catch(e){}this.parentElement.remove()" style="flex-shrink:0;background:transparent;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;padding:4px 8px;">✕</button>';
-    var add = function() { document.body.appendChild(banner); };
-    if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    var isNonSafariIOS = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+
+    var mkBanner = function(opts) {
+      var key = opts.key;
+      if (localStorage.getItem(key) === '1') return;
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10050;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:12px 14px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-size:0.82rem;';
+      banner.innerHTML =
+        '<div style="display:flex;align-items:flex-start;gap:10px;">' +
+          '<div style="flex-shrink:0;font-size:1.2rem;line-height:1;margin-top:2px;">' + opts.icon + '</div>' +
+          '<div style="flex:1;min-width:0;line-height:1.4;">' +
+            '<div style="font-weight:700;color:#fbbf24;margin-bottom:2px;">' + opts.title + '</div>' +
+            '<div style="color:var(--text-main);font-size:0.76rem;">' + opts.body + '</div>' +
+          '</div>' +
+          '<button data-dismiss-key="' + key + '" style="flex-shrink:0;background:transparent;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>' +
+        '</div>';
+      var add = function() {
+        document.body.appendChild(banner);
+        banner.querySelector('button[data-dismiss-key]').addEventListener('click', function() {
+          try { localStorage.setItem(key, '1'); } catch (e) {}
+          banner.remove();
+        });
+      };
+      if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    };
+
+    if (isNonSafariIOS) {
+      // Browser não-Safari no iPhone — instalar PWA e shortcuts só funcionam
+      // no Safari por limitação do iOS.
+      mkBanner({
+        key: 'scoreplace_safari_hint_dismissed',
+        icon: '🧭',
+        title: 'Para melhor experiência, use Safari',
+        body: 'No iPhone, instalar como app e atalhos de partida só funcionam pelo Safari. Copie o link e abra por lá.'
+      });
+    } else {
+      // Safari iOS sem install — ensina o fluxo (não há API programática
+      // de install no iOS; só via Share sheet).
+      mkBanner({
+        key: 'scoreplace_ios_install_dismissed',
+        icon: '📲',
+        title: 'Instalar no iPhone',
+        body:
+          'Adicione o scoreplace à tela de início para abrir em tela cheia e ativar os atalhos de partida:<br>' +
+          '<b>1.</b> Toque no botão <b>Compartilhar</b> ' +
+          // Square-and-up-arrow glyph (Safari share icon visual cue)
+          '<span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin:0 2px;vertical-align:middle;font-size:0.72rem;">⬆</span>' +
+          ' (na barra inferior do Safari).<br>' +
+          '<b>2.</b> Role até <b>"Adicionar à Tela de Início"</b>.<br>' +
+          '<b>3.</b> Toque em <b>Adicionar</b> no canto superior direito.'
+      });
+    }
   } catch (e) {}
 })();
 
