@@ -184,16 +184,17 @@
     // lands on "their" city by default. Only when state.location is still
     // empty (i.e. user hasn't typed/cleared it) to preserve intentional edits.
     // "Local" aceita cidade ou endereço completo ("Av. Paulista 1000, SP").
-    // NB: tentamos GPS primeiro (mais preciso); cidade do perfil vira fallback
-    // quando o usuário nega permissão ou o geolocation não está disponível.
     if (!state.location) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
       if (profileCity) state.location = profileCity;
-      // Fire-and-forget GPS lookup — if it resolves, overwrites the city
-      // fallback with a much more precise "endereço, bairro, cidade".
-      _tryAutoGeolocate();
     }
+    // SEMPRE tenta GPS na abertura da view quando ainda não temos centro GPS
+    // preciso — independente do state.location ter sido pré-preenchido por
+    // filtros salvos ou pela cidade do perfil. O usuário pediu: ao abrir a
+    // página em mobile, já carregar a posição real sem precisar clicar no
+    // pin. Fire-and-forget; se permissão já é granted, fica silencioso.
+    if (!state.centerFromGps) _tryAutoGeolocate();
     var back = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
       : '';
@@ -611,18 +612,22 @@
       );
     } catch (e) { return false; }
   }
+  // Idempotência: controlada pelo caller via `state.centerFromGps` (já fez
+  // GPS nesta sessão → não re-pede). Sem sessionStorage flag — aquele
+  // persistia entre reloads e bloqueava o que o usuário explicitamente
+  // quer: refresh da página → GPS automático.
   function _tryAutoGeolocate() {
-    try {
-      if (sessionStorage.getItem('_venuesGeoTried') === '1') return;
-      sessionStorage.setItem('_venuesGeoTried', '1');
-    } catch (e) {}
     var isMob = _isMobile();
     if (isMob) {
-      // Dispara direto — o próprio browser mostra o prompt só se necessário.
+      // Mobile: dispara direto. Se permissão = granted, resolve silencioso.
+      // Se = prompt, browser mostra o diálogo nativo. Se = denied, erro
+      // catch-ado silenciosamente em _venuesUseMyLocation(false).
       window._venuesUseMyLocation(false);
       return;
     }
-    // Desktop: só dispara se permissão já é 'granted'.
+    // Desktop: só dispara se permissão já é 'granted' — não invadimos a
+    // primeira visita com um prompt intrusivo num device onde GPS é menos
+    // útil.
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' }).then(function(res) {
         if (res && res.state === 'granted') window._venuesUseMyLocation(false);
