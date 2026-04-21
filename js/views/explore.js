@@ -127,9 +127,11 @@ function _friendCompactCardHtml(u, uid) {
   var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
 
   return '<div class="card hover-lift" style="position:relative;padding:10px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:12px;min-width:0;">' +
-    // Tiny ✕ at top-right to unfriend
+    // Discrete ✕ at top-right to unfriend — no background oval; just the
+    // glyph. Darkens on hover for feedback.
     '<button type="button" title="Desfazer amizade" onclick="event.stopPropagation(); _removeFriend(\'' + safeUid + '\')" ' +
-      'style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.78rem;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>' +
+      'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" ' +
+      'style="position:absolute;top:4px;right:6px;width:18px;height:18px;border:none;background:transparent;color:var(--text-muted);font-size:0.82rem;font-weight:400;cursor:pointer;line-height:1;padding:0;opacity:0.5;">✕</button>' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);margin-top:4px;">' +
     '<div style="width:100%;min-width:0;">' +
       '<div style="font-weight:600;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +

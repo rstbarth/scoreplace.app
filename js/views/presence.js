@@ -531,33 +531,42 @@
     hours.forEach(function(h) {
       var list = groups[h];
       var friendsSet = {};
-      var friendAvatars = [];
+      var friendChips = [];
       var otherCount = 0;
       var tournamentBadge = '';
       list.forEach(function(p) {
         if (p.type === 'tournament' && !tournamentBadge) {
-          tournamentBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;background:rgba(251,191,36,0.18);border:1px solid rgba(251,191,36,0.35);color:#fbbf24;padding:2px 8px;border-radius:999px;margin-left:6px;cursor:pointer;" onclick="window.location.hash=\'#tournaments/' + _safe(p._tournamentId) + '\'">🏆 ' + _safe(p._tournamentName) + '</span>';
+          tournamentBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;background:rgba(251,191,36,0.18);border:1px solid rgba(251,191,36,0.35);color:#fbbf24;padding:2px 8px;border-radius:999px;cursor:pointer;" onclick="window.location.hash=\'#tournaments/' + _safe(p._tournamentId) + '\'">🏆 ' + _safe(p._tournamentName) + '</span>';
         }
         var klass = _classify(p);
         if (klass === 'me' || klass === 'friend') {
           var key = p.uid || p.displayName;
           if (friendsSet[key]) return;
           friendsSet[key] = true;
-          var name = p.displayName || 'Amigo';
+          var name = klass === 'me' ? 'Você' : (p.displayName || 'Amigo');
+          var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
+          // flex-shrink:0 keeps the circle perfectly round inside the flex
+          // container — without it, tight rows squish the image horizontally.
           var avatar = p.photoURL
-            ? '<img src="' + _safe(p.photoURL) + '" alt="" title="' + _safe(name) + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';margin-left:-6px;">'
-            : '<div title="' + _safe(name) + '" style="width:30px;height:30px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.78rem;border:2px solid ' + (klass === 'me' ? '#10b981' : '#fbbf24') + ';margin-left:-6px;">' + _safe(_initials(name)) + '</div>';
-          friendAvatars.push(avatar);
+            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:28px;height:28px;min-width:28px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
+            : '<div style="width:28px;height:28px;min-width:28px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.72rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+          // Chip: avatar + name; truncates name gracefully on narrow screens.
+          friendChips.push(
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 3px;max-width:100%;min-width:0;">' +
+              avatar +
+              '<span style="font-size:0.78rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
+            '</div>'
+          );
         } else if (p.visibility === 'public' || p.type === 'tournament') {
           otherCount += 1;
         }
       });
       html +=
         '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);">' +
-          '<div style="min-width:60px;font-weight:700;color:var(--text-bright);font-size:0.9rem;">' + h + 'h</div>' +
-          '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">' +
-            (friendAvatars.length > 0 ? '<div style="display:flex;margin-left:6px;">' + friendAvatars.join('') + '</div>' : '') +
-            (otherCount > 0 ? '<span style="background:rgba(107,114,128,0.18);border:1px solid rgba(107,114,128,0.3);color:var(--text-bright);font-size:0.75rem;font-weight:600;padding:2px 10px;border-radius:999px;margin-left:6px;">+' + otherCount + '</span>' : '') +
+          '<div style="min-width:40px;font-weight:700;color:var(--text-bright);font-size:0.9rem;flex-shrink:0;">' + h + 'h</div>' +
+          '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;">' +
+            friendChips.join('') +
+            (otherCount > 0 ? '<span style="background:rgba(107,114,128,0.18);border:1px solid rgba(107,114,128,0.3);color:var(--text-bright);font-size:0.75rem;font-weight:600;padding:2px 10px;border-radius:999px;">+' + otherCount + '</span>' : '') +
             tournamentBadge +
           '</div>' +
         '</div>';
