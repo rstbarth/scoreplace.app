@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.14.73-alpha';
+window.SCOREPLACE_VERSION = '0.14.74-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1155,6 +1155,36 @@ window.AppStore = {
           }
         }
         lastCasualRoom = newRoom;
+
+        // Sync friend-relationship arrays so the sender's Explore view
+        // reflects Accept/Reject/Remove decisions the other party made
+        // WITHOUT requiring a page reload. Previously the explore cards
+        // (including the "Convite enviado" pending card) stayed stale
+        // indefinitely because AppStore.currentUser was never refreshed.
+        if (store.currentUser) {
+          var friendArraysChanged = false;
+          ['friends', 'friendRequestsSent', 'friendRequestsReceived'].forEach(function(key) {
+            var incoming = Array.isArray(data[key]) ? data[key] : [];
+            var existing = Array.isArray(store.currentUser[key]) ? store.currentUser[key] : [];
+            // Compare as sorted-joined strings — cheap and deterministic for
+            // simple arrays of uids. Different length OR different members
+            // counts as changed.
+            var a = existing.slice().sort().join(',');
+            var b = incoming.slice().sort().join(',');
+            if (a !== b) {
+              store.currentUser[key] = incoming.slice();
+              friendArraysChanged = true;
+            }
+          });
+          if (friendArraysChanged) {
+            // If the Explorar view is open, re-render it so pending cards
+            // disappear, new friends move up into "Meus Amigos", etc.
+            if (window.location.hash === '#explore') {
+              var vc = document.getElementById('view-container');
+              if (vc && typeof renderExplore === 'function') renderExplore(vc);
+            }
+          }
+        }
       }, function(err) {
         console.warn('Profile listener error:', err);
       });
