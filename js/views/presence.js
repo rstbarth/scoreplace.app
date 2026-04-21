@@ -16,6 +16,33 @@
   var START_HOUR = 6;
   var END_HOUR = 23;
 
+  // Sport → emoji map (shared with the rest of the app — mirrors dashboard.js
+  // getSportIcon). Keeps icons in the chips consistent everywhere.
+  function _sportIcon(sport) {
+    if (!sport) return '';
+    var s = String(sport).toLowerCase();
+    if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
+    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('pickleball') !== -1) return '🥒';
+    if (s.indexOf('tênis') !== -1 || s.indexOf('tennis') !== -1 || s.indexOf('beach') !== -1) return '🎾';
+    if (s.indexOf('futsal') !== -1 || s.indexOf('futebol') !== -1) return '⚽';
+    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
+    if (s.indexOf('basquete') !== -1) return '🏀';
+    return '🏆';
+  }
+
+  // Concatenate dedup'd icons for a list of sports.
+  function _sportsIcons(sports) {
+    if (!sports || !sports.length) return '';
+    var seen = {};
+    var out = '';
+    sports.forEach(function(s) {
+      var icon = _sportIcon(s);
+      if (icon && !seen[icon]) { seen[icon] = true; out += icon; }
+    });
+    return out;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   function _safe(s) {
@@ -550,9 +577,13 @@
           var avatar = p.photoURL
             ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:28px;height:28px;min-width:28px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
             : '<div style="width:28px;height:28px;min-width:28px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.72rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
-          // Chip: avatar + name; truncates name gracefully on narrow screens.
+          // Chip: [sport icons] avatar [name]. Icons come before the avatar so
+          // friends know at a glance which modalities this person will play.
+          var chipSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+          var iconStr = _sportsIcons(chipSports);
           friendChips.push(
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 3px;max-width:100%;min-width:0;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;max-width:100%;min-width:0;">' +
+              (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.9rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
               avatar +
               '<span style="font-size:0.78rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
             '</div>'
@@ -724,7 +755,7 @@
     return until > Date.now();
   }
 
-  window._presenceCheckIn = function(forcedSport) {
+  window._presenceCheckIn = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue) return;
     if (cu.presenceVisibility === 'off') {
@@ -735,17 +766,12 @@
       if (window.showNotification) window.showNotification('Presença silenciada. Desative em Perfil → Presença para registrar.', 'info');
       return;
     }
-    // Multi-sport filter is for browsing; for writes, pick exactly one since
-    // the user is physically playing a single modality right now. Prompt if
-    // multiple are selected and no forcedSport was passed in yet.
+    // All selected sports are stored on the same presence doc — the user is
+    // "at this venue and available to play any of these modalities". No more
+    // "pick one" prompt; a single doc represents the whole session.
     var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
-    if (!forcedSport && sports.length > 1 && typeof window.showConfirmDialog === 'function') {
-      _pickSportThen('check-in', sports, function(chosen) { window._presenceCheckIn(chosen); });
-      return;
-    }
-    var sportToWrite = forcedSport || sports[0] || state.sport;
-    if (!sportToWrite) return;
-    state.sport = sportToWrite;
+    if (sports.length === 0) return;
+    state.sport = sports[0];
     // Prevent duplicate check-in at same venue+sport
     var dup = state.myActive.filter(function(p) {
       return p.type === 'checkin' && p.placeId === state.venue.placeId &&
@@ -756,6 +782,7 @@
       return;
     }
     var now = Date.now();
+    var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
     var payload = {
       uid: cu.uid,
       email_lower: (cu.email || '').toLowerCase(),
@@ -765,7 +792,10 @@
       venueName: state.venue.name || '',
       venueLat: state.venue.lat || null,
       venueLon: state.venue.lon || null,
-      sport: window.PresenceDB.normalizeSport(state.sport),
+      // `sport` stays for backward compat (old readers); `sports[]` is the
+      // canonical multi-sport field queryable via array-contains.
+      sport: normSports[0] || '',
+      sports: normSports,
       type: 'checkin',
       startsAt: now,
       endsAt: now + window.PresenceDB.CHECKIN_WINDOW_MS,
@@ -814,22 +844,18 @@
     document.body.appendChild(overlay);
   }
 
-  window._presencePlanDialog = function(forcedSport) {
+  window._presencePlanDialog = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue) return;
     var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
-    if (!forcedSport && sports.length > 1) {
-      _pickSportThen('plan', sports, function(chosen) { window._presencePlanDialog(chosen); });
-      return;
-    }
-    if (forcedSport) state.sport = forcedSport;
-    if (!state.sport) return;
+    if (sports.length === 0) return;
+    state.sport = sports[0];
     var now = new Date();
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    var defEnd = new Date(defStart.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) {
       return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     };
+    var sportsLabel = sports.join(' · ');
 
     // Remove any prior overlay
     var prev = document.getElementById('presence-plan-overlay');
@@ -841,11 +867,12 @@
     overlay.innerHTML =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;max-width:420px;width:100%;">' +
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(state.venue.name || state.venue.placeId) + ' · ' + _safe(state.sport) + ' · hoje</p>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
+        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(state.venue.name || state.venue.placeId) + ' · ' + _safe(sportsLabel) + ' · hoje</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
           '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="plan-start" type="time" value="' + fmt(defStart) + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até<input id="plan-end" type="time" value="' + fmt(defEnd) + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="plan-end" type="time" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
         '</div>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'presence-plan-overlay\').remove()">Cancelar</button>' +
           '<button class="btn btn-primary" onclick="window._presenceConfirmPlan()">Confirmar</button>' +
@@ -859,7 +886,9 @@
 
   window._presenceConfirmPlan = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (!cu || !cu.uid || !state.venue || !state.sport) return;
+    if (!cu || !cu.uid || !state.venue) return;
+    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    if (sports.length === 0) return;
     if (cu.presenceVisibility === 'off') {
       if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
       return;
@@ -870,7 +899,7 @@
     }
     var startStr = (document.getElementById('plan-start') || {}).value;
     var endStr = (document.getElementById('plan-end') || {}).value;
-    if (!startStr || !endStr) return;
+    if (!startStr) return;
     var now = new Date();
     var build = function(hm) {
       var parts = hm.split(':').map(Number);
@@ -878,11 +907,21 @@
       return d.getTime();
     };
     var startsAt = build(startStr);
-    var endsAt = build(endStr);
-    if (endsAt <= startsAt) {
-      if (window.showNotification) window.showNotification('Horário final deve ser maior que o inicial.', 'error');
-      return;
+    var endsAt;
+    var openEnded = false;
+    if (endStr) {
+      endsAt = build(endStr);
+      if (endsAt <= startsAt) {
+        if (window.showNotification) window.showNotification('Horário final deve ser maior que o inicial.', 'error');
+        return;
+      }
+    } else {
+      // Open-ended plan: cap at 12h after start so the doc still satisfies
+      // endsAt-based queries and isn't indefinite. UI shows "a partir de HH:mm".
+      openEnded = true;
+      endsAt = startsAt + 12 * 60 * 60 * 1000;
     }
+    var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
     var payload = {
       uid: cu.uid,
       email_lower: (cu.email || '').toLowerCase(),
@@ -892,10 +931,12 @@
       venueName: state.venue.name || '',
       venueLat: state.venue.lat || null,
       venueLon: state.venue.lon || null,
-      sport: window.PresenceDB.normalizeSport(state.sport),
+      sport: normSports[0] || '',
+      sports: normSports,
       type: 'planned',
       startsAt: startsAt,
       endsAt: endsAt,
+      openEnded: openEnded,
       dayKey: window.PresenceDB.dayKey(new Date(startsAt)),
       visibility: ((window.AppStore.currentUser && window.AppStore.currentUser.presenceVisibility) || 'friends'),
       cancelled: false,
