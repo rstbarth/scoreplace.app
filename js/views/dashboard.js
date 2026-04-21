@@ -1097,6 +1097,9 @@ function _hydrateFriendsPresenceWidget() {
   if (!box || !window.PresenceDB || !window.AppStore) return;
   var cu = window.AppStore.currentUser;
   if (!cu || !cu.uid) return;
+  // Muted = don't fetch anyone's presences, consistent with Perfil → Presença.
+  var muteUntil = Number(cu.presenceMuteUntil || 0);
+  if (muteUntil > Date.now()) return;
   var friends = Array.isArray(cu.friends) ? cu.friends : [];
   if (friends.length === 0) return;
 

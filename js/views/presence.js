@@ -518,6 +518,21 @@
   // ── Data loading ──────────────────────────────────────────────────────────
 
   function refreshData() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    // When muted, we don't fetch or display anyone's presences — consistent
+    // with "não informar e não receber" semantics of the profile toggle.
+    if (_muted(cu)) {
+      state.presences = [];
+      state.tournaments = [];
+      state.myActive = [];
+      renderChart();
+      renderMyActive();
+      var now = document.getElementById('presence-now');
+      if (now) now.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:16px;text-align:center;color:var(--text-muted);font-size:0.88rem;">🔕 Presença silenciada no seu perfil. Desative para ver e registrar presenças.</div>';
+      var up = document.getElementById('presence-upcoming');
+      if (up) up.innerHTML = '';
+      return;
+    }
     if (!state.venue || !state.venue.placeId || !state.sport) {
       // Can't query without both — just render empty chart
       state.presences = [];
@@ -610,11 +625,22 @@
     refreshData();
   };
 
+  // Is the current user under an active mute?
+  function _muted(cu) {
+    if (!cu) return false;
+    var until = Number(cu.presenceMuteUntil || 0);
+    return until > Date.now();
+  }
+
   window._presenceCheckIn = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue || !state.sport) return;
     if (cu.presenceVisibility === 'off') {
       if (window.showNotification) window.showNotification('Presença desligada no seu perfil. Ative em Amigos ou Todos para registrar.', 'info');
+      return;
+    }
+    if (_muted(cu)) {
+      if (window.showNotification) window.showNotification('Presença silenciada. Desative em Perfil → Presença para registrar.', 'info');
       return;
     }
     // Prevent duplicate check-in at same venue+sport
@@ -700,6 +726,10 @@
     if (!cu || !cu.uid || !state.venue || !state.sport) return;
     if (cu.presenceVisibility === 'off') {
       if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
+      return;
+    }
+    if (_muted(cu)) {
+      if (window.showNotification) window.showNotification('Presença silenciada. Desative em Perfil → Presença para planejar.', 'info');
       return;
     }
     var startStr = (document.getElementById('plan-start') || {}).value;

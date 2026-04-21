@@ -1110,6 +1110,11 @@ async function simulateLoginSuccess(user) {
     if (typeof window._initFCM === 'function') {
       window._initFCM().catch(function(e) { console.warn('FCM init error:', e); });
     }
+    // Geolocation check — suggests or auto-creates presence if at a preferred venue.
+    // Respects presenceMuteUntil, presenceVisibility and presenceAutoCheckin flags.
+    if (typeof window._presenceGeoCheck === 'function') {
+      try { window._presenceGeoCheck(); } catch (e) { console.warn('Presence geo error:', e); }
+    }
     // Kick Liga auto-draw poller once immediately after login; the interval
     // keeps it ticking thereafter (wired in main.js).
     if (typeof window._checkLigaAutoDraws === 'function') {
@@ -1194,18 +1199,19 @@ async function simulateLoginSuccess(user) {
       { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
       { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
       { id: 'profile-notify-email', val: cu.notifyEmail !== false },
-      { id: 'profile-hints-enabled', val: _hintsEnabled }
+      { id: 'profile-hints-enabled', val: _hintsEnabled },
+      { id: 'profile-presence-auto-checkin', val: !!cu.presenceAutoCheckin }
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
     window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
     var cepsEl = document.getElementById('profile-edit-ceps'); if (cepsEl) cepsEl.value = cu.preferredCeps || '';
-    // Presence settings: mute auto-expires — if stored until < now, revert to 'none'
+    // Presence settings: mute auto-expires. Active if until > now; else off.
     var _pv = cu.presenceVisibility || 'friends';
-    var _pm = cu.presenceMute || 'none';
-    if (cu.presenceMuteUntil && Number(cu.presenceMuteUntil) > 0 && Number(cu.presenceMuteUntil) < Date.now()) {
-      _pm = 'none';
-    }
+    var _until = Number(cu.presenceMuteUntil || 0);
+    var _active = _until > Date.now();
+    // Reconstruct days remaining from stored until (or keep last-used as default)
+    var _daysLeft = _active ? Math.max(1, Math.ceil((_until - Date.now()) / (24 * 3600 * 1000))) : (Number(cu.presenceMuteDays) || 7);
     if (typeof window._applyPresenceVisibilityUI === 'function') window._applyPresenceVisibilityUI(_pv);
-    if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI(_pm);
+    if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI({ active: _active, days: _daysLeft });
     setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
     setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
@@ -2351,17 +2357,22 @@ function setupProfileModal() {
                 '<button type="button" data-pv="public" onclick="window._setPresenceVisibility(\'public\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🌐 Todos</button>' +
                 '<button type="button" data-pv="off" onclick="window._setPresenceVisibility(\'off\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🚫 Ninguém</button>' +
               '</div>' +
-              '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 4px 0;">Silenciar sugestões automáticas de check-in</p>' +
-              '<div id="presence-mute-group" style="display:flex;gap:4px;flex-wrap:wrap;">' +
-                '<button type="button" data-pm="none" onclick="window._setPresenceMute(\'none\')" class="btn btn-sm" style="flex:1;min-width:54px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">Ativas</button>' +
-                '<button type="button" data-pm="1d" onclick="window._setPresenceMute(\'1d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">1 dia</button>' +
-                '<button type="button" data-pm="7d" onclick="window._setPresenceMute(\'7d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">7 dias</button>' +
-                '<button type="button" data-pm="15d" onclick="window._setPresenceMute(\'15d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">15 dias</button>' +
-                '<button type="button" data-pm="30d" onclick="window._setPresenceMute(\'30d\')" class="btn btn-sm" style="flex:1;min-width:40px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">30 dias</button>' +
-                '<button type="button" data-pm="forever" onclick="window._setPresenceMute(\'forever\')" class="btn btn-sm" style="flex:1;min-width:54px;font-size:0.7rem;padding:6px 4px;border-radius:8px;">Sempre</button>' +
+              '<div style="margin-top:4px;margin-bottom:6px;">' +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-presence-auto-checkin', label: 'Auto check-in ao chegar no local (usa GPS)', icon: '📡', checked: false, color: '#10b981', desc: 'Se você estiver em um local preferido, registra presença automaticamente. Senão, o app sugere.' }) : '') +
               '</div>' +
+              '<div id="presence-mute-wrap" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;">' +
+                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.78rem;color:var(--text-bright);">' +
+                  '<input type="checkbox" id="profile-presence-mute-toggle" onchange="window._onPresenceMuteToggle(this.checked)" style="width:16px;height:16px;cursor:pointer;">' +
+                  '<span>🔕 Silenciar presença temporariamente</span>' +
+                '</label>' +
+                '<div id="profile-presence-mute-days-wrap" style="display:none;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-muted);">' +
+                  '<span>por</span>' +
+                  '<input type="number" id="profile-presence-mute-days" min="1" max="365" value="7" style="width:64px;padding:6px 8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.82rem;text-align:center;">' +
+                  '<span>dias</span>' +
+                '</div>' +
+              '</div>' +
+              '<p style="font-size:0.68rem;color:var(--text-muted);margin:4px 0 0 0;">Enquanto silenciado, suas presenças não são criadas e você não aparece para amigos. Volta automático ao fim do prazo.</p>' +
               '<input type="hidden" id="profile-presence-visibility" value="friends">' +
-              '<input type="hidden" id="profile-presence-mute" value="none">' +
             '</div>' +
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
             // Locais de preferência (mapa)
@@ -2545,37 +2556,29 @@ function setupProfileModal() {
       });
     };
 
-    window._setPresenceMute = function(val) {
-      var hidden = document.getElementById('profile-presence-mute');
-      if (hidden) hidden.value = val;
-      window._applyPresenceMuteUI(val);
-    };
-    window._applyPresenceMuteUI = function(val) {
-      var hidden = document.getElementById('profile-presence-mute');
-      if (hidden) hidden.value = val;
-      var group = document.getElementById('presence-mute-group');
-      if (!group) return;
-      group.querySelectorAll('button[data-pm]').forEach(function(btn) {
-        var v = btn.getAttribute('data-pm');
-        var isActive = (v === val);
-        btn.style.background = isActive ? '#6366f1' : 'transparent';
-        btn.style.color = isActive ? '#fff' : 'var(--text-muted)';
-        btn.style.border = isActive ? '2px solid #6366f1' : '1.5px solid var(--border-color)';
-        btn.style.boxShadow = isActive ? '0 0 8px #6366f140' : 'none';
-        btn.style.fontWeight = isActive ? '700' : '500';
-      });
+    // Mute is now a simple toggle + days input. Reflect UI state from whatever
+    // the profile currently holds; expiration is enforced at load time.
+    window._onPresenceMuteToggle = function(checked) {
+      var wrap = document.getElementById('profile-presence-mute-days-wrap');
+      if (wrap) wrap.style.display = checked ? 'flex' : 'none';
     };
 
-    // Translate a mute token into an absolute timestamp (ms). Returns 0 if no mute.
-    window._presenceMuteToUntil = function(tok) {
-      if (!tok || tok === 'none') return 0;
-      if (tok === 'forever') return 253402300799000; // year 9999
-      var now = Date.now();
-      if (tok === '1d') return now + 24*3600*1000;
-      if (tok === '7d') return now + 7*24*3600*1000;
-      if (tok === '15d') return now + 15*24*3600*1000;
-      if (tok === '30d') return now + 30*24*3600*1000;
-      return 0;
+    window._applyPresenceMuteUI = function(state) {
+      // state = { active: boolean, days: number }
+      var toggle = document.getElementById('profile-presence-mute-toggle');
+      var daysWrap = document.getElementById('profile-presence-mute-days-wrap');
+      var daysInput = document.getElementById('profile-presence-mute-days');
+      if (toggle) toggle.checked = !!(state && state.active);
+      if (daysWrap) daysWrap.style.display = (state && state.active) ? 'flex' : 'none';
+      if (daysInput && state && state.days) daysInput.value = state.days;
+    };
+
+    // Translate a days count into absolute ms timestamp. 0 = no mute.
+    window._presenceMuteToUntil = function(days) {
+      var n = parseInt(days, 10);
+      if (!n || n < 1) return 0;
+      if (n > 365) n = 365;
+      return Date.now() + n * 24 * 3600 * 1000;
     };
 
     // ─── Profile Map: location picker ────────────────────────────────────────
@@ -2953,13 +2956,20 @@ function setupProfileModal() {
       window.AppStore.currentUser.preferredLocations = preferredLocations;
       // Presence settings
       var _pvEl = document.getElementById('profile-presence-visibility');
-      var _pmEl = document.getElementById('profile-presence-mute');
+      var _pmToggle = document.getElementById('profile-presence-mute-toggle');
+      var _pmDaysEl = document.getElementById('profile-presence-mute-days');
       var _pv = (_pvEl && _pvEl.value) || 'friends';
-      var _pm = (_pmEl && _pmEl.value) || 'none';
+      var _muteActive = !!(_pmToggle && _pmToggle.checked);
+      var _muteDays = _pmDaysEl ? parseInt(_pmDaysEl.value, 10) : 7;
+      if (!_muteDays || _muteDays < 1) _muteDays = 7;
+      if (_muteDays > 365) _muteDays = 365;
       window.AppStore.currentUser.presenceVisibility = _pv;
-      window.AppStore.currentUser.presenceMute = _pm;
-      window.AppStore.currentUser.presenceMuteUntil = (typeof window._presenceMuteToUntil === 'function')
-        ? window._presenceMuteToUntil(_pm) : 0;
+      window.AppStore.currentUser.presenceMuteDays = _muteDays;
+      window.AppStore.currentUser.presenceMuteUntil = _muteActive
+        ? ((typeof window._presenceMuteToUntil === 'function') ? window._presenceMuteToUntil(_muteDays) : 0)
+        : 0;
+      var _autoChkEl = document.getElementById('profile-presence-auto-checkin');
+      window.AppStore.currentUser.presenceAutoCheckin = !!(_autoChkEl && _autoChkEl.checked);
 
       // Calcula idade se tem data de nascimento
       if (birthDate) {
