@@ -33,19 +33,59 @@
     try { await google.maps.importLibrary('places'); _placesLibReady = true; } catch (e) {}
   }
 
-  // Inject the owner section if not already present.
+  // Inner block — search input, form wrap, and "meus locais" list.
+  // Used by both the (legacy) profile modal section and the dedicated view.
+  function _ownerInnerHtml() {
+    return '<div style="position:relative;margin-bottom:8px;">' +
+        '<input type="text" id="venue-owner-search" class="form-control" placeholder="Buscar local no Google (clube, arena, quadra)" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:0.9rem;" oninput="window._venueOwnerSearch(this.value)">' +
+        '<div id="venue-owner-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
+      '</div>' +
+      '<div id="venue-owner-form-wrap"></div>' +
+      '<div id="venue-owner-list" style="margin-top:14px;"></div>';
+  }
+
+  // Legacy entry used when the section was inlined inside the profile modal.
+  // Kept for compat; new surface is the #my-venues full-page view below.
   window._renderVenueOwnerSection = function(container) {
     if (!container) return;
     container.innerHTML =
       '<div style="margin-top:1rem;">' +
         '<label class="form-label" style="font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">🏢 Sou dono de um local para jogar</label>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px 0;">Reivindique um local que você administra para aparecer na busca de jogadores. Grátis, sem cartão.</p>' +
-        '<div style="position:relative;margin-bottom:8px;">' +
-          '<input type="text" id="venue-owner-search" class="form-control" placeholder="Buscar local no Google (clube, arena, quadra)" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:0.85rem;" oninput="window._venueOwnerSearch(this.value)">' +
-          '<div id="venue-owner-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px 0;">Gerenciamento completo agora fica em <a href="#my-venues" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')" style="color:#a5b4fc;font-weight:600;">Meus locais</a>.</p>' +
+        _ownerInnerHtml() +
+      '</div>';
+    ensurePlaces();
+    window._loadMyVenuesList();
+  };
+
+  // Dedicated, full-page venue management view. Conceptually separate from
+  // the user profile — this is where a proprietor (not a player) works.
+  window.renderMyVenues = function(container) {
+    if (!container) return;
+    var back = (typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({ href: '#venues', label: 'Voltar' })
+      : '';
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) {
+      container.innerHTML = back +
+        '<div class="card" style="max-width:600px;margin:2rem auto;padding:2rem;text-align:center;">' +
+          '<h2 style="margin:0 0 1rem 0;">Meus locais</h2>' +
+          '<p style="color:var(--text-muted);margin-bottom:1rem;">Faça login para cadastrar ou gerenciar locais que você administra.</p>' +
+          '<button class="btn btn-primary" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\')">Entrar</button>' +
+        '</div>';
+      return;
+    }
+    container.innerHTML = back +
+      '<div style="max-width:820px;margin:0 auto;padding:0 4px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">' +
+          '<h2 style="margin:0;font-size:1.45rem;font-weight:800;color:var(--text-bright);flex:1;">🏢 Meus locais</h2>' +
         '</div>' +
-        '<div id="venue-owner-form-wrap"></div>' +
-        '<div id="venue-owner-list" style="margin-top:12px;"></div>' +
+        '<p style="color:var(--text-muted);font-size:0.88rem;margin:0 0 1rem 0;">' +
+          'Cadastre clubes, arenas ou quadras que você administra. Locais cadastrados aparecem na busca pública de jogadores — <b>conta diferente do seu perfil de jogador</b>: aqui são dados do negócio (endereço, quadras, preços, fotos, contatos, texto promocional).' +
+        '</p>' +
+        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:16px;">' +
+          _ownerInnerHtml() +
+        '</div>' +
       '</div>';
     ensurePlaces();
     window._loadMyVenuesList();
@@ -189,8 +229,14 @@
         '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Horário (texto livre)' +
           '<input type="text" id="venue-owner-hours" value="' + _safe(ex.hours || '') + '" placeholder="Ex: Seg-Sex 7h-23h, Sáb-Dom 8h-22h" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
         '</label>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Descrição (opcional)' +
-          '<textarea id="venue-owner-desc" rows="2" placeholder="Quadras iluminadas, estacionamento, vestiário..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;">' + _safe(ex.description || '') + '</textarea>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">💰 Valores para aluguel' +
+          '<textarea id="venue-owner-pricelist" rows="3" placeholder="Ex: Beach Tennis R$80/h · Padel R$120/h · Locação quadra toda R$300" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;">' + _safe(ex.priceList || '') + '</textarea>' +
+        '</label>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">📝 Texto promocional' +
+          '<textarea id="venue-owner-desc" rows="4" placeholder="Descreva seu local. Ex: Clube fundado em 1985 com 6 quadras de saibro cobertas, iluminação profissional, estacionamento gratuito, vestiário completo com chuveiros quentes. Aulas com professores certificados, aluguel de raquetes, sede social, bar..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;">' + _safe(ex.description || '') + '</textarea>' +
+        '</label>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">📷 Fotos do local (URLs, uma por linha — Instagram, imgur, Drive público)' +
+          '<textarea id="venue-owner-photos" rows="2" placeholder="https://instagram.com/p/xxxxx&#10;https://i.imgur.com/yyyyy.jpg" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;font-size:0.78rem;">' + _safe(Array.isArray(ex.photos) ? ex.photos.join('\n') : (ex.photos || '')) + '</textarea>' +
         '</label>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
           '<label style="font-size:0.72rem;color:var(--text-muted);">📞 Telefone' +
@@ -200,14 +246,17 @@
             '<input type="tel" id="venue-owner-whatsapp" value="' + _safe((ex.contact && ex.contact.whatsapp) || '') + '" placeholder="(11) 9xxxx-xxxx" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
           '</label>' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
           '<label style="font-size:0.72rem;color:var(--text-muted);">📷 Instagram' +
             '<input type="text" id="venue-owner-insta" value="' + _safe((ex.contact && ex.contact.instagram) || '') + '" placeholder="@seuperfil" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
           '</label>' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">✉️ E-mail' +
-            '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="contato@..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
+          '<label style="font-size:0.72rem;color:var(--text-muted);">📘 Facebook' +
+            '<input type="text" id="venue-owner-facebook" value="' + _safe((ex.contact && ex.contact.facebook) || '') + '" placeholder="facebook.com/seuperfil" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
           '</label>' +
         '</div>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">✉️ E-mail de contato' +
+          '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="contato@..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
+        '</label>' +
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
           '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
           '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? 'Salvar alterações' : '✅ Reivindicar local') + '</button>' +
@@ -234,6 +283,11 @@
     // venue-level subscription (B5b will add that as a direct upgrade path).
     var isUserPro = (typeof window._isPro === 'function' && window._isPro()) ||
                     (cu.plan === 'pro' && (!cu.planExpiresAt || new Date(cu.planExpiresAt) > new Date()));
+    // Fotos: textarea com URLs, uma por linha. Normaliza para array.
+    var photosRaw = (document.getElementById('venue-owner-photos') || {}).value || '';
+    var photos = photosRaw.split(/\r?\n/).map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 10);
+    var priceList = (document.getElementById('venue-owner-pricelist') || {}).value.trim();
+    var facebook = (document.getElementById('venue-owner-facebook') || {}).value.trim();
     var payload = {
       placeId: place.placeId,
       name: place.name,
@@ -242,6 +296,8 @@
       lat: place.lat,
       lon: place.lon,
       sports: sports,
+      photos: photos,
+      priceList: priceList,
       courtCount: parseInt(document.getElementById('venue-owner-court-count').value, 10) || null,
       priceRange: document.getElementById('venue-owner-price').value || null,
       hours: document.getElementById('venue-owner-hours').value.trim(),
@@ -250,6 +306,7 @@
         phone: document.getElementById('venue-owner-phone').value.trim(),
         whatsapp: document.getElementById('venue-owner-whatsapp').value.trim(),
         instagram: document.getElementById('venue-owner-insta').value.trim(),
+        facebook: facebook,
         email: document.getElementById('venue-owner-email').value.trim()
       },
       ownerUid: cu.uid,

@@ -1213,12 +1213,8 @@ async function simulateLoginSuccess(user) {
     if (typeof window._applyPresenceVisibilityUI === 'function') window._applyPresenceVisibilityUI(_pv);
     if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI({ active: _active, days: _daysLeft });
     setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
-    // Inject venue-owner section (lazy — only needs DOM once the modal is visible)
-    setTimeout(function() {
-      if (typeof window._renderVenueOwnerSection === 'function') {
-        window._renderVenueOwnerSection(document.getElementById('venue-owner-section'));
-      }
-    }, 200);
+    // Venue-owner section was removed from profile in favor of the dedicated
+    // #my-venues view — see auth.js link block above.
     setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
     var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -2419,9 +2415,15 @@ function setupProfileModal() {
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Venue owner — claim + edit physical places you run
+            // Meus locais — conta separada do perfil de jogador. Acesso agora
+            // pelo link dedicado abaixo ou pela CTA "Cadastrar meu local" em
+            // #venues.
             '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            '<div id="venue-owner-section"></div>' +
+            '<div style="margin-bottom:1rem;">' +
+              '<label class="form-label" style="font-size:0.8rem;font-weight:600;">🏢 Sou dono de um local</label>' +
+              '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px 0;">Gerenciamento de locais que você administra (endereço, quadras, preços, fotos, contatos) agora é separado do seu perfil de jogador.</p>' +
+              '<a href="#my-venues" onclick="if(document.getElementById(\'modal-profile\'))document.getElementById(\'modal-profile\').classList.remove(\'active\')" class="btn btn-primary btn-sm" style="text-decoration:none;">🏢 Abrir Meus locais</a>' +
+            '</div>' +
             // Buttons
             /* Salvar/Sair buttons moved to sticky header */ '' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +

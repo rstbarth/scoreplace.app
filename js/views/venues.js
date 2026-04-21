@@ -224,7 +224,7 @@
         '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">🏢 É dono de um local?</div>' +
         '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Cadastre seu clube, arena ou quadra e seja encontrado pelos jogadores.</div>' +
       '</div>' +
-      '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal();else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;">Cadastrar meu local</button>' +
+      '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#my-venues\'" style="white-space:nowrap;">Cadastrar meu local</button>' +
     '</div>';
   }
   function _googleSuggestionsHtml() {
