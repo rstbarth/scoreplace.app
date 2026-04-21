@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.14.70-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Integrações pós-pilares A+B (PR C1): fecha os loops abertos.</b> Três ligações pequenas mas de alto valor conectando funcionalidades já entregues. <b>(1) <code>_venuePrefill</code> → create-tournament</b>: o botão "🏆 Criar torneio aqui" da modal de detalhe do venue (adicionado em B2) agora efetivamente carrega o local escolhido nos campos do torneio. Dois caminhos tratados: (a) "Criar Torneio" (rápido) em <code>main.js</code> lê <code>sessionStorage._venuePrefill</code> no handler <code>btn-quick-create</code> e adiciona <code>venue</code>, <code>venuePlaceId</code>, <code>venueLat</code>, <code>venueLon</code> ao <code>tourData</code> direto; (b) "Detalhes Avançados" popula os inputs <code>#tourn-venue</code>, <code>#tourn-venue-lat</code>, <code>#tourn-venue-lon</code>, <code>#tourn-venue-place-id</code> antes do <code>openModal</code> e dispara <code>_initVenueCreateMap</code> para mostrar o mapa já posicionado. Em ambos os caminhos o prefill é consumido (<code>sessionStorage.removeItem</code>) para não vazar para próximas criações. Fluxo "descobrir → criar" agora é 1 clique e reaproveita o venue reivindicado (sem redigitar busca do Places). <b>(2) Notificação a amigos em planejamento de presença</b>: quando um usuário confirma "Planejar ida" em <code>_presenceConfirmPlan</code>, nova função <code>_notifyFriendsOfPlan(payload)</code> percorre <code>cu.friends[]</code> e chama <code>_sendUserNotification(friendUid, { type: \'presence_plan\', message, level: \'all\' })</code> para cada um. Mensagem no formato "[Nome] vai jogar [Modalidade] em [Local] às HH:mm hoje. Quer ir junto?". Reaproveita toda a infra de notificação existente — respeita <code>notifyLevel</code> de cada amigo via filtro em <code>_sendUserNotification</code> (quem marcou "só importantes"/"só fundamentais" não recebe, porque presença planejada usa <code>level: \'all\'</code>). Dispatch paralelo (<code>forEach</code>) com <code>.catch</code> silencioso por destinatário para que uma falha não bloqueie as demais. Presenças com <code>visibility: \'off\'</code> já eram bloqueadas upstream, então o notify só roda para quem está ativo — sem leakage. <b>(3) Deep-link <code>#venues/&lt;placeId&gt;</code></b>: o router passa o <code>cleanParam</code> para <code>renderVenues(container, deepLinkPlaceId)</code>; quando presente, a view renderiza normalmente e, após 150ms (para o DOM da view estar montado antes do overlay), dispara <code>_venuesOpenDetail(deepLinkPlaceId)</code> abrindo a modal automaticamente. Permite compartilhar um venue específico por URL — <code>scoreplace.app/#venues/ChIJ...</code> — útil para proprietários divulgarem seu local em redes sociais e cair direto na modal com contatos e movimento. Encerra os loops abertos que ficaram desses PRs A+B: agora descoberta, criação de torneios, presença e compartilhamento de locais formam um único grafo de navegação consistente. Arquivos: <code>js/main.js</code>, <code>js/views/presence.js</code>, <code>js/views/venues.js</code>, <code>js/router.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.14.69-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Venues (PR B5): monetização Pro — destaque + analytics + fluxo de interesse.</b> Quinto PR do pilar B, encerrando o roadmap inicial. Três partes: <b>(B5a) Destaque visual + ordenação</b>: <code>VenueDB.listVenues</code> agora ordena resultados com Pro no topo (<code>plan === \'pro\'</code> desc → verified desc → alfabético asc) para que proprietários pagantes ganhem visibilidade natural. Cards de venue Pro na view <code>#venues</code> ganham gradiente azul-suave de fundo, borda índigo (<code>rgba(99,102,241,0.4)</code>) e glow externo (<code>box-shadow 0 0 16px</code>). Markers no mapa já eram diferenciados em B4 (PinElement índigo Pro vs âmbar free). Pro é herdado do plano pessoal do usuário no momento da reivindicação/edição: se o owner é Pro (via <code>_isPro()</code> ou <code>plan === \'pro\'</code> válido no perfil), o venue ganha <code>plan: \'pro\'</code>. Isso reaproveita a monetização pessoal existente (Stripe R$19,90/mês ativado em v0.2.41-alpha) como um ganho imediato para o dono sem cobrar separadamente neste alpha. <b>(B5b) Fluxo de upgrade venue-level</b>: lista "Meus locais" no perfil ganha botão "🚀 Pro" visível apenas para venues Free. Clique abre <code>showConfirmDialog</code> explicando benefícios do Pro venue-específico (R$49/mês, destaque em busca, marker, painel analytics, fotos ilimitadas, filtros prioritários). Confirmar dispara <code>FirestoreDB.queueEmail</code> para <code>scoreplace.app@gmail.com</code> com os dados do proprietário + <code>placeId</code> + versão — fluxo "manifestar interesse" usando a infra de e-mail já existente (extensão <code>firestore-send-email</code>). Ativação manual neste alpha; Cloud Function <code>createVenueCheckoutSession</code> + novo Stripe Price ID serão adicionados quando o primeiro proprietário interessado aparecer (evita construir infra monetária especulativa). <b>(B5c) Painel de analytics do dono</b>: modal de detalhe do venue, quando aberta pelo próprio <code>ownerUid</code>, renderiza bloco "📊 Seu painel (dono)" com 3 métricas — visualizações (<code>viewCount</code> no doc), check-ins nos últimos 7 dias (somatório de 7 chamadas de <code>loadForVenueDay</code>), e total de torneios cadastrados no local (filtrados do cache <code>AppStore.tournaments</code>). Nova primitiva <code>VenueDB.incrementViewCount(key)</code> usa <code>firebase.firestore.FieldValue.increment(1)</code> para bump atômico, disparado fire-and-forget em cada abertura de modal — exceto quando o próprio dono está visualizando (não infla as próprias métricas) e exceto para visitantes anônimos (rules exigem auth). <b>Regras Firestore atualizadas</b>: <code>allow update</code> em <code>venues</code> agora permite (a) owner editar qualquer campo OU (b) qualquer autenticado editar um diff restrito a <code>viewCount</code> + <code>lastViewedAt</code> — via helper <code>isViewCountBump()</code> que usa <code>request.resource.data.diff(resource.data).affectedKeys().hasOnly([...])</code>. Impede que um usuário qualquer edite outros campos passando-se por owner. Badge PRO mais destacado na lista "Meus locais" com gradiente azul-índigo + glow. Contador de visualizações exibido ao lado dos metadados de cada venue do dono. Deploy requer <code>firebase deploy --only firestore:rules</code> para ativar o bump de viewCount. Próximos passos (fora de B5, já fora do roadmap planejado): integração <code>_venuePrefill</code> no <code>create-tournament.js</code>; clusterização de markers quando a base crescer; Cloud Function para denormalizar <code>presencesWeek</code> em cada venue diariamente (reduz os 7 fetches do painel). Pilares A e B agora cobrem check-in/planejamento, descoberta, diretório proprietário, integração bidirecional e monetização — ciclo completo. Arquivos: <code>js/venue-db.js</code>, <code>js/views/venues.js</code>, <code>js/views/venue-owner.js</code>, <code>firestore.rules</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
         '</div>' +
@@ -2602,11 +2606,23 @@
     };
     const qcTeamSize = _qcSportTeamDefaults[sportClean] || 1;
 
+    // Honor _venuePrefill left by #venues "Criar torneio aqui" — turns the
+    // discover → create loop into one click.
+    var _venuePref = null;
+    try {
+      var _raw = sessionStorage.getItem('_venuePrefill');
+      if (_raw) { _venuePref = JSON.parse(_raw); sessionStorage.removeItem('_venuePrefill'); }
+    } catch (e) {}
+
     const tourData = {
       id: 'tour_' + Date.now(),
       name: autoName,
       sport: sportRaw,
       format: 'Eliminatórias Simples',
+      venue: (_venuePref && _venuePref.venueName) || '',
+      venuePlaceId: (_venuePref && _venuePref.placeId) || '',
+      venueLat: (_venuePref && _venuePref.lat) || null,
+      venueLon: (_venuePref && _venuePref.lon) || null,
       isPublic: true,
       enrollmentMode: 'individual',
       teamSize: qcTeamSize,
@@ -2677,6 +2693,24 @@
     if (defaultDrawBtn && typeof window._selectDrawMode === 'function') window._selectDrawMode(defaultDrawBtn);
 
     if (typeof window._onFormatoChange === 'function') window._onFormatoChange();
+    // If a venue prefill arrived from #venues "Criar torneio aqui", populate
+    // the venue fields before we open the modal so the user sees it ready.
+    var _advVenuePref = null;
+    try {
+      var _advRaw = sessionStorage.getItem('_venuePrefill');
+      if (_advRaw) { _advVenuePref = JSON.parse(_advRaw); sessionStorage.removeItem('_venuePrefill'); }
+    } catch (e) {}
+    if (_advVenuePref) {
+      var _venueInp = document.getElementById('tourn-venue');
+      var _latInp = document.getElementById('tourn-venue-lat');
+      var _lonInp = document.getElementById('tourn-venue-lon');
+      var _pidInp = document.getElementById('tourn-venue-place-id');
+      if (_venueInp) _venueInp.value = _advVenuePref.venueName || '';
+      if (_latInp)   _latInp.value = _advVenuePref.lat != null ? _advVenuePref.lat : '';
+      if (_lonInp)   _lonInp.value = _advVenuePref.lon != null ? _advVenuePref.lon : '';
+      if (_pidInp)   _pidInp.value = _advVenuePref.placeId || '';
+    }
+
     if (typeof openModal === 'function') openModal('modal-create-tournament');
     if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
     // Ensure GSM summary renders after modal is visible
@@ -2684,6 +2718,11 @@
       if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
       if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
       if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
+      // Render the venue map immediately if we have coords from the prefill.
+      if (_advVenuePref && _advVenuePref.lat != null && _advVenuePref.lon != null &&
+          typeof window._initVenueCreateMap === 'function') {
+        window._initVenueCreateMap(parseFloat(_advVenuePref.lat), parseFloat(_advVenuePref.lon), _advVenuePref.venueName || '');
+      }
     }, 100);
   });
 

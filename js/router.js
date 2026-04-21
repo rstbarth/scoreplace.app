@@ -160,7 +160,7 @@ function initRouter() {
         break;
       case 'venues':
         if (typeof window.renderVenues === 'function') {
-          window.renderVenues(viewContainer);
+          window.renderVenues(viewContainer, cleanParam);
         } else {
           window.location.replace('#dashboard');
           return;

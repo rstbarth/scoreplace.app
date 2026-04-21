@@ -775,11 +775,43 @@
       renderMyActive();
       renderChart();
       renderUpcoming();
+      // Notify friends so they can plan to join. Only when the user's
+      // visibility allows friends to see the presence (default/friends or
+      // public); 'off' already short-circuits presence creation upstream.
+      _notifyFriendsOfPlan(payload);
     }).catch(function(e) {
       console.error(e);
       if (window.showNotification) window.showNotification('Erro ao planejar ida.', 'error');
     });
   };
+
+  // Send a low-priority notification to each friend when a planned presence
+  // is created. Respects each friend's notifyLevel via _sendUserNotification.
+  function _notifyFriendsOfPlan(payload) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) return;
+    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    if (friends.length === 0) return;
+    if (typeof window._sendUserNotification !== 'function') return;
+
+    var d = new Date(payload.startsAt);
+    var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var msg = (cu.displayName || 'Um amigo') + ' vai jogar ' + payload.sport +
+      ' em ' + (payload.venueName || 'um local') + ' às ' + hhmm + ' hoje. Quer ir junto?';
+
+    friends.forEach(function(friendUid) {
+      if (!friendUid) return;
+      window._sendUserNotification(friendUid, {
+        type: 'presence_plan',
+        message: msg,
+        level: 'all',
+        venueName: payload.venueName || '',
+        placeId: payload.placeId,
+        sport: payload.sport,
+        startsAt: payload.startsAt
+      }).catch(function(e) { console.warn('Presence plan notify failed:', e); });
+    });
+  }
 
   window._presenceCancel = function(docId) {
     if (!docId) return;

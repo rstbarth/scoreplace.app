@@ -514,5 +514,14 @@
     if (typeof openModal === 'function') openModal('modal-quick-create');
   };
 
-  window.renderVenues = render;
+  // Public entry point. `deepLinkPlaceId` (optional, from #venues/<placeId>)
+  // opens the detail modal right after the listing renders so shared links
+  // land on the venue directly.
+  window.renderVenues = function(container, deepLinkPlaceId) {
+    render(container);
+    if (deepLinkPlaceId && typeof window._venuesOpenDetail === 'function') {
+      // Wait a tick so the main view is in the DOM before we overlay the modal.
+      setTimeout(function() { window._venuesOpenDetail(deepLinkPlaceId); }, 150);
+    }
+  };
 })();
