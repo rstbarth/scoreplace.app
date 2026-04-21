@@ -1035,6 +1035,16 @@ async function simulateLoginSuccess(user) {
     if (!existingProfile || !existingProfile.email) {
       if (user.email) { basicData.email = user.email; needsSave = true; }
     }
+    // Backfill the denormalized lowercase fields used by searchUsers() range
+    // queries. Older profiles created before v0.14.57 won't have them.
+    if (existingProfile && existingProfile.displayName && !existingProfile.displayName_lower) {
+      basicData.displayName = existingProfile.displayName;
+      needsSave = true;
+    }
+    if (existingProfile && existingProfile.email && !existingProfile.email_lower) {
+      basicData.email = existingProfile.email;
+      needsSave = true;
+    }
     if (!existingProfile || !existingProfile.photoURL) {
       if (user.photoURL) { basicData.photoURL = user.photoURL; needsSave = true; }
     }

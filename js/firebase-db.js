@@ -350,7 +350,19 @@ window.FirestoreDB = {
   async saveUserProfile(uid, profileData) {
     if (!this.db || !uid) return;
     try {
-      await this.db.collection('users').doc(uid).set(profileData, { merge: true });
+      // Denormalize lowercase copies for server-side search. Range queries
+      // on `displayName_lower` / `email_lower` replace the
+      // scan-the-whole-users-collection pattern in searchUsers(). Only write
+      // the `_lower` fields when the source field is present in this update,
+      // so merge-saves that don't touch displayName/email don't clobber them.
+      var toSave = Object.assign({}, profileData);
+      if (toSave.displayName) {
+        toSave.displayName_lower = String(toSave.displayName).toLowerCase();
+      }
+      if (toSave.email) {
+        toSave.email_lower = String(toSave.email).toLowerCase();
+      }
+      await this.db.collection('users').doc(uid).set(toSave, { merge: true });
     } catch (e) {
       console.error('Erro ao salvar perfil:', e);
     }
@@ -369,35 +381,45 @@ window.FirestoreDB = {
 
   // ---- Explore: list users who accept friend requests ----
 
-  async searchUsers(queryText) {
+  // Search users by name or email prefix. Server-side range queries on the
+  // denormalized `displayName_lower` / `email_lower` fields — bounded by
+  // the per-query `limit`, not the total user count. Empty query returns
+  // []: a blind scan across all users is exactly what we moved away from.
+  async searchUsers(queryText, opts) {
     if (!this.db) return [];
-    try {
-      // Load ALL users, filter client-side (acceptFriendRequests may be undefined = default true)
-      var snap = await this.db.collection('users').get();
-      var users = [];
+    var q = String(queryText || '').trim().toLowerCase();
+    if (!q) return [];
+    opts = opts || {};
+    var perQueryLimit = Math.max(1, Math.min(50, opts.limit || 20));
+    var results = {};
+    var addFromSnap = function(snap) {
       snap.forEach(function(doc) {
+        if (results[doc.id]) return;
         var data = doc.data();
         data._docId = doc.id;
-        // Only include users who accept friend requests (default true if field missing)
+        // Default acceptFriendRequests to true (undefined means not set yet)
         if (data.acceptFriendRequests !== false) {
-          users.push(data);
+          results[doc.id] = data;
         }
       });
-      // Client-side filter by name/email/city
-      if (queryText && queryText.trim()) {
-        var q = queryText.trim().toLowerCase();
-        users = users.filter(function(u) {
-          return (u.displayName && u.displayName.toLowerCase().indexOf(q) !== -1) ||
-                 (u.email && u.email.toLowerCase().indexOf(q) !== -1) ||
-                 (u.city && u.city.toLowerCase().indexOf(q) !== -1) ||
-                 (u.preferredSports && u.preferredSports.toLowerCase().indexOf(q) !== -1);
-        });
-      }
-      return users;
-    } catch (e) {
-      console.error('Erro ao buscar usuários:', e);
-      return [];
-    }
+    };
+    var end = q + '\uf8ff';
+    var queries = [
+      this.db.collection('users')
+        .where('displayName_lower', '>=', q)
+        .where('displayName_lower', '<', end)
+        .limit(perQueryLimit).get().then(addFromSnap).catch(function(e) {
+          console.warn('displayName search error:', e && e.message);
+        }),
+      this.db.collection('users')
+        .where('email_lower', '>=', q)
+        .where('email_lower', '<', end)
+        .limit(perQueryLimit).get().then(addFromSnap).catch(function(e) {
+          console.warn('email search error:', e && e.message);
+        })
+    ];
+    await Promise.all(queries);
+    return Object.keys(results).map(function(k) { return results[k]; });
   },
 
   // ---- Friend Requests ----
