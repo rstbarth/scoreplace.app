@@ -342,6 +342,7 @@
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'myvenues-search', selector: '#venue-owner-search', text: 'Digite o nome do local. Sugestões do Google Places aparecem conforme você digita.', context: 'my-venues', priority: 7, position: 'bottom' },
     { id: 'myvenues-claim', selector: 'input[type="checkbox"][onclick*="claim"]', text: 'Marque se você é o proprietário oficial. Ganha tag "✅ Informações oficiais" e bloqueio contra edições de terceiros.', context: 'my-venues', priority: 6, position: 'top' },
+    { id: 'myvenues-view', selector: '#venue-owner-list button[onclick*="#venues/"]', text: 'Previsão pública: veja como os usuários veem seu local (movimento, reviews, contatos). Útil antes de compartilhar.', context: 'my-venues', priority: 4, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // NOTIFICATIONS (#notifications)

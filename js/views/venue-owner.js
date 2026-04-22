@@ -94,17 +94,19 @@
     window._loadMyVenuesList();
   };
 
-  // Places autocomplete — debounce on input.
+  // Places autocomplete — busca dinâmica (v0.15.28): 2 char mínimo + 150ms
+  // debounce pra match com a busca do profile (v0.15.19). Resposta quase
+  // imediata conforme o usuário digita "Ar" → já começa a mostrar "Arena X".
   var _searchTimer = null;
   window._venueOwnerSearch = function(query) {
     clearTimeout(_searchTimer);
-    _searchTimer = setTimeout(function() { _doSearch(query); }, 220);
+    _searchTimer = setTimeout(function() { _doSearch(query); }, 150);
   };
   async function _doSearch(query) {
     var box = document.getElementById('venue-owner-suggestions');
     if (!box) return;
     var q = String(query || '').trim();
-    if (q.length < 3) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
     await ensurePlaces();
     if (!window.google || !window.google.maps || !window.google.maps.places) {
       box.innerHTML = '<div style="padding:10px;color:#f87171;font-size:0.8rem;">Google Places indisponível.</div>';
@@ -437,14 +439,20 @@
       var viewStats = v.viewCount
         ? ' · ' + v.viewCount + ' visualiza' + (v.viewCount === 1 ? 'ção' : 'ções')
         : '';
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-darker);border:1px solid ' + (v.plan === 'pro' ? 'rgba(99,102,241,0.4)' : 'var(--border-color)') + ';border-radius:10px;margin-bottom:6px;' + (v.plan === 'pro' ? 'box-shadow:0 0 12px rgba(99,102,241,0.25);' : '') + '">' +
-        '<div style="flex:1;min-width:0;">' +
+      // Escape apenas uma vez — deserialize pra URL seguro + onclick seguro.
+      var safePid = _safe(v.placeId);
+      var urlSafePid = encodeURIComponent(v.placeId);
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid ' + (v.plan === 'pro' ? 'rgba(99,102,241,0.4)' : 'var(--border-color)') + ';border-radius:10px;margin-bottom:6px;flex-wrap:wrap;' + (v.plan === 'pro' ? 'box-shadow:0 0 12px rgba(99,102,241,0.25);' : '') + '">' +
+        '<div style="flex:1;min-width:150px;">' +
           '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + proBadge + '</div>' +
           '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(meta) + _safe(viewStats) + '</div>' +
         '</div>' +
+        // Novo: "Ver" abre a modal pública. Útil pro dono conferir como os
+        // usuários veem o venue antes de compartilhar o link.
+        '<button class="btn btn-sm" onclick="window.location.hash=\'#venues/' + urlSafePid + '\'" style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.35);color:#38bdf8;font-size:0.7rem;padding:4px 8px;font-weight:600;" title="Ver como os usuários veem">👁️ Ver</button>' +
         upgradeBtn +
-        '<button class="btn btn-sm btn-secondary" onclick="window._venueOwnerEditExisting(\'' + _safe(v.placeId) + '\')" style="font-size:0.7rem;padding:4px 8px;">Editar</button>' +
-        '<button class="btn btn-sm" onclick="window._venueOwnerRelease(\'' + _safe(v.placeId) + '\')" style="background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);font-size:0.7rem;padding:4px 8px;" title="Liberar (não é mais dono)">✕</button>' +
+        '<button class="btn btn-sm btn-secondary" onclick="window._venueOwnerEditExisting(\'' + safePid + '\')" style="font-size:0.7rem;padding:4px 8px;">Editar</button>' +
+        '<button class="btn btn-sm" onclick="window._venueOwnerRelease(\'' + safePid + '\')" style="background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);font-size:0.7rem;padding:4px 8px;" title="Liberar (não é mais dono)">✕</button>' +
       '</div>';
     });
     box.innerHTML = html;
