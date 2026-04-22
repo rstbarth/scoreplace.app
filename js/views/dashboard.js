@@ -757,6 +757,59 @@ function renderDashboard(container) {
   }
 
   // Build upcoming matches widget for current user
+  // Profile completion nudge: quando usuário tem torneios (não é fresh user
+  // — esse já tem welcome card) mas faltam campos chave que destravariam
+  // features. Ignorado se:
+  //  - usuário nunca logou (sem cu)
+  //  - já dismissou nesta sessão (sessionStorage)
+  //  - allUnique vazio (fresh user já tem o welcome card — não empilha dois banners)
+  //  - todos os campos importantes estão preenchidos
+  // Só aparece por sessão — dismissar não some pra sempre, mas não incomoda
+  // em cada navegação interna via hash.
+  function _buildProfileNudgeHtml() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return '';
+    if (allUnique.length === 0) return '';
+    try {
+      if (sessionStorage.getItem('scoreplace_profile_nudge_dismissed') === '1') return '';
+    } catch (e) {}
+    var missing = [];
+    if (!cu.city || String(cu.city).trim().length === 0) missing.push('cidade');
+    var prefSports = Array.isArray(cu.preferredSports) ? cu.preferredSports : [];
+    if (prefSports.length === 0) missing.push('modalidades preferidas');
+    var prefLocs = Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [];
+    if (prefLocs.length === 0) missing.push('locais preferidos');
+    if (missing.length === 0) return '';
+    // Frase natural: "cidade, modalidades preferidas e locais preferidos"
+    var missStr = missing.length === 1
+      ? missing[0]
+      : missing.length === 2
+        ? missing[0] + ' e ' + missing[1]
+        : missing.slice(0, -1).join(', ') + ' e ' + missing[missing.length - 1];
+    var benefits = [];
+    if (missing.indexOf('cidade') !== -1) benefits.push('notificar torneios na sua região');
+    if (missing.indexOf('modalidades preferidas') !== -1) benefits.push('sugerir torneios e parceiros do seu esporte');
+    if (missing.indexOf('locais preferidos') !== -1) benefits.push('ativar presença rápida nos seus locais de jogo');
+    var benefitsStr = benefits.slice(0, 2).join(' · '); // cap pra não ficar longo
+    return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px 14px;margin-bottom:1rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+        '<span style="font-size:1.4rem;flex-shrink:0;">👤</span>' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">Complete seu perfil pra aproveitar melhor</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Faltam: <b>' + missStr + '</b>. Isso permite ' + (benefitsStr || 'recursos adicionais do app') + '.</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+          '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal(); else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;">Completar perfil</button>' +
+          '<button class="btn btn-sm" onclick="window._dismissProfileNudge()" style="background:transparent;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.78rem;" title="Descartar nesta sessão">✕</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  window._dismissProfileNudge = function() {
+    try { sessionStorage.setItem('scoreplace_profile_nudge_dismissed', '1'); } catch (e) {}
+    var el = document.getElementById('dash-profile-nudge');
+    if (el) el.remove();
+  };
+
   function _buildUpcomingMatchesHtml() {
     var cu = window.AppStore.currentUser;
     if (!cu || !cu.email) return '';
@@ -1125,6 +1178,9 @@ function renderDashboard(container) {
 
     <!-- Filter Bar (organizer analytics moved into hero 📊 Estatísticas modal in v0.14.32) -->
     ${filterBarHtml}
+
+    <!-- Profile Completion Nudge (dismissible, smart — only when key fields missing) -->
+    ${_buildProfileNudgeHtml()}
 
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
