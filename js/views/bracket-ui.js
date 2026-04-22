@@ -824,9 +824,9 @@ window._openSetScoring = function(tId, matchId) {
     setsHtml += '<div id="tb-input-row" style="display:none;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
       '<div style="display:flex;align-items:center;gap:12px;">' +
         '<div style="width:100px;font-size:0.82rem;font-weight:600;color:#c084fc;">Tie-break</div>' +
-        '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+        '<input type="number" id="tb-p1" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
         '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:800;">×</span>' +
-        '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;">' +
+        '<input type="number" id="tb-p2" min="0" placeholder="0" style="width:56px;text-align:center;font-size:1.1rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:8px;padding:8px;" oninput="window._checkSetComplete(\'' + _esc(tId) + '\',\'' + _esc(matchId) + '\',0)">' +
       '</div>' +
       '<div id="tb-for-set" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;padding-left:100px;"></div>' +
     '</div>';
@@ -972,7 +972,9 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     el2.style.opacity = '1';
 
     if (!isNaN(g1) && !isNaN(g2)) {
-      if (g1 === gps && g2 === gps) {
+      // TB é disparado quando games empatam em (gps-1) — ex: 5-5 em set de 6.
+      // Consistente com _saveSetResult e com a regra exibida em rules.js.
+      if (g1 === (gps - 1) && g2 === (gps - 1)) {
         needsTiebreak = i;
         if (indicator) indicator.textContent = _t('bui.tiebreak');
       } else {
@@ -989,6 +991,23 @@ window._checkSetComplete = function(tId, matchId, setIndex) {
     tbRow.style.display = needsTiebreak >= 0 ? 'block' : 'none';
     const tbLabel = document.getElementById('tb-for-set');
     if (tbLabel) tbLabel.textContent = _t('bui.forSet', { n: needsTiebreak + 1 });
+  }
+
+  // Se há empate em (gps-1) e o TB está preenchido e completo, o vencedor
+  // do TB leva o set. Permite que matchDecided avalie corretamente e o
+  // botão Salvar seja habilitado.
+  if (needsTiebreak >= 0) {
+    const _tbP1 = parseInt(document.getElementById('tb-p1')?.value);
+    const _tbP2 = parseInt(document.getElementById('tb-p2')?.value);
+    const _tbTarget = sc.tiebreakPoints || 7;
+    const _tbMargin = sc.tiebreakMargin || 2;
+    if (!isNaN(_tbP1) && !isNaN(_tbP2)) {
+      const _tbComplete = (_tbP1 >= _tbTarget || _tbP2 >= _tbTarget) && Math.abs(_tbP1 - _tbP2) >= _tbMargin;
+      if (_tbComplete) {
+        if (_tbP1 > _tbP2) p1Sets++;
+        else p2Sets++;
+      }
+    }
   }
 
   const statusEl = document.getElementById('set-scoring-status');
@@ -2577,12 +2596,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
       return 0;
     }
 
-    // Standard rules: first to 'g' games with 2-game lead, or tiebreak at g-g
+    // Standard rules: first to 'g' games with 2-game lead, or tiebreak at (g-1)-(g-1)
     if (cs.gamesP1 >= g && cs.gamesP1 - cs.gamesP2 >= 2) return 1;
     if (cs.gamesP2 >= g && cs.gamesP2 - cs.gamesP1 >= 2) return 2;
 
-    // Standard tiebreak trigger at g-g (when tieRule is not set)
-    if (state.tiebreakEnabled && cs.gamesP1 === g && cs.gamesP2 === g) {
+    // Standard tiebreak trigger at (g-1)-(g-1) — e.g. 5-5 in a 6-game set.
+    // Consistente com rules.js (exibe "TB em 5-5, final 6-5") e com o save
+    // path em _saveSetResult que detecta TB a (g-1)-(g-1). Vencedor do TB
+    // recebe +1 game → set termina 6-5.
+    if (state.tiebreakEnabled && cs.gamesP1 === g - 1 && cs.gamesP2 === g - 1) {
       state.isTiebreak = true;
       state.currentGameP1 = 0;
       state.currentGameP2 = 0;

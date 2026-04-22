@@ -1003,6 +1003,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: tie-break do placar ao vivo consistente com a regra do torneio.</b> O placar ao vivo disparava o tie-break quando os games empatavam em <code>gamesPerSet × gamesPerSet</code> (ex: 6-6 em set de 6 games), enquanto a regra exibida ao usuário em <code>#rules</code> e o save path do overlay de resultado tratam TB em <code>(gamesPerSet-1) × (gamesPerSet-1)</code> (ex: 5-5, final 6-5). Agora o live scorer em <code>_checkSetWon</code> dispara em 5-5, consistente com tudo.</p>' +
+        '<p>Bônus: corrigido o <code>_checkSetComplete</code> do overlay de resultado set-a-set, que fazia o indicador "TB" aparecer em 6-6 (nunca alcançável na prática, já que o save fechava o set em 6-5) mas não em 5-5. Adicionado também <code>oninput</code> nos inputs de tie-break do overlay — antes, digitar pontos do TB não revalidava o estado (botão Salvar ficava preso em disabled).</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/bracket-ui.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Limpeza de código defensivo de compat — fase alpha.</b> Aplicando a regra persistida no <code>CLAUDE.md</code> ("dados no Firestore são descartáveis até o beta"), removidos todos os branches <code>if (legacy_shape) ...</code> que eu tinha acumulado entre venues/courts e presences:</p>' +
         '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +
