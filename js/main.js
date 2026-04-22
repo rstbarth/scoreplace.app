@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.53-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#venues: autocomplete dinâmico + modalidade como dropdown.</b> O campo de busca agora mostra sugestões do Google Places em tempo real conforme você digita — selecione um local para centralizar o mapa e carregar os venues próximos. O seletor de modalidades virou um dropdown (evita o corte no mobile). Mapa ligeiramente menor para que o campo de busca fique sempre visível na tela.</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/venues.js</code>, <code>js/store.js</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.52-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#venues redesenhado — limpo, simples e funcional.</b> A tela de Locais foi completamente refeita. Agora ela mostra: pills de modalidade no topo (rolagem horizontal), mapa de ponta a ponta logo abaixo, campo de busca + botão 📍 de GPS embaixo do mapa, e a lista de resultados aparece só depois de clicar no GPS ou digitar um endereço. Toda a poluição visual anterior (filtros de preço, distância, min. quadras, toggle mapa/lista) foi removida — ficou só o essencial. Clicar nas pills de modalidade atualiza os pins do mapa e a lista sem re-render completo da página.</p>' +
         '<p><b>Arquivos</b>: <code>js/views/venues.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +

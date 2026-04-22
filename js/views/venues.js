@@ -248,16 +248,16 @@
     return '🎾';
   }
 
-  function _sportPillsHtml() {
-    return [''].concat(SPORTS).map(function(s) {
-      var active = (state.sport === s);
-      var label = s === '' ? 'Todas' : (_sportIcon(s) + ' ' + s);
-      return '<button type="button" onclick="window._venuesSetSport(\'' + _safe(s).replace(/\'/g, "\\'") + '\')" style="' +
-        'flex-shrink:0;white-space:nowrap;padding:6px 14px;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;' +
-        'border:1px solid ' + (active ? '#6366f1' : 'var(--border-color)') + ';' +
-        'background:' + (active ? '#6366f1' : 'transparent') + ';' +
-        'color:' + (active ? '#fff' : 'var(--text-muted)') + ';">' + _safe(label) + '</button>';
+  function _sportSelectHtml() {
+    var opts = [''].concat(SPORTS).map(function(s) {
+      var label = s === '' ? 'Todas as modalidades' : (_sportIcon(s) + ' ' + s);
+      var sel = state.sport === s ? ' selected' : '';
+      return '<option value="' + _safe(s) + '"' + sel + '>' + _safe(label) + '</option>';
     }).join('');
+    return '<select id="venues-sport-select" onchange="window._venuesSetSport(this.value)" style="' +
+      'width:100%;padding:10px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);' +
+      'color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;outline:none;">' +
+      opts + '</select>';
   }
 
   function render(container) {
@@ -271,16 +271,19 @@
     if (!state.centerFromGps) _tryAutoGeolocate();
 
     container.innerHTML =
-      // ── Sport pills — horizontal scroll, above map ──
-      '<div id="venues-sport-bar" style="overflow-x:auto;display:flex;align-items:center;gap:8px;padding:10px 16px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border-color);">' +
-        _sportPillsHtml() +
+      // ── Sport dropdown — full width, above map ──
+      '<div style="padding:10px 16px;border-bottom:1px solid var(--border-color);">' +
+        _sportSelectHtml() +
       '</div>' +
-      // ── Map — edge-to-edge, no horizontal padding ──
-      '<div id="venues-map" style="width:100%;height:clamp(220px,42vh,360px);background:#0a0e1a;display:block;"></div>' +
+      // ── Map — edge-to-edge, shorter height so search stays in viewport ──
+      '<div id="venues-map" style="width:100%;height:clamp(180px,30vh,280px);background:#0a0e1a;display:block;"></div>' +
       // ── Search bar ──
       '<div style="padding:12px 16px 0;">' +
         '<div style="display:flex;gap:8px;align-items:center;">' +
-          '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
+          '<div style="flex:1;min-width:0;position:relative;">' +
+            '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" onblur="setTimeout(function(){var b=document.getElementById(\'venues-suggestions\');if(b)b.style.display=\'none\';},200)" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
+            '<div id="venues-suggestions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
+          '</div>' +
           '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#6366f1;border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">📍</button>' +
         '</div>' +
       '</div>' +
@@ -291,8 +294,7 @@
     refresh();
   }
 
-  // Re-render just the sport pills without a full render.
-  window._venuesSetMode = function() {}; // no-op — no mode toggle in new layout
+  window._venuesSetMode = function() {}; // no-op — kept for compat
 
   function _registerCtaHtml() {
     return '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
@@ -454,23 +456,78 @@
     }
   }
 
-  // Debounce user typing in city filter so we don't spam Firestore on each keystroke.
+  // ── Places autocomplete for the search field ──────────────────────────────
+  var _venuesPlacesReady = false;
+  async function _ensureVenuesPlaces() {
+    if (_venuesPlacesReady) return;
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return;
+    try { await google.maps.importLibrary('places'); _venuesPlacesReady = true; } catch(e) {}
+  }
+
+  async function _doVenuesSearch(query) {
+    var box = document.getElementById('venues-suggestions');
+    if (!box) return;
+    var q = String(query || '').trim();
+    if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    await _ensureVenuesPlaces();
+    if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    var sugs = [];
+    try {
+      var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: q,
+        includedRegionCodes: ['br'],
+        includedPrimaryTypes: ['establishment'],
+        language: 'pt-BR'
+      });
+      sugs = (result.suggestions || []).filter(function(s) { return s.placePrediction; });
+    } catch(e) { return; }
+    if (sugs.length === 0) { box.style.display = 'none'; return; }
+    box.innerHTML = '';
+    sugs.slice(0, 8).forEach(function(s) {
+      var pred = s.placePrediction;
+      var main = pred.mainText ? pred.mainText.text : '';
+      var sec = pred.secondaryText ? pred.secondaryText.text : '';
+      var item = document.createElement('div');
+      item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
+      item.innerHTML = '<div style="color:var(--text-bright);font-size:0.88rem;font-weight:500;">📍 ' + _safe(main) + '</div>' +
+        (sec ? '<div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">' + _safe(sec) + '</div>' : '');
+      item.addEventListener('mouseenter', function() { item.style.background = 'rgba(99,102,241,0.12)'; });
+      item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+      item.addEventListener('mousedown', function(ev) { ev.preventDefault(); _venuesSelectPlace(pred); });
+      box.appendChild(item);
+    });
+    box.style.display = 'block';
+  }
+
+  async function _venuesSelectPlace(pred) {
+    var box = document.getElementById('venues-suggestions');
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+    var inp = document.getElementById('venues-location');
+    try {
+      var place = pred.toPlace();
+      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+      var loc = place.location;
+      if (loc) { state.center = { lat: loc.lat(), lng: loc.lng() }; state.centerFromGps = false; }
+      var label = place.displayName || (pred.mainText && pred.mainText.text) || '';
+      state.location = label;
+      if (inp) inp.value = label;
+    } catch(e) {
+      var main = pred.mainText ? pred.mainText.text : '';
+      state.location = main;
+      if (inp) inp.value = main;
+    }
+    _saveFilters();
+    refresh();
+  }
+
   window._venuesOnLocation = function(v) {
     state.location = v;
-    // Usuário está digitando um endereço — solta o lock do GPS para o
-    // geocoder recalcular o centro a partir do texto.
     state.centerFromGps = false;
     _saveFilters();
     clearTimeout(window._venuesLocationDebounce);
-    window._venuesLocationDebounce = setTimeout(refresh, 350);
+    window._venuesLocationDebounce = setTimeout(function() { _doVenuesSearch(v); }, 200);
   };
-  window._venuesSetSport = function(v) {
-    state.sport = v;
-    _saveFilters();
-    var bar = document.getElementById('venues-sport-bar');
-    if (bar) bar.innerHTML = _sportPillsHtml();
-    refresh();
-  };
+  window._venuesSetSport = function(v) { state.sport = v; _saveFilters(); refresh(); };
   window._venuesSetPrice = function(v) { state.priceRange = v; _saveFilters(); refresh(); render(document.getElementById('view-container')); };
   window._venuesSetMinCourts = function(v) {
     state.minCourts = parseInt(v, 10) || 1;
