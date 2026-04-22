@@ -1458,6 +1458,9 @@
           'success'
         );
       }
+      // Notifica amigos com "Fulano chegou em X pra jogar". Throttled pra
+      // não spammar caso o usuário faça múltiplos check-ins no mesmo dia.
+      _notifyFriendsOfQuickCheckin(v, payload);
       // Re-hidrata o bloco "Movimento no local" pra refletir a nova presença
       // sem o usuário precisar fechar e reabrir a modal.
       _buildMovimentoHtml(v).then(function(html) {
@@ -1476,6 +1479,43 @@
       console.error('Quick check-in failed:', e);
       if (window.showNotification) window.showNotification('Erro ao registrar presença.', 'error');
     }
+  }
+
+  // Friend notification para o quick check-in inline na modal do venue.
+  // Mesmo throttle + mesma semântica que presence.js — um único lugar na
+  // UI geraria notificação duplicada se o usuário fizesse checkin via dois
+  // caminhos, então a chave de throttle é compartilhada entre os dois.
+  function _notifyFriendsOfQuickCheckin(v, payload) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) return;
+    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    if (friends.length === 0) return;
+    if (typeof window._sendUserNotification !== 'function') return;
+    if (cu.presenceVisibility === 'off') return;
+
+    var throttleKey = 'scoreplace_checkin_notified_' + v.placeId + '_' +
+                      (payload.sport || '') + '_' + payload.dayKey;
+    try {
+      if (localStorage.getItem(throttleKey)) return;
+      localStorage.setItem(throttleKey, '1');
+    } catch (e) {}
+
+    var msg = (cu.displayName || 'Um amigo') + ' chegou em ' +
+              (v.name || 'um local') + ' pra jogar ' +
+              (payload.sport || 'agora') + '. Vem junto!';
+
+    friends.forEach(function(friendUid) {
+      if (!friendUid) return;
+      window._sendUserNotification(friendUid, {
+        type: 'presence_checkin',
+        message: msg,
+        level: 'all',
+        venueName: v.name || '',
+        placeId: v.placeId,
+        sport: payload.sport,
+        startsAt: payload.startsAt
+      }).catch(function(e) { console.warn('Quick checkin notify failed:', e); });
+    });
   }
 
   window._venuesQuickCheckIn = async function(placeId) {

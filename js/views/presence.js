@@ -959,11 +959,57 @@
       renderMyActive();
       renderChart();
       renderNow();
+      // Notifica amigos — "Fulano está aqui agora, vem jogar". Menos spam
+      // que Planejar porque check-in é ação MAIS imediata/convite direto.
+      // Throttle impede que múltiplos check-ins no mesmo local/modalidade/dia
+      // acionem notificações repetidas (ex: usuário cancelando e refazendo).
+      _notifyFriendsOfCheckin(payload);
     }).catch(function(e) {
       console.error(e);
       if (window.showNotification) window.showNotification('Erro ao registrar presença.', 'error');
     });
   };
+
+  // Notifica amigos quando o usuário faz check-in imediato. Throttling via
+  // localStorage: uma notificação por (placeId + sport + dia) pra evitar
+  // spam se o usuário fizer múltiplos check-ins. Chave inclui dayKey pra
+  // resetar todo dia. Semântica "vem jogar agora" é mais atraente que
+  // "planejando" — por isso notificamos (antes de v0.15.13 só plan avisava).
+  function _notifyFriendsOfCheckin(payload) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) return;
+    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    if (friends.length === 0) return;
+    if (typeof window._sendUserNotification !== 'function') return;
+    // Respeita visibilidade — 'off' bloqueia upstream; 'public' e 'friends'
+    // ambos permitem friends verem, então ambos notificam.
+    if (cu.presenceVisibility === 'off') return;
+
+    // Throttle — 1 notif por amigo/local/sport/dia.
+    var throttleKey = 'scoreplace_checkin_notified_' + payload.placeId + '_' +
+                      (payload.sport || '') + '_' + payload.dayKey;
+    try {
+      if (localStorage.getItem(throttleKey)) return; // já notificou hoje
+      localStorage.setItem(throttleKey, '1');
+    } catch (e) {}
+
+    var msg = (cu.displayName || 'Um amigo') + ' chegou em ' +
+              (payload.venueName || 'um local') + ' pra jogar ' +
+              (payload.sport || 'agora') + '. Vem junto!';
+
+    friends.forEach(function(friendUid) {
+      if (!friendUid) return;
+      window._sendUserNotification(friendUid, {
+        type: 'presence_checkin',
+        message: msg,
+        level: 'all',
+        venueName: payload.venueName || '',
+        placeId: payload.placeId,
+        sport: payload.sport,
+        startsAt: payload.startsAt
+      }).catch(function(e) { console.warn('Presence check-in notify failed:', e); });
+    });
+  }
 
   // Picker overlay used when the user has multiple sports active and we
   // need to resolve which one to write. Renders a lightweight row of

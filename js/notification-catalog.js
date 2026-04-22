@@ -64,5 +64,10 @@ window.NOTIF_CATALOG = {
   // Presence (disparada por _notifyFriendsOfPlan quando amigo planeja ida
   // num local — v0.14.70). Antes caía no fallback 🔔 porque não havia
   // entrada no catálogo; agora exibe com ícone de calendário verde.
-  presence_plan:               { level: 'all',         icon: '🗓️', color: 'var(--success-color)' }
+  presence_plan:               { level: 'all',         icon: '🗓️', color: 'var(--success-color)' },
+
+  // Check-in imediato (v0.15.13) — "Fulano chegou no local pra jogar agora".
+  // Mais urgente que plan; nível 'all' igual, mas ícone vermelho-radar pra
+  // distinguir visualmente.
+  presence_checkin:            { level: 'all',         icon: '📡', color: 'var(--danger-color, #ef4444)' }
 };
