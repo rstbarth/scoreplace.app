@@ -301,10 +301,31 @@ window.VenueDB = {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) throw new Error('login obrigatório');
     var now = new Date().toISOString();
+    // New schema: `sports` is an array of sport names (multi-sport court
+    // entry, e.g. a court that can be used for both Beach Tennis and
+    // Futvôlei). Legacy single-sport callers can still pass `sport` (string)
+    // — we normalize to a 1-element array. The read path (listVenueCourts +
+    // aggregators) tolerates both shapes.
+    var sports = [];
+    if (Array.isArray(data.sports)) {
+      sports = data.sports.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+    } else if (data.sport) {
+      sports = [String(data.sport).trim()].filter(Boolean);
+    }
+    if (sports.length === 0) throw new Error('pelo menos uma modalidade é obrigatória');
+    // Dedup (user might tick the same sport twice through UI quirks).
+    var seen = {};
+    sports = sports.filter(function(s) { if (seen[s]) return false; seen[s] = 1; return true; });
+
     var payload = {
-      sport: String(data.sport || '').trim(),
+      sports: sports,
+      // Keep `sport` for backward compat with any old reader that still
+      // expects a single-string field — mirrors sports[0].
+      sport: sports[0],
       count: Math.max(1, Math.min(999, parseInt(data.count, 10) || 1)),
-      shared: !!data.shared,
+      // `shared` is derived (multi-sport = shared) but stored explicitly
+      // so the listing UI doesn't have to re-derive on every render.
+      shared: sports.length > 1 || !!data.shared,
       surface: String(data.surface || '').trim().slice(0, 60),
       notes: String(data.notes || '').trim().slice(0, 300),
       contributorUid: cu.uid,
@@ -312,25 +333,18 @@ window.VenueDB = {
       createdAt: now,
       updatedAt: now
     };
-    if (!payload.sport) throw new Error('sport obrigatório');
     var ref = await this.db.collection('venues').doc(venueKey)
       .collection('courts').add(payload);
-    // Sincroniza o array sports[] do venue principal com a modalidade desta
-    // quadra. Garante que o filtro de modalidade na descoberta pegue o venue
-    // — sem isso, um venue sem sports[] no doc pai mas com quadras na
-    // subcoleção seria invisível na busca "Beach Tennis". arrayUnion é
-    // idempotente. Firestore rules permitem o update quando o venue está
-    // em fase colaborativa (no owner) OU quando o user É o owner — mesma
-    // regra que governa a criação do court doc, então quem chegou aqui
-    // tem permissão garantida.
+    // Sincroniza o array sports[] do venue principal — agora union de TODAS
+    // as modalidades desta entrada. arrayUnion com array permite adicionar
+    // múltiplos items de uma vez. Idempotente. Rules permitem o update
+    // quando o venue é colaborativo OU user é owner.
     try {
       await this.db.collection('venues').doc(venueKey).update({
-        sports: firebase.firestore.FieldValue.arrayUnion(payload.sport),
+        sports: firebase.firestore.FieldValue.arrayUnion.apply(null, sports),
         updatedAt: now
       });
     } catch (e) {
-      // Não-fatal: o court já foi salvo. O sports[] fica desatualizado mas
-      // o aggregate ainda mostra a modalidade correta.
       console.warn('sports[] sync after addCourt failed:', e && e.message);
     }
     return Object.assign({ _id: ref.id }, payload);
@@ -357,8 +371,17 @@ window.VenueDB = {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) throw new Error('login obrigatório');
     var clean = {};
+    if (Array.isArray(patch.sports)) {
+      // Same normalization as addVenueCourt: trim, filter empty, dedupe.
+      var list = patch.sports.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+      var seen = {}; list = list.filter(function(s) { if (seen[s]) return false; seen[s] = 1; return true; });
+      if (list.length === 0) throw new Error('pelo menos uma modalidade é obrigatória');
+      clean.sports = list;
+      clean.sport = list[0]; // back-compat mirror
+      clean.shared = list.length > 1;
+    }
     if ('count' in patch) clean.count = Math.max(1, Math.min(999, parseInt(patch.count, 10) || 1));
-    if ('shared' in patch) clean.shared = !!patch.shared;
+    if ('shared' in patch && !('sports' in clean)) clean.shared = !!patch.shared;
     if ('surface' in patch) clean.surface = String(patch.surface || '').trim().slice(0, 60);
     if ('notes' in patch) clean.notes = String(patch.notes || '').trim().slice(0, 300);
     clean.updatedAt = new Date().toISOString();
@@ -388,12 +411,21 @@ window.VenueDB = {
     var total = 0;
     courts.forEach(function(c) {
       total += c.count || 0;
-      var key = c.sport;
-      if (!bySport[key]) bySport[key] = { sport: key, count: 0, shared: false, surfaces: {}, entries: [] };
-      bySport[key].count += c.count || 0;
-      if (c.shared) bySport[key].shared = true; // se qualquer entrada é shared, marca
-      if (c.surface) bySport[key].surfaces[c.surface] = (bySport[key].surfaces[c.surface] || 0) + c.count;
-      bySport[key].entries.push(c);
+      // Handle both new (sports[]) and legacy (sport string) shapes. A
+      // multi-sport entry shows the same `count` under each sport key
+      // (intentional — a "3 courts for Beach Tennis & Futvôlei" entry
+      // means each of those 3 courts can host either sport, so both
+      // sport buckets legitimately show 3).
+      var sportList = Array.isArray(c.sports) && c.sports.length > 0
+        ? c.sports
+        : (c.sport ? [c.sport] : []);
+      sportList.forEach(function(key) {
+        if (!bySport[key]) bySport[key] = { sport: key, count: 0, shared: false, surfaces: {}, entries: [] };
+        bySport[key].count += c.count || 0;
+        if (c.shared || sportList.length > 1) bySport[key].shared = true;
+        if (c.surface) bySport[key].surfaces[c.surface] = (bySport[key].surfaces[c.surface] || 0) + c.count;
+        bySport[key].entries.push(c);
+      });
       if (c.contributorUid) {
         if (!contributorsMap[c.contributorUid]) contributorsMap[c.contributorUid] = { uid: c.contributorUid, name: c.contributorName || '', count: 0 };
         contributorsMap[c.contributorUid].count += c.count || 0;

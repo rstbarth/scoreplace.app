@@ -19,14 +19,186 @@
 (function() {
   var _placesLibReady = false;
 
-  // Common sports offered — checkbox list with the same canonical names
-  // the rest of the app uses.
-  // Modalidades suportadas — alinhadas com create-tournament.js. Não
-  // incluímos Futsal/Vôlei/Basquete ainda (features subjacentes só
-  // cobrem modalidades de raquete por enquanto).
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
+  // Modalidades suportadas — racket-family + wider list (squash, futvôlei etc.)
+  // Mantemos uma lista curta pro cadastro rápido; courts multi-sport permitem
+  // indicar que uma quadra atende várias modalidades compartilhadas.
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Squash', 'Vôlei de Praia', 'Futvôlei', 'Futebol Society', 'Basquete'];
 
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
+
+  // ─── Hours grid helpers (7 days × 24 hours) ───────────────────────────────
+  // Internal day order: 0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom.
+  // Google Places API uses 0=Sun; we map via (googleDay + 6) % 7.
+  var DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+  function _emptyHoursGrid() {
+    var g = [];
+    for (var d = 0; d < 7; d++) {
+      var row = [];
+      for (var h = 0; h < 24; h++) row.push(0);
+      g.push(row);
+    }
+    return g;
+  }
+
+  // Convert Google Places `regularOpeningHours.periods[]` into our 7×24
+  // boolean grid. A period open→close spans whole hours; if close crosses
+  // midnight (common for late-night venues), we wrap to the next day.
+  // Tolerant to missing fields — returns an empty grid when input is absent.
+  function _googleHoursToGrid(place) {
+    var grid = _emptyHoursGrid();
+    if (!place || !place.regularOpeningHours || !Array.isArray(place.regularOpeningHours.periods)) return grid;
+    var periods = place.regularOpeningHours.periods;
+    periods.forEach(function(p) {
+      if (!p.open) return;
+      var startDay = (p.open.day + 6) % 7;
+      var startHour = p.open.hour || 0;
+      var endDay, endHour;
+      if (p.close) {
+        endDay = (p.close.day + 6) % 7;
+        endHour = p.close.hour || 0;
+        if (p.close.minute && p.close.minute > 0) endHour += 1; // pad partial hour
+      } else {
+        // open with no close = 24h from start
+        endDay = startDay;
+        endHour = 24;
+      }
+      // Walk hour by hour from (startDay,startHour) to (endDay,endHour).
+      // Cap at 7*24 iterations to guard against malformed input.
+      var d = startDay, h = startHour, steps = 0;
+      while (steps < 7 * 24) {
+        if (d === endDay && h >= endHour) break;
+        grid[d][h] = 1;
+        h += 1;
+        if (h >= 24) { h = 0; d = (d + 1) % 7; }
+        steps += 1;
+      }
+    });
+    return grid;
+  }
+
+  function _buildHoursGridHtml(grid) {
+    grid = grid || _emptyHoursGrid();
+    // Hour header row: 0, 2, 4, ..., 22 shown (every 2h to fit mobile width).
+    var hourHdr = '';
+    for (var h = 0; h < 24; h++) {
+      hourHdr += '<div style="flex:1;min-width:0;text-align:center;font-size:0.55rem;color:var(--text-muted);">' + (h % 2 === 0 ? h : '') + '</div>';
+    }
+    var rows = '';
+    for (var d = 0; d < 7; d++) {
+      var cells = '';
+      for (var hh = 0; hh < 24; hh++) {
+        var open = grid[d] && grid[d][hh] ? 1 : 0;
+        var bg = open ? 'background:#10b981;' : 'background:#7f1d1d;';
+        cells += '<div class="hg-cell" data-day="' + d + '" data-hour="' + hh + '" data-open="' + open + '" style="flex:1;min-width:0;height:22px;' + bg + 'border-right:1px solid rgba(0,0,0,0.35);"></div>';
+      }
+      rows += '<div style="display:flex;align-items:stretch;gap:0;border-bottom:1px solid rgba(0,0,0,0.25);">' +
+                '<div style="width:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:700;color:var(--text-muted);background:var(--bg-darker);">' + DAY_LABELS[d] + '</div>' +
+                '<div style="flex:1;display:flex;">' + cells + '</div>' +
+              '</div>';
+    }
+    return '<div id="venue-owner-hours-grid" style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;user-select:none;touch-action:none;">' +
+             '<div style="display:flex;background:var(--bg-darker);padding:4px 0;">' +
+               '<div style="width:30px;flex-shrink:0;"></div>' +
+               '<div style="flex:1;display:flex;">' + hourHdr + '</div>' +
+             '</div>' +
+             rows +
+           '</div>' +
+           '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">' +
+             '🟢 aberto · 🟥 fechado · <b>arraste o dedo</b> pra pintar várias células' +
+           '</div>';
+  }
+
+  // Attach pointer handlers to the hours grid so the user can drag-paint
+  // across cells. First tap sets the paint mode (invert current cell);
+  // every cell the pointer enters while down gets painted the same color.
+  function _setupHoursGridListeners() {
+    var grid = document.getElementById('venue-owner-hours-grid');
+    if (!grid) return;
+    var painting = false;
+    var paintTo = 1;
+
+    function paintCell(el) {
+      if (!el || !el.classList || !el.classList.contains('hg-cell')) return;
+      el.setAttribute('data-open', String(paintTo));
+      el.style.background = paintTo ? '#10b981' : '#7f1d1d';
+    }
+
+    grid.addEventListener('pointerdown', function(ev) {
+      var target = ev.target;
+      if (!target.classList || !target.classList.contains('hg-cell')) return;
+      ev.preventDefault();
+      painting = true;
+      paintTo = target.getAttribute('data-open') === '1' ? 0 : 1;
+      paintCell(target);
+      try { grid.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+
+    grid.addEventListener('pointermove', function(ev) {
+      if (!painting) return;
+      ev.preventDefault();
+      var el = document.elementFromPoint(ev.clientX, ev.clientY);
+      paintCell(el);
+    });
+
+    function stop() { painting = false; }
+    grid.addEventListener('pointerup', stop);
+    grid.addEventListener('pointercancel', stop);
+    grid.addEventListener('pointerleave', stop);
+  }
+
+  function _readHoursGrid() {
+    var grid = _emptyHoursGrid();
+    document.querySelectorAll('#venue-owner-hours-grid .hg-cell').forEach(function(cell) {
+      var d = parseInt(cell.getAttribute('data-day'), 10);
+      var h = parseInt(cell.getAttribute('data-hour'), 10);
+      if (isNaN(d) || isNaN(h)) return;
+      grid[d][h] = cell.getAttribute('data-open') === '1' ? 1 : 0;
+    });
+    return grid;
+  }
+
+  // Any cell set? Used to decide whether to bother persisting the grid field.
+  function _gridAny(grid) {
+    if (!Array.isArray(grid)) return false;
+    for (var d = 0; d < grid.length; d++) {
+      if (!Array.isArray(grid[d])) continue;
+      for (var h = 0; h < grid[d].length; h++) if (grid[d][h]) return true;
+    }
+    return false;
+  }
+
+  // ─── Small read-only interactive Google Map below the venue name ──────────
+  // Single-marker, centered at (lat, lon), zoom ~16. Loads maps+marker
+  // libraries on demand (the places library is already loaded by ensurePlaces,
+  // but Map/AdvancedMarker need explicit importLibrary calls).
+  async function _initVenueMap(lat, lon) {
+    var el = document.getElementById('venue-owner-map');
+    if (!el || lat == null || lon == null) return;
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return;
+    try {
+      var Maps = await google.maps.importLibrary('maps');
+      var Marker = await google.maps.importLibrary('marker');
+      var map = new Maps.Map(el, {
+        center: { lat: lat, lng: lon },
+        zoom: 16,
+        disableDefaultUI: true,
+        gestureHandling: 'cooperative',
+        clickableIcons: false,
+        mapId: 'SCOREPLACE_VENUE_OWNER_MAP'
+      });
+      if (Marker && Marker.AdvancedMarkerElement) {
+        new Marker.AdvancedMarkerElement({
+          map: map,
+          position: { lat: lat, lng: lon }
+        });
+      }
+    } catch (e) {
+      // Fallback: show the address instead of a broken map iframe.
+      console.warn('venue-owner map init failed:', e && e.message);
+      el.innerHTML = '<div style="padding:14px;color:var(--text-muted);font-size:0.78rem;text-align:center;">📍 mapa indisponível</div>';
+    }
+  }
 
   // Ensure Places library is loaded lazily — the profile modal opens before
   // the user necessarily needs it.
@@ -177,17 +349,8 @@
       // Campos extras do Google para pré-preenchimento.
       var googlePhone = place.nationalPhoneNumber || '';
       var googleWebsite = place.websiteURI || '';
-      var googleHours = '';
-      if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
-        googleHours = place.regularOpeningHours.weekdayDescriptions.join(' · ');
-      }
-      // Mapeia priceLevel do Google (FREE/INEXPENSIVE/MODERATE/EXPENSIVE/VERY_EXPENSIVE)
-      // → nossa escala $/$$/$$$.
-      var googlePriceRange = '';
-      var pl = place.priceLevel;
-      if (pl === 'PRICE_LEVEL_INEXPENSIVE' || pl === 'INEXPENSIVE' || pl === 1) googlePriceRange = '$';
-      else if (pl === 'PRICE_LEVEL_MODERATE' || pl === 'MODERATE' || pl === 2) googlePriceRange = '$$';
-      else if (pl === 'PRICE_LEVEL_EXPENSIVE' || pl === 'EXPENSIVE' || pl === 3 || pl === 'PRICE_LEVEL_VERY_EXPENSIVE' || pl === 4) googlePriceRange = '$$$';
+      var googleHoursGrid = _googleHoursToGrid(place);
+
       // Clear the search input so it doesn't look stale next to the form.
       var search = document.getElementById('venue-owner-search');
       if (search) search.value = name;
@@ -203,28 +366,23 @@
         });
         return;
       }
-      // Banner quando estamos editando registro existente (de terceiro).
       var alreadyCommunity = existing && !existing.ownerUid && existing.createdByName;
-      // Sugestões do Google usadas apenas como DEFAULT quando o venue
-      // ainda não tem o campo preenchido. Não sobrescreve dados manuais.
-      var ex = existing ? Object.assign({}, existing) : {};
-      if (!ex.contact) ex.contact = {};
-      if (!ex.contact.phone && googlePhone) ex.contact.phone = googlePhone;
-      if (!ex.website && googleWebsite) ex.website = googleWebsite;
-      if (!ex.hours && googleHours) ex.hours = googleHours;
-      if (!ex.priceRange && googlePriceRange) ex.priceRange = googlePriceRange;
+      // Pre-fill packet for the form. When editing an existing doc we only
+      // use Google values as fallback for blank fields; fresh cadastro
+      // adopts Google wholesale.
+      var hasAnyGoogle = !!(googlePhone || googleWebsite || (googleHoursGrid && _gridAny(googleHoursGrid)));
+      var prefillData = {
+        contact: { phone: googlePhone, website: googleWebsite },
+        website: googleWebsite,
+        openingHours: googleHoursGrid && _gridAny(googleHoursGrid) ? { grid: googleHoursGrid } : null
+      };
       _renderForm({
         placeId: window.VenueDB.venueKey(pid, name),
         name: name, address: addr, city: city, lat: lat, lon: lon
       }, {
-        existing: existing ? ex : null,
-        googlePrefill: (existing ? false : (!!(googlePhone || googleWebsite || googleHours || googlePriceRange))),
-        googlePrefillData: existing ? null : {
-          contact: { phone: googlePhone },
-          website: googleWebsite,
-          hours: googleHours,
-          priceRange: googlePriceRange
-        },
+        existing: existing || null,
+        googlePrefill: !existing && hasAnyGoogle,
+        googlePrefillData: prefillData,
         collaborativeBanner: !!alreadyCommunity,
         creatorName: alreadyCommunity ? existing.createdByName : ''
       });
@@ -242,17 +400,24 @@
       return;
     }
     if (!place) { wrap.innerHTML = ''; return; }
-    // Quando é venue NOVO e o Google forneceu campos, usamos como default.
-    var ex = opts.existing || (opts.googlePrefillData || {});
+
+    // Merge prefill: existing venue doc > Google auto-fill > empty.
+    var ex = opts.existing || {};
     if (opts.googlePrefillData && !opts.existing) {
-      // merge contact subdocument
-      if (opts.googlePrefillData.contact && !ex.contact) ex.contact = opts.googlePrefillData.contact;
+      // On a fresh cadastro the only source of truth is Google — adopt its
+      // defaults wholesale.
+      ex = opts.googlePrefillData;
+    } else if (opts.googlePrefillData && opts.existing) {
+      // Editing an existing doc: only adopt Google defaults for blank fields.
+      if (opts.googlePrefillData.contact) {
+        if (!ex.contact) ex.contact = {};
+        ['phone', 'website'].forEach(function(k) {
+          if (!ex.contact[k] && opts.googlePrefillData.contact[k]) ex.contact[k] = opts.googlePrefillData.contact[k];
+        });
+      }
+      if (!ex.openingHours && opts.googlePrefillData.openingHours) ex.openingHours = opts.googlePrefillData.openingHours;
     }
-    var sportsChecked = Array.isArray(ex.sports) ? ex.sports : [];
-    var sportsHtml = SPORTS.map(function(s) {
-      var checked = sportsChecked.indexOf(s) !== -1 ? 'checked' : '';
-      return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;margin-right:10px;color:var(--text-bright);cursor:pointer;"><input type="checkbox" data-sport="' + _safe(s) + '" ' + checked + '> ' + _safe(s) + '</label>';
-    }).join('');
+
     var cu = window.AppStore && window.AppStore.currentUser;
     var imOwner = cu && opts.existing && opts.existing.ownerUid === cu.uid;
     var titleLabel;
@@ -261,154 +426,116 @@
     else titleLabel = '💾 Cadastrar local novo';
 
     var collabBanner = (opts.collaborativeBanner && !imOwner)
-      ? '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">🤝 Este local já foi cadastrado por <b>' + _safe(opts.creatorName || '') + '</b>. Você pode completar ou corrigir as informações colaborativamente até o proprietário assumir.</div>'
+      ? '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">🤝 Local já cadastrado por <b>' + _safe(opts.creatorName || '') + '</b>. Você pode completar/corrigir colaborativamente até o proprietário assumir.</div>'
       : '';
     var googleBanner = (opts.googlePrefill && !opts.existing)
-      ? '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">📍 Informações pré-preenchidas do Google (horário, preço, telefone). Edite o que for necessário antes de salvar.</div>'
+      ? '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">📍 Preenchido automaticamente do Google (horário, telefone, site). Ajuste o que quiser antes de salvar.</div>'
       : '';
 
+    // Hours grid comes from the merged source. Accept array-of-arrays OR
+    // stored flat object shape {mon:[...],...}. For now we use array form.
+    var hoursGrid = null;
+    if (ex.openingHours && Array.isArray(ex.openingHours.grid)) hoursGrid = ex.openingHours.grid;
+    if (!hoursGrid && Array.isArray(ex.openingHoursGrid)) hoursGrid = ex.openingHoursGrid;
+    if (!hoursGrid) hoursGrid = _emptyHoursGrid();
+
+    // Claim button state
+    var imClaimed = imOwner;
+    var hasOtherOwner = ex.ownerUid && !imOwner;
+    var canClaim = !hasOtherOwner;
+    var claimBtnHtml = canClaim
+      ? '<button type="button" id="venue-owner-claim-btn" onclick="window._venueOwnerToggleClaim()" data-claimed="' + (imClaimed ? '1' : '0') + '" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid ' + (imClaimed ? 'rgba(16,185,129,0.5)' : 'rgba(251,191,36,0.4)') + ';background:' + (imClaimed ? 'rgba(16,185,129,0.15)' : 'rgba(251,191,36,0.1)') + ';color:' + (imClaimed ? '#10b981' : '#fbbf24') + ';">' + (imClaimed ? '✅ Reivindicado por você' : '🏢 Reivindicar como proprietário') + '</button>'
+      : '<button type="button" disabled style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-muted);cursor:not-allowed;" title="Já reivindicado por outro usuário">🔒 Já reivindicado</button>';
+
+    // Courts button — only active after the venue has been persisted (has placeId).
+    var courtsBtnHtml = opts.existing
+      ? '<button type="button" onclick=\'window._venueCourtAddDialog("' + _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '")\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>'
+      : '<button type="button" disabled title="Salve o local primeiro" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-muted);cursor:not-allowed;">🎾 Cadastrar quadras (salve primeiro)</button>';
+
     wrap.innerHTML =
-      '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;margin-top:6px;">' +
-        '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;margin-bottom:6px;">' + titleLabel + '</div>' +
-        '<div style="font-size:0.85rem;color:var(--text-bright);margin-bottom:4px;">' + _safe(place.name) + '</div>' +
-        '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">' + _safe(place.address || '') + '</div>' +
+      '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:14px;margin-top:6px;">' +
+        '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;margin-bottom:8px;">' + titleLabel + '</div>' +
         collabBanner +
         googleBanner +
-        '<div style="margin-bottom:10px;">' +
-          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Modalidades oferecidas</div>' +
-          '<div id="venue-owner-sports" style="display:flex;flex-wrap:wrap;gap:4px 8px;">' + sportsHtml + '</div>' +
+
+        // ── Nome + endereço + mapa ──
+        '<div style="margin-bottom:12px;">' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;margin-bottom:2px;">' + _safe(place.name) + '</div>' +
+          '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:8px;">' + _safe(place.address || '') + '</div>' +
+          '<div id="venue-owner-map" style="width:100%;height:180px;border-radius:10px;background:#0a0e1a;border:1px solid var(--border-color);overflow:hidden;"></div>' +
         '</div>' +
-        // Política de acesso ao local — controla quem pode efetivamente jogar
-        // lá. Independente da visibilidade do cadastro (que é sempre público).
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">🔐 Política de acesso' +
-          '<select id="venue-owner-access" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-            '<option value="public"' + ((ex.accessPolicy || 'public') === 'public' ? ' selected' : '') + '>🌐 Público — aluguel aberto a qualquer pessoa</option>' +
-            '<option value="members"' + (ex.accessPolicy === 'members' ? ' selected' : '') + '>👥 Só sócios — acesso restrito ao clube</option>' +
-            '<option value="members_plus_guests"' + (ex.accessPolicy === 'members_plus_guests' ? ' selected' : '') + '>👥+🏆 Sócios e convidados de torneios oficiais</option>' +
-            '<option value="private"' + (ex.accessPolicy === 'private' ? ' selected' : '') + '>🔒 Privado — não aceita externos</option>' +
+
+        // ── Política de acesso ──
+        '<label style="display:block;font-size:0.76rem;font-weight:600;color:var(--text-muted);margin-bottom:12px;">🔐 Política de acesso' +
+          '<select id="venue-owner-access" style="display:block;width:100%;margin-top:4px;padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+            '<option value="public"' + ((ex.accessPolicy || 'public') === 'public' ? ' selected' : '') + '>🌐 Público — aberto a qualquer pessoa</option>' +
+            '<option value="members"' + (ex.accessPolicy === 'members' ? ' selected' : '') + '>👥 Só sócios</option>' +
+            '<option value="members_plus_guests"' + (ex.accessPolicy === 'members_plus_guests' ? ' selected' : '') + '>👥+🏆 Sócios e convidados de torneios</option>' +
+            '<option value="private"' + (ex.accessPolicy === 'private' ? ' selected' : '') + '>🔒 Privado</option>' +
           '</select>' +
-          '<span style="font-size:0.65rem;color:var(--text-muted);opacity:0.7;margin-top:2px;display:block;">Determina se o local aparece como "alugável" pra jogadores buscando quadra.</span>' +
         '</label>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
-          // courtCount legacy: fallback pra exibição simples quando o venue
-          // não tem a subcoleção courts ainda populada. Substituído pelo
-          // novo fluxo "Adicionar quadras" abaixo do form (colaborativo,
-          // múltiplos usuários).
-          '<label style="font-size:0.72rem;color:var(--text-muted);">Nº total de quadras (opcional)' +
-            '<input type="number" id="venue-owner-court-count" min="0" max="99" value="' + _safe(ex.courtCount || '') + '" placeholder="Ex: 4" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-            '<span style="font-size:0.62rem;color:var(--text-muted);opacity:0.65;">Ou use a seção "Quadras" abaixo pra detalhar por modalidade.</span>' +
-          '</label>' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">Faixa de preço' +
-            '<select id="venue-owner-price" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-              '<option value="">—</option>' +
-              '<option value="$"' + (ex.priceRange === '$' ? ' selected' : '') + '>$ (até R$40/h)</option>' +
-              '<option value="$$"' + (ex.priceRange === '$$' ? ' selected' : '') + '>$$ (R$40–80/h)</option>' +
-              '<option value="$$$"' + (ex.priceRange === '$$$' ? ' selected' : '') + '>$$$ (R$80+/h)</option>' +
-            '</select>' +
-          '</label>' +
+
+        // ── Horário de funcionamento (7×24 grid) ──
+        '<div style="margin-bottom:14px;">' +
+          '<div style="font-size:0.76rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;">🕐 Horário de funcionamento</div>' +
+          _buildHoursGridHtml(hoursGrid) +
         '</div>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Horário (texto livre)' +
-          '<input type="text" id="venue-owner-hours" value="' + _safe(ex.hours || '') + '" placeholder="Ex: Seg-Sex 7h-23h, Sáb-Dom 8h-22h" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-        '</label>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">💰 Valores para aluguel' +
-          '<textarea id="venue-owner-pricelist" rows="3" placeholder="Ex: Beach Tennis R$80/h · Padel R$120/h · Locação quadra toda R$300" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;">' + _safe(ex.priceList || '') + '</textarea>' +
-        '</label>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">📝 Texto promocional' +
-          '<textarea id="venue-owner-desc" rows="4" placeholder="Descreva seu local. Ex: Clube fundado em 1985 com 6 quadras de saibro cobertas, iluminação profissional, estacionamento gratuito, vestiário completo com chuveiros quentes. Aulas com professores certificados, aluguel de raquetes, sede social, bar..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;">' + _safe(ex.description || '') + '</textarea>' +
-        '</label>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">📷 Fotos do local (URLs, uma por linha — Instagram, imgur, Drive público)' +
-          '<textarea id="venue-owner-photos" rows="2" placeholder="https://instagram.com/p/xxxxx&#10;https://i.imgur.com/yyyyy.jpg" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;font-size:0.78rem;">' + _safe(Array.isArray(ex.photos) ? ex.photos.join('\n') : (ex.photos || '')) + '</textarea>' +
-        '</label>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">📞 Telefone' +
-            '<input type="tel" id="venue-owner-phone" value="' + _safe((ex.contact && ex.contact.phone) || '') + '" placeholder="(11) 9xxxx-xxxx" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">💬 WhatsApp' +
-            '<input type="tel" id="venue-owner-whatsapp" value="' + _safe((ex.contact && ex.contact.whatsapp) || '') + '" placeholder="(11) 9xxxx-xxxx" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
+
+        // ── Contatos ──
+        '<div style="font-size:0.76rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;">📞 Contatos</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">' +
+          '<input type="tel" id="venue-owner-phone" value="' + _safe((ex.contact && ex.contact.phone) || '') + '" placeholder="📞 Telefone" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+          '<input type="tel" id="venue-owner-whatsapp" value="' + _safe((ex.contact && ex.contact.whatsapp) || '') + '" placeholder="💬 WhatsApp" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">📷 Instagram' +
-            '<input type="text" id="venue-owner-insta" value="' + _safe((ex.contact && ex.contact.instagram) || '') + '" placeholder="@seuperfil" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">📘 Facebook' +
-            '<input type="text" id="venue-owner-facebook" value="' + _safe((ex.contact && ex.contact.facebook) || '') + '" placeholder="facebook.com/seuperfil" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">' +
+          '<input type="text" id="venue-owner-insta" value="' + _safe((ex.contact && ex.contact.instagram) || '') + '" placeholder="📷 Instagram" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+          '<input type="text" id="venue-owner-facebook" value="' + _safe((ex.contact && ex.contact.facebook) || '') + '" placeholder="📘 Facebook" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
         '</div>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">✉️ E-mail de contato' +
-          '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="contato@..." style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
-        '</label>' +
-        // Checkbox de reivindicação — só aparece quando ainda não há dono
-        // OU quando o dono atual sou eu. Se alguém já reivindicou, o form
-        // nem é aberto (bloqueado upstream em _selectPlace).
-        (function() {
-          var cu = window.AppStore && window.AppStore.currentUser;
-          var imOwner = cu && ex.ownerUid === cu.uid;
-          var orphan = !ex.ownerUid;
-          if (!imOwner && !orphan) return '';
-          var checked = imOwner ? 'checked' : '';
-          var label = imOwner
-            ? 'Você reivindicou este local como proprietário'
-            : 'Sou o proprietário deste local';
-          return '<label style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-bottom:12px;cursor:pointer;font-size:0.82rem;color:var(--text-bright);">' +
-            '<input type="checkbox" id="venue-owner-claim" ' + checked + '>' +
-            '<span>🏢 ' + label + ' <span style="color:var(--text-muted);font-weight:400;">— adiciona a tag "Informações oficiais" no local</span></span>' +
-          '</label>';
-        })() +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">' +
+          '<input type="url" id="venue-owner-website" value="' + _safe((ex.contact && ex.contact.website) || ex.website || '') + '" placeholder="🌐 Site" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+          '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="✉️ E-mail" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+        '</div>' +
+
+        // ── Botões de ação principal ──
+        '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">' +
+          claimBtnHtml +
+          courtsBtnHtml +
+        '</div>' +
+
+        // ── Salvar / Cancelar ──
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
           '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
           '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? '💾 Salvar alterações' : '💾 Cadastrar local') + '</button>' +
         '</div>' +
-
-        // ═══════════════════════════════════════════════════════════════════
-        // QUADRAS (colaborativo, Wikipedia-style)
-        // ═══════════════════════════════════════════════════════════════════
-        // Só aparece quando o venue já existe (edit mode). Novo venue precisa
-        // ser salvo primeiro pra gerar o placeId. Qualquer autenticado pode
-        // adicionar; só o contribuidor ou owner pode editar/apagar.
-        ((opts.existing && place.placeId) ? (function() {
-          var _cuC = window.AppStore && window.AppStore.currentUser;
-          var _hasOwner = !!(opts.existing && opts.existing.ownerUid);
-          var _imOwner = _hasOwner && _cuC && opts.existing.ownerUid === _cuC.uid;
-          // Fase colaborativa (sem dono) ou sou o dono → mostra botão "Adicionar".
-          // Fase claimed e não sou dono → só leitura (courts read-only).
-          var _canAdd = !_hasOwner || _imOwner;
-          var _phaseLabel = _hasOwner
-            ? (_imOwner
-                ? '<span style="font-size:0.68rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:2px 8px;border-radius:999px;">gerenciado pelo dono</span>'
-                : '<span style="font-size:0.68rem;background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;padding:2px 8px;border-radius:999px;">✅ oficial — só o dono edita</span>')
-            : '<span style="font-size:0.68rem;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;border-radius:999px;">colaborativo</span>';
-          var _helpText = _hasOwner
-            ? (_imOwner
-                ? 'Você reivindicou este local. Você é o único editor das quadras — o que a comunidade cadastrou antes continua aqui sob sua gestão.'
-                : 'Este local foi reivindicado pelo proprietário. As informações oficiais só podem ser editadas por ele. Se você é o dono, abra a opção "Sou o proprietário" pra assumir.')
-            : 'Qualquer jogador pode cadastrar suas observações sobre as quadras. Ex: "4 quadras de Beach Tennis compartilhadas com Futevôlei", "2 quadras de saibro exclusivas de tênis". O total agregado aparece pra jogadores.';
-          return '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-color);">' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">' +
-              '<span style="font-size:1rem;">🎾</span>' +
-              '<span style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">Quadras do local</span>' +
-              _phaseLabel +
-            '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">' + _helpText + '</div>' +
-            '<div id="venue-courts-list" data-venue-key="' + _safe(place.placeId) + '">' +
-              '<div style="font-size:0.75rem;color:var(--text-muted);padding:8px;">Carregando...</div>' +
-            '</div>' +
-            (_canAdd
-              ? '<button type="button" class="btn btn-sm hover-lift" onclick=\'window._venueCourtAddDialog("' + _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:8px 14px;border-radius:10px;font-size:0.82rem;margin-top:8px;">➕ Adicionar entrada de quadra</button>'
-              : '') +
-          '</div>';
-        })() : '') +
       '</div>';
-    // Se o form inclui a seção de quadras (edit mode), carrega a lista
-    // após o DOM estar pronto.
-    if (opts.existing && place && place.placeId) {
-      setTimeout(function() {
-        if (typeof window._venueCourtsRefresh === 'function') {
-          window._venueCourtsRefresh(place.placeId);
-        }
-      }, 50);
-    }
+
+    // Setup hours grid painting + map after DOM is ready.
+    setTimeout(function() {
+      _setupHoursGridListeners();
+      _initVenueMap(place.lat, place.lon);
+    }, 30);
   }
+
+  // Toggle claim state button. Stored as a data-attr on the button — read at
+  // submit time. Kept as a button (not checkbox) per the updated UX spec.
+  window._venueOwnerToggleClaim = function() {
+    var btn = document.getElementById('venue-owner-claim-btn');
+    if (!btn) return;
+    var claimed = btn.getAttribute('data-claimed') === '1';
+    var next = claimed ? '0' : '1';
+    btn.setAttribute('data-claimed', next);
+    if (next === '1') {
+      btn.textContent = '✅ Reivindicado por você';
+      btn.style.background = 'rgba(16,185,129,0.15)';
+      btn.style.border = '1px solid rgba(16,185,129,0.5)';
+      btn.style.color = '#10b981';
+    } else {
+      btn.textContent = '🏢 Reivindicar como proprietário';
+      btn.style.background = 'rgba(251,191,36,0.1)';
+      btn.style.border = '1px solid rgba(251,191,36,0.4)';
+      btn.style.color = '#fbbf24';
+    }
+  };
 
   // Renderiza a lista de courts registradas no venue. Chamado após _renderForm
   // e também após cada add/edit/delete pra refletir mudanças.
@@ -489,89 +616,214 @@
     return '🎾';
   }
 
-  // Dialog pra adicionar/editar uma entrada de quadra. Dialog inline que
-  // sobrescreve o topo do form com campos e salva na subcoleção.
+  // ─── Courts screen (new UX spec v0.15.43) ─────────────────────────────────
+  // Full-screen overlay with venue name at top, "+" button to expand an
+  // inline form (quantity + multi-sport checkboxes), and the list of
+  // already-registered court entries below. Multi-sport entries represent
+  // shared courts (e.g. one court where both Beach Tennis and Futvôlei can
+  // be played).
+  //
+  // Entry points:
+  //   • _venueCourtAddDialog(venueKey)        — open the screen (for this venue)
+  //   • _venueCourtEditDialog(venueKey, id)   — open screen with edit form
+  //                                              pre-expanded for that entry
+  var _courtsDialogState = { venueKey: null, editingId: null };
+
   window._venueCourtAddDialog = function(venueKey) {
-    _venueCourtOpenDialog(venueKey, null);
+    _openCourtsScreen(venueKey, null);
   };
   window._venueCourtEditDialog = async function(venueKey, courtId) {
-    var all = await window.VenueDB.listVenueCourts(venueKey);
-    var court = all.find(function(c) { return c._id === courtId; });
-    _venueCourtOpenDialog(venueKey, court);
+    _openCourtsScreen(venueKey, courtId);
   };
 
-  function _venueCourtOpenDialog(venueKey, existing) {
+  async function _openCourtsScreen(venueKey, editingId) {
+    _courtsDialogState.venueKey = venueKey;
+    _courtsDialogState.editingId = editingId;
+    var venue = await window.VenueDB.loadVenue(venueKey).catch(function() { return null; });
+    var venueName = (venue && venue.name) || 'Local';
+    var existing = null;
+    if (editingId) {
+      var all = await window.VenueDB.listVenueCourts(venueKey).catch(function() { return []; });
+      existing = all.find(function(c) { return c._id === editingId; }) || null;
+    }
+
+    // Nuke any prior overlay before rendering so consecutive opens don't
+    // stack half-torn-down DOM nodes.
+    var prior = document.getElementById('court-dialog-overlay');
+    if (prior) prior.remove();
+
     var overlay = document.createElement('div');
     overlay.id = 'court-dialog-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
-    var COMMON_SPORTS = ['Beach Tennis', 'Tênis', 'Pickleball', 'Padel', 'Tênis de Mesa', 'Squash', 'Vôlei de Praia', 'Futvôlei', 'Futebol', 'Basquete'];
-    var sportOpts = COMMON_SPORTS.map(function(s) {
-      var sel = (existing && existing.sport === s) ? ' selected' : '';
-      return '<option value="' + _safe(s) + '"' + sel + '>' + _safe(s) + '</option>';
-    }).join('');
+    // Full-screen z-index above every other app overlay including the venue
+    // owner form (which is inline, no overlay).
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,12,24,0.96);z-index:10020;overflow-y:auto;padding:14px;';
+
+    var safeKey = _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
     overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;max-width:460px;width:100%;padding:20px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">' +
-          '<span style="font-size:1.3rem;">🎾</span>' +
-          '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;">' + (existing ? 'Editar quadra' : 'Adicionar quadra') + '</div>' +
+      '<div style="max-width:720px;margin:0 auto;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+          '<button type="button" onclick="document.getElementById(\'court-dialog-overlay\').remove()" style="background:rgba(255,255,255,0.08);border:1px solid var(--border-color);color:var(--text-bright);border-radius:10px;padding:8px 14px;font-size:0.86rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">Quadras de</div>' +
+            '<div style="font-weight:800;color:var(--text-bright);font-size:1.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(venueName) + '</div>' +
+          '</div>' +
         '</div>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Modalidade' +
-          '<select id="court-dlg-sport" ' + (existing ? 'disabled' : '') + ' style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
-            sportOpts +
-          '</select>' +
-          (existing ? '<span style="font-size:0.62rem;color:var(--text-muted);">Modalidade não é editável — apague e crie uma nova se mudou.</span>' : '') +
-        '</label>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">Nº de quadras' +
-            '<input type="number" id="court-dlg-count" min="1" max="999" value="' + _safe(existing ? existing.count : '1') + '" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">Piso / tipo (opcional)' +
-            '<input type="text" id="court-dlg-surface" value="' + _safe(existing ? existing.surface : '') + '" placeholder="Ex: saibro, piso duro, areia" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
-          '</label>' +
+
+        // ── + (add) button + inline form placeholder ──
+        '<div style="margin-bottom:12px;">' +
+          '<button type="button" onclick="window._courtsToggleForm(null)" id="courts-add-btn" style="width:100%;padding:14px;border-radius:12px;background:rgba(99,102,241,0.15);border:2px dashed rgba(99,102,241,0.5);color:#a5b4fc;font-size:1rem;font-weight:700;cursor:pointer;">' +
+            '➕ Adicionar quadras' +
+          '</button>' +
+          '<div id="courts-form-slot" style="margin-top:8px;"></div>' +
         '</div>' +
-        '<label style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:8px;margin-bottom:10px;cursor:pointer;font-size:0.8rem;color:var(--text-bright);">' +
-          '<input type="checkbox" id="court-dlg-shared" ' + (existing && existing.shared ? 'checked' : '') + '>' +
-          '<span>🔁 Compartilhada com outras modalidades <span style="color:var(--text-muted);font-weight:400;font-size:0.72rem;">(ex: areia dividida entre Beach Tennis e Futvôlei)</span></span>' +
-        '</label>' +
-        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Observação (opcional)' +
-          '<textarea id="court-dlg-notes" rows="2" maxlength="300" placeholder="Ex: cobertas, iluminação profissional, aluguel a partir de 19h" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;font-size:0.82rem;">' + _safe(existing ? existing.notes : '') + '</textarea>' +
-        '</label>' +
-        '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
-          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'court-dialog-overlay\').remove()">Cancelar</button>' +
-          '<button class="btn btn-primary btn-sm" onclick=\'window._venueCourtSave("' + _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '", ' + (existing ? '"' + _safe(existing._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '"' : 'null') + ')\'>' + (existing ? 'Salvar' : 'Adicionar') + '</button>' +
+
+        // ── List of existing courts ──
+        '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:6px;">Quadras cadastradas neste local</div>' +
+        '<div id="courts-list-slot" data-venue-key="' + safeKey + '">' +
+          '<div style="font-size:0.8rem;color:var(--text-muted);padding:12px;">Carregando...</div>' +
         '</div>' +
       '</div>';
-    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+
+    // Load the list.
+    _refreshCourtsScreenList(venueKey);
+
+    // If we entered in edit mode, auto-open the form with the existing values.
+    if (existing) {
+      setTimeout(function() { window._courtsToggleForm(existing); }, 30);
+    }
   }
 
-  window._venueCourtSave = async function(venueKey, courtId) {
-    var sport = document.getElementById('court-dlg-sport').value;
-    var count = parseInt(document.getElementById('court-dlg-count').value, 10) || 1;
-    var surface = document.getElementById('court-dlg-surface').value.trim();
-    var shared = document.getElementById('court-dlg-shared').checked;
-    var notes = document.getElementById('court-dlg-notes').value.trim();
+  // Render the inline add/edit form (inside the courts screen) on demand.
+  // Pass `existing` (court object) to pre-fill for edit; null for a new entry.
+  window._courtsToggleForm = function(existing) {
+    var slot = document.getElementById('courts-form-slot');
+    if (!slot) return;
+    // Toggle off if clicking the + button again with no edit target.
+    if (slot.childElementCount > 0 && !existing) {
+      slot.innerHTML = '';
+      return;
+    }
+    var currentSports = Array.isArray(existing && existing.sports) && existing.sports.length > 0
+      ? existing.sports
+      : (existing && existing.sport ? [existing.sport] : []);
+
+    var sportCheckboxes = SPORTS.map(function(s) {
+      var checked = currentSports.indexOf(s) !== -1 ? 'checked' : '';
+      return '<label style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:8px;font-size:0.82rem;color:var(--text-bright);cursor:pointer;">' +
+        '<input type="checkbox" class="court-form-sport" value="' + _safe(s) + '" ' + checked + '>' +
+        _safe(s) +
+      '</label>';
+    }).join('');
+
+    slot.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:14px;">' +
+        '<div style="font-weight:700;color:var(--text-bright);margin-bottom:10px;">' + (existing ? '✏️ Editar entrada' : '➕ Nova entrada de quadras') + '</div>' +
+        '<label style="display:block;font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">Número de quadras' +
+          '<input type="number" id="court-form-count" min="1" max="999" value="' + _safe(existing ? existing.count : '1') + '" style="display:block;width:100%;margin-top:4px;padding:10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;">' +
+        '</label>' +
+        '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:6px;">Modalidades permitidas (marque todas que se aplicam para uso compartilhado)</div>' +
+        '<div id="court-form-sports" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:14px;">' +
+          sportCheckboxes +
+        '</div>' +
+        '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'courts-form-slot\').innerHTML=\'\'">Cancelar</button>' +
+          '<button class="btn btn-primary btn-sm" onclick=\'window._courtsFormSave(' + (existing ? '"' + _safe(existing._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '"' : 'null') + ')\'>💾 ' + (existing ? 'Salvar alterações' : 'Adicionar') + '</button>' +
+        '</div>' +
+      '</div>';
+  };
+
+  window._courtsFormSave = async function(courtId) {
+    var venueKey = _courtsDialogState.venueKey;
+    if (!venueKey) return;
+    var count = parseInt((document.getElementById('court-form-count') || {}).value, 10) || 1;
+    var sports = [];
+    document.querySelectorAll('#court-form-sports input.court-form-sport:checked').forEach(function(cb) {
+      sports.push(cb.value);
+    });
+    if (sports.length === 0) {
+      if (window.showNotification) window.showNotification('Marque ao menos uma modalidade', '', 'warning');
+      return;
+    }
     try {
       if (courtId) {
-        await window.VenueDB.updateVenueCourt(venueKey, courtId, { count: count, surface: surface, shared: shared, notes: notes });
+        await window.VenueDB.updateVenueCourt(venueKey, courtId, { count: count, sports: sports });
       } else {
-        await window.VenueDB.addVenueCourt(venueKey, { sport: sport, count: count, surface: surface, shared: shared, notes: notes });
+        await window.VenueDB.addVenueCourt(venueKey, { count: count, sports: sports });
       }
-      var ov = document.getElementById('court-dialog-overlay');
-      if (ov) ov.remove();
-      await window._venueCourtsRefresh(venueKey);
-      if (window.showNotification) window.showNotification('Quadra ' + (courtId ? 'atualizada' : 'adicionada') + '!', '', 'success');
+      // Collapse the form, refresh the list.
+      var slot = document.getElementById('courts-form-slot');
+      if (slot) slot.innerHTML = '';
+      _courtsDialogState.editingId = null;
+      _refreshCourtsScreenList(venueKey);
+      // Also refresh the mini-list on the venue owner form below.
+      if (typeof window._venueCourtsRefresh === 'function') {
+        window._venueCourtsRefresh(venueKey);
+      }
+      if (window.showNotification) window.showNotification(courtId ? 'Entrada atualizada!' : 'Quadras adicionadas!', '', 'success');
     } catch (e) {
-      console.error('Save court:', e);
+      console.error('courts form save:', e);
       if (window.showNotification) window.showNotification('Erro ao salvar: ' + (e && e.message || ''), '', 'error');
     }
   };
+
+  async function _refreshCourtsScreenList(venueKey) {
+    var box = document.getElementById('courts-list-slot');
+    if (!box || !window.VenueDB) return;
+    try {
+      var courts = await window.VenueDB.listVenueCourts(venueKey);
+      var venue = await window.VenueDB.loadVenue(venueKey).catch(function() { return null; });
+      if (!courts || courts.length === 0) {
+        box.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);padding:14px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;text-align:center;">Nenhuma quadra cadastrada ainda. Toque no ➕ acima pra adicionar.</div>';
+        return;
+      }
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var myUid = cu && cu.uid;
+      var hasOwner = !!(venue && venue.ownerUid);
+      var imOwner = hasOwner && venue.ownerUid === myUid;
+
+      var safeKey = _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
+      var html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+      courts.forEach(function(c) {
+        var canEdit = hasOwner ? imOwner : (c.contributorUid === myUid);
+        var sportList = Array.isArray(c.sports) && c.sports.length > 0 ? c.sports : (c.sport ? [c.sport] : []);
+        var sportsText = sportList.map(function(s) { return _sportIconFor(s) + ' ' + _safe(s); }).join(' + ');
+        var sharedTag = sportList.length > 1 ? '<span style="font-size:0.64rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:6px;">compartilhada</span>' : '';
+        var safeId = _safe(c._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
+        html += '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">' + (c.count || 1) + ' quadra' + ((c.count || 1) === 1 ? '' : 's') + '</div>' +
+            '<div style="font-size:0.8rem;color:var(--text-main);margin-top:2px;">' + sportsText + sharedTag + '</div>' +
+            (c.contributorName ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">por ' + _safe(c.contributorName) + '</div>' : '') +
+          '</div>' +
+          (canEdit
+            ? '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+                '<button class="btn btn-sm" onclick="window._courtsToggleForm(' + JSON.stringify(c).replace(/'/g, '&#39;').replace(/"/g, '&quot;') + ')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:4px 10px;font-size:0.72rem;">Editar</button>' +
+                '<button class="btn btn-sm" onclick="window._venueCourtDelete(\'' + safeKey + '\',\'' + safeId + '\')" style="background:transparent;border:1px solid var(--danger-color);color:var(--danger-color);padding:4px 10px;font-size:0.72rem;">✕</button>' +
+              '</div>'
+            : '') +
+        '</div>';
+      });
+      html += '</div>';
+      box.innerHTML = html;
+    } catch (e) {
+      console.warn('courts screen refresh:', e);
+      box.innerHTML = '<div style="font-size:0.8rem;color:var(--danger-color);padding:10px;">Erro ao carregar quadras.</div>';
+    }
+  }
 
   window._venueCourtDelete = async function(venueKey, courtId) {
     if (!confirm('Apagar esta entrada de quadra?')) return;
     try {
       await window.VenueDB.deleteVenueCourt(venueKey, courtId);
-      await window._venueCourtsRefresh(venueKey);
+      // Refresh both surfaces if present: the courts screen list AND the
+      // mini-list on the inline venue owner form (when still visible).
+      if (document.getElementById('courts-list-slot')) {
+        _refreshCourtsScreenList(venueKey);
+      }
+      if (typeof window._venueCourtsRefresh === 'function' && document.getElementById('venue-courts-list')) {
+        window._venueCourtsRefresh(venueKey);
+      }
       if (window.showNotification) window.showNotification('Entrada removida.', '', 'info');
     } catch (e) {
       if (window.showNotification) window.showNotification('Erro ao apagar.', '', 'error');
@@ -588,23 +840,14 @@
   window._venueOwnerSubmit = async function(place) {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) return;
-    var sports = [];
-    document.querySelectorAll('#venue-owner-sports input[type=checkbox]').forEach(function(cb) {
-      if (cb.checked) sports.push(cb.getAttribute('data-sport'));
-    });
-    // User's personal Pro plan is inherited as the venue's plan on claim/edit.
-    // Lets a Pro user's venues rank in the "Pro first" sort without a separate
-    // venue-level subscription (B5b will add that as a direct upgrade path).
+    // Pro inheritance: venues owned by a Pro user rank higher in discovery.
     var isUserPro = (typeof window._isPro === 'function' && window._isPro()) ||
                     (cu.plan === 'pro' && (!cu.planExpiresAt || new Date(cu.planExpiresAt) > new Date()));
-    // Fotos: textarea com URLs, uma por linha. Normaliza para array.
-    var photosRaw = (document.getElementById('venue-owner-photos') || {}).value || '';
-    var photos = photosRaw.split(/\r?\n/).map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 10);
-    var priceList = (document.getElementById('venue-owner-pricelist') || {}).value.trim();
-    var facebook = (document.getElementById('venue-owner-facebook') || {}).value.trim();
-    var claimBox = document.getElementById('venue-owner-claim');
-    var claimAsOwner = !!(claimBox && claimBox.checked);
+    var claimBtn = document.getElementById('venue-owner-claim-btn');
+    var claimAsOwner = !!(claimBtn && claimBtn.getAttribute('data-claimed') === '1');
     var accessPolicyEl = document.getElementById('venue-owner-access');
+    var hoursGrid = _readHoursGrid();
+
     var payload = {
       placeId: place.placeId,
       name: place.name,
@@ -612,20 +855,18 @@
       city: place.city || '',
       lat: place.lat,
       lon: place.lon,
-      sports: sports,
-      photos: photos,
-      priceList: priceList,
-      courtCount: parseInt(document.getElementById('venue-owner-court-count').value, 10) || null,
-      priceRange: document.getElementById('venue-owner-price').value || null,
       accessPolicy: (accessPolicyEl && accessPolicyEl.value) || 'public',
-      hours: document.getElementById('venue-owner-hours').value.trim(),
-      description: document.getElementById('venue-owner-desc').value.trim(),
+      // New shape: store the 7×24 grid. Keep in a nested object so it's easy
+      // to add future fields (timezone, seasonal overrides) without churning
+      // the top level.
+      openingHours: _gridAny(hoursGrid) ? { grid: hoursGrid } : null,
       contact: {
-        phone: document.getElementById('venue-owner-phone').value.trim(),
-        whatsapp: document.getElementById('venue-owner-whatsapp').value.trim(),
-        instagram: document.getElementById('venue-owner-insta').value.trim(),
-        facebook: facebook,
-        email: document.getElementById('venue-owner-email').value.trim()
+        phone: (document.getElementById('venue-owner-phone') || {}).value.trim() || '',
+        whatsapp: (document.getElementById('venue-owner-whatsapp') || {}).value.trim() || '',
+        instagram: (document.getElementById('venue-owner-insta') || {}).value.trim() || '',
+        facebook: (document.getElementById('venue-owner-facebook') || {}).value.trim() || '',
+        website: (document.getElementById('venue-owner-website') || {}).value.trim() || '',
+        email: (document.getElementById('venue-owner-email') || {}).value.trim() || ''
       },
       plan: (claimAsOwner && isUserPro) ? 'pro' : 'free',
       claimAsOwner: claimAsOwner
