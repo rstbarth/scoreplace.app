@@ -233,334 +233,158 @@
     }
   }
 
+  // Sport icon helper (local copy — venue-owner.js has another in its closure).
+  function _sportIcon(sport) {
+    var s = String(sport || '').toLowerCase();
+    if (s.indexOf('beach') !== -1) return '🏖️';
+    if (s.indexOf('pickleball') !== -1) return '🥒';
+    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('mesa') !== -1) return '🏓';
+    if (s.indexOf('squash') !== -1) return '🟡';
+    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
+    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1) return '🏐';
+    if (s.indexOf('futebol') !== -1) return '⚽';
+    if (s.indexOf('basquete') !== -1) return '🏀';
+    return '🎾';
+  }
+
+  function _sportPillsHtml() {
+    return [''].concat(SPORTS).map(function(s) {
+      var active = (state.sport === s);
+      var label = s === '' ? 'Todas' : (_sportIcon(s) + ' ' + s);
+      return '<button type="button" onclick="window._venuesSetSport(\'' + _safe(s).replace(/\'/g, "\\'") + '\')" style="' +
+        'flex-shrink:0;white-space:nowrap;padding:6px 14px;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;' +
+        'border:1px solid ' + (active ? '#6366f1' : 'var(--border-color)') + ';' +
+        'background:' + (active ? '#6366f1' : 'transparent') + ';' +
+        'color:' + (active ? '#fff' : 'var(--text-muted)') + ';">' + _safe(label) + '</button>';
+    }).join('');
+  }
+
   function render(container) {
-    // Reset map handle — a re-render recreates #venues-map so the Maps
-    // instance we had is bound to a detached node.
     _map = null;
     _markers = [];
-    // Seed city with the user's profile city on first entry so the feed
-    // lands on "their" city by default. Only when state.location is still
-    // empty (i.e. user hasn't typed/cleared it) to preserve intentional edits.
-    // "Local" aceita cidade ou endereço completo ("Av. Paulista 1000, SP").
-    if (!state.location) {
+    if (!state.location && !state.centerFromGps) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
       if (profileCity) state.location = profileCity;
     }
-    // SEMPRE tenta GPS na abertura da view quando ainda não temos centro GPS
-    // preciso — independente do state.location ter sido pré-preenchido por
-    // filtros salvos ou pela cidade do perfil. O usuário pediu: ao abrir a
-    // página em mobile, já carregar a posição real sem precisar clicar no
-    // pin. Fire-and-forget; se permissão já é granted, fica silencioso.
     if (!state.centerFromGps) _tryAutoGeolocate();
-    var back = (typeof window._renderBackHeader === 'function')
-      ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' })
-      : '';
-    var sportOpts = '<option value="">Todas modalidades</option>' + SPORTS.map(function(s) {
-      return '<option value="' + _safe(s) + '"' + (state.sport === s ? ' selected' : '') + '>' + _safe(s) + '</option>';
-    }).join('');
-    var priceBtns = PRICE_OPTIONS.map(function(p) {
-      var active = (state.priceRange === p.val);
-      return '<button type="button" onclick="window._venuesSetPrice(\'' + p.val + '\')" class="btn btn-sm" style="flex:1;min-width:54px;font-size:0.75rem;padding:7px 6px;border-radius:8px;background:' + (active ? '#6366f1' : 'transparent') + ';color:' + (active ? '#fff' : 'var(--text-muted)') + ';border:' + (active ? '2px solid #6366f1' : '1.5px solid var(--border-color)') + ';font-weight:' + (active ? '700' : '500') + ';">' + _safe(p.label) + '</button>';
-    }).join('');
 
-    container.innerHTML = back +
-      '<div style="max-width:960px;margin:0 auto;padding:0 4px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">' +
-          '<h2 style="margin:0;font-size:1.45rem;font-weight:800;color:var(--text-bright);flex:1;">🏢 Descobrir locais</h2>' +
+    container.innerHTML =
+      // ── Sport pills — horizontal scroll, above map ──
+      '<div id="venues-sport-bar" style="overflow-x:auto;display:flex;align-items:center;gap:8px;padding:10px 16px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border-color);">' +
+        _sportPillsHtml() +
+      '</div>' +
+      // ── Map — edge-to-edge, no horizontal padding ──
+      '<div id="venues-map" style="width:100%;height:clamp(220px,42vh,360px);background:#0a0e1a;display:block;"></div>' +
+      // ── Search bar ──
+      '<div style="padding:12px 16px 0;">' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+          '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
+          '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#6366f1;border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">📍</button>' +
         '</div>' +
-        '<p style="margin:0 0 14px 0;color:var(--text-muted);font-size:0.88rem;">Encontre clubes, arenas e quadras abertas ao público — ideal quando você está viajando ou descobrindo a cidade.</p>' +
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:14px;">' +
-          // Local em linha própria (full-width) — o input + botão 📍 precisam
-          // de toda a largura disponível para endereços longos não serem
-          // truncados. Modalidade passa para a linha seguinte (também
-          // full-width) para melhor legibilidade no mobile.
-          '<div style="margin-bottom:10px;">' +
-            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
-            '<div style="display:flex;gap:6px;">' +
-              '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-              '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;padding:0 10px;border-radius:8px;background:#6366f1;border:none;color:#fff;font-size:1rem;cursor:pointer;">📍</button>' +
-            '</div>' +
-          '</div>' +
-          '<div style="margin-bottom:10px;">' +
-            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
-            '<select id="venues-sport" onchange="window._venuesSetSport(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-              sportOpts +
-            '</select>' +
-          '</div>' +
-          // Mín. quadras + Distância: grid 2 colunas dedicado pra manter os
-          // inputs sempre alinhados entre si, independente da largura da tela.
-          // Antes ficavam na mesma linha da Faixa de preço e desalinhavam
-          // quando o wrap decidia quebrar.
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
-            '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Mín. quadras</label>' +
-              '<input type="number" min="1" max="99" value="' + (state.minCourts || 1) + '" placeholder="1" oninput="window._venuesSetMinCourts(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-            '</div>' +
-            '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Distância (km)</label>' +
-              '<input type="number" min="1" max="500" value="' + (state.distanceKm || 10) + '" placeholder="10" oninput="window._venuesSetDistance(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-            '</div>' +
-          '</div>' +
-          // Faixa de preço fica em linha própria, full-width, para os 4 botões
-          // respirarem e nunca comprimirem ao ponto de cortar rótulos.
-          '<div>' +
-            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Faixa de preço</label>' +
-            '<div style="display:flex;gap:4px;">' + priceBtns + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:4px;margin-bottom:10px;" id="venues-view-toggle">' +
-          '<button type="button" id="venues-tab-map" onclick="window._venuesSetMode(\'map\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">🗺️ Mapa</button>' +
-          '<button type="button" id="venues-tab-list" onclick="window._venuesSetMode(\'list\')" class="btn btn-sm" style="flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;">▦ Lista</button>' +
-        '</div>' +
-        '<div id="venues-content" style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:2rem;">' +
-          '<div id="venues-results"></div>' +
-          // Gutter de 10px em cada lado do mapa: garante zona de toque segura
-          // para scrollar a página verticalmente no mobile sem "entrar" no mapa.
-          // Combined com gestureHandling:'cooperative' resolve o bug "preso no mapa".
-          '<div id="venues-map-wrap" style="display:none;padding:0 10px;">' +
-            // Summary bar: contagem de cadastrados vs sugestões Google no
-            // raio atual. Dá contexto sem forçar o usuário a scrollar até a
-            // seção "📍 Locais no Google" pra ver quantos existem.
-            '<div id="venues-map-summary" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:20px;"></div>' +
-            '<div id="venues-map" style="width:100%;height:380px;border-radius:14px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;"></div>' +
-            '<div id="venues-map-extras"></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    _applyViewMode();
-    // Map is now the default mode → kick off lazy init so the user sees the
-    // map ready on first paint instead of an empty dark frame.
-    if (state.mode === 'map') _ensureMap();
+      '</div>' +
+      // ── Results (appear after GPS / search) ──
+      '<div id="venues-results" style="padding:12px 16px 2rem;"></div>';
+
+    _ensureMap();
     refresh();
   }
 
-  // List vs Map (mobile), side-by-side on wide screens when mode=split.
-  // For simplicity we keep two exclusive modes: 'list' (default) and 'map'.
-  window._venuesSetMode = function(mode) {
-    state.mode = mode;
-    _applyViewMode();
-    if (mode === 'map') _ensureMap();
-  };
-  function _applyViewMode() {
-    var mode = state.mode || 'list';
-    var btnList = document.getElementById('venues-tab-list');
-    var btnMap = document.getElementById('venues-tab-map');
-    var resultsBox = document.getElementById('venues-results');
-    var mapWrap = document.getElementById('venues-map-wrap');
-    if (!resultsBox || !mapWrap || !btnList || !btnMap) return;
-    var activeStyle = 'background:#6366f1;color:#fff;border:2px solid #6366f1;font-weight:700;';
-    var idleStyle = 'background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;';
-    btnList.style.cssText = 'flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;' + (mode === 'list' ? activeStyle : idleStyle);
-    btnMap.style.cssText = 'flex:1;font-size:0.8rem;padding:7px 12px;border-radius:10px;' + (mode === 'map' ? activeStyle : idleStyle);
-    resultsBox.style.display = (mode === 'list') ? 'block' : 'none';
-    mapWrap.style.display = (mode === 'map') ? 'block' : 'none';
-  }
+  // Re-render just the sport pills without a full render.
+  window._venuesSetMode = function() {}; // no-op — no mode toggle in new layout
 
-  // "Cadastre seu local" block + Google suggestions list.
-  // Both exist as standalone HTML blobs so we can stitch them together under
-  // claimed results, the empty state, or even the map view.
   function _registerCtaHtml() {
-    return '<div style="margin-top:14px;background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));border:1px solid rgba(99,102,241,0.4);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-      '<div style="flex:1;min-width:180px;">' +
-        '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">🏢 Cadastre ou edite locais</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Qualquer jogador pode cadastrar clubes, arenas ou quadras que frequenta — como na Wikipedia. O proprietário pode reivindicar depois para adicionar a tag <b>Informações oficiais</b> e bloquear edições de terceiros.</div>' +
-      '</div>' +
-      '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#my-venues\'" style="white-space:nowrap;">Cadastrar local</button>' +
+    return '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+      '<span style="font-size:0.8rem;color:var(--text-muted);">Não encontrou seu local?</span>' +
+      '<button class="btn btn-sm btn-primary hover-lift" onclick="window.location.hash=\'#my-venues\'" style="white-space:nowrap;">+ Cadastrar local</button>' +
     '</div>';
   }
-  function _googleSuggestionsHtml() {
-    var g = state.googleResults || [];
-    var filterLabel = _safe([
-      state.sport || 'qualquer modalidade',
-      state.minCourts >= 1 ? ('min. ' + state.minCourts + ' quadra' + (state.minCourts === 1 ? '' : 's')) : '',
-      state.location || 'sem local',
-      state.distanceKm ? ('raio ' + state.distanceKm + 'km') : '',
-      state.priceRange || 'qualquer preço'
-    ].filter(Boolean).join(' · '));
-    var header = '<div style="margin-top:18px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">📍 Locais no Google</span>' +
-        '<span style="font-size:0.72rem;color:var(--text-muted);">resultados externos</span>' +
+
+  function _venueCard(v) {
+    var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).slice(0, 5).map(function(s) {
+      return '<span style="font-size:0.65rem;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;border-radius:999px;">' + _safe(s) + '</span>';
+    }).join('');
+    var officialBadge = v.ownerUid
+      ? '<span style="font-size:0.6rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:1px 7px;border-radius:999px;font-weight:700;">✅ oficial</span>'
+      : (v.createdByName ? '<span style="font-size:0.6rem;background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.25);color:#94a3b8;padding:1px 7px;border-radius:999px;">comunidade</span>' : '');
+    var distText = '';
+    if (state.center && v.lat != null && v.lon != null) {
+      var d = _haversineKm(state.center, { lat: Number(v.lat), lng: Number(v.lon) });
+      distText = d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
+    }
+    return '<div onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')" class="hover-lift" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">' +
+          '<span style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏢 ' + _safe(v.name) + '</span>' +
+          officialBadge +
+        '</div>' +
+        (v.address ? '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">' + _safe(v.address) + '</div>' : '') +
+        (sportsHtml ? '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + sportsHtml + '</div>' : '') +
       '</div>' +
-      '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">Filtro aplicado: ' + filterLabel + '</div>';
-    // Estados: ainda carregando / sem center / sem resultados / com resultados.
-    if (state.loading) {
-      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Buscando no Google…</div></div>';
+      (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
+    '</div>';
+  }
+
+  function _googleVenueCard(p) {
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') + (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+    var distText = '';
+    if (state.center && p.lat != null && p.lng != null) {
+      var d = _haversineKm(state.center, { lat: Number(p.lat), lng: Number(p.lng) });
+      distText = d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
     }
-    if (!state.center) {
-      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">⚠️ Digite um endereço em "Local" ou use o botão GPS 📍 para ativar a busca no Google.</div></div>';
-    }
-    if (g.length === 0) {
-      return header + '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum resultado no Google para esta combinação. Tente aumentar o raio ou remover filtros.</div></div>';
-    }
-    var html = header + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">';
-    g.forEach(function(p) {
-      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
-        (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
-      html += '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:block;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:10px 12px;text-decoration:none;">' +
-        '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🗺️ ' + _safe(p.name) + '</div>' +
-        (p.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(p.address) + '</div>' : '') +
-      '</a>';
-    });
-    html += '</div></div>';
-    return html;
+    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;text-decoration:none;">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:600;color:var(--text-bright);font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">🗺️ ' + _safe(p.name) + '</div>' +
+        (p.address ? '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(p.address) + '</div>' : '') +
+      '</div>' +
+      (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);min-width:36px;text-align:right;">' + _safe(distText) + '</div>' : '') +
+      '<span style="flex-shrink:0;font-size:0.64rem;background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.25);color:#94a3b8;padding:2px 8px;border-radius:999px;">Google</span>' +
+    '</a>';
   }
 
   function renderResults() {
     var box = document.getElementById('venues-results');
     if (!box) return;
     if (state.loading) {
-      box.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem;">Carregando locais…</div>';
+      box.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;font-size:0.88rem;">Buscando locais próximos…</div>';
       return;
     }
-    if (state.results.length === 0) {
+    var hasResults = state.results.length > 0 || (state.googleResults || []).length > 0;
+    if (!state.center && !hasResults) {
       box.innerHTML =
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:2rem;text-align:center;color:var(--text-muted);">' +
-          '<div style="font-size:2rem;margin-bottom:8px;">🗺️</div>' +
-          '<div style="font-size:0.95rem;font-weight:600;color:var(--text-bright);margin-bottom:4px;">Nenhum local cadastrado aqui ainda</div>' +
-          '<div style="font-size:0.82rem;">Ajuste os filtros ou cadastre o seu. Veja abaixo sugestões do Google.</div>' +
-        '</div>' +
-        _registerCtaHtml() +
-        _googleSuggestionsHtml();
+        '<div style="text-align:center;padding:2rem 0;">' +
+          '<div style="font-size:2.2rem;margin-bottom:8px;">📍</div>' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;margin-bottom:6px;">Onde você está?</div>' +
+          '<div style="color:var(--text-muted);font-size:0.84rem;max-width:280px;margin:0 auto;">Toque em 📍 para usar sua localização ou busque um endereço acima.</div>' +
+        '</div>';
       return;
     }
-    var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">' + state.results.length + ' ' + (state.results.length === 1 ? 'local' : 'locais') + ' encontrado' + (state.results.length === 1 ? '' : 's') + '</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">';
-    state.results.forEach(function(v) {
-      var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).slice(0, 4).map(function(s) {
-        return '<span style="display:inline-block;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:0.68rem;padding:2px 8px;border-radius:999px;margin-right:4px;margin-bottom:2px;">' + _safe(s) + '</span>';
-      }).join('');
-      var meta = [];
-      if (v.courtCount) meta.push(v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's'));
-      if (v.priceRange) meta.push(v.priceRange);
-      if (v.city) meta.push(v.city);
-      var verified = v.verified ? '<span title="Verificado" style="color:#10b981;font-size:0.82rem;margin-left:4px;">✓</span>' : '';
-      var proBadge = v.plan === 'pro' ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">PRO</span>' : '';
-      var isPro = v.plan === 'pro';
-      var cardStyle = isPro
-        ? 'background:linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--bg-card) 60%);border:1px solid rgba(99,102,241,0.4);box-shadow:0 0 16px rgba(99,102,241,0.18);border-radius:14px;padding:14px;cursor:pointer;'
-        : 'background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;cursor:pointer;';
-      html +=
-        '<div class="hover-lift" style="' + cardStyle + '" onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-            '<span style="font-size:1.2rem;">🏢</span>' +
-            '<div style="font-weight:700;color:var(--text-bright);font-size:0.95rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + verified + proBadge + '</div>' +
-          '</div>' +
-          (v.address ? '<div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + _safe(v.address) + '</div>' : '') +
-          (sportsHtml ? '<div style="margin-bottom:6px;">' + sportsHtml + '</div>' : '') +
-          (meta.length ? '<div style="font-size:0.75rem;color:var(--text-bright);font-weight:600;">' + _safe(meta.join(' · ')) + '</div>' : '') +
-        '</div>';
+    if (!hasResults) {
+      box.innerHTML =
+        '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>' +
+        _registerCtaHtml();
+      return;
+    }
+    var total = state.results.length + (state.googleResults || []).filter(function(p) {
+      return !state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; });
+    }).length;
+    var html = '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">' +
+      total + (total === 1 ? ' local' : ' locais') + ' encontrado' + (total === 1 ? '' : 's') + (state.center ? ' próximo a você' : '') + '</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    state.results.forEach(function(v) { html += _venueCard(v); });
+    (state.googleResults || []).forEach(function(p) {
+      if (state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; })) return;
+      html += _googleVenueCard(p);
     });
     html += '</div>';
-    html += _registerCtaHtml() + _googleSuggestionsHtml();
+    html += _registerCtaHtml();
     box.innerHTML = html;
   }
 
-  // HTML dos cards dos venues da plataforma (extraído do renderResults p/
-  // ser reusado abaixo do mapa também). Inclui título contextual se houver.
-  function _platformVenuesHtml() {
-    if (state.loading) return '<div style="text-align:center;color:var(--text-muted);padding:1.5rem;">Carregando locais…</div>';
-    if (state.results.length === 0) return '';
-    var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">📋 ' + state.results.length + ' ' + (state.results.length === 1 ? 'local cadastrado' : 'locais cadastrados') + ' na plataforma</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">';
-    state.results.forEach(function(v) {
-      var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).slice(0, 4).map(function(s) {
-        return '<span style="display:inline-block;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:0.65rem;padding:1px 7px;border-radius:999px;margin-right:3px;">' + _safe(s) + '</span>';
-      }).join('');
-      var meta = [];
-      if (v.courtCount) meta.push(v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's'));
-      if (v.priceRange) meta.push(v.priceRange);
-      if (v.city) meta.push(v.city);
-      var officialTag = v.ownerUid
-        ? '<span title="Informações confirmadas pelo proprietário" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:0.62rem;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;">✅ OFICIAL</span>'
-        : (v.createdByName
-            ? '<span title="Cadastrado por um usuário — informações não confirmadas pelo proprietário" style="background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;font-size:0.62rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;">por ' + _safe(v.createdByName) + '</span>'
-            : '');
-      var proBadge = v.plan === 'pro' ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.58rem;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;">PRO</span>' : '';
-      var isPro = v.plan === 'pro';
-      var cardStyle = isPro
-        ? 'background:linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--bg-card) 60%);border:1px solid rgba(99,102,241,0.4);box-shadow:0 0 16px rgba(99,102,241,0.18);border-radius:12px;padding:12px;cursor:pointer;'
-        : 'background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px;cursor:pointer;';
-      html +=
-        '<div class="hover-lift" style="' + cardStyle + '" onclick="window._venuesOpenDetail(\'' + _safe(v._id) + '\')">' +
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">' +
-            '<span style="font-size:1.1rem;">🏢</span>' +
-            '<div style="font-weight:700;color:var(--text-bright);font-size:0.9rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + proBadge + '</div>' +
-          '</div>' +
-          '<div style="margin-bottom:4px;">' + officialTag + '</div>' +
-          (v.address ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + _safe(v.address) + '</div>' : '') +
-          (sportsHtml ? '<div style="margin-bottom:4px;">' + sportsHtml + '</div>' : '') +
-          (meta.length ? '<div style="font-size:0.72rem;color:var(--text-bright);font-weight:600;">' + _safe(meta.join(' · ')) + '</div>' : '') +
-        '</div>';
-    });
-    html += '</div>';
-    return html;
-  }
-
-  // Summary acima do mapa: contagem rápida + botão "expandir raio"
-  // quando a combinação filtros + raio não retorna nada, ajudando o usuário
-  // a sair do beco sem saída sem precisar mexer manualmente nos inputs.
-  function _hydrateMapSummary() {
-    var bar = document.getElementById('venues-map-summary');
-    if (!bar) return;
-    if (state.loading) {
-      bar.innerHTML = '<span>Buscando locais…</span>';
-      return;
-    }
-    var claimed = state.results.length;
-    var google = (state.googleResults || []).length;
-    var total = claimed + google;
-    var parts = [];
-    if (claimed > 0) {
-      parts.push('<span>🏢 <b style="color:var(--text-bright);">' + claimed + '</b> ' +
-        (claimed === 1 ? 'cadastrado' : 'cadastrados') + '</span>');
-    }
-    if (google > 0) {
-      parts.push('<span>🔎 <b style="color:var(--text-bright);">' + google + '</b> ' +
-        (google === 1 ? 'sugestão' : 'sugestões') + ' Google</span>');
-    }
-    // Zero resultados + raio pequeno → oferece expandir com um clique.
-    // Só dispara se o usuário tem center (senão geocode falhou) e o raio
-    // atual tem espaço pra crescer antes do cap de 500km.
-    if (total === 0 && state.center) {
-      var nextRadius = Math.min(500, Math.max(20, (state.distanceKm || 10) * 3));
-      if (nextRadius > (state.distanceKm || 10)) {
-        parts.push(
-          '<span style="color:var(--text-muted);">Sem resultados no raio de ' + (state.distanceKm || 10) + 'km.</span>' +
-          '<button type="button" onclick="window._venuesExpandRadius(' + nextRadius + ')" ' +
-          'style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:8px;padding:4px 10px;font-size:0.78rem;font-weight:600;cursor:pointer;">' +
-          '🔍 Expandir para ' + nextRadius + 'km</button>'
-        );
-      } else {
-        parts.push('<span style="color:var(--text-muted);">Sem resultados. Tente remover filtros.</span>');
-      }
-    }
-    bar.innerHTML = parts.join(' · ') || '<span style="color:var(--text-muted);">Ajustando filtros…</span>';
-  }
-
-  // Triplica o raio em um clique — helper do summary bar quando 0 resultados.
-  window._venuesExpandRadius = function(newKm) {
-    state.distanceKm = Math.max(1, Math.min(500, parseInt(newKm, 10) || 30));
-    _saveFilters();
-    // Re-render o formulário inteiro pra refletir o novo valor no input numérico.
-    render(document.getElementById('view-container'));
-  };
-
-  // Extras abaixo do mapa: locais da plataforma (com as tags) → CTA cadastrar
-  // → sugestões do Google com o mesmo raio/modalidade. Mantém narrativa
-  // consistente entre lista e mapa.
-  function _hydrateMapExtras() {
-    _hydrateMapSummary();
-    var slot = document.getElementById('venues-map-extras');
-    if (!slot) return;
-    var parts = [];
-    var platform = _platformVenuesHtml();
-    if (platform) parts.push('<div style="margin-top:16px;">' + platform + '</div>');
-    parts.push(_registerCtaHtml());
-    parts.push(_googleSuggestionsHtml());
-    slot.innerHTML = parts.join('');
-  }
+  // Stubs for old map-extras functions — new layout renders list inline below map.
+  function _hydrateMapSummary() {}
+  function _hydrateMapExtras() {}
 
   async function refresh() {
     state.loading = true;
@@ -640,7 +464,13 @@
     clearTimeout(window._venuesLocationDebounce);
     window._venuesLocationDebounce = setTimeout(refresh, 350);
   };
-  window._venuesSetSport = function(v) { state.sport = v; _saveFilters(); refresh(); };
+  window._venuesSetSport = function(v) {
+    state.sport = v;
+    _saveFilters();
+    var bar = document.getElementById('venues-sport-bar');
+    if (bar) bar.innerHTML = _sportPillsHtml();
+    refresh();
+  };
   window._venuesSetPrice = function(v) { state.priceRange = v; _saveFilters(); refresh(); render(document.getElementById('view-container')); };
   window._venuesSetMinCourts = function(v) {
     state.minCourts = parseInt(v, 10) || 1;

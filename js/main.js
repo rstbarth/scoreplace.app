@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.52-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#venues redesenhado — limpo, simples e funcional.</b> A tela de Locais foi completamente refeita. Agora ela mostra: pills de modalidade no topo (rolagem horizontal), mapa de ponta a ponta logo abaixo, campo de busca + botão 📍 de GPS embaixo do mapa, e a lista de resultados aparece só depois de clicar no GPS ou digitar um endereço. Toda a poluição visual anterior (filtros de preço, distância, min. quadras, toggle mapa/lista) foi removida — ficou só o essencial. Clicar nas pills de modalidade atualiza os pins do mapa e a lista sem re-render completo da página.</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/venues.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.51-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Quadras: salvo e aberto sem fricção + seleção por pills.</b> O botão "Cadastrar quadras" agora funciona em qualquer estado — se o venue ainda não foi salvo, ele salva automaticamente e abre a tela de quadras na sequência, sem aviso "salve primeiro". A seleção de modalidades deixou de ser checkboxes e virou pills coloridas (roxo quando ativado) muito mais compactas e bonitas. Corrigido também o erro "Missing or insufficient permissions" que impedia salvar quadras — as entradas agora ficam dentro do próprio documento do venue, sem subcoleção separada.</p>' +
         '<p><b>Arquivos</b>: <code>js/venue-db.js</code>, <code>js/views/venue-owner.js</code>.</p>' +

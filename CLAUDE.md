@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.15.50-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.15.52-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -55,6 +55,8 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - **Integração tournament ↔ presence ↔ venue** (v0.15.13, 15.16-17): check-in notifica amigos (📡) com throttle, "Adicionar à agenda" (Google/Outlook/.ics) em torneio e presence plan.
 - **Compat cleanup** (v0.15.44): remoção de código defensivo (branches `if (legacy_shape)`, fallbacks pra shapes antigos) — regra formal de fase alpha documentada no CLAUDE.md.
 - **Live score fix** (v0.15.45): placar ao vivo dispara tie-break em 5-5 consistente com a regra do torneio.
+- **Quadras sem fricção + pills** (v0.15.51): botão "Cadastrar quadras" salva o venue automaticamente se necessário, sem estado desabilitado. Checkboxes de modalidade viram pills coloridas. Corrigido erro "Missing or insufficient permissions" movendo courts[] de subcoleção para array embedded no doc do venue.
+- **#venues redesenhado** (v0.15.52): layout limpo — pills de modalidade > mapa edge-to-edge > campo de busca + GPS > lista (aparece só após GPS ou digitação). Filtros antigos removidos. Pills atualizam mapa + lista sem re-render completo.
 
 **v0.14.x-alpha (Abril 2026) — Escala, Venues, Presença, Liga polish**
 - **Escala (Firestore cost/performance)** (v0.14.54-59): denormalização de `memberEmails[]` em torneios, leituras escopadas ao usuário (phase A), discovery público paginado (phase B), searchUsers com range queries (phase C), scheduled cleanup (phase D), visitor mode sem public listener (phase E).
