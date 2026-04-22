@@ -335,6 +335,7 @@
     // TOURNAMENT DETAIL — Calendário (v0.15.16)
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'tournament-calendar', selector: '[onclick*="_tournamentAddToCalendar"]', text: 'Adicione à sua agenda (Google Calendar, Outlook ou Apple .ics). Evita o "me esqueci do horário".', context: 'tournament-detail', priority: 5, position: 'top' },
+    { id: 'tournament-venue-link', selector: '[onclick*="_openVenueFromTournament"]', text: 'Ver detalhes do local: movimento ao vivo, torneios futuros, contatos e reviews. Do torneio pro venue em 1 tap.', context: 'tournament-detail', priority: 5, position: 'bottom' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MY VENUES (#my-venues)

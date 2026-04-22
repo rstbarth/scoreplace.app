@@ -1,6 +1,25 @@
 // ── Sharing & Export Functions ──
 var _t = window._t || function(k) { return k; };
 
+// Abre a modal de detalhe do venue a partir de um torneio. Compõe o
+// venueKey (placeId ou slug de nome) via VenueDB, navega pra
+// #venues/<key> — o roteador já sabe abrir a modal via deep link.
+// Usado pelo botão "🏢 Local" no header do torneio (v0.15.26).
+window._openVenueFromTournament = function(tournamentId) {
+    // Busca primeiro em tournaments (scoped); fallback pra publicDiscovery.
+    var t = (window.AppStore.tournaments || []).find(function(tour) { return String(tour.id) === String(tournamentId); });
+    if (!t && Array.isArray(window.AppStore.publicDiscovery)) {
+        t = window.AppStore.publicDiscovery.find(function(tour) { return String(tour.id) === String(tournamentId); });
+    }
+    if (!t) return;
+    if (!t.venuePlaceId && !t.venue) return;
+    var key = (window.VenueDB && typeof window.VenueDB.venueKey === 'function')
+        ? window.VenueDB.venueKey(t.venuePlaceId || '', t.venue || '')
+        : (t.venuePlaceId || '');
+    if (!key) return;
+    window.location.hash = '#venues/' + encodeURIComponent(key);
+};
+
 // Copy tournament link to clipboard (with native share fallback on mobile)
 window._shareTournament = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
