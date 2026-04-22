@@ -19,6 +19,18 @@
 (function() {
   var _placesLibReady = false;
 
+  // ─── Mapa principal da página #my-venues ─────────────────────────────────
+  // Distinto do pequeno mapa que aparece DENTRO do formulário (_initVenueMap
+  // em #venue-owner-map). Este fica no topo da view e mostra todos os venues
+  // cadastrados como pins fixos, ajudando o usuário a identificar se o lugar
+  // que quer cadastrar já existe antes de preencher tudo. Quando ele digita,
+  // sugestões do Google entram como pins translúcidos sobrepostos.
+  var _ownerMap = null;
+  var _ownerMarkers = [];
+  var _ownerMapsLibs = null;
+  var _registeredVenues = [];        // venues carregados na entrada da view
+  var _googleSuggestionsForMap = []; // sugestões atuais do Google (map pins)
+
   // Modalidades suportadas — racket-family + wider list (squash, futvôlei etc.)
   // Mantemos uma lista curta pro cadastro rápido; courts multi-sport permitem
   // indicar que uma quadra atende várias modalidades compartilhadas.
@@ -230,12 +242,127 @@
     try { await google.maps.importLibrary('places'); _placesLibReady = true; } catch (e) {}
   }
 
-  // Inner block — search input, form wrap, and "meus locais" list.
-  // Used by both the (legacy) profile modal section and the dedicated view.
+  // ─── Helpers do mapa principal #my-venues ────────────────────────────────
+  // Inicialização lazy no container #venue-owner-main-map. Reutiliza o padrão
+  // de venues.js (mesmo mapId, mesmo gesture handling) pra consistência.
+  async function _ensureOwnerMap() {
+    if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return;
+    if (!_ownerMapsLibs) {
+      try {
+        var Maps = await google.maps.importLibrary('maps');
+        var Marker = await google.maps.importLibrary('marker');
+        _ownerMapsLibs = { Map: Maps.Map, AdvancedMarkerElement: Marker.AdvancedMarkerElement, PinElement: Marker.PinElement };
+      } catch (e) { console.warn('[owner-map] load failed:', e); return; }
+    }
+    var el = document.getElementById('venue-owner-main-map');
+    if (!el) return;
+    if (!_ownerMap) {
+      // Center inicial: perfil do usuário > GPS > Brasil inteiro.
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var initialCenter = { lat: -15.78, lng: -47.93 };
+      var initialZoom = 4;
+      if (cu && cu.lat != null && cu.lon != null) {
+        initialCenter = { lat: Number(cu.lat), lng: Number(cu.lon) };
+        initialZoom = 12;
+      }
+      _ownerMap = new _ownerMapsLibs.Map(el, {
+        center: initialCenter,
+        zoom: initialZoom,
+        mapId: 'scoreplace-venue-owner-main-map',
+        disableDefaultUI: false,
+        clickableIcons: false,
+        gestureHandling: 'cooperative'
+      });
+    } else {
+      google.maps.event.trigger(_ownerMap, 'resize');
+    }
+    _renderOwnerMarkers();
+  }
+
+  function _clearOwnerMarkers() {
+    _ownerMarkers.forEach(function(m) { if (m && m.map) m.map = null; });
+    _ownerMarkers = [];
+  }
+
+  // Pins dos venues cadastrados (âmbar) + sugestões Google (cinza translúcido).
+  // Clique em cadastrado → abre edit; clique em Google → preenche form novo.
+  function _renderOwnerMarkers() {
+    if (!_ownerMap || !_ownerMapsLibs) return;
+    _clearOwnerMarkers();
+    var bounds = new google.maps.LatLngBounds();
+    var anyPoints = 0;
+    (_registeredVenues || []).forEach(function(v) {
+      if (v.lat == null || v.lon == null) return;
+      var pos = { lat: Number(v.lat), lng: Number(v.lon) };
+      var pin = new _ownerMapsLibs.PinElement({
+        background: v.plan === 'pro' ? '#6366f1' : '#f59e0b',
+        borderColor: '#1e293b',
+        glyph: '🏢',
+        glyphColor: '#fff',
+        scale: 1.1
+      });
+      var m = new _ownerMapsLibs.AdvancedMarkerElement({
+        map: _ownerMap, position: pos, title: v.name || '', content: pin.element
+      });
+      m.addListener('click', function() {
+        if (typeof window._venueOwnerEditExisting === 'function') window._venueOwnerEditExisting(v.placeId);
+      });
+      _ownerMarkers.push(m);
+      bounds.extend(pos);
+      anyPoints += 1;
+    });
+    (_googleSuggestionsForMap || []).forEach(function(p) {
+      if (p.lat == null || p.lng == null) return;
+      // Dedup: se já há venue cadastrado com mesmo placeId, pula.
+      var dup = _registeredVenues.some(function(v) { return v.placeId && p.placeId && v.placeId === p.placeId; });
+      if (dup) return;
+      var pos = { lat: Number(p.lat), lng: Number(p.lng) };
+      var pin = new _ownerMapsLibs.PinElement({
+        background: '#64748b',
+        borderColor: '#1e293b',
+        glyph: '🔎',
+        glyphColor: '#e2e8f0',
+        scale: 0.9
+      });
+      var m = new _ownerMapsLibs.AdvancedMarkerElement({
+        map: _ownerMap, position: pos, title: (p.name || '') + ' (sugestão Google)', content: pin.element
+      });
+      // Clicar num pin do Google = atalho pra preencher o form desse lugar.
+      m.addListener('click', function() {
+        if (p.prediction) _selectPlace(p.prediction);
+      });
+      _ownerMarkers.push(m);
+      bounds.extend(pos);
+      anyPoints += 1;
+    });
+    if (anyPoints > 1) _ownerMap.fitBounds(bounds, 60);
+    else if (anyPoints === 1) { _ownerMap.setCenter(bounds.getCenter()); _ownerMap.setZoom(14); }
+  }
+
+  // Carrega a primeira página de venues cadastrados pra popular o mapa. Usa
+  // o mesmo limite/padrão que a view pública #venues — 50 é suficiente pra
+  // visualização; a busca textual filtra além disso.
+  async function _loadRegisteredVenues() {
+    if (!window.VenueDB || typeof window.VenueDB.listVenues !== 'function') return;
+    try {
+      _registeredVenues = await window.VenueDB.listVenues({}, { limit: 50 });
+    } catch (e) {
+      console.warn('[owner-map] listVenues failed:', e);
+      _registeredVenues = [];
+    }
+    _renderOwnerMarkers();
+  }
+
+  // Inner block — map + search input + form wrap + "meus locais" list.
+  // O mapa no topo mostra venues já cadastrados (pins âmbar) pra evitar que o
+  // usuário cadastre duplicados; quando ele digita, sugestões do Google entram
+  // como pins translúcidos e também aparecem no dropdown de busca em duas
+  // seções distintas ("Já cadastrados" vs "Sugestões do Google").
   function _ownerInnerHtml() {
-    return '<div style="position:relative;margin-bottom:8px;">' +
-        '<input type="text" id="venue-owner-search" class="form-control" placeholder="Buscar local no Google (clube, arena, quadra)" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:0.9rem;" oninput="window._venueOwnerSearch(this.value)">' +
-        '<div id="venue-owner-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
+    return '<div id="venue-owner-main-map" style="width:100%;height:280px;border-radius:12px;overflow:hidden;border:1px solid var(--border-color);background:#0a0e1a;margin-bottom:10px;"></div>' +
+      '<div style="position:relative;margin-bottom:8px;">' +
+        '<input type="text" id="venue-owner-search" class="form-control" placeholder="Busque pelo nome — se já existir, você pode editar; se não, cadastre via Google" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:0.9rem;" oninput="window._venueOwnerSearch(this.value)">' +
+        '<div id="venue-owner-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;margin-top:4px;max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
       '</div>' +
       '<div id="venue-owner-form-wrap"></div>' +
       '<div id="venue-owner-list" style="margin-top:14px;"></div>';
@@ -276,6 +403,10 @@
       '<div style="max-width:820px;margin:0 auto;padding:0 4px;">' +
         _ownerInnerHtml() +
       '</div>';
+    // Mapa precisa de um tick pro container ter tamanho medido corretamente;
+    // sem isso o Google Maps pode inicializar com 0x0 e não re-layout.
+    _ownerMap = null; _ownerMarkers = []; _googleSuggestionsForMap = [];
+    setTimeout(function() { _ensureOwnerMap(); _loadRegisteredVenues(); }, 50);
     ensurePlaces();
     window._loadMyVenuesList();
   };
@@ -288,51 +419,120 @@
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(function() { _doSearch(query); }, 150);
   };
+  function _addSectionHeader(box, label) {
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:8px 14px;font-size:0.7rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);background:var(--bg-darker);border-bottom:1px solid rgba(255,255,255,0.06);';
+    hdr.textContent = label;
+    box.appendChild(hdr);
+  }
+
+  function _addRegisteredItem(box, venue) {
+    var address = venue.address || venue.city || '';
+    var claimedTag = venue.ownerUid
+      ? '<span style="font-size:0.62rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:1px 6px;border-radius:10px;margin-left:6px;vertical-align:middle;">✓ oficial</span>'
+      : '<span style="font-size:0.62rem;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:1px 6px;border-radius:10px;margin-left:6px;vertical-align:middle;">🤝 comunitário</span>';
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
+    item.innerHTML = '<div style="color:#e2e8f0;font-size:0.85rem;font-weight:500;">🏢 ' + _safe(venue.name || '') + claimedTag + '</div>' +
+      (address ? '<div style="color:#94a3b8;font-size:0.75rem;margin-top:2px;">' + _safe(address) + '</div>' : '');
+    item.addEventListener('mouseenter', function() { item.style.background = 'rgba(251,191,36,0.08)'; });
+    item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+    item.addEventListener('mousedown', function(ev) {
+      ev.preventDefault();
+      var boxEl = document.getElementById('venue-owner-suggestions');
+      if (boxEl) { boxEl.style.display = 'none'; boxEl.innerHTML = ''; }
+      if (typeof window._venueOwnerEditExisting === 'function') window._venueOwnerEditExisting(venue.placeId);
+    });
+    box.appendChild(item);
+  }
+
+  function _addGoogleItem(box, pred) {
+    var main = pred.mainText ? pred.mainText.text : '';
+    var sec = pred.secondaryText ? pred.secondaryText.text : '';
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
+    item.innerHTML = '<div style="color:#e2e8f0;font-size:0.85rem;font-weight:500;">📍 ' + _safe(main) + '</div>' +
+      (sec ? '<div style="color:#94a3b8;font-size:0.75rem;margin-top:2px;">' + _safe(sec) + '</div>' : '');
+    item.addEventListener('mouseenter', function() { item.style.background = 'rgba(129,140,248,0.15)'; });
+    item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+    item.addEventListener('mousedown', function(ev) { ev.preventDefault(); _selectPlace(pred); });
+    box.appendChild(item);
+  }
+
   async function _doSearch(query) {
     var box = document.getElementById('venue-owner-suggestions');
     if (!box) return;
     var q = String(query || '').trim();
-    if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
-    await ensurePlaces();
-    if (!window.google || !window.google.maps || !window.google.maps.places) {
-      box.innerHTML = '<div style="padding:10px;color:#f87171;font-size:0.8rem;">Google Places indisponível.</div>';
-      box.style.display = 'block';
+    if (q.length < 2) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      // Limpa pins de sugestão Google do mapa quando a query esvazia.
+      _googleSuggestionsForMap = [];
+      _renderOwnerMarkers();
       return;
     }
-    try {
-      var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-        input: q,
-        includedRegionCodes: ['br'],
-        includedPrimaryTypes: ['establishment'],
-        language: 'pt-BR'
-      });
-      var suggestions = result.suggestions || [];
-      if (suggestions.length === 0) {
-        box.innerHTML = '<div style="padding:10px;color:#94a3b8;font-size:0.8rem;">Nada encontrado.</div>';
-        box.style.display = 'block';
-        return;
+
+    // ─── Seção 1: venues cadastrados (match por nome) ───────────────────────
+    // Busca local, sem custo de rede. Limit 8 pra caber sem competir demais
+    // com as sugestões do Google logo abaixo.
+    var qLow = q.toLowerCase();
+    var matched = (_registeredVenues || []).filter(function(v) {
+      var n = (v.name || '').toLowerCase();
+      var city = (v.city || '').toLowerCase();
+      var addr = (v.address || '').toLowerCase();
+      return n.indexOf(qLow) !== -1 || city.indexOf(qLow) !== -1 || addr.indexOf(qLow) !== -1;
+    }).slice(0, 8);
+
+    // ─── Seção 2: sugestões do Google ───────────────────────────────────────
+    await ensurePlaces();
+    var googleSugs = [];
+    var googleError = null;
+    if (window.google && window.google.maps && window.google.maps.places) {
+      try {
+        var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: q,
+          includedRegionCodes: ['br'],
+          includedPrimaryTypes: ['establishment'],
+          language: 'pt-BR'
+        });
+        googleSugs = (result.suggestions || []).filter(function(s) { return s.placePrediction; });
+      } catch (err) {
+        console.error('Venue owner search error:', err);
+        googleError = err && err.message;
       }
-      box.innerHTML = '';
-      suggestions.forEach(function(s) {
-        if (!s.placePrediction) return;
-        var pred = s.placePrediction;
-        var main = pred.mainText ? pred.mainText.text : '';
-        var sec = pred.secondaryText ? pred.secondaryText.text : '';
-        var item = document.createElement('div');
-        item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
-        item.innerHTML = '<div style="color:#e2e8f0;font-size:0.85rem;font-weight:500;">📍 ' + _safe(main) + '</div>' +
-          (sec ? '<div style="color:#94a3b8;font-size:0.75rem;margin-top:2px;">' + _safe(sec) + '</div>' : '');
-        item.addEventListener('mouseenter', function() { item.style.background = 'rgba(129,140,248,0.15)'; });
-        item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
-        item.addEventListener('mousedown', function(ev) { ev.preventDefault(); _selectPlace(pred); });
-        box.appendChild(item);
-      });
-      box.style.display = 'block';
-    } catch (err) {
-      console.error('Venue owner search error:', err);
-      box.innerHTML = '<div style="padding:10px;color:#f87171;font-size:0.8rem;">Erro: ' + _safe(err.message || 'indisponível') + '</div>';
-      box.style.display = 'block';
+    } else {
+      googleError = 'Google Places indisponível';
     }
+
+    // Monta o dropdown. Se nada foi encontrado nos dois lados, mostra msg.
+    box.innerHTML = '';
+    if (matched.length === 0 && googleSugs.length === 0) {
+      box.innerHTML = googleError
+        ? '<div style="padding:10px;color:#f87171;font-size:0.8rem;">' + _safe(googleError) + '</div>'
+        : '<div style="padding:10px;color:#94a3b8;font-size:0.8rem;">Nada encontrado.</div>';
+      box.style.display = 'block';
+      _googleSuggestionsForMap = [];
+      _renderOwnerMarkers();
+      return;
+    }
+    if (matched.length > 0) {
+      _addSectionHeader(box, '🏢 Já cadastrados no scoreplace (' + matched.length + ')');
+      matched.forEach(function(v) { _addRegisteredItem(box, v); });
+    }
+    if (googleSugs.length > 0) {
+      _addSectionHeader(box, '📍 Sugestões do Google — novo cadastro');
+      googleSugs.forEach(function(s) { _addGoogleItem(box, s.placePrediction); });
+    }
+    box.style.display = 'block';
+
+    // Atualiza pins do mapa com as sugestões Google (só as que têm location —
+    // predictions crus NÃO têm lat/lng; precisamos do place.fetchFields pra
+    // obter. Pra não fazer N chamadas, mantemos o mapa só com cadastrados +
+    // pins Google adicionados on-demand quando o usuário clicar/hover).
+    // Por simplicidade nesta iteração, limpamos sugestões Google do mapa até
+    // que alguma seja selecionada.
+    _googleSuggestionsForMap = [];
+    _renderOwnerMarkers();
   }
 
   async function _selectPlace(prediction) {
