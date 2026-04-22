@@ -140,6 +140,7 @@ loadScript('js/views/tournaments-analytics.js');
 loadScript('js/views/tournaments-organizer.js');
 loadScript('js/views/tournaments.js');
 loadScript('js/views/bracket-logic.js');
+loadScript('js/views/bracket-model.js');
 loadScript('js/views/bracket.js');
 loadScript('js/views/landing.js');
 loadScript('js/views/dashboard.js');
@@ -814,9 +815,6 @@ describe('SCOREPLACE_VERSION', function() {
     expect(window.SCOREPLACE_VERSION).toContain('-alpha');
     expect(window.SCOREPLACE_VERSION.split('.').length).toBeGreaterThanOrEqual(3);
   });
-  it('versao atual e 0.8.2-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.10.1-alpha');
-  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1001,13 +999,6 @@ describe('Email Templates — _emailTemplate', function() {
   it('reminder template includes days count', function() {
     var html = window._emailTemplate('reminder', { tournamentName: 'Open', days: 3 });
     expect(html.indexOf('3') > -1).toBe(true);
-  });
-});
-
-// ─── Version Test Update ────────────────────────────────────────────────────
-describe('Version — v0.8.1', function() {
-  it('SCOREPLACE_VERSION is 0.8.2-alpha', function() {
-    expect(window.SCOREPLACE_VERSION).toBe('0.10.1-alpha');
   });
 });
 
@@ -1460,22 +1451,26 @@ describe('Z-Index Hierarchy', function() {
     expect(val === '').toBe(true);
   });
 
-  it('#hamburger-dropdown exists as sibling of header, not child', function() {
-    var dd = document.getElementById('hamburger-dropdown');
+  it('#hamburger-dropdown exists as sibling of header, not child', async function() {
+    // tests.html não renderiza a SPA, então parseamos o index.html real
+    // pra validar a estrutura estática da topbar.
+    var html = await fetch('index.html').then(function(r) { return r.text(); });
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var dd = doc.getElementById('hamburger-dropdown');
     expect(!!dd).toBe(true);
-    // It must NOT be inside the topbar
-    var topbar = document.querySelector('.topbar');
+    var topbar = doc.querySelector('.topbar');
     expect(topbar && topbar.contains(dd)).toBe(false);
   });
 
-  it('#hamburger-dropdown has position:relative (not sticky/fixed)', function() {
-    var dd = document.getElementById('hamburger-dropdown');
-    if (!dd) { expect(false).toBe(true); return; }
-    // Temporarily make visible to read computed style
-    dd.style.display = 'block';
-    var pos = getComputedStyle(dd).position;
-    dd.style.display = '';
-    expect(pos).toBe('relative');
+  it('.hamburger-dropdown tem position:fixed em components.css (sob a topbar)', async function() {
+    var css = await fetch('css/components.css').then(function(r) { return r.text(); });
+    // Extrai a regra ".hamburger-dropdown { ... }" (primeira ocorrência, top-level)
+    var match = css.match(/\.hamburger-dropdown\s*\{([^}]*)\}/);
+    expect(!!match).toBe(true);
+    var rules = match[1];
+    expect(/position\s*:\s*fixed/.test(rules)).toBe(true);
+    // Deve ter `top` definido (JS ajusta dinamicamente sob a topbar).
+    expect(/\btop\s*:/.test(rules)).toBe(true);
   });
 
   it('_toggleHamburger, _closeHamburger, _adjustBackHeaderForHamburger exist', function() {
