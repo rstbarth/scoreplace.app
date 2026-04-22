@@ -50,7 +50,15 @@
       id: 'primeiros-passos',
       title: _t('help.firstSteps'),
       icon: '🚀',
-      content: '<p><b>Bem-vindo ao scoreplace.app!</b> Siga os passos abaixo para começar:</p>' +
+      content: '<p><b>Bem-vindo ao scoreplace.app!</b> O app cobre 4 áreas complementares:</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Os 4 pilares</div>' +
+          '<p>🏆 <b>Torneios</b> — Crie, organize, participe. Eliminatórias, Dupla Elim., Grupos + Elim., Suíço, Liga, Rei/Rainha. Check-in, sorteio, resultados ao vivo.</p>' +
+          '<p>📡 <b>Partida Casual</b> — Partidas avulsas sem criar torneio. Placar ao vivo em tela cheia, sincronizado entre jogadores via código de sala/QR. Estatísticas detalhadas no perfil.</p>' +
+          '<p>📍 <b>Presença</b> — "Status online" pra quadras e clubes. Check-in imediato ou ida planejada; amigos veem no dashboard e podem se juntar.</p>' +
+          '<p>🏢 <b>Locais</b> — Descubra clubes e arenas na sua cidade ou em viagens. Mapa com pins, filtros, reviews, integração com torneios e presença.</p>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">As 4 áreas se conectam: criar torneio num local visto em Locais prefilla o venue; ver presenças lista torneios agendados no mesmo lugar; etc.</p>' +
+        '</div>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 1: Fazer Login</div>' +
           '<p>Clique no botão <b>"Entrar"</b> no canto superior direito da tela.</p>' +
@@ -95,26 +103,34 @@
       id: 'dashboard',
       title: _t('help.dashboard'),
       icon: '📊',
-      content: '<p>A <b>Dashboard</b> é sua página principal com todos os seus torneios.</p>' +
+      content: '<p>A <b>Dashboard</b> é sua página principal — concentra torneios, próximas partidas, amigos no local e atalhos para as 4 áreas principais do app.</p>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Hero Box e Filtros Principais</div>' +
-          '<p><b>Cards de resumo</b> — No topo: "Meus Torneios", "Participando" e "Inscrições Abertas". Clique para filtrar.</p>' +
-          '<p><b>Filtros no topo</b> — Todos, Organizados, Participando, Abertos, Favoritos, Encerrados. O ativo fica destacado.</p>' +
-          '<p><b>Filtros por modalidade, local e formato</b> — Pills coloridas (roxo=esporte, verde=local, amarelo=formato). Use "✕ Limpar filtros" para resetar.</p>' +
-          '<p><b>Visualização</b> — Alterne entre Cards (visual completo) e Lista (uma linha por torneio) com os botões no canto.</p>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Hero e Ações Rápidas</div>' +
+          '<p><b>Welcome para usuário novo</b> — Sem nenhum torneio criado ou disponível, você vê um card de boas-vindas com 4 CTAs coloridos: 🏆 Criar torneio, 🏢 Descobrir locais, 📍 Registrar presença, 👥 Encontrar amigos. Some assim que existir qualquer torneio visível pra você.</p>' +
+          '<p><b>Barra de ações</b> — +Novo Torneio, Convidar amigos (QR Code do app), Pro, Apoie, Locais, Presença.</p>' +
+          '<p><b>Contadores de resumo</b> — Todos, Organizados, Participando, <b>Inscrições Abertas</b>, Favoritos, Encerrados. Clique para filtrar.</p>' +
+          '<p><b>"Inscrições Abertas"</b> — União dos <i>seus</i> torneios com inscrição aberta + torneios públicos do feed de descoberta que você ainda não entrou. Clicar "Inscrever-se" num card de descoberta aqui mesmo inscreve em 1 clique (sem precisar abrir a página do torneio).</p>' +
+          '<p><b>Filtros secundários</b> — Pills coloridas por modalidade (roxo), local (verde), formato (amarelo). "✕ Limpar filtros" reseta.</p>' +
+          '<p><b>Visualização</b> — Toggle Cards/Lista. Cards = visual completo; Lista = uma linha por torneio (compacto, bom pra muitos torneios).</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cards de Torneio</div>' +
-          '<p>Cada card mostra: nome, esporte, formato, inscritos, barra de progresso, countdown e status.</p>' +
-          '<p><b>Estrela ⭐</b> — Clique para favoritar. Torneios favoritos aparecem no filtro "Favoritos".</p>' +
-          '<p><b>Foto do local</b> — Aparece como fundo do card quando disponível.</p>' +
-          '<p><b>Logo</b> — Miniatura ao lado do nome (56×56px).</p>' +
-          '<p><b>Próximas partidas</b> — No topo, um widget mostra suas partidas pendentes com link direto.</p>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Widgets inline</div>' +
+          '<p><b>Próximas partidas</b> — Widget no topo lista suas partidas pendentes (sem resultado ainda) em torneios ativos. Clique pra ir direto pra página de resultado.</p>' +
+          '<p><b>Amigos no local</b> — Até 6 amigos com check-in ativo ou presença planejada hoje. Avatar com borda dourada, horário relativo ("🟢 agora · há X min" ou "🗓️ HH:mm"). Clicar prefilla a view de Presença com o mesmo venue/modalidade. Tem empty states: zero amigos mostra CTA pra #explore; zero presenças mostra linha discreta com link pra Minha presença.</p>' +
         '</div>' +
-        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Paginação e Contagens</div>' +
-          '<p>Torneios são carregados em lotes de 12. Clique em "Carregar mais" para ver os próximos.</p>' +
-          '<p>Torneios encerrados ficam agrupados em seção colapsável no final.</p>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cards de Torneio</div>' +
+          '<p>Cada card mostra: nome, esporte, formato, inscritos, barra de progresso, countdown e status. Cor de fundo indica seu papel (organizador = índigo, participante = teal).</p>' +
+          '<p><b>Estrela ⭐</b> — Favoritar/desfavoritar. Aparecem no filtro "Favoritos".</p>' +
+          '<p><b>Foto do local</b> — Fundo do card quando o venue tem <code>venuePhotoUrl</code>.</p>' +
+          '<p><b>Logo do torneio</b> — Miniatura 56×56. Gerada automaticamente ou upload manual em Editar Torneio.</p>' +
+          '<p><b>Botão de inscrição inline</b> — ✅ Inscrever-se / 🛑 Desinscrever-se / ✓ INSCRITO (badge), conforme seu estado atual. Funciona inclusive com torneios do feed de descoberta (hidratação defensiva injeta o doc em <code>AppStore.tournaments</code> antes do enroll).</p>' +
+        '</div>' +
+        '<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Paginação e Agrupamento</div>' +
+          '<p>Torneios carregam em lotes de 12. Botão "Carregar mais" aparece quando há mais pra mostrar.</p>' +
+          '<p>No filtro "Todos", torneios encerrados ficam em <code>&lt;details&gt;</code> colapsável no final, separados em "seus encerrados" (se participou/organizou) e "outros encerrados".</p>' +
+          '<p>No filtro "Abertos" com discovery esgotado, botão "🔍 Descobrir mais" pede a próxima página do feed público via cursor.</p>' +
         '</div>'
     },
     {
@@ -304,8 +320,10 @@
         '<p><b>Lembretes</b> — Automáticos: 7 dias, 2 dias e no dia do torneio.</p>' +
         '<p><b>Torneios próximos</b> — Baseado na sua localização (perfil). Avisado quando abrem inscrições perto.</p>' +
         '<p><b>Amizade e co-organização</b> — Pedidos de amizade e convites para co-organizar aparecem nas notificações. Aceite ou recuse diretamente.</p>' +
-        '<p><b>Níveis</b> — <span style="color:#ef4444;">Fundamentais</span> (inscrição, dia do torneio), <span style="color:#f59e0b;">Importantes</span> (alterações, 2 dias antes), <span style="color:#60a5fa;">Gerais</span> (7 dias antes, comunicados, proximidade).</p>' +
-        '<p><b>Push</b> — Notificações push no navegador (requer permissão). Funcionam mesmo com o app fechado.</p>'
+        '<p><b>Presença de amigos (🗓️)</b> — Quando um amigo planeja ida a um local, você recebe "Fulano vai jogar X em Y às HH:mm. Quer ir junto?". Botão "🏢 Ver local" abre a modal do venue com opção de "Estou aqui" pra se juntar.</p>' +
+        '<p><b>Níveis</b> — <span style="color:#ef4444;">Fundamentais</span> (inscrição, dia do torneio), <span style="color:#f59e0b;">Importantes</span> (alterações, 2 dias antes), <span style="color:#60a5fa;">Gerais</span> (7 dias antes, comunicados, proximidade, presença de amigos).</p>' +
+        '<p><b>Push</b> — Notificações push no navegador (requer permissão). Funcionam mesmo com o app fechado.</p>' +
+        '<p><b>Ações inline</b> — Convites (amizade, co-host, transferência de host) permitem aceitar/recusar direto da notificação. Avisos com <code>tournamentId</code> têm botão "Ver torneio" / "Ver chaveamento". <code>presence_plan</code> leva pro venue.</p>'
     },
     {
       id: 'explorar',
@@ -462,6 +480,90 @@
         '</div>'
     },
     {
+      id: 'presenca',
+      title: 'Presença no Local',
+      icon: '📍',
+      content: '<p>Registre quando você está num local esportivo pra que seus amigos saibam e possam se juntar. Funciona como "status online" para quadras e clubes.</p>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Como acessar</div>' +
+          '<p><b>Hero do dashboard</b> — Botão "📍 Presença" abre a view completa. Na dashboard também há o widget "Amigos no local" mostrando até 6 amigos com avatar + horário.</p>' +
+          '<p><b>Atalho</b> — Hash direto: <code>#presence</code>.</p>' +
+          '<p><b>A partir de um local</b> — Abra o card de um venue em Descobrir Locais e use "📍 Estou aqui agora" ou "🗓️ Planejar ida" direto na modal — evita navegar até a view de Presença.</p>' +
+        '</div>' +
+        '<div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Dois tipos de presença</div>' +
+          '<p><b>📍 Estou aqui agora</b> — Check-in imediato. Válido por 3h (janela padrão) a partir do momento da marcação. Aparece como "🟢 agora" pros amigos.</p>' +
+          '<p><b>🗓️ Planejar ida</b> — Agendamento futuro. Escolha data/hora de início e (opcionalmente) de saída — deixe em branco se não quiser fixar horário de fim. Amigos recebem notificação "Fulano vai jogar X em Y às HH:mm. Quer ir junto?".</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Multi-modalidade</div>' +
+          '<p>Um local pode oferecer várias modalidades (Beach Tennis + Tênis + Pickleball, por ex). Selecione todas com pills toggleáveis e o doc de presença fica com todas gravadas. Filtros respeitam a seleção e o "Movimento" consolida tudo num único lugar.</p>' +
+          '<p><b>Check-in multi-sport</b> — Quando você está disponível pra jogar mais de uma modalidade, basta deixar todas selecionadas antes de clicar "Estou aqui". O doc guarda <code>sports[]</code> e fica queryable por qualquer uma delas.</p>' +
+        '</div>' +
+        '<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Visibilidade e privacidade</div>' +
+          '<p><b>Amigos (padrão)</b> — Só seus amigos veem sua presença. Aparece com avatar no mapa/ widget da dashboard.</p>' +
+          '<p><b>Público</b> — Qualquer usuário logado vê (sem expor sua identidade — conta como "+1" anônimo no "👥 Agora no local").</p>' +
+          '<p><b>Desligado</b> — Nada é escrito. Use quando quiser jogar sem sinalizar presença. Configurável em Perfil → Presença.</p>' +
+          '<p><b>Silenciar temporariamente</b> — No perfil, escolha silenciar 1h/4h/dia/semana. Seu check-in fica desativado até o timer acabar; widgets ignoram presenças de amigos durante esse período também (simétrico).</p>' +
+        '</div>' +
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.18);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Integração com torneios e partidas casuais</div>' +
+          '<p><b>Torneios no local</b> — O gráfico de barras por hora inclui torneios agendados no mesmo venue/modalidade/dia como presenças virtuais ("🏆 Torneio X às 18h").</p>' +
+          '<p><b>Modal do venue</b> — Em Descobrir Locais, a seção "Movimento no local" mostra avatares de amigos com check-in ativo + "+N" de outros usuários e torneios acontecendo hoje.</p>' +
+        '</div>'
+    },
+    {
+      id: 'locais',
+      title: 'Descobrir Locais',
+      icon: '🏢',
+      content: '<p>Encontre clubes, arenas e quadras abertas ao público — útil pra viagens, descobrir sua cidade ou compartilhar o local onde você joga.</p>' +
+        '<div style="background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.20);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Como acessar</div>' +
+          '<p>Botão "🏢 Locais" no hero do dashboard ou hash <code>#venues</code>. Público — funciona sem login (descoberta de onboarding).</p>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Filtros e busca</div>' +
+          '<p><b>Local</b> — Digite endereço, bairro ou cidade. O geocoder resolve em lat/lng e centraliza o mapa.</p>' +
+          '<p><b>📍 GPS</b> — Botão ao lado do campo usa sua localização precisa (tem prioridade sobre o texto digitado).</p>' +
+          '<p><b>Modalidade</b> — Filtra por Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel. "Qualquer" traz todos.</p>' +
+          '<p><b>Mín. quadras</b> — Default 1. Útil pra filtrar clubes com mais infraestrutura.</p>' +
+          '<p><b>Distância (km)</b> — Raio a partir do centro. Default 10km. O raio vira círculo visual no mapa.</p>' +
+          '<p><b>Faixa de preço</b> — $/$$/$$$ ou "Qualquer". Filtra cadastrados; sugestões do Google ignoram.</p>' +
+          '<p>Filtros persistem entre sessões em <code>localStorage</code> — você volta e o filtro ainda tá do jeito que deixou.</p>' +
+        '</div>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Mapa vs Lista</div>' +
+          '<p>Toggle no topo. <b>Mapa</b> é o default — descoberta é intrinsecamente espacial.</p>' +
+          '<p><b>Pins do mapa</b>: 🏢 <b>âmbar</b> = local cadastrado (free). 🏢 <b>índigo</b> = local cadastrado (Pro). 🔎 <b>cinza translúcido</b> = sugestão do Google (não cadastrado). 📍 <b>verde</b> = sua localização.</p>' +
+          '<p><b>Clique num pin âmbar/índigo</b> abre a modal de detalhe do venue (com Movimento, Reviews, CTAs). <b>Clique num pin cinza</b> abre o local direto no Google Maps em nova aba (ainda não existe na base do scoreplace — o dono pode reivindicar depois).</p>' +
+          '<p><b>Gesture cooperative</b> — No mobile, o mapa exige dois dedos pra mexer (scroll com um dedo passa pra página). No desktop, Ctrl+scroll pra zoom. Isso evita o bug antigo de "ficar preso no mapa" ao tentar scrollar a tela.</p>' +
+          '<p><b>Barra de resumo acima do mapa</b> — Mostra "🏢 N cadastrados · 🔎 M sugestões Google" em tempo real. Se zero resultados no raio atual, oferece botão "🔍 Expandir para Xkm" (triplica o raio) em 1 clique pra sair do beco sem saída.</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Modal de detalhe do venue</div>' +
+          '<p><b>Tags de proveniência</b>: "✅ Informações oficiais" quando reivindicado pelo proprietário; "📝 Cadastrado por [nome]" quando é cadastro colaborativo (qualquer usuário pode cadastrar um local que frequenta, estilo Wikipedia).</p>' +
+          '<p><b>Contatos</b> — Botões 📞 Ligar, 💬 WhatsApp (auto-prefixo 55), 📷 Instagram, ✉️ E-mail quando disponíveis.</p>' +
+          '<p><b>Movimento no local</b> — Amigos com check-in ativo (avatares com borda dourada), "+N outros" (presenças públicas/torneios em andamento), e eventos agendados "Mais tarde hoje" ordenados por horário.</p>' +
+          '<p><b>Torneios neste local</b> — Próximos e recentes, linkados pra <code>#tournaments/&lt;id&gt;</code>. Usa o cache <code>AppStore.tournaments</code> (sem fetch extra).</p>' +
+          '<p><b>Avaliações</b> — Estrelas 1–5 + texto opcional. Cada usuário logado deixa uma review (substitui se re-envia). Opção de anônimo quando só dá estrela sem texto. Média visível no header.</p>' +
+          '<p><b>Ações</b>: <b>📍 Estou aqui agora</b> (check-in inline com toast — não navega), <b>🗓️ Planejar ida</b> (vai pra #presence com o dialog de agendamento auto-aberto), <b>🗺️ Ver no mapa</b> (Google Maps externo), <b>📍 Ver presenças</b> (view completa com gráfico por hora), <b>🏆 Criar torneio aqui</b> (abre criação rápida com o venue pré-preenchido).</p>' +
+        '</div>' +
+        '<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cadastrar um local</div>' +
+          '<p>CTA "🏢 Cadastre ou edite locais" aparece abaixo do mapa. Leva pra #my-venues.</p>' +
+          '<p><b>Qualquer jogador cadastra</b> — Não precisa ser o dono. Estilo Wikipedia: comunidade preenche, proprietário reivindica depois pra ganhar a tag ✅ e bloquear edições de terceiros.</p>' +
+          '<p><b>Autocomplete do Google</b> — Digite o nome do local; o Google Places sugere. Ao selecionar, nome, endereço, lat/lng, telefone, site, horário e faixa de preço são pré-preenchidos quando disponíveis.</p>' +
+          '<p><b>Reivindicar como dono</b> — Dentro do modal do venue cadastrado (sem dono ainda), botão "🏢 Reivindicar como dono" leva pra #my-venues em modo de edição com checkbox "Sou proprietário". Se outro usuário já reivindicou, o sistema bloqueia e orienta contato com o suporte.</p>' +
+        '</div>' +
+        '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Plano Pro para proprietários</div>' +
+          '<p><b>Destaque visual</b> — Cards e pins em índigo com glow (em vez do âmbar padrão). Ordenação server-side prioriza Pro no topo.</p>' +
+          '<p><b>Painel analytics</b> — Visualizações (viewCount), check-ins nos últimos 7 dias, total de torneios cadastrados no local.</p>' +
+          '<p><b>Como ativar</b> — Lista "Meus locais" no perfil mostra botão "🚀 Pro" pra cada venue free. Clique envia manifestação de interesse pra scoreplace.app@gmail.com com os dados do proprietário. Ativação manual no alpha; automação via Stripe quando a demanda justificar.</p>' +
+        '</div>'
+    },
+    {
       id: 'estatisticas-detalhadas',
       title: 'Estatísticas Detalhadas',
       icon: '📊',
@@ -523,7 +625,14 @@
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">?</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir/fechar esta ajuda</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">ESC</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Fechar modal atual</span>' +
         '</div>' +
-        '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">Os atalhos funcionam quando nenhum campo de texto está focado.</p>'
+        '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">Os atalhos funcionam quando nenhum campo de texto está focado.</p>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-top:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">🔍 Busca rápida — o que ela encontra</div>' +
+          '<p><b>Torneios</b> — Seus (scoped) + torneios públicos do feed de descoberta. Match por nome, esporte, local, formato. Clique navega direto pra página do torneio.</p>' +
+          '<p><b>Locais</b> — Venues extraídos dos torneios no cache (via <code>venuePlaceId</code>). Match por nome e endereço. Clique abre a modal de detalhe do venue em <code>#venues/&lt;placeId&gt;</code>.</p>' +
+          '<p><b>Jogadores</b> — Nomes de participantes em qualquer torneio (scoped + discovery), com contexto dos torneios em que aparecem.</p>' +
+          '<p><b>Ações rápidas</b> — Quando o campo tá vazio, lista atalhos: Novo Torneio, Dashboard, Explorar, Notificações, Ajuda.</p>' +
+        '</div>'
     },
     {
       id: 'dicas-app',
@@ -815,6 +924,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.12-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Manual atualizado: 4 pilares + Presença + Locais + Busca rápida expandida.</b> O manual estava desatualizado em relação às features entregues nos pilares A (Presença) e B (Locais/Venues) + polimento recente. Esta versão sincroniza tudo. <b>(1) Nova seção "📍 Presença no Local"</b> — cobre os dois tipos de presença (check-in imediato / planejar ida), multi-modalidade, visibilidade (amigos/público/desligado + silenciar temporário), e a integração com torneios e modais de venue. <b>(2) Nova seção "🏢 Descobrir Locais"</b> — filtros (Local/GPS/Modalidade/Mín. quadras/Distância/Faixa de preço), map vs lista, hierarquia de pins (âmbar=cadastrado free, índigo=Pro, cinza=Google, verde=você), barra de resumo com CTA "Expandir raio", modal de detalhe com todos os CTAs inline (Estou aqui, Planejar ida, Criar torneio aqui), e explicação do cadastro colaborativo + reivindicação de propriedade + plano Pro. <b>(3) Primeiros passos agora abre com os 4 pilares</b> — Torneios, Partida Casual, Presença, Locais — dando ao usuário novo a visão completa das áreas do app em vez de cair direto no login. <b>(4) Dashboard expandida</b> — documenta o welcome card pra usuário novo, a semântica da contagem "Inscrições Abertas" (união de seus + discovery), o widget "Amigos no local" e seus empty states, e o botão de inscrição inline com hidratação defensiva do discovery feed. <b>(5) Atalhos de teclado</b> ganhou bloco explicando o que a busca rápida (Ctrl+K) encontra agora — torneios scoped + discovery, locais, jogadores de todos os torneios visíveis. <b>(6) Notificações</b> menciona <code>presence_plan</code> (amigo planejando ida) com CTA "🏢 Ver local". Arquivos: <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.11-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Notificações: tipos faltando + ação "Ver local" em convites de presença.</b> Auditoria dos tipos de notificação revelou três gaps entre o catálogo e os eventos realmente disparados em produção. <b>(1) <code>tournament_updated</code></b> (disparado por <code>create-tournament.js</code> quando organizador salva edições) não existia no catálogo — só <code>tournament_update</code>. Notificação caía no fallback genérico 🔔 em vez do ícone 📢 âmbar. Adicionada entrada alias no catálogo mantendo ambas as chaves (não quebra notificações já persistidas em Firestore). <b>(2) <code>organizer_communication</code></b> (disparado por <code>tournaments-organizer.js</code> quando organizador manda comunicado aos inscritos) vs <code>org_communication</code> no catálogo — mesmo problema, mesmo fix de alias. Agora comunicados organizacionais aparecem com 📣 em vez do bell genérico. <b>(3) <code>presence_plan</code></b> (v0.14.70 — amigo planejando ida a um local) não estava no catálogo: adicionado com 🗓️ verde, nível \'all\'. Além disso, <b>notificações de presence_plan ganharam botão "🏢 Ver local"</b> na view de notificações — antes elas ficavam sem ação, enquanto todas as outras (tournament_*, friend_request, etc) tinham CTA. Clicar navega pra <code>#venues/&lt;placeId&gt;</code> com a modal aberta, onde o usuário pode dar "Estou aqui agora" ou "Planejar ida" pra se juntar ao amigo. Fecha o loop Presence→Notification→Ação. Arquivos: <code>js/notification-catalog.js</code>, <code>js/views/notifications-view.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
         '</div>' +
