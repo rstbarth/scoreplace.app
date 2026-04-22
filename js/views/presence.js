@@ -345,14 +345,102 @@
       } else {
         label = '🗓️ Você planejou estar aqui ' + _fmtTime(p.startsAt) + '–' + _fmtTime(p.endsAt);
       }
-      html += '<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">' +
-        '<span style="flex:1;color:var(--text-bright);font-size:0.88rem;">' + _safe(label) + '</span>' +
+      // Calendar button só pra 'planned' — check-in é "agora", não faz sentido
+      // botar na agenda evento já em andamento. Mesmo padrão que torneios
+      // (v0.15.16): picker com Google/Outlook/.ics.
+      var calBtn = (p.type === 'planned')
+        ? '<button class="btn btn-sm" onclick="window._presenceAddToCalendar(\'' + _safe(p._id) + '\')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;padding:4px 10px;font-size:0.75rem;font-weight:600;" title="Adicionar à agenda">📅</button>'
+        : '';
+      html += '<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<span style="flex:1;min-width:160px;color:var(--text-bright);font-size:0.88rem;">' + _safe(label) + '</span>' +
+        calBtn +
         '<button class="btn btn-sm" onclick="window._presenceCancel(\'' + _safe(p._id) + '\')" style="background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);padding:4px 10px;font-size:0.75rem;">Cancelar</button>' +
       '</div>';
     });
     html += '</div>';
     box.innerHTML = html;
   }
+
+  // Calendar export para uma presença planejada — reaproveita o picker
+  // criado em tournaments-sharing.js (v0.15.16) via o pattern de preencher
+  // window._calPendingPayload + abrir o overlay #cal-picker-overlay. A
+  // função aqui constrói o payload específico de presença (título com
+  // emoji 📍, local, descrição apontando pra #presence) e delega o picker.
+  window._presenceAddToCalendar = function(presenceId) {
+    var p = state.myActive.find(function(x) { return x._id === presenceId; });
+    if (!p) p = state.presences.find(function(x) { return x._id === presenceId; });
+    if (!p || p.type !== 'planned') return;
+    var start = new Date(p.startsAt);
+    if (isNaN(start.getTime())) return;
+    var end;
+    if (p.openEnded) {
+      // Sem hora de saída fixa — bota 2h como duração padrão pra agenda
+      // não virar evento de 12h (cap interno do presence-db).
+      end = new Date(p.startsAt + 2 * 3600 * 1000);
+    } else {
+      end = new Date(p.endsAt);
+      if (isNaN(end.getTime())) end = new Date(p.startsAt + 2 * 3600 * 1000);
+    }
+    var base = window.SCOREPLACE_URL || 'https://scoreplace.app';
+    var url = base + '/#venues/' + encodeURIComponent(p.placeId);
+    var title = '📍 ' + (p.venueName || 'Local') + ' · ' + (p.sport || '');
+    var desc = 'Presença planejada no scoreplace.app\n\n' +
+               'Modalidade: ' + (p.sport || '—') + '\n' +
+               'Local: ' + (p.venueName || '—') + '\n\n' +
+               'Ver movimento do local:\n' + url;
+    // Monta o payload no mesmo formato que tournaments-sharing espera pra
+    // que window._calPick reuse os helpers _googleCalendarUrl / _outlookCalendarUrl
+    // / _icsDownload sem duplicação.
+    window._calPendingPayload = {
+      title: title,
+      start: start,
+      end: end,
+      location: p.venueName || '',
+      description: desc,
+      url: url
+    };
+    var safeName = (p.venueName || 'presenca').replace(/[^a-zA-Z0-9À-ü\s-]/g, '').replace(/\s+/g, '_');
+    window._calPendingFilename = 'presenca_' + safeName + '.ics';
+    // Abre o picker overlay. Se a função utilitária existir (carregada após
+    // tournaments-sharing.js), reutiliza; senão, faz fallback direto no
+    // Google Calendar.
+    if (typeof window._tournamentAddToCalendar !== 'function') {
+      // Shouldn't happen em produção, mas defende contra carregamento parcial.
+      try {
+        var params = new URLSearchParams({
+          action: 'TEMPLATE',
+          text: title,
+          dates: start.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z/' + end.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
+          details: desc,
+          location: p.venueName || ''
+        });
+        window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank', 'noopener');
+      } catch(e) {}
+      return;
+    }
+    // Renderiza o overlay manualmente — o mesmo que _tournamentAddToCalendar
+    // renderiza. Copiamos o markup aqui pra evitar chamar a função do
+    // torneio com um id bobo que não encontraria.
+    var prev = document.getElementById('cal-picker-overlay');
+    if (prev) prev.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'cal-picker-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:22px;max-width:440px;width:100%;text-align:center;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">📅</div>' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;margin-bottom:6px;">Adicionar à agenda</div>' +
+        '<div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:16px;">' + _safe(title) + '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+          '<button class="btn hover-lift" onclick="window._calPick(\'google\')" style="background:#4285f4;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">🟦 Google Calendar</button>' +
+          '<button class="btn hover-lift" onclick="window._calPick(\'outlook\')" style="background:#0078d4;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">🔷 Outlook.com</button>' +
+          '<button class="btn hover-lift" onclick="window._calPick(\'ics\')" style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">📄 Apple/Outlook (.ics)</button>' +
+        '</div>' +
+        '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'cal-picker-overlay\').remove()" style="margin-top:14px;">Cancelar</button>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  };
 
   // Classify a presence as "friend" / "me" / "other" given the current user.
   function _classify(p) {
