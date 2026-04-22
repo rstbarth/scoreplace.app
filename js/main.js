@@ -1003,6 +1003,19 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.44-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Limpeza de código defensivo de compat — fase alpha.</b> Aplicando a regra persistida no <code>CLAUDE.md</code> ("dados no Firestore são descartáveis até o beta"), removidos todos os branches <code>if (legacy_shape) ...</code> que eu tinha acumulado entre venues/courts e presences:</p>' +
+        '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +
+          '<li><b>venue-db.js</b>: <code>addVenueCourt</code> e <code>updateVenueCourt</code> não gravam mais <code>sport: sports[0]</code> (mirror back-compat). Apenas <code>sports[]</code>. Aggregate <code>aggregateVenueCourts</code> drop do fallback <code>c.sport ? [c.sport] : []</code> — lê só <code>c.sports</code>.</li>' +
+          '<li><b>presence-db.js</b>: <code>loadForVenueSportDay</code> era uma query dupla (uma em <code>sports[]</code> + uma em <code>sport</code> escalar) com dedup por doc id — agora só a query <code>array-contains</code> em <code>sports[]</code>. Reduz 1 round-trip por leitura de presença.</li>' +
+          '<li><b>presence.js</b>: 8 sites de <code>Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : [])</code> substituídos por <code>Array.isArray(p.sports) ? p.sports : []</code>. Campo <code>state.sport</code> (derivado redundante) deletado do objeto de estado. Payloads de <code>savePresence</code> não gravam mais <code>sport: normSports[0]</code>.</li>' +
+          '<li><b>venues.js / dashboard.js / presence-geo.js</b>: todos os <code>sessionStorage._presencePrefill</code> agora gravam <code>sports: [...]</code> (array) em vez do shape antigo com string vazia. Quick check-in a partir do modal de venue também dropou o mirror singular.</li>' +
+          '<li><b>venue-owner.js</b>: deletado <code>_venueCourtsRefresh</code> (função dead code pós-redesign do v0.15.43 — a inline courts list do form antigo não existe mais). Drop do fallback <code>ex.openingHoursGrid</code> (flat shape nunca usado) e <code>|| ex.website</code>. Listagem de courts na tela nova lê só <code>c.sports</code>.</li>' +
+        '</ul>' +
+        '<p><b>Regras ficam explícitas agora</b>: um único shape canônico por campo, zero defensive reads para shapes antigos. Se um doc no Firestore ainda tiver <code>sport</code> singular e não <code>sports[]</code>, vai aparecer quebrado — e tudo bem, é fase alpha, Rodrigo apaga e refaz.</p>' +
+        '<p><b>Arquivos</b>: <code>js/venue-db.js</code>, <code>js/presence-db.js</code>, <code>js/presence-geo.js</code>, <code>js/views/venue-owner.js</code>, <code>js/views/presence.js</code>, <code>js/views/venues.js</code>, <code>js/views/dashboard.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.43-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cadastro de locais reformulado: foco no essencial + grade de horários pintável.</b> Cinco mudanças na UX de <code>#my-venues</code>:</p>' +
         '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +

@@ -75,39 +75,27 @@ window.PresenceDB = {
   },
 
   // Load all presences for a given venue + sport on a given local day.
-  // Matches on the multi-sport `sports[]` array (one presence can cover
-  // several modalities) via array-contains. Older docs that still have only
-  // the legacy `sport` scalar are also fetched and merged so we don't miss
-  // anything during the alpha transition. Dedup by doc id. Returns list with
-  // `_id`. Visibility/friend filtering is the caller's job.
+  // Matches on the multi-sport `sports[]` array (uma presença pode cobrir
+  // várias modalidades) via array-contains. Visibility/friend filtering é
+  // responsabilidade do caller.
   async loadForVenueSportDay(placeId, sport, dayKey) {
     if (!this.db || !placeId || !sport || !dayKey) return [];
     var normSport = this.normalizeSport(sport);
     try {
-      var results = {};
-      var addFromSnap = function(snap) {
-        snap.forEach(function(doc) {
-          if (results[doc.id]) return;
-          var d = doc.data();
-          if (d && !d.cancelled) {
-            d._id = doc.id;
-            results[doc.id] = d;
-          }
-        });
-      };
-      await Promise.all([
-        this.db.collection('presences')
-          .where('placeId', '==', placeId)
-          .where('sports', 'array-contains', normSport)
-          .where('dayKey', '==', dayKey)
-          .get().then(addFromSnap).catch(function(e) { console.warn('sports[] query:', e && e.message); }),
-        this.db.collection('presences')
-          .where('placeId', '==', placeId)
-          .where('sport', '==', normSport)
-          .where('dayKey', '==', dayKey)
-          .get().then(addFromSnap).catch(function(e) { console.warn('sport query:', e && e.message); })
-      ]);
-      return Object.keys(results).map(function(k) { return results[k]; });
+      var snap = await this.db.collection('presences')
+        .where('placeId', '==', placeId)
+        .where('sports', 'array-contains', normSport)
+        .where('dayKey', '==', dayKey)
+        .get();
+      var list = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (d && !d.cancelled) {
+          d._id = doc.id;
+          list.push(d);
+        }
+      });
+      return list;
     } catch (e) {
       console.error('Erro ao carregar presenças:', e);
       return [];

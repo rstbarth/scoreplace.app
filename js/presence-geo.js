@@ -137,7 +137,7 @@
             sessionStorage.setItem('_presencePrefill', JSON.stringify({
               placeId: location.placeId,
               venueName: location.name || '',
-              sport: '',
+              sports: [],
               lat: location.lat,
               lon: location.lng != null ? location.lng : location.lon
             }));

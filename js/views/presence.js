@@ -201,8 +201,7 @@
 
   var state = {
     venue: null,      // {placeId, name, lat, lon}
-    sport: '',        // Primary sport — used for writes (check-in, plan)
-    sports: [],       // Multi-filter — the set of modalities to merge in display
+    sports: [],       // Selected modalities — todas gravadas no doc; queries usam array-contains
     dayKey: '',
     presences: [],    // from PresenceDB (filtered visibility)
     tournaments: [],  // same venue+sport+day, treated as scheduled "presences"
@@ -310,7 +309,7 @@
     var box = document.getElementById('presence-actions');
     if (!box) return;
     var hasVenue = !!(state.venue && state.venue.placeId);
-    var hasSport = !!state.sport;
+    var hasSport = Array.isArray(state.sports) && state.sports.length > 0;
     var disabled = (!hasVenue || !hasSport) ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
     box.innerHTML =
       '<button class="btn btn-success hover-lift" ' + disabled + ' onclick="window._spinButton(this, \'Registrando...\'); window._presenceCheckIn()" style="flex:1;min-width:140px;padding:10px 14px;font-weight:700;">📍 Estou aqui agora</button>' +
@@ -326,7 +325,7 @@
     // with multi-sport presences the primary `sport` alone isn't enough.
     var here = state.myActive.filter(function(p) {
       if (p.placeId !== (state.venue && state.venue.placeId)) return false;
-      var pSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+      var pSports = Array.isArray(p.sports) ? p.sports : [];
       if (selSports.length === 0) return true;
       return pSports.some(function(s) { return selSet[window.PresenceDB.normalizeSport(s)]; });
     });
@@ -383,9 +382,10 @@
     }
     var base = window.SCOREPLACE_URL || 'https://scoreplace.app';
     var url = base + '/#venues/' + encodeURIComponent(p.placeId);
-    var title = '📍 ' + (p.venueName || 'Local') + ' · ' + (p.sport || '');
+    var pSportsLabel = (Array.isArray(p.sports) && p.sports.length) ? p.sports.join(' / ') : '';
+    var title = '📍 ' + (p.venueName || 'Local') + ' · ' + pSportsLabel;
     var desc = 'Presença planejada no scoreplace.app\n\n' +
-               'Modalidade: ' + (p.sport || '—') + '\n' +
+               'Modalidade: ' + (pSportsLabel || '—') + '\n' +
                'Local: ' + (p.venueName || '—') + '\n\n' +
                'Ver movimento do local:\n' + url;
     // Monta o payload no mesmo formato que tournaments-sharing espera pra
@@ -615,7 +615,7 @@
         // Prefix sports icons so friends see which modalities this person is
         // available to play right now. Same _sportsIcons helper used in
         // Próximas horas — keeps the two sections visually consistent.
-        var nowSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+        var nowSports = Array.isArray(p.sports) ? p.sports : [];
         var nowIcons = _sportsIcons(nowSports);
         var iconsHtml = nowIcons
           ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + nowIcons + '</span>'
@@ -710,7 +710,7 @@
             : '<div style="width:28px;height:28px;min-width:28px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.72rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
           // Chip: [sport icons] avatar [name]. Icons come before the avatar so
           // friends know at a glance which modalities this person will play.
-          var chipSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+          var chipSports = Array.isArray(p.sports) ? p.sports : [];
           var iconStr = _sportsIcons(chipSports);
           friendChips.push(
             '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;max-width:100%;min-width:0;">' +
@@ -809,7 +809,7 @@
           var sel = (state.sports || []).map(window.PresenceDB.normalizeSport);
           var selSet = {}; sel.forEach(function(s) { selSet[s] = true; });
           var filtered = list.filter(function(p) {
-            var docSports = Array.isArray(p.sports) && p.sports.length ? p.sports : (p.sport ? [p.sport] : []);
+            var docSports = Array.isArray(p.sports) ? p.sports : [];
             var sportMatch = sel.length === 0 || docSports.some(function(s) { return selSet[window.PresenceDB.normalizeSport(s)]; });
             if (!sportMatch) return false;
             if (!p.uid) return p.visibility === 'public';
@@ -959,7 +959,6 @@
   };
 
   window._presenceOnSportChange = function(value) {
-    state.sport = value || '';
     state.sports = value ? [value] : [];
     renderActions();
     refreshData();
@@ -969,7 +968,7 @@
   // back to the first preferred sport so queries have something to go on.
   window._presenceToggleSport = function(sport) {
     if (!sport) return;
-    if (!Array.isArray(state.sports)) state.sports = state.sport ? [state.sport] : [];
+    if (!Array.isArray(state.sports)) state.sports = [];
     var idx = state.sports.indexOf(sport);
     if (idx === -1) state.sports.push(sport);
     else state.sports.splice(idx, 1);
@@ -977,7 +976,6 @@
       // Guard: at least one must stay selected, otherwise writes have no target.
       state.sports = [sport];
     }
-    state.sport = state.sports[0];
     renderPicker();
     renderActions();
     refreshData();
@@ -1004,13 +1002,15 @@
     // All selected sports are stored on the same presence doc — the user is
     // "at this venue and available to play any of these modalities". No more
     // "pick one" prompt; a single doc represents the whole session.
-    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    var sports = Array.isArray(state.sports) ? state.sports : [];
     if (sports.length === 0) return;
-    state.sport = sports[0];
-    // Prevent duplicate check-in at same venue+sport
+    // Prevent duplicate check-in at same venue+sport (qualquer sport da
+    // presença ativa que coincida com os sports atuais conta como dup).
+    var normCurrent = sports.map(function(s) { return window.PresenceDB.normalizeSport(s); });
     var dup = state.myActive.filter(function(p) {
-      return p.type === 'checkin' && p.placeId === state.venue.placeId &&
-             window.PresenceDB.normalizeSport(p.sport) === window.PresenceDB.normalizeSport(state.sport);
+      if (p.type !== 'checkin' || p.placeId !== state.venue.placeId) return false;
+      var pSports = Array.isArray(p.sports) ? p.sports.map(function(s) { return window.PresenceDB.normalizeSport(s); }) : [];
+      return pSports.some(function(ns) { return normCurrent.indexOf(ns) !== -1; });
     })[0];
     if (dup) {
       if (window.showNotification) window.showNotification('Você já está registrado neste local.', 'info');
@@ -1027,9 +1027,6 @@
       venueName: state.venue.name || '',
       venueLat: state.venue.lat || null,
       venueLon: state.venue.lon || null,
-      // `sport` stays for backward compat (old readers); `sports[]` is the
-      // canonical multi-sport field queryable via array-contains.
-      sport: normSports[0] || '',
       sports: normSports,
       type: 'checkin',
       startsAt: now,
@@ -1093,7 +1090,7 @@
         level: 'all',
         venueName: payload.venueName || '',
         placeId: payload.placeId,
-        sport: payload.sport,
+        sports: payload.sports,
         startsAt: payload.startsAt
       }).catch(function(e) { console.warn('Presence check-in notify failed:', e); });
     });
@@ -1128,9 +1125,8 @@
   window._presencePlanDialog = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue) return;
-    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    var sports = Array.isArray(state.sports) ? state.sports : [];
     if (sports.length === 0) return;
-    state.sport = sports[0];
     var now = new Date();
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) {
@@ -1168,7 +1164,7 @@
   window._presenceConfirmPlan = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid || !state.venue) return;
-    var sports = (Array.isArray(state.sports) && state.sports.length > 0) ? state.sports : (state.sport ? [state.sport] : []);
+    var sports = Array.isArray(state.sports) ? state.sports : [];
     if (sports.length === 0) return;
     if (cu.presenceVisibility === 'off') {
       if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
@@ -1212,7 +1208,6 @@
       venueName: state.venue.name || '',
       venueLat: state.venue.lat || null,
       venueLon: state.venue.lon || null,
-      sport: normSports[0] || '',
       sports: normSports,
       type: 'planned',
       startsAt: startsAt,
@@ -1265,7 +1260,7 @@
         level: 'all',
         venueName: payload.venueName || '',
         placeId: payload.placeId,
-        sport: payload.sport,
+        sports: payload.sports,
         startsAt: payload.startsAt
       }).catch(function(e) { console.warn('Presence plan notify failed:', e); });
     });
@@ -1305,12 +1300,10 @@
     } else {
       state.venue = _defaultVenue();
     }
-    if (pre && pre.sport) {
-      state.sport = pre.sport;
-      state.sports = [pre.sport];
+    if (pre && Array.isArray(pre.sports) && pre.sports.length > 0) {
+      state.sports = pre.sports.slice();
     } else {
       state.sports = _defaultSports();
-      state.sport = state.sports[0];
     }
     state.dayKey = window.PresenceDB.dayKey(new Date());
     render(container);

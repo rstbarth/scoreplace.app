@@ -919,7 +919,7 @@ function renderDashboard(container) {
       var safeName = String(v.name || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       // Check-in rápido prefila o #presence via sessionStorage — igual ao
       // botão de Ver presenças do venues.js. Fluxo já estabelecido.
-      var prefill = JSON.stringify({ placeId: v.placeId, venueName: v.name, sport: v.sport || '', lat: v.lat, lon: v.lon });
+      var prefill = JSON.stringify({ placeId: v.placeId, venueName: v.name, sports: [], lat: v.lat, lon: v.lon });
       html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;">' +
         '<div onclick="window.location.hash=\'#venues/' + safePid + '\'" style="flex:1;min-width:0;cursor:pointer;" title="Abrir detalhe do local">' +
           '<div style="font-weight:600;color:var(--text-bright);font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(v.name) + '</div>' +

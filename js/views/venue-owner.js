@@ -432,12 +432,10 @@
       ? '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">📍 Preenchido automaticamente do Google (horário, telefone, site). Ajuste o que quiser antes de salvar.</div>'
       : '';
 
-    // Hours grid comes from the merged source. Accept array-of-arrays OR
-    // stored flat object shape {mon:[...],...}. For now we use array form.
-    var hoursGrid = null;
-    if (ex.openingHours && Array.isArray(ex.openingHours.grid)) hoursGrid = ex.openingHours.grid;
-    if (!hoursGrid && Array.isArray(ex.openingHoursGrid)) hoursGrid = ex.openingHoursGrid;
-    if (!hoursGrid) hoursGrid = _emptyHoursGrid();
+    // Opening hours stored sob ex.openingHours.grid (array 7×24 de booleans).
+    var hoursGrid = (ex.openingHours && Array.isArray(ex.openingHours.grid))
+      ? ex.openingHours.grid
+      : _emptyHoursGrid();
 
     // Claim button state
     var imClaimed = imOwner;
@@ -492,7 +490,7 @@
           '<input type="text" id="venue-owner-facebook" value="' + _safe((ex.contact && ex.contact.facebook) || '') + '" placeholder="📘 Facebook" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">' +
-          '<input type="url" id="venue-owner-website" value="' + _safe((ex.contact && ex.contact.website) || ex.website || '') + '" placeholder="🌐 Site" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
+          '<input type="url" id="venue-owner-website" value="' + _safe((ex.contact && ex.contact.website) || '') + '" placeholder="🌐 Site" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
           '<input type="email" id="venue-owner-email" value="' + _safe((ex.contact && ex.contact.email) || '') + '" placeholder="✉️ E-mail" style="padding:10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.88rem;">' +
         '</div>' +
 
@@ -534,70 +532,6 @@
       btn.style.background = 'rgba(251,191,36,0.1)';
       btn.style.border = '1px solid rgba(251,191,36,0.4)';
       btn.style.color = '#fbbf24';
-    }
-  };
-
-  // Renderiza a lista de courts registradas no venue. Chamado após _renderForm
-  // e também após cada add/edit/delete pra refletir mudanças.
-  window._venueCourtsRefresh = async function(venueKey) {
-    var box = document.getElementById('venue-courts-list');
-    if (!box || !window.VenueDB) return;
-    try {
-      var courts = await window.VenueDB.listVenueCourts(venueKey);
-      if (!courts || courts.length === 0) {
-        box.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);padding:10px;background:var(--bg-darker);border-radius:8px;">Nenhuma quadra cadastrada ainda. Seja o primeiro a contribuir!</div>';
-        return;
-      }
-      var cu = window.AppStore && window.AppStore.currentUser;
-      var myUid = cu && cu.uid;
-      var venue = await window.VenueDB.loadVenue(venueKey);
-      var hasOwner = !!(venue && venue.ownerUid);
-      var imVenueOwner = hasOwner && venue.ownerUid === myUid;
-      // Edição: na fase claimed (há owner), só o owner edita TUDO — "assume
-      // tudo", inclusive entradas cadastradas pela comunidade antes.
-      // Na fase colaborativa (sem owner), cada contribuidor só mexe nas
-      // próprias entradas. Match com a rule do Firestore.
-      var html = '<div style="display:flex;flex-direction:column;gap:6px;">';
-      courts.forEach(function(c) {
-        var canEdit = hasOwner
-          ? imVenueOwner
-          : (c.contributorUid === myUid);
-        var sportIcon = _sportIconFor(c.sport);
-        var sharedTag = c.shared
-          ? '<span style="font-size:0.62rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:1px 6px;border-radius:10px;margin-left:4px;">🔁 compartilhada</span>'
-          : '<span style="font-size:0.62rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:1px 6px;border-radius:10px;margin-left:4px;">✓ exclusiva</span>';
-        var surfaceTag = c.surface ? '<span style="font-size:0.62rem;color:var(--text-muted);margin-left:4px;">· ' + _safe(c.surface) + '</span>' : '';
-        var authorTag = c.contributorName
-          ? '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:2px;opacity:0.75;">por ' + _safe(c.contributorName) + '</div>'
-          : '';
-        var notesTag = c.notes
-          ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;font-style:italic;">"' + _safe(c.notes) + '"</div>'
-          : '';
-        var safeCourtId = _safe(c._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
-        var safeVenueKey = _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
-        html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:8px;">' +
-          '<span style="font-size:1.2rem;flex-shrink:0;">' + sportIcon + '</span>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">' +
-              '<b style="color:#a5b4fc;">' + c.count + '</b> quadra' + (c.count === 1 ? '' : 's') + ' de <b>' + _safe(c.sport) + '</b>' +
-              sharedTag + surfaceTag +
-            '</div>' +
-            notesTag +
-            authorTag +
-          '</div>' +
-          (canEdit
-            ? '<div style="display:flex;gap:4px;flex-shrink:0;">' +
-                '<button class="btn btn-sm" onclick="window._venueCourtEditDialog(\'' + safeVenueKey + '\',\'' + safeCourtId + '\')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;font-size:0.7rem;">Editar</button>' +
-                '<button class="btn btn-sm" onclick="window._venueCourtDelete(\'' + safeVenueKey + '\',\'' + safeCourtId + '\')" style="background:transparent;border:1px solid var(--danger-color);color:var(--danger-color);padding:2px 8px;font-size:0.7rem;">✕</button>' +
-              '</div>'
-            : '') +
-        '</div>';
-      });
-      html += '</div>';
-      box.innerHTML = html;
-    } catch (e) {
-      console.warn('courts refresh:', e);
-      box.innerHTML = '<div style="font-size:0.75rem;color:var(--danger-color);padding:8px;">Erro ao carregar quadras.</div>';
     }
   };
 
@@ -704,9 +638,7 @@
       slot.innerHTML = '';
       return;
     }
-    var currentSports = Array.isArray(existing && existing.sports) && existing.sports.length > 0
-      ? existing.sports
-      : (existing && existing.sport ? [existing.sport] : []);
+    var currentSports = Array.isArray(existing && existing.sports) ? existing.sports : [];
 
     var sportCheckboxes = SPORTS.map(function(s) {
       var checked = currentSports.indexOf(s) !== -1 ? 'checked' : '';
@@ -756,10 +688,6 @@
       if (slot) slot.innerHTML = '';
       _courtsDialogState.editingId = null;
       _refreshCourtsScreenList(venueKey);
-      // Also refresh the mini-list on the venue owner form below.
-      if (typeof window._venueCourtsRefresh === 'function') {
-        window._venueCourtsRefresh(venueKey);
-      }
       if (window.showNotification) window.showNotification(courtId ? 'Entrada atualizada!' : 'Quadras adicionadas!', '', 'success');
     } catch (e) {
       console.error('courts form save:', e);
@@ -786,7 +714,7 @@
       var html = '<div style="display:flex;flex-direction:column;gap:6px;">';
       courts.forEach(function(c) {
         var canEdit = hasOwner ? imOwner : (c.contributorUid === myUid);
-        var sportList = Array.isArray(c.sports) && c.sports.length > 0 ? c.sports : (c.sport ? [c.sport] : []);
+        var sportList = Array.isArray(c.sports) ? c.sports : [];
         var sportsText = sportList.map(function(s) { return _sportIconFor(s) + ' ' + _safe(s); }).join(' + ');
         var sharedTag = sportList.length > 1 ? '<span style="font-size:0.64rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:6px;">compartilhada</span>' : '';
         var safeId = _safe(c._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
@@ -816,13 +744,8 @@
     if (!confirm('Apagar esta entrada de quadra?')) return;
     try {
       await window.VenueDB.deleteVenueCourt(venueKey, courtId);
-      // Refresh both surfaces if present: the courts screen list AND the
-      // mini-list on the inline venue owner form (when still visible).
       if (document.getElementById('courts-list-slot')) {
         _refreshCourtsScreenList(venueKey);
-      }
-      if (typeof window._venueCourtsRefresh === 'function' && document.getElementById('venue-courts-list')) {
-        window._venueCourtsRefresh(venueKey);
       }
       if (window.showNotification) window.showNotification('Entrada removida.', '', 'info');
     } catch (e) {

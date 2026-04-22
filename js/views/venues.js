@@ -1086,7 +1086,7 @@
     var prefillJson = JSON.stringify({
       placeId: v.placeId,
       venueName: v.name,
-      sport: (v.sports && v.sports[0]) || '',
+      sports: Array.isArray(v.sports) ? v.sports : [],
       lat: v.lat, lon: v.lon
     });
 
@@ -1505,7 +1505,6 @@
       venueName: v.name || '',
       venueLat: v.lat || null,
       venueLon: v.lon || null,
-      sport: normSports[0],
       sports: normSports,
       type: 'checkin',
       startsAt: now,
@@ -1578,7 +1577,7 @@
         level: 'all',
         venueName: v.name || '',
         placeId: v.placeId,
-        sport: payload.sport,
+        sports: payload.sports,
         startsAt: payload.startsAt
       }).catch(function(e) { console.warn('Quick checkin notify failed:', e); });
     });
@@ -1616,7 +1615,7 @@
       sessionStorage.setItem('_presencePrefill', JSON.stringify({
         placeId: v.placeId,
         venueName: v.name,
-        sport: (v.sports && v.sports[0]) || '',
+        sports: Array.isArray(v.sports) ? v.sports : [],
         lat: v.lat, lon: v.lon,
         _openPlanDialog: true
       }));
