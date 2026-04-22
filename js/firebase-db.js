@@ -308,27 +308,47 @@ window.FirestoreDB = {
     opts = opts || {};
     var limit = Math.max(1, Math.min(50, opts.limit || 20));
     try {
+      // Query só por isPublic=true + orderBy createdAt desc. Antes filtrávamos
+      // server-side por `status == 'open'`, mas descobrimos que o fluxo de
+      // criação de torneio (create-tournament.js) não setava `status` no
+      // tourData — o campo ficava undefined e a query server-side excluía os
+      // torneios, resultando em count zero na dashboard "Abertos para você".
+      // Agora filtramos client-side: aceita status ausente OU 'open'.
+      // O custo é ler docs a mais (finished/closed) que descartamos na
+      // memória — aceitável na escala alpha; pode ser revertido pra query
+      // estrita depois de uma migration que backfill `status: 'open'` nos
+      // docs antigos.
       var q = this.db.collection('tournaments')
         .where('isPublic', '==', true)
-        .where('status', '==', 'open')
         .orderBy('createdAt', 'desc');
       if (opts.cursor) q = q.startAfter(opts.cursor);
-      q = q.limit(limit + 1); // fetch one extra to detect end-of-feed
+      // Busca 3x a mais pra compensar filtragem client-side de docs
+      // encerrados/fechados — evita que o primeiro page fique quase vazio.
+      q = q.limit((limit + 1) * 3);
       var snap = await q.get();
       var tournaments = [];
       var lastDoc = null;
-      var count = 0;
+      var kept = 0;
       snap.forEach(function(doc) {
-        count++;
-        if (count <= limit) {
-          tournaments.push(doc.data());
-          lastDoc = doc;
+        var d = doc.data();
+        if (!d) return;
+        // Aceita status ausente (legacy) ou explicitamente 'open'.
+        // Bloqueia status 'closed', 'finished', 'active' (em andamento).
+        var st = d.status;
+        var isOpen = !st || st === 'open';
+        if (!isOpen) return;
+        // Lastdoc sempre avança mesmo quando filtrado — precisa pra cursor
+        // funcionar corretamente na próxima página.
+        lastDoc = doc;
+        if (kept < limit) {
+          tournaments.push(d);
+          kept++;
         }
       });
       return {
         tournaments: tournaments,
         nextCursor: lastDoc,
-        hasMore: count > limit
+        hasMore: snap.size >= (limit + 1) * 3
       };
     } catch (e) {
       console.error('Erro ao carregar torneios públicos:', e);

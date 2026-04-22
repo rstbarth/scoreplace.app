@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.4-alpha';
+window.SCOREPLACE_VERSION = '0.15.5-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1437,6 +1437,14 @@ window.AppStore = {
     var tourData = Object.assign({
       id: id,
       createdAt: new Date().toISOString(),
+      // Default status='open' pra que torneios novos apareçam no feed
+      // público de discovery. A query `loadPublicOpenTournaments` filtra
+      // por `where('status', '==', 'open')` — sem este default, o campo
+      // ficava undefined em novos torneios criados pelo fluxo avançado
+      // e o count "Abertos para você" na dashboard vinha zerado. Fica
+      // aqui como defensive default; se o caller passar status explícito
+      // (ex: draft), o Object.assign preserva via spread logic abaixo.
+      status: 'open',
       participants: [],
       standbyParticipants: [],
       history: [{
