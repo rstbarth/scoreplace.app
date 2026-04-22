@@ -274,15 +274,7 @@
     }
     container.innerHTML = back +
       '<div style="max-width:820px;margin:0 auto;padding:0 4px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">' +
-          '<h2 style="margin:0;font-size:1.45rem;font-weight:800;color:var(--text-bright);flex:1;">🏢 Cadastre locais</h2>' +
-        '</div>' +
-        '<p style="color:var(--text-muted);font-size:0.88rem;margin:0 0 1rem 0;">' +
-          'Cadastre clubes, arenas ou quadras — seu ou de qualquer lugar aberto ao público que você conhece. Locais cadastrados aparecem na busca pública de jogadores. Se você é o <b>proprietário</b>, marque a opção no formulário para adicionar a tag <b>✅ Informações oficiais</b>.' +
-        '</p>' +
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:16px;">' +
-          _ownerInnerHtml() +
-        '</div>' +
+        _ownerInnerHtml() +
       '</div>';
     ensurePlaces();
     window._loadMyVenuesList();

@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.48-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#my-venues: preâmbulo removido, busca direta.</b> O header "🏢 Cadastre locais" + o parágrafo explicativo ("Cadastre clubes, arenas ou quadras — seu ou de qualquer lugar...") foram removidos. Quem entra na rota cai direto no input de busca + formulário. Menos atrito, menos scroll no mobile.</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/venue-owner.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.47-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix crítico: cadastrar local voltou a funcionar.</b> Desde a v0.15.43 (que introduziu a grade 7×24 de horário de funcionamento) nenhum local conseguia ser salvo — o Firestore rejeitava o payload com <code>Function Transaction.set() called with invalid data. Nested arrays are not supported</code> porque o grid era persistido como array 2D (<code>[[d0h0..d0h23],[d1h0..d1h23]...]</code>) e o Firestore não aceita arrays dentro de arrays.</p>' +
         '<p>Correção: o grid agora é persistido como <b>array flat de 168 posições</b> (<code>day * 24 + hour</code>) — Firestore aceita. Em memória a UI continua trabalhando com a matriz 2D; helpers <code>_flattenGrid</code> (na gravação) e <code>_expandGrid</code> (na leitura) fazem a conversão na borda de persistência.</p>' +
