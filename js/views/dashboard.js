@@ -804,11 +804,31 @@ function renderDashboard(container) {
       if (sessionStorage.getItem('scoreplace_profile_nudge_dismissed') === '1') return '';
     } catch (e) {}
     var missing = [];
-    if (!cu.city || String(cu.city).trim().length === 0) missing.push('cidade');
-    var prefSports = Array.isArray(cu.preferredSports) ? cu.preferredSports : [];
-    if (prefSports.length === 0) missing.push('modalidades preferidas');
+    var hasCity = cu.city && String(cu.city).trim().length > 0;
+    // Aceita preferredSports em array (forma moderna pós-v0.15.19) ou
+    // string CSV (legacy). Antes o nudge só contava Array.isArray e
+    // usuários com perfil salvo em formato antigo viam "faltam modalidades"
+    // mesmo tendo preenchido.
+    var hasSports;
+    if (Array.isArray(cu.preferredSports)) {
+      hasSports = cu.preferredSports.length > 0;
+    } else if (typeof cu.preferredSports === 'string') {
+      hasSports = cu.preferredSports.trim().length > 0;
+    } else {
+      hasSports = false;
+    }
+    // Locais preferidos é OPCIONAL quando o usuário já tem city — city
+    // sozinho já permite a maioria das features (torneios perto, sugestões
+    // de parceiros). preferredLocations é um plus pra check-in rápido,
+    // não um bloqueio. Só reclama quando user não tem nem city nem pins.
     var prefLocs = Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [];
-    if (prefLocs.length === 0) missing.push('locais preferidos');
+    var hasLocation = hasCity || prefLocs.length > 0;
+
+    if (!hasCity && prefLocs.length === 0) missing.push('cidade');
+    if (!hasSports) missing.push('modalidades preferidas');
+    // Só pede "locais preferidos" quando já tem cidade mas nenhum pin
+    // (refinamento, não requisito).  Fica de fora do nudge principal —
+    // se city preenchido, a mensagem só pede sports (se faltar).
     if (missing.length === 0) return '';
     // Frase natural: "cidade, modalidades preferidas e locais preferidos"
     var missStr = missing.length === 1
@@ -819,7 +839,6 @@ function renderDashboard(container) {
     var benefits = [];
     if (missing.indexOf('cidade') !== -1) benefits.push('notificar torneios na sua região');
     if (missing.indexOf('modalidades preferidas') !== -1) benefits.push('sugerir torneios e parceiros do seu esporte');
-    if (missing.indexOf('locais preferidos') !== -1) benefits.push('ativar presença rápida nos seus locais de jogo');
     var benefitsStr = benefits.slice(0, 2).join(' · '); // cap pra não ficar longo
     return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px 14px;margin-bottom:1rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
         '<span style="font-size:1.4rem;flex-shrink:0;">👤</span>' +
