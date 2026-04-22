@@ -1,5 +1,7 @@
 .DS_Store
 .claude/
 *.backup
+*.bak
 outputs/
 functions/node_modules/
+extensions/

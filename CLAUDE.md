@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.8.6-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.15.45-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -32,6 +32,75 @@ Isso **não** se aplica à estabilidade de código entre versões do app rodando
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
 
 ### Changelog
+
+> **Nota:** entre v0.8.6 e v0.15.45 foram ~400 version bumps. O bloco abaixo consolida por tema. Para detalhe de uma versão específica, consulte `git log --oneline | grep vX.Y.Z`.
+
+**v0.15.x-alpha (Abril 2026) — Polimento final, 5 pilares, Apple Watch rollback**
+- **Apple Watch** (v0.15.39-41): controle remoto de placar via Shortcuts chegou e foi **revertido** na v0.15.42. Integração nativa fica para depois; o código foi removido completamente.
+- **Venue cadastro v2** (v0.15.43): formulário reformulado — grade 7×24 de disponibilidade por dia/hora, quadras multi-sport, esportes sincronizados automaticamente em `sports[]`.
+- **Venue discovery** (v0.15.1–15.10, 15.26, 15.28): mapa interativo com GPS, Google Places como pins do mapa, summary bar com raio ajustável, modal inline "Estou aqui" + auto plan dialog, busca dinâmica em my-venues, link "🏢 Local" do torneio para o venue.
+- **Casual match polish** (v0.15.0, 15.20-21, 15.24, 15.31): Iniciar/Fechar sem loop, CTA "⚡ Partida Casual" no welcome card, "Avisar amigos scoreplace" 1-click, share result button, active casual match pill no dashboard.
+- **Dashboard/Welcome** (v0.15.5-8, 15.15, 15.18, 15.23, 15.25, 15.29, 15.35): contadores corrigidos, welcome card para fresh users, profile completion nudge (com fix de falso positivo), "🏟️ Meus locais" quick-checkin widget, "Sua presença ativa" pill com countdown ao vivo, badge "HOJE/Amanhã/Em Xd" nos cards.
+- **Profile** (v0.15.19, 15.32-34): esportes como pills, data de nascimento dd/mm/aaaa + altura alinhada, soak up provider data (Google/Apple), fix profile nudge.
+- **Quick search/discovery** (v0.15.10): inclui torneios de discovery + venues.
+- **Hints** (v0.15.22): cobertura de todas as features novas (venues, presence, casual, widgets).
+- **Landing page** (v0.15.30): features cobrindo os 5 pilares.
+- **Manual** (v0.15.12): seções Presença, Locais, 4 pilares, busca rápida.
+- **Notification catalog** (v0.15.11): tipos faltantes + presence CTA.
+- **Integração tournament ↔ presence ↔ venue** (v0.15.13, 15.16-17): check-in notifica amigos (📡) com throttle, "Adicionar à agenda" (Google/Outlook/.ics) em torneio e presence plan.
+- **Compat cleanup** (v0.15.44): remoção de código defensivo (branches `if (legacy_shape)`, fallbacks pra shapes antigos) — regra formal de fase alpha documentada no CLAUDE.md.
+- **Live score fix** (v0.15.45): placar ao vivo dispara tie-break em 5-5 consistente com a regra do torneio.
+
+**v0.14.x-alpha (Abril 2026) — Escala, Venues, Presença, Liga polish**
+- **Escala (Firestore cost/performance)** (v0.14.54-59): denormalização de `memberEmails[]` em torneios, leituras escopadas ao usuário (phase A), discovery público paginado (phase B), searchUsers com range queries (phase C), scheduled cleanup (phase D), visitor mode sem public listener (phase E).
+- **Venues module completo** (v0.14.65-69, 14.81-90):
+  - Reivindicação + CRUD do proprietário (PR B1) — `venue-owner.js`.
+  - View pública de descoberta #venues (PR B2).
+  - Detalhe integra presenças + torneios (PR B3).
+  - Mapa interativo com markers (PR B4).
+  - Monetização Pro (PR B5).
+  - Filtros de distância/esporte persistidos, GPS + pin do usuário + círculo do raio, Places strict, avaliações (estrelas + texto), CTA comunitário, cadastro comunitário com tags oficiais/cadastrado-por, modalidades alinhadas, Google fill.
+- **Presença/check-in** (v0.14.62-64, 14.78): check-in + "quem está no local" (PR A1), config de perfil — visibilidade + silenciar (PR A3), auto check-in via Geolocation (PR A4), multi-sport num doc + hora saída opcional.
+- **Integração A+B (fechamento de loops)** (v0.14.70): prefill venue, notify friends, deep-link (PR C1).
+- **Liga/Suíço formatação** (v0.14.12-14, 14.19, 14.47-50): seu jogo acima da classificação, demais jogos colapsados, Suíço com rodadas concluídas como colunas de scroll + toggle Ocultar/Mostrar LIFO, Jogo N contínuo entre Suíço/Elim, classificação separando user matches de outros, Liga Rei/Rainha com draw aleatório.
+- **Liga unification** (v0.14.61): Suíço removido do picker — consolidado em Liga.
+- **Rei/Rainha** (v0.14.49): matches antes dos standings, sem coroa, tiebreak estendido.
+- **Check-in card** (v0.14.1-3): 2 linhas no desktop (Jogo inline com nome, times sobem uma linha), botão "Assumir" na Lista de Espera para substituir W.O.
+- **Lista de Espera** (v0.14.8-9, 14.35): unificada, badge "PRÓXIMO" removido, W.O. como toggle único.
+- **Voltar universal** (v0.14.15-16, 14.19, 14.29): botão unificado em 10 call sites, overlay sweep agressivo, sticky Mostrar pill, fix landing mid-page, centralizado no modal criar/editar.
+- **Modal criar/editar** (v0.14.26-29, 14.46): Descartar + Salvar sempre visíveis no topo, cabeçalho em linha única, botão Salvar Template, campos de Estimativas de Tempo numa linha só, toggle placement, sort fix, auto-draw auto-refresh.
+- **Bracket** (v0.14.25, 14.30-31, 14.33): tie-break 5-5 + box de estimativas compacto, fix "RODADA -1" em dupla eliminatória com repescagem, botão QR Code removido dos cards, colored bar em todos round headers + BYE tag só em match real BYE.
+- **Drag-drop** (v0.14.36): auto-scroll viewport ao arrastar perto do topo/base.
+- **Painel de Revisão Final pulado** (v0.14.40): sorteio direto após resolução.
+- **Co-host** (v0.14.41): "invite sent" notif marcada como lida quando aceita/rejeita.
+- **Casual match/Live score** (v0.14.94-95): botões courtside-friendly (passo 1 mobile), haptic feedback + manifest PWA com shortcuts.
+- **iOS install docs** (v0.14.98-99): tutorial expandido — rolar + navegação privada, cobrir tab bar compacto do iOS 17+.
+- **Explore** (v0.14.75): cards de amigos compactos + ✕ no canto.
+- **Venues "Cidade"→"Local"** (v0.14.82): aceita endereço completo como centro.
+
+**v0.11.x-alpha (Abril 2026) — i18n wiring massivo (PT/EN)**
+- Sistema i18n criado (`js/i18n.js`, `js/i18n-pt.js`, `js/i18n-en.js`) — helper global `window._t(key, vars)`.
+- Wiring de strings hardcoded em ~15 arquivos JS ao longo de v0.11.35-60:
+  - `auth.js` (~80 notificações), `create-tournament.js`, `bracket-ui.js`, `bracket.js`, `bracket-logic.js`.
+  - `tournaments.js` (tourn.*), `tournaments-draw-prep.js` (25 notifications), `tournaments-draw.js`, `tournaments-enrollment.js`, `tournaments-organizer.js`, `tournaments-categories.js`.
+  - `dashboard.js`, `participants.js`, `pre-draw.js`.
+  - Dialog functions: `showAlertDialog/Confirm/Input`, `showNotification` completo.
+  - Descriptive UI labels, textContent/innerText DOM assignments, confirmText/cancelText.
+  - Duration estimate, access labels, inline HTML strings.
+  - `_p2Resolution` e suggestion card labels.
+- Resultado: zero hardcoded PT strings em `showNotification`. Toggle de idioma funcional em toda a interface.
+- `v0.11.62-alpha`: stats rewrite, casual polish, Wake Lock API, explore sort.
+
+**v0.10.x / v0.12.x / v0.13.x (Abril 2026)** — versões intermediárias focadas em bracket polish, Liga, stats, Pro features, emails. Detalhe no `git log`.
+
+**v0.9.x-alpha (Abril 2026) — Dicas do App, Liga, fixes**
+- **v0.9.0**: Dicas do App no manual + sistema de hints (`js/hints.js`) — balões contextuais guiando novos usuários.
+- **v0.9.1**: Liga com duplas aleatórias a cada rodada.
+- **v0.9.2-7**: bracket fixes — campos de placar sempre visíveis, Confirmar/Editar fluxo correto, `_editResultInline` fix, scroll imóvel ao confirmar.
+- **v0.9.8**: fix cache-buster desatualizado do bracket-ui.js.
+- **v0.9.9**: fix convites de co-organização + banner pulsante, fix tag `</script>` faltando no dashboard.js.
+
+---
 
 **v0.8.6-alpha (Abril 2026)**
 - Auditoria de segurança e correções críticas:
@@ -550,50 +619,72 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 
 ```
 scoreplace-app/
-âââ index.html          # Entry point SPA (topbar com Inicio, Explorar, Notificacoes, ?, Login)
-âââ css/
-â   âââ style.css       # Variaveis de tema e estilos base
-â   âââ components.css  # Componentes (botoes, modais, cards, forms)
-â   âââ layout.css      # Layout principal
-â   âââ bracket.css     # Estilos do chaveamento/bracket
-â   âââ responsive.css  # Media queries (767px / 768-1199px / 1200px+)
-â   âââ drag-drop.css   # Drag-and-drop (sorteio)
-âââ js/
-â   âââ theme.js        # Injecao de tema (antes do body para evitar flicker)
-â   âââ store.js        # SCOREPLACE_VERSION + Estado global (AppStore) + Firestore sync
-â   â                   #   Inclui notifyLevel e preferredCeps no perfil do usuario
-â   âââ firebase-db.js  # CRUD Firestore (saveTournament, loadAllTournaments, etc.)
-â   âââ notifications.js# Sistema de notificacoes toast
-â   âââ ui.js           # Helpers de UI (modais, elementos interativos)
-â   âââ router.js       # Roteador hash-based (#dashboard, #tournaments, etc.)
-â   âââ main.js         # Inicializacao + modal Help (searchable accordion) + modal Criacao Rapida
-â   âââ views/
-â       âââ auth.js             # Firebase Auth REAL + perfil com CEPs de preferencia + filtros de notificacao
-â       âââ dashboard.js        # Tela inicial com hero box + cards com logo de torneio
-â       âââ tournaments-utils.js # Funcoes utilitarias de torneios
-â       âââ tournaments-sharing.js # Compartilhamento e convites
-â       âââ tournaments-analytics.js # Estatisticas e analytics
-â       âââ tournaments-organizer.js # Ferramentas do organizador
-â       âââ tournaments-categories.js # Sistema de categorias: gerenciador, merge/unmerge, auto-assign, estimativa de duracao
-â       âââ tournaments-enrollment.js # Inscricao/desinscricao, adicionar participante/time, excluir torneio
-â       âââ tournaments-draw-prep.js # Preparacao de sorteio, enquetes (polls), resolucao times/potencia de 2
-â       âââ tournaments-draw.js  # Geracao de chaves, drag-and-drop, painel de revisao final
-â       âââ tournaments.js      # Orquestrador principal: render de cards, detalhes, notificacoes, comunicacao
-â       âââ create-tournament.js# Modal de criacao/edicao + logo canvas generator + GSM config + deteccao de alteracoes
-â       âââ participants.js     # Gestao de participantes
-â       âââ pre-draw.js         # Tela de pre-sorteio
-â       âââ bracket-logic.js     # Computacao de standings, Swiss pairing, advance winner, auto-finish, 3rd place
-â       âââ bracket.js          # Renderizacao do chaveamento/bracket + classificacao + GSM display
-â       âââ bracket-ui.js       # UI interativa: save result inline, set scoring overlay, TV mode, sort standings
-â       âââ rules.js            # Regras do torneio
-â       âââ explore.js          # Explorar torneios publicos da comunidade
-â       âââ notifications-view.js # View de notificacoes
-â       âââ result-modal.js     # Modal de resultado de partida
-â       âââ enroll-modal.js     # Modal de inscricao
+|-- index.html          # Entry point SPA (topbar com Inicio, Explorar, Notificacoes, ?, Login)
+|-- css/
+|   |-- style.css       # Variaveis de tema e estilos base
+|   |-- components.css  # Componentes (botoes, modais, cards, forms)
+|   |-- layout.css      # Layout principal
+|   |-- bracket.css     # Estilos do chaveamento/bracket
+|   |-- responsive.css  # Media queries (767px / 768-1199px / 1200px+)
+|   `-- drag-drop.css   # Drag-and-drop (sorteio)
+|-- js/
+|   |-- theme.js              # Injecao de tema (antes do body para evitar flicker)
+|   |-- store.js              # SCOREPLACE_VERSION + AppStore + Firestore sync + realtime listener + auto-update checker
+|   |-- firebase-db.js        # CRUD Firestore (saveTournament, loadAllTournaments, etc.)
+|   |-- notifications.js      # Sistema de notificacoes toast + FCM client
+|   |-- notification-catalog.js # Catalogo central de tipos de notificacao (tournament, presence, casual, org, social, etc.)
+|   |-- ui.js                 # Helpers de UI (modais, elementos interativos)
+|   |-- router.js             # Roteador hash-based (#dashboard, #tournaments, #venues, #my-venues, #presence, #casual, etc.)
+|   |-- main.js               # Inicializacao + modal Help (searchable accordion) + modal Criacao Rapida
+|   |-- hints.js              # Sistema "Dicas do App" - baloes contextuais por area/contexto
+|   |-- email-templates.js    # Templates de email (convites, resultados, lembretes)
+|   |-- i18n.js               # Sistema i18n - window._t(key, vars), toggle PT/EN
+|   |-- i18n-pt.js            # Strings PT-BR (centenas de chaves)
+|   |-- i18n-en.js            # Strings EN
+|   |-- venue-db.js           # CRUD Firestore para locais (venues) - save, claim, search, rate
+|   |-- presence-db.js        # CRUD Firestore para presencas (check-in/check-out, quem esta no local)
+|   |-- presence-geo.js       # Auto check-in via Geolocation, calculo de distancia, GPS centering
+|   `-- views/
+|       |-- landing.js              # Landing page publica (5 pilares - torneios, casual, presenca, locais, stats)
+|       |-- auth.js                 # Firebase Auth REAL + perfil completo (idade, altura, esportes, niveis notif, CEPs)
+|       |-- dashboard.js            # Tela inicial: welcome card, nudges, pills (presence/casual), cards de torneios
+|       |-- tournaments-utils.js    # Funcoes utilitarias de torneios
+|       |-- tournaments-sharing.js  # Compartilhamento, convites, QR Code, "Adicionar a agenda"
+|       |-- tournaments-analytics.js# Estatisticas e analytics
+|       |-- tournaments-organizer.js# Ferramentas do organizador
+|       |-- tournaments-categories.js# Sistema de categorias: merge/unmerge, auto-assign, estimativa de duracao
+|       |-- tournaments-enrollment.js# Inscricao/desinscricao, adicionar participante/time, excluir torneio
+|       |-- tournaments-draw-prep.js# Preparacao de sorteio, enquetes (polls), resolucao times/potencia de 2
+|       |-- tournaments-draw.js     # Geracao de chaves, drag-and-drop (painel final pulado desde v0.14.40)
+|       |-- tournaments.js          # Orquestrador principal: render de cards, detalhes, comunicacao
+|       |-- create-tournament.js    # Modal criacao/edicao + logo canvas generator + GSM config + Estimativas
+|       |-- participants.js         # Gestao de participantes
+|       |-- pre-draw.js             # Tela de pre-sorteio
+|       |-- bracket-model.js        # Model do bracket (extraido de bracket.js) - estruturas de dados puras
+|       |-- bracket-logic.js        # Computacao de standings, Swiss pairing, advance winner, auto-finish, 3rd place
+|       |-- bracket.js              # Renderizacao bracket + classificacao + GSM display + Liga "Seu jogo" layout
+|       |-- bracket-ui.js           # UI interativa: save result inline, set scoring overlay, TV mode, sort standings
+|       |-- host-transfer.js        # Sistema de co-organizacao (compartilhar/transferir), participant picker
+|       |-- rules.js                # Regras do torneio
+|       |-- explore.js              # Explorar torneios publicos + cards de amigos compactos
+|       |-- venues.js               # #venues - descoberta publica de locais (mapa interativo, GPS, filtros, avaliacoes)
+|       |-- venue-owner.js          # #my-venues - gerenciamento para proprietarios (grade 7x24, quadras multi-sport)
+|       |-- presence.js             # #presence - check-in/check-out, quem esta no local, plano de presenca
+|       |-- notifications-view.js   # View de notificacoes
+|       |-- result-modal.js         # Modal de resultado de partida
+|       `-- enroll-modal.js         # Modal de inscricao (+ Partida Casual live scoring, momentum, Wake Lock)
 ```
 
+### Os 5 Pilares do scoreplace.app
+O produto gira em torno de **5 pilares** integrados (documentados na landing e no manual):
+1. **Torneios** - SPA completa para eliminatorias, Liga/Suico, grupos, duplas.
+2. **Partidas Casuais** - placar ao vivo sem criar torneio, QR/share, lobby, Wake Lock, momentum charts.
+3. **Presenca** - check-in/out em locais, "quem esta aqui", plano de presenca, auto check-in via GPS, notificacao de amigos.
+4. **Locais (Venues)** - mapa interativo de descoberta, filtros por distancia/esporte, avaliacoes, reivindicacao por proprietario, cadastro comunitario (grade 7x24 + quadras multi-sport), Pro monetization.
+5. **Stats/Perfil** - estatisticas individuais e por torneio, historico, meu desempenho, amigos.
+
 ### Cache-busters atuais (index.html)
-Arquivos modificados recentemente usam versoes individuais (0.8.x). Demais usam `?v=0.5.0` ou superior.
+Arquivos modificados recentemente usam a versao atual (`?v=0.15.45-alpha`). Demais arquivos podem usar versoes anteriores - verificar ao fazer deploy e atualizar apenas os que foram modificados.
 
 ## Regras de Seguranca de Codigo
 
@@ -737,41 +828,25 @@ Visivel para o usuario no modal "Help" (secao Sobre, primeira accordion).
 
 ## Proximos Passos Conhecidos
 
-### Fase 2 â Infraestrutura e Qualidade
-1. **Firestore rules:** Mudar para `allow read: if true` na colecao tournaments (permitir leitura publica). Requer acesso ao Firebase Console. *(Acao do usuario)*
-2. **Refatoracao categorias:** Unificar sistema dual de categorias (legacy `#tourn-categories` vs novo gender+skill). Requer cuidado com dados existentes. *(Adiado â alto risco)*
-3. ~~**Otimizacao:**~~ **FEITO em v0.4.2** â tournaments.js refatorado de 6.503 linhas em 5 modulos (tournaments.js, tournaments-categories.js, tournaments-enrollment.js, tournaments-draw-prep.js, tournaments-draw.js). bracket.js ainda grande (~143KB) mas funcional.
-4. ~~**Testes:**~~ **FEITO em v0.2.20** â 21 testes unitarios em tests.html.
+As features iniciais (v0.1-v0.4 da lista antiga) estao todas **FEITAS**. O projeto hoje gira em torno dos **5 pilares** (Torneios, Casual, Presenca, Venues, Stats). A partir daqui, proximos passos sao mais curadoria + polish do que construcao nova.
 
-### Fase 3 â Features Novas (Client-Side COMPLETAS)
-5. ~~**Historico de jogador:**~~ **FEITO em v0.2.11 + v0.2.33** â Perfil com estatisticas + modal de stats global ao clicar no nome.
-6. ~~**Auto-draw Cloud Function:**~~ **FEITO em v0.2.40** â Cloud Function `autoDraw` deployada (onSchedule every 1 hour). Gera rounds automaticos para Liga/Ranking.
-7. ~~**Encerramento de temporada Liga:**~~ **FEITO em v0.2.12.**
-8. ~~**Notificacoes push:**~~ **FEITO em v0.2.40** â Cloud Function `sendPushNotification` deployada + client-side FCM token registration. Fluxo end-to-end completo.
-9. ~~**PWA:**~~ **FEITO em v0.2.13.**
-10. ~~**Previsao do tempo:**~~ **FEITO em v0.2.39** â API key configurada, previsao exibida automaticamente.
-11. ~~**Imprimir Chaveamento:**~~ **FEITO em v0.2.21.**
-12. ~~**Favoritar Torneios:**~~ **FEITO em v0.2.22.**
-13. ~~**Modo TV:**~~ **FEITO em v0.2.23.**
-14. ~~**Ordenacao Colunas:**~~ **FEITO em v0.2.24.**
-15. ~~**Confrontos Diretos (H2H):**~~ **FEITO em v0.2.25.**
-16. ~~**Tema Claro/Escuro:**~~ **FEITO em v0.2.28.**
-17. ~~**Compartilhar Resultado:**~~ **FEITO em v0.2.29.**
-18. ~~**Busca Rapida (Ctrl+K):**~~ **FEITO em v0.2.31.**
-19. ~~**QR Code do Torneio:**~~ **FEITO em v0.2.32.**
-20. ~~**Estatisticas do Jogador:**~~ **FEITO em v0.2.33.**
-21. ~~**Historico de Atividades:**~~ **FEITO em v0.2.34.**
-22. ~~**Atalhos de Teclado:**~~ **FEITO em v0.2.35.**
-23. ~~**Modo Compacto Dashboard:**~~ **FEITO em v0.2.36.**
-24. ~~**Acessibilidade (WCAG 2.1):**~~ **FEITO em v0.2.37.**
-25. ~~**Paginacao Dashboard:**~~ **FEITO em v0.2.38.**
+### Curadoria/polish conhecidos
+- **CLAUDE.md vivendo** - manter atualizado a cada bloco de versoes. Este documento estava em 0.8.6-alpha ate v0.15.45-alpha, lacuna de ~400 commits.
+- **bracket.js tamanho** - ainda ~143KB, candidato a novo split futuro se crescer mais.
+- **Backend/infra** - Firestore rules publicas, Cloud Functions (autoDraw, sendPushNotification, stripe), OpenWeather API, FCM VAPID - todos configurados. Extensao `firestore-send-email` instalada (pasta `extensions/`, gitignored).
 
-### Pendencias que requerem acao do usuario (backend/config)
-- ~~Firestore rules (Firebase Console)~~ **FEITO em v0.2.39**
-- ~~Auto-draw Cloud Function (Firebase Cloud Functions)~~ **FEITO em v0.2.40** â deployada
-- ~~Push Notifications (Firebase Cloud Messaging)~~ **FEITO em v0.2.40** â Cloud Function + client-side
-- ~~Weather API (OpenWeatherMap API key)~~ **FEITO em v0.2.39**
-- **VAPID Key:** Usuario precisa gerar Web Push certificate no Firebase Console > Project Settings > Cloud Messaging e configurar em window._FCM_VAPID_KEY no codigo
+### Ideias em aberto (sem prioridade definida)
+- **Beta release** - migrar para `1.0.0` quando dados reais deixarem de ser descartaveis. Requer desabilitar regra "sem compat" do alpha.
+- **Apple Watch revisitado** - tentado e rolled back na v0.15.39-42. Poderia voltar via app nativo (nao Shortcuts).
+- **Venues Pro monetization** - implementado em v0.14.69 mas vale revisitar pricing/UX quando houver volume real.
+- **Testes** - tests.html tem suite basica. Poderia crescer com casos de Liga, Rei/Rainha, presence, venues.
+- **Performance** - first-paint ja esta bom via cache local. Monitorar em producao real.
+
+### Quando iniciar uma nova feature
+1. Consultar este CLAUDE.md para pegar contexto do pilar afetado.
+2. Checar se ja existe em alguma versao recente (`git log --oneline | grep <tema>`).
+3. Seguir o padrao vanilla JS + AppStore + views globais + i18n (`_t(chave)`).
+4. Bumpar versao, atualizar cache-busters, release notes no manual (main.js) e este CLAUDE.md **na mesma leva**.
 
 ## Deploy
 
@@ -784,7 +859,7 @@ Deploy automatico via `git push` para o repositorio `rstbarth/scoreplace.app` (b
 ### Pre-requisitos
 - Git inicializado na pasta local com remote `origin` apontando para `https://github.com/rstbarth/scoreplace.app.git`
 - `gh auth setup-git` executado para autenticacao via GitHub CLI
-- `.gitignore` configurado (`.DS_Store`, `.claude/`, `*.backup`, `outputs/`)
+- `.gitignore` configurado (`.DS_Store`, `.claude/`, `*.backup`, `*.bak`, `outputs/`, `extensions/`, `functions/node_modules/`)
 
 ### Fluxo de deploy padrao
 1. Validar sintaxe de todos os JS modificados: `for f in $(find js/ -name '*.js' ! -name '*.backup'); do node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f"; done`
