@@ -1172,11 +1172,60 @@ async function simulateLoginSuccess(user) {
   window._openMyProfileModal = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
+
+    // Fallback robusto pra dados que vieram do provedor (Google/Apple/FB).
+    // Se o currentUser tá sem displayName/photoURL (race condition no load,
+    // existingProfile com campos vazios que não sobrescrevem), consultamos
+    // o firebase.auth().currentUser direto — que sempre reflete o estado
+    // do provedor autenticado. Também hidratamos currentUser de volta pra
+    // que outras partes do app (AppStore.currentUser.displayName etc) usem.
+    try {
+      var fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+      if (fbUser) {
+        if (!cu.displayName && fbUser.displayName) { cu.displayName = fbUser.displayName; }
+        if (!cu.photoURL && fbUser.photoURL) { cu.photoURL = fbUser.photoURL; }
+        if (!cu.email && fbUser.email) { cu.email = fbUser.email; }
+        // Google/Apple não retornam phoneNumber por default, mas se por
+        // algum motivo o usuário logou com phone auth, respeitamos.
+        if (!cu.phone && fbUser.phoneNumber) {
+          var _p = String(fbUser.phoneNumber).replace(/\D/g, '');
+          // Tenta detectar DDI brasileiro
+          if (_p.length > 11 && _p.indexOf('55') === 0) {
+            cu.phoneCountry = '55';
+            cu.phone = _p.slice(2);
+          } else {
+            cu.phone = _p;
+          }
+        }
+        // Providers available — pode ajudar pra mostrar "do Google/Apple" badge no futuro
+        if (!cu.authProvider && fbUser.providerData && fbUser.providerData.length > 0) {
+          cu.authProvider = fbUser.providerData[0].providerId;
+        }
+      }
+    } catch (e) { console.warn('Profile fallback from firebase auth failed:', e); }
+
+    // Default phoneCountry da navegador locale quando não setado (pt-BR → 55).
+    if (!cu.phoneCountry) {
+      try {
+        var _lang = navigator.language || navigator.userLanguage || '';
+        if (/pt-br/i.test(_lang)) cu.phoneCountry = '55';
+        else if (/en-us/i.test(_lang)) cu.phoneCountry = '1';
+        // Deixa undefined pra outros — form usa default do select.
+      } catch (e) {}
+    }
+
     var photoUrl = cu.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
     var avatar = document.getElementById('profile-avatar');
     if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
     var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
-    _setVal('profile-edit-name', cu.displayName || _t('auth.defaultUser'));
+    // Nome: prioridade displayName → firstName/lastName aglutinado → email prefix
+    // como último recurso (NÃO usa mais o fallback genérico "Usuário" — nome
+    // de email é mais útil pra identificar o usuário enquanto ele preenche).
+    var _fallbackName = cu.displayName
+                     || (cu.firstName && cu.lastName ? (cu.firstName + ' ' + cu.lastName) : '')
+                     || (cu.email ? cu.email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();}) : '')
+                     || '';
+    _setVal('profile-edit-name', _fallbackName);
     _setVal('profile-edit-gender', cu.gender || '');
     _setVal('profile-edit-birthdate', cu.birthDate || '');
     _setVal('profile-edit-city', cu.city || '');
@@ -2990,6 +3039,17 @@ function setupProfileModal() {
       if (!window.AppStore.currentUser) return;
       var _oldDisplayName = window.AppStore.currentUser.displayName || '';
       var name = document.getElementById('profile-edit-name').value.trim();
+      // Se usuário apagou o nome sem querer, mantém o anterior em vez de
+      // gravar string vazia. Respeita a edição intencional quando o user
+      // digita algo novo; só protege contra "apagou tudo e salvou".
+      if (!name) {
+        name = _oldDisplayName || '';
+        // Tenta recuperar do Firebase auth como último recurso.
+        try {
+          var _fb = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+          if (!name && _fb && _fb.displayName) name = _fb.displayName;
+        } catch (e) {}
+      }
       var gender = document.getElementById('profile-edit-gender').value;
       var birthDate = document.getElementById('profile-edit-birthdate').value;
       var city = document.getElementById('profile-edit-city').value.trim();
