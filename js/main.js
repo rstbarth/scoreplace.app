@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.59-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Sorteio imediato após resolução de lista de espera.</b> Ao escolher "Sorteio geral" ou "Últimos inscritos" no painel de Lista de Espera, o sorteio ocorre imediatamente — sem painel intermediário adicional.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.58-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#venues: card de local sem botões.</b> Card do local selecionado é um link clicável que abre o Google Maps. Sem botões — apenas nome, endereço e "✅ Cadastrado no scoreplace" quando aplicável.</p>' +
         '</div>' +

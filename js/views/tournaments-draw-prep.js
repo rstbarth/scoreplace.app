@@ -505,8 +505,13 @@ window._executeRemoval = function(tId, mode, method) {
         if (typeof window._updateStatBoxes === 'function') {
             window._updateStatBoxes(t);
         }
-        // Re-run diagnosis — may still have power-of-2 issues
-        window.showUnifiedResolutionPanel(tId);
+        // Re-diagnose: if resolved, draw immediately; otherwise show panel again
+        var recheck = window._diagnoseAll(t);
+        if (!recheck.hasIssues && typeof window.generateDrawFunction === 'function') {
+            window.generateDrawFunction(tId);
+        } else {
+            window.showUnifiedResolutionPanel(tId);
+        }
     });
 };
 
