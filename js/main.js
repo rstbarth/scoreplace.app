@@ -997,6 +997,20 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.35-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: "Você está aqui" aparecendo em duplicidade na dashboard.</b> Usuário reportou ver o mesmo check-in próprio em dois lugares. Investigação apontou duas causas possíveis:</p>' +
+        '<ul style="font-size:0.82rem;line-height:1.7;margin:4px 0 8px 18px;">' +
+          '<li><b>Docs duplicados em Firestore</b> — double-tap no botão de check-in antes do <code>state.myActive</code> atualizar podia criar 2 docs com mesmo venue+sport. Widget mostrava 2 pills idênticos.</li>' +
+          '<li><b>Auto-amizade por dado corrompido</b> — se o uid do usuário aparecia em <code>cu.friends</code> (via migração ou bug antigo), a própria presença vinha tanto no widget "Sua presença ativa" quanto no "Amigos no local".</li>' +
+        '</ul>' +
+        '<p><b>Fixes:</b></p>' +
+        '<ul style="font-size:0.82rem;line-height:1.7;margin:4px 0 8px 18px;">' +
+          '<li><b>Dedup no my-active widget</b>: agrupa presenças por <code>type + placeId + sport</code> e mantém só a mais recente (maior <code>startsAt</code>). Elimina duplicatas mesmo se Firestore tem docs redundantes.</li>' +
+          '<li><b>Filtra self do friends widget</b>: <code>cu.friends</code> filtrado pra remover o próprio uid antes da query; depois do load, filtra outra vez qualquer presença com <code>p.uid === cu.uid</code>. Defense-in-depth.</li>' +
+        '</ul>' +
+        '<p>A mesma presença só pode aparecer uma vez agora. Arquivos: <code>js/views/dashboard.js</code>, <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.34-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: nudge "Complete seu perfil" aparecia mesmo com perfil completo.</b> Usuário reportou a banner âmbar insistindo "faltam modalidades preferidas e locais preferidos" enquanto o perfil tinha Beach Tennis selecionado e São Paulo como cidade. <b>Duas causas:</b></p>' +
         '<ul style="font-size:0.82rem;line-height:1.6;margin:4px 0 8px 18px;">' +

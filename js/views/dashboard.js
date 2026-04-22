@@ -1387,6 +1387,21 @@ function _hydrateMyActivePresenceWidget() {
   window.PresenceDB.loadMyActive(cu.uid).then(function(list) {
     if ((!list || list.length === 0) && !casualPart) { box.innerHTML = ''; return; }
     var now = Date.now();
+    // Dedupe defensivo por (type + placeId + sport) — pra que docs
+    // duplicados em Firestore (criados por double-tap antes do state
+    // atualizar, ou sync entre dispositivos) não virem pills repetidos
+    // no widget. Mantém o que tem startsAt mais recente.
+    if (Array.isArray(list) && list.length > 0) {
+      var _bestByKey = {};
+      list.forEach(function(p) {
+        if (!p || !p.type) return;
+        var _sport = (p.sport || (Array.isArray(p.sports) ? p.sports[0] : '') || '').toLowerCase();
+        var _k = p.type + '|' + (p.placeId || '') + '|' + _sport;
+        var _prev = _bestByKey[_k];
+        if (!_prev || (p.startsAt || 0) > (_prev.startsAt || 0)) _bestByKey[_k] = p;
+      });
+      list = Object.keys(_bestByKey).map(function(k) { return _bestByKey[k]; });
+    }
     // Prioriza check-in ativo > plan mais próximo
     var checkins = list.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
     var plans = list.filter(function(p) { return p.type === 'planned' && p.startsAt > now; });
@@ -1474,7 +1489,11 @@ function _hydrateFriendsPresenceWidget() {
   // Muted = don't fetch anyone's presences, consistent with Perfil → Presença.
   var muteUntil = Number(cu.presenceMuteUntil || 0);
   if (muteUntil > Date.now()) return;
-  var friends = Array.isArray(cu.friends) ? cu.friends : [];
+  // Filtra o próprio uid do array de amigos como defesa contra auto-amizade
+  // (dado corrompido via migração ou bug). Sem isso, o usuário veria a
+  // própria presença APARECER TANTO no widget "Sua presença ativa" quanto
+  // no widget "Amigos no local" — duplicidade confusa.
+  var friends = Array.isArray(cu.friends) ? cu.friends.filter(function(u) { return u && u !== cu.uid; }) : [];
   // Empty state quando usuário não tem amigos: CTA pra Explorar. Antes o
   // widget ficava silenciosamente vazio, sem indicação de que a funcionalidade
   // existia — usuário descobria por acaso que "Amigos no local" precisava de
@@ -1507,6 +1526,12 @@ function _hydrateFriendsPresenceWidget() {
         '</div>';
       return;
     }
+    // Defense-in-depth: descarta entries do próprio usuário que por acaso
+    // venham no list (auto-amizade no data, ou loadForFriends devolvendo
+    // mais do que pediu). Sem isso, a presença do próprio usuário
+    // apareceria aqui EM PARALELO ao widget "Sua presença ativa" —
+    // duplicidade reportada em v0.15.34.
+    list = list.filter(function(p) { return p && p.uid !== cu.uid; });
     // Dedupe per (uid, placeId, sport) keeping the soonest-starting entry.
     var bestByKey = {};
     list.forEach(function(p) {
