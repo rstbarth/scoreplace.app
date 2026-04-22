@@ -944,9 +944,33 @@ function renderDashboard(container) {
       _sortedFiltered = _myEnc.concat(_otherEnc);
     }
     const visibleItems = _sortedFiltered.slice(0, pageNum * PAGE_SIZE);
-    filteredHtml = visibleItems.length > 0
-      ? visibleItems.map(t => renderTournamentCard(t, '')).join('')
-      : '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
+    // Empty state: dois níveis de experiência dependendo do contexto.
+    // (a) Usuário novo sem nenhum torneio em lugar nenhum (allUnique zero),
+    //     sem filtros aplicados → card welcome rico com CTAs; é o primeiro
+    //     vislumbre da plataforma e merece algo mais que "Nenhum torneio
+    //     encontrado". (b) Filtros ativos ou busca retornando nada → mensagem
+    //     neutra (a antiga) porque o usuário sabe por que tá vazio.
+    var _isFreshUser = allUnique.length === 0 && !curSport && !curLocation && !curFormat &&
+                       (curFilter === 'todos' || !curFilter);
+    if (visibleItems.length > 0) {
+      filteredHtml = visibleItems.map(t => renderTournamentCard(t, '')).join('');
+    } else if (_isFreshUser) {
+      filteredHtml =
+        '<div style="grid-column:1/-1;background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:16px;padding:2rem 1.5rem;text-align:center;">' +
+          '<div style="font-size:2.5rem;margin-bottom:8px;">🏆</div>' +
+          '<div style="font-size:1.15rem;font-weight:800;color:var(--text-bright);margin-bottom:6px;">Seja bem-vindo ao scoreplace!</div>' +
+          '<div style="font-size:0.88rem;color:var(--text-muted);max-width:480px;margin:0 auto 1.25rem auto;line-height:1.5;">Aqui você organiza torneios esportivos, registra presença no local, descobre quadras próximas e acompanha seus amigos. Comece por um dos caminhos abaixo:</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:540px;margin:0 auto;">' +
+            '<button class="btn hover-lift" onclick="if(typeof openModal===\'function\')openModal(\'modal-quick-create\')" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">🏆 Criar torneio</button>' +
+            '<button class="btn hover-lift" onclick="window.location.hash=\'#venues\'" style="background:#0ea5e9;color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">🏢 Descobrir locais</button>' +
+            '<button class="btn hover-lift" onclick="window.location.hash=\'#presence\'" style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">📍 Registrar presença</button>' +
+            '<button class="btn hover-lift" onclick="window.location.hash=\'#explore\'" style="background:rgba(99,102,241,0.2);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">👥 Encontrar amigos</button>' +
+          '</div>' +
+          '<div style="margin-top:1.25rem;font-size:0.78rem;color:var(--text-muted);">Dica: se já existe um torneio público na sua cidade, ele vai aparecer aqui automaticamente.</div>' +
+        '</div>';
+    } else {
+      filteredHtml = '<div style="text-align:center;padding:2rem;color:var(--text-muted);opacity:0.6;">' + _t('tournament.emptyState') + '</div>';
+    }
     if (_sortedFiltered.length > visibleItems.length) {
       filteredHtml += '<div style="grid-column:1/-1;text-align:center;padding:1rem;"><button onclick="window._dashPage=(window._dashPage||1)+1;var c=document.getElementById(\'view-container\');if(c&&typeof renderDashboard===\'function\')renderDashboard(c);" class="btn hover-lift" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px 28px;font-weight:600;font-size:0.85rem;cursor:pointer;">' + _t('dashboard.loadMore', {count: _sortedFiltered.length - visibleItems.length}) + '</button></div>';
     } else if (curFilter === 'abertos' && window.AppStore && window.AppStore._publicDiscoveryHasMore) {
