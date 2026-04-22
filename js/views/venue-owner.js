@@ -1111,35 +1111,13 @@
     if (!cu || !cu.uid) { box.innerHTML = ''; return; }
     var list = await window.VenueDB.loadMyVenues(cu.uid);
     if (list.length === 0) { box.innerHTML = ''; return; }
-    var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin:8px 0 4px 0;">Meus locais reivindicados</div>';
+    var html = '<div style="font-size:0.78rem;color:var(--text-muted);margin:8px 0 8px 0;font-weight:600;letter-spacing:0.02em;">Locais cadastrados</div>';
     list.forEach(function(v) {
-      var sportsText = (v.sports && v.sports.length) ? v.sports.join(', ') : 'sem modalidades';
-      var courts = v.courtCount ? (v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's')) : '';
-      var price = v.priceRange || '';
-      var meta = [sportsText, courts, price].filter(Boolean).join(' · ');
-      var proBadge = v.plan === 'pro'
-        ? '<span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">PRO</span>'
-        : '';
-      var upgradeBtn = v.plan !== 'pro'
-        ? '<button class="btn btn-sm" onclick="window._venueOwnerUpgrade(\'' + _safe(v.placeId) + '\')" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;font-size:0.7rem;padding:4px 10px;font-weight:700;" title="Destacar este local">🚀 Pro</button>'
-        : '';
-      var viewStats = v.viewCount
-        ? ' · ' + v.viewCount + ' visualiza' + (v.viewCount === 1 ? 'ção' : 'ções')
-        : '';
-      // Escape apenas uma vez — deserialize pra URL seguro + onclick seguro.
+      var sportsText = (v.sports && v.sports.length) ? v.sports.join(' · ') : '';
       var safePid = _safe(v.placeId);
-      var urlSafePid = encodeURIComponent(v.placeId);
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid ' + (v.plan === 'pro' ? 'rgba(99,102,241,0.4)' : 'var(--border-color)') + ';border-radius:10px;margin-bottom:6px;flex-wrap:wrap;' + (v.plan === 'pro' ? 'box-shadow:0 0 12px rgba(99,102,241,0.25);' : '') + '">' +
-        '<div style="flex:1;min-width:150px;">' +
-          '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(v.name) + proBadge + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(meta) + _safe(viewStats) + '</div>' +
-        '</div>' +
-        // Novo: "Ver" abre a modal pública. Útil pro dono conferir como os
-        // usuários veem o venue antes de compartilhar o link.
-        '<button class="btn btn-sm" onclick="window.location.hash=\'#venues/' + urlSafePid + '\'" style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.35);color:#38bdf8;font-size:0.7rem;padding:4px 8px;font-weight:600;" title="Ver como os usuários veem">👁️ Ver</button>' +
-        upgradeBtn +
-        '<button class="btn btn-sm btn-secondary" onclick="window._venueOwnerEditExisting(\'' + safePid + '\')" style="font-size:0.7rem;padding:4px 8px;">Editar</button>' +
-        '<button class="btn btn-sm" onclick="window._venueOwnerRelease(\'' + safePid + '\')" style="background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);font-size:0.7rem;padding:4px 8px;" title="Liberar (não é mais dono)">✕</button>' +
+      html += '<div onclick="window._venueOwnerEditExisting(\'' + safePid + '\')" class="hover-lift" style="padding:12px 14px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;margin-bottom:8px;cursor:pointer;">' +
+        '<div style="font-weight:600;color:var(--text-bright);font-size:0.9rem;margin-bottom:2px;">' + _safe(v.name) + '</div>' +
+        (sportsText ? '<div style="font-size:0.75rem;color:var(--text-muted);">' + _safe(sportsText) + '</div>' : '') +
       '</div>';
     });
     box.innerHTML = html;

@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#my-venues: lista de locais simplificada.</b> "Meus locais reivindicados" virou "Locais cadastrados". Cards mostram só nome + modalidades, sem botões Ver/Pro/Editar/✕ — clicar no card já abre o formulário de edição.</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/venue-owner.js</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.54-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#venues: pin+zoom ao selecionar + resultados por distância.</b> Clicar numa sugestão do Google Places finca um pin índigo no mapa e faz zoom (nível 15) naquele ponto, mostrando imediatamente um card com nome, endereço, link para o Google Maps e CTA de cadastro. Resultados (scoreplace + Google) aparecem juntos ordenados do mais próximo ao mais distante. Campo de busca seleciona todo o texto ao clicar, facilitando substituição de "Minha localização atual".</p>' +
         '<p><b>Arquivos</b>: <code>js/views/venues.js</code>, <code>js/store.js</code>.</p>' +
