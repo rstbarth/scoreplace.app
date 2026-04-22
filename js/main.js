@@ -557,11 +557,17 @@
           '<p><b>Ações</b>: <b>📍 Estou aqui agora</b> (check-in inline com toast — não navega), <b>🗓️ Planejar ida</b> (vai pra #presence com o dialog de agendamento auto-aberto), <b>🗺️ Ver no mapa</b> (Google Maps externo), <b>📍 Ver presenças</b> (view completa com gráfico por hora), <b>🏆 Criar torneio aqui</b> (abre criação rápida com o venue pré-preenchido), <b>📤 Compartilhar</b> (Web Share API nativa no mobile ou clipboard como fallback — link canônico <code>/#venues/&lt;placeId&gt;</code> que abre a mesma modal pra quem receber).</p>' +
         '</div>' +
         '<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cadastrar um local</div>' +
-          '<p>CTA "🏢 Cadastre ou edite locais" aparece abaixo do mapa. Leva pra #my-venues.</p>' +
-          '<p><b>Qualquer jogador cadastra</b> — Não precisa ser o dono. Estilo Wikipedia: comunidade preenche, proprietário reivindica depois pra ganhar a tag ✅ e bloquear edições de terceiros.</p>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Cadastro em duas camadas (v0.15.36)</div>' +
+          '<p><b>Camada 1 — Estabelecimento</b>: nome, endereço, horário, contatos, descrição, política de acesso (🌐 público, 👥 só sócios, 👥🏆 sócios + convidados de torneios, 🔒 privado). Qualquer usuário pode cadastrar (Wikipedia-style).</p>' +
+          '<p><b>Camada 2 — Quadras (colaborativo)</b>: seção "🎾 Quadras do local" no form de edição. Qualquer jogador contribui com entradas tipo "4 quadras de Beach Tennis compartilhadas com Futevôlei" ou "2 quadras de saibro exclusivas de Tênis". Cada entrada tem: modalidade, quantidade, piso/tipo (opcional), flag compartilhada/exclusiva, observação. Cada doc rastreia o contribuidor.</p>' +
+          '<p><b>Duas fases de edição:</b></p>' +
+          '<ul style="margin:4px 0 8px 18px;font-size:0.78rem;">' +
+            '<li><b>Colaborativa (sem dono)</b>: qualquer autenticado adiciona. Cada um edita/apaga apenas as entradas que criou.</li>' +
+            '<li><b>Assumida pelo dono</b>: quando alguém reivindica o local como proprietário, passa a ser o <b>único editor de TUDO</b> — inclusive as quadras cadastradas antes pela comunidade. Contributors perdem o acesso de edição (a entrada fica, mas gerenciada pelo dono). Outros usuários não podem mais adicionar novas.</li>' +
+          '</ul>' +
+          '<p><b>Agregação</b>: na modal de detalhe do venue, a seção "🎾 Quadras disponíveis" soma todas as entradas por modalidade e mostra "6 quadras de Beach Tennis (saibro, areia) · 2 de Tênis (piso duro)" com tag 🔁 compartilhada quando aplicável. Rodapé lista quantos jogadores contribuíram.</p>' +
           '<p><b>Autocomplete do Google</b> — Digite o nome do local; o Google Places sugere. Ao selecionar, nome, endereço, lat/lng, telefone, site, horário e faixa de preço são pré-preenchidos quando disponíveis.</p>' +
-          '<p><b>Reivindicar como dono</b> — Dentro do modal do venue cadastrado (sem dono ainda), botão "🏢 Reivindicar como dono" leva pra #my-venues em modo de edição com checkbox "Sou proprietário". Se outro usuário já reivindicou, o sistema bloqueia e orienta contato com o suporte.</p>' +
+          '<p><b>Reivindicar como dono</b> — Dentro do modal do venue cadastrado (sem dono ainda), botão "🏢 Reivindicar como dono" leva pra #my-venues em modo de edição com checkbox "Sou proprietário". Ao aceitar, o dono assume todas as informações (incluindo quadras) e vira o único editor. Se outro usuário já reivindicou, o sistema bloqueia e orienta contato com o suporte.</p>' +
         '</div>' +
         '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Plano Pro para proprietários</div>' +
@@ -997,6 +1003,25 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.36-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cadastro de local em 2 camadas: estabelecimento + quadras colaborativas.</b> Baseado em pedido real do usuário: "Clube Paineiras do Morumby — localizo, horário, só sócios; depois cadastro tantas quadras exclusivas de Beach Tennis, tantas compartilhadas com Futvôlei; outro usuário cadastra quadras de Tênis saibro e piso duro; outro adiciona Squash e Pickleball; etc." O cadastro antigo era flat (uma modalidade + um courtCount). Agora é relacional.</p>' +
+        '<p><b>Camada 1 — Estabelecimento (<code>venues/{id}</code>)</b>: nome, endereço, horário, contatos + novo campo <code>accessPolicy</code> com 4 opções:</p>' +
+        '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +
+          '<li>🌐 <b>Público</b> — aluguel aberto a qualquer pessoa</li>' +
+          '<li>👥 <b>Só sócios</b> — acesso restrito</li>' +
+          '<li>👥🏆 <b>Sócios + convidados de torneios oficiais</b></li>' +
+          '<li>🔒 <b>Privado</b> — não aceita externos</li>' +
+        '</ul>' +
+        '<p>Badge correspondente aparece destacado na modal do venue — jogadores sabem de cara se podem ir jogar ali ou se precisam de convite.</p>' +
+        '<p><b>Camada 2 — Quadras (<code>venues/{id}/courts/{courtId}</code>, subcoleção colaborativa)</b>: cada entrada tem <code>sport</code>, <code>count</code>, <code>shared</code> (compartilhada/exclusiva), <code>surface</code> opcional (saibro, piso duro, areia), <code>notes</code> e <code>contributorUid</code>. Novos métodos em VenueDB: <code>addVenueCourt</code>, <code>listVenueCourts</code>, <code>updateVenueCourt</code>, <code>deleteVenueCourt</code>, <code>aggregateVenueCourts</code> (resumo por modalidade).</p>' +
+        '<p><b>Duas fases de edição com contrato claro:</b></p>' +
+        '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +
+          '<li><b>Colaborativa (venue sem dono)</b>: qualquer autenticado adiciona entradas. Cada um só edita/apaga as próprias. Enforced na rule Firestore + UI.</li>' +
+          '<li><b>Assumida pelo dono (venue com <code>ownerUid</code>)</b>: quando alguém reivindica, "assume tudo" — inclusive entradas da comunidade ficam sob sua gestão. Dono passa a ser o único editor. Outros usuários não adicionam novas. Contributors originais veem as entradas em read-only.</li>' +
+        '</ul>' +
+        '<p><b>Na modal do venue</b>: nova seção "🎾 Quadras disponíveis" agrega tudo por modalidade: "<b>6</b> quadras de Beach Tennis (saibro, areia) · 🔁 compartilhada · <b>2</b> de Tênis (piso duro) · ✓ exclusiva". Rodapé cita "Informações contribuídas por X jogadores". Badge de política de acesso aparece acima. <b>Firestore rules</b>: nova match <code>/venues/{id}/courts/{courtId}</code> com create permitido só em fase colaborativa ou pelo dono; update/delete segue mesma regra. Deploy requer <code>firebase deploy --only firestore:rules</code>. Arquivos: <code>js/venue-db.js</code>, <code>js/views/venue-owner.js</code>, <code>js/views/venues.js</code>, <code>firestore.rules</code>, <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.35-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: "Você está aqui" aparecendo em duplicidade na dashboard.</b> Usuário reportou ver o mesmo check-in próprio em dois lugares. Investigação apontou duas causas possíveis:</p>' +
         '<ul style="font-size:0.82rem;line-height:1.7;margin:4px 0 8px 18px;">' +

@@ -194,6 +194,63 @@ service cloud.firestore {
             || get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == request.auth.uid
           );
       }
+
+      // Quadras do local:
+      //
+      // DUAS FASES:
+      // 1. FASE COLABORATIVA (venue sem owner): qualquer autenticado adiciona;
+      //    cada contribuidor pode editar/apagar APENAS suas próprias entradas.
+      // 2. FASE CLAIMED (venue com ownerUid): o dono é o único que adiciona,
+      //    edita e apaga quadras. Quando um usuário reivindica o local, ele
+      //    "assume tudo" — inclusive as entradas cadastradas pela comunidade
+      //    ficam sob sua gestão exclusiva. Contributors originais perdem
+      //    acesso de edição (a entrada permanece, mas gerenciada pelo dono).
+      //
+      // CREATE: permitido se (a) venue não tem dono E o criador é o
+      //   contributor, OU (b) venue tem dono e esse dono é o criador.
+      // UPDATE/DELETE: mesmo princípio — contributor só quando não há dono;
+      //   dono sempre quando existe.
+      match /courts/{courtId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.resource.data.contributorUid == request.auth.uid
+          && request.resource.data.sport is string
+          && request.resource.data.count is int
+          && request.resource.data.count >= 1
+          && request.resource.data.count <= 999
+          && (
+            // Venue sem dono: qualquer autenticado contribui
+            !('ownerUid' in get(/databases/$(database)/documents/venues/$(venueId)).data)
+            || get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == null
+            // OU: venue tem dono e o criador É o dono
+            || get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == request.auth.uid
+          );
+        allow update: if request.auth != null
+          && (
+            // Venue tem dono: só o dono edita (assume tudo, incluindo
+            // entradas que foram feitas por contribuidores antes)
+            get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == request.auth.uid
+            // OU: venue sem dono e usuário é o contributor original
+            || (
+              (
+                !('ownerUid' in get(/databases/$(database)/documents/venues/$(venueId)).data)
+                || get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == null
+              )
+              && resource.data.contributorUid == request.auth.uid
+            )
+          );
+        allow delete: if request.auth != null
+          && (
+            get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == request.auth.uid
+            || (
+              (
+                !('ownerUid' in get(/databases/$(database)/documents/venues/$(venueId)).data)
+                || get(/databases/$(database)/documents/venues/$(venueId)).data.ownerUid == null
+              )
+              && resource.data.contributorUid == request.auth.uid
+            )
+          );
+      }
     }
   }
 }

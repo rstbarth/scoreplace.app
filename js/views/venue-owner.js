@@ -278,9 +278,25 @@
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Modalidades oferecidas</div>' +
           '<div id="venue-owner-sports" style="display:flex;flex-wrap:wrap;gap:4px 8px;">' + sportsHtml + '</div>' +
         '</div>' +
+        // Política de acesso ao local — controla quem pode efetivamente jogar
+        // lá. Independente da visibilidade do cadastro (que é sempre público).
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">🔐 Política de acesso' +
+          '<select id="venue-owner-access" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
+            '<option value="public"' + ((ex.accessPolicy || 'public') === 'public' ? ' selected' : '') + '>🌐 Público — aluguel aberto a qualquer pessoa</option>' +
+            '<option value="members"' + (ex.accessPolicy === 'members' ? ' selected' : '') + '>👥 Só sócios — acesso restrito ao clube</option>' +
+            '<option value="members_plus_guests"' + (ex.accessPolicy === 'members_plus_guests' ? ' selected' : '') + '>👥+🏆 Sócios e convidados de torneios oficiais</option>' +
+            '<option value="private"' + (ex.accessPolicy === 'private' ? ' selected' : '') + '>🔒 Privado — não aceita externos</option>' +
+          '</select>' +
+          '<span style="font-size:0.65rem;color:var(--text-muted);opacity:0.7;margin-top:2px;display:block;">Determina se o local aparece como "alugável" pra jogadores buscando quadra.</span>' +
+        '</label>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
-          '<label style="font-size:0.72rem;color:var(--text-muted);">Nº de quadras' +
+          // courtCount legacy: fallback pra exibição simples quando o venue
+          // não tem a subcoleção courts ainda populada. Substituído pelo
+          // novo fluxo "Adicionar quadras" abaixo do form (colaborativo,
+          // múltiplos usuários).
+          '<label style="font-size:0.72rem;color:var(--text-muted);">Nº total de quadras (opcional)' +
             '<input type="number" id="venue-owner-court-count" min="0" max="99" value="' + _safe(ex.courtCount || '') + '" placeholder="Ex: 4" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
+            '<span style="font-size:0.62rem;color:var(--text-muted);opacity:0.65;">Ou use a seção "Quadras" abaixo pra detalhar por modalidade.</span>' +
           '</label>' +
           '<label style="font-size:0.72rem;color:var(--text-muted);">Faixa de preço' +
             '<select id="venue-owner-price" style="display:block;width:100%;margin-top:2px;padding:6px 8px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);">' +
@@ -343,8 +359,224 @@
           '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
           '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? '💾 Salvar alterações' : '💾 Cadastrar local') + '</button>' +
         '</div>' +
+
+        // ═══════════════════════════════════════════════════════════════════
+        // QUADRAS (colaborativo, Wikipedia-style)
+        // ═══════════════════════════════════════════════════════════════════
+        // Só aparece quando o venue já existe (edit mode). Novo venue precisa
+        // ser salvo primeiro pra gerar o placeId. Qualquer autenticado pode
+        // adicionar; só o contribuidor ou owner pode editar/apagar.
+        ((opts.existing && place.placeId) ? (function() {
+          var _cuC = window.AppStore && window.AppStore.currentUser;
+          var _hasOwner = !!(opts.existing && opts.existing.ownerUid);
+          var _imOwner = _hasOwner && _cuC && opts.existing.ownerUid === _cuC.uid;
+          // Fase colaborativa (sem dono) ou sou o dono → mostra botão "Adicionar".
+          // Fase claimed e não sou dono → só leitura (courts read-only).
+          var _canAdd = !_hasOwner || _imOwner;
+          var _phaseLabel = _hasOwner
+            ? (_imOwner
+                ? '<span style="font-size:0.68rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:2px 8px;border-radius:999px;">gerenciado pelo dono</span>'
+                : '<span style="font-size:0.68rem;background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;padding:2px 8px;border-radius:999px;">✅ oficial — só o dono edita</span>')
+            : '<span style="font-size:0.68rem;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;border-radius:999px;">colaborativo</span>';
+          var _helpText = _hasOwner
+            ? (_imOwner
+                ? 'Você reivindicou este local. Você é o único editor das quadras — o que a comunidade cadastrou antes continua aqui sob sua gestão.'
+                : 'Este local foi reivindicado pelo proprietário. As informações oficiais só podem ser editadas por ele. Se você é o dono, abra a opção "Sou o proprietário" pra assumir.')
+            : 'Qualquer jogador pode cadastrar suas observações sobre as quadras. Ex: "4 quadras de Beach Tennis compartilhadas com Futevôlei", "2 quadras de saibro exclusivas de tênis". O total agregado aparece pra jogadores.';
+          return '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-color);">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">' +
+              '<span style="font-size:1rem;">🎾</span>' +
+              '<span style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">Quadras do local</span>' +
+              _phaseLabel +
+            '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">' + _helpText + '</div>' +
+            '<div id="venue-courts-list" data-venue-key="' + _safe(place.placeId) + '">' +
+              '<div style="font-size:0.75rem;color:var(--text-muted);padding:8px;">Carregando...</div>' +
+            '</div>' +
+            (_canAdd
+              ? '<button type="button" class="btn btn-sm hover-lift" onclick=\'window._venueCourtAddDialog("' + _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:8px 14px;border-radius:10px;font-size:0.82rem;margin-top:8px;">➕ Adicionar entrada de quadra</button>'
+              : '') +
+          '</div>';
+        })() : '') +
       '</div>';
+    // Se o form inclui a seção de quadras (edit mode), carrega a lista
+    // após o DOM estar pronto.
+    if (opts.existing && place && place.placeId) {
+      setTimeout(function() {
+        if (typeof window._venueCourtsRefresh === 'function') {
+          window._venueCourtsRefresh(place.placeId);
+        }
+      }, 50);
+    }
   }
+
+  // Renderiza a lista de courts registradas no venue. Chamado após _renderForm
+  // e também após cada add/edit/delete pra refletir mudanças.
+  window._venueCourtsRefresh = async function(venueKey) {
+    var box = document.getElementById('venue-courts-list');
+    if (!box || !window.VenueDB) return;
+    try {
+      var courts = await window.VenueDB.listVenueCourts(venueKey);
+      if (!courts || courts.length === 0) {
+        box.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);padding:10px;background:var(--bg-darker);border-radius:8px;">Nenhuma quadra cadastrada ainda. Seja o primeiro a contribuir!</div>';
+        return;
+      }
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var myUid = cu && cu.uid;
+      var venue = await window.VenueDB.loadVenue(venueKey);
+      var hasOwner = !!(venue && venue.ownerUid);
+      var imVenueOwner = hasOwner && venue.ownerUid === myUid;
+      // Edição: na fase claimed (há owner), só o owner edita TUDO — "assume
+      // tudo", inclusive entradas cadastradas pela comunidade antes.
+      // Na fase colaborativa (sem owner), cada contribuidor só mexe nas
+      // próprias entradas. Match com a rule do Firestore.
+      var html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+      courts.forEach(function(c) {
+        var canEdit = hasOwner
+          ? imVenueOwner
+          : (c.contributorUid === myUid);
+        var sportIcon = _sportIconFor(c.sport);
+        var sharedTag = c.shared
+          ? '<span style="font-size:0.62rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:1px 6px;border-radius:10px;margin-left:4px;">🔁 compartilhada</span>'
+          : '<span style="font-size:0.62rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:1px 6px;border-radius:10px;margin-left:4px;">✓ exclusiva</span>';
+        var surfaceTag = c.surface ? '<span style="font-size:0.62rem;color:var(--text-muted);margin-left:4px;">· ' + _safe(c.surface) + '</span>' : '';
+        var authorTag = c.contributorName
+          ? '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:2px;opacity:0.75;">por ' + _safe(c.contributorName) + '</div>'
+          : '';
+        var notesTag = c.notes
+          ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;font-style:italic;">"' + _safe(c.notes) + '"</div>'
+          : '';
+        var safeCourtId = _safe(c._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
+        var safeVenueKey = _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
+        html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:8px;">' +
+          '<span style="font-size:1.2rem;flex-shrink:0;">' + sportIcon + '</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">' +
+              '<b style="color:#a5b4fc;">' + c.count + '</b> quadra' + (c.count === 1 ? '' : 's') + ' de <b>' + _safe(c.sport) + '</b>' +
+              sharedTag + surfaceTag +
+            '</div>' +
+            notesTag +
+            authorTag +
+          '</div>' +
+          (canEdit
+            ? '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+                '<button class="btn btn-sm" onclick="window._venueCourtEditDialog(\'' + safeVenueKey + '\',\'' + safeCourtId + '\')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;font-size:0.7rem;">Editar</button>' +
+                '<button class="btn btn-sm" onclick="window._venueCourtDelete(\'' + safeVenueKey + '\',\'' + safeCourtId + '\')" style="background:transparent;border:1px solid var(--danger-color);color:var(--danger-color);padding:2px 8px;font-size:0.7rem;">✕</button>' +
+              '</div>'
+            : '') +
+        '</div>';
+      });
+      html += '</div>';
+      box.innerHTML = html;
+    } catch (e) {
+      console.warn('courts refresh:', e);
+      box.innerHTML = '<div style="font-size:0.75rem;color:var(--danger-color);padding:8px;">Erro ao carregar quadras.</div>';
+    }
+  };
+
+  function _sportIconFor(sport) {
+    var s = String(sport || '').toLowerCase();
+    if (s.indexOf('beach') !== -1) return '🏖️';
+    if (s.indexOf('pickleball') !== -1) return '🥒';
+    if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
+    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('squash') !== -1) return '🎯';
+    if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1) return '🎾';
+    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
+    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
+    if (s.indexOf('basquete') !== -1 || s.indexOf('basket') !== -1) return '🏀';
+    if (s.indexOf('futebol') !== -1 || s.indexOf('soccer') !== -1) return '⚽';
+    return '🎾';
+  }
+
+  // Dialog pra adicionar/editar uma entrada de quadra. Dialog inline que
+  // sobrescreve o topo do form com campos e salva na subcoleção.
+  window._venueCourtAddDialog = function(venueKey) {
+    _venueCourtOpenDialog(venueKey, null);
+  };
+  window._venueCourtEditDialog = async function(venueKey, courtId) {
+    var all = await window.VenueDB.listVenueCourts(venueKey);
+    var court = all.find(function(c) { return c._id === courtId; });
+    _venueCourtOpenDialog(venueKey, court);
+  };
+
+  function _venueCourtOpenDialog(venueKey, existing) {
+    var overlay = document.createElement('div');
+    overlay.id = 'court-dialog-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
+    var COMMON_SPORTS = ['Beach Tennis', 'Tênis', 'Pickleball', 'Padel', 'Tênis de Mesa', 'Squash', 'Vôlei de Praia', 'Futvôlei', 'Futebol', 'Basquete'];
+    var sportOpts = COMMON_SPORTS.map(function(s) {
+      var sel = (existing && existing.sport === s) ? ' selected' : '';
+      return '<option value="' + _safe(s) + '"' + sel + '>' + _safe(s) + '</option>';
+    }).join('');
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;max-width:460px;width:100%;padding:20px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">' +
+          '<span style="font-size:1.3rem;">🎾</span>' +
+          '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;">' + (existing ? 'Editar quadra' : 'Adicionar quadra') + '</div>' +
+        '</div>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Modalidade' +
+          '<select id="court-dlg-sport" ' + (existing ? 'disabled' : '') + ' style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
+            sportOpts +
+          '</select>' +
+          (existing ? '<span style="font-size:0.62rem;color:var(--text-muted);">Modalidade não é editável — apague e crie uma nova se mudou.</span>' : '') +
+        '</label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
+          '<label style="font-size:0.72rem;color:var(--text-muted);">Nº de quadras' +
+            '<input type="number" id="court-dlg-count" min="1" max="999" value="' + _safe(existing ? existing.count : '1') + '" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
+          '</label>' +
+          '<label style="font-size:0.72rem;color:var(--text-muted);">Piso / tipo (opcional)' +
+            '<input type="text" id="court-dlg-surface" value="' + _safe(existing ? existing.surface : '') + '" placeholder="Ex: saibro, piso duro, areia" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);">' +
+          '</label>' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:8px;margin-bottom:10px;cursor:pointer;font-size:0.8rem;color:var(--text-bright);">' +
+          '<input type="checkbox" id="court-dlg-shared" ' + (existing && existing.shared ? 'checked' : '') + '>' +
+          '<span>🔁 Compartilhada com outras modalidades <span style="color:var(--text-muted);font-weight:400;font-size:0.72rem;">(ex: areia dividida entre Beach Tennis e Futvôlei)</span></span>' +
+        '</label>' +
+        '<label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Observação (opcional)' +
+          '<textarea id="court-dlg-notes" rows="2" maxlength="300" placeholder="Ex: cobertas, iluminação profissional, aluguel a partir de 19h" style="display:block;width:100%;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);resize:vertical;font-family:inherit;font-size:0.82rem;">' + _safe(existing ? existing.notes : '') + '</textarea>' +
+        '</label>' +
+        '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'court-dialog-overlay\').remove()">Cancelar</button>' +
+          '<button class="btn btn-primary btn-sm" onclick=\'window._venueCourtSave("' + _safe(venueKey).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '", ' + (existing ? '"' + _safe(existing._id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '"' : 'null') + ')\'>' + (existing ? 'Salvar' : 'Adicionar') + '</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  window._venueCourtSave = async function(venueKey, courtId) {
+    var sport = document.getElementById('court-dlg-sport').value;
+    var count = parseInt(document.getElementById('court-dlg-count').value, 10) || 1;
+    var surface = document.getElementById('court-dlg-surface').value.trim();
+    var shared = document.getElementById('court-dlg-shared').checked;
+    var notes = document.getElementById('court-dlg-notes').value.trim();
+    try {
+      if (courtId) {
+        await window.VenueDB.updateVenueCourt(venueKey, courtId, { count: count, surface: surface, shared: shared, notes: notes });
+      } else {
+        await window.VenueDB.addVenueCourt(venueKey, { sport: sport, count: count, surface: surface, shared: shared, notes: notes });
+      }
+      var ov = document.getElementById('court-dialog-overlay');
+      if (ov) ov.remove();
+      await window._venueCourtsRefresh(venueKey);
+      if (window.showNotification) window.showNotification('Quadra ' + (courtId ? 'atualizada' : 'adicionada') + '!', '', 'success');
+    } catch (e) {
+      console.error('Save court:', e);
+      if (window.showNotification) window.showNotification('Erro ao salvar: ' + (e && e.message || ''), '', 'error');
+    }
+  };
+
+  window._venueCourtDelete = async function(venueKey, courtId) {
+    if (!confirm('Apagar esta entrada de quadra?')) return;
+    try {
+      await window.VenueDB.deleteVenueCourt(venueKey, courtId);
+      await window._venueCourtsRefresh(venueKey);
+      if (window.showNotification) window.showNotification('Entrada removida.', '', 'info');
+    } catch (e) {
+      if (window.showNotification) window.showNotification('Erro ao apagar.', '', 'error');
+    }
+  };
 
   window._venueOwnerCancel = function() {
     var wrap = document.getElementById('venue-owner-form-wrap');
@@ -372,6 +604,7 @@
     var facebook = (document.getElementById('venue-owner-facebook') || {}).value.trim();
     var claimBox = document.getElementById('venue-owner-claim');
     var claimAsOwner = !!(claimBox && claimBox.checked);
+    var accessPolicyEl = document.getElementById('venue-owner-access');
     var payload = {
       placeId: place.placeId,
       name: place.name,
@@ -384,6 +617,7 @@
       priceList: priceList,
       courtCount: parseInt(document.getElementById('venue-owner-court-count').value, 10) || null,
       priceRange: document.getElementById('venue-owner-price').value || null,
+      accessPolicy: (accessPolicyEl && accessPolicyEl.value) || 'public',
       hours: document.getElementById('venue-owner-hours').value.trim(),
       description: document.getElementById('venue-owner-desc').value.trim(),
       contact: {

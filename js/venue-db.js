@@ -280,6 +280,117 @@ window.VenueDB = {
     }
   },
 
+  // ── Courts subcollection ──────────────────────────────────────────────
+  // Entrada de quadras é colaborativa (Wikipedia-style): qualquer usuário
+  // autenticado pode ADICIONAR um registro de "tantas quadras de [sport]
+  // compartilhadas/exclusivas" num venue. Cada entrada fica rastreada pelo
+  // contributorUid — só o contribuidor original ou o owner do venue podem
+  // editar/apagar.
+  //
+  // Schema do doc em venues/{venueKey}/courts/{courtId}:
+  //   sport: string (modalidade canônica: 'Beach Tennis', 'Tênis', ...)
+  //   count: number (quantidade de quadras)
+  //   shared: boolean (compartilhada com outras modalidades; ex: areia)
+  //   surface: string (saibro, piso duro, areia, sintética, etc — opcional)
+  //   notes: string (detalhe livre do contribuidor — opcional, cap 300)
+  //   contributorUid: string (uid de quem adicionou)
+  //   contributorName: string (displayName snapshot)
+  //   createdAt / updatedAt: ISO timestamp
+  async addVenueCourt(venueKey, data) {
+    if (!this.db || !venueKey) throw new Error('venueKey obrigatório');
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) throw new Error('login obrigatório');
+    var now = new Date().toISOString();
+    var payload = {
+      sport: String(data.sport || '').trim(),
+      count: Math.max(1, Math.min(999, parseInt(data.count, 10) || 1)),
+      shared: !!data.shared,
+      surface: String(data.surface || '').trim().slice(0, 60),
+      notes: String(data.notes || '').trim().slice(0, 300),
+      contributorUid: cu.uid,
+      contributorName: cu.displayName || '',
+      createdAt: now,
+      updatedAt: now
+    };
+    if (!payload.sport) throw new Error('sport obrigatório');
+    var ref = await this.db.collection('venues').doc(venueKey)
+      .collection('courts').add(payload);
+    return Object.assign({ _id: ref.id }, payload);
+  },
+
+  async listVenueCourts(venueKey) {
+    if (!this.db || !venueKey) return [];
+    try {
+      var snap = await this.db.collection('venues').doc(venueKey)
+        .collection('courts').orderBy('createdAt', 'asc').get();
+      var list = [];
+      snap.forEach(function(doc) {
+        var d = doc.data(); d._id = doc.id; list.push(d);
+      });
+      return list;
+    } catch (e) {
+      console.warn('Erro ao carregar courts:', e && e.message);
+      return [];
+    }
+  },
+
+  async updateVenueCourt(venueKey, courtId, patch) {
+    if (!this.db || !venueKey || !courtId) throw new Error('params obrigatórios');
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) throw new Error('login obrigatório');
+    var clean = {};
+    if ('count' in patch) clean.count = Math.max(1, Math.min(999, parseInt(patch.count, 10) || 1));
+    if ('shared' in patch) clean.shared = !!patch.shared;
+    if ('surface' in patch) clean.surface = String(patch.surface || '').trim().slice(0, 60);
+    if ('notes' in patch) clean.notes = String(patch.notes || '').trim().slice(0, 300);
+    clean.updatedAt = new Date().toISOString();
+    await this.db.collection('venues').doc(venueKey)
+      .collection('courts').doc(courtId).update(clean);
+    return true;
+  },
+
+  async deleteVenueCourt(venueKey, courtId) {
+    if (!this.db || !venueKey || !courtId) return false;
+    try {
+      await this.db.collection('venues').doc(venueKey)
+        .collection('courts').doc(courtId).delete();
+      return true;
+    } catch (e) {
+      console.error('Erro ao apagar court:', e);
+      return false;
+    }
+  },
+
+  // Agrega courts por modalidade pra exibição resumida. Retorna:
+  //   { sports: ['Beach Tennis', 'Tênis'], totalCount: 12, bySport: { 'Tênis': {...} }, contributors: [{uid, name, count}] }
+  async aggregateVenueCourts(venueKey) {
+    var courts = await this.listVenueCourts(venueKey);
+    var bySport = {};
+    var contributorsMap = {};
+    var total = 0;
+    courts.forEach(function(c) {
+      total += c.count || 0;
+      var key = c.sport;
+      if (!bySport[key]) bySport[key] = { sport: key, count: 0, shared: false, surfaces: {}, entries: [] };
+      bySport[key].count += c.count || 0;
+      if (c.shared) bySport[key].shared = true; // se qualquer entrada é shared, marca
+      if (c.surface) bySport[key].surfaces[c.surface] = (bySport[key].surfaces[c.surface] || 0) + c.count;
+      bySport[key].entries.push(c);
+      if (c.contributorUid) {
+        if (!contributorsMap[c.contributorUid]) contributorsMap[c.contributorUid] = { uid: c.contributorUid, name: c.contributorName || '', count: 0 };
+        contributorsMap[c.contributorUid].count += c.count || 0;
+      }
+    });
+    var contributors = Object.keys(contributorsMap).map(function(k) { return contributorsMap[k]; });
+    return {
+      totalCount: total,
+      sports: Object.keys(bySport),
+      bySport: bySport,
+      contributors: contributors,
+      entries: courts
+    };
+  },
+
   async loadMyVenues(uid) {
     if (!this.db || !uid) return [];
     try {

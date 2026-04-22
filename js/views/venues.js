@@ -1138,11 +1138,30 @@
         '<div style="padding:16px 18px;">' +
           (ownershipTag || claimBtn ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + claimBtn + '</div>' : '') +
           (sportsHtml ? '<div style="margin-bottom:10px;">' + sportsHtml + '</div>' : '') +
+          // Badge de política de acesso — informa claramente se o local é
+          // público/só sócios/sócios+convidados/privado. Usuários sabem de
+          // cara se podem "ir jogar lá" ou se precisam de convite.
+          ((function() {
+            var ap = v.accessPolicy || 'public';
+            var apCfg = {
+              public: { icon: '🌐', label: 'Aberto ao público', bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
+              members: { icon: '👥', label: 'Só sócios', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
+              members_plus_guests: { icon: '👥🏆', label: 'Sócios + convidados de torneios', bg: 'rgba(251,191,36,0.12)', color: '#fbbf24' },
+              private: { icon: '🔒', label: 'Privado', bg: 'rgba(239,68,68,0.12)', color: '#f87171' }
+            }[ap] || null;
+            if (!apCfg) return '';
+            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + apCfg.bg + ';color:' + apCfg.color + ';border:1px solid ' + apCfg.color + '40;font-size:0.72rem;font-weight:700;margin-bottom:10px;">' +
+              apCfg.icon + ' ' + apCfg.label +
+            '</div>';
+          })()) +
           '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:0.85rem;color:var(--text-bright);margin-bottom:12px;">' +
             (v.courtCount ? '<div>🎾 ' + v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's') + (v.courtType ? ' (' + _safe(v.courtType) + ')' : '') + '</div>' : '') +
             (v.priceRange ? '<div>💰 ' + _safe(v.priceRange) + '</div>' : '') +
             (v.city ? '<div>🏙️ ' + _safe(v.city) + '</div>' : '') +
           '</div>' +
+          // Slot pras quadras detalhadas (subcollection courts). Populado
+          // async após a modal abrir — não bloqueia a exibição inicial.
+          '<div id="venue-courts-agg-slot" style="margin-bottom:12px;"></div>' +
           (v.hours ? '<div style="font-size:0.82rem;color:var(--text-bright);margin-bottom:10px;">⏰ ' + _safe(v.hours) + '</div>' : '') +
           (v.description ? '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">' + _safe(v.description) + '</div>' : '') +
           (contactBits.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' + contactBits.join('') + '</div>' : '') +
@@ -1169,6 +1188,37 @@
       '</div>';
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+    // Async: courts agregados por modalidade — mostra "4 quadras de Beach
+    // Tennis (compartilhadas) · 2 de Tênis (saibro) · ..." antes do resto
+    // pra dar contexto imediato das opções. Read público via rules.
+    if (window.VenueDB && typeof window.VenueDB.aggregateVenueCourts === 'function') {
+      window.VenueDB.aggregateVenueCourts(v.placeId).then(function(agg) {
+        var slot = document.getElementById('venue-courts-agg-slot');
+        if (!slot || !agg || agg.sports.length === 0) return;
+        var rows = agg.sports.map(function(sportName) {
+          var info = agg.bySport[sportName];
+          var surfaceList = Object.keys(info.surfaces || {});
+          var surfaceTxt = surfaceList.length > 0 ? ' (' + surfaceList.join(', ') + ')' : '';
+          var sharedTxt = info.shared
+            ? '<span style="font-size:0.62rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:1px 6px;border-radius:10px;margin-left:4px;">🔁 compartilhada</span>'
+            : '';
+          return '<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-bright);padding:4px 0;">' +
+            '<b style="color:#a5b4fc;">' + info.count + '</b>' +
+            '<span>quadra' + (info.count === 1 ? '' : 's') + ' de <b>' + _safe(sportName) + '</b>' + _safe(surfaceTxt) + '</span>' +
+            sharedTxt +
+          '</div>';
+        }).join('');
+        var contribLine = agg.contributors.length > 1
+          ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;opacity:0.75;">Informações contribuídas por ' + agg.contributors.length + ' jogadores</div>'
+          : '';
+        slot.innerHTML =
+          '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:4px;">🎾 Quadras disponíveis</div>' +
+            rows +
+            contribLine +
+          '</div>';
+      }).catch(function(e) { console.warn('courts agg:', e); });
+    }
     // Async: fetch presences + tournaments, inject into the slot so the
     // modal body stays snappy on open.
     _buildMovimentoHtml(v).then(function(html) {
