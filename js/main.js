@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#my-venues: mapa não duplica mais ao selecionar local.</b> A v0.15.49 introduziu o mapa no topo, mas o formulário seguia renderizando um segundo mapa menor internamente — quando você selecionava um venue via Google Places, os dois apareciam juntos. Agora o mapa é único: fica no topo e, ao selecionar, faz zoom-in (nível 16, street-level) no venue com um pin vermelho 📌 destacando a escolha. Ao cancelar, o pin some e o mapa volta a mostrar só os cadastrados.</p>' +
+        '<p><b>Arquivos</b>: <code>js/views/venue-owner.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.49-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#my-venues: mapa no topo + busca unificada (cadastrados + Google).</b> A rota agora mostra um mapa com todos os venues já cadastrados como pins no topo — você enxerga de cara o que já existe perto de você antes de cadastrar mais um. Pin âmbar = free, pin índigo = Pro. Clicar num pin abre o venue em modo edição.</p>' +
         '<p>O dropdown de busca passou a ter <b>duas seções distintas</b>: "🏢 Já cadastrados no scoreplace" (com badge ✓ oficial / 🤝 comunitário) vem no topo, e "📍 Sugestões do Google — novo cadastro" logo abaixo. Se o local que você quer cadastrar já existe, você edita direto; se não existe, escolhe a sugestão do Google e cria do zero. Evita duplicatas.</p>' +

@@ -30,6 +30,7 @@
   var _ownerMapsLibs = null;
   var _registeredVenues = [];        // venues carregados na entrada da view
   var _googleSuggestionsForMap = []; // sugestões atuais do Google (map pins)
+  var _selectedPinMarker = null;     // pin vermelho destacando venue selecionado
 
   // Modalidades suportadas — racket-family + wider list (squash, futvôlei etc.)
   // Mantemos uma lista curta pro cadastro rápido; courts multi-sport permitem
@@ -353,6 +354,23 @@
     _renderOwnerMarkers();
   }
 
+  // Quando um venue é selecionado (via search ou pin), o mapa do topo zoom in
+  // naquele ponto e ganha um pin vermelho destacando a escolha. Substitui o
+  // mini-mapa que antes era renderizado DENTRO do formulário (duplicava).
+  function _focusOwnerMapOn(place) {
+    if (!_ownerMap || !_ownerMapsLibs || !place || place.lat == null || place.lon == null) return;
+    var pos = { lat: Number(place.lat), lng: Number(place.lon) };
+    if (_selectedPinMarker) { _selectedPinMarker.map = null; _selectedPinMarker = null; }
+    var pin = new _ownerMapsLibs.PinElement({
+      background: '#ef4444', borderColor: '#7f1d1d', glyph: '📌', glyphColor: '#fff', scale: 1.3
+    });
+    _selectedPinMarker = new _ownerMapsLibs.AdvancedMarkerElement({
+      map: _ownerMap, position: pos, title: place.name || 'selecionado', content: pin.element, zIndex: 1000
+    });
+    _ownerMap.setCenter(pos);
+    _ownerMap.setZoom(16);
+  }
+
   // Inner block — map + search input + form wrap + "meus locais" list.
   // O mapa no topo mostra venues já cadastrados (pins âmbar) pra evitar que o
   // usuário cadastre duplicados; quando ele digita, sugestões do Google entram
@@ -671,11 +689,13 @@
         collabBanner +
         googleBanner +
 
-        // ── Nome + endereço + mapa ──
+        // ── Nome + endereço ──
+        // O mapa fica no topo da view (#venue-owner-main-map) e é zoom-ed
+        // dinamicamente em _focusOwnerMapOn() quando este venue é selecionado;
+        // não replica aqui dentro do form pra não duplicar (feedback v0.15.50).
         '<div style="margin-bottom:12px;">' +
           '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;margin-bottom:2px;">' + _safe(place.name) + '</div>' +
           '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:8px;">' + _safe(place.address || '') + '</div>' +
-          '<div id="venue-owner-map" style="width:100%;height:180px;border-radius:10px;background:#0a0e1a;border:1px solid var(--border-color);overflow:hidden;"></div>' +
         '</div>' +
 
         // ── Política de acesso ──
@@ -722,10 +742,14 @@
         '</div>' +
       '</div>';
 
-    // Setup hours grid painting + map after DOM is ready.
+    // Setup hours grid painting + zoom the top map onto this venue.
     setTimeout(function() {
       _setupHoursGridListeners();
-      _initVenueMap(place.lat, place.lon);
+      _focusOwnerMapOn(place);
+      // O mapa subiu pro topo da view — garante que o usuário veja o pin vermelho
+      // + o card de edição juntos sem precisar rolar até o fim do form.
+      var map = document.getElementById('venue-owner-main-map');
+      if (map) map.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }, 30);
   }
 
@@ -973,6 +997,9 @@
     if (wrap) wrap.innerHTML = '';
     var search = document.getElementById('venue-owner-search');
     if (search) search.value = '';
+    // Remove o pin vermelho do venue selecionado — o mapa volta a mostrar só
+    // os cadastrados + eventuais sugestões Google.
+    if (_selectedPinMarker) { _selectedPinMarker.map = null; _selectedPinMarker = null; }
   };
 
   window._venueOwnerSubmit = async function(place) {
