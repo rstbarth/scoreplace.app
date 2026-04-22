@@ -1163,6 +1163,7 @@
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
             '<button class="btn btn-sm" onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefillJson) + ')}catch(e){}window.location.hash="#presence"\' style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;">📍 Ver presenças</button>' +
             '<button class="btn btn-sm btn-primary" onclick=\'window._venuesStartTournamentHere(' + JSON.stringify(prefillJson) + ')\'>🏆 Criar torneio aqui</button>' +
+            '<button class="btn btn-sm" onclick=\'window._venuesShare("' + _safe(v.placeId) + '")\' style="background:#25d366;color:#fff;border:none;font-weight:700;">📤 Compartilhar</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -1363,6 +1364,42 @@
     var ov = document.getElementById('venues-detail-overlay');
     if (ov) ov.remove();
     if (typeof openModal === 'function') openModal('modal-quick-create');
+  };
+
+  // Share venue — tenta navigator.share (mobile native dialog: WhatsApp,
+  // Instagram, SMS, etc); fallback pra clipboard com toast de confirmação.
+  // Link é canônico do scoreplace (#venues/<placeId>) pra que destinatário
+  // caia direto na modal da venue com movimento + contatos — viral growth.
+  window._venuesShare = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    var base = window.SCOREPLACE_URL || 'https://scoreplace.app';
+    var url = base + '/#venues/' + encodeURIComponent(placeId);
+    var title = '🏢 ' + (v.name || 'Local no scoreplace');
+    var sportsLine = (Array.isArray(v.sports) && v.sports.length > 0)
+      ? v.sports.slice(0, 3).join(' · ') + '\n'
+      : '';
+    var addrLine = v.address ? v.address + '\n' : '';
+    var text = title + '\n' + sportsLine + addrLine + '\n👉 ' + url;
+    // Web Share API — mobile nativo. Desktop (Chrome/Edge) também suporta
+    // em alguns casos. Em browsers sem suporte, cai no clipboard.
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: title, text: text, url: url });
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // user cancelou
+        // Qualquer outro erro: cai no fallback
+      }
+    }
+    // Fallback: copia pro clipboard + toast
+    try {
+      await navigator.clipboard.writeText(text);
+      if (window.showNotification) window.showNotification('Link copiado!', 'Cole no WhatsApp ou em qualquer rede.', 'success');
+    } catch (e) {
+      // Último fallback: window.open mailto
+      try { window.open('mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text)); } catch (_) {}
+    }
   };
 
   // ── Quick check-in from the venue detail modal ───────────────────────────
