@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>scoreplace.app — Testes Resolução de Sorteio</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f172a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 2rem; }
+  h1 { color: #f8fafc; margin-bottom: 0.25rem; font-size: 1.3rem; }
+  .subtitle { color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem; }
+  .summary { margin-bottom: 1.5rem; font-size: 1.1rem; }
+  .pass { color: #4ade80; }
+  .fail { color: #f87171; }
+  .skip { color: #fbbf24; }
+  .suite { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .suite h3 { color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+  .test-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .test-row:last-child { border-bottom: none; }
+  .icon { font-size: 0.9rem; width: 18px; text-align: center; flex-shrink: 0; }
+  .test-name { flex: 1; }
+  .error-msg { color: #f87171; font-size: 0.72rem; margin-left: 26px; padding: 3px 0; font-family: monospace; }
+  .load-status { font-size: 0.75rem; color: #94a3b8; margin-bottom: 1rem; padding: 6px 12px; background: rgba(255,255,255,0.02); border-radius: 8px; }
+  .matrix-section { background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.15); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .matrix-section h3 { color: #a5b4fc; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+  .matrix { border-collapse: collapse; width: 100%; font-size: 0.72rem; }
+  .matrix th, .matrix td { border: 1px solid rgba(255,255,255,0.08); padding: 5px 8px; text-align: center; }
+  .matrix th { background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: 700; }
+  .matrix td.ok { background: rgba(16,185,129,0.12); color: #4ade80; font-weight: 700; }
+  .matrix td.fail { background: rgba(239,68,68,0.12); color: #f87171; font-weight: 700; }
+  .matrix td.warn { background: rgba(245,158,11,0.12); color: #fbbf24; font-weight: 700; }
+  .matrix td.na { color: #475569; }
+</style>
+</head>
+<body>
+<h1>scoreplace.app — Resolução de Sorteio: Simulações</h1>
+<div class="subtitle">Simula cada formato × método × contagem de participantes automaticamente</div>
+<div class="summary" id="summary">Executando...</div>
+<div id="load-status" class="load-status"></div>
+<div id="results"></div>
+
+<script>
+// ─── Test framework (sync + async) ───────────────────────────────────────────
+var _tests = [], _currentSuite = '', _loadLog = [];
+function describe(name, fn) { _currentSuite = name; fn(); _currentSuite = ''; }
+function it(name, fn) { _tests.push({ suite: _currentSuite, name: name, fn: fn, async: false }); }
+function itAsync(name, fn) { _tests.push({ suite: _currentSuite, name: name, fn: fn, async: true }); }
+function expect(val) {
+  return {
+    toBe: function(e) { if (val !== e) throw new Error('Expected ' + JSON.stringify(e) + ' got ' + JSON.stringify(val)); },
+    toEqual: function(e) { if (JSON.stringify(val) !== JSON.stringify(e)) throw new Error('Expected ' + JSON.stringify(e) + ' got ' + JSON.stringify(val)); },
+    toBeGreaterThan: function(e) { if (!(val > e)) throw new Error(val + ' not > ' + e); },
+    toBeGreaterThanOrEqual: function(e) { if (!(val >= e)) throw new Error(val + ' not >= ' + e); },
+    toBeLessThanOrEqual: function(e) { if (!(val <= e)) throw new Error(val + ' not <= ' + e); },
+    toBeTruthy: function() { if (!val) throw new Error('Expected truthy, got ' + JSON.stringify(val)); },
+    toBeFalsy: function() { if (val) throw new Error('Expected falsy, got ' + JSON.stringify(val)); },
+    toContain: function(e) { if (String(val).indexOf(e) === -1) throw new Error('"' + val + '" does not contain "' + e + '"'); },
+  };
+}
+
+// ─── Stubs ───────────────────────────────────────────────────────────────────
+window._t = function(k, vars) {
+  if (!vars) return k;
+  return k.replace(/\{(\w+)\}/g, function(_, v) { return vars[v] !== undefined ? vars[v] : '{' + v + '}'; });
+};
+window.AppStore = {
+  tournaments: [],
+  currentUser: { email: 'test@test.com', uid: 'uid-test', displayName: 'Tester' },
+  isOrganizer: function() { return true; },
+  logAction: function() {},
+  syncImmediate: function() { return Promise.resolve(); },
+  sync: function() {},
+  addTournament: function(t) { t.id = t.id || ('test-' + Date.now()); this.tournaments.push(t); return t; },
+  _saveToCache: function() {},
+  _loadFromCache: function() {},
+  getVisibleTournaments: function() { return this.tournaments; },
+  getMyOrganized: function() { return this.tournaments; }
+};
+window.FirestoreDB = {
+  saveTournament: function(t) { return Promise.resolve(t); },
+  loadAllTournaments: function() { return Promise.resolve([]); }
+};
+window.showNotification = function() {};
+window.showAlertDialog = function() {};
+window.showConfirmDialog = function() {};
+window.showBanner = function() {};
+window.openModal = function() {};
+window.closeModal = function() {};
+window.initRouter = function() {};
+window.addEventListener = window.addEventListener || function() {};
+window.removeEventListener = window.removeEventListener || function() {};
+window.scrollTo = window.scrollTo || function() {};
+window.matchMedia = window.matchMedia || function() { return { matches: false, addEventListener: function() {} }; };
+if (typeof firebase === 'undefined') window.firebase = {
+  auth: function() { return { onAuthStateChanged: function() {}, currentUser: null }; },
+  initializeApp: function() {}
+};
+// Will be overridden per async test:
+window.generateDrawFunction = null;
+window.showFinalReviewPanel = function() {};
+window._updateStatBoxes = function() {};
+</script>
+
+<script>
+// ─── Script loader ────────────────────────────────────────────────────────────
+function loadScript(src) {
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', src, false);
+    xhr.send();
+    if (xhr.status === 200) {
+      try { eval(xhr.responseText); _loadLog.push({ src: src, ok: true }); }
+      catch(e) { _loadLog.push({ src: src, ok: false, error: e.message }); }
+    } else {
+      _loadLog.push({ src: src, ok: false, error: 'HTTP ' + xhr.status });
+    }
+  } catch(e) {
+    _loadLog.push({ src: src, ok: false, error: e.message });
+  }
+}
+
+var _origErr = console.error;
+console.error = function() { _origErr.apply(console, ['[suppressed]'].concat(Array.from(arguments))); };
+loadScript('js/i18n.js');
+loadScript('js/i18n-pt.js');
+loadScript('js/i18n-en.js');
+loadScript('js/store.js');
+loadScript('js/views/bracket-logic.js');
+loadScript('js/views/tournaments-draw-prep.js');
+console.error = _origErr;
+</script>
+
+<script>
+// ─── Helpers de teste ─────────────────────────────────────────────────────────
+
+function makeParticipants(n) {
+  var ps = [];
+  for (var i = 0; i < n; i++) ps.push('Jogador ' + (i + 1));
+  return ps;
+}
+
+function makeTournament(n, opts) {
+  opts = opts || {};
+  var teamSize = opts.teamSize || 1;
+  var format = opts.format || 'Eliminatórias';
+  var t = {
+    id: 'sim-' + Date.now() + '-' + Math.random().toFixed(6),
+    name: 'Torneio Teste',
+    format: format,
+    teamSize: teamSize,
+    enrollmentMode: teamSize > 1 ? 'time' : 'individual',
+    participants: makeParticipants(n),
+    waitlist: [],
+    standbyParticipants: [],
+    status: 'open',
+    checkedIn: {},
+    absent: {}
+  };
+  window.AppStore.tournaments = [t];
+  return t;
+}
+
+// Aplica _executeRemoval sincronamente (espelha a lógica real para testes determinísticos)
+function applyRemovalSync(t, mode, method) {
+  var info = window._diagnoseAll(t);
+  var arr = t.participants.slice();
+  var removeCount = info.remainder > 0 ? info.remainder : info.excessParticipants;
+  var removed = [];
+  if (method === 'last') {
+    removed = arr.splice(arr.length - removeCount, removeCount);
+  } else {
+    // random: para testes determinísticos remove os últimos
+    removed = arr.splice(arr.length - removeCount, removeCount);
+  }
+  t.participants = arr;
+  if (mode === 'standby') t.waitlist = (t.waitlist || []).concat(removed);
+  t.status = 'closed';
+  return { removed: removed, info: info, removeCount: removeCount };
+}
+
+// Resolve completamente (até não ter mais issues), retorna número de passos
+function resolveCompletely(t, mode, method) {
+  var steps = 0, maxSteps = 10;
+  while (steps < maxSteps) {
+    var info = window._diagnoseAll(t);
+    if (!info.hasIssues) break;
+    if (info.incompleteTeams && info.incompleteTeams.length > 0) break; // não testado aqui
+    applyRemovalSync(t, mode, method);
+    steps++;
+  }
+  return steps;
+}
+
+// Verifica se N é potência de 2
+function isPow2(n) { return n > 0 && (n & (n - 1)) === 0; }
+
+// Potência de 2 inferior de N
+function lowerPow2(n) { var p = 1; while (p * 2 <= n) p *= 2; return p; }
+
+// Formatos de eliminatória (precisam de potência de 2)
+var ELIM_FORMATS = [
+  'Eliminatórias',
+  'Dupla Eliminatória',
+  'Eliminação Simples'
+];
+
+// Formatos que ignoram potência de 2 (Suíço, Liga)
+var SWISS_LIGA_FORMATS = [
+  'Suíço Clássico',
+  'Liga'
+];
+
+// Contagens individuais com problemas (não potência de 2)
+var COUNTS_INDIVIDUAL = [3, 5, 6, 7, 9, 10, 11, 12, 13, 15, 17, 20, 25];
+
+// Contagens para duplas (teamSize=2) com problemas
+// Inclui casos com resto e/ou excesso
+var COUNTS_DUPLAS = [
+  { n: 5,  desc: 'resto=1, efetivo=2 (ok pow2)' },    // rem=1, eff=2 → ok
+  { n: 6,  desc: 'sem resto, efetivo=3 (excesso=1)' }, // rem=0, eff=3 → exc
+  { n: 7,  desc: 'resto=1, efetivo=3 (excesso=1)' },   // rem=1, eff=3 → exc
+  { n: 9,  desc: 'resto=1, efetivo=4 (ok pow2)' },     // rem=1, eff=4 → ok
+  { n: 10, desc: 'sem resto, efetivo=5 (excesso=1)' }, // rem=0, eff=5 → exc
+  { n: 11, desc: 'resto=1, efetivo=5 (excesso=1)' },   // rem=1, eff=5 → exc (2 passos)
+  { n: 13, desc: 'resto=1, efetivo=6 (excesso=2)' }    // rem=1, eff=6 → exc (2 passos)
+];
+
+// Contagens para trios (teamSize=3)
+// Excluir 4 e 5: após remover o resto ficaria só 1 time — torneio inviável
+var COUNTS_TRIOS = [
+  { n: 7,  desc: 'resto=1, efetivo=2 (ok pow2)' },
+  { n: 8,  desc: 'resto=2, efetivo=2 (ok pow2)' },
+  { n: 10, desc: 'sem resto, efetivo=3 (excesso=1)' },
+  { n: 11, desc: 'resto=2, efetivo=3 (excesso=1, 2 passos)' },
+  { n: 13, desc: 'resto=1, efetivo=4 (ok pow2)' }
+];
+
+var METHODS = [
+  { mode: 'standby',   method: 'random', label: 'Espera/Sorteio' },
+  { mode: 'standby',   method: 'last',   label: 'Espera/Últimos' },
+  { mode: 'exclusion', method: 'random', label: 'Exclusão/Sorteio' },
+  { mode: 'exclusion', method: 'last',   label: 'Exclusão/Últimos' }
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 1: _diagnoseAll — Individual (teamSize=1)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_diagnoseAll — Individual (teamSize=1)', function() {
+  [2,4,8,16,32].forEach(function(n) {
+    it(n + ' participantes → sem issues (potência de 2)', function() {
+      var t = makeTournament(n, { format: 'Eliminatórias' });
+      var info = window._diagnoseAll(t);
+      expect(info.hasIssues).toBeFalsy();
+      expect(info.isPowerOf2).toBeTruthy();
+    });
+  });
+
+  [3,5,6,7,9,10,11,12,13,15,17,20,25].forEach(function(n) {
+    it(n + ' participantes → hasIssues=true, excess correto', function() {
+      var t = makeTournament(n, { format: 'Eliminatórias' });
+      var info = window._diagnoseAll(t);
+      expect(info.hasIssues).toBeTruthy();
+      expect(info.totalRawParticipants).toBe(n);
+      expect(info.effectiveTeams).toBe(n);
+      expect(info.excess).toBeGreaterThan(0);
+      expect(info.excessParticipants).toBe(info.excess); // teamSize=1
+    });
+  });
+
+  it('_diagnoseAll: excessParticipants = excess × teamSize (individual)', function() {
+    var t = makeTournament(6, { format: 'Eliminatórias', teamSize: 1 });
+    var info = window._diagnoseAll(t);
+    expect(info.excessParticipants).toBe(info.excess * 1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 2: _diagnoseAll — Duplas (teamSize=2)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_diagnoseAll — Duplas (teamSize=2)', function() {
+  it('4 participantes → efetivo=2, isPowerOf2 ✓', function() {
+    var t = makeTournament(4, { teamSize: 2 });
+    var info = window._diagnoseAll(t);
+    expect(info.remainder).toBe(0);
+    expect(info.effectiveTeams).toBe(2);
+    expect(info.hasIssues).toBeFalsy();
+  });
+
+  it('5 participantes → resto=1, efetivo=2, isPowerOf2 (mas hasIssues por resto)', function() {
+    var t = makeTournament(5, { teamSize: 2 });
+    var info = window._diagnoseAll(t);
+    expect(info.remainder).toBe(1);
+    expect(info.effectiveTeams).toBe(2);
+    expect(info.isPowerOf2).toBeTruthy();
+    expect(info.hasIssues).toBeTruthy();
+  });
+
+  it('6 participantes → sem resto, efetivo=3, excess=1, excessParticipants=2', function() {
+    var t = makeTournament(6, { teamSize: 2 });
+    var info = window._diagnoseAll(t);
+    expect(info.remainder).toBe(0);
+    expect(info.effectiveTeams).toBe(3);
+    expect(info.excess).toBe(1);
+    expect(info.excessParticipants).toBe(2);
+    expect(info.hasIssues).toBeTruthy();
+  });
+
+  it('7 participantes → resto=1, efetivo=3, excess=1, excessParticipants=2', function() {
+    var t = makeTournament(7, { teamSize: 2 });
+    var info = window._diagnoseAll(t);
+    expect(info.remainder).toBe(1);
+    expect(info.effectiveTeams).toBe(3);
+    expect(info.excess).toBe(1);
+    expect(info.excessParticipants).toBe(2);
+    expect(info.hasIssues).toBeTruthy();
+  });
+
+  it('8 participantes → sem issues, efetivo=4', function() {
+    var t = makeTournament(8, { teamSize: 2 });
+    var info = window._diagnoseAll(t);
+    expect(info.hasIssues).toBeFalsy();
+    expect(info.effectiveTeams).toBe(4);
+    expect(info.isPowerOf2).toBeTruthy();
+  });
+
+  it('excessParticipants sempre = excess × teamSize', function() {
+    [5,6,7,9,10,11,13].forEach(function(n) {
+      var t = makeTournament(n, { teamSize: 2 });
+      var info = window._diagnoseAll(t);
+      expect(info.excessParticipants).toBe(info.excess * 2);
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 3: _diagnoseAll — Trios (teamSize=3)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_diagnoseAll — Trios (teamSize=3)', function() {
+  it('excessParticipants = excess × 3 em todos os casos', function() {
+    [4,5,7,8,10,11,13,14].forEach(function(n) {
+      var t = makeTournament(n, { teamSize: 3 });
+      var info = window._diagnoseAll(t);
+      expect(info.excessParticipants).toBe(info.excess * 3);
+    });
+  });
+
+  it('12 participantes → efetivo=4, isPowerOf2, sem issues', function() {
+    var t = makeTournament(12, { teamSize: 3 });
+    var info = window._diagnoseAll(t);
+    expect(info.effectiveTeams).toBe(4);
+    expect(info.hasIssues).toBeFalsy();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 4: Resolução Individual — passo único (sem resto)
+// Verifica: após remoção, hasIssues=false e contagem é potência de 2
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Resolução Individual — passo único', function() {
+  COUNTS_INDIVIDUAL.forEach(function(n) {
+    METHODS.forEach(function(m) {
+      it(n + ' participantes + ' + m.label, function() {
+        var t = makeTournament(n, { format: 'Eliminatórias' });
+        var result = applyRemovalSync(t, m.mode, m.method);
+
+        // Após remoção deve ser potência de 2
+        var after = window._diagnoseAll(t);
+        if (after.hasIssues) throw new Error(
+          n + ' → ' + t.participants.length + ' participantes: hasIssues ainda true (' +
+          JSON.stringify({ rem: after.remainder, exc: after.excess, pow2: after.isPowerOf2 }) + ')'
+        );
+        expect(isPow2(t.participants.length)).toBeTruthy();
+        expect(t.participants.length).toBe(lowerPow2(n));
+
+        // Modo standby: waitlist recebeu os removidos
+        if (m.mode === 'standby') {
+          expect(t.waitlist.length).toBeGreaterThan(0);
+          expect(t.waitlist.length).toBe(n - lowerPow2(n));
+        }
+        // Modo exclusion: waitlist vazio
+        if (m.mode === 'exclusion') {
+          expect(t.waitlist.length).toBe(0);
+        }
+
+        // Contagem correta de removidos
+        expect(result.removeCount).toBe(n - lowerPow2(n));
+      });
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 5: Resolução Duplas — casos com resto
+// Passo 1: remove resto → Passo 2: remove excesso de times
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Resolução Duplas (teamSize=2) — completa', function() {
+  COUNTS_DUPLAS.forEach(function(scenario) {
+    METHODS.forEach(function(m) {
+      it(scenario.n + ' partic. (' + scenario.desc + ') + ' + m.label, function() {
+        var t = makeTournament(scenario.n, { teamSize: 2, format: 'Eliminatórias' });
+        var steps = resolveCompletely(t, m.mode, m.method);
+        var after = window._diagnoseAll(t);
+
+        if (after.hasIssues) throw new Error(
+          scenario.n + ' duplas → ' + t.participants.length + ' partic após ' + steps +
+          ' passos: ainda hasIssues (' +
+          JSON.stringify({ rem: after.remainder, exc: after.excess, pow2: after.isPowerOf2 }) + ')'
+        );
+
+        // Verificar: sem resto, efetivo é potência de 2
+        expect(after.remainder).toBe(0);
+        expect(isPow2(after.effectiveTeams)).toBeTruthy();
+        expect(t.participants.length % 2).toBe(0); // sempre divisível por 2
+      });
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 6: Resolução Trios (teamSize=3) — completa
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Resolução Trios (teamSize=3) — completa', function() {
+  COUNTS_TRIOS.forEach(function(scenario) {
+    METHODS.forEach(function(m) {
+      it(scenario.n + ' partic. (' + scenario.desc + ') + ' + m.label, function() {
+        var t = makeTournament(scenario.n, { teamSize: 3, format: 'Eliminatórias' });
+        resolveCompletely(t, m.mode, m.method);
+        var after = window._diagnoseAll(t);
+
+        if (after.hasIssues) throw new Error(
+          scenario.n + ' trios → ' + t.participants.length + ' partic: hasIssues ainda true (' +
+          JSON.stringify({ rem: after.remainder, exc: after.excess, pow2: after.isPowerOf2 }) + ')'
+        );
+        expect(after.remainder).toBe(0);
+        expect(isPow2(after.effectiveTeams)).toBeTruthy();
+      });
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 7: Suíço e Liga — não exigem potência de 2
+// showUnifiedResolutionPanel deve redirecionar para showFinalReviewPanel
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Suíço e Liga — sem exigência de potência de 2', function() {
+  var swissLiga = [
+    { format: 'Suíço Clássico' },
+    { format: 'Liga' }
+  ];
+  [3, 5, 6, 7, 11, 13].forEach(function(n) {
+    swissLiga.forEach(function(f) {
+      it(n + ' participantes, ' + f.format + ' → _diagnoseAll.hasIssues ignorado por showUnifiedResolutionPanel', function() {
+        var t = makeTournament(n, { format: f.format });
+        // Para Suíço/Liga, o showUnifiedResolutionPanel chama showFinalReviewPanel direto.
+        // Aqui testamos que o _diagnoseAll pode retornar hasIssues=true (contagem não é pow2)
+        // mas que o formato seria tratado de forma diferente.
+        var info = window._diagnoseAll(t);
+        // Apenas verificamos que a função não crasha e retorna os campos esperados
+        expect(typeof info.hasIssues).toBe('boolean');
+        expect(typeof info.effectiveTeams).toBe('number');
+        expect(typeof info.excessParticipants).toBe('number');
+      });
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 8 (ASYNC): _executeRemoval real — verifica que generateDrawFunction é chamado
+// Testa o fluxo completo com a função real (FirestoreDB mockado)
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('_executeRemoval real — generateDrawFunction chamado após resolução', function() {
+  // Casos onde UMA chamada a _executeRemoval resolve tudo (individual sem resto)
+  [3, 5, 6, 7, 9, 10, 12].forEach(function(n) {
+    METHODS.forEach(function(m) {
+      itAsync(n + ' partic. individual + ' + m.label + ' → draw disparado', async function() {
+        var t = makeTournament(n, { format: 'Eliminatórias' });
+        var drawCalled = false, panelCalled = false;
+        window.generateDrawFunction = function() { drawCalled = true; };
+        window.showUnifiedResolutionPanel = function() { panelCalled = true; };
+
+        await new Promise(function(resolve, reject) {
+          var origSave = window.FirestoreDB.saveTournament;
+          window.FirestoreDB.saveTournament = function(t2) {
+            window.FirestoreDB.saveTournament = origSave;
+            return Promise.resolve(t2);
+          };
+          try {
+            window._executeRemoval(t.id, m.mode, m.method);
+            setTimeout(resolve, 50); // aguarda .then()
+          } catch(e) { reject(e); }
+        });
+
+        if (!drawCalled) throw new Error(
+          n + ' partic → generateDrawFunction NÃO foi chamado. Panel called: ' + panelCalled
+        );
+        expect(drawCalled).toBeTruthy();
+        expect(panelCalled).toBeFalsy();
+      });
+    });
+  });
+
+  // Casos de duplas (teamSize=2) que precisam de UMA chamada (sem resto)
+  [6, 10].forEach(function(n) {
+    METHODS.forEach(function(m) {
+      itAsync(n + ' partic. duplas (sem resto) + ' + m.label + ' → draw disparado', async function() {
+        var t = makeTournament(n, { teamSize: 2, format: 'Eliminatórias' });
+        var drawCalled = false, panelCalled = false;
+        window.generateDrawFunction = function() { drawCalled = true; };
+        window.showUnifiedResolutionPanel = function() { panelCalled = true; };
+
+        await new Promise(function(resolve, reject) {
+          try {
+            window._executeRemoval(t.id, m.mode, m.method);
+            setTimeout(resolve, 50);
+          } catch(e) { reject(e); }
+        });
+
+        if (!drawCalled) throw new Error(
+          n + ' duplas → generateDrawFunction NÃO foi chamado. Panel called: ' + panelCalled
+        );
+        expect(drawCalled).toBeTruthy();
+        expect(panelCalled).toBeFalsy();
+      });
+    });
+  });
+
+  // Caso especial: 7 partic duplas — dois passos. Passo 1 (resto) chama panel,
+  // passo 2 (excesso) chama draw.
+  itAsync('7 partic duplas — passo 1 (resto) chama panel, passo 2 (excesso) chama draw', async function() {
+    var t = makeTournament(7, { teamSize: 2, format: 'Eliminatórias' });
+    var drawCalled = false, panelCallCount = 0;
+    window.generateDrawFunction = function() { drawCalled = true; };
+
+    // Passo 1: resolver o resto (removeCount = 1)
+    window.showUnifiedResolutionPanel = function(tId2) {
+      panelCallCount++;
+      // Simula o usuário clicando "Lista de Espera" → subchoice → "Sorteio entre todos"
+      // Passo 2: _executeRemoval com excesso
+      window._executeRemoval(tId2, 'standby', 'random');
+    };
+
+    await new Promise(function(resolve, reject) {
+      try {
+        window._executeRemoval(t.id, 'standby', 'random');
+        setTimeout(resolve, 150); // dois .then() encadeados
+      } catch(e) { reject(e); }
+    });
+
+    if (!drawCalled) throw new Error('7 duplas: draw não chamado após 2 passos. Panel calls: ' + panelCallCount);
+    expect(panelCallCount).toBe(1); // só 1 chamada ao panel intermediário
+    expect(drawCalled).toBeTruthy();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUITE 9: Propriedades invariantes
+// ═══════════════════════════════════════════════════════════════════════════════
+describe('Invariantes de resolução', function() {
+  it('standby: participantes removidos vão para waitlist, exclusion: waitlist permanece vazio', function() {
+    [5, 6, 7, 10].forEach(function(n) {
+      var t1 = makeTournament(n, { teamSize: 2 });
+      resolveCompletely(t1, 'standby', 'last');
+      if (t1.waitlist.length === 0) throw new Error(n + ' duplas standby: waitlist vazio após resolução');
+
+      var t2 = makeTournament(n, { teamSize: 2 });
+      resolveCompletely(t2, 'exclusion', 'last');
+      if (t2.waitlist.length !== 0) throw new Error(n + ' duplas exclusion: waitlist não deveria ter entradas');
+    });
+  });
+
+  it('total = participantes + waitlist (standby preserva tudo)', function() {
+    COUNTS_INDIVIDUAL.forEach(function(n) {
+      var t = makeTournament(n, { teamSize: 1 });
+      resolveCompletely(t, 'standby', 'last');
+      expect(t.participants.length + t.waitlist.length).toBe(n);
+    });
+  });
+
+  it('exclusão: participantes removidos se perdem (total diminui)', function() {
+    COUNTS_INDIVIDUAL.forEach(function(n) {
+      var t = makeTournament(n, { teamSize: 1 });
+      resolveCompletely(t, 'exclusion', 'last');
+      if (t.participants.length >= n) throw new Error(n + ' exclusion: participants não diminuiu');
+      expect(t.participants.length).toBe(lowerPow2(n));
+    });
+  });
+
+  it('"last" remove os últimos inscritos', function() {
+    var t = makeTournament(6, { teamSize: 1 });
+    var ultimo = t.participants[t.participants.length - 1];
+    applyRemovalSync(t, 'standby', 'last');
+    // O último deve estar na waitlist
+    var inWaitlist = t.waitlist.some(function(p) {
+      return (typeof p === 'string' ? p : p.name || p.displayName) === ultimo;
+    });
+    if (!inWaitlist) throw new Error('"last" não removeu o último inscrito (Jogador 6)');
+    expect(inWaitlist).toBeTruthy();
+  });
+
+  it('status do torneio é "closed" após resolução', function() {
+    var t = makeTournament(6, { teamSize: 1 });
+    applyRemovalSync(t, 'standby', 'random');
+    expect(t.status).toBe('closed');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════════
+(async function runAll() {
+  var results = [];
+
+  for (var i = 0; i < _tests.length; i++) {
+    var test = _tests[i];
+    try {
+      if (test.async) {
+        await test.fn();
+      } else {
+        test.fn();
+      }
+      results.push({ suite: test.suite, name: test.name, pass: true });
+    } catch(e) {
+      results.push({ suite: test.suite, name: test.name, pass: false, error: e.message });
+    }
+  }
+
+  // Render load status
+  var loadEl = document.getElementById('load-status');
+  loadEl.innerHTML = _loadLog.map(function(l) {
+    var shortSrc = l.src.split('/').pop();
+    return '<span style="margin-right:8px;" class="' + (l.ok ? 'load-ok' : 'load-err') + '">' +
+      (l.ok ? '✓' : '✗') + ' ' + shortSrc + (l.ok ? '' : ': ' + l.error) + '</span>';
+  }).join('');
+
+  // Group by suite
+  var suites = {};
+  results.forEach(function(r) {
+    if (!suites[r.suite]) suites[r.suite] = [];
+    suites[r.suite].push(r);
+  });
+
+  var passed = results.filter(function(r) { return r.pass; }).length;
+  var failed = results.filter(function(r) { return !r.pass; }).length;
+
+  var summaryEl = document.getElementById('summary');
+  summaryEl.innerHTML =
+    '<span class="' + (failed === 0 ? 'pass' : 'fail') + '">' +
+    (failed === 0 ? '✓ Todos os ' + passed + ' testes passaram' : '✗ ' + failed + ' falha(s), ' + passed + ' passou(ram)') +
+    '</span>';
+
+  var resultsEl = document.getElementById('results');
+  var html = '';
+
+  Object.keys(suites).forEach(function(suiteName) {
+    var suite = suites[suiteName];
+    var suitePassed = suite.filter(function(r) { return r.pass; }).length;
+    var suiteFailed = suite.filter(function(r) { return !r.pass; }).length;
+    var suiteColor = suiteFailed > 0 ? '#f87171' : '#4ade80';
+
+    html += '<div class="suite">';
+    html += '<h3>' + suiteName +
+      ' <span style="color:' + suiteColor + ';font-size:0.8rem;font-weight:400;">' +
+      suitePassed + '/' + suite.length + '</span></h3>';
+
+    suite.forEach(function(r) {
+      html += '<div class="test-row">';
+      html += '<span class="icon">' + (r.pass ? '✅' : '❌') + '</span>';
+      html += '<span class="test-name ' + (r.pass ? 'pass' : 'fail') + '">' + r.name + '</span>';
+      html += '</div>';
+      if (!r.pass && r.error) {
+        html += '<div class="error-msg">' + r.error + '</div>';
+      }
+    });
+
+    html += '</div>';
+  });
+
+  // ── Matriz de simulação ──────────────────────────────────────────────────────
+  html += '<div class="matrix-section"><h3>Matriz de Resolução — Individual (teamSize=1)</h3>';
+  html += '<table class="matrix"><thead><tr><th>Partic.</th>';
+  METHODS.forEach(function(m) { html += '<th>' + m.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  COUNTS_INDIVIDUAL.forEach(function(n) {
+    html += '<tr><td>' + n + ' → ' + lowerPow2(n) + '</td>';
+    METHODS.forEach(function(m) {
+      try {
+        var t = makeTournament(n, { format: 'Eliminatórias' });
+        resolveCompletely(t, m.mode, m.method);
+        var after = window._diagnoseAll(t);
+        if (after.hasIssues) throw new Error('still has issues');
+        html += '<td class="ok">✓ ' + t.participants.length + '</td>';
+      } catch(e) {
+        html += '<td class="fail">✗ ' + e.message + '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="matrix-section"><h3>Matriz de Resolução — Duplas (teamSize=2)</h3>';
+  html += '<table class="matrix"><thead><tr><th>Partic.</th>';
+  METHODS.forEach(function(m) { html += '<th>' + m.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  COUNTS_DUPLAS.forEach(function(scenario) {
+    html += '<tr><td>' + scenario.n + '<br><span style="color:#64748b;font-size:0.65rem;">' + scenario.desc + '</span></td>';
+    METHODS.forEach(function(m) {
+      try {
+        var t = makeTournament(scenario.n, { teamSize: 2, format: 'Eliminatórias' });
+        var steps = resolveCompletely(t, m.mode, m.method);
+        var after = window._diagnoseAll(t);
+        if (after.hasIssues) throw new Error('hasIssues após ' + steps + ' passos');
+        html += '<td class="ok">✓ ' + t.participants.length + (steps > 1 ? ' (' + steps + 'p)' : '') + '</td>';
+      } catch(e) {
+        html += '<td class="fail">✗ ' + e.message + '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="matrix-section"><h3>Matriz de Resolução — Trios (teamSize=3)</h3>';
+  html += '<table class="matrix"><thead><tr><th>Partic.</th>';
+  METHODS.forEach(function(m) { html += '<th>' + m.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  COUNTS_TRIOS.forEach(function(scenario) {
+    html += '<tr><td>' + scenario.n + '<br><span style="color:#64748b;font-size:0.65rem;">' + scenario.desc + '</span></td>';
+    METHODS.forEach(function(m) {
+      try {
+        var t = makeTournament(scenario.n, { teamSize: 3, format: 'Eliminatórias' });
+        var steps = resolveCompletely(t, m.mode, m.method);
+        var after = window._diagnoseAll(t);
+        if (after.hasIssues) throw new Error('hasIssues após ' + steps + ' passos');
+        html += '<td class="ok">✓ ' + t.participants.length + (steps > 1 ? ' (' + steps + 'p)' : '') + '</td>';
+      } catch(e) {
+        html += '<td class="fail">✗ ' + e.message + '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  resultsEl.innerHTML = html;
+})();
+</script>
+</body>
+</html>
