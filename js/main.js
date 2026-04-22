@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.61-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: resolução de potência de 2 para torneios de duplas/times.</b> O cálculo de quantos participantes remover usava "excesso em times" em vez de "excesso em participantes", causando remoção insuficiente e retorno ao painel de resto. Corrigido usando excessParticipants (= excess × teamSize) em _executeRemoval e _showRemovalSubChoice.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Lista de Espera: botão único "Preencher" + ordem por chegada.</b> Removidos os botões "Assumir" individuais — agora um único botão "🔄 Preencher" aparece no topo do painel quando há W.O. e alguém presente. A lista é ordenada por ordem de check-in (first come, first served): quem confirmou presença primeiro fica na posição 1 e preenche a próxima vaga.</p>' +
         '</div>' +

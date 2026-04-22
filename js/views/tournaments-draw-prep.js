@@ -403,7 +403,7 @@ window._applyRemainderAction = function(tId, mode) {
 window._showRemovalSubChoice = function(tId, mode, info) {
     var isStandby = mode === 'standby';
     var title = isStandby ? ('⏱️ ' + _t('predraw.waitlistTitle')) : ('🚫 ' + _t('predraw.exclusionTitle'));
-    var removeCount = info.remainder > 0 ? info.remainder : info.excess;
+    var removeCount = info.remainder > 0 ? info.remainder : info.excessParticipants;
     var label = removeCount + ' ' + (removeCount > 1 ? _t('predraw.unitParticipants') : _t('predraw.unitParticipantSingular'));
     var subtitle = isStandby
         ? _t('predraw.removalSubStandby', {label: label})
@@ -461,7 +461,8 @@ window._executeRemoval = function(tId, mode, method) {
     // Re-diagnose to get current counts (avoids stale closure)
     var currentInfo = window._diagnoseAll(t);
     var arr = Array.isArray(t.participants) ? t.participants.slice() : [];
-    var removeCount = currentInfo.remainder > 0 ? currentInfo.remainder : currentInfo.excess;
+    // remainder is in participants; excess is in teams → use excessParticipants for correct count
+    var removeCount = currentInfo.remainder > 0 ? currentInfo.remainder : currentInfo.excessParticipants;
     var removed = [];
 
     if (method === 'last') {
