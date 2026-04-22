@@ -371,8 +371,12 @@ window._checkNearbyTournaments = async function() {
             matched = userCeps.some(function(cep) { return venueText.indexOf(cep) !== -1; });
         }
 
-        // Also check if tournament sport matches user preferred sports
-        var userSports = (cu.preferredSports || '').toLowerCase();
+        // Also check if tournament sport matches user preferred sports.
+        // Aceita array (forma moderna pós-v0.15.19) ou string CSV (legacy).
+        var _rawSports = cu.preferredSports;
+        var userSports = Array.isArray(_rawSports)
+          ? _rawSports.join(',').toLowerCase()
+          : String(_rawSports || '').toLowerCase();
         var sportMatch = !userSports || (t.sport && userSports.indexOf(t.sport.toLowerCase()) !== -1);
 
         if (matched || sportMatch) {

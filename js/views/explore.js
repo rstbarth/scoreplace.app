@@ -148,7 +148,13 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
   var fallbackPhoto = initialsUrl;
   var infoChips = [];
   if (u.city) infoChips.push(u.city);
-  if (u.preferredSports) infoChips.push(u.preferredSports);
+  // preferredSports: aceita array (forma moderna) ou string CSV (legacy).
+  if (u.preferredSports) {
+    var _sportsStr = Array.isArray(u.preferredSports)
+      ? u.preferredSports.join(', ')
+      : String(u.preferredSports);
+    if (_sportsStr) infoChips.push(_sportsStr);
+  }
   if (u.age) infoChips.push(u.age + ' anos');
 
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--border-color)';

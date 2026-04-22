@@ -5257,11 +5257,17 @@ window._openCasualMatch = function() {
   var existing = document.getElementById('casual-match-overlay');
   if (existing) existing.remove();
 
-  // Detect user's preferred sport
+  // Detect user's preferred sport. Aceita array (forma moderna) ou string
+  // CSV (legacy) — v0.15.19 migrou o profile pra array mas docs antigos em
+  // Firestore ainda podem vir como string.
   var cu = window.AppStore && window.AppStore.currentUser;
   var userSport = '';
   if (cu && cu.preferredSports) {
-    userSport = cu.preferredSports.split(',')[0].trim();
+    if (Array.isArray(cu.preferredSports)) {
+      userSport = cu.preferredSports[0] || '';
+    } else {
+      userSport = String(cu.preferredSports).split(/[,;]/)[0].trim();
+    }
   }
 
   // Available sports

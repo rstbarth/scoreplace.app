@@ -1180,7 +1180,16 @@ async function simulateLoginSuccess(user) {
     _setVal('profile-edit-gender', cu.gender || '');
     _setVal('profile-edit-birthdate', cu.birthDate || '');
     _setVal('profile-edit-city', cu.city || '');
-    _setVal('profile-edit-sports', cu.preferredSports || '');
+    // Hidden field mantido por compat; fonte de verdade real são os pills.
+    // Aceita tanto array moderno quanto string CSV legacy.
+    (function() {
+      var raw = cu.preferredSports;
+      var arr = [];
+      if (Array.isArray(raw)) arr = raw.slice();
+      else if (typeof raw === 'string' && raw.trim()) arr = raw.split(/[,;]/).map(function(s){return s.trim();}).filter(Boolean);
+      window._profileSelectedSports = arr;
+      if (typeof window._applyProfileSportsUI === 'function') window._applyProfileSportsUI(arr);
+    })();
     _setVal('profile-edit-category', cu.defaultCategory || '');
     var phoneCountrySel = document.getElementById('profile-phone-country');
     var phoneInput = document.getElementById('profile-edit-phone');
@@ -1843,6 +1852,47 @@ function _setupPhoneMask(inputEl, countryCode) {
   });
 }
 
+// ─── Profile sports pills (toggle + UI apply) ────────────────────────────
+// Fonte de verdade: window._profileSelectedSports (array). Os pills do DOM
+// refletem esse array via _applyProfileSportsUI, e o toggle atualiza o
+// array + re-renderiza o estilo. Hidden input #profile-edit-sports recebe
+// CSV pra compatibilidade com readers legacy que usam .split(',').
+window._toggleProfileSport = function(sport) {
+  if (!Array.isArray(window._profileSelectedSports)) window._profileSelectedSports = [];
+  var idx = window._profileSelectedSports.indexOf(sport);
+  if (idx >= 0) window._profileSelectedSports.splice(idx, 1);
+  else window._profileSelectedSports.push(sport);
+  if (typeof window._applyProfileSportsUI === 'function') {
+    window._applyProfileSportsUI(window._profileSelectedSports);
+  }
+};
+
+window._applyProfileSportsUI = function(arr) {
+  var selected = (Array.isArray(arr) ? arr : []).map(function(s) { return String(s).toLowerCase(); });
+  var container = document.getElementById('profile-sports-pills');
+  if (container) {
+    var btns = container.querySelectorAll('button[data-sport]');
+    btns.forEach(function(b) {
+      var val = b.getAttribute('data-sport') || '';
+      var active = selected.indexOf(val.toLowerCase()) !== -1;
+      if (active) {
+        b.style.background = 'rgba(251,191,36,0.18)';
+        b.style.color = '#fbbf24';
+        b.style.border = '2px solid #fbbf24';
+        b.style.fontWeight = '700';
+      } else {
+        b.style.background = 'transparent';
+        b.style.color = 'var(--text-muted)';
+        b.style.border = '1.5px solid var(--border-color)';
+        b.style.fontWeight = '500';
+      }
+    });
+  }
+  // Mantém hidden input sincronizado com CSV pra compat com readers legacy.
+  var hidden = document.getElementById('profile-edit-sports');
+  if (hidden) hidden.value = (Array.isArray(arr) ? arr : []).join(', ');
+};
+
 // ─── Auto-detect & fix stale participant names ─────────────────────────────���
 // Defined at module level so available immediately on script load (not inside setupProfileModal).
 window._autoFixStaleNames = async function(forceTournamentId) {
@@ -2314,11 +2364,23 @@ function setupProfileModal() {
                 '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
               '</div>' +
             '</div>' +
-            // Esportes Preferidos (linha inteira)
+            // Esportes Preferidos — pill buttons toggleáveis (v0.15.19).
+            // Antes era input de texto livre com placeholder "Ex: Tênis, Padel";
+            // usuário precisava digitar os nomes corretamente. Agora são botões
+            // toggleáveis com as modalidades canônicas do app, garantindo
+            // consistência com filtros de discovery e sugestões de presença.
+            // Valor interno gravado como array; input hidden preserva CSV pra
+            // readers legacy (bracket-ui, explore, tournaments-organizer).
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSports') + '</label>' +
-              '<input type="text" id="profile-edit-sports" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: Tênis, Padel, Beach Tennis">' +
-              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 2px; display: block;">' + _t('profile.sportsSeparator') + '</span>' +
+              '<div id="profile-sports-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
+                ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'].map(function(s) {
+                  var safeS = String(s).replace(/'/g, "\\'");
+                  return '<button type="button" data-sport="' + window._safeHtml(s) + '" onclick="window._toggleProfileSport(\'' + safeS + '\')" class="btn btn-sm" style="font-size:0.72rem;padding:6px 12px;border-radius:999px;white-space:nowrap;">' + window._safeHtml(s) + '</button>';
+                }).join('') +
+              '</div>' +
+              '<input type="hidden" id="profile-edit-sports" value="">' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 4px; display: block;">Selecione as modalidades que você joga. Usado pra sugerir torneios e parceiros.</span>' +
             '</div>' +
             // Telefone: País + Número
             '<div class="form-group" style="margin-bottom: 10px;">' +
@@ -2776,12 +2838,17 @@ function setupProfileModal() {
         }).catch(function() {});
       }
 
+      // Dynamic search: 2 char minimum (era 3) + 150ms debounce (era 300ms)
+      // — resposta mais imediata conforme o usuário digita. Abaixo de 2
+      // chars a API devolve ruído; 2+ já começa a retornar bairros/POIs
+      // relevantes. Debounce reduzido cobre digitação rápida sem spammar
+      // o Places API.
       var _debounce = null;
       input.addEventListener('input', function() {
         clearTimeout(_debounce);
         var query = input.value.trim();
-        if (query.length < 3) { sugBox.style.display = 'none'; return; }
-        _debounce = setTimeout(function() { _searchProfileLocation(query); }, 300);
+        if (query.length < 2) { sugBox.style.display = 'none'; return; }
+        _debounce = setTimeout(function() { _searchProfileLocation(query); }, 150);
       });
 
       input.addEventListener('keydown', function(e) {
@@ -2793,9 +2860,9 @@ function setupProfileModal() {
         setTimeout(function() { sugBox.style.display = 'none'; }, 200);
       });
 
-      // Reopen on focus if there are results
+      // Reopen on focus if there are results (min matches input handler: 2+)
       input.addEventListener('focus', function() {
-        if (input.value.trim().length >= 3 && sugBox.children.length > 0) {
+        if (input.value.trim().length >= 2 && sugBox.children.length > 0) {
           sugBox.style.display = 'block';
         }
       });
@@ -2929,7 +2996,11 @@ function setupProfileModal() {
       // Phone: grab raw digits only
       var phoneDigits = (document.getElementById('profile-edit-phone').getAttribute('data-digits') || '').replace(/\D/g, '');
       var phoneCountry = document.getElementById('profile-phone-country').value || '55';
-      var sports = document.getElementById('profile-edit-sports').value.trim();
+      // Sports: fonte de verdade é window._profileSelectedSports (array).
+      // Fallback pra hidden input em caso de race condition na inicialização.
+      var sportsArr = Array.isArray(window._profileSelectedSports)
+        ? window._profileSelectedSports.slice()
+        : (document.getElementById('profile-edit-sports').value.trim().split(/[,;]/).map(function(s){return s.trim();}).filter(Boolean));
       var category = document.getElementById('profile-edit-category').value.trim();
       // Toggle switches: read checked state
       var acceptFriends = document.getElementById('profile-accept-friends') ? document.getElementById('profile-accept-friends').checked : true;
@@ -2957,7 +3028,10 @@ function setupProfileModal() {
       window.AppStore.currentUser.city = city;
       window.AppStore.currentUser.phone = phoneDigits;
       window.AppStore.currentUser.phoneCountry = phoneCountry;
-      window.AppStore.currentUser.preferredSports = sports;
+      // Grava como array (forma moderna e canônica). Readers antigos que
+      // chamam .split() são protegidos via helper tolerante em cada call
+      // site (bracket-ui, explore, tournaments-organizer, presence-geo).
+      window.AppStore.currentUser.preferredSports = sportsArr;
       window.AppStore.currentUser.defaultCategory = category;
       window.AppStore.currentUser.acceptFriendRequests = acceptFriends;
       window.AppStore.currentUser.notifyPlatform = notifyPlatform;
