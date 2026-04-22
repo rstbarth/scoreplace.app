@@ -58,9 +58,9 @@
       { key: 'feat1', icon: '🎯' },
       { key: 'feat2', icon: '📋' },
       { key: 'feat3', icon: '🔗' },
-      { key: 'feat4', icon: '📺' },
-      { key: 'feat5', icon: '📱' },
-      { key: 'feat6', icon: '📊' }
+      { key: 'feat4', icon: '⚡' },
+      { key: 'feat5', icon: '📍' },
+      { key: 'feat6', icon: '🏢' }
     ];
     var cards = feats.map(function(f) {
       return '<div class="landing-feat-card">' +
