@@ -243,23 +243,23 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // CASUAL MATCH
     // ═══════════════════════════════════════════════════════════════════════════
-    { id: 'casual-start', area: 'casual', selector: '#btn-casual-match', text: 'Jogue uma partida rápida sem criar torneio. Escolha esporte, defina se é single ou dupla e convide jogadores por QR code.', priority: 4 },
-    { id: 'casual-sport', area: 'casual', selector: '.casual-sport-btn', text: 'Cada esporte tem pontuação padrão diferente (sets, games, tie-break). Toque na engrenagem ⚙️ para personalizar.', priority: 3 },
-    { id: 'casual-doubles', area: 'casual', selector: '#casual-toggle-doubles', text: 'Ative para jogar em duplas (4 jogadores). Desative para single (2 jogadores).', priority: 3 },
-    { id: 'casual-shuffle', area: 'casual', selector: '#casual-toggle-shuffle', text: 'Sortear ON = duplas aleatórias ao iniciar. OFF = monte os times manualmente arrastando jogadores.', priority: 3 },
-    { id: 'casual-invite', area: 'casual', selector: '.casual-invite-btn', text: 'Convide jogadores presentes mostrando o QR Code ou compartilhando o código da sala de 6 caracteres.', priority: 4 },
-    { id: 'casual-lobby', area: 'casual', selector: '.casual-lobby-section', text: 'O lobby mostra quem já entrou na partida em tempo real. Atualizações automáticas a cada 3 segundos.', priority: 2 },
-    { id: 'casual-serve', area: 'casual', selector: '.serve-card', text: 'Defina a ordem de saque. Use ⇅ para trocar qual jogador do time saca primeiro. A alternância entre times é automática.', priority: 3 },
-    { id: 'casual-tiebreak', area: 'casual', selector: '[onclick*="liveResolveTie"]', text: 'No empate, escolha Prorrogar (vantagem de 2 games) ou Tie-break. Na prorrogação, o botão Tie-break fica disponível para ativar a qualquer momento.', priority: 3 },
-    { id: 'casual-tiebreak-rule', area: 'casual', selector: '[onclick*="liveResolveTie"]', text: 'No tie-break vence quem fizer 7 pontos primeiro com 2 de vantagem. Se empatar em 7, o tie-break se estende até alguém abrir 2 de frente.', priority: 2 },
-    { id: 'casual-lobby-teams', area: 'casual', selector: '.casual-lobby-section', text: 'Os times montados pelo organizador já aparecem no seu lobby. Quando ele terminar, vocês entram juntos na tela ao vivo.', priority: 2 },
-    { id: 'casual-leave', area: 'casual', selector: '[onclick*="_casualLeaveMatch"]', text: 'Sair libera sua vaga na sala — outro jogador pode ocupar o seu lugar imediatamente.', priority: 3 },
-    { id: 'casual-close-match', area: 'casual', selector: '[onclick*="_closeLiveScoring"]', text: 'Fechar abandona a partida casual e libera sua vaga. Você volta para o dashboard — nada fica preso.', priority: 2 },
-    { id: 'casual-serve-lock', area: 'casual', selector: '[data-serve-ball]', text: 'Arraste a bolinha para trocar o sacador. Após 2 jogos ela trava 🔒 e a ordem não pode mais mudar.', priority: 3 },
-    { id: 'casual-player-card', area: 'casual', selector: 'button[onclick*="_showPlayerMatchStats"]', text: 'Toque em qualquer card de jogador para ver suas estatísticas individuais detalhadas (saque por game e por ponto).', priority: 3 },
-    { id: 'casual-momentum', area: 'casual', selector: '#mom-replay-btn', text: 'O gráfico Momentum mostra o desempenho das duas duplas ponto a ponto. Clique em ↻ Replay para rever a animação.', priority: 3 },
-    { id: 'casual-compare', area: 'casual', selector: '[style*="Comparação"]', text: 'Compare os times com barras: Sets, Games, Pontos, % Pontos no Saque, % na Recepção, Games Mantidos, Quebras, Killer Points (40-40), Maior Sequência e Maior Vantagem.', priority: 2 },
-    { id: 'casual-restart', area: 'casual', selector: '[onclick*="_liveScoreRestart"]', text: 'Jogar Novamente zera o placar e começa outra partida. Ative "Re-sortear duplas" para redistribuir os jogadores nos times.', priority: 3 },
+    { id: 'casual-start', context: 'casual-match', selector: '#btn-casual-match', text: 'Jogue uma partida rápida sem criar torneio. Escolha esporte, defina se é single ou dupla e convide jogadores por QR code.', priority: 4 },
+    { id: 'casual-sport', context: 'casual-match', selector: '.casual-sport-btn', text: 'Cada esporte tem pontuação padrão diferente (sets, games, tie-break). Toque na engrenagem ⚙️ para personalizar.', priority: 3 },
+    { id: 'casual-doubles', context: 'casual-match', selector: '#casual-toggle-doubles', text: 'Ative para jogar em duplas (4 jogadores). Desative para single (2 jogadores).', priority: 3 },
+    { id: 'casual-shuffle', context: 'casual-match', selector: '#casual-toggle-shuffle', text: 'Sortear ON = duplas aleatórias ao iniciar. OFF = monte os times manualmente arrastando jogadores.', priority: 3 },
+    { id: 'casual-invite', context: 'casual-match', selector: '.casual-invite-btn', text: 'Convide jogadores presentes mostrando o QR Code ou compartilhando o código da sala de 6 caracteres.', priority: 4 },
+    { id: 'casual-lobby', context: 'casual-match', selector: '.casual-lobby-section', text: 'O lobby mostra quem já entrou na partida em tempo real. Atualizações automáticas a cada 3 segundos.', priority: 2 },
+    { id: 'casual-serve', context: 'casual-match', selector: '.serve-card', text: 'Defina a ordem de saque. Use ⇅ para trocar qual jogador do time saca primeiro. A alternância entre times é automática.', priority: 3 },
+    { id: 'casual-tiebreak', context: 'casual-match', selector: '[onclick*="liveResolveTie"]', text: 'No empate, escolha Prorrogar (vantagem de 2 games) ou Tie-break. Na prorrogação, o botão Tie-break fica disponível para ativar a qualquer momento.', priority: 3 },
+    { id: 'casual-tiebreak-rule', context: 'casual-match', selector: '[onclick*="liveResolveTie"]', text: 'No tie-break vence quem fizer 7 pontos primeiro com 2 de vantagem. Se empatar em 7, o tie-break se estende até alguém abrir 2 de frente.', priority: 2 },
+    { id: 'casual-lobby-teams', context: 'casual-match', selector: '.casual-lobby-section', text: 'Os times montados pelo organizador já aparecem no seu lobby. Quando ele terminar, vocês entram juntos na tela ao vivo.', priority: 2 },
+    { id: 'casual-leave', context: 'casual-match', selector: '[onclick*="_casualLeaveMatch"]', text: 'Sair libera sua vaga na sala — outro jogador pode ocupar o seu lugar imediatamente.', priority: 3 },
+    { id: 'casual-close-match', context: 'casual-match', selector: '[onclick*="_closeLiveScoring"]', text: 'Fechar abandona a partida casual e libera sua vaga. Você volta para o dashboard — nada fica preso.', priority: 2 },
+    { id: 'casual-serve-lock', context: 'casual-match', selector: '[data-serve-ball]', text: 'Arraste a bolinha para trocar o sacador. Após 2 jogos ela trava 🔒 e a ordem não pode mais mudar.', priority: 3 },
+    { id: 'casual-player-card', context: 'casual-match', selector: 'button[onclick*="_showPlayerMatchStats"]', text: 'Toque em qualquer card de jogador para ver suas estatísticas individuais detalhadas (saque por game e por ponto).', priority: 3 },
+    { id: 'casual-momentum', context: 'casual-match', selector: '#mom-replay-btn', text: 'O gráfico Momentum mostra o desempenho das duas duplas ponto a ponto. Clique em ↻ Replay para rever a animação.', priority: 3 },
+    { id: 'casual-compare', context: 'casual-match', selector: '[style*="Comparação"]', text: 'Compare os times com barras: Sets, Games, Pontos, % Pontos no Saque, % na Recepção, Games Mantidos, Quebras, Killer Points (40-40), Maior Sequência e Maior Vantagem.', priority: 2 },
+    { id: 'casual-restart', context: 'casual-match', selector: '[onclick*="_liveScoreRestart"]', text: 'Jogar Novamente zera o placar e começa outra partida. Ative "Re-sortear duplas" para redistribuir os jogadores nos times.', priority: 3 },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PROFILE — Persistent Stats
@@ -280,6 +280,72 @@
     { id: 'stats-h2h', selector: '#player-stats-overlay [style*="Adversários"]', text: 'Top 3 Adversários mostra contra quem você mais joga. Casuais e torneios listados separadamente.', context: 'player-stats', priority: 4, position: 'top' },
     { id: 'stats-partners', selector: '#player-stats-overlay [style*="Parceiros"]', text: 'Top 3 Parceiros: com quem você mais joga em duplas. Descubra sua dupla perfeita pelas vitórias compartilhadas.', context: 'player-stats', priority: 4, position: 'top' },
     { id: 'stats-tournaments', selector: '#player-stats-overlay details', text: 'Toque em "📋 Torneios Disputados" para ver a lista com links diretos para cada torneio.', context: 'player-stats', priority: 3, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VENUES — Descoberta (#venues)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'venues-location', selector: '#venues-location', text: 'Digite uma cidade, bairro ou endereço. O mapa centraliza automaticamente. Ou use o botão 📍 GPS.', context: 'venues', priority: 7, position: 'bottom' },
+    { id: 'venues-geo', selector: '#venues-geo-btn', text: 'Usa sua localização precisa via GPS. Prioridade máxima sobre o campo de texto.', context: 'venues', priority: 5, position: 'bottom' },
+    { id: 'venues-sport-filter', selector: '#venues-sport', text: 'Filtre por modalidade: Beach Tennis, Pickleball, Tênis, Padel, Tênis de Mesa. "Qualquer" traz todos.', context: 'venues', priority: 5, position: 'bottom' },
+    { id: 'venues-distance', selector: 'input[oninput*="_venuesSetDistance"]', text: 'Raio de busca em km. Default 10. Vira círculo visual no mapa.', context: 'venues', priority: 4, position: 'bottom' },
+    { id: 'venues-tab-map', selector: '#venues-tab-map', text: 'Visão espacial — pins nos locais. Verde = você, âmbar = cadastrados, índigo = Pro, cinza = sugestões do Google.', context: 'venues', priority: 6, position: 'bottom' },
+    { id: 'venues-tab-list', selector: '#venues-tab-list', text: 'Visão em lista — cards com nome, modalidades, quadras, preço. Útil quando há muitos venues no raio.', context: 'venues', priority: 4, position: 'bottom' },
+    { id: 'venues-summary', selector: '#venues-map-summary button', text: 'Sem resultados? Expande o raio em 3× com um clique e re-renderiza o mapa.', context: 'venues', priority: 5, position: 'top' },
+    { id: 'venues-cta-register', selector: 'a[href="#my-venues"]', text: 'Qualquer jogador pode cadastrar um local que frequenta — estilo Wikipedia. O dono reivindica depois.', context: 'venues', priority: 4, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VENUE DETAIL MODAL (inline, sobreposto à #venues ou #tournaments)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'venue-quickcheckin', selector: '#venue-quickcheckin-btn', text: 'Check-in inline sem sair da modal — notifica seus amigos com 1 tap. Seu avatar aparece em "Movimento no local".', context: 'venue-detail', priority: 8, position: 'top' },
+    { id: 'venue-quickplan', selector: '#venue-quickplan-btn', text: 'Planejar ida pro local. Vai pra #presence com o dialog de agendamento auto-aberto.', context: 'venue-detail', priority: 7, position: 'top' },
+    { id: 'venue-share', selector: '[onclick*="_venuesShare"]', text: 'Compartilhe o link do venue — WhatsApp, DM, SMS. Link canônico abre a mesma modal pra quem receber.', context: 'venue-detail', priority: 5, position: 'top' },
+    { id: 'venue-create-tournament', selector: '[onclick*="_venuesStartTournamentHere"]', text: 'Cria um torneio já com o venue pré-preenchido. Atalho quando você gosta do local que acabou de descobrir.', context: 'venue-detail', priority: 5, position: 'top' },
+    { id: 'venue-review', selector: '[onclick*="_venuesOpenReviewDialog"]', text: 'Avalie de 1 a 5 estrelas + texto opcional. Anônimo se deixar em branco. Cada usuário: 1 review por venue.', context: 'venue-detail', priority: 4, position: 'top' },
+    { id: 'venue-claim', selector: '[onclick*="_venueOwnerEditExisting"]', text: 'É o proprietário? Reivindique pra ganhar a tag "✅ Informações oficiais" e controle total sobre os dados.', context: 'venue-detail', priority: 6, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PRESENCE (#presence)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'presence-venue-select', selector: '#presence-venue-select', text: 'Escolha o local. A lista combina seus locais preferidos do perfil + venues dos seus torneios.', context: 'presence', priority: 7, position: 'bottom' },
+    { id: 'presence-sports', selector: '#presence-picker button[onclick*="_presenceToggleSport"]', text: 'Pills de modalidade — selecione uma ou mais. Um local pode oferecer várias; o doc de presença fica queryable por qualquer uma.', context: 'presence', priority: 6, position: 'bottom' },
+    { id: 'presence-checkin', selector: '[onclick*="_presenceCheckIn"]', text: 'Check-in imediato (3h). Amigos recebem notificação "📡 Fulano chegou pra jogar X. Vem junto!".', context: 'presence', priority: 8, position: 'top' },
+    { id: 'presence-plan', selector: '[onclick*="_presencePlanDialog"]', text: 'Agendamento futuro. Escolha início e (opcional) saída. Amigos recebem "🗓️ Fulano vai jogar X às HH:mm".', context: 'presence', priority: 7, position: 'top' },
+    { id: 'presence-calendar', selector: '[onclick*="_presenceAddToCalendar"]', text: 'Adicione sua presença planejada ao Google Calendar, Outlook ou Apple Calendar. Um clique, evento com horário + local.', context: 'presence', priority: 5, position: 'top' },
+    { id: 'presence-cancel', selector: '[onclick*="_presenceCancel"]', text: 'Cancelar sua presença. Silenciosamente remove — amigos não são notificados do cancelamento.', context: 'presence', priority: 3, position: 'top' },
+    { id: 'presence-chart', selector: '#presence-chart', text: 'Movimento por hora no local hoje. Avatares = amigos, números = outros usuários. Torneios entram como presenças virtuais.', context: 'presence', priority: 4, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CASUAL MATCH (additions — existing ones migrated above)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'casual-notify-friends', selector: '#casual-notify-friends-btn', text: 'Com 1 clique avisa todos seus amigos do scoreplace. Eles recebem notificação "⚡ Entrar na partida" que leva direto pro lobby.', context: 'casual-match', priority: 7, position: 'top' },
+    { id: 'casual-room-code', selector: '#casual-qr-overlay [style*="letter-spacing"]', text: 'Código de 6 caracteres da sala. Amigo digita na dashboard ("📷 Escanear QR") ou acessa /#casual/CODIGO pra entrar.', context: 'casual-match', priority: 5, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DASHBOARD — Novos widgets (v0.15.x)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'dash-my-venues', selector: '#dashboard-presences-widget + div', text: 'Seus locais preferidos em acesso rápido. Botão 📍 verde faz check-in direto sem navegar — 2 cliques em vez de 5.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
+    { id: 'dash-friends-presence', selector: '#dashboard-presences-widget', text: 'Amigos com check-in ativo ou presença planejada hoje. Clique num card pra ver o local e se juntar.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
+    { id: 'dash-profile-nudge', selector: '#dash-profile-nudge', text: 'Complete seu perfil pra ativar torneios perto de você, sugestões de parceiros e presença rápida.', context: 'dashboard', priority: 6, position: 'top', requiresLogin: true },
+    { id: 'dash-presence-btn', selector: '#btn-presence', text: 'Registre presença no local onde está jogando. Amigos veem em tempo real e podem se juntar.', context: 'dashboard', priority: 5, position: 'bottom', requiresLogin: true },
+    { id: 'dash-venues-btn', selector: '#btn-venues', text: 'Descubra quadras e clubes abertos ao público. Útil em viagens ou pra explorar a cidade.', context: 'dashboard', priority: 5, position: 'bottom' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOURNAMENT DETAIL — Calendário (v0.15.16)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'tournament-calendar', selector: '[onclick*="_tournamentAddToCalendar"]', text: 'Adicione à sua agenda (Google Calendar, Outlook ou Apple .ics). Evita o "me esqueci do horário".', context: 'tournament-detail', priority: 5, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MY VENUES (#my-venues)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'myvenues-search', selector: '#venue-owner-search', text: 'Digite o nome do local. Sugestões do Google Places aparecem conforme você digita.', context: 'my-venues', priority: 7, position: 'bottom' },
+    { id: 'myvenues-claim', selector: 'input[type="checkbox"][onclick*="claim"]', text: 'Marque se você é o proprietário oficial. Ganha tag "✅ Informações oficiais" e bloqueio contra edições de terceiros.', context: 'my-venues', priority: 6, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NOTIFICATIONS (#notifications)
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'notif-mark-read', selector: '#notif-list .card', text: 'Clique num card pra marcar como lida. Também abre o link associado (torneio, venue, partida).', context: 'notifications', priority: 4, position: 'top' },
+    { id: 'notif-casual-invite', selector: '[onclick*="#casual/"]', text: 'Convite pra partida casual. Um tap leva direto pro lobby — sem precisar do QR Code.', context: 'notifications', priority: 6, position: 'top' },
+    { id: 'notif-presence-checkin', selector: 'button[style*="presence"]', text: 'Amigo chegou num local. Botão leva pra modal do venue onde você marca sua própria presença.', context: 'notifications', priority: 5, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // META
@@ -322,11 +388,24 @@
     var qcModal = document.getElementById('modal-quick-create');
     if (qcModal && qcModal.classList.contains('active')) return 'create-tournament';
 
+    // Casual match overlays são full-screen + não têm hash na URL.
+    // Detectamos pelo elemento DOM. Prioridade alta pra não cair em
+    // contexto de dashboard só porque o hash ainda é #dashboard.
+    if (document.getElementById('live-scoring-overlay')) return 'casual-match';
+    if (document.getElementById('casual-match-overlay')) return 'casual-match';
+    var venueDetailOverlay = document.getElementById('venues-detail-overlay');
+    if (venueDetailOverlay) return 'venue-detail';
+
     var hash = window.location.hash || '#dashboard';
     if (hash.indexOf('#dashboard') === 0) return 'dashboard';
     if (hash.indexOf('#tournaments/') === 0 || hash.indexOf('#tournament/') === 0) return 'tournament-detail';
     if (hash.indexOf('#bracket/') === 0) return 'bracket';
     if (hash.indexOf('#explore') === 0) return 'explore';
+    if (hash.indexOf('#venues/') === 0 || hash === '#venues') return 'venues';
+    if (hash.indexOf('#presence') === 0) return 'presence';
+    if (hash.indexOf('#casual/') === 0) return 'casual-match';
+    if (hash.indexOf('#my-venues') === 0) return 'my-venues';
+    if (hash.indexOf('#notifications') === 0) return 'notifications';
     return 'dashboard';
   }
 

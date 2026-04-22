@@ -644,7 +644,7 @@
       title: _t('help.hints'),
       icon: '💡',
       content: '<p>O scoreplace.app exibe <b>dicas visuais contextuais</b> quando você fica parado por alguns segundos. Elas aparecem como balões com seta apontando para o elemento. Clique "Entendi" para dispensar ou "Desativar dicas" para parar.</p>' +
-        '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Você pode reativar as dicas no seu Perfil. São 152 dicas ao todo, organizadas por área:</p>' +
+        '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Você pode reativar as dicas no seu Perfil. São mais de 200 dicas ao todo, organizadas por área:</p>' +
 
         // ── Global / Topbar ──
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
@@ -916,6 +916,72 @@
           '</p>' +
         '</div>' +
 
+        // ── Venues (descoberta) ──
+        '<div style="background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#38bdf8;margin-bottom:8px;">🏢 Descobrir Locais (8)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Local</b> — Cidade, bairro ou endereço (geocoder)<br>' +
+            '• <b>GPS</b> — Usa localização precisa do dispositivo<br>' +
+            '• <b>Modalidade</b> — Filtra por esporte<br>' +
+            '• <b>Distância (km)</b> — Raio virando círculo no mapa<br>' +
+            '• <b>Mapa</b> — Pins coloridos por tipo<br>' +
+            '• <b>Lista</b> — Cards com detalhes<br>' +
+            '• <b>Expandir raio</b> — Triplica com 1 clique se zero resultados<br>' +
+            '• <b>Cadastrar local</b> — Qualquer jogador (Wikipedia-style)' +
+          '</p>' +
+        '</div>' +
+
+        // ── Venue Detail Modal ──
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#a5b4fc;margin-bottom:8px;">📍 Modal do Local (6)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Estou aqui agora</b> — Check-in inline sem navegar<br>' +
+            '• <b>Planejar ida</b> — Dialog de agendamento auto-aberto<br>' +
+            '• <b>Compartilhar</b> — Web Share API + link canônico<br>' +
+            '• <b>Criar torneio aqui</b> — Venue pré-preenchido<br>' +
+            '• <b>Avaliar</b> — Estrelas 1–5 + texto opcional<br>' +
+            '• <b>Reivindicar</b> — Tag "✅ Oficial" pra proprietário' +
+          '</p>' +
+        '</div>' +
+
+        // ── Presence ──
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#fbbf24;margin-bottom:8px;">🗓️ Presença (7)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Local</b> — Dropdown combina perfil + torneios<br>' +
+            '• <b>Pills de modalidade</b> — Seleção múltipla<br>' +
+            '• <b>Estou aqui agora</b> — Check-in 3h (notifica amigos 📡)<br>' +
+            '• <b>Planejar ida</b> — Agendamento (notifica amigos 🗓️)<br>' +
+            '• <b>Adicionar à agenda</b> — Google/Outlook/.ics<br>' +
+            '• <b>Cancelar</b> — Remove sua presença<br>' +
+            '• <b>Gráfico por hora</b> — Movimento do dia' +
+          '</p>' +
+        '</div>' +
+
+        // ── Dashboard Widgets ──
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#34d399;margin-bottom:8px;">📊 Widgets da Dashboard (5)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Meus locais</b> — Check-in em 1 tap nos venues<br>' +
+            '• <b>Amigos no local</b> — Até 6 amigos com presença<br>' +
+            '• <b>Complete seu perfil</b> — Nudge quando faltam campos<br>' +
+            '• <b>Presença (hero)</b> — Botão 📍 pra #presence<br>' +
+            '• <b>Locais (hero)</b> — Botão 🏢 pra descobrir' +
+          '</p>' +
+        '</div>' +
+
+        // ── My Venues / Tournament Calendar / Notif CTAs ──
+        '<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#a78bfa;margin-bottom:8px;">🔗 Integrações (5)</div>' +
+          '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
+            '• <b>Cadastrar local</b> — Autocomplete do Google Places<br>' +
+            '• <b>Reivindicar propriedade</b> — Tag oficial<br>' +
+            '• <b>Calendário do torneio</b> — Google/Outlook/.ics<br>' +
+            '• <b>Convite casual (notif)</b> — Entrar direto na sala<br>' +
+            '• <b>Check-in de amigo (notif)</b> — Vai ao venue' +
+          '</p>' +
+        '</div>' +
+
         // ── Meta ──
         '<div style="background:rgba(107,114,128,0.06);border:1px solid rgba(107,114,128,0.15);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:#9ca3af;margin-bottom:8px;">ℹ️ Meta (1)</div>' +
@@ -929,6 +995,24 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.22-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Dicas visuais para todas as features novas + contextos de Venues, Presença e Casual.</b> O sistema de hints (hints.js) tinha 173 dicas mas cobria só dashboard, tournament-detail, bracket, create-tournament, explore, player-stats e algumas overlays — TODAS as features que foram adicionadas nas pilars A (Presença), B (Locais) e polish recente (calendário, compartilhar venue, nudge de perfil, widget Meus Locais, Partida Casual com convite) estavam sem dicas. Três melhorias:</p>' +
+        '<p><b>(1) Contextos novos no detector</b> — <code>_getCurrentContext()</code> em hints.js agora reconhece: <code>venues</code> (rota #venues), <code>venue-detail</code> (modal inline aberta), <code>presence</code> (#presence), <code>casual-match</code> (overlay ativo ou #casual/...), <code>my-venues</code> (cadastro), <code>notifications</code> (#notifications). Overlays full-screen (casual, venue-detail) têm prioridade sobre o hash pra não cair em dashboard quando um modal está aberto.</p>' +
+        '<p><b>(2) 17 hints legacy migradas</b> — entradas de Partida Casual usavam um campo <code>area: \'casual\'</code> que o engine de filtragem ignorava (só olha <code>context</code>). Todas migradas pra <code>context: \'casual-match\'</code> via sed — dicas que estavam dormentes há versões voltam a aparecer.</p>' +
+        '<p><b>(3) 34 hints novas</b> distribuídas:</p>' +
+        '<ul style="font-size:0.82rem;line-height:1.6;margin:4px 0 8px 18px;">' +
+          '<li><b>Venues descoberta (8):</b> Local, GPS, Modalidade, Distância, toggle Mapa/Lista, Expandir raio, CTA Cadastrar</li>' +
+          '<li><b>Venue detail modal (6):</b> Estou aqui, Planejar, Compartilhar, Criar torneio aqui, Avaliar, Reivindicar</li>' +
+          '<li><b>Presença (7):</b> seletor de venue, pills de modalidade, Check-in, Planejar, Adicionar à agenda, Cancelar, Gráfico</li>' +
+          '<li><b>Casual Match (2):</b> Avisar amigos do scoreplace, Código de sala</li>' +
+          '<li><b>Dashboard widgets (5):</b> Meus locais, Amigos no local, Nudge de perfil, botões Presença/Locais do hero</li>' +
+          '<li><b>Tournament detail (1):</b> Adicionar à agenda</li>' +
+          '<li><b>My venues (2):</b> Autocomplete Google, Reivindicar proprietário</li>' +
+          '<li><b>Notificações (3):</b> Marcar lida, Convite casual, Check-in de amigo</li>' +
+        '</ul>' +
+        '<p><b>Total agora: 207 dicas</b> (antes 173). Manual (seção "💡 Dicas do App") ganhou blocos dedicados pra cada contexto novo e o contador atualizou pra "mais de 200 dicas". Aparecem quando usuário fica parado 6s em qualquer tela; respeitam <code>requiresLogin</code> e <code>requiresPlan</code> igual as existentes. Arquivos: <code>js/hints.js</code>, <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.21-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Partida casual: "Avisar amigos do scoreplace" com 1 clique.</b> O modal de convite da Partida Casual tinha QR Code, Copiar link e WhatsApp — mas nenhum jeito de notificar direto os amigos do scoreplace sem sair do app. Pra quem já tá no app, era redundante passar pelo WhatsApp. <b>Novo botão:</b> "👥 Avisar meus N amigos do scoreplace" (gradient índigo, abaixo dos botões de share tradicionais). Um clique dispara notificação <code>casual_invite</code> pra todos os amigos. <b>Mensagem:</b> "Fulano começou uma partida casual de X. Entra junto: CÓDIGO". <b>Botão de ação na notificação:</b> "⚡ Entrar na partida" (gradient ciano, identidade visual da partida casual) navega direto pra <code>#casual/&lt;code&gt;</code> — o roteador já sabe lidar com status waiting (abre lobby) ou active (abre live scoring). <b>Throttle:</b> botão desabilita após 1 clique pra evitar spam. <b>Contador adaptativo:</b> mostra o número exato de amigos no botão ("Avisar meus 3 amigos") pra reforçar que o impacto é real. <b>Catálogo:</b> <code>casual_invite</code> adicionado com ⚡ ciano, nível \'all\'. Só aparece quando o usuário tem pelo menos 1 amigo; sem amigos, o espaço fica vazio (widget não força descoberta aqui — tem outros lugares pra isso). Arquivos: <code>js/views/bracket-ui.js</code>, <code>js/notification-catalog.js</code>, <code>js/views/notifications-view.js</code>, <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
         '</div>' +
