@@ -43,23 +43,25 @@
   var _saved = _loadSavedFilters();
 
   var state = {
-    location: _saved.location || '',  // endereço livre OU cidade — alimenta o Geocoder
+    location: _saved.location || '',
     sport: _saved.sport || '',
     priceRange: _saved.priceRange || '',
-    minCourts: _saved.minCourts || 1, // default 1
-    distanceKm: _saved.distanceKm || 10, // raio em km ao redor de center
-    center: null,                     // {lat, lng} — derivado do Geocoder
+    minCourts: _saved.minCourts || 1,
+    distanceKm: _saved.distanceKm || 10,
+    center: null,
     loading: false,
     results: [],
-    googleResults: [],                // Google Places nearby results
-    googleLoaded: false,              // flag para exibir empty state correto
-    mode: 'map'                       // 'list' | 'map' — map is default
+    googleResults: [],
+    googleLoaded: false,
+    mode: 'map',
+    selectedPlace: null  // { name, address, placeId, lat, lng } — set when user picks a suggestion
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
   var _map = null;
   var _markers = [];
   var _mapsLibs = null;
+  var _selectedPlaceMarker = null;
 
   async function _ensureMap() {
     if (!window.google || !window.google.maps || !window.google.maps.importLibrary) return;
@@ -106,6 +108,20 @@
   // Redrawn on every _renderMarkers so it tracks center + distanceKm.
   var _radiusCircle = null;
   var _centerMarker = null;
+  function _pinSelectedPlace(lat, lng, name) {
+    if (!_map || !_mapsLibs) return;
+    if (_selectedPlaceMarker) { _selectedPlaceMarker.map = null; _selectedPlaceMarker = null; }
+    var pos = { lat: Number(lat), lng: Number(lng) };
+    var pin = new _mapsLibs.PinElement({
+      background: '#6366f1', borderColor: '#3730a3', glyph: '📍', glyphColor: '#fff', scale: 1.4
+    });
+    _selectedPlaceMarker = new _mapsLibs.AdvancedMarkerElement({
+      map: _map, position: pos, title: name || 'local selecionado', content: pin.element, zIndex: 1000
+    });
+    _map.setCenter(pos);
+    _map.setZoom(15);
+  }
+
   function _renderRadiusCircle() {
     if (!_map || !window.google || !window.google.maps) return;
     if (_radiusCircle) { _radiusCircle.setMap(null); _radiusCircle = null; }
@@ -263,6 +279,8 @@
   function render(container) {
     _map = null;
     _markers = [];
+    _selectedPlaceMarker = null;
+    state.selectedPlace = null;
     if (!state.location && !state.centerFromGps) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
@@ -281,7 +299,7 @@
       '<div style="padding:12px 16px 0;">' +
         '<div style="display:flex;gap:8px;align-items:center;">' +
           '<div style="flex:1;min-width:0;position:relative;">' +
-            '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" onblur="setTimeout(function(){var b=document.getElementById(\'venues-suggestions\');if(b)b.style.display=\'none\';},200)" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
+            '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" onfocus="this.select()" onblur="setTimeout(function(){var b=document.getElementById(\'venues-suggestions\');if(b)b.style.display=\'none\';},200)" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
             '<div id="venues-suggestions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
           '</div>' +
           '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#6366f1;border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">📍</button>' +
@@ -345,15 +363,30 @@
     '</a>';
   }
 
+  function _selectedPlaceCard(p) {
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
+      (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+    var loggedIn = window.AppStore && window.AppStore.currentUser;
+    return '<div style="background:var(--bg-card);border:2px solid #6366f1;border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;margin-bottom:4px;">📍 ' + _safe(p.name) + '</div>' +
+      (p.address ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-bottom:10px;">' + _safe(p.address) + '</div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-sm btn-secondary hover-lift">🗺️ Ver no Google Maps</a>' +
+        (loggedIn ? '<button class="btn btn-sm btn-primary hover-lift" onclick="window.location.hash=\'#my-venues\'">+ Cadastrar no scoreplace</button>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
   function renderResults() {
     var box = document.getElementById('venues-results');
     if (!box) return;
+    var selHtml = state.selectedPlace ? _selectedPlaceCard(state.selectedPlace) : '';
     if (state.loading) {
-      box.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;font-size:0.88rem;">Buscando locais próximos…</div>';
+      box.innerHTML = selHtml + '<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;font-size:0.88rem;">Buscando locais próximos…</div>';
       return;
     }
     var hasResults = state.results.length > 0 || (state.googleResults || []).length > 0;
-    if (!state.center && !hasResults) {
+    if (!state.center && !hasResults && !state.selectedPlace) {
       box.innerHTML =
         '<div style="text-align:center;padding:2rem 0;">' +
           '<div style="font-size:2.2rem;margin-bottom:8px;">📍</div>' +
@@ -362,22 +395,32 @@
         '</div>';
       return;
     }
-    if (!hasResults) {
-      box.innerHTML =
+    // Combine scoreplace + Google results, deduplicate by placeId, sort by distance
+    var combined = [];
+    state.results.forEach(function(v) {
+      var d = (state.center && v.lat != null && v.lon != null)
+        ? _haversineKm(state.center, { lat: Number(v.lat), lng: Number(v.lon) }) : Infinity;
+      combined.push({ type: 'sp', data: v, dist: d });
+    });
+    (state.googleResults || []).forEach(function(p) {
+      if (state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; })) return;
+      var d = (state.center && p.lat != null && p.lng != null)
+        ? _haversineKm(state.center, { lat: Number(p.lat), lng: Number(p.lng) }) : Infinity;
+      combined.push({ type: 'g', data: p, dist: d });
+    });
+    combined.sort(function(a, b) { return a.dist - b.dist; });
+    if (combined.length === 0) {
+      box.innerHTML = selHtml +
         '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>' +
         _registerCtaHtml();
       return;
     }
-    var total = state.results.length + (state.googleResults || []).filter(function(p) {
-      return !state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; });
-    }).length;
-    var html = '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">' +
-      total + (total === 1 ? ' local' : ' locais') + ' encontrado' + (total === 1 ? '' : 's') + (state.center ? ' próximo a você' : '') + '</div>';
+    var html = selHtml;
+    html += '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">' +
+      combined.length + (combined.length === 1 ? ' local' : ' locais') + ' encontrado' + (combined.length === 1 ? '' : 's') + (state.center ? ' próximo a você' : '') + '</div>';
     html += '<div style="display:flex;flex-direction:column;gap:8px;">';
-    state.results.forEach(function(v) { html += _venueCard(v); });
-    (state.googleResults || []).forEach(function(p) {
-      if (state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; })) return;
-      html += _googleVenueCard(p);
+    combined.forEach(function(item) {
+      html += item.type === 'sp' ? _venueCard(item.data) : _googleVenueCard(item.data);
     });
     html += '</div>';
     html += _registerCtaHtml();
@@ -505,19 +548,28 @@
     var inp = document.getElementById('venues-location');
     try {
       var place = pred.toPlace();
-      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'id'] });
       var loc = place.location;
-      if (loc) { state.center = { lat: loc.lat(), lng: loc.lng() }; state.centerFromGps = false; }
+      var lat = loc ? loc.lat() : null;
+      var lng = loc ? loc.lng() : null;
       var label = place.displayName || (pred.mainText && pred.mainText.text) || '';
       state.location = label;
+      state.centerFromGps = false;
       if (inp) inp.value = label;
+      if (lat != null && lng != null) {
+        state.center = { lat: lat, lng: lng };
+        _pinSelectedPlace(lat, lng, label);
+      }
+      state.selectedPlace = { name: label, address: place.formattedAddress || '', placeId: place.id || '', lat: lat, lng: lng };
     } catch(e) {
       var main = pred.mainText ? pred.mainText.text : '';
       state.location = main;
+      state.selectedPlace = { name: main, address: '', placeId: '' };
       if (inp) inp.value = main;
     }
     _saveFilters();
-    refresh();
+    renderResults(); // show detail card immediately
+    refresh();       // search nearby in background
   }
 
   window._venuesOnLocation = function(v) {
