@@ -16,6 +16,10 @@ window.NOTIF_CATALOG = {
   tournament_created:          { level: 'all',         icon: '🏆', color: 'var(--primary-color)' },
   tournament_deleted:          { level: 'fundamental', icon: '🗑️', color: 'var(--danger-color, #ef4444)' },
   tournament_update:           { level: 'important',   icon: '📢', color: '#f59e0b' },
+  // Alias — create-tournament.js dispara com 'tournament_updated' (forma verbal
+  // passada) em vez de 'tournament_update'. Mantemos as duas chaves pra não
+  // quebrar notificações já persistidas em Firestore.
+  tournament_updated:          { level: 'important',   icon: '📢', color: '#f59e0b' },
   tournament_finished:         { level: 'important',   icon: '🏆', color: '#a78bfa' },
   tournament_invite:           { level: 'all',         icon: '🏆', color: 'var(--primary-color)' },
 
@@ -32,6 +36,10 @@ window.NOTIF_CATALOG = {
 
   // Organizer actions
   org_communication:           { level: 'important',   icon: '📣', color: '#f59e0b' },
+  // Alias — tournaments-organizer.js dispara com 'organizer_communication'.
+  // Ambas as chaves apontam pro mesmo ícone/cor; resolve o fallback genérico
+  // 🔔 que estava aparecendo no inbox.
+  organizer_communication:     { level: 'important',   icon: '📣', color: '#f59e0b' },
   participant_removed:         { level: 'fundamental', icon: '🚫', color: 'var(--danger-color, #ef4444)' },
 
   // Host/cohost
@@ -51,5 +59,10 @@ window.NOTIF_CATALOG = {
   poll:                        { level: 'important',   icon: '🗳️', color: 'var(--primary-color)' },
 
   // Category
-  category_assignment:         { level: 'all',         icon: '🏷️', color: 'var(--primary-color)' }
+  category_assignment:         { level: 'all',         icon: '🏷️', color: 'var(--primary-color)' },
+
+  // Presence (disparada por _notifyFriendsOfPlan quando amigo planeja ida
+  // num local — v0.14.70). Antes caía no fallback 🔔 porque não havia
+  // entrada no catálogo; agora exibe com ícone de calendário verde.
+  presence_plan:               { level: 'all',         icon: '🗓️', color: 'var(--success-color)' }
 };

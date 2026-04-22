@@ -76,6 +76,14 @@ function renderNotifications(container) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
           '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'' + _navTarget + safeTournamentId + '\'; _markNotifRead(\'' + safeNotifId + '\')">' + _btnLabel + '</button>' +
         '</div>';
+      } else if (n.type === 'presence_plan' && n.placeId) {
+        // Amigo planejou ida a um local — mesmo padrão do tournament_*:
+        // botão leva direto à modal de detalhe do venue onde o usuário pode
+        // fazer "Estou aqui" ou "Planejar ida" pra se juntar.
+        var safePlaceId = String(n.placeId).replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
+          '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#venues/' + safePlaceId + '\'; _markNotifRead(\'' + safeNotifId + '\')">🏢 Ver local</button>' +
+        '</div>';
       }
 
       // Escape HTML in message to prevent XSS
