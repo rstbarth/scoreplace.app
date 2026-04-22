@@ -1322,19 +1322,20 @@ function _hydrateMyActivePresenceWidget() {
 
     var parts = [];
     checkins.forEach(function(p) {
-      var leftMs = p.endsAt - now;
-      var leftMin = Math.max(0, Math.round(leftMs / 60000));
-      var leftStr = leftMin < 60 ? (leftMin + ' min') : (Math.floor(leftMin / 60) + 'h ' + (leftMin % 60) + 'min');
       var venueName = p.venueName || 'Local';
       var sport = p.sport || '';
       var safeId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
       var safePid = String(p.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      // Usa data-countdown-target pra que o ticker global (setInterval em
+      // store.js) atualize a cada segundo — "expira em" fica live sem
+      // precisar re-renderizar o widget inteiro.
+      var endsAtNum = Number(p.endsAt) || 0;
       parts.push(
         '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.06));border:1px solid rgba(16,185,129,0.35);border-radius:12px;flex-wrap:wrap;">' +
           '<span style="width:10px;height:10px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;flex-shrink:0;"></span>' +
           '<div style="flex:1;min-width:150px;">' +
             '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">📍 Você está em <span style="color:#10b981;">' + _safe(venueName) + '</span>' + (sport ? ' · <span style="font-weight:500;font-size:0.82rem;color:var(--text-muted);">' + _safe(sport) + '</span>' : '') + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);">Check-in ativo · expira em <b>' + _safe(leftStr) + '</b></div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">Check-in ativo · expira em <b data-countdown-target="' + endsAtNum + '">...</b></div>' +
           '</div>' +
           (p.placeId ? '<button onclick="window.location.hash=\'#venues/' + safePid + '\'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;">Ver local</button>' : '') +
           '<button onclick="window._dashCancelPresence(\'' + safeId + '\')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;" title="Cancelar meu check-in">Cancelar</button>' +
