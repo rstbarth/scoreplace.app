@@ -168,22 +168,51 @@ function renderDashboard(container) {
   const participacoesSorted = [...participacoes].sort(sortByDate);
   const organizadosSorted = [...organizados].sort(sortByDate);
 
-  // "Abertos para você" comes from the public discovery feed (a separate
-  // paginated query on isPublic=true + status=open) rather than the user's
-  // scoped listener. The listener only returns tournaments where the user
-  // is a member, so filtering it for non-member discovery always yields [].
+  // "Inscrições Abertas" = TODOS os torneios com inscrição aberta que o
+  // usuário pode ver, união de:
+  // (a) torneios próprios (organizados + participando) com enrollment aberto
+  // (b) torneios públicos do discovery feed que o usuário ainda não entrou
+  //
+  // Antes mostrávamos só (b), e o usuário reportou "tem torneio com inscrição
+  // aberta, público, mas esta dando 0" quando criava um torneio próprio
+  // público — o count ficava zero porque o filtro só pegava do discovery
+  // (que exclui torneios onde o usuário é member). A semântica do label
+  // "Inscrições Abertas" não sugere "só os que você não entrou"; agora é
+  // o que o usuário espera: total de torneios aceitando inscrição.
+  const _isOpenEnrollment = (t) => {
+    if (!t) return false;
+    const _hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                     (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                     (Array.isArray(t.groups) && t.groups.length > 0);
+    const _ligaAberta = (typeof window._isLigaFormat === 'function'
+                          ? window._isLigaFormat(t)
+                          : t.format === 'Liga')
+                        && t.ligaOpenEnrollment !== false
+                        && _hasDraw;
+    const _deadlinePassed = t.registrationLimit && new Date(t.registrationLimit) < new Date();
+    return (t.status !== 'closed' && t.status !== 'finished' && !_hasDraw && !_deadlinePassed) || _ligaAberta;
+  };
+
   const discovery = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery))
     ? window.AppStore.publicDiscovery
     : [];
-  const abertosParaVoce = discovery.filter(t => {
+  // (a) Torneios próprios do usuário com inscrição aberta — lista primeiro
+  // porque são os mais relevantes (próprios).
+  const myOpenTournaments = visible.filter(_isOpenEnrollment);
+  // (b) Torneios do discovery feed com inscrição aberta, excluindo os que
+  // já estão em (a) por id pra evitar duplicata.
+  const myOpenIds = new Set(myOpenTournaments.map(t => String(t.id)));
+  const discoveryOpen = discovery.filter(t => {
+    if (myOpenIds.has(String(t.id))) return false;
     const isOrg = organizados.some(org => org.id === t.id);
     const isPart = participacoes.some(pt => pt.id === t.id);
     if (isOrg || isPart) return false;
-    const _hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
-    const _ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && _hasDraw;
-    const isAberto = (t.status !== 'closed' && t.status !== 'finished' && !_hasDraw && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || _ligaAberta;
-    return isAberto;
-  }).sort(sortByDate);
+    return _isOpenEnrollment(t);
+  });
+  // União ordenada por data — próprios primeiro (já sortiráveis), depois
+  // discovery. Mantida como única variável pra minimizar diff do resto
+  // da dashboard que consome `abertosParaVoce`.
+  const abertosParaVoce = [...myOpenTournaments, ...discoveryOpen].sort(sortByDate);
 
   const cleanSportName = (sport) => sport ? sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
   const getSportIcon = (sport) => {
