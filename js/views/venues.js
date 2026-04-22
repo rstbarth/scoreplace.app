@@ -293,8 +293,10 @@
       '<div style="padding:10px 16px;border-bottom:1px solid var(--border-color);">' +
         _sportSelectHtml() +
       '</div>' +
-      // ── Map — edge-to-edge, shorter height so search stays in viewport ──
-      '<div id="venues-map" style="width:100%;height:clamp(180px,30vh,280px);background:#0a0e1a;display:block;"></div>' +
+      // ── Map — padded + rounded to match the fields ──
+      '<div style="padding:10px 16px 0;">' +
+        '<div id="venues-map" style="width:100%;height:clamp(180px,30vh,280px);background:#0a0e1a;border-radius:12px;overflow:hidden;border:1px solid var(--border-color);display:block;"></div>' +
+      '</div>' +
       // ── Search bar ──
       '<div style="padding:12px 16px 0;">' +
         '<div style="display:flex;gap:8px;align-items:center;">' +

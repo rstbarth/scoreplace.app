@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.56-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>#venues: mapa com bordas arredondadas e alinhado aos campos.</b> Mapa agora tem padding lateral, cantos arredondados e borda sutil — visual consistente com os outros cards da página.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.55-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#my-venues: lista de locais simplificada.</b> "Meus locais reivindicados" virou "Locais cadastrados". Cards mostram só nome + modalidades, sem botões Ver/Pro/Editar/✕ — clicar no card já abre o formulário de edição.</p>' +
         '<p><b>Arquivos</b>: <code>js/views/venue-owner.js</code>.</p>' +
