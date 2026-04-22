@@ -1259,6 +1259,9 @@ function renderDashboard(container) {
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
 
+    <!-- My Active Presence (loaded async — pill at top when user has a check-in/plan live) -->
+    <div id="dashboard-myactive-widget" style="margin-bottom:1rem;"></div>
+
     <!-- Friends' Presences (loaded async) -->
     <div id="dashboard-presences-widget" style="margin-bottom:1.25rem;"></div>
 
@@ -1286,11 +1289,97 @@ function renderDashboard(container) {
   }
 
   // ─── Friends' presences widget (async load) ───
+  _hydrateMyActivePresenceWidget();
   _hydrateFriendsPresenceWidget();
 
   // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───
   _checkPendingInvitesAndRedirect(visible);
 }
+
+// Load the user's OWN active presences (check-in ativo ou plan no futuro)
+// e renderiza um pill status no topo da dashboard. Antes, o usuário fazia
+// "Estou aqui" e ao voltar pra dashboard não tinha feedback visual do
+// próprio check-in — agora aparece "📍 Você está em [Local] · expira em Xh"
+// com botão "Cancelar". Pra plans mostra "🗓️ Você planejou em [Local]
+// às HH:mm". Silent quando não há presença ativa (não polui a UI).
+function _hydrateMyActivePresenceWidget() {
+  var box = document.getElementById('dashboard-myactive-widget');
+  if (!box || !window.PresenceDB || typeof window.PresenceDB.loadMyActive !== 'function') return;
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !cu.uid) return;
+  // Respeita mute — se presença silenciada, não mostra nem tenta carregar.
+  var muteUntil = Number(cu.presenceMuteUntil || 0);
+  if (muteUntil > Date.now()) return;
+
+  window.PresenceDB.loadMyActive(cu.uid).then(function(list) {
+    if (!list || list.length === 0) { box.innerHTML = ''; return; }
+    var _safe = window._safeHtml || function(s) { return String(s || ''); };
+    var now = Date.now();
+    // Prioriza check-in ativo > plan mais próximo
+    var checkins = list.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
+    var plans = list.filter(function(p) { return p.type === 'planned' && p.startsAt > now; });
+    plans.sort(function(a, b) { return a.startsAt - b.startsAt; });
+
+    var parts = [];
+    checkins.forEach(function(p) {
+      var leftMs = p.endsAt - now;
+      var leftMin = Math.max(0, Math.round(leftMs / 60000));
+      var leftStr = leftMin < 60 ? (leftMin + ' min') : (Math.floor(leftMin / 60) + 'h ' + (leftMin % 60) + 'min');
+      var venueName = p.venueName || 'Local';
+      var sport = p.sport || '';
+      var safeId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      var safePid = String(p.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      parts.push(
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.06));border:1px solid rgba(16,185,129,0.35);border-radius:12px;flex-wrap:wrap;">' +
+          '<span style="width:10px;height:10px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;flex-shrink:0;"></span>' +
+          '<div style="flex:1;min-width:150px;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">📍 Você está em <span style="color:#10b981;">' + _safe(venueName) + '</span>' + (sport ? ' · <span style="font-weight:500;font-size:0.82rem;color:var(--text-muted);">' + _safe(sport) + '</span>' : '') + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">Check-in ativo · expira em <b>' + _safe(leftStr) + '</b></div>' +
+          '</div>' +
+          (p.placeId ? '<button onclick="window.location.hash=\'#venues/' + safePid + '\'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;">Ver local</button>' : '') +
+          '<button onclick="window._dashCancelPresence(\'' + safeId + '\')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;" title="Cancelar meu check-in">Cancelar</button>' +
+        '</div>'
+      );
+    });
+    plans.slice(0, 2).forEach(function(p) {
+      var d = new Date(p.startsAt);
+      var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      var dayLabel = (d.toDateString() === new Date().toDateString()) ? 'hoje' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      var venueName = p.venueName || 'Local';
+      var sport = p.sport || '';
+      var safeId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      var safePid = String(p.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+      parts.push(
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:12px;flex-wrap:wrap;">' +
+          '<span style="font-size:1rem;flex-shrink:0;">🗓️</span>' +
+          '<div style="flex:1;min-width:150px;">' +
+            '<div style="font-weight:600;color:var(--text-bright);font-size:0.86rem;">Planejado: <span style="color:#a5b4fc;">' + _safe(venueName) + '</span>' + (sport ? ' · <span style="font-weight:500;font-size:0.8rem;color:var(--text-muted);">' + _safe(sport) + '</span>' : '') + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(dayLabel) + ' às <b>' + _safe(hhmm) + '</b></div>' +
+          '</div>' +
+          (p.placeId ? '<button onclick="window.location.hash=\'#venues/' + safePid + '\'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;">Ver local</button>' : '') +
+          '<button onclick="window._dashCancelPresence(\'' + safeId + '\')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;" title="Cancelar plano">Cancelar</button>' +
+        '</div>'
+      );
+    });
+    if (parts.length === 0) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + parts.join('') + '</div>';
+  }).catch(function(e) { console.warn('myActive widget error:', e); });
+}
+
+// Handler pro botão Cancelar do status de presença. Marca localmente pra
+// evitar double-call e delega pro PresenceDB.cancelPresence. Re-renderiza
+// o widget após sucesso.
+window._dashCancelPresence = function(docId) {
+  if (!docId || !window.PresenceDB) return;
+  if (!confirm('Cancelar sua presença?')) return;
+  window.PresenceDB.cancelPresence(docId).then(function() {
+    if (typeof showNotification === 'function') showNotification('Presença cancelada.', '', 'info');
+    _hydrateMyActivePresenceWidget();
+  }).catch(function(e) {
+    console.warn('Cancel presence failed:', e);
+    if (typeof showNotification === 'function') showNotification('Erro ao cancelar.', '', 'error');
+  });
+};
 
 // Load friends' active or upcoming presences and render a compact widget.
 // Clicking a row pre-fills the presence view with the same venue+sport.
