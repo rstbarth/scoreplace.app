@@ -1107,6 +1107,7 @@ function renderTournaments(container, tournamentId = null) {
             ${tournamentId ? `<div style="margin-bottom: 1rem; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); openInviteModal('${t.id}')">📤 Convidar</button>
               <button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._shareTournament('${t.id}');">📋 Compartilhar</button>
+              ${t.startDate ? `<button class="btn btn-outline btn-sm hover-lift" onclick="event.stopPropagation(); window._tournamentAddToCalendar('${t.id}');">📅 Adicionar à agenda</button>` : ''}
             </div>` : ''}
 
             <!-- Below Name: Calendário + Data -->

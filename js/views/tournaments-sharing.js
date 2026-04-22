@@ -341,3 +341,183 @@ window._exportTournamentCSV = function(tournamentId) {
     URL.revokeObjectURL(url);
     if (typeof showNotification === 'function') showNotification(_t('share.exported'), _t('share.exportedMsg'), 'success');
 };
+
+// ─── Calendar export (Google Calendar URL + .ics download) ──────────────────
+// Permite qualquer usuário (organizador, participante ou visitante logado)
+// adicionar o torneio à agenda em 2 cliques. Evita que o usuário precise
+// copiar data/hora/local manualmente — reduz fricção de "vou me esquecer".
+//
+// Estratégia: picker com 3 opções (Google Calendar, Apple/Outlook via .ics,
+// Outlook Web). Evita o pior caso — browser sem detecção de default calendar.
+
+// Formata Date como ICS UTC: YYYYMMDDTHHMMSSZ
+function _icsFormatDate(d) {
+  var pad = function(n) { return String(n).padStart(2, '0'); };
+  return d.getUTCFullYear() +
+    pad(d.getUTCMonth() + 1) +
+    pad(d.getUTCDate()) + 'T' +
+    pad(d.getUTCHours()) +
+    pad(d.getUTCMinutes()) +
+    pad(d.getUTCSeconds()) + 'Z';
+}
+
+// Escapa caracteres especiais do formato iCalendar: vírgula, ponto-e-vírgula,
+// barra invertida, quebra de linha. RFC 5545 §3.3.11.
+function _icsEscape(s) {
+  return String(s || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '');
+}
+
+function _tournamentCalendarPayload(t) {
+  // Resolve start/end. Se endDate ausente, assume startDate + 4h (ball-park).
+  var startRaw = t.startDate;
+  var endRaw = t.endDate;
+  if (!startRaw) return null;
+  var start = new Date(startRaw);
+  if (isNaN(start.getTime())) return null;
+  var end = endRaw ? new Date(endRaw) : null;
+  if (!end || isNaN(end.getTime())) {
+    end = new Date(start.getTime() + 4 * 3600 * 1000);
+  }
+  // Se o usuário não deu hora explícita (só data), startRaw é "2026-04-25"
+  // sem T; nesse caso o Date vira meia-noite UTC. Pra não virar evento
+  // cruzando dias por fuso, setamos 09:00 local como default.
+  if (startRaw && startRaw.indexOf('T') === -1) {
+    start = new Date(startRaw + 'T09:00:00');
+    end = new Date(start.getTime() + 4 * 3600 * 1000);
+  }
+  var title = '🏆 ' + (t.name || 'Torneio');
+  var sport = t.sport ? window._safeHtml(t.sport) : '';
+  var format = t.format || '';
+  var venue = t.venue || t.venueName || '';
+  var addr = t.venueAddress || '';
+  var loc = venue && addr ? (venue + ' — ' + addr) : (venue || addr || '');
+  var url = window._tournamentUrl ? window._tournamentUrl(t.id) : ('https://scoreplace.app/#tournaments/' + t.id);
+  var desc = 'Torneio no scoreplace.app\n\n' +
+             (sport ? 'Modalidade: ' + sport + '\n' : '') +
+             (format ? 'Formato: ' + format + '\n' : '') +
+             '\nAcompanhe e lance resultados em:\n' + url;
+  return { title: title, start: start, end: end, location: loc, description: desc, url: url };
+}
+
+// Google Calendar URL — abre em nova aba, pré-preenche tudo.
+function _googleCalendarUrl(payload) {
+  var dates = _icsFormatDate(payload.start) + '/' + _icsFormatDate(payload.end);
+  var params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: payload.title,
+    dates: dates,
+    details: payload.description,
+    location: payload.location || ''
+  });
+  return 'https://calendar.google.com/calendar/render?' + params.toString();
+}
+
+// Outlook Web URL — similar à do Google, útil pra usuários de Microsoft.
+function _outlookCalendarUrl(payload) {
+  var params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: payload.title,
+    startdt: payload.start.toISOString(),
+    enddt: payload.end.toISOString(),
+    body: payload.description,
+    location: payload.location || ''
+  });
+  return 'https://outlook.live.com/calendar/0/deeplink/compose?' + params.toString();
+}
+
+// ICS blob download — Apple Calendar (iOS/macOS), Outlook desktop, Thunderbird.
+function _icsDownload(payload, filename) {
+  var lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//scoreplace.app//Tournament//PT',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    'UID:tournament-' + Date.now() + '@scoreplace.app',
+    'DTSTAMP:' + _icsFormatDate(new Date()),
+    'DTSTART:' + _icsFormatDate(payload.start),
+    'DTEND:' + _icsFormatDate(payload.end),
+    'SUMMARY:' + _icsEscape(payload.title),
+    'DESCRIPTION:' + _icsEscape(payload.description),
+    'LOCATION:' + _icsEscape(payload.location),
+    'URL:' + payload.url,
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  var blob = new Blob([lines], { type: 'text/calendar;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Picker overlay — 3 opções. Se o torneio não tem startDate, avisa e sai.
+window._tournamentAddToCalendar = function(tournamentId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+  if (!t) {
+    if (Array.isArray(window.AppStore.publicDiscovery)) {
+      t = window.AppStore.publicDiscovery.find(function(tour) { return String(tour.id) === String(tournamentId); });
+    }
+  }
+  if (!t) return;
+  var payload = _tournamentCalendarPayload(t);
+  if (!payload) {
+    if (typeof showNotification === 'function') {
+      showNotification('Sem data definida', 'Defina a data de início do torneio antes de adicionar à agenda.', 'warning');
+    }
+    return;
+  }
+  var _safe = window._safeHtml || function(s) { return String(s || ''); };
+  var prev = document.getElementById('cal-picker-overlay');
+  if (prev) prev.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'cal-picker-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
+  var safeFilename = (t.name || 'torneio').replace(/[^a-zA-Z0-9À-ü\s-]/g, '').replace(/\s+/g, '_') + '.ics';
+  // Guardamos o payload numa var global temporária pra que os handlers do
+  // overlay consigam acessar sem serializar tudo em onclick string.
+  window._calPendingPayload = payload;
+  window._calPendingFilename = safeFilename;
+  overlay.innerHTML =
+    '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:22px;max-width:440px;width:100%;text-align:center;">' +
+      '<div style="font-size:2rem;margin-bottom:8px;">📅</div>' +
+      '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;margin-bottom:6px;">Adicionar à agenda</div>' +
+      '<div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:16px;">' + _safe(t.name || 'Torneio') + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        '<button class="btn hover-lift" onclick="window._calPick(\'google\')" style="background:#4285f4;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">🟦 Google Calendar</button>' +
+        '<button class="btn hover-lift" onclick="window._calPick(\'outlook\')" style="background:#0078d4;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">🔷 Outlook.com</button>' +
+        '<button class="btn hover-lift" onclick="window._calPick(\'ics\')" style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:10px 16px;border-radius:10px;">📄 Apple/Outlook (.ics)</button>' +
+      '</div>' +
+      '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'cal-picker-overlay\').remove()" style="margin-top:14px;">Cancelar</button>' +
+    '</div>';
+  overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
+
+window._calPick = function(kind) {
+  var payload = window._calPendingPayload;
+  var filename = window._calPendingFilename;
+  if (!payload) return;
+  var ov = document.getElementById('cal-picker-overlay');
+  if (ov) ov.remove();
+  if (kind === 'google') {
+    window.open(_googleCalendarUrl(payload), '_blank', 'noopener');
+  } else if (kind === 'outlook') {
+    window.open(_outlookCalendarUrl(payload), '_blank', 'noopener');
+  } else if (kind === 'ics') {
+    _icsDownload(payload, filename || 'torneio.ics');
+    if (typeof showNotification === 'function') showNotification('Arquivo gerado', 'Abra o .ics pra importar na sua agenda.', 'success');
+  }
+  window._calPendingPayload = null;
+  window._calPendingFilename = null;
+};
