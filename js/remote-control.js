@@ -186,7 +186,11 @@
 
     var overlay = document.createElement('div');
     overlay.id = 'modal-remote-control';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    // z-index 100010 must stay ABOVE the casual live-scoring-overlay (100002);
+    // otherwise the modal opens invisibly underneath the score screen and
+    // the button appears dead. Any generic app modal is ≤ 10000, so this is
+    // safe for normal stacking too.
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100010;display:flex;align-items:center;justify-content:center;padding:16px;';
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
 
     // Stash the current context so button handlers can re-render without

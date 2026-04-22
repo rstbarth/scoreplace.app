@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.41-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: botão ⌚ Watch não abria modal em partida casual.</b> O overlay do placar ao vivo roda em <code>z-index: 100002</code>. O modal do controle remoto foi entregue no v0.15.39 com <code>z-index: 10000</code> — fica 10x menor que o overlay, então abria invisível ATRÁS da tela de placar. O usuário clicava no ⌚ e nada parecia acontecer (na verdade o modal estava renderizando, só não aparecia). <b>Fix</b>: <code>modal-remote-control</code> subido para <code>z-index: 100010</code>, bem acima do overlay. Torneios nunca encontraram o bug porque o #bracket não usa overlay fullscreen — o modal empilhava normalmente. Arquivo: <code>js/remote-control.js</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.40-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>⌚ Apple Watch chega nas partidas casuais — via fila de ações pendentes.</b> Extensão do v0.15.39. O desafio: partida casual tem motor de pontuação completo (deuce, tiebreak, super-tiebreak, transição de set/partida) que mora inteiramente no client em <code>bracket-ui.js</code>. Replicar server-side significaria duplicar ~500 linhas de lógica GSM e arriscar divergência. <b>Solução: fila de ações pendentes.</b></p>' +
         '<ul style="margin:4px 0 8px 18px;font-size:0.82rem;">' +
