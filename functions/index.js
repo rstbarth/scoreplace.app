@@ -154,8 +154,13 @@ exports.remoteScore = onRequest(
         return;
       }
 
+      // Branch: tournament session vs casual session.
+      if (sess.casualMatchId) {
+        return await _handleCasualAction(db, sess, action, body, res);
+      }
+
       if (!sess.tournamentId) {
-        res.status(400).json({ error: "Session has no tournamentId." });
+        res.status(400).json({ error: "Session has no tournamentId or casualMatchId." });
         return;
       }
 
@@ -291,4 +296,162 @@ function _findMatchInTournament(t, matchId) {
     return t.thirdPlaceMatch;
   }
   return null;
+}
+
+// ─── Casual match handler ───────────────────────────────────────────────────
+// Casual matches have a fully-featured live scoring engine on the client
+// (deuce, tiebreak, super-tiebreak, set/match transitions, etc.). Rather than
+// replicate that state machine server-side — and risk it drifting — we queue
+// a pending action onto the casual match doc. The web client, which holds an
+// `onSnapshot` listener on the doc, picks it up, calls `_liveScorePoint(team)`
+// (or `_closeLiveScoring()` for `finish`), and clears the queue.
+//
+// Trade-off: requires the organizer's phone/tablet to have the live scoring
+// overlay open. If it's closed, actions pile up in `pendingRemoteActions[]`
+// and apply catch-up style when the overlay is next opened.
+//
+// Auth check: the session is bound to a uid by creation. The casual match
+// doc stores `createdBy` (uid) — we require session uid == createdBy so only
+// the match creator (= the organizer at the arena) can control it via watch.
+async function _handleCasualAction(db, sess, action, body, res) {
+  const casualId = String(sess.casualMatchId);
+  const matchRef = db.collection("casualMatches").doc(casualId);
+  const matchSnap = await matchRef.get();
+  if (!matchSnap.exists) {
+    res.status(404).json({ error: "Casual match not found." });
+    return;
+  }
+  const match = matchSnap.data();
+
+  // Only the match creator can drive scoring via remote. Prevents a leaked
+  // token from one session bleeding into a casual match the user is merely
+  // a participant in.
+  if (!match.createdBy || String(match.createdBy) !== String(sess.uid)) {
+    res.status(403).json({ error: "Only the match creator can control this casual match via remote." });
+    return;
+  }
+
+  // Match already ended — block further score changes. Watch Shortcut should
+  // show the error or just silently no-op.
+  if (match.status === "finished") {
+    res.status(409).json({ error: "Casual match already finished." });
+    return;
+  }
+
+  // Compute current summary from liveState (may be absent if the match hasn't
+  // started). All downstream responses include this so the Watch can "Falar
+  // texto" the score.
+  const summary = _summarizeCasualState(match);
+
+  if (action === "status") {
+    res.json({
+      ok: true,
+      action: "status",
+      casualMatchId: casualId,
+      ...summary,
+    });
+    return;
+  }
+
+  // Whitelist: the set of actions the web client knows how to apply. Anything
+  // outside this set is rejected — keeps the contract explicit.
+  const ALLOWED = ["point_team1", "point_team2", "finish"];
+  if (ALLOWED.indexOf(action) === -1) {
+    res.status(400).json({ error: "Unknown casual action: " + action });
+    return;
+  }
+
+  // Write a pending action. We use an array so rapid taps aren't lost if the
+  // client is processing one and a second arrives. Nonce lets the client
+  // dedupe in case the same snapshot fires twice.
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const pendingAction = {
+    action: action,
+    nonce: nonce,
+    uid: sess.uid,
+    ts: Date.now(),
+  };
+
+  // Atomic append via FieldValue.arrayUnion-style transaction so concurrent
+  // taps don't stomp each other.
+  await db.runTransaction(async (tx) => {
+    const fresh = await tx.get(matchRef);
+    if (!fresh.exists) throw new Error("Match vanished mid-transaction");
+    const data = fresh.data();
+    const queue = Array.isArray(data.pendingRemoteActions) ? data.pendingRemoteActions.slice() : [];
+    queue.push(pendingAction);
+    // Cap the queue at 20 to bound memory if the client is offline for a
+    // long time and the organizer keeps tapping.
+    const capped = queue.slice(-20);
+    tx.update(matchRef, {
+      pendingRemoteActions: capped,
+      pendingRemoteActionsUpdatedAt: new Date().toISOString(),
+    });
+  });
+
+  res.json({
+    ok: true,
+    action: action,
+    casualMatchId: casualId,
+    queued: true,
+    nonce: nonce,
+    note: "Action queued. Keep the live scoring screen open on the phone so the engine applies it.",
+    ...summary,
+  });
+}
+
+// Pulls the current score summary from a casual match's liveState. Returns
+// flat fields (summary, spoken, p1, p2, etc.) so the Shortcut can pass any
+// of them straight to "Falar texto". Defensive against missing liveState
+// (match hasn't started or schema drift).
+function _summarizeCasualState(match) {
+  const live = match.liveState || {};
+  const sets = Array.isArray(live.sets) ? live.sets : [];
+  const sportName = match.sport || "";
+  const isDoubles = !!match.isDoubles;
+
+  // Try to read player names from multiple possible slots. Singles often
+  // store direct `p1Name` / `p2Name`; doubles use `teamNames` arrays or the
+  // `players` slot list. We render as plain names for the spoken response.
+  let p1 = match.p1Name || (Array.isArray(match.teamNames) ? match.teamNames[0] : "") || "Time 1";
+  let p2 = match.p2Name || (Array.isArray(match.teamNames) ? match.teamNames[1] : "") || "Time 2";
+  if (isDoubles && Array.isArray(match.players) && match.players.length >= 4) {
+    const names = match.players.map((p) => (p && p.displayName) || "").filter((n) => n);
+    if (names.length >= 2) p1 = names.slice(0, 2).join(" / ") || p1;
+    if (names.length >= 4) p2 = names.slice(2, 4).join(" / ") || p2;
+  }
+
+  // Build a "6-4 3-6" style string from completed sets.
+  const setsStr = sets
+    .map((s) => (Number(s.gamesP1) || 0) + "-" + (Number(s.gamesP2) || 0))
+    .join(" ");
+  const cur1 = Number(live.currentGameP1) || 0;
+  const cur2 = Number(live.currentGameP2) || 0;
+  const currentStr = cur1 + "-" + cur2;
+  const inMatch = setsStr && setsStr.length > 0;
+
+  let summary, spoken;
+  if (live.isFinished) {
+    const winnerLabel = live.winner === 1 ? p1 : (live.winner === 2 ? p2 : "empate");
+    summary = "Final: " + p1 + " " + setsStr + " " + p2 + " — " + winnerLabel;
+    spoken = "Partida encerrada. " + winnerLabel + " venceu.";
+  } else if (inMatch) {
+    summary = p1 + " " + setsStr + " " + p2 + " (game atual " + currentStr + ")";
+    spoken = "Placar: " + setsStr + ". Game atual " + currentStr + ".";
+  } else {
+    summary = p1 + " vs " + p2 + " — game atual " + currentStr;
+    spoken = currentStr;
+  }
+
+  return {
+    p1: p1,
+    p2: p2,
+    sport: sportName,
+    setsStr: setsStr,
+    currentStr: currentStr,
+    isFinished: !!live.isFinished,
+    winner: live.winner || null,
+    summary: summary,
+    spoken: spoken,
+  };
 }

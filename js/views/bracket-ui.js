@@ -4725,6 +4725,49 @@ window._openLiveScoring = function(tId, matchId, opts) {
             }
             return;
           }
+          // ── Remote control via Apple Watch / Shortcuts ──
+          // The Cloud Function `remoteScore` queues pending actions here. We
+          // drain the queue by replaying each action through the existing
+          // scoring engine (so all GSM/deuce/tiebreak logic stays in one
+          // place). Only the match creator processes — multiple clients
+          // seeing the same snapshot must not race to apply.
+          try {
+            var cuNow = window.AppStore && window.AppStore.currentUser;
+            var isCreator = cuNow && _casualCreatedBy && cuNow.uid === _casualCreatedBy;
+            var queue = Array.isArray(data.pendingRemoteActions) ? data.pendingRemoteActions : [];
+            if (isCreator && queue.length > 0) {
+              var toApply = queue.filter(function(a) {
+                return a && a.nonce && !_appliedRemoteNonces[a.nonce];
+              });
+              if (toApply.length > 0) {
+                // Apply in arrival order. Each action goes through the live
+                // scoring engine so set/game transitions are computed the
+                // same way a manual tap would.
+                toApply.forEach(function(a) {
+                  _appliedRemoteNonces[a.nonce] = true;
+                  try {
+                    if (a.action === 'point_team1') _addPoint(1);
+                    else if (a.action === 'point_team2') _addPoint(2);
+                    else if (a.action === 'finish') {
+                      if (typeof window._liveScoreFinish === 'function') window._liveScoreFinish();
+                    }
+                  } catch (innerErr) {
+                    console.warn('[LiveScore][remote] apply failed for', a.action, innerErr);
+                  }
+                });
+                // Clear the queue so the function's next append starts fresh.
+                // Skip local echo back through onSnapshot (we already applied).
+                try {
+                  window.FirestoreDB.updateCasualMatch(_casualDocId, { pendingRemoteActions: [] });
+                } catch (clearErr) {
+                  console.warn('[LiveScore][remote] queue clear failed', clearErr);
+                }
+              }
+            }
+          } catch (remoteErr) {
+            console.warn('[LiveScore][remote] processing error', remoteErr);
+          }
+
           if (!data.liveState || !data.liveState._ts) return;
           // Only apply if remote timestamp is newer than ours
           var localTs = _lastSyncTs || 0;
@@ -4741,6 +4784,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
   }
   var _lastSyncTs = 0;
+  // Dedup guard for remote watch actions — a nonce only applies once even
+  // if Firestore echoes the same snapshot repeatedly (e.g. during offline
+  // buffer replay or listener re-attach).
+  var _appliedRemoteNonces = {};
 
   // Start listener if we have a casual doc
   if (_casualDocId) {
@@ -4979,8 +5026,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
     '</div>' +
     // Spacer
     '<div style="flex:1;"></div>' +
-    // Right: Reset + Close (hidden on finish screen in tournament mode)
+    // Right: ⌚ (casual + creator only), Reset + Close
     '<div id="live-score-header-actions" style="display:flex;gap:6px;align-items:center;flex:0 0 auto;">' +
+      (function() {
+        // Watch button shows only when this client IS the match creator AND
+        // we have a casual doc to bind the session to. Tournament mode has
+        // its own entry point in the bracket header.
+        var cu = window.AppStore && window.AppStore.currentUser;
+        var canWatch = isCasual && _casualDocId && cu && _casualCreatedBy && cu.uid === _casualCreatedBy;
+        if (!canWatch) return '';
+        var safeId = String(_casualDocId).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var safeTitle = String(isCasual ? (opts && opts.sportName ? opts.sportName : 'Partida Casual') : '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<button onclick="window._openRemoteControlCasual(\'' + safeId + '\',{title:\'' + safeTitle + '\'})" title="Controlar pelo Apple Watch" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#818cf8;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">⌚</button>';
+      })() +
       '<button onclick="window._liveScoreReset()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Resetar</button>' +
       '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
     '</div>' +
