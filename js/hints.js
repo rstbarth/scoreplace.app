@@ -318,6 +318,7 @@
     // CASUAL MATCH (additions — existing ones migrated above)
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'casual-notify-friends', selector: '#casual-notify-friends-btn', text: 'Com 1 clique avisa todos seus amigos do scoreplace. Eles recebem notificação "⚡ Entrar na partida" que leva direto pro lobby.', context: 'casual-match', priority: 7, position: 'top' },
+    { id: 'casual-share-result', selector: '[onclick*="_liveScoreShareCasual"]', text: 'Compartilhe o resultado — WhatsApp, Instagram DM, clipboard. Inclui placar set-a-set e vencedor.', context: 'casual-match', priority: 6, position: 'bottom' },
     { id: 'casual-room-code', selector: '#casual-qr-overlay [style*="letter-spacing"]', text: 'Código de 6 caracteres da sala. Amigo digita na dashboard ("📷 Escanear QR") ou acessa /#casual/CODIGO pra entrar.', context: 'casual-match', priority: 5, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════

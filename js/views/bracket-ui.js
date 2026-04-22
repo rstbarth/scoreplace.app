@@ -4041,9 +4041,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       } else if (isDoubles) {
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar Novamente</button>' +
+            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
+            '<button onclick="window._liveScoreShareCasual()" title="Compartilhar resultado" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:#25d366;color:white;box-shadow:0 4px 20px rgba(37,211,102,0.3);white-space:nowrap;">📤 Compartilhar</button>' +
             '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
-              '<span style="font-size:0.72rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear duplas</span>' +
+              '<span style="font-size:0.68rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear</span>' +
               '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
                 '<input type="checkbox" id="chk-shuffle-teams" />' +
                 '<span class="toggle-slider"></span>' +
@@ -4052,7 +4053,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       } else {
         restartSection =
-          '<button onclick="window._liveScoreRestart()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">🔄 Jogar Novamente</button>';
+          '<div style="display:flex;gap:8px;width:100%;">' +
+            '<button onclick="window._liveScoreRestart()" style="flex:1;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">🔄 Jogar Novamente</button>' +
+            '<button onclick="window._liveScoreShareCasual()" title="Compartilhar resultado" style="flex:0 0 auto;padding:14px 16px;border-radius:12px;font-size:0.95rem;font-weight:800;border:none;cursor:pointer;background:#25d366;color:white;box-shadow:0 4px 20px rgba(37,211,102,0.3);">📤</button>' +
+          '</div>';
       }
 
       // Action section pinned at the TOP — "Jogar Novamente" (and optional
@@ -4889,6 +4893,54 @@ window._openLiveScoring = function(tId, matchId, opts) {
         _render();
       }
     );
+  };
+
+  // Compartilhar resultado da partida casual — tournament match já tem o
+  // próprio _shareMatchResult (bracket). Aqui montamos um payload específico
+  // pra casual (sem tournamentId) usando o estado corrente do overlay.
+  // Mobile: navigator.share dispara dialog nativo (WhatsApp, Instagram DM,
+  // etc). Desktop ou browsers sem Web Share: clipboard com toast.
+  window._liveScoreShareCasual = function() {
+    if (!isCasual || !state.isFinished) return;
+    var emoji = { 1: '🏆', 2: '🏆' };
+    var winnerLabel = state.winner === 1 ? p1Name : (state.winner === 2 ? p2Name : 'Empate');
+    var scoreLine = '';
+    if (useSets && Array.isArray(state.sets) && state.sets.length > 0) {
+      scoreLine = state.sets.map(function(s) {
+        var line = (s.gamesP1 != null ? s.gamesP1 : 0) + '-' + (s.gamesP2 != null ? s.gamesP2 : 0);
+        if (s.tiebreak && (s.tiebreak.pointsP1 != null || s.tiebreak.p1 != null)) {
+          var tbp = (s.tiebreak.pointsP1 != null ? s.tiebreak.pointsP1 : s.tiebreak.p1);
+          line += '(' + tbp + ')';
+        }
+        return line;
+      }).join(' · ');
+    } else {
+      // Simple scoring: atuais points are in currentGameP1/P2, but melhor usar
+      // setsWon ou setsLost como placar final. Pra simple use current points.
+      scoreLine = state.currentGameP1 + ' x ' + state.currentGameP2;
+    }
+    var title = '⚡ ' + (casualTitle || 'Partida Casual');
+    var text = title + '\n' +
+               '🎾 ' + p1Name + ' vs ' + p2Name + '\n' +
+               '📊 ' + scoreLine + '\n' +
+               (state.winner === 0 || state.winner == null ? '🤝 Empate' : '🏆 Vitória: ' + winnerLabel) + '\n\n' +
+               '🔗 scoreplace.app';
+    var url = window.SCOREPLACE_URL || 'https://scoreplace.app';
+    if (navigator.share) {
+      try {
+        navigator.share({ title: title, text: text, url: url }).catch(function(e) {
+          if (e && e.name === 'AbortError') return;
+          // Fallback pro clipboard se share falha por outra razão
+          if (navigator.clipboard) navigator.clipboard.writeText(text);
+        });
+      } catch (e) {
+        if (navigator.clipboard) navigator.clipboard.writeText(text);
+      }
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function() {
+        if (typeof showNotification === 'function') showNotification('Resultado copiado!', 'Cole no WhatsApp ou em qualquer rede.', 'success');
+      }).catch(function() {});
+    }
   };
 
   // Tournament confirm: persist the finished result, advance the winner in the
