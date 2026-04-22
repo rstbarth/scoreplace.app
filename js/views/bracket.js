@@ -344,26 +344,14 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
     var wn = typeof w === 'string' ? w : (w.displayName || w.name || '');
     if (wn && !_spNames.has(wn)) _merged.push(w);
   });
-  const standby = _merged;
-  if (standby.length === 0) return '';
+  if (_merged.length === 0) return '';
 
   const getName = (p) => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?');
-  const mode = (t.standbyMode === 'disqualify') ? 'teams' : (t.standbyMode || 'teams');
-  const teamSize = parseInt(t.teamSize) || 1;
-
-  // Mode description
-  const modeDesc = {
-    teams: _t('bracket.standbyTeams'),
-    individual: _t('bracket.standbyIndividual')
-  };
-
   const _tIdSafe = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const ci = t.checkedIn || {};
   const ab = t.absent || {};
 
-  // Count W.O. players in main bracket (not standby) — these are candidates for substitution.
-  // Use _collectAllMatches to cover every structure (flat matches, Swiss rounds, groups, rodadas).
-  // Wrapped in try/catch so any helper glitch doesn't take down the whole panel render.
+  // Detect W.O. slots in the main bracket
   const woPlayers = [];
   try {
     const _allMatchesForWO = (typeof window._collectAllMatches === 'function')
@@ -374,43 +362,58 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
         const name = m[slot];
         if (!name || typeof name !== 'string' || name === 'TBD' || name === 'BYE') return;
         const members = name.includes(' / ') ? name.split(' / ').map(n => n.trim()) : [name];
-        const hasAbsent = members.some(n => !!ab[n]);
-        if (hasAbsent) woPlayers.push({ name, matchId: m.id, slot });
+        if (members.some(n => !!ab[n])) woPlayers.push({ name, matchId: m.id, slot });
       });
     });
   } catch (woErr) { /* silent: panel must still render */ }
   const hasWOSlot = woPlayers.length > 0;
 
-  const listItems = standby.map((p, i) => {
+  // Sort waitlist: checked-in first (by check-in timestamp ascending = first arrived), then unchecked
+  const sorted = _merged.slice().sort((a, b) => {
+    const na = getName(a), nb = getName(b);
+    const tsa = ci[na], tsb = ci[nb];
+    if (tsa && tsb) return tsa - tsb; // both checked-in: earlier timestamp first
+    if (tsa) return -1;               // a checked in, b didn't → a first
+    if (tsb) return 1;                // b checked in, a didn't → b first
+    return 0;                         // neither checked in: preserve insertion order
+  });
+
+  // First present (checked-in, not W.O.) in sorted order gets the next slot
+  const firstPresent = sorted.find(p => { const n = getName(p); return !!ci[n] && !ab[n]; });
+  const firstPresentName = firstPresent ? getName(firstPresent) : null;
+  const firstPresentSafe = firstPresentName ? firstPresentName.replace(/'/g, "\\'") : '';
+
+  // Single "Preencher" button at top — only when organizer, there's a W.O. slot and someone is present
+  const preencherBtn = (isOrg && hasWOSlot && firstPresentName)
+    ? `<button class="btn btn-sm" onclick="window._autoSubstituteWO('${_tIdSafe}', '${firstPresentSafe}')" style="margin-left:auto;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(5,150,105,0.2));border:1px solid rgba(16,185,129,0.5);color:#4ade80;font-weight:800;font-size:0.78rem;white-space:nowrap;">🔄 Preencher</button>`
+    : '';
+
+  const listItems = sorted.map((p, i) => {
     const name = getName(p);
     const safeName = name.replace(/'/g, "\\'");
     const mc = !!ci[name];
     const isAb = !!ab[name];
-    const toggleColor = mc ? '#10b981' : '#64748b';
     const statusLabel = mc ? _t('bracket.checkedIn') : _t('bracket.notCheckedIn');
     const statusColor = mc ? '#4ade80' : '#64748b';
-    // Per-item "Assumir" button: appears for present standbys when there's a W.O. slot to fill (organizer only)
-    const assumeBtn = (isOrg && mc && hasWOSlot && !isAb)
-      ? `<button class="btn btn-micro" onclick="event.stopPropagation(); window._autoSubstituteWO('${_tIdSafe}', '${safeName}')" style="border:1px solid rgba(16,185,129,0.5);background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(5,150,105,0.15));color:#4ade80;font-weight:800;font-size:0.68rem;white-space:nowrap;" title="Assumir posição do jogador ausente">🔄 Assumir</button>`
-      : '';
+    const isFirst = i === 0;
 
     return `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${mc ? 'rgba(16,185,129,0.08)' : isAb ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)'};border-radius:10px;border-left:4px solid ${i === 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
-        <div style="width:26px;height:26px;border-radius:50%;background:${i === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:${i === 0 ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
-        <span style="font-weight:600;font-size:0.88rem;color:${i === 0 ? '#fbbf24' : '#94a3b8'};flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">${name}</span>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${mc ? 'rgba(16,185,129,0.08)' : isAb ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)'};border-radius:10px;border-left:4px solid ${isFirst ? '#f59e0b' : 'rgba(255,255,255,0.08)'};">
+        <div style="width:26px;height:26px;border-radius:50%;background:${isFirst ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:${isFirst ? '#000' : '#94a3b8'};flex-shrink:0;">${i + 1}</div>
+        <span style="font-weight:600;font-size:0.88rem;color:${isFirst ? '#fbbf24' : '#94a3b8'};flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">${name}</span>
         <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${_tIdSafe}', '${safeName}');"><span class="toggle-slider"></span></label>
         <span style="font-size:0.65rem;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
-        ${assumeBtn}
         <button class="btn btn-micro" onclick="event.stopPropagation(); window._markAbsent('${_tIdSafe}', '${safeName}')" style="border:1px solid ${isAb ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAb ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAb ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.68rem;${isAb ? 'opacity:1;' : 'opacity:0.6;'}">${isAb ? 'Reverter' : 'W.O.'}</button>
       </div>`;
   }).join('');
 
   return `
     <div id="standby-panel-section" style="margin-top:2rem;background:var(--bg-card);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:1.5rem;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">
         <span style="font-size:1.3rem;">📋</span>
         <h3 style="margin:0;color:#f1f5f9;font-size:1.05rem;font-weight:700;">Lista de Espera</h3>
-        <span style="font-size:0.75rem;background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 10px;border-radius:10px;font-weight:700;">${standby.length}</span>
+        <span style="font-size:0.75rem;background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 10px;border-radius:10px;font-weight:700;">${sorted.length}</span>
+        ${preencherBtn}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         ${listItems}

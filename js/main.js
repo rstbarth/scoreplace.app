@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.60-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Lista de Espera: botão único "Preencher" + ordem por chegada.</b> Removidos os botões "Assumir" individuais — agora um único botão "🔄 Preencher" aparece no topo do painel quando há W.O. e alguém presente. A lista é ordenada por ordem de check-in (first come, first served): quem confirmou presença primeiro fica na posição 1 e preenche a próxima vaga.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.59-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Sorteio imediato após resolução de lista de espera.</b> Ao escolher "Sorteio geral" ou "Últimos inscritos" no painel de Lista de Espera, o sorteio ocorre imediatamente — sem painel intermediário adicional.</p>' +
         '</div>' +
