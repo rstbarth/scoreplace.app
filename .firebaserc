@@ -1,0 +1,11 @@
+{
+  "projects": {},
+  "targets": {},
+  "etags": {
+    "scoreplace-app": {
+      "extensionInstances": {
+        "firestore-send-email": "aad7ac1e5c3c0a7a307abdf236eed9d62755670392bf729f59bc4687e9bdfb47"
+      }
+    }
+  }
+}

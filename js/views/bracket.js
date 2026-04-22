@@ -88,6 +88,7 @@ function renderBracket(container, tournamentId, isInline) {
       ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : '<span></span>'}
       ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift" onclick="window._exportTournamentCSV('${_tIdSafe}')">📊 CSV</button>` : '<span></span>'}
       ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._tvMode('${_tIdSafe}')">📺 Modo TV</button>` : '<span></span>'}
+      ${isOrg && hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._openRemoteControl('${_tIdSafe}')" title="Controlar placar pelo Apple Watch via Apple Shortcuts">⌚ Apple Watch</button>` : ''}
       ${isOrg && !hasContent ? `<button class="btn btn-primary btn-sm hover-lift" style="grid-column:span 2;" onclick="window.generateDrawFunction('${_tIdSafe}')">🎲 Realizar Sorteio</button>` : ''}
     </div>
     <style>
