@@ -342,6 +342,9 @@
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'myvenues-search', selector: '#venue-owner-search', text: 'Digite o nome do local. Sugestões do Google Places aparecem conforme você digita.', context: 'my-venues', priority: 7, position: 'bottom' },
     { id: 'myvenues-claim', selector: 'input[type="checkbox"][onclick*="claim"]', text: 'Marque se você é o proprietário oficial. Ganha tag "✅ Informações oficiais" e bloqueio contra edições de terceiros.', context: 'my-venues', priority: 6, position: 'top' },
+    { id: 'myvenues-access', selector: '#venue-owner-access', text: 'Política de acesso: Público (aluguel aberto), Só sócios, Sócios + convidados de torneios, ou Privado. Define se o venue aparece como "alugável" pra jogadores.', context: 'my-venues', priority: 5, position: 'bottom' },
+    { id: 'myvenues-courts', selector: '#venue-courts-list', text: 'Camada colaborativa: qualquer jogador cadastra "tantas quadras de [modalidade]". Quando o dono reivindica, ele assume tudo e vira único editor.', context: 'my-venues', priority: 7, position: 'top' },
+    { id: 'myvenues-add-court', selector: 'button[onclick*="_venueCourtAddDialog"]', text: 'Adicione uma entrada de quadra. Ex: "4 quadras de Beach Tennis compartilhadas com Futvôlei" ou "2 saibro exclusivas de Tênis".', context: 'my-venues', priority: 7, position: 'top' },
     { id: 'myvenues-view', selector: '#venue-owner-list button[onclick*="#venues/"]', text: 'Previsão pública: veja como os usuários veem seu local (movimento, reviews, contatos). Útil antes de compartilhar.', context: 'my-venues', priority: 4, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════

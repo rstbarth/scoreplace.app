@@ -315,6 +315,24 @@ window.VenueDB = {
     if (!payload.sport) throw new Error('sport obrigatório');
     var ref = await this.db.collection('venues').doc(venueKey)
       .collection('courts').add(payload);
+    // Sincroniza o array sports[] do venue principal com a modalidade desta
+    // quadra. Garante que o filtro de modalidade na descoberta pegue o venue
+    // — sem isso, um venue sem sports[] no doc pai mas com quadras na
+    // subcoleção seria invisível na busca "Beach Tennis". arrayUnion é
+    // idempotente. Firestore rules permitem o update quando o venue está
+    // em fase colaborativa (no owner) OU quando o user É o owner — mesma
+    // regra que governa a criação do court doc, então quem chegou aqui
+    // tem permissão garantida.
+    try {
+      await this.db.collection('venues').doc(venueKey).update({
+        sports: firebase.firestore.FieldValue.arrayUnion(payload.sport),
+        updatedAt: now
+      });
+    } catch (e) {
+      // Não-fatal: o court já foi salvo. O sports[] fica desatualizado mas
+      // o aggregate ainda mostra a modalidade correta.
+      console.warn('sports[] sync after addCourt failed:', e && e.message);
+    }
     return Object.assign({ _id: ref.id }, payload);
   },
 
