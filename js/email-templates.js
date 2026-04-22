@@ -77,7 +77,7 @@
 
   function _footer() {
     return '<tr><td style="padding:20px 32px;text-align:center;border-top:1px solid #374151;">' +
-      '<p style="margin:0 0 8px;font-size:0.75rem;color:' + MUTED_COLOR + ';">scoreplace.app — Gestão de torneios esportivos</p>' +
+      '<p style="margin:0 0 8px;font-size:0.75rem;color:' + MUTED_COLOR + ';">scoreplace.app — Jogue em outro nível</p>' +
       '<p style="margin:0;font-size:0.72rem;color:' + MUTED_COLOR + ';">Para desativar e-mails, abra o app, toque no seu perfil e desligue "E-mail" em Canais de notificação.</p>' +
     '</td></tr>';
   }

@@ -15,7 +15,7 @@
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
         '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.3-alpha') + '</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Plataforma de gestão de torneios esportivos e board games.</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Jogue em outro nível — torneios, partidas casuais, presença e locais esportivos.</div>' +
         '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
         '</div>' +
         '<div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); border-radius:10px; padding:12px 14px; margin-bottom:1rem;">' +
@@ -1003,6 +1003,12 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.46-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Nova tagline: "Jogue em outro nível".</b> A frase "Organize seus torneios" / "Plataforma de gestão de torneios esportivos e board games" foi substituída por <b>"scoreplace.app — Jogue em outro nível"</b> em todos os pontos de branding do app: <code>&lt;title&gt;</code> da página, meta description (SEO), <code>manifest.json</code> (PWA), footer de e-mail, modal "Sobre" e landing page (PT/EN).</p>' +
+        '<p>A nova tagline reflete melhor os 5 pilares do produto (torneios, partidas casuais, presença, locais e stats) sem reduzir o posicionamento a "só gestão de torneios". Frases explicativas dentro do manual (ex: "o scoreplace.app notifica sobre tudo que acontece nos seus torneios") seguem intactas.</p>' +
+        '<p><b>Arquivos</b>: <code>index.html</code>, <code>manifest.json</code>, <code>js/store.js</code>, <code>js/main.js</code>, <code>js/email-templates.js</code>, <code>js/i18n-pt.js</code>, <code>js/i18n-en.js</code>, <code>sw.js</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.45-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: tie-break do placar ao vivo consistente com a regra do torneio.</b> O placar ao vivo disparava o tie-break quando os games empatavam em <code>gamesPerSet × gamesPerSet</code> (ex: 6-6 em set de 6 games), enquanto a regra exibida ao usuário em <code>#rules</code> e o save path do overlay de resultado tratam TB em <code>(gamesPerSet-1) × (gamesPerSet-1)</code> (ex: 5-5, final 6-5). Agora o live scorer em <code>_checkSetWon</code> dispara em 5-5, consistente com tudo.</p>' +
         '<p>Bônus: corrigido o <code>_checkSetComplete</code> do overlay de resultado set-a-set, que fazia o indicador "TB" aparecer em 6-6 (nunca alcançável na prática, já que o save fechava o set em 6-5) mas não em 5-5. Adicionado também <code>oninput</code> nos inputs de tie-break do overlay — antes, digitar pontos do TB não revalidava o estado (botão Salvar ficava preso em disabled).</p>' +

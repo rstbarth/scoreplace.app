@@ -165,7 +165,7 @@ window._translations['en'] = {
   'label.qualified': 'Qualified',
 
   // Landing page
-  'landing.tagline': 'Manage sports tournaments simply and professionally.',
+  'landing.tagline': 'Play at another level — tournaments, casual matches, presence and sports venues.',
   'landing.cta': 'Create your tournament for free',
   'landing.ctaBottom': 'Get started — it\'s free!',
   'landing.howTitle': 'How it works',

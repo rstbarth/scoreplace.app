@@ -1,7 +1,7 @@
 {
   "name": "scoreplace.app",
   "short_name": "scoreplace",
-  "description": "Plataforma de gestão de torneios esportivos e board games",
+  "description": "scoreplace.app — Jogue em outro nível. Torneios, partidas casuais, presença e locais esportivos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
