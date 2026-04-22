@@ -12,6 +12,21 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 - **localStorage:** `boratime_state` (chave legada mantida por compatibilidade)
 - **Email de suporte:** scoreplace.app@gmail.com
 
+## ⚠️ Fase de Desenvolvimento — ALPHA
+
+**O projeto está em fase ALPHA.** Regra importante para qualquer mudança de código:
+
+- **Torneios, locais e quadras** no Firestore podem ser ignorados ou apagados sem problema. Não há produção real em cima deles.
+- **Usuários** já existem (amigos chegados testando), mas também podem ser recriados sem dor.
+- **NÃO escreva código defensivo de backward compatibility** ao mudar schemas/modelos. Não adicione campos duplicados, branches `if (legacy_shape) ...`, fallbacks pra shapes antigos. Simplesmente escreva o schema novo limpo.
+- **NÃO implemente código de migração** automática entre versões. Se um cadastro antigo quebrar depois da mudança, o usuário apaga e refaz — é comportamento esperado.
+- **NÃO preserve** campos no Firestore só "por segurança". Pode dropar livremente.
+- **Exceção**: preservar compat só vale a pena se for trivial (1 linha) E genuinamente útil além de compat.
+
+**Quando essa regra muda:** na migração para **beta**, quando usuários reais testarão por período longo. O Rodrigo avisa quando for a hora — até lá, priorize simplicidade sobre compat.
+
+Isso **não** se aplica à estabilidade de código entre versões do app rodando no navegador dos usuários (cache-busters, service worker updates continuam importando — o app não pode crashar em runtime). Só se aplica a dados persistidos no Firestore.
+
 ## Historico do Projeto
 
 O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
