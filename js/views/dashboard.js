@@ -1131,10 +1131,38 @@ function _hydrateFriendsPresenceWidget() {
   var muteUntil = Number(cu.presenceMuteUntil || 0);
   if (muteUntil > Date.now()) return;
   var friends = Array.isArray(cu.friends) ? cu.friends : [];
-  if (friends.length === 0) return;
+  // Empty state quando usuário não tem amigos: CTA pra Explorar. Antes o
+  // widget ficava silenciosamente vazio, sem indicação de que a funcionalidade
+  // existia — usuário descobria por acaso que "Amigos no local" precisava de
+  // amigos pra funcionar. Agora promove o fluxo de onboarding explicitamente.
+  if (friends.length === 0) {
+    box.innerHTML =
+      '<div style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">👥 Veja seus amigos jogando</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Adicione amigos na Explorar pra acompanhar presenças e planos nos locais que vocês frequentam.</div>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#explore\'" style="white-space:nowrap;">Encontrar amigos →</button>' +
+      '</div>';
+    return;
+  }
 
   window.PresenceDB.loadForFriends(friends).then(function(list) {
-    if (!list || list.length === 0) return;
+    // Sem presenças ativas dos amigos: empty state discreto ao invés de
+    // omissão total (antes o widget ficava invisível em dias calmos, e o
+    // usuário não tinha sinal de que a funcionalidade estava ativa).
+    if (!list || list.length === 0) {
+      box.innerHTML =
+        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+          '</div>' +
+          '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
+        '</div>';
+      return;
+    }
     // Dedupe per (uid, placeId, sport) keeping the soonest-starting entry.
     var bestByKey = {};
     list.forEach(function(p) {

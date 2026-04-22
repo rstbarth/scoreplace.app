@@ -359,17 +359,22 @@ window.FirestoreDB = {
   // Scan open tournaments across the whole DB — used by the nearby/sport-match
   // notification check, which has to look outside the current user's scoped
   // load (that's the whole point: show tournaments they aren't part of yet).
-  // Filters to `status == 'open'` so we don't drag closed/finished docs along.
+  // Filtra client-side por status ausente OU 'open' — docs legacy criados
+  // antes do default explícito (v0.15.5) não têm status. Mesmo pattern
+  // aplicado em loadPublicOpenTournaments.
   async loadOpenTournaments() {
     if (!this.db) return [];
     try {
-      var snap = await this.db.collection('tournaments')
-        .where('status', '==', 'open')
-        .get();
+      // Sem filtro server-side de status — busca todos os docs e filtra na
+      // memória. Em collection com milhares de docs isso fica caro; mas o
+      // call site único (notifier) já era uma varredura full anyway.
+      var snap = await this.db.collection('tournaments').get();
       var tournaments = [];
       snap.forEach(function(doc) {
         var d = doc.data();
-        if (d) tournaments.push(d);
+        if (!d) return;
+        var st = d.status;
+        if (!st || st === 'open') tournaments.push(d);
       });
       return tournaments;
     } catch (e) {
