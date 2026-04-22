@@ -86,6 +86,13 @@ function renderNotifications(container) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
           '<button class="btn btn-sm" style="background: var(--primary-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 600;" onclick="event.stopPropagation(); window.location.hash=\'#venues/' + safePlaceId + '\'; _markNotifRead(\'' + safeNotifId + '\')">' + _presLabel + '</button>' +
         '</div>';
+      } else if (n.type === 'casual_invite' && n.roomCode) {
+        // Convite pra partida casual — leva direto pra #casual/<room> que
+        // abre o lobby/live scoring conforme o status da partida.
+        var safeRoom = String(n.roomCode).replace(/'/g, "\\'").replace(/\\/g, "\\\\").toUpperCase();
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
+          '<button class="btn btn-sm" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 700;" onclick="event.stopPropagation(); window.location.hash=\'#casual/' + safeRoom + '\'; _markNotifRead(\'' + safeNotifId + '\')">⚡ Entrar na partida</button>' +
+        '</div>';
       }
 
       // Escape HTML in message to prevent XSS

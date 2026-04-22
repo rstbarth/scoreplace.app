@@ -69,5 +69,10 @@ window.NOTIF_CATALOG = {
   // Check-in imediato (v0.15.13) — "Fulano chegou no local pra jogar agora".
   // Mais urgente que plan; nível 'all' igual, mas ícone vermelho-radar pra
   // distinguir visualmente.
-  presence_checkin:            { level: 'all',         icon: '📡', color: 'var(--danger-color, #ef4444)' }
+  presence_checkin:            { level: 'all',         icon: '📡', color: 'var(--danger-color, #ef4444)' },
+
+  // Convite pra partida casual (v0.15.21) — "Fulano começou uma partida
+  // casual de X, entra junto". Ícone ⚡ ciano pra bater com a identidade
+  // visual da Partida Casual (gradient ciano na dashboard).
+  casual_invite:               { level: 'all',         icon: '⚡', color: '#38bdf8' }
 };

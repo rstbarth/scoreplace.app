@@ -6209,15 +6209,63 @@ window._openCasualMatch = function() {
         '<div style="font-size:clamp(1.8rem,7vw,2.5rem);font-weight:900;letter-spacing:8px;color:#fbbf24;font-family:monospace;margin-bottom:4px;">' + window._safeHtml(roomCode) + '</div>' +
         '<div style="font-size:0.65rem;color:var(--text-muted);word-break:break-all;margin-bottom:clamp(0.6rem,2vh,1rem);">' + window._safeHtml(casualUrl) + '</div>' +
         // Share buttons
-        '<div style="display:flex;gap:8px;margin-bottom:clamp(0.6rem,2vh,1rem);width:100%;max-width:320px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:8px;width:100%;max-width:320px;">' +
           '<button onclick="navigator.clipboard.writeText(\'' + casualUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\');if(typeof showNotification===\'function\')showNotification(_t(\'casual.linkCopied\'),\'\',\'success\');" style="flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.82rem;font-weight:600;cursor:pointer;">📋 ' + _t('casual.copyLink') + '</button>' +
           '<a href="https://wa.me/?text=' + encodeURIComponent(_t('casual.whatsappMsg', {sport: sportLabel, code: roomCode, url: casualUrl})) + '" target="_blank" rel="noopener" style="flex:1;padding:12px;border-radius:10px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);color:#25d366;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;">💬 WhatsApp</a>' +
         '</div>' +
+        // Convidar amigos da scoreplace via notificação — mais direto que
+        // WhatsApp pra quem já usa o app. Throttle: desabilita após 1 clique.
+        (cu && Array.isArray(cu.friends) && cu.friends.length > 0
+          ? '<button id="casual-notify-friends-btn" onclick="window._casualNotifyFriends(\'' + roomCode.replace(/'/g, "\\'") + '\', \'' + sportLabel.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')" style="width:100%;max-width:320px;padding:12px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:clamp(0.6rem,2vh,1rem);">👥 Avisar meus ' + cu.friends.length + ' amigo' + (cu.friends.length === 1 ? '' : 's') + ' do scoreplace</button>'
+          : '<div style="width:100%;max-width:320px;margin-bottom:clamp(0.6rem,2vh,1rem);"></div>') +
         // Back button
         '<button onclick="var ov=document.getElementById(\'casual-qr-overlay\');if(ov)ov.remove();" style="padding:12px 28px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;">← ' + _t('casual.back') + '</button>' +
       '</div>';
 
     document.body.appendChild(qrOv);
+  };
+
+  // Avisa todos os amigos da scoreplace sobre a partida casual criada.
+  // Dispara notificação tipo 'casual_invite' pra cada amigo com roomCode +
+  // sport + link. Throttle: desabilita o botão após 1 clique pra evitar
+  // spam (o usuário não deve precisar mandar 2x).
+  window._casualNotifyFriends = async function(roomCode, sportLabel) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !Array.isArray(cu.friends) || cu.friends.length === 0) return;
+    if (typeof window._sendUserNotification !== 'function') return;
+    var btn = document.getElementById('casual-notify-friends-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.65';
+      btn.style.cursor = 'default';
+      btn.textContent = '⏳ Enviando...';
+    }
+    var base = window.SCOREPLACE_URL || 'https://scoreplace.app';
+    var url = base + '/#casual/' + roomCode;
+    var msg = (cu.displayName || 'Um amigo') + ' começou uma partida casual de ' +
+              (sportLabel || 'scoreplace') + '. Entra junto: ' + roomCode;
+    var sent = 0;
+    var fails = 0;
+    var total = cu.friends.length;
+    for (var i = 0; i < cu.friends.length; i++) {
+      try {
+        await window._sendUserNotification(cu.friends[i], {
+          type: 'casual_invite',
+          message: msg,
+          level: 'all',
+          roomCode: roomCode,
+          sport: sportLabel,
+          url: url
+        });
+        sent++;
+      } catch (e) { fails++; }
+    }
+    if (btn) {
+      btn.textContent = '✅ Avisou ' + sent + ' amigo' + (sent === 1 ? '' : 's');
+    }
+    if (typeof showNotification === 'function') {
+      showNotification('Convites enviados!', sent + ' de ' + total + ' amigos notificados.', 'success');
+    }
   };
 
   // Shuffle players across teams (random draw)
