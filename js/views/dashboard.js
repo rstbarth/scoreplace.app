@@ -466,10 +466,40 @@ function renderDashboard(container) {
             </div>
             ` : ''}
 
-            <!-- Below Name: Calendário + Data -->
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.7;">
+            <!-- Below Name: Calendário + Data + badge contextual (HOJE/AMANHÃ/Em Xd) -->
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; opacity: 0.8; flex-wrap: wrap;">
                <span style="font-size: 1.1rem;">🗓️</span>
                <span>${dates}</span>
+               ${(() => {
+                 // Badge de início — aparece em torneios ativos (nao encerrados)
+                 // com startDate futura ou hoje. Reusa as i18n keys
+                 // tournament.startsToday / startsTomorrow / startsIn que
+                 // estavam órfãs desde alguma refatoração passada.
+                 if (isFinished || !t.startDate) return '';
+                 try {
+                   var _s = new Date(t.startDate);
+                   if (isNaN(_s.getTime())) return '';
+                   // Compara só dia/mês/ano — ignora fuso pra "hoje" bater
+                   // com a definição local do usuário.
+                   var _today = new Date();
+                   var _dayDiff = Math.round((new Date(_s.getFullYear(), _s.getMonth(), _s.getDate()) -
+                                              new Date(_today.getFullYear(), _today.getMonth(), _today.getDate())) / 86400000);
+                   if (_dayDiff < 0) return ''; // já começou, não mostra badge
+                   if (_dayDiff > 14) return ''; // mais de 2 semanas — badge fica irrelevante
+                   var _label, _bg, _color;
+                   if (_dayDiff === 0) {
+                     _label = _t('tournament.startsToday');
+                     _bg = 'rgba(16,185,129,0.22)'; _color = '#10b981';
+                   } else if (_dayDiff === 1) {
+                     _label = _t('tournament.startsTomorrow');
+                     _bg = 'rgba(251,191,36,0.22)'; _color = '#fbbf24';
+                   } else {
+                     _label = _t('tournament.startsIn').replace('{days}', _dayDiff);
+                     _bg = 'rgba(99,102,241,0.2)'; _color = '#a5b4fc';
+                   }
+                   return '<span style="font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;background:' + _bg + ';color:' + _color + ';border:1px solid ' + _color + '40;white-space:nowrap;">' + _label + '</span>';
+                 } catch(e) { return ''; }
+               })()}
             </div>
 
             ${(() => {
