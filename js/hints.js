@@ -325,7 +325,7 @@
     // DASHBOARD — Novos widgets (v0.15.x)
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'dash-my-venues', selector: '#dashboard-presences-widget + div', text: 'Seus locais preferidos em acesso rápido. Botão 📍 verde faz check-in direto sem navegar — 2 cliques em vez de 5.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
-    { id: 'dash-my-active', selector: '#dashboard-myactive-widget', text: 'Sua presença ativa aparece aqui. Dot verde = check-in em andamento. Clique "Cancelar" pra remover. "Ver local" abre a modal do venue com movimento e contatos.', context: 'dashboard', priority: 7, position: 'bottom', requiresLogin: true },
+    { id: 'dash-my-active', selector: '#dashboard-myactive-widget', text: 'Sua presença ativa aparece aqui. Dot verde = check-in em andamento. ⚡ = partida casual em andamento (botão "Voltar"). Clique "Cancelar" pra remover presença.', context: 'dashboard', priority: 7, position: 'bottom', requiresLogin: true },
     { id: 'dash-friends-presence', selector: '#dashboard-presences-widget', text: 'Amigos com check-in ativo ou presença planejada hoje. Clique num card pra ver o local e se juntar.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
     { id: 'dash-profile-nudge', selector: '#dash-profile-nudge', text: 'Complete seu perfil pra ativar torneios perto de você, sugestões de parceiros e presença rápida.', context: 'dashboard', priority: 6, position: 'top', requiresLogin: true },
     { id: 'dash-presence-btn', selector: '#btn-presence', text: 'Registre presença no local onde está jogando. Amigos veem em tempo real e podem se juntar.', context: 'dashboard', priority: 5, position: 'bottom', requiresLogin: true },

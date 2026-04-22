@@ -1334,16 +1334,39 @@ function renderDashboard(container) {
 // às HH:mm". Silent quando não há presença ativa (não polui a UI).
 function _hydrateMyActivePresenceWidget() {
   var box = document.getElementById('dashboard-myactive-widget');
-  if (!box || !window.PresenceDB || typeof window.PresenceDB.loadMyActive !== 'function') return;
-  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!box || !window.AppStore) return;
+  var cu = window.AppStore.currentUser;
   if (!cu || !cu.uid) return;
-  // Respeita mute — se presença silenciada, não mostra nem tenta carregar.
+  var _safe = window._safeHtml || function(s) { return String(s || ''); };
+
+  // Pill 0: Partida casual em andamento. Fonte de verdade: cu.activeCasualRoom
+  // (gravado no perfil quando o usuário cria/entra numa sala; limpo pelos
+  // paths de fechar). Quando setado, o usuário tem uma sala ATIVA e pode ter
+  // navegado pra dashboard sem fechar — oferece atalho pra voltar.
+  var casualPart = '';
+  if (cu.activeCasualRoom) {
+    var safeRoom = String(cu.activeCasualRoom).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
+    casualPart =
+      '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(56,189,248,0.15),rgba(14,165,233,0.06));border:1px solid rgba(56,189,248,0.35);border-radius:12px;flex-wrap:wrap;">' +
+        '<span style="font-size:1.2rem;flex-shrink:0;">⚡</span>' +
+        '<div style="flex:1;min-width:150px;">' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">Partida casual em andamento</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);">Sala <b style="color:#38bdf8;font-family:monospace;letter-spacing:1px;">' + _safe(cu.activeCasualRoom) + '</b> · continue de onde parou</div>' +
+        '</div>' +
+        '<button onclick="window.location.hash=\'#casual/' + safeRoom + '\'" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;">⚡ Voltar</button>' +
+      '</div>';
+  }
+
+  // Respeita mute — se presença silenciada, não carrega presenças; mas ainda
+  // pode mostrar o pill de casual match (é um estado separado).
   var muteUntil = Number(cu.presenceMuteUntil || 0);
-  if (muteUntil > Date.now()) return;
+  if (muteUntil > Date.now() || !window.PresenceDB || typeof window.PresenceDB.loadMyActive !== 'function') {
+    box.innerHTML = casualPart ? ('<div style="display:flex;flex-direction:column;gap:8px;">' + casualPart + '</div>') : '';
+    return;
+  }
 
   window.PresenceDB.loadMyActive(cu.uid).then(function(list) {
-    if (!list || list.length === 0) { box.innerHTML = ''; return; }
-    var _safe = window._safeHtml || function(s) { return String(s || ''); };
+    if ((!list || list.length === 0) && !casualPart) { box.innerHTML = ''; return; }
     var now = Date.now();
     // Prioriza check-in ativo > plan mais próximo
     var checkins = list.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
@@ -1392,9 +1415,19 @@ function _hydrateMyActivePresenceWidget() {
         '</div>'
       );
     });
-    if (parts.length === 0) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + parts.join('') + '</div>';
-  }).catch(function(e) { console.warn('myActive widget error:', e); });
+    // Combina casualPart (se existir) + presenças. Casual vai primeiro
+    // porque é uma sala ATIVA ao vivo — prioridade sobre check-in/plans.
+    var allParts = [];
+    if (casualPart) allParts.push(casualPart);
+    allParts = allParts.concat(parts);
+    if (allParts.length === 0) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + allParts.join('') + '</div>';
+  }).catch(function(e) {
+    console.warn('myActive widget error:', e);
+    // Mesmo com erro na query de presenças, mostra o casual pill se
+    // aplicável — degradação graciosa.
+    if (casualPart) box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + casualPart + '</div>';
+  });
 }
 
 // Handler pro botão Cancelar do status de presença. Marca localmente pra
