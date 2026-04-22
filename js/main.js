@@ -815,6 +815,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.10-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Busca rápida (Ctrl+K) cobre torneios públicos + locais.</b> A busca rápida (Ctrl+K / ⌘K no desktop, botão 🔍 no header) antes só olhava em <code>AppStore.tournaments</code> (o scoped list) — torneios públicos que o usuário ainda não tinha entrado (só no <code>publicDiscovery</code>) não apareciam no resultado, mesmo com match exato de nome. Espelhava o mesmo gap do botão "Inscrever" consertado em v0.15.9. <b>Fix:</b> busca rápida agora une <code>AppStore.tournaments</code> + <code>AppStore.publicDiscovery</code> (dedup por id) antes de filtrar. Nova seção "Locais" no dropdown: pesquisa nos venues únicos extraídos dos torneios (via <code>venuePlaceId</code>) por nome e endereço, com deep-link pra <code>#venues/&lt;placeId&gt;</code>. Seção de "Jogadores" também passa a considerar o scope expandido, então nomes de participantes de torneios públicos não vinculados aparecem na busca. O que muda pro usuário: digite "beach" e a busca rápida agora mostra seus torneios de beach tennis + torneios públicos de beach tennis na região + clubes que o app conhece — 3 categorias num só dropdown. Arquivos: <code>js/main.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.9-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: botão "Inscrever" em card de descoberta falhando silenciosamente.</b> Bug descoberto durante auditoria pós-v0.15.6 (quando a dashboard passou a mostrar torneios do discovery feed na "Inscrições Abertas"): clicar em "✅ Inscrever-se" num card de torneio público que o usuário ainda não entrou não fazia nada — sem toast de erro, sem navegação, só o spinner do botão ativo. Causa: torneios do discovery feed vivem em <code>AppStore.publicDiscovery</code>, não em <code>AppStore.tournaments</code> (que é o scoped listener apenas dos torneios onde o usuário já é membro). As funções <code>_dashEnroll</code>, <code>enrollCurrentUser</code> e <code>_doEnrollCurrentUser</code> usavam <code>AppStore.tournaments.find(...)</code> — encontravam <code>undefined</code> e caíam em branches early-return que não faziam nada. <b>Fix:</b> hidratação defensiva em todas as três funções — se não achar em <code>tournaments</code>, tenta em <code>publicDiscovery</code> e injeta o doc em <code>tournaments</code> antes de prosseguir. Pattern aplicado um jeito só pra todas as portas de entrada (dashboard card, click direto via outras views). Inscrição em torneio de descoberta agora funciona com 1 clique: push otimístico do participant, notificação "Inscrição confirmada", navigate pra página de detalhes. Arquivos: <code>js/views/dashboard.js</code>, <code>js/views/tournaments-enrollment.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
         '</div>' +
@@ -3087,14 +3091,27 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
     if (!query || query.length < 2) { _showQuickSearchDefaults(); return; }
 
     var q = query.toLowerCase();
-    var tournaments = (window.AppStore && window.AppStore.tournaments) ? window.AppStore.tournaments : [];
+    var _sh = window._safeHtml || function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
     var html = '';
 
-    // Search tournaments
-    var matchedTournaments = tournaments.filter(function(t) {
+    // Torneios: scoped (tournaments) UNIÃO discovery (publicDiscovery).
+    // Antes só pesquisava o scoped list — missava qualquer torneio público
+    // que o usuário ainda não tivesse entrado, deixando a busca rápida com
+    // cobertura incompleta.
+    var scoped = (window.AppStore && window.AppStore.tournaments) ? window.AppStore.tournaments : [];
+    var discovery = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery)) ? window.AppStore.publicDiscovery : [];
+    var allTournaments = scoped.slice();
+    var seenIds = {};
+    scoped.forEach(function(t) { if (t && t.id) seenIds[String(t.id)] = true; });
+    discovery.forEach(function(t) {
+      if (t && t.id && !seenIds[String(t.id)]) { allTournaments.push(t); seenIds[String(t.id)] = true; }
+    });
+
+    var matchedTournaments = allTournaments.filter(function(t) {
       return (t.name && t.name.toLowerCase().indexOf(q) !== -1) ||
              (t.sport && t.sport.toLowerCase().indexOf(q) !== -1) ||
              (t.venueName && t.venueName.toLowerCase().indexOf(q) !== -1) ||
+             (t.venue && t.venue.toLowerCase && t.venue.toLowerCase().indexOf(q) !== -1) ||
              (t.format && t.format.toLowerCase().indexOf(q) !== -1);
     }).slice(0, 6);
 
@@ -3102,7 +3119,6 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
       html += '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Torneios</div>';
       matchedTournaments.forEach(function(t) {
         var status = t.status === 'finished' ? '🏆 Encerrado' : (t.status === 'active' ? '▶ Ativo' : '📋 Aberto');
-        var _sh = window._safeHtml || function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
         var _safeId = String(t.id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
         html += '<div onclick="window.location.hash=\'#tournaments/' + _safeId + '\';window._closeQuickSearch();" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
           '<span style="font-size:1.1rem;">🏅</span>' +
@@ -3114,6 +3130,42 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
           '</div>';
       });
     }
+
+    // Locais: busca no cache AppStore.tournaments pelos venues únicos dos
+    // torneios (não temos cache global de venues client-side; fazer call
+    // a VenueDB.listVenues debounced aqui custaria quota pra cada
+    // keystroke). O cache atual já cobre os venues relevantes pro usuário
+    // — dashboard/torneios recentes. Deep-link pra #venues/<placeId>.
+    var venueMap = {};
+    allTournaments.forEach(function(t) {
+      if (!t || !t.venuePlaceId) return;
+      var key = String(t.venuePlaceId);
+      if (venueMap[key]) return;
+      var vname = t.venue || t.venueName || '';
+      var vaddr = t.venueAddress || '';
+      if ((vname && vname.toLowerCase().indexOf(q) !== -1) ||
+          (vaddr && vaddr.toLowerCase().indexOf(q) !== -1)) {
+        venueMap[key] = { placeId: key, name: vname, address: vaddr };
+      }
+    });
+    var venueMatches = Object.keys(venueMap).map(function(k) { return venueMap[k]; }).slice(0, 5);
+    if (venueMatches.length > 0) {
+      html += '<div style="padding:8px 12px;font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Locais</div>';
+      venueMatches.forEach(function(v) {
+        var _safePid = String(v.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+        html += '<div onclick="window.location.hash=\'#venues/' + _safePid + '\';window._closeQuickSearch();" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+          '<span style="font-size:1.1rem;">🏢</span>' +
+          '<div style="flex:1;overflow:hidden;">' +
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(v.name) + '</div>' +
+          (v.address ? '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(v.address) + '</div>' : '') +
+          '</div>' +
+          '</div>';
+      });
+    }
+
+    // Use allTournaments (scoped + discovery) pra busca de jogadores também,
+    // assim nomes em torneios públicos aparecem mesmo sem o usuário ter entrado.
+    var tournaments = allTournaments;
 
     // Search players across tournaments
     var playerSet = {};
