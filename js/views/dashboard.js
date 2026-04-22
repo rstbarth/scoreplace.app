@@ -1478,11 +1478,18 @@ function _hydrateFriendsPresenceWidget() {
         lon: p.venueLon
       };
       var prefillJson = _safe(JSON.stringify(prefillPayload));
+      // Card clicável no todo → navega pra #presence com venue/sport prefilados.
+      // Nome clicável separadamente → abre stats do jogador (modal player-stats).
+      // event.stopPropagation() impede o click do nome de também triggerar o
+      // click do card pai.
+      var safeName = _safe(name).replace(/'/g, "&#39;");
       html +=
         '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-darker);border-radius:10px;cursor:pointer;" onclick="try{sessionStorage.setItem(\'_presencePrefill\',\'' + prefillJson.replace(/'/g,"&#39;") + '\');}catch(e){}window.location.hash=\'#presence\'">' +
           avatar +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</div>' +
+            '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+              '<span onclick="event.stopPropagation();if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + safeName + '\')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.2);" title="Ver estatísticas">' + _safe(name) + '</span>' +
+            '</div>' +
             '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe((p.venueName || p.placeId) + ' · ' + p.sport) + '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);">' + _safe(statusStr) + '</div>' +
           '</div>' +
