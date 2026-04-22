@@ -252,35 +252,5 @@ service cloud.firestore {
           );
       }
     }
-
-    // ─── Remote control sessions (Apple Watch / Shortcuts) ───────────────────
-    // Short-lived bearer tokens that authorize the `remoteScore` HTTP Cloud
-    // Function to mutate a match score on the organizer's behalf. The document
-    // ID IS the token — knowing the ID == knowing the secret. Rules therefore
-    // forbid listing entirely and require uid binding on create/update/delete.
-    //
-    //   • create: caller is authenticated AND declares themselves as the
-    //     session owner (uid + email both pinned to auth context). Prevents
-    //     planting a session in someone else's uid.
-    //   • read / update / delete: only the owner (by uid). The web app uses
-    //     this to refresh `currentMatchId` as the organizer switches matches.
-    //   • The Cloud Function reads via Admin SDK (bypasses rules) so the
-    //     watch side never needs Firestore auth.
-    match /remoteSessions/{token} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
-      // Session targets one of: a tournament (tournamentId) OR a casual match
-      // (casualMatchId). Exactly one must be set; the Cloud Function
-      // `remoteScore` picks the correct code path based on which field is
-      // populated and re-validates authorization there.
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.uid
-        && request.resource.data.email is string
-        && request.resource.data.email == authEmail()
-        && (
-          request.resource.data.tournamentId is string
-          || request.resource.data.casualMatchId is string
-        );
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
-    }
   }
 }
