@@ -280,37 +280,53 @@ window.VenueDB = {
     }
   },
 
-  // ── Courts subcollection ──────────────────────────────────────────────
-  // Entrada de quadras é colaborativa (Wikipedia-style): qualquer usuário
-  // autenticado pode ADICIONAR um registro de "tantas quadras de [sport]
-  // compartilhadas/exclusivas" num venue. Cada entrada fica rastreada pelo
-  // contributorUid — só o contribuidor original ou o owner do venue podem
-  // editar/apagar.
+  // ── Courts — armazenados como array no próprio doc do venue ─────────────
+  // Guardar em subcollection (courts/{id}) exigiria regras Firestore separadas.
+  // Em vez disso, gravamos um campo `courts: []` no doc principal do venue —
+  // assim a transação de saveVenue cobre tudo sem permissões extras.
   //
-  // Schema do doc em venues/{venueKey}/courts/{courtId}:
-  //   sport: string (modalidade canônica: 'Beach Tennis', 'Tênis', ...)
-  //   count: number (quantidade de quadras)
-  //   shared: boolean (compartilhada com outras modalidades; ex: areia)
-  //   surface: string (saibro, piso duro, areia, sintética, etc — opcional)
-  //   notes: string (detalhe livre do contribuidor — opcional, cap 300)
-  //   contributorUid: string (uid de quem adicionou)
-  //   contributorName: string (displayName snapshot)
-  //   createdAt / updatedAt: ISO timestamp
+  // Cada entrada:  { _id, sports[], count, shared, contributorUid, contributorName, createdAt, updatedAt }
+  // sports[] é array de strings — shape válido no Firestore (array de maps
+  // contendo arrays é permitido; só arrays-de-arrays diretos são proibidos).
+
+  async _mutateCourts(venueKey, mutateFn) {
+    if (!this.db || !venueKey) throw new Error('venueKey obrigatório');
+    var self = this;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    var ref = this.db.collection('venues').doc(venueKey);
+    return this.db.runTransaction(async function(tx) {
+      var doc = await tx.get(ref);
+      var base = doc.exists ? doc.data() : {};
+      if (base.ownerUid && base.ownerUid !== myUid) throw new Error('venue-já-reivindicado');
+      var courts = Array.isArray(base.courts) ? base.courts.slice() : [];
+      mutateFn(courts);
+      // Sync sports[] top-level field = union of all court entries
+      var allSports = {};
+      courts.forEach(function(c) { (c.sports || []).forEach(function(s) { allSports[s] = 1; }); });
+      var merged = Object.assign({}, base, {
+        courts: courts,
+        sports: Object.keys(allSports),
+        updatedAt: Date.now()
+      });
+      var clean = window.FirestoreDB._cleanUndefined(merged);
+      tx.set(ref, clean, { merge: true });
+    });
+  },
+
   async addVenueCourt(venueKey, data) {
     if (!this.db || !venueKey) throw new Error('venueKey obrigatório');
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) throw new Error('login obrigatório');
     var now = new Date().toISOString();
-    // `sports[]` é o único shape aceito. Uma entrada pode cobrir várias
-    // modalidades (quadra compartilhada). Normaliza + dedup.
     var sports = Array.isArray(data.sports)
       ? data.sports.map(function(s) { return String(s || '').trim(); }).filter(Boolean)
       : [];
     if (sports.length === 0) throw new Error('pelo menos uma modalidade é obrigatória');
     var seen = {};
     sports = sports.filter(function(s) { if (seen[s]) return false; seen[s] = 1; return true; });
-
-    var payload = {
+    var newEntry = {
+      _id: String(Date.now()) + '-' + Math.floor(Math.random() * 1e6),
       sports: sports,
       count: Math.max(1, Math.min(999, parseInt(data.count, 10) || 1)),
       shared: sports.length > 1,
@@ -319,33 +335,15 @@ window.VenueDB = {
       createdAt: now,
       updatedAt: now
     };
-    var ref = await this.db.collection('venues').doc(venueKey)
-      .collection('courts').add(payload);
-    // Sincroniza o array sports[] do venue principal — agora union de TODAS
-    // as modalidades desta entrada. arrayUnion com array permite adicionar
-    // múltiplos items de uma vez. Idempotente. Rules permitem o update
-    // quando o venue é colaborativo OU user é owner.
-    try {
-      await this.db.collection('venues').doc(venueKey).update({
-        sports: firebase.firestore.FieldValue.arrayUnion.apply(null, sports),
-        updatedAt: now
-      });
-    } catch (e) {
-      console.warn('sports[] sync after addCourt failed:', e && e.message);
-    }
-    return Object.assign({ _id: ref.id }, payload);
+    await this._mutateCourts(venueKey, function(courts) { courts.push(newEntry); });
+    return newEntry;
   },
 
   async listVenueCourts(venueKey) {
     if (!this.db || !venueKey) return [];
     try {
-      var snap = await this.db.collection('venues').doc(venueKey)
-        .collection('courts').orderBy('createdAt', 'asc').get();
-      var list = [];
-      snap.forEach(function(doc) {
-        var d = doc.data(); d._id = doc.id; list.push(d);
-      });
-      return list;
+      var venue = await this.loadVenue(venueKey);
+      return Array.isArray(venue && venue.courts) ? venue.courts : [];
     } catch (e) {
       console.warn('Erro ao carregar courts:', e && e.message);
       return [];
@@ -356,26 +354,31 @@ window.VenueDB = {
     if (!this.db || !venueKey || !courtId) throw new Error('params obrigatórios');
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) throw new Error('login obrigatório');
-    var clean = {};
-    if (Array.isArray(patch.sports)) {
-      var list = patch.sports.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
-      var seen = {}; list = list.filter(function(s) { if (seen[s]) return false; seen[s] = 1; return true; });
-      if (list.length === 0) throw new Error('pelo menos uma modalidade é obrigatória');
-      clean.sports = list;
-      clean.shared = list.length > 1;
-    }
-    if ('count' in patch) clean.count = Math.max(1, Math.min(999, parseInt(patch.count, 10) || 1));
-    clean.updatedAt = new Date().toISOString();
-    await this.db.collection('venues').doc(venueKey)
-      .collection('courts').doc(courtId).update(clean);
+    await this._mutateCourts(venueKey, function(courts) {
+      var idx = courts.findIndex(function(c) { return c._id === courtId; });
+      if (idx === -1) throw new Error('entrada não encontrada');
+      var c = courts[idx];
+      if (Array.isArray(patch.sports)) {
+        var list = patch.sports.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+        var seen = {}; list = list.filter(function(s) { if (seen[s]) return false; seen[s] = 1; return true; });
+        if (list.length === 0) throw new Error('pelo menos uma modalidade é obrigatória');
+        c.sports = list;
+        c.shared = list.length > 1;
+      }
+      if ('count' in patch) c.count = Math.max(1, Math.min(999, parseInt(patch.count, 10) || 1));
+      c.updatedAt = new Date().toISOString();
+      courts[idx] = c;
+    });
     return true;
   },
 
   async deleteVenueCourt(venueKey, courtId) {
     if (!this.db || !venueKey || !courtId) return false;
     try {
-      await this.db.collection('venues').doc(venueKey)
-        .collection('courts').doc(courtId).delete();
+      await this._mutateCourts(venueKey, function(courts) {
+        var idx = courts.findIndex(function(c) { return c._id === courtId; });
+        if (idx !== -1) courts.splice(idx, 1);
+      });
       return true;
     } catch (e) {
       console.error('Erro ao apagar court:', e);

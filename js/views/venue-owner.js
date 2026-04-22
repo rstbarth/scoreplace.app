@@ -31,6 +31,7 @@
   var _registeredVenues = [];        // venues carregados na entrada da view
   var _googleSuggestionsForMap = []; // sugestões atuais do Google (map pins)
   var _selectedPinMarker = null;     // pin vermelho destacando venue selecionado
+  var _currentEditingPlace = null;   // venue em edição no _renderForm atual
 
   // Modalidades suportadas — racket-family + wider list (squash, futvôlei etc.)
   // Mantemos uma lista curta pro cadastro rápido; courts multi-sport permitem
@@ -631,6 +632,7 @@
       wrap.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px;color:#fca5a5;font-size:0.82rem;">⚠️ ' + _safe(opts.warning) + '</div>';
       return;
     }
+    _currentEditingPlace = place;
     if (!place) { wrap.innerHTML = ''; return; }
 
     // Merge prefill: existing venue doc > Google auto-fill > empty.
@@ -678,10 +680,11 @@
       ? '<button type="button" id="venue-owner-claim-btn" onclick="window._venueOwnerToggleClaim()" data-claimed="' + (imClaimed ? '1' : '0') + '" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid ' + (imClaimed ? 'rgba(16,185,129,0.5)' : 'rgba(251,191,36,0.4)') + ';background:' + (imClaimed ? 'rgba(16,185,129,0.15)' : 'rgba(251,191,36,0.1)') + ';color:' + (imClaimed ? '#10b981' : '#fbbf24') + ';">' + (imClaimed ? '✅ Reivindicado por você' : '🏢 Reivindicar como proprietário') + '</button>'
       : '<button type="button" disabled style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-muted);cursor:not-allowed;" title="Já reivindicado por outro usuário">🔒 Já reivindicado</button>';
 
-    // Courts button — only active after the venue has been persisted (has placeId).
+    // Courts button — if venue not yet saved, auto-saves first then opens courts.
+    var safePlaceId = _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
     var courtsBtnHtml = opts.existing
-      ? '<button type="button" onclick=\'window._venueCourtAddDialog("' + _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '")\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>'
-      : '<button type="button" disabled title="Salve o local primeiro" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-muted);cursor:not-allowed;">🎾 Cadastrar quadras (salve primeiro)</button>';
+      ? '<button type="button" onclick=\'window._venueCourtAddDialog("' + safePlaceId + '")\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>'
+      : '<button type="button" onclick=\'window._venueSaveAndOpenCourts()\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>';
 
     wrap.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:14px;margin-top:6px;">' +
@@ -879,12 +882,20 @@
     }
     var currentSports = Array.isArray(existing && existing.sports) ? existing.sports : [];
 
-    var sportCheckboxes = SPORTS.map(function(s) {
-      var checked = currentSports.indexOf(s) !== -1 ? 'checked' : '';
-      return '<label style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:8px;font-size:0.82rem;color:var(--text-bright);cursor:pointer;">' +
-        '<input type="checkbox" class="court-form-sport" value="' + _safe(s) + '" ' + checked + '>' +
-        _safe(s) +
-      '</label>';
+    var sportPills = SPORTS.map(function(s) {
+      var on = currentSports.indexOf(s) !== -1;
+      var onStyle = 'background:rgba(99,102,241,0.3);border-color:rgba(99,102,241,0.8);color:#c4b5fd;';
+      var offStyle = 'background:var(--bg-darker);border-color:var(--border-color);color:var(--text-main);';
+      return '<button type="button" class="court-form-sport-pill" data-sport="' + _safe(s) + '" data-active="' + (on ? '1' : '') + '" ' +
+        'onclick="var a=!this.dataset.active;this.dataset.active=a?\'1\':\'\';this.style.cssText=\'padding:6px 12px;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid \'+' +
+        '(a?\'rgba(99,102,241,0.8)\':\'var(--border-color)\')+\';background:\'+' +
+        '(a?\'rgba(99,102,241,0.3)\':\'var(--bg-darker)\')+\';color:\'+' +
+        '(a?\'#c4b5fd\':\'var(--text-main)\')+\';\'" ' +
+        'style="padding:6px 12px;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid ' + (on ? 'rgba(99,102,241,0.8)' : 'var(--border-color)') + ';' +
+        'background:' + (on ? 'rgba(99,102,241,0.3)' : 'var(--bg-darker)') + ';' +
+        'color:' + (on ? '#c4b5fd' : 'var(--text-main)') + ';">' +
+        _sportIconFor(s) + ' ' + _safe(s) +
+      '</button>';
     }).join('');
 
     slot.innerHTML =
@@ -893,9 +904,9 @@
         '<label style="display:block;font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">Número de quadras' +
           '<input type="number" id="court-form-count" min="1" max="999" value="' + _safe(existing ? existing.count : '1') + '" style="display:block;width:100%;margin-top:4px;padding:10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;">' +
         '</label>' +
-        '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:6px;">Modalidades permitidas (marque todas que se aplicam para uso compartilhado)</div>' +
-        '<div id="court-form-sports" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:14px;">' +
-          sportCheckboxes +
+        '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:6px;">Modalidades (toque para selecionar; múltiplas = quadra compartilhada)</div>' +
+        '<div id="court-form-sports" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
+          sportPills +
         '</div>' +
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
           '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'courts-form-slot\').innerHTML=\'\'">Cancelar</button>' +
@@ -909,8 +920,8 @@
     if (!venueKey) return;
     var count = parseInt((document.getElementById('court-form-count') || {}).value, 10) || 1;
     var sports = [];
-    document.querySelectorAll('#court-form-sports input.court-form-sport:checked').forEach(function(cb) {
-      sports.push(cb.value);
+    document.querySelectorAll('#court-form-sports .court-form-sport-pill[data-active="1"]').forEach(function(btn) {
+      sports.push(btn.dataset.sport);
     });
     if (sports.length === 0) {
       if (window.showNotification) window.showNotification('Marque ao menos uma modalidade', '', 'warning');
@@ -1055,6 +1066,42 @@
         if (window.showNotification) window.showNotification('Erro ao salvar local.', String(e.message || e), 'error');
       }
     }
+  };
+
+  // Saves the current venue (if not yet persisted) then opens the courts screen.
+  window._venueSaveAndOpenCourts = async function() {
+    var place = _currentEditingPlace;
+    if (!place || !place.placeId) {
+      if (window.showNotification) window.showNotification('Selecione um local antes de cadastrar quadras.', '', 'warning');
+      return;
+    }
+    // Check if it already exists — if so, skip save and go straight to courts.
+    var existing = await window.VenueDB.loadVenue(place.placeId).catch(function() { return null; });
+    if (!existing) {
+      // Save silently first (no redirect/cancel — just persist).
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var isUserPro = (typeof window._isPro === 'function' && window._isPro()) ||
+                      (cu && cu.plan === 'pro' && (!cu.planExpiresAt || new Date(cu.planExpiresAt) > new Date()));
+      var claimBtn = document.getElementById('venue-owner-claim-btn');
+      var claimAsOwner = !!(claimBtn && claimBtn.getAttribute('data-claimed') === '1');
+      var accessPolicyEl = document.getElementById('venue-owner-access');
+      var hoursGrid = _readHoursGrid();
+      var payload = {
+        placeId: place.placeId, name: place.name, address: place.address,
+        city: place.city || '', lat: place.lat, lon: place.lon,
+        accessPolicy: (accessPolicyEl && accessPolicyEl.value) || 'public',
+        openingHours: _gridAny(hoursGrid) ? { grid: _flattenGrid(hoursGrid) } : null,
+        plan: (claimAsOwner && isUserPro) ? 'pro' : 'free',
+        claimAsOwner: true
+      };
+      try {
+        await window.VenueDB.saveVenue(place.placeId, payload);
+      } catch (e) {
+        if (window.showNotification) window.showNotification('Erro ao salvar local.', String(e.message || e), 'error');
+        return;
+      }
+    }
+    window._venueCourtAddDialog(place.placeId);
   };
 
   window._loadMyVenuesList = async function() {

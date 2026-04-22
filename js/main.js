@@ -1003,6 +1003,11 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.51-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Quadras: salvo e aberto sem fricção + seleção por pills.</b> O botão "Cadastrar quadras" agora funciona em qualquer estado — se o venue ainda não foi salvo, ele salva automaticamente e abre a tela de quadras na sequência, sem aviso "salve primeiro". A seleção de modalidades deixou de ser checkboxes e virou pills coloridas (roxo quando ativado) muito mais compactas e bonitas. Corrigido também o erro "Missing or insufficient permissions" que impedia salvar quadras — as entradas agora ficam dentro do próprio documento do venue, sem subcoleção separada.</p>' +
+        '<p><b>Arquivos</b>: <code>js/venue-db.js</code>, <code>js/views/venue-owner.js</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.50-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>#my-venues: mapa não duplica mais ao selecionar local.</b> A v0.15.49 introduziu o mapa no topo, mas o formulário seguia renderizando um segundo mapa menor internamente — quando você selecionava um venue via Google Places, os dois apareciam juntos. Agora o mapa é único: fica no topo e, ao selecionar, faz zoom-in (nível 16, street-level) no venue com um pin vermelho 📌 destacando a escolha. Ao cancelar, o pin some e o mapa volta a mostrar só os cadastrados.</p>' +
         '<p><b>Arquivos</b>: <code>js/views/venue-owner.js</code>, <code>js/store.js</code>, <code>sw.js</code>, <code>index.html</code>.</p>' +
