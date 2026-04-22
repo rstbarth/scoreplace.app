@@ -271,20 +271,22 @@
         '</div>' +
         '<p style="margin:0 0 14px 0;color:var(--text-muted);font-size:0.88rem;">Encontre clubes, arenas e quadras abertas ao público — ideal quando você está viajando ou descobrindo a cidade.</p>' +
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:14px;">' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
-            '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
-              '<div style="display:flex;gap:6px;">' +
-                '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-                '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;padding:0 10px;border-radius:8px;background:#6366f1;border:none;color:#fff;font-size:1rem;cursor:pointer;">📍</button>' +
-              '</div>' +
+          // Local em linha própria (full-width) — o input + botão 📍 precisam
+          // de toda a largura disponível para endereços longos não serem
+          // truncados. Modalidade passa para a linha seguinte (também
+          // full-width) para melhor legibilidade no mobile.
+          '<div style="margin-bottom:10px;">' +
+            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Local</label>' +
+            '<div style="display:flex;gap:6px;">' +
+              '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Endereço, bairro ou cidade" oninput="window._venuesOnLocation(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;padding:0 10px;border-radius:8px;background:#6366f1;border:none;color:#fff;font-size:1rem;cursor:pointer;">📍</button>' +
             '</div>' +
-            '<div>' +
-              '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
-              '<select id="venues-sport" onchange="window._venuesSetSport(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
-                sportOpts +
-              '</select>' +
-            '</div>' +
+          '</div>' +
+          '<div style="margin-bottom:10px;">' +
+            '<label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">Modalidade</label>' +
+            '<select id="venues-sport" onchange="window._venuesSetSport(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;">' +
+              sportOpts +
+            '</select>' +
           '</div>' +
           // Mín. quadras + Distância: grid 2 colunas dedicado pra manter os
           // inputs sempre alinhados entre si, independente da largura da tela.
@@ -714,42 +716,19 @@
     }, { timeout: 8000, maximumAge: 5 * 60 * 1000 });
   };
 
-  // Auto-geolocate na primeira abertura da view. Comportamento:
-  //   - Mobile (pointer coarse): sempre pede GPS, mesmo com permissão em
-  //     "prompt" — justamente o caso que o usuário pediu ("assim que abrir
-  //     a página"). Se o user negar, cai no fallback da cidade do perfil.
-  //   - Desktop: só dispara GPS se a permissão JÁ está `granted`, para não
-  //     poluir a primeira visita com um prompt intrusivo.
-  //   - Em ambos os casos, só tenta uma vez por sessão (sessionStorage flag).
-  function _isMobile() {
-    try {
-      return window.matchMedia && (
-        window.matchMedia('(pointer: coarse)').matches ||
-        window.matchMedia('(max-width: 768px)').matches
-      );
-    } catch (e) { return false; }
-  }
+  // Auto-geolocate na primeira abertura da view. O usuário pediu que a
+  // página abra como se o 📍 já tivesse sido clicado — em TODOS os devices.
+  //   - Se permissão = granted: resolve silencioso.
+  //   - Se permissão = prompt: browser mostra o diálogo nativo imediatamente.
+  //   - Se permissão = denied: erro catch-ado em _venuesUseMyLocation(false),
+  //     fallback na cidade do perfil/filtro salvo.
   // Idempotência: controlada pelo caller via `state.centerFromGps` (já fez
-  // GPS nesta sessão → não re-pede). Sem sessionStorage flag — aquele
-  // persistia entre reloads e bloqueava o que o usuário explicitamente
-  // quer: refresh da página → GPS automático.
+  // GPS nesta sessão → não re-pede). Sem sessionStorage flag — refresh da
+  // página deve re-disparar o GPS automaticamente.
   function _tryAutoGeolocate() {
-    var isMob = _isMobile();
-    if (isMob) {
-      // Mobile: dispara direto. Se permissão = granted, resolve silencioso.
-      // Se = prompt, browser mostra o diálogo nativo. Se = denied, erro
-      // catch-ado silenciosamente em _venuesUseMyLocation(false).
-      window._venuesUseMyLocation(false);
-      return;
-    }
-    // Desktop: só dispara se permissão já é 'granted' — não invadimos a
-    // primeira visita com um prompt intrusivo num device onde GPS é menos
-    // útil.
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' }).then(function(res) {
-        if (res && res.state === 'granted') window._venuesUseMyLocation(false);
-      }).catch(function() {});
-    }
+    // Dispara independente de mobile/desktop, independente de permissão
+    // prévia. userTriggered=false mantém o UI silencioso se o user negar.
+    window._venuesUseMyLocation(false);
   }
 
   // ── Geocoding: center the map on the typed city (or user's profile city).
