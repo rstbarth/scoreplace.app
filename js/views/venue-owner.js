@@ -168,6 +168,28 @@
     return false;
   }
 
+  // Firestore não aceita arrays aninhados. O grid 7×24 é mantido como array 2D
+  // em memória (shape esperado pela UI), mas persistido como array flat de 168
+  // posições (index = day * 24 + hour).
+  function _flattenGrid(grid) {
+    var flat = [];
+    for (var d = 0; d < 7; d++) {
+      var row = (Array.isArray(grid) && Array.isArray(grid[d])) ? grid[d] : [];
+      for (var h = 0; h < 24; h++) flat.push(row[h] ? 1 : 0);
+    }
+    return flat;
+  }
+  function _expandGrid(flat) {
+    if (!Array.isArray(flat) || flat.length !== 168) return _emptyHoursGrid();
+    var g = [];
+    for (var d = 0; d < 7; d++) {
+      var row = [];
+      for (var h = 0; h < 24; h++) row.push(flat[d * 24 + h] ? 1 : 0);
+      g.push(row);
+    }
+    return g;
+  }
+
   // ─── Small read-only interactive Google Map below the venue name ──────────
   // Single-marker, centered at (lat, lon), zoom ~16. Loads maps+marker
   // libraries on demand (the places library is already loaded by ensurePlaces,
@@ -374,7 +396,7 @@
       var prefillData = {
         contact: { phone: googlePhone, website: googleWebsite },
         website: googleWebsite,
-        openingHours: googleHoursGrid && _gridAny(googleHoursGrid) ? { grid: googleHoursGrid } : null
+        openingHours: googleHoursGrid && _gridAny(googleHoursGrid) ? { grid: _flattenGrid(googleHoursGrid) } : null
       };
       _renderForm({
         placeId: window.VenueDB.venueKey(pid, name),
@@ -432,9 +454,10 @@
       ? '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.76rem;color:var(--text-main);">📍 Preenchido automaticamente do Google (horário, telefone, site). Ajuste o que quiser antes de salvar.</div>'
       : '';
 
-    // Opening hours stored sob ex.openingHours.grid (array 7×24 de booleans).
+    // Opening hours persistido como flat 168 (Firestore não aceita array 2D).
+    // Expande de volta pra 2D — shape esperado pela UI / pintura.
     var hoursGrid = (ex.openingHours && Array.isArray(ex.openingHours.grid))
-      ? ex.openingHours.grid
+      ? _expandGrid(ex.openingHours.grid)
       : _emptyHoursGrid();
 
     // Claim button state
@@ -782,7 +805,7 @@
       // New shape: store the 7×24 grid. Keep in a nested object so it's easy
       // to add future fields (timezone, seasonal overrides) without churning
       // the top level.
-      openingHours: _gridAny(hoursGrid) ? { grid: hoursGrid } : null,
+      openingHours: _gridAny(hoursGrid) ? { grid: _flattenGrid(hoursGrid) } : null,
       contact: {
         phone: (document.getElementById('venue-owner-phone') || {}).value.trim() || '',
         whatsapp: (document.getElementById('venue-owner-whatsapp') || {}).value.trim() || '',
