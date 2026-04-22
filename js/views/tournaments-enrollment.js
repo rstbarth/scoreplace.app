@@ -35,7 +35,18 @@ function _enrollToStandby(t, tId, participantObj, callback) {
 }
 
 window.enrollCurrentUser = function (tId) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    // Busca no scoped list primeiro; se não achar, tenta no discovery feed
+    // (torneios públicos que o usuário ainda não entrou). Torneios do
+    // discovery vivem em AppStore.publicDiscovery até o usuário se inscrever;
+    // antes desta hidratação a chamada falhava silenciosamente pra eles.
+    let t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    if (!t && Array.isArray(window.AppStore.publicDiscovery)) {
+      const fromDiscovery = window.AppStore.publicDiscovery.find(tour => String(tour.id) === String(tId));
+      if (fromDiscovery) {
+        window.AppStore.tournaments.push(fromDiscovery);
+        t = fromDiscovery;
+      }
+    }
     const user = window.AppStore.currentUser;
     if (!user) {
         // Save pending enrollment and trigger login
@@ -101,7 +112,17 @@ window.enrollCurrentUser = function (tId) {
 
 // Internal: performs actual enrollment with optional category
 window._doEnrollCurrentUser = function(tId, selectedCategories) {
-    const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    // Mesma hidratação defensiva: se o torneio veio direto do discovery feed
+    // (dashboard clicou "Inscrever" num card público), precisa estar em
+    // tournaments pro push otimista de participants funcionar.
+    let t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    if (!t && Array.isArray(window.AppStore.publicDiscovery)) {
+      const fromDiscovery = window.AppStore.publicDiscovery.find(tour => String(tour.id) === String(tId));
+      if (fromDiscovery) {
+        window.AppStore.tournaments.push(fromDiscovery);
+        t = fromDiscovery;
+      }
+    }
     const user = window.AppStore.currentUser;
     if (!t || !user) return;
 

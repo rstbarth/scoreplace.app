@@ -107,7 +107,22 @@ window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
 
 // ─── Dashboard Enroll: direct enrollment + navigate to detail ───────────────
 window._dashEnroll = function(tId) {
+  // Look up tournament in both the scoped list AND the discovery feed.
+  // Antes só olhava em AppStore.tournaments (scoped) — quando o usuário
+  // clicava "Inscrever" num card de descoberta (torneio público que ele
+  // ainda não entrou, disponível apenas em publicDiscovery), o find vinha
+  // undefined e o handler caía no fallback enrollCurrentUser que TAMBÉM só
+  // olha em tournaments — falha silenciosa total. Agora, se vier só do
+  // discovery, hidratamos em AppStore.tournaments primeiro pra que as
+  // funções downstream (enrollCurrentUser, _doEnrollCurrentUser) encontrem.
   var t = (window.AppStore.tournaments || []).find(function(x) { return String(x.id) === String(tId); });
+  if (!t && Array.isArray(window.AppStore.publicDiscovery)) {
+    var fromDiscovery = window.AppStore.publicDiscovery.find(function(x) { return String(x.id) === String(tId); });
+    if (fromDiscovery) {
+      window.AppStore.tournaments.push(fromDiscovery);
+      t = fromDiscovery;
+    }
+  }
   var user = window.AppStore.currentUser;
   if (!t || !user) { window.enrollCurrentUser(tId); return; }
 
