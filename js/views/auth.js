@@ -1227,7 +1227,9 @@ async function simulateLoginSuccess(user) {
                      || '';
     _setVal('profile-edit-name', _fallbackName);
     _setVal('profile-edit-gender', cu.gender || '');
-    _setVal('profile-edit-birthdate', cu.birthDate || '');
+    // Birthdate: Firestore armazena em ISO (YYYY-MM-DD); UI mostra
+    // dd/mm/aaaa (PT) ou mm/dd/yyyy (EN). Converte na carga.
+    _setVal('profile-edit-birthdate', (typeof window._isoToDisplayDate === 'function') ? window._isoToDisplayDate(cu.birthDate) : (cu.birthDate || ''));
     _setVal('profile-edit-city', cu.city || '');
     // Hidden field mantido por compat; fonte de verdade real são os pills.
     // Aceita tanto array moderno quanto string CSV legacy.
@@ -1901,6 +1903,51 @@ function _setupPhoneMask(inputEl, countryCode) {
   });
 }
 
+// ─── Birthdate mask (dd/mm/aaaa PT ou mm/dd/yyyy EN) ─────────────────────
+// Input handler: formata conforme o usuário digita (só números) e insere
+// barras automaticamente. Aceita colado (ex: "25021974" → "25/02/1974").
+// Limita a 10 chars. Conversões pra/de ISO (YYYY-MM-DD) são feitas no load
+// e save — Firestore armazena sempre em ISO pra que a ordenação/queries
+// funcionem independente de locale.
+window._maskBirthdate = function(el) {
+  if (!el) return;
+  var digits = (el.value || '').replace(/\D/g, '').slice(0, 8);
+  var parts = [];
+  if (digits.length <= 2) parts.push(digits);
+  else if (digits.length <= 4) parts.push(digits.slice(0, 2), digits.slice(2));
+  else parts.push(digits.slice(0, 2), digits.slice(2, 4), digits.slice(4));
+  el.value = parts.filter(Boolean).join('/');
+};
+
+// Converte ISO (YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SSZ) pra display format
+// baseado na língua do app. Entradas inválidas retornam string vazia.
+window._isoToDisplayDate = function(iso) {
+  if (!iso) return '';
+  var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  var y = m[1], mo = m[2], d = m[3];
+  return (window._currentLang === 'en') ? (mo + '/' + d + '/' + y) : (d + '/' + mo + '/' + y);
+};
+
+// Converte display format pra ISO. Aceita dd/mm/aaaa (PT) ou mm/dd/yyyy (EN)
+// conforme _currentLang. Valida ranges razoáveis (ano 1900-2100, mês 1-12,
+// dia 1-31). Retorna '' se inválido — o save depois ignora e mantém o
+// birthDate antigo.
+window._displayDateToIso = function(str) {
+  if (!str) return '';
+  var m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  var a = m[1], b = m[2], y = m[3];
+  var d, mo;
+  if (window._currentLang === 'en') { mo = a; d = b; } else { d = a; mo = b; }
+  var dN = parseInt(d, 10), moN = parseInt(mo, 10), yN = parseInt(y, 10);
+  if (isNaN(dN) || isNaN(moN) || isNaN(yN)) return '';
+  if (yN < 1900 || yN > 2100) return '';
+  if (moN < 1 || moN > 12) return '';
+  if (dN < 1 || dN > 31) return '';
+  return y + '-' + String(moN).padStart(2, '0') + '-' + String(dN).padStart(2, '0');
+};
+
 // ─── Profile sports pills (toggle + UI apply) ────────────────────────────
 // Fonte de verdade: window._profileSelectedSports (array). Os pills do DOM
 // refletem esse array via _applyProfileSportsUI, e o toggle atualiza o
@@ -2399,7 +2446,14 @@ function setupProfileModal() {
               '</div>' +
               '<div class="form-group" style="margin: 0;">' +
                 '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelBirth') + '</label>' +
-                '<input type="date" id="profile-edit-birthdate" class="form-control" style="width: 100%; box-sizing: border-box;">' +
+                // Masked text input — native <input type="date"> renderiza
+                // datas em formato longo no iOS/Android ("25 de fev. de 1974")
+                // e esquisito no desktop; também fica mais alto que os
+                // irmãos por causa do date-picker button. Usamos text com
+                // inputmode="numeric" + mask JS pra garantir dd/mm/aaaa
+                // consistente em todos os dispositivos. Placeholder adapta
+                // pra língua escolhida (pt-BR: dd/mm/aaaa, en: mm/dd/yyyy).
+                '<input type="text" inputmode="numeric" id="profile-edit-birthdate" class="form-control" placeholder="' + ((window._currentLang === 'en') ? 'mm/dd/yyyy' : 'dd/mm/aaaa') + '" maxlength="10" autocomplete="bday" style="width: 100%; box-sizing: border-box;" oninput="window._maskBirthdate(this)">' +
               '</div>' +
             '</div>' +
             // Row: Cidade + Categoria (2 colunas)
@@ -3051,7 +3105,17 @@ function setupProfileModal() {
         } catch (e) {}
       }
       var gender = document.getElementById('profile-edit-gender').value;
-      var birthDate = document.getElementById('profile-edit-birthdate').value;
+      // Birthdate: converte display → ISO pra armazenar. Se o usuário
+      // digitou algo inválido, mantém o valor anterior (protege contra
+      // typo acidental apagando o dado).
+      var birthRaw = document.getElementById('profile-edit-birthdate').value;
+      var birthDate = (typeof window._displayDateToIso === 'function')
+        ? window._displayDateToIso(birthRaw)
+        : birthRaw;
+      if (!birthDate && birthRaw && window.AppStore.currentUser.birthDate) {
+        // Entrada inválida — mantém o birthDate atual em vez de limpar.
+        birthDate = window.AppStore.currentUser.birthDate;
+      }
       var city = document.getElementById('profile-edit-city').value.trim();
       // Phone: grab raw digits only
       var phoneDigits = (document.getElementById('profile-edit-phone').getAttribute('data-digits') || '').replace(/\D/g, '');
