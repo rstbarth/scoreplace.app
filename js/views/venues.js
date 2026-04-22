@@ -368,36 +368,16 @@
   function _selectedPlaceCard(p) {
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
       (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
-    var loggedIn = !!(window.AppStore && window.AppStore.currentUser);
-    var cu = loggedIn && window.AppStore.currentUser;
     var ev = p.existingVenue;
     var borderColor = ev ? '#10b981' : '#6366f1';
-
-    var ctaHtml;
-    if (ev) {
-      var isOwner = cu && ev.ownerUid && ev.ownerUid === cu.uid;
-      var safePid = _safe(p.placeId);
-      ctaHtml =
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px 12px;">' +
-          '<span style="font-size:0.8rem;color:#10b981;font-weight:700;">✅ Já cadastrado no scoreplace</span>' +
-          (isOwner
-            ? '<button class="btn btn-sm btn-secondary" onclick="window._venueOwnerEditExisting(\'' + safePid + '\');window.location.hash=\'#my-venues\'">Editar</button>'
-            : '<a href="#venues/' + encodeURIComponent(p.placeId || '') + '" class="btn btn-sm btn-secondary">Ver</a>') +
-        '</div>';
-    } else {
-      ctaHtml = loggedIn
-        ? '<button class="btn btn-sm btn-primary hover-lift" style="width:100%;" onclick="window.location.hash=\'#my-venues\'">+ Cadastrar no scoreplace</button>'
-        : '<button class="btn btn-sm btn-secondary hover-lift" style="width:100%;" onclick="if(typeof openModal===\'function\')openModal(\'modal-login\')">Entre para cadastrar</button>';
-    }
-
-    return '<div style="background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
-      '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;margin-bottom:4px;">📍 ' + _safe(p.name) + '</div>' +
-      (p.address ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-bottom:10px;">' + _safe(p.address) + '</div>' : '') +
-      '<div style="display:flex;flex-direction:column;gap:6px;">' +
-        ctaHtml +
-        '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-sm btn-secondary hover-lift" style="text-align:center;text-decoration:none;">🗺️ Ver no Google Maps</a>' +
-      '</div>' +
-    '</div>';
+    var registeredBadge = ev
+      ? '<div style="margin-top:6px;font-size:0.78rem;color:#10b981;font-weight:600;">✅ Cadastrado no scoreplace</div>'
+      : '';
+    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:block;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:14px;padding:14px 16px;margin-bottom:14px;text-decoration:none;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;">📍 ' + _safe(p.name) + '</div>' +
+      (p.address ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:3px;">' + _safe(p.address) + '</div>' : '') +
+      registeredBadge +
+    '</a>';
   }
 
   function renderResults() {
