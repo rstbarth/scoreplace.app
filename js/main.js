@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.77-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Menu empurra conteúdo em toda página.</b> Completa a correção de v0.15.75: o hamburger aberto agora empurra o conteúdo para baixo de forma consistente em TODAS as páginas, inclusive no dashboard. A contagem de back-headers visíveis (_reflowChrome) ignora os que estão dentro de modais inativos — eles permanecem no DOM via opacity:0 + pointer-events:none e por isso falsavam a condição, impedindo o paddingTop do view-container em páginas sem overlay.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.76-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Lista de Espera restaurada.</b> Ajuste de escopo: o painel separado "Lista de Espera" continua visível na view de presença (traz o botão Preencher, contato, ordem de chegada). Os membros também aparecem na lista principal em ordem alfabética com rótulo âmbar — facilita só localizar nomes na lista única sem eliminar a ferramenta da lista de espera.</p>' +
         '</div>' +

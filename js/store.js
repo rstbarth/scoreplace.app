@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.76-alpha';
+window.SCOREPLACE_VERSION = '0.15.77-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -499,26 +499,27 @@ window._reflowChrome = function() {
   var ddH = 0;
 
   var backHeaders = document.querySelectorAll('.sticky-back-header');
-  var hasBackHeader = backHeaders.length > 0;
 
-  // Find any static back-header (inside an overlay/modal — not fixed).
-  // For overlays, the dropdown must snap to the back-header's actual bottom edge
-  // in the viewport, not to viewport+topbarH (which puts it in the backdrop above
-  // the card or at the wrong position inside a fullscreen overlay).
+  // A back-header only "counts" if it is actually visible to the user:
+  // either position:fixed on a regular page, or static inside an *active*
+  // .modal-overlay. Inactive modals are kept in the DOM (opacity:0 +
+  // pointer-events:none, NOT display:none), so their back-headers would
+  // otherwise inflate the count and stop the dropdown from pushing content.
+  var visibleBackHeaders = [];
   var staticBH = null;
   backHeaders.forEach(function(bh) {
-    if (window.getComputedStyle(bh).position === 'fixed') return;
-    // Skip back-headers inside an inactive .modal-overlay. Modals are hidden via
-    // opacity:0 + pointer-events:none (NOT display:none), so their static
-    // back-headers still report non-zero rects — we have to check the ancestor
-    // explicitly. Without this check, staticBH would latch onto the inactive
-    // #modal-quick-create BH on every regular page and snap the dropdown to 0px.
     var overlayAncestor = bh.closest && bh.closest('.modal-overlay');
     if (overlayAncestor && !overlayAncestor.classList.contains('active')) return;
     var _r = bh.getBoundingClientRect();
     if (_r.width === 0 && _r.height === 0) return; // display:none — skip
-    staticBH = bh;
+    visibleBackHeaders.push(bh);
+    if (window.getComputedStyle(bh).position !== 'fixed') {
+      // For overlays, the dropdown must snap to the back-header's actual
+      // bottom edge in the viewport rather than topbarH.
+      staticBH = bh;
+    }
   });
+  var hasBackHeader = visibleBackHeaders.length > 0;
 
   if (dd) {
     if (staticBH) {
