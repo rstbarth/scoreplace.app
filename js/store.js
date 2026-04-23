@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.77-alpha';
+window.SCOREPLACE_VERSION = '0.15.78-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -541,12 +541,15 @@ window._reflowChrome = function() {
       var next = bh.nextElementSibling;
       if (next) {
         var bhH = Math.ceil(bh.getBoundingClientRect().height);
-        next.style.marginTop = (ddH + bhH + 8) + 'px';
+        // Use !important because overlay CSS uses `margin-top: 0 !important`
+        // to suppress the default 50px spacer — our dynamic value has to win.
+        next.style.setProperty('margin-top', (ddH + bhH + 8) + 'px', 'important');
       }
     } else {
       var next = bh.nextElementSibling;
       if (next) {
-        next.style.marginTop = ddH > 0 ? (ddH + 8) + 'px' : '0';
+        var mt = ddH > 0 ? (ddH + 8) + 'px' : '0';
+        next.style.setProperty('margin-top', mt, 'important');
       }
     }
   });

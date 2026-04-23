@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.78-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Menu empurra conteúdo também em overlays.</b> Complementa v0.15.77: em Novo Torneio, Partida Casual e modais afins, uma regra CSS com <code>!important</code> (suprimia o spacer padrão de 50px) estava anulando o margin-top inline que o _reflowChrome calcula quando o dropdown abre. Trocamos <code>element.style.marginTop = ...</code> por <code>setProperty(..., \'important\')</code> para o valor dinâmico vencer, preservando o padrão 0 quando o menu está fechado.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.77-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Menu empurra conteúdo em toda página.</b> Completa a correção de v0.15.75: o hamburger aberto agora empurra o conteúdo para baixo de forma consistente em TODAS as páginas, inclusive no dashboard. A contagem de back-headers visíveis (_reflowChrome) ignora os que estão dentro de modais inativos — eles permanecem no DOM via opacity:0 + pointer-events:none e por isso falsavam a condição, impedindo o paddingTop do view-container em páginas sem overlay.</p>' +
         '</div>' +
