@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.91-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cabeçalho de inscritos: espaço elegante entre <i>Voltar</i> e os filtros.</b> Na tela de inscritos com check-in ativo, o <code>extraStyle: padding-bottom:0</code> do <code>_renderBackHeader</code> deixava a linha de filtros (Todos/Presentes/Ausentes/Aguardando) colada no botão Voltar. Adicionado <code>margin-top:8px</code> no container dos filtros — mesmo gap que o <code>flex-wrap</code> já aplicava entre linhas dos próprios filtros, agora também acima deles. Puro visual, zero efeito funcional.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.90-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>W.O. unificado: sempre tenta substituir, botão "Preencher" do topo removido.</b> Registrar W.O. individual em time agora mostra sempre o mesmo diálogo (<i>"O próximo da lista de espera substituirá apenas {jogador}"</i> + botão <i>Substituir Individual</i>), independentemente de ser o primeiro ou o N-ésimo W.O. do torneio. Se houver alguém presente na lista de espera, substitui; se não houver, marca ausente e aguarda substituto — mesmo efeito, UX consistente. O botão verde <i>🔄 Preencher</i> que aparecia no topo da Lista de Espera foi removido — a operação acontece toda pelo W.O. direto no card do jogador.</p>' +
         '</div>' +

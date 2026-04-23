@@ -841,7 +841,7 @@ function renderParticipants(container, tournamentId) {
   const pctPresent = totalIndividuals > 0 ? Math.round(checkedCount / totalIndividuals * 100) : 0;
 
   const checkInControls = canCheckIn ? `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:4px;flex-wrap:wrap;">
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'all')" style="border:1px solid ${currentFilter === 'all' ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'all' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'all' ? '#a5b4fc' : 'var(--text-muted)'};">Todos (${totalIndividuals})</button>
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'present')" style="border:1px solid ${currentFilter === 'present' ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'present' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'present' ? '#4ade80' : 'var(--text-muted)'};">Presentes (${checkedCount})</button>
         <button class="btn btn-pill btn-sm" onclick="window._setCheckInFilter('${tId}', 'absent')" style="border:1px solid ${currentFilter === 'absent' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'};background:${currentFilter === 'absent' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)'};color:${currentFilter === 'absent' ? '#f87171' : 'var(--text-muted)'};">Ausentes (${absentConfirmedCount})</button>
