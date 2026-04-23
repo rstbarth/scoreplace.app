@@ -990,10 +990,25 @@ window._renderPersistentMatchStats = function(records, uid) {
         var lp = Math.round(totalL / maxV * 100);
         var rp = Math.round(totalR / maxV * 100);
         var leftClr = opts.leftClr || '#ef4444', rightClr = opts.rightClr || '#22c55e';
-        var col = function(icon, val, clr) {
+        // Percentages per source: left vs right within the same source (tournament
+        // or casual). Ex: na linha Derrotas/Vitórias, derrota-tourn% = 0/(0+3)*100
+        // e vitória-tourn% = 3/(0+3)*100. Dá "0 (0%) ... 3 (100%)" por fonte.
+        // noPct=true desabilita para métricas de média/mín/máx onde o par não é
+        // somável (ex: "TB Vencidos mínimo/máximo").
+        var tournSum = (leftTourn || 0) + (rightTourn || 0);
+        var casualSum = (leftCasual || 0) + (rightCasual || 0);
+        var pctLT = !opts.noPct && tournSum > 0 ? Math.round((leftTourn || 0) / tournSum * 100) : null;
+        var pctLC = !opts.noPct && casualSum > 0 ? Math.round((leftCasual || 0) / casualSum * 100) : null;
+        var pctRC = !opts.noPct && casualSum > 0 ? Math.round((rightCasual || 0) / casualSum * 100) : null;
+        var pctRT = !opts.noPct && tournSum > 0 ? Math.round((rightTourn || 0) / tournSum * 100) : null;
+        var col = function(icon, val, clr, pct) {
+            var pctHtml = (pct !== null && pct !== undefined)
+                ? '<span style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(' + pct + '%)</span>'
+                : '';
             return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:22px;">' +
                 '<span style="font-size:0.7rem;opacity:0.85;line-height:1;">' + icon + '</span>' +
                 '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + (val || 0) + '</span>' +
+                pctHtml +
             '</div>';
         };
         return '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +
@@ -1007,12 +1022,12 @@ window._renderPersistentMatchStats = function(records, uid) {
             // (outer = 🏆 tournament, inner = ⚡ casual)
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
                 '<div style="display:flex;justify-content:flex-start;gap:10px;">' +
-                    col('🏆', leftTourn, leftClr) +
-                    col('⚡', leftCasual, leftClr) +
+                    col('🏆', leftTourn, leftClr, pctLT) +
+                    col('⚡', leftCasual, leftClr, pctLC) +
                 '</div>' +
                 '<div style="display:flex;justify-content:flex-end;gap:10px;">' +
-                    col('⚡', rightCasual, rightClr) +
-                    col('🏆', rightTourn, rightClr) +
+                    col('⚡', rightCasual, rightClr, pctRC) +
+                    col('🏆', rightTourn, rightClr, pctRT) +
                 '</div>' +
             '</div>' +
             // Bars row: diverge from center
@@ -1132,13 +1147,14 @@ window._renderPersistentMatchStats = function(records, uid) {
             tbBreakdownRows =
                 _diffBarRow('Pontos TB Médios', 'perdidos', 'vencidos',
                     Math.round(tbAvgLostCraw * 10) / 10, Math.round(tbAvgLostTraw * 10) / 10,
-                    Math.round(tbAvgWonCraw * 10) / 10, Math.round(tbAvgWonTraw * 10) / 10) +
+                    Math.round(tbAvgWonCraw * 10) / 10, Math.round(tbAvgWonTraw * 10) / 10,
+                    { noPct: true }) +
                 _diffBarRow('TB Vencidos', 'mínimo', 'máximo',
                     tbWonMinCraw, tbWonMinTraw, tbWonMaxCraw, tbWonMaxTraw,
-                    { leftClr: '#22c55e', rightClr: '#22c55e' }) +
+                    { leftClr: '#22c55e', rightClr: '#22c55e', noPct: true }) +
                 _diffBarRow('TB Perdidos', 'mínimo', 'máximo',
                     tbLostMinCraw, tbLostMinTraw, tbLostMaxCraw, tbLostMaxTraw,
-                    { leftClr: '#ef4444', rightClr: '#ef4444' });
+                    { leftClr: '#ef4444', rightClr: '#ef4444', noPct: true });
         }
         html += '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
             _diffBarRow('', 'Derrotas', 'Vitórias', c.losses, t.losses, c.wins, t.wins) +
