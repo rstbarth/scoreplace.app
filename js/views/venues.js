@@ -366,18 +366,24 @@
   }
 
   function _selectedPlaceCard(p) {
-    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
-      (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
     var ev = p.existingVenue;
     var borderColor = ev ? '#10b981' : '#6366f1';
-    var registeredBadge = ev
-      ? '<div style="margin-top:6px;font-size:0.78rem;color:#10b981;font-weight:600;">✅ Cadastrado no scoreplace</div>'
-      : '';
-    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:block;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:14px;padding:14px 16px;margin-bottom:14px;text-decoration:none;">' +
-      '<div style="font-weight:700;color:var(--text-bright);font-size:1rem;">📍 ' + _safe(p.name) + '</div>' +
-      (p.address ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:3px;">' + _safe(p.address) + '</div>' : '') +
-      registeredBadge +
-    '</a>';
+    var safeName = _safe(p.name || '');
+    var safeId = _safe(p.placeId || '');
+    if (ev) {
+      // Registered → compact one-liner, click opens venue detail with courts etc.
+      return '<div onclick="window._venuesOpenDetail(\'' + safeId + '\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:12px;padding:10px 14px;margin-bottom:14px;">' +
+        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;flex:1;min-width:0;word-break:break-word;">📍 ' + safeName + '</span>' +
+        '<span style="flex-shrink:0;display:flex;align-items:center;gap:3px;font-size:0.78rem;font-weight:700;color:#10b981;white-space:nowrap;">✅ Score</span>' +
+      '</div>';
+    } else {
+      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
+        (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+      return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:12px;padding:10px 14px;margin-bottom:14px;text-decoration:none;">' +
+        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;flex:1;min-width:0;word-break:break-word;">📍 ' + safeName + '</span>' +
+        '<span style="flex-shrink:0;font-size:0.72rem;color:#94a3b8;white-space:nowrap;">🗺️</span>' +
+      '</a>';
+    }
   }
 
   function renderResults() {

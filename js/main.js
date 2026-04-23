@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.62-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Card de local compacto em #venues.</b> O card do local selecionado agora exibe apenas nome + ✅ Score em uma linha. Clicando abre os detalhes do local (quadras, esportes, avaliações).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.61-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix: resolução de potência de 2 para torneios de duplas/times.</b> O cálculo de quantos participantes remover usava "excesso em times" em vez de "excesso em participantes", causando remoção insuficiente e retorno ao painel de resto. Corrigido usando excessParticipants (= excess × teamSize) em _executeRemoval e _showRemovalSubChoice.</p>' +
         '</div>' +
