@@ -290,7 +290,17 @@ window._declareAbsent = function (tId, playerName) {
     else if (_normTeam(m.p2) === _teamNameNorm) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
   });
 
-  const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  // Merge both waitlist sources (dedup by name) — mesmo padrão de _autoSubstituteWO e bracket.js
+  const _getName = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+  const _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  const _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
+  const _spNames = new Set(_sp.map(_getName));
+  const standby = _sp.slice();
+  _wl.forEach(w => { const wn = _getName(w); if (wn && !_spNames.has(wn)) standby.push(w); });
+  const _removeFromWaitlists = (name) => {
+    if (Array.isArray(t.standbyParticipants)) t.standbyParticipants = t.standbyParticipants.filter(p => _getName(p) !== name);
+    if (Array.isArray(t.waitlist)) t.waitlist = t.waitlist.filter(p => _getName(p) !== name);
+  };
   const hasStandby = standby.length > 0;
   const friendlyNum = matchIdx >= 0 ? matchIdx + 1 : '?';
   const opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
@@ -365,7 +375,7 @@ window._declareAbsent = function (tId, playerName) {
         else { partsArr[pIdx].displayName = newTeamName; partsArr[pIdx].name = newTeamName; }
       }
       t.participants = partsArr;
-      t.standbyParticipants = [...standby.slice(0, nextStandbyIdx), ...standby.slice(nextStandbyIdx + 1)];
+      _removeFromWaitlists(nextName);
       t.checkedIn[nextName] = true;
 
       window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
@@ -397,7 +407,7 @@ window._declareAbsent = function (tId, playerName) {
       });
       if (pIdx >= 0) partsArr[pIdx] = nextName;
       t.participants = partsArr;
-      t.standbyParticipants = [...standby.slice(0, nextStandbyIdx), ...standby.slice(nextStandbyIdx + 1)];
+      _removeFromWaitlists(nextName);
 
       window.AppStore.logAction(tId, `Ausência: ${playerName} (${teamName}) substituído por ${nextName} da lista de espera — Jogo ${friendlyNum}`);
       window.AppStore.sync();
