@@ -86,16 +86,14 @@ window._showAppInviteQR = function() {
     var printLabel = (_t && _t('invite.printQr')) || 'Imprimir';
 
     modal.innerHTML = '' +
-      '<div style="display:flex;align-items:center;gap:8px;padding:0 0 1rem 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1rem;">' +
+      '<div style="display:flex;align-items:center;gap:8px;padding:0 0 0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1rem;">' +
         '<button onclick="document.getElementById(\'qr-modal-overlay\').remove()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main,#cbd5e1);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
           ((_t && _t('btn.back')) || 'Voltar') +
         '</button>' +
-        '<div style="flex:1;text-align:center;font-size:0.9rem;font-weight:700;color:var(--text-bright,#fff);">📱 ' + window._safeHtml(title) + '</div>' +
-        '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color,#fff);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' +
-        '</button>' +
+        '<div style="flex:1;"></div>' +
       '</div>' +
+      '<h3 style="margin:0 0 0.5rem;font-size:1.2rem;color:var(--text-bright,#fff);">📱 ' + window._safeHtml(title) + '</h3>' +
       '<p style="margin:0 0 1rem;font-size:0.85rem;color:var(--text-muted,#94a3b8);">' + window._safeHtml(desc) + '</p>' +
       '<div style="background:' + (isLight ? '#ffffff' : '#1a1e2e') + ';border-radius:16px;padding:16px;display:inline-block;margin-bottom:1rem;">' +
         '<img id="qr-code-img" src="' + (isLight ? qrImageUrlLight : qrImageUrl) + '" alt="QR Code" style="width:280px;height:280px;border-radius:8px;" onerror="this.parentElement.innerHTML=\'<p style=color:#ef4444;font-size:0.85rem;>Erro ao gerar QR Code. Verifique sua conexão.</p>\'">' +

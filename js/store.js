@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.69-alpha';
+window.SCOREPLACE_VERSION = '0.15.70-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -235,6 +235,11 @@ window._toggleHamburger = function(btn) {
   document.body.classList.add('hamburger-open');
   if (btn) btn.setAttribute('aria-expanded', 'true');
 
+  // If triggered from within a high-z overlay (e.g. casual at 100002, support at 100000),
+  // raise dropdown above that overlay so the menu is actually visible.
+  var highZParent = btn && btn.closest && btn.closest('#casual-match-overlay, #modal-support-pix');
+  dd.style.zIndex = highZParent ? '200000' : '';
+
   // Push back-header (Voltar) down so it appears below the dropdown.
   // Double rAF ensures the dropdown has painted before we measure its height.
   window._reflowChrome();
@@ -252,6 +257,7 @@ window._toggleHamburger = function(btn) {
 window._closeHamburger = function() {
   var dd = document.getElementById('hamburger-dropdown');
   if (dd) {
+    dd.style.zIndex = ''; // reset any elevated z-index from overlay context
     dd.classList.remove('open');
     dd.innerHTML = '';
   }

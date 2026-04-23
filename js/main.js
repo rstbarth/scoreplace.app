@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.70-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix hamburger centralizado.</b> (1) CSS: hamburger do back-header oculto em páginas normais (topbar já o tem) — visível APENAS dentro de overlays fullscreen onde a topbar fica coberta (.modal-overlay, #casual-match-overlay, #modal-support-pix). (2) _toggleHamburger: eleva z-index do dropdown para 200000 quando disparado de dentro de overlays de alto z-index (casual=100002, apoie=100000) — menu efetivamente abre. (3) Modal QR (Convidar para o app): título volta para o corpo do card, header tem só o botão Voltar.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.69-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cabeçalho padrão completo em todas as páginas.</b> (1) Hamburger + conteúdo se empurram: quando o menu abre, o conteúdo desce em vez de ser sobreposto. (2) Modal "Novo Torneio" (Criação Rápida): cabeçalho padrão com Voltar + título + hamburger substituindo o antigo botão avulso. (3) Overlay "Partida Casual": cabeçalho padrão com Voltar + título + Iniciar + hamburger substituindo o gradiente personalizado. (4) Modal "Convidar para o app" (QR): cabeçalho padrão com Voltar + título + hamburger.</p>' +
         '</div>' +

@@ -21,10 +21,12 @@
 .sticky-back-header + * {
   margin-top: 50px;
 }
-/* Hamburger button inside back header — shown on mobile/hamburger mode only */
+/* Hamburger button inside back header — hidden on regular pages (topbar handles it).
+   Shown ONLY inside fullscreen overlays where the topbar is hidden behind the z-index. */
 .back-hdr-ham { display: none !important; }
-@media (max-width: 767px) { .back-hdr-ham { display: inline-flex !important; } }
-.topbar.topbar-hamburger ~ .main-content .back-hdr-ham { display: inline-flex !important; }
+.modal-overlay .back-hdr-ham,
+#casual-match-overlay .back-hdr-ham,
+#modal-support-pix .back-hdr-ham { display: inline-flex !important; }
 
 /* ==== HAMBURGER DROPDOWN (outside topbar) ==== */
 /* This element is a SIBLING of <header class="topbar">, NOT a child.
