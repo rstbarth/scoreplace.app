@@ -172,7 +172,17 @@ window.VenueDB = {
       return list.filter(function(v) {
         if (cityQ && !(v.city || '').toLowerCase().includes(cityQ)) return false;
         if (priceQ && v.priceRange !== priceQ) return false;
-        if (minCourts > 0 && (!v.courtCount || v.courtCount < minCourts)) return false;
+        if (minCourts > 0) {
+          // Aceita courtCount escalar OU courts[] array — cadastros recentes
+          // gravam o array (v0.15.51+) mas nem sempre o contador denormalizado.
+          // Venues sem nenhuma das duas coisas (cadastro inicial) passam como
+          // wildcard — mesmo princípio do filtro de sport.
+          var effectiveCount = (typeof v.courtCount === 'number' && v.courtCount > 0)
+            ? v.courtCount
+            : (Array.isArray(v.courts) ? v.courts.length : 0);
+          if (effectiveCount > 0 && effectiveCount < minCourts) return false;
+          // effectiveCount === 0 passa como wildcard (venue ainda sem quadras).
+        }
         if (sportQ) {
           var sportsArr = Array.isArray(v.sports) ? v.sports : [];
           // Venues sem sports declarados (cadastro novo, sem quadras) passam

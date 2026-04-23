@@ -2423,10 +2423,30 @@ window.toggleRegistrationStatus = function (tId) {
             });
         } catch(e) {}
         if (hasRelevantIssues) {
-            // Fire the panel. If for any reason the overlay DOESN'T appear within
-            // one tick (missing function, throw inside panel, stale cache on older
-            // build) surface a visible toast so the organizer isn't left with a
-            // silently-failed button.
+            // Fire the panel. If for any reason the overlay DOESN'T appear
+            // surface a visible toast so the organizer isn't left with a
+            // silently-failed button. We check TWICE: once synchronously
+            // (catches throws inside _showRemainderPanel / showUnified…) and
+            // once at 120ms (catches async removal by something else). Version
+            // is embedded in the toast so a stale-cache browser shows whatever
+            // version it cached — making stale-cache easy to diagnose.
+            var _ver = window.SCOREPLACE_VERSION || '?';
+            function _overlayPresent() {
+                return document.getElementById('unified-resolution-panel') ||
+                       document.getElementById('groups-config-panel') ||
+                       document.getElementById('remainder-resolution-panel');
+            }
+            function _diagStr(extra) {
+                return (extra ? extra + ' | ' : '') +
+                    'v=' + _ver +
+                    ' | fmt=' + (t.format || '?') +
+                    ' | teams=' + diag.effectiveTeams +
+                    ' | resto=' + diag.remainder +
+                    ' | pot2=' + diag.isPowerOf2 +
+                    ' | ímpar=' + diag.isOdd +
+                    ' | incomp=' + diag.incompleteTeams.length;
+            }
+            var panelThrew = false;
             try {
                 if (typeof window.showUnifiedResolutionPanel === 'function') {
                     window.showUnifiedResolutionPanel(tId);
@@ -2434,27 +2454,26 @@ window.toggleRegistrationStatus = function (tId) {
                     throw new Error('showUnifiedResolutionPanel is not defined');
                 }
             } catch(e) {
+                panelThrew = true;
                 console.error('[Encerrar Inscrições] panel throw:', e);
                 if (typeof showNotification === 'function') {
-                    showNotification('⚠️ Erro ao abrir painel', String(e && e.message || e), 'error');
+                    showNotification('⚠️ Erro ao abrir painel (sync)', _diagStr('err=' + String(e && e.message || e)), 'error');
                 }
             }
-            // Verify the overlay actually appeared — if not, the panel returned
-            // early without rendering (unexpected). Surface details so we can
-            // pinpoint the real cause instead of guessing.
+            // Synchronous check: if no overlay RIGHT NOW (and no throw), the
+            // panel function returned early without rendering (bug in the
+            // dispatch logic itself, not an async removal).
+            if (!panelThrew && !_overlayPresent() && typeof showNotification === 'function') {
+                showNotification('⚠️ Painel não criado (sync)', _diagStr(), 'warning');
+            }
+            // Async check: catches cases where the overlay was created then
+            // immediately removed by another code path (re-render, onSnapshot,
+            // etc). Only fires if no overlay exists at 120ms AND the sync
+            // check passed (avoids duplicate toasts).
             setTimeout(function() {
-                var rendered = document.getElementById('unified-resolution-panel') ||
-                               document.getElementById('groups-config-panel') ||
-                               document.getElementById('remainder-resolution-panel');
-                if (!rendered && typeof showNotification === 'function') {
-                    showNotification('⚠️ Painel não abriu',
-                        'fmt=' + (t.format || '?') +
-                        ' | teams=' + diag.effectiveTeams +
-                        ' | resto=' + diag.remainder +
-                        ' | pot2=' + diag.isPowerOf2 +
-                        ' | ímpar=' + diag.isOdd +
-                        ' | incomp=' + diag.incompleteTeams.length,
-                        'warning');
+                if (panelThrew) return;
+                if (!_overlayPresent() && typeof showNotification === 'function') {
+                    showNotification('⚠️ Painel removido (async)', _diagStr(), 'warning');
                 }
             }, 120);
             return;
