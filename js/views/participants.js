@@ -20,7 +20,8 @@ window._toggleCheckIn = function (tId, playerName) {
   if (!t) return;
   if (!t.checkedIn) t.checkedIn = {};
   if (!t.absent) t.absent = {};
-  if (t.checkedIn[playerName]) {
+  const wasCheckedIn = !!t.checkedIn[playerName];
+  if (wasCheckedIn) {
     // Desmarcar presença → volta ao estado "sem confirmação"
     delete t.checkedIn[playerName];
   } else {
@@ -30,6 +31,32 @@ window._toggleCheckIn = function (tId, playerName) {
   }
   window.FirestoreDB.saveTournament(t);
   _reRenderParticipants();
+
+  // Auto-substitute: se acabamos de marcar um jogador da lista de espera como Presente
+  // e há um ausente pendente em um jogo ativo (W.O. declarado antes do substituto estar
+  // presente), dispara o fluxo de substituição que já mostra confirmação explicativa.
+  if (!wasCheckedIn) {
+    const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+    const waitlist = Array.isArray(t.waitlist) ? t.waitlist : [];
+    const _nm = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+    const inStandby = standby.some(p => _nm(p) === playerName) || waitlist.some(p => _nm(p) === playerName);
+    if (inStandby && t.absent && Object.keys(t.absent).length > 0) {
+      const allMatches = (typeof window._collectAllMatches === 'function')
+        ? window._collectAllMatches(t) : (Array.isArray(t.matches) ? t.matches : []);
+      const hasPendingWO = allMatches.some(m => {
+        if (!m || m.winner || m.isBye) return false;
+        return ['p1', 'p2'].some(slot => {
+          const entry = m[slot];
+          if (!entry || entry === 'TBD' || entry === 'BYE') return false;
+          const members = entry.includes(' / ') ? entry.split(' / ').map(n => n.trim()) : [entry];
+          return members.some(n => t.absent[n]);
+        });
+      });
+      if (hasPendingWO && typeof window._autoSubstituteWO === 'function') {
+        setTimeout(function() { window._autoSubstituteWO(tId, playerName); }, 120);
+      }
+    }
+  }
 };
 
 window._markAbsent = function (tId, playerName) {

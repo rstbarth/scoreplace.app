@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.92-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Substituição W.O. completa quando o substituto chega depois.</b> Se o organizador declarou W.O. sem que o próximo da Lista de Espera estivesse presente, o jogador ausente ficava parado no time e o jogo da chave nunca era atualizado — mesmo que o substituto fosse marcado Presente mais tarde. Agora <code>_toggleCheckIn</code> detecta o cenário (jogador que acabou de chegar está na lista de espera + existe ausente pendente em jogo não decidido) e dispara automaticamente o fluxo <code>_autoSubstituteWO</code> com confirmação explicativa (<i>"W.O.: Bot 36, Parceiro: Bot 24 permanece, Substituto: Rodrigo Barth, Novo time: Rodrigo Barth / Bot 24"</i>). Preview-verified com 5 cenários: cenário positivo substitui corretamente; toggle off, jogador titular, sem ausente pendente e jogo já decidido não disparam nada.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.91-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cabeçalho de inscritos: espaço elegante entre <i>Voltar</i> e os filtros.</b> Na tela de inscritos com check-in ativo, o <code>extraStyle: padding-bottom:0</code> do <code>_renderBackHeader</code> deixava a linha de filtros (Todos/Presentes/Ausentes/Aguardando) colada no botão Voltar. Adicionado <code>margin-top:8px</code> no container dos filtros — mesmo gap que o <code>flex-wrap</code> já aplicava entre linhas dos próprios filtros, agora também acima deles. Puro visual, zero efeito funcional.</p>' +
         '</div>' +
