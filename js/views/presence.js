@@ -1044,16 +1044,12 @@
     };
     window.PresenceDB.savePresence(payload).then(function(id) {
       if (window.showNotification) window.showNotification('Presença registrada! Seus amigos já podem ver.', 'success');
+      // NÃO fazer push manual em state.myActive/presences aqui. O onSnapshot
+      // ouvindo a coleção (ver attachListener) rebuilda ambos do Firestore
+      // toda vez que um doc é criado. Push manual + rebuild do snapshot gerava
+      // duplicata visual quando o snapshot chegava ANTES do .then (race real
+      // observada em produção). O listener é agora a única fonte de verdade.
       payload._id = id;
-      state.myActive.push(payload);
-      state.presences.push(payload);
-      renderMyActive();
-      renderChart();
-      renderNow();
-      // Notifica amigos — "Fulano está aqui agora, vem jogar". Menos spam
-      // que Planejar porque check-in é ação MAIS imediata/convite direto.
-      // Throttle impede que múltiplos check-ins no mesmo local/modalidade/dia
-      // acionem notificações repetidas (ex: usuário cancelando e refazendo).
       _notifyFriendsOfCheckin(payload);
     }).catch(function(e) {
       console.error(e);
@@ -1252,14 +1248,8 @@
       var ov = document.getElementById('presence-plan-overlay');
       if (ov) ov.remove();
       payload._id = id;
-      state.myActive.push(payload);
-      state.presences.push(payload);
-      renderMyActive();
-      renderChart();
-      renderUpcoming();
-      // Notify friends so they can plan to join. Only when the user's
-      // visibility allows friends to see the presence (default/friends or
-      // public); 'off' already short-circuits presence creation upstream.
+      // onSnapshot rebuilda state.myActive/presences do Firestore — push manual
+      // aqui causava duplicata visual quando o snapshot chegava antes do .then.
       _notifyFriendsOfPlan(payload);
     }).catch(function(e) {
       console.error(e);
