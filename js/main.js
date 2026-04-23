@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.96-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Pódio no topbar também.</b> Completa a v0.15.95: o ícone inline do topbar continuava sendo o SVG antigo de troféu (herdava <code>stroke: var(--primary-color)</code>). Agora virou o mesmo pódio compacto 24×24 com prata/ouro/bronze + estrela — consistente com o ícone PWA, com a landing e com o novo logo da marca. Cores fixas de medalha funcionam em todos os 4 temas (Noturno, Claro, Por do Sol, Oceano) sem depender de variável CSS.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.95-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Nova identidade visual: pódio ouro/prata/bronze.</b> Os ícones do app (Chrome/Safari "adicionar à tela inicial") trocaram o <i>S amarelo em quadrado azul</i> pelo pódio com estrela sobre o 1º lugar. Arquivos: <code>icons/icon-192.svg</code> e <code>icons/icon-512.svg</code> reescritos com fundo escuro + pódio prata/ouro/bronze (cores universais de medalha — funcionam em qualquer wallpaper do SO, claro ou escuro). Novos assets pro uso no app: <code>icons/logo-wordmark.svg</code> (400×120, texto em <code>currentColor</code> pra herdar a cor do tema ativo via CSS — Noturno, Claro, Por do Sol, Oceano) e <code>icons/logo-podium.svg</code> (só o símbolo, pra combinar com texto CSS que já respeita tema). A landing page trocou o emoji 🏆 pelo pódio SVG com <code>drop-shadow</code> âmbar suave. <b>Importante:</b> usuários que já instalaram o app no iOS/Android continuam vendo o ícone antigo até reinstalar — é limitação do cache de ícones do SO, não do nosso código. Novos installs pegam o pódio direto.</p>' +
         '</div>' +
