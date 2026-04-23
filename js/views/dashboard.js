@@ -859,79 +859,6 @@ function renderDashboard(container) {
     if (el) el.remove();
   };
 
-  // My Frequent Venues: lista compacta dos locais que o usuário tem relação
-  // (preferredLocations do perfil + venues dos torneios que organiza/participa),
-  // com botão "📍" pra fazer check-in em 1 tap sem navegar até #presence e
-  // preencher dropdown. Fecha o loop "quero jogar agora, estou chegando" num
-  // caminho mais rápido que o existente.
-  //
-  // Só aparece se existe pelo menos 1 venue. Cap em 5 itens pra não inflar
-  // o dashboard. Dedup por venueKey (placeId ou nome normalizado).
-  function _buildMyVenuesWidgetHtml() {
-    var cu = window.AppStore && window.AppStore.currentUser;
-    if (!cu || !cu.uid) return '';
-    if (!window.PresenceDB || typeof window.PresenceDB.venueKey !== 'function') return '';
-
-    var seen = {};
-    var venues = [];
-    var _sh = window._safeHtml || function(s) { return String(s || ''); };
-    // Trim "Nome — Endereço" geocoder format pra mostrar só o nome.
-    var _cleanName = function(label) {
-      if (!label) return '';
-      var idx = String(label).search(/\s[—–-]\s/);
-      return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
-    };
-    var push = function(pid, name, lat, lon, sport) {
-      var key = window.PresenceDB.venueKey(pid || '', name || '');
-      if (!key || seen[key]) return;
-      seen[key] = true;
-      venues.push({ placeId: key, name: name || pid || '', lat: lat || null, lon: lon || null, sport: sport || '' });
-    };
-    // 1) preferredLocations do perfil — máxima prioridade (user explicitamente marcou).
-    (Array.isArray(cu.preferredLocations) ? cu.preferredLocations : []).forEach(function(p) {
-      if (!p) return;
-      push(p.placeId, _cleanName(p.name || p.label || ''), p.lat, (p.lng != null ? p.lng : p.lon), '');
-    });
-    // 2) Venues dos torneios do usuário — inclui organizador + participante.
-    var myTournaments = (typeof window.AppStore.getVisibleTournaments === 'function')
-      ? window.AppStore.getVisibleTournaments()
-      : [];
-    myTournaments.forEach(function(t) {
-      if (!t || (!t.venuePlaceId && !t.venue)) return;
-      push(t.venuePlaceId, t.venue || t.venueName, t.venueLat, t.venueLon, t.sport || '');
-    });
-
-    if (venues.length === 0) return '';
-
-    // Cap em 5 pra não inflar. Prioridade: preferredLocations primeiro,
-    // depois torneios na ordem em que vieram (já é approximately cronológica).
-    venues = venues.slice(0, 5);
-
-    var html = '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:1.25rem;">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-        '<span style="font-size:1rem;">🏟️</span>' +
-        '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Meus locais</span>' +
-        '<a href="#venues" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Descobrir outros →</a>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">';
-    venues.forEach(function(v) {
-      var safePid = String(v.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var safeName = String(v.name || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      // Check-in rápido prefila o #presence via sessionStorage — igual ao
-      // botão de Ver presenças do venues.js. Fluxo já estabelecido.
-      var prefill = JSON.stringify({ placeId: v.placeId, venueName: v.name, sports: [], lat: v.lat, lon: v.lon });
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;">' +
-        '<div onclick="window.location.hash=\'#venues/' + safePid + '\'" style="flex:1;min-width:0;cursor:pointer;" title="Abrir detalhe do local">' +
-          '<div style="font-weight:600;color:var(--text-bright);font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(v.name) + '</div>' +
-          (v.sport ? '<div style="font-size:0.68rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _sh(v.sport) + '</div>' : '') +
-        '</div>' +
-        '<button onclick=\'try{sessionStorage.setItem("_presencePrefill", ' + JSON.stringify(prefill) + ')}catch(e){}window.location.hash="#presence"\' title="Estou aqui agora" style="flex-shrink:0;background:#10b981;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;">📍</button>' +
-      '</div>';
-    });
-    html += '</div></div>';
-    return html;
-  }
-
   function _buildUpcomingMatchesHtml() {
     var cu = window.AppStore.currentUser;
     if (!cu || !cu.email) return '';
@@ -1313,9 +1240,6 @@ function renderDashboard(container) {
 
     <!-- Friends' Presences (loaded async) -->
     <div id="dashboard-presences-widget" style="margin-bottom:1.25rem;"></div>
-
-    <!-- My Frequent Venues (quick-access check-in from dashboard) -->
-    ${_buildMyVenuesWidgetHtml()}
 
     <!-- View Toggle + Tournament Cards -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
