@@ -6582,21 +6582,15 @@ window._openCasualMatch = function() {
   overlay.id = 'casual-match-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
-  overlay.innerHTML =
-    '<div style="background:var(--bg-dark,#0f172a);padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
-      '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main,#cbd5e1);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
-        _t('btn.back') +
-      '</button>' +
-      '<div style="flex:1;display:flex;align-items:center;gap:8px;justify-content:center;">' +
-        '<span style="font-size:1rem;">⚡</span>' +
-        '<span style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</span>' +
-      '</div>' +
-      '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:7px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;flex-shrink:0;">' + _t('casual.start') + '</button>' +
-      '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color,#fff);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' +
-      '</button>' +
-    '</div>' +
+  var _chdr = typeof window._renderBackHeader === 'function'
+    ? window._renderBackHeader({
+        label: _t('btn.back'),
+        onClickOverride: 'window._casualSetupClose && window._casualSetupClose();',
+        middleHtml: '<div style="flex:1;display:flex;align-items:center;gap:8px;justify-content:center;"><span style="font-size:1rem;">⚡</span><span style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</span></div>',
+        rightHtml: '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:7px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;flex-shrink:0;">' + _t('casual.start') + '</button>'
+      })
+    : '<div></div>';
+  overlay.innerHTML = _chdr +
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 
   document.body.appendChild(overlay);

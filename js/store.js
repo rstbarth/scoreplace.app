@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.70-alpha';
+window.SCOREPLACE_VERSION = '0.15.71-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -237,7 +237,7 @@ window._toggleHamburger = function(btn) {
 
   // If triggered from within a high-z overlay (e.g. casual at 100002, support at 100000),
   // raise dropdown above that overlay so the menu is actually visible.
-  var highZParent = btn && btn.closest && btn.closest('#casual-match-overlay, #modal-support-pix');
+  var highZParent = btn && btn.closest && btn.closest('#casual-match-overlay, #modal-support-pix, #qr-modal-overlay');
   dd.style.zIndex = highZParent ? '200000' : '';
 
   // Push back-header (Voltar) down so it appears below the dropdown.
@@ -504,15 +504,34 @@ window._reflowChrome = function() {
   }
   var backHeaders = document.querySelectorAll('.sticky-back-header');
   var bhOffset = topbarH + ddH;
+  var hasBackHeader = backHeaders.length > 0;
   backHeaders.forEach(function(bh) {
-    bh.style.top = bhOffset + 'px';
-    // Keep the content spacer under the back-header in sync with its height.
-    var next = bh.nextElementSibling;
-    if (next) {
-      var bhH = Math.ceil(bh.getBoundingClientRect().height);
-      next.style.marginTop = (ddH + bhH + 8) + 'px';
+    var isFixed = window.getComputedStyle(bh).position === 'fixed';
+    if (isFixed) {
+      // Regular page: reposition fixed back-header under topbar + dropdown
+      bh.style.top = bhOffset + 'px';
+      var next = bh.nextElementSibling;
+      if (next) {
+        var bhH = Math.ceil(bh.getBoundingClientRect().height);
+        next.style.marginTop = (ddH + bhH + 8) + 'px';
+      }
+    } else {
+      // Inside modal/overlay (position:static): push sibling content down by dropdown height only
+      var next = bh.nextElementSibling;
+      if (next) {
+        next.style.marginTop = ddH > 0 ? (ddH + 8) + 'px' : '0';
+      }
     }
   });
+  // On pages without any back-header (e.g. dashboard), push view-container by dropdown height
+  var vc = document.getElementById('view-container');
+  if (vc) {
+    if (!hasBackHeader) {
+      vc.style.paddingTop = ddH > 0 ? (ddH + 'px') : '';
+    } else if (vc.style.paddingTop) {
+      vc.style.paddingTop = '';
+    }
+  }
 };
 // Legacy aliases — external callers may reference the old names.
 window._adjustBackHeaderForHamburger = window._reflowChrome;
@@ -734,18 +753,17 @@ window._showSupportModal = function() {
   if (existing) { existing.style.display = 'flex'; return; }
 
   var pixKey = '51590996000173';
-  var _hamSvgS = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
-  var _backSvgS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
   var modal = document.createElement('div');
   modal.id = 'modal-support-pix';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
+  var _hdrHtml = window._renderBackHeader({
+    label: 'Voltar',
+    onClickOverride: "document.getElementById('modal-support-pix').remove()",
+    middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">💚 Apoie o scoreplace.app</span>'
+  });
   modal.innerHTML =
     '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:360px;width:92%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-      '<div style="display:flex;align-items:center;gap:8px;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);flex-shrink:0;">' +
-        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);cursor:pointer;font-size:0.82rem;font-weight:600;flex-shrink:0;">' + _backSvgS + ' Voltar</button>' +
-        '<div style="flex:1;text-align:center;font-size:0.88rem;font-weight:700;color:var(--text-bright);">💚 Apoie o scoreplace.app</div>' +
-        '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">' + _hamSvgS + '</button>' +
-      '</div>' +
+      _hdrHtml +
       '<div style="padding:1rem;text-align:center;overflow-y:auto;flex:1;">' +
         '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Contribuição voluntária — qualquer valor. Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
         '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;flex-direction:column;align-items:center;">' +

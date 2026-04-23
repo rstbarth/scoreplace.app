@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.71-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cabeçalho padrão unificado + hamburger empurra conteúdo.</b> Todos os overlays/modais (Partida Casual, Novo Torneio, Convidar QR, Apoie) agora usam _renderBackHeader centralizado com classe sticky-back-header. _reflowChrome atualizado: distingue back-headers fixed (páginas normais) de static (dentro de overlays) e empurra o conteúdo correto em cada contexto. Dashboard: quando o menu abre, o view-container recebe paddingTop igual à altura do dropdown — sem sobreposição. QR Convidar e Apoie: hamburger adicionado ao padrão. #qr-modal-overlay adicionado ao seletor de z-index elevado no _toggleHamburger.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.70-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Fix hamburger centralizado.</b> (1) CSS: hamburger do back-header oculto em páginas normais (topbar já o tem) — visível APENAS dentro de overlays fullscreen onde a topbar fica coberta (.modal-overlay, #casual-match-overlay, #modal-support-pix). (2) _toggleHamburger: eleva z-index do dropdown para 200000 quando disparado de dentro de overlays de alto z-index (casual=100002, apoie=100000) — menu efetivamente abre. (3) Modal QR (Convidar para o app): título volta para o corpo do card, header tem só o botão Voltar.</p>' +
         '</div>' +
@@ -3113,16 +3117,7 @@
   const html = `
     <div class="modal-overlay" id="modal-quick-create">
       <div class="modal" style="max-width:420px;">
-        <div style="position:sticky;top:0;z-index:11;background:var(--bg-dark);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <button onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            ${(window._t || function(k){return k;})('btn.back') || 'Voltar'}
-          </button>
-          <div style="flex:1;text-align:center;font-size:0.9rem;font-weight:700;color:var(--text-bright);">${(window._t || function(k){return k;})('quickCreate.title')}</div>
-          <button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger==='function'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-        </div>
+        ${typeof window._renderBackHeader === 'function' ? window._renderBackHeader({label:(window._t||function(k){return k;})('btn.back')||'Voltar',onClickOverride:"if(typeof closeModal==='function')closeModal('modal-quick-create');",middleHtml:'<span style="flex:1;text-align:center;font-size:0.9rem;font-weight:700;color:var(--text-bright);">'+ ((window._t||function(k){return k;})('quickCreate.title')||'Novo Torneio') +'</span>'}) : '<div></div>'}
         <div style="padding:1.25rem 2rem 2rem;">
         <div class="form-group" style="margin-bottom:1.25rem;">
           <label class="form-label">${(window._t || function(k){return k;})('quickCreate.sportLabel')}</label>

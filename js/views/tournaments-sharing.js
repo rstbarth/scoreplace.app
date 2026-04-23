@@ -77,7 +77,7 @@ window._showAppInviteQR = function() {
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
 
     var modal = document.createElement('div');
-    modal.style.cssText = 'background:var(--card-bg,#1e2235);border-radius:20px;padding:1.25rem 1.5rem 1.5rem;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
+    modal.style.cssText = 'background:var(--card-bg,#1e2235);border-radius:20px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;overflow:hidden;';
 
     var title = (_t && _t('invite.appQrTitle')) || 'Convidar para o scoreplace.app';
     var desc = (_t && _t('invite.appQrDesc')) || 'Escaneie o QR code para entrar no app';
@@ -85,14 +85,15 @@ window._showAppInviteQR = function() {
     var dlLabel = (_t && _t('invite.downloadQr')) || 'Baixar QR';
     var printLabel = (_t && _t('invite.printQr')) || 'Imprimir';
 
-    modal.innerHTML = '' +
-      '<div style="display:flex;align-items:center;gap:8px;padding:0 0 0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1rem;">' +
-        '<button onclick="document.getElementById(\'qr-modal-overlay\').remove()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main,#cbd5e1);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
-          ((_t && _t('btn.back')) || 'Voltar') +
-        '</button>' +
-        '<div style="flex:1;"></div>' +
-      '</div>' +
+    var _hdrHtml = typeof window._renderBackHeader === 'function'
+      ? window._renderBackHeader({
+          label: (_t && _t('btn.back')) || 'Voltar',
+          onClickOverride: "document.getElementById('qr-modal-overlay').remove()"
+        })
+      : '<div></div>';
+
+    modal.innerHTML = _hdrHtml +
+      '<div style="padding:0.75rem 1.5rem 1.5rem;text-align:center;">' +
       '<h3 style="margin:0 0 0.5rem;font-size:1.2rem;color:var(--text-bright,#fff);">📱 ' + window._safeHtml(title) + '</h3>' +
       '<p style="margin:0 0 1rem;font-size:0.85rem;color:var(--text-muted,#94a3b8);">' + window._safeHtml(desc) + '</p>' +
       '<div style="background:' + (isLight ? '#ffffff' : '#1a1e2e') + ';border-radius:16px;padding:16px;display:inline-block;margin-bottom:1rem;">' +
@@ -103,6 +104,7 @@ window._showAppInviteQR = function() {
         '<button onclick="navigator.clipboard.writeText(\'' + url.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\').then(function(){if(typeof showNotification===\'function\')showNotification(window._t(\'share.copied\'),window._t(\'share.copiedLinkMsg\'),\'success\');})" class="btn btn-sm hover-lift" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">📋 ' + window._safeHtml(copyLabel) + '</button>' +
         '<button onclick="window._downloadAppInviteQR()" class="btn btn-sm hover-lift" style="background:rgba(16,185,129,0.15);color:#4ade80;border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">💾 ' + window._safeHtml(dlLabel) + '</button>' +
         '<button onclick="window._printQRCode()" class="btn btn-sm hover-lift" style="background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:500;cursor:pointer;">🖨️ ' + window._safeHtml(printLabel) + '</button>' +
+      '</div>' +
       '</div>';
 
     overlay.appendChild(modal);

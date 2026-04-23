@@ -26,7 +26,29 @@
 .back-hdr-ham { display: none !important; }
 .modal-overlay .back-hdr-ham,
 #casual-match-overlay .back-hdr-ham,
-#modal-support-pix .back-hdr-ham { display: inline-flex !important; }
+#modal-support-pix .back-hdr-ham,
+#qr-modal-overlay .back-hdr-ham { display: inline-flex !important; }
+
+/* Back header inside overlays/card-modals: flows statically in flex column (NOT position:fixed).
+   JS (_reflowChrome) pushes the sibling content down by dropdown height when hamburger opens. */
+#modal-quick-create .sticky-back-header,
+#casual-match-overlay .sticky-back-header,
+#modal-support-pix .sticky-back-header,
+#qr-modal-overlay .sticky-back-header {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+/* Suppress default 50px spacer in overlay contexts — JS sets it dynamically */
+#modal-quick-create .sticky-back-header + *,
+#casual-match-overlay .sticky-back-header + *,
+#modal-support-pix .sticky-back-header + *,
+#qr-modal-overlay .sticky-back-header + * {
+  margin-top: 0 !important;
+}
 
 /* ==== HAMBURGER DROPDOWN (outside topbar) ==== */
 /* This element is a SIBLING of <header class="topbar">, NOT a child.
