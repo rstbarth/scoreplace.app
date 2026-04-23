@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.98-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Pódio do topbar em 48px.</b> 36px ainda ficava tímido no espaço disponível. Subido pra 48px — dobro do tamanho original (24px) e próximo do teto do topbar (<code>min-height: 60px</code> + <code>padding: 0.5rem</code> = ~44px úteis, mas o <code>overflow: visible</code> permite 48px sem cortar).</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.97-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Pódio do topbar maior.</b> O SVG do pódio estava sendo renderizado em 24×24 porque <code>.page-title svg { width: 24px !important }</code> em <code>layout.css</code> sobrescrevia o atributo inline. Aumentado pra 36×36 — proporcional ao H1 de 1.4rem, aproveita o espaço vertical do topbar. Adicionado <code>flex-shrink: 0</code> pra garantir que não encolhe em viewports estreitos.</p>' +
         '</div>' +

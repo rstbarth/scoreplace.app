@@ -106,8 +106,8 @@
   white-space: nowrap;
 }
 .page-title svg {
-  width: 36px !important;
-  height: 36px !important;
+  width: 48px !important;
+  height: 48px !important;
   flex-shrink: 0;
 }
 
