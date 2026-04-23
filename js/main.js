@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.76-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Lista de Espera restaurada.</b> Ajuste de escopo: o painel separado "Lista de Espera" continua visível na view de presença (traz o botão Preencher, contato, ordem de chegada). Os membros também aparecem na lista principal em ordem alfabética com rótulo âmbar — facilita só localizar nomes na lista única sem eliminar a ferramenta da lista de espera.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.75-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Hamburger em todas as páginas + lista de espera integrada.</b> (1) _reflowChrome: o modal #modal-quick-create é display:flex permanente com opacity:0 quando fechado (não display:none), então sua back-header latchava como staticBH em TODAS as páginas normais e o dropdown era posicionado em top:0px (atrás da topbar). Fix: staticBH só conta se o ancestor .modal-overlay tiver classe .active. Dashboard, Novo Torneio, Partida Casual todos funcionam agora. (2) Painel separado "Lista de Espera" removido da view de presença — standby já aparece na lista principal em ordem alfabética com rótulo "Lista de Espera" em âmbar. Uma só lista, uma só procura. O painel continua no bracket (onde o contexto é diferente).</p>' +
         '</div>' +
