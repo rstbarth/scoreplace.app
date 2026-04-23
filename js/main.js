@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.97-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Pódio do topbar maior.</b> O SVG do pódio estava sendo renderizado em 24×24 porque <code>.page-title svg { width: 24px !important }</code> em <code>layout.css</code> sobrescrevia o atributo inline. Aumentado pra 36×36 — proporcional ao H1 de 1.4rem, aproveita o espaço vertical do topbar. Adicionado <code>flex-shrink: 0</code> pra garantir que não encolhe em viewports estreitos.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.96-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Pódio no topbar também.</b> Completa a v0.15.95: o ícone inline do topbar continuava sendo o SVG antigo de troféu (herdava <code>stroke: var(--primary-color)</code>). Agora virou o mesmo pódio compacto 24×24 com prata/ouro/bronze + estrela — consistente com o ícone PWA, com a landing e com o novo logo da marca. Cores fixas de medalha funcionam em todos os 4 temas (Noturno, Claro, Por do Sol, Oceano) sem depender de variável CSS.</p>' +
         '</div>' +

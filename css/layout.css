@@ -106,8 +106,9 @@
   white-space: nowrap;
 }
 .page-title svg {
-  width: 24px !important;
-  height: 24px !important;
+  width: 36px !important;
+  height: 36px !important;
+  flex-shrink: 0;
 }
 
 .view-container {
