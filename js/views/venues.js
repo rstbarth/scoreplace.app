@@ -1158,22 +1158,40 @@
       : (v.createdByName
           ? '<span title="Cadastro comunitário — pode não refletir 100% a realidade até o proprietário reivindicar." style="display:inline-flex;flex-direction:column;font-size:0.65rem;color:#64748b;line-height:1.3;opacity:0.8;">🤝 comunidade<span>por ' + _safe(v.createdByName) + '</span></span>'
           : '');
-    // Botão "Reivindicar como dono" quando ninguém reivindicou ainda e o
-    // caller é um usuário autenticado diferente do caso trivial (ownerUid já é self).
-    var claimBtn = (cu && cu.uid && !v.ownerUid)
-      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); document.getElementById("venues-detail-overlay").remove(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;">🏢 Reivindicar como dono</button>'
+    // Header buttons: Editar (always when user can edit) + Reivindicar (when
+    // unclaimed and logged in). Reivindicar moved from body into the header's
+    // top-right (replaces the old "Fechar" — close is now a proper "Voltar"
+    // arrow on the left, matching the back-header pattern used app-wide).
+    var isOwner = !!(cu && cu.uid && v.ownerUid === cu.uid);
+    var canClaim = !!(cu && cu.uid && !v.ownerUid);
+    // Community edit is allowed on unclaimed venues (saveVenue transaction
+    // blocks non-owners on claimed ones). Owners can always edit.
+    var canEdit = isOwner || canClaim;
+    var editBtn = canEdit
+      ? '<button class="btn btn-sm" onclick=\'window._venuesToggleEdit("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;flex-shrink:0;">✏️ Editar</button>'
       : '';
+    var claimBtn = canClaim
+      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); document.getElementById("venues-detail-overlay").remove(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;">🏢 Reivindicar</button>'
+      : '';
+    var headerBtns = editBtn + claimBtn;
     overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
-        '<div style="position:sticky;top:0;background:var(--bg-card);padding:16px 18px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;z-index:2;">' +
+      '<div id="venue-detail-card" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
+        '<div id="venue-detail-header" style="position:sticky;top:0;background:var(--bg-card);padding:12px 14px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;z-index:2;">' +
+          // Voltar (arrow) — closes the overlay, returns user to the venue
+          // discovery listing. Matches the back-header convention used across
+          // the app (svg arrow + label, pill shape).
+          '<button class="btn btn-outline btn-sm hover-lift" type="button" onclick="document.getElementById(\'venues-detail-overlay\').remove()" aria-label="Voltar" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;flex-shrink:0;">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
+            'Voltar' +
+          '</button>' +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;line-height:1.3;">🏢 ' + _safe(v.name) + '</div>' +
-            (v.address ? '<div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">📍 ' + _safe(v.address) + '</div>' : '') +
+            '<div style="font-weight:800;color:var(--text-bright);font-size:0.95rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏢 ' + _safe(v.name) + '</div>' +
+            (v.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ' + _safe(v.address) + '</div>' : '') +
           '</div>' +
-          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'venues-detail-overlay\').remove()" style="flex-shrink:0;">Fechar</button>' +
+          (headerBtns ? '<div style="display:flex;gap:6px;flex-shrink:0;">' + headerBtns + '</div>' : '') +
         '</div>' +
-        '<div style="padding:16px 18px;">' +
-          (ownershipTag || claimBtn ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + claimBtn + '</div>' : '') +
+        '<div id="venue-detail-body" style="padding:16px 18px;">' +
+          (ownershipTag ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + '</div>' : '') +
           (sportsHtml ? '<div style="margin-bottom:10px;">' + sportsHtml + '</div>' : '') +
           // Badge de política de acesso — informa claramente se o local é
           // público/só sócios/sócios+convidados/privado. Usuários sabem de
@@ -1201,6 +1219,9 @@
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-tournaments-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-reviews-slot" style="margin-bottom:12px;"></div>' +
+          // Histórico público de atualizações — quem cadastrou, quem mudou o
+          // quê e quando. Hidratado async em _hydrateUpdateHistory.
+          '<div id="venue-update-history-slot" style="margin-bottom:12px;"></div>' +
           // Check-in inline: o usuário clicando "Estou aqui" na modal fecha o
           // loop discovery→ação em um toque só, sem navegar até #presence.
           // Só aparece para usuários logados; anônimos veem os outros botões.
@@ -1303,6 +1324,8 @@
     // Avaliações — estrelas + textos. Renderiza resumo + lista + botão
     // "Deixar avaliação".
     _hydrateReviews(v);
+    // Histórico de atualizações (cadastro + edits da comunidade).
+    _hydrateUpdateHistory(v);
   };
 
   // Star widget com 5 posições. `value` determina quantas ficam cheias;
@@ -1382,6 +1405,394 @@
     });
 
     slot.innerHTML = '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:12px;">' + header + list + '</div>';
+  }
+
+  // ── Histórico público de atualizações ─────────────────────────────────────
+  // Mostra quem cadastrou o venue e quem fez updates depois, com lista dos
+  // campos que foram alterados em cada edit. Dá transparência para a comunidade
+  // entender de onde veio cada pedaço da informação.
+  function _hydrateUpdateHistory(v) {
+    var slot = document.getElementById('venue-update-history-slot');
+    if (!slot) return;
+    var hist = Array.isArray(v.updateHistory) ? v.updateHistory.slice() : [];
+    // Entrada implícita de cadastro inicial — deriva de createdByName/createdAt
+    // em vez de exigir que saveVenue populate um entry inicial.
+    var entries = [];
+    if (v.createdByName || v.createdAt) {
+      entries.push({
+        _created: true,
+        userName: v.createdByName || 'alguém',
+        timestamp: v.createdAt || 0,
+        fields: []
+      });
+    }
+    entries = entries.concat(hist);
+    if (entries.length === 0) return;
+    // Mais recente primeiro.
+    entries.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+    var fmtDate = function(ts) {
+      if (!ts) return '';
+      try {
+        var d = new Date(ts);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) +
+               ' · ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      } catch (e) { return ''; }
+    };
+    var rows = entries.map(function(e) {
+      var icon = e._created ? '📝' : '✏️';
+      var verb = e._created ? 'Cadastrado por' : 'Atualizado por';
+      var fieldsTxt = Array.isArray(e.fields) && e.fields.length > 0
+        ? ' · <span style="color:var(--text-main);">' + _safe(e.fields.join(', ')) + '</span>'
+        : '';
+      return '<div style="font-size:0.76rem;color:var(--text-muted);padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);line-height:1.4;">' +
+        icon + ' ' + verb + ' <b style="color:var(--text-bright);">' + _safe(e.userName || 'alguém') + '</b>' +
+        ' · ' + fmtDate(e.timestamp) + fieldsTxt +
+      '</div>';
+    }).join('');
+    slot.innerHTML =
+      '<details style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:10px 14px;">' +
+        '<summary style="font-weight:700;color:var(--text-bright);font-size:0.82rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;">' +
+          '<span>📜 Histórico de atualizações</span>' +
+          '<span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:0.7rem;padding:2px 8px;border-radius:999px;font-weight:600;">' + entries.length + '</span>' +
+        '</summary>' +
+        '<div style="margin-top:6px;">' + rows + '</div>' +
+      '</details>';
+  }
+
+  // ── Edit mode (community + owner editing) ────────────────────────────────
+  // Swaps the detail modal body into a form with the editable venue fields.
+  // Header swaps Voltar → Cancelar and Editar/Reivindicar → Salvar. Save flow:
+  //   1. Collect form values + diff against the loaded doc.
+  //   2. Build an updateHistory entry with the diff field labels.
+  //   3. Call VenueDB.saveVenue (transaction) — which blocks if someone else
+  //      owns the venue, otherwise merges the update + refreshes updatedAt.
+  //   4. Re-open the modal fresh so all slots re-hydrate.
+
+  // Fields the community can edit. Matches what the view mode displays.
+  var _EDITABLE_FIELDS = [
+    { id: 'edit-v-name',         key: 'name',         label: 'Nome',          type: 'text',     required: true,  placeholder: 'Nome do local' },
+    { id: 'edit-v-address',      key: 'address',      label: 'Endereço',      type: 'text',     placeholder: 'Rua, número, bairro, cidade' },
+    { id: 'edit-v-hours',        key: 'hours',        label: 'Horário',       type: 'text',     placeholder: 'Ex: Seg–Sex 7h às 22h · Fim de semana 8h às 20h' },
+    { id: 'edit-v-description',  key: 'description',  label: 'Descrição',     type: 'textarea', placeholder: 'Detalhes sobre o local, estrutura, regras etc.' },
+    { id: 'edit-v-priceRange',   key: 'priceRange',   label: 'Faixa de preço',type: 'select',   options: [
+        { val: '',    label: '—' },
+        { val: '$',   label: '$ (econômico)' },
+        { val: '$$',  label: '$$ (médio)' },
+        { val: '$$$', label: '$$$ (premium)' }
+    ]},
+    { id: 'edit-v-accessPolicy', key: 'accessPolicy', label: 'Política de acesso', type: 'select', options: [
+        { val: 'public',              label: '🌐 Aberto ao público' },
+        { val: 'members',             label: '🔒 Só sócios' },
+        { val: 'members_plus_guests', label: '🏆 Sócios + convidados de torneios' },
+        { val: 'private',             label: '🔒 Privado' }
+    ]}
+  ];
+  // Contato é nested — separado pra render.
+  var _CONTACT_FIELDS = [
+    { id: 'edit-v-contact-phone',     key: 'phone',     label: 'Telefone',  placeholder: '(11) 99999-9999' },
+    { id: 'edit-v-contact-whatsapp',  key: 'whatsapp',  label: 'WhatsApp',  placeholder: '(11) 99999-9999' },
+    { id: 'edit-v-contact-email',     key: 'email',     label: 'E-mail',    placeholder: 'contato@local.com.br' },
+    { id: 'edit-v-contact-instagram', key: 'instagram', label: 'Instagram', placeholder: '@handle' }
+  ];
+
+  function _buildEditFormHTML(v) {
+    var contact = v.contact || {};
+    var rows = _EDITABLE_FIELDS.map(function(f) {
+      var cur = v[f.key];
+      if (f.type === 'text') {
+        return '<label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">' + f.label + '</span>' +
+          '<input id="' + f.id + '" type="text" value="' + _safe(cur || '') + '" placeholder="' + _safe(f.placeholder || '') + '" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-family:inherit;font-size:0.88rem;">' +
+        '</label>';
+      }
+      if (f.type === 'textarea') {
+        return '<label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">' + f.label + '</span>' +
+          '<textarea id="' + f.id + '" rows="3" placeholder="' + _safe(f.placeholder || '') + '" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-family:inherit;font-size:0.88rem;resize:vertical;">' + _safe(cur || '') + '</textarea>' +
+        '</label>';
+      }
+      if (f.type === 'select') {
+        var opts = (f.options || []).map(function(o) {
+          var sel = String(cur || (f.key === 'accessPolicy' ? 'public' : '')) === o.val ? ' selected' : '';
+          return '<option value="' + _safe(o.val) + '"' + sel + '>' + _safe(o.label) + '</option>';
+        }).join('');
+        return '<label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">' + f.label + '</span>' +
+          '<select id="' + f.id + '" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-family:inherit;font-size:0.88rem;">' + opts + '</select>' +
+        '</label>';
+      }
+      return '';
+    }).join('');
+    var contactRows = _CONTACT_FIELDS.map(function(f) {
+      var cur = contact[f.key];
+      return '<label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;">' + f.label + '</span>' +
+        '<input id="' + f.id + '" type="text" value="' + _safe(cur || '') + '" placeholder="' + _safe(f.placeholder || '') + '" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-family:inherit;font-size:0.88rem;">' +
+      '</label>';
+    }).join('');
+    return (
+      '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;padding:10px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);border-radius:10px;line-height:1.45;">' +
+        'Você está editando este local para a comunidade. Suas alterações ficam visíveis publicamente e registradas no histórico.' +
+      '</div>' +
+      rows +
+      '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">' +
+        '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;margin-bottom:10px;">📞 Contato</div>' +
+        contactRows +
+      '</div>'
+    );
+  }
+
+  function _rebuildHeaderForEdit(v) {
+    var hdr = document.getElementById('venue-detail-header');
+    if (!hdr) return;
+    hdr.innerHTML =
+      '<button class="btn btn-outline btn-sm hover-lift" type="button" onclick=\'window._venuesCancelEdit("' + _safe(v.placeId) + '")\' aria-label="Cancelar" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;flex-shrink:0;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        'Cancelar' +
+      '</button>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:0.95rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✏️ Editando</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _safe(v.name) + '</div>' +
+      '</div>' +
+      '<button class="btn btn-sm" onclick=\'window._venuesSaveEdit("' + _safe(v.placeId) + '")\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;">💾 Salvar</button>';
+  }
+
+  window._venuesToggleEdit = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) {
+      if (window.showNotification) window.showNotification('Faça login para editar.', 'info');
+      return;
+    }
+    // Stash pra save flow comparar diff sem refetch.
+    window._venueEditBaseline = v;
+    var body = document.getElementById('venue-detail-body');
+    if (!body) return;
+    body.innerHTML = _buildEditFormHTML(v);
+    _rebuildHeaderForEdit(v);
+  };
+
+  window._venuesCancelEdit = function(placeId) {
+    window._venueEditBaseline = null;
+    // Re-render do zero — evita risco de state desatualizado se o cache da
+    // venue foi atualizado por outro cliente enquanto o form estava aberto.
+    if (typeof window._venuesOpenDetail === 'function') window._venuesOpenDetail(placeId);
+  };
+
+  window._venuesSaveEdit = async function(placeId) {
+    var base = window._venueEditBaseline;
+    if (!base) {
+      // Refetch por segurança — edit baseline sumiu de algum jeito.
+      base = await window.VenueDB.loadVenue(placeId);
+      if (!base) return;
+    }
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return;
+    var getVal = function(id) { var el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+    var newName = getVal('edit-v-name');
+    if (!newName) {
+      if (window.showNotification) window.showNotification('Nome é obrigatório.', 'error');
+      return;
+    }
+    var newContact = {
+      phone:     getVal('edit-v-contact-phone'),
+      whatsapp:  getVal('edit-v-contact-whatsapp'),
+      email:     getVal('edit-v-contact-email'),
+      instagram: getVal('edit-v-contact-instagram')
+    };
+    var updates = {
+      name:         newName,
+      address:      getVal('edit-v-address'),
+      hours:        getVal('edit-v-hours'),
+      description:  getVal('edit-v-description'),
+      priceRange:   getVal('edit-v-priceRange'),
+      accessPolicy: getVal('edit-v-accessPolicy') || 'public',
+      contact:      newContact
+    };
+    // Diff vs base pra montar entry de histórico com rótulos legíveis.
+    var changedLabels = [];
+    var baseContact = base.contact || {};
+    var cmp = [
+      { key: 'name',         label: 'nome',              cur: updates.name,         old: base.name || '' },
+      { key: 'address',      label: 'endereço',          cur: updates.address,      old: base.address || '' },
+      { key: 'hours',        label: 'horário',           cur: updates.hours,        old: base.hours || '' },
+      { key: 'description',  label: 'descrição',         cur: updates.description,  old: base.description || '' },
+      { key: 'priceRange',   label: 'faixa de preço',    cur: updates.priceRange,   old: base.priceRange || '' },
+      { key: 'accessPolicy', label: 'política de acesso',cur: updates.accessPolicy, old: base.accessPolicy || 'public' }
+    ];
+    cmp.forEach(function(c) { if (c.cur !== c.old) changedLabels.push(c.label); });
+    var contactChanged = false;
+    ['phone','whatsapp','email','instagram'].forEach(function(k) {
+      if ((newContact[k] || '') !== (baseContact[k] || '')) contactChanged = true;
+    });
+    if (contactChanged) changedLabels.push('contato');
+    if (changedLabels.length === 0) {
+      if (window.showNotification) window.showNotification('Nada foi alterado.', 'info');
+      return;
+    }
+    var entry = {
+      uid: cu.uid,
+      userName: cu.displayName || cu.email || 'Alguém',
+      timestamp: Date.now(),
+      fields: changedLabels
+    };
+    updates.updateHistory = (Array.isArray(base.updateHistory) ? base.updateHistory.slice() : []).concat([entry]);
+    try {
+      await window.VenueDB.saveVenue(placeId, updates);
+      if (window.showNotification) window.showNotification('Local atualizado.', 'Obrigado por contribuir!', 'success');
+      window._venueEditBaseline = null;
+      if (typeof window._venuesOpenDetail === 'function') window._venuesOpenDetail(placeId);
+    } catch (e) {
+      console.error('Erro ao salvar venue:', e);
+      var msg = String(e && e.message || e);
+      if (msg.indexOf('venue-já-reivindicado') !== -1) {
+        if (window.showNotification) window.showNotification('Este local já tem um dono.', 'Só o proprietário pode editar.', 'error');
+      } else {
+        if (window.showNotification) window.showNotification('Erro ao salvar.', msg, 'error');
+      }
+    }
+  };
+
+  // ── Inline "Planejar ida" overlay ────────────────────────────────────────
+  // Stays on top of the venue detail modal so the user never leaves the
+  // venue's context. Fixes the v0.15.92 bug where navigating to #presence
+  // would sometimes render with a stale `state.venue` (Paineiras) instead of
+  // the MatchBall the user had just clicked.
+  var _pendingPlanState = null;
+
+  function _openInlinePlanOverlay(v, sports) {
+    _pendingPlanState = { venue: v, sports: sports };
+    var prev = document.getElementById('venue-plan-overlay');
+    if (prev) prev.remove();
+    var now = new Date();
+    var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    var fmt = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+    var overlay = document.createElement('div');
+    overlay.id = 'venue-plan-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;max-width:420px;width:100%;">' +
+        '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
+        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(v.name || v.placeId) + ' · ' + _safe(sports.join(' · ')) + ' · hoje</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="venue-plan-start" type="time" value="' + fmt(defStart) + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+        '</div>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
+          '<button class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  window._venuesConfirmInlinePlan = async function() {
+    if (!_pendingPlanState) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !window.PresenceDB) return;
+    if (cu.presenceVisibility === 'off') {
+      if (window.showNotification) window.showNotification('Presença desligada no seu perfil.', 'info');
+      return;
+    }
+    var v = _pendingPlanState.venue;
+    var sports = _pendingPlanState.sports;
+    var startStr = (document.getElementById('venue-plan-start') || {}).value;
+    var endStr = (document.getElementById('venue-plan-end') || {}).value;
+    if (!startStr) return;
+    var now = new Date();
+    var build = function(hm) {
+      var parts = hm.split(':').map(Number);
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0, 0);
+      return d.getTime();
+    };
+    var startsAt = build(startStr);
+    var endsAt, openEnded = false;
+    if (endStr) {
+      endsAt = build(endStr);
+      if (endsAt <= startsAt) {
+        if (window.showNotification) window.showNotification('Horário final deve ser maior que o inicial.', 'error');
+        return;
+      }
+    } else {
+      openEnded = true;
+      endsAt = startsAt + 12 * 60 * 60 * 1000;
+    }
+    var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
+    if (normSports.length === 0) {
+      if (window.showNotification) window.showNotification('Modalidade não identificada.', 'error');
+      return;
+    }
+    var payload = {
+      uid: cu.uid,
+      email_lower: (cu.email || '').toLowerCase(),
+      displayName: cu.displayName || '',
+      photoURL: cu.photoURL || '',
+      placeId: v.placeId,
+      venueName: v.name || '',
+      venueLat: v.lat || null,
+      venueLon: v.lon || null,
+      sports: normSports,
+      type: 'planned',
+      startsAt: startsAt,
+      endsAt: endsAt,
+      openEnded: openEnded,
+      dayKey: window.PresenceDB.dayKey(new Date(startsAt)),
+      visibility: cu.presenceVisibility || 'friends',
+      cancelled: false,
+      createdAt: Date.now()
+    };
+    try {
+      await window.PresenceDB.savePresence(payload);
+      if (window.showNotification) {
+        window.showNotification(
+          'Planejamento registrado em ' + (v.name || 'local') + '!',
+          'Seus amigos já podem ver.',
+          'success'
+        );
+      }
+      var ov = document.getElementById('venue-plan-overlay');
+      if (ov) ov.remove();
+      _pendingPlanState = null;
+      // Re-hidrata o bloco "Movimento no local" pra refletir a nova presença
+      // sem precisar fechar e reabrir a modal do venue.
+      _buildMovimentoHtml(v).then(function(html) {
+        var slot = document.getElementById('venue-movimento-slot');
+        if (slot && html) slot.innerHTML = html;
+      });
+      // Notifica amigos — compartilha o helper com o quick-checkin pra manter
+      // throttle consistente.
+      try { _notifyFriendsOfPlan(v, payload); } catch (e) { console.warn('Plan notify failed:', e); }
+    } catch (e) {
+      console.error('Save plan failed:', e);
+      if (window.showNotification) window.showNotification('Erro ao planejar ida.', 'error');
+    }
+  };
+
+  // Notificação pra amigos — mesmo shape que presence.js usa.
+  function _notifyFriendsOfPlan(v, payload) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) return;
+    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    if (friends.length === 0) return;
+    if (typeof window._sendUserNotification !== 'function') return;
+    var d = new Date(payload.startsAt);
+    var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var sportLabel = (Array.isArray(payload.sports) && payload.sports.length > 0)
+      ? payload.sports.join('/')
+      : 'algo';
+    var msg = (cu.displayName || 'Um amigo') + ' vai jogar ' + sportLabel +
+      ' em ' + (payload.venueName || 'um local') + ' às ' + hhmm + ' hoje. Quer ir junto?';
+    friends.forEach(function(friendUid) {
+      if (!friendUid) return;
+      window._sendUserNotification(friendUid, {
+        type: 'presence_plan',
+        message: msg,
+        level: 'all',
+        venueName: payload.venueName || '',
+        placeId: payload.placeId,
+        sports: payload.sports,
+        startsAt: payload.startsAt
+      }).catch(function(e) { console.warn('Plan notify failed:', e); });
+    });
   }
 
   // Form flutuante: estrelas (obrigatório) + texto opcional. Se houver texto
@@ -1695,23 +2106,37 @@
     }
   };
 
-  // Planejar ida: redireciona pra #presence com prefill. Overlay de
-  // schedule requer data/hora, então não cabe inline na venue modal.
+  // Planejar ida: abre overlay inline POR CIMA da modal do venue. Mantém o
+  // contexto do local que o usuário está vendo — antes a função redirecionava
+  // pra #presence com prefill, mas o state global da view de presence era
+  // reaproveitado e às vezes disparava o dialog com a venue errada (bug
+  // repetido em v0.15.92 com Paineiras). Inline elimina a dependência do
+  // state cross-view e garante que a venue planejada é sempre a que está
+  // visível na tela.
   window._venuesQuickPlan = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
     if (!v) return;
-    try {
-      sessionStorage.setItem('_presencePrefill', JSON.stringify({
-        placeId: v.placeId,
-        venueName: v.name,
-        sports: Array.isArray(v.sports) ? v.sports : [],
-        lat: v.lat, lon: v.lon,
-        _openPlanDialog: true
-      }));
-    } catch(e) {}
-    var ov = document.getElementById('venues-detail-overlay');
-    if (ov) ov.remove();
-    window.location.hash = '#presence';
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) {
+      if (window.showNotification) window.showNotification('Faça login para planejar.', 'info');
+      return;
+    }
+    var resolved = _pickSportForVenue(v);
+    if (resolved.needsPicker) {
+      _pickSportOverlay(resolved.options, function(picked) {
+        if (!picked) return;
+        _openInlinePlanOverlay(v, [picked]);
+      });
+    } else if (resolved.sports && resolved.sports.length > 0) {
+      _openInlinePlanOverlay(v, resolved.sports);
+    } else {
+      // Sem modalidade no venue nem preferência — pede ao usuário pra escolher.
+      var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
+      _pickSportOverlay(SPORTS_LIST, function(picked) {
+        if (!picked) return;
+        _openInlinePlanOverlay(v, [picked]);
+      });
+    }
   };
 
   // Public entry point. `deepLinkPlaceId` (optional, from #venues/<placeId>)
