@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.79-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Encerrar Inscrições roda diagnóstico em qualquer formato não-Liga/Suíço.</b> O botão "Encerrar Inscrições" do organizador agora dispara o painel unificado de resolução (potência de 2, número ímpar, times incompletos, resto) para Eliminatórias, Dupla Eliminatória, Rei/Rainha e qualquer string de formato legada/com drift — antes só o botão Sortear checava, e a classificação por igualdade estrita (<code>format === \'Eliminatórias Simples\'</code>) deixava passar formatos com variação de acentuação/pluralização. Agora a classificação é por exclusão: Liga/Suíço ignoram potência de 2 (BYEs naturais); Grupos tem painel próprio; todo o resto cai no check completo — espelhando a lógica já usada por <code>showUnifiedResolutionPanel</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.78-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Menu empurra conteúdo também em overlays.</b> Complementa v0.15.77: em Novo Torneio, Partida Casual e modais afins, uma regra CSS com <code>!important</code> (suprimia o spacer padrão de 50px) estava anulando o margin-top inline que o _reflowChrome calcula quando o dropdown abre. Trocamos <code>element.style.marginTop = ...</code> por <code>setProperty(..., \'important\')</code> para o valor dinâmico vencer, preservando o padrão 0 quando o menu está fechado.</p>' +
         '</div>' +

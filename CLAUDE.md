@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.15.78-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.15.79-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -36,6 +36,9 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 > **Nota:** entre v0.8.6 e v0.15.45 foram ~400 version bumps. O bloco abaixo consolida por tema. Para detalhe de uma versão específica, consulte `git log --oneline | grep vX.Y.Z`.
 
 **v0.15.x-alpha (Abril 2026) — Polimento final, 5 pilares, Apple Watch rollback**
+- **Encerrar Inscrições dispara diagnóstico completo** (v0.15.79): o botão "Encerrar Inscrições" agora roda o painel unificado de resolução (potência de 2, ímpar, times incompletos, resto) em Eliminatórias/Dupla Elim/Rei-Rainha e qualquer string de formato legada. Antes só o Sortear checava; `format === 'Eliminatórias Simples'` deixava passar drifts de string. Agora classifica por exclusão (Liga/Suíço → só incompletos+resto; Grupos → painel próprio; tudo mais → check completo), espelhando `showUnifiedResolutionPanel`.
+- **Menu empurra conteúdo também em overlays** (v0.15.78): em Novo Torneio/Partida Casual, regra CSS `margin-top: 0 !important` anulava o valor dinâmico que o `_reflowChrome` coloca quando o dropdown abre. Trocado `element.style.marginTop = …` por `setProperty(..., 'important')` — valor dinâmico vence o CSS, padrão 0 preservado com menu fechado.
+- **Menu empurra conteúdo em toda página** (v0.15.77): hamburger aberto empurra conteúdo para baixo em TODAS as páginas, inclusive dashboard. Contagem de back-headers visíveis (`_reflowChrome`) ignora os que estão dentro de modais inativos (`.modal-overlay` sem `.active`) — antes eles permaneciam no DOM via `opacity:0 + pointer-events:none` e falsavam a condição.
 - **Convidar e Apoie como páginas reais** (v0.15.72): convertidos de card flutuante para páginas navegáveis via hash routing (#invite, #support). `renderInvitePage` em tournaments-sharing.js e `renderSupportPage` em store.js. Router atualizado com novos casos. Dashboard buttons apontam para hashes. `_showAppInviteQR` e `_showSupportModal` viram wrappers de compat que só fazem `window.location.hash = '#invite'/'#support'`.
 - **#my-venues mapa único** (v0.15.50): o mapa interno menor do formulário (`#venue-owner-map`) foi removido — só sobra o mapa do topo (`#venue-owner-main-map`). Quando um venue é selecionado, `_focusOwnerMapOn` faz zoom 16 (street-level) no ponto e adiciona um pin vermelho 📌 (`_selectedPinMarker`). Ao cancelar, o pin é limpo. Evita duplicação visual observada na v0.15.49.
 - **#my-venues com mapa + busca unificada** (v0.15.49): mapa no topo mostra todos os venues cadastrados como pins (âmbar=free, índigo=Pro). Dropdown de busca tem duas seções — "🏢 Já cadastrados no scoreplace" (match por nome/city/address, badge ✓ oficial ou 🤝 comunitário) + "📍 Sugestões do Google — novo cadastro". Clique em cadastrado → abre edit; clique em Google → novo cadastro. Evita duplicatas. Helpers novos: `_ensureOwnerMap`, `_renderOwnerMarkers`, `_loadRegisteredVenues`, `_addSectionHeader`, `_addRegisteredItem`, `_addGoogleItem`. Container id novo: `venue-owner-main-map` (distinto do `venue-owner-map` que aparece dentro do form).

@@ -2368,9 +2368,14 @@ window.toggleRegistrationStatus = function (tId) {
         return;
     }
 
-    // Run unified diagnostics for formats that need it
-    var isElim = t.format === 'Eliminatórias Simples' || t.format === 'Dupla Eliminatória';
+    // Run unified diagnostics for formats that need it.
+    // Classify by *exclusion* to match the logic in showUnifiedResolutionPanel —
+    // Liga/Suíço handle BYEs naturally, Groups has its own config panel, everything
+    // else (Elim, Dupla Elim, Rei/Rainha, unknown legacy formats) needs the full
+    // power-of-2/odd/incomplete/remainder check. Using a strict equality on
+    // 'Eliminatórias Simples' missed tournaments whose format string drifted.
     var isGrupos = t.format === 'Grupos + Eliminatória' || t.format === 'Grupos + Mata-Mata' || (t.format || '').indexOf('Grupo') !== -1 || t.format === 'Fase de Grupos + Eliminatórias';
+    var isLigaOrSwiss = t.format === 'Liga' || t.format === 'Suíço Clássico' || t.format === 'Ranking' || (window._isLigaFormat && window._isLigaFormat(t));
 
     // Groups format: always show groups config panel (no BYE/Swiss/waitlist)
     if (isGrupos && typeof window._showGroupsConfigPanel === 'function') {
@@ -2388,14 +2393,11 @@ window.toggleRegistrationStatus = function (tId) {
 
     if (typeof window._diagnoseAll === 'function') {
         var diag = window._diagnoseAll(t);
-        // Elimination: full check (power of 2, odd, incomplete teams, remainder)
-        // Swiss/Liga: only check incomplete teams and remainder
-        var hasRelevantIssues = false;
-        if (isElim) {
-            hasRelevantIssues = diag.hasIssues;
-        } else {
-            hasRelevantIssues = diag.incompleteTeams.length > 0 || diag.remainder > 0;
-        }
+        // Liga/Swiss: only incomplete teams and remainder matter.
+        // Everything else (Elim, Dupla Elim, Rei/Rainha, unknown): full check.
+        var hasRelevantIssues = isLigaOrSwiss
+            ? (diag.incompleteTeams.length > 0 || diag.remainder > 0)
+            : diag.hasIssues;
         if (hasRelevantIssues) {
             window.showUnifiedResolutionPanel(tId);
             return;
