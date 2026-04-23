@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.83-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Presença: in-flight registry em PresenceDB (fim do double-tap duplicado).</b> Em v0.15.80/81 tentamos matar o bug de duplicata primeiro com flag síncrono em <code>presence.js</code> e depois com query de dedup em <code>PresenceDB.savePresence</code>. Mas a query sozinha tem um race clássico — duas chamadas concorrentes ambas consultam ANTES de qualquer <code>add()</code> completar, ambas veem "não tem", ambas inserem. Implementado agora um <b>in-flight registry síncrono no próprio PresenceDB</b>: chamadas concorrentes com a mesma chave lógica (uid+placeId+type+sports+janela) reusam o mesmo Promise em vez de disparar outro <code>add()</code>. Independe do caminho (presence.js, venues.js, presence-geo.js) e do modelo de dados no state. Verificado: 2 chamadas simultâneas → 1 <code>add()</code>.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.82-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Percentuais nas estatísticas do usuário.</b> Cada número em Desempenho agora mostra o percentual entre parênteses logo abaixo do valor absoluto. Em <i>Derrotas/Vitórias, Sets, Games, Pontos, Tiebreaks</i> o % é dentro da mesma fonte (torneio 🏆 ou casual ⚡) — ex: com 0 derrotas e 3 vitórias em torneios, mostra "0 (0%)" e "3 (100%)"; 2 derrotas e 8 vitórias em casuais → "2 (20%)" e "8 (80%)". Linhas de média e mín/máx (Pontos TB Médios, TB Vencidos, TB Perdidos) não recebem % porque o par não é somável.</p>' +
         '</div>' +
