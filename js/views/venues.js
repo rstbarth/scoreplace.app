@@ -36,7 +36,9 @@
         sport: state.sport,
         priceRange: state.priceRange,
         minCourts: state.minCourts,
-        distanceKm: state.distanceKm
+        distanceKm: state.distanceKm,
+        center: state.center,
+        centerFromGps: !!state.centerFromGps
       }));
     } catch (e) {}
   }
@@ -48,13 +50,14 @@
     priceRange: _saved.priceRange || '',
     minCourts: _saved.minCourts || 1,
     distanceKm: _saved.distanceKm || 10,
-    center: null,
+    center: (_saved.center && _saved.center.lat != null) ? _saved.center : null,
+    centerFromGps: !!_saved.centerFromGps,
     loading: false,
     results: [],
     googleResults: [],
-    googleLoaded: false,
+    showAllSP: false,
     mode: 'map',
-    selectedPlace: null  // { name, address, placeId, lat, lng } — set when user picks a suggestion
+    selectedPlace: null
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
@@ -271,7 +274,7 @@
       return '<option value="' + _safe(s) + '"' + sel + '>' + _safe(label) + '</option>';
     }).join('');
     return '<select id="venues-sport-select" onchange="window._venuesSetSport(this.value)" style="' +
-      'width:100%;padding:10px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);' +
+      'width:100%;padding:10px 40px 10px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);' +
       'color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;outline:none;">' +
       opts + '</select>';
   }
@@ -281,12 +284,13 @@
     _markers = [];
     _selectedPlaceMarker = null;
     state.selectedPlace = null;
+    state.showAllSP = false;
     if (!state.location && !state.centerFromGps) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
       if (profileCity) state.location = profileCity;
     }
-    if (!state.centerFromGps) _tryAutoGeolocate();
+    _tryAutoGeolocate();
 
     container.innerHTML =
       // ── Sport dropdown — full width, above map ──
@@ -301,7 +305,7 @@
       '<div style="padding:12px 16px 0;">' +
         '<div style="display:flex;gap:8px;align-items:center;">' +
           '<div style="flex:1;min-width:0;position:relative;">' +
-            '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" onfocus="this.select()" onblur="setTimeout(function(){var b=document.getElementById(\'venues-suggestions\');if(b)b.style.display=\'none\';},200)" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
+            '<input type="text" id="venues-location" value="' + _safe(state.location) + '" placeholder="Buscar por nome, endereço ou bairro…" oninput="window._venuesOnLocation(this.value)" onfocus="this.select()" onclick="this.select()" onblur="setTimeout(function(){var b=document.getElementById(\'venues-suggestions\');if(b)b.style.display=\'none\';},200)" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.9rem;outline:none;">' +
             '<div id="venues-suggestions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>' +
           '</div>' +
           '<button type="button" id="venues-geo-btn" onclick="window._venuesUseMyLocation(true)" title="Usar minha localização" style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#6366f1;border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">📍</button>' +
@@ -404,37 +408,62 @@
         '</div>';
       return;
     }
-    // Combine scoreplace + Google results, deduplicate by placeId, sort by distance
-    var combined = [];
-    state.results.forEach(function(v) {
-      var d = (state.center && v.lat != null && v.lon != null)
-        ? _haversineKm(state.center, { lat: Number(v.lat), lng: Number(v.lon) }) : Infinity;
-      combined.push({ type: 'sp', data: v, dist: d });
-    });
-    (state.googleResults || []).forEach(function(p) {
-      if (state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; })) return;
-      var d = (state.center && p.lat != null && p.lng != null)
-        ? _haversineKm(state.center, { lat: Number(p.lat), lng: Number(p.lng) }) : Infinity;
-      combined.push({ type: 'g', data: p, dist: d });
-    });
-    combined.sort(function(a, b) { return a.dist - b.dist; });
-    if (combined.length === 0) {
-      box.innerHTML = selHtml +
-        '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>' +
-        _registerCtaHtml();
-      return;
+
+    // Section 1: Scoreplace registered venues sorted by distance
+    var spResults = state.results.slice();
+    if (state.center) {
+      spResults.sort(function(a, b) {
+        var da = (a.lat != null && a.lon != null) ? _haversineKm(state.center, { lat: Number(a.lat), lng: Number(a.lon) }) : Infinity;
+        var db = (b.lat != null && b.lon != null) ? _haversineKm(state.center, { lat: Number(b.lat), lng: Number(b.lon) }) : Infinity;
+        return da - db;
+      });
     }
-    var html = selHtml;
-    html += '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;">' +
-      combined.length + (combined.length === 1 ? ' local' : ' locais') + ' encontrado' + (combined.length === 1 ? '' : 's') + (state.center ? ' próximo a você' : '') + '</div>';
-    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
-    combined.forEach(function(item) {
-      html += item.type === 'sp' ? _venueCard(item.data) : _googleVenueCard(item.data);
+    var SHOW_LIMIT = 5;
+    var displaySP = state.showAllSP ? spResults : spResults.slice(0, SHOW_LIMIT);
+
+    // Section 2: Google Places deduplicated and sorted by distance
+    var gResults = (state.googleResults || []).filter(function(p) {
+      return !state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; });
     });
-    html += '</div>';
+    if (state.center) {
+      gResults.sort(function(a, b) {
+        var da = (a.lat != null && a.lng != null) ? _haversineKm(state.center, { lat: Number(a.lat), lng: Number(a.lng) }) : Infinity;
+        var db = (b.lat != null && b.lng != null) ? _haversineKm(state.center, { lat: Number(b.lat), lng: Number(b.lng) }) : Infinity;
+        return da - db;
+      });
+    }
+
+    var html = selHtml;
+
+    if (spResults.length > 0) {
+      html += '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.22);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Locais registrados no scoreplace</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      displaySP.forEach(function(v) { html += _venueCard(v); });
+      html += '</div>';
+      if (spResults.length > SHOW_LIMIT && !state.showAllSP) {
+        html += '<button onclick="window._venuesShowAllSP()" style="margin-top:8px;background:none;border:none;color:#a5b4fc;font-size:0.82rem;cursor:pointer;padding:2px 0;">Mostrar mais (' + (spResults.length - SHOW_LIMIT) + ' locais) →</button>';
+      }
+      html += '</div>';
+    }
+
+    if (gResults.length > 0) {
+      var gTop = spResults.length > 0 ? 'margin-top:14px;margin-bottom:8px;' : 'margin-bottom:8px;';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;' + gTop + '">📍 Sugestões do Google</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+      gResults.forEach(function(p) { html += _googleVenueCard(p); });
+      html += '</div>';
+    }
+
+    if (spResults.length === 0 && gResults.length === 0) {
+      html += '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>';
+    }
+
     html += _registerCtaHtml();
     box.innerHTML = html;
   }
+
+  window._venuesShowAllSP = function() { state.showAllSP = true; renderResults(); };
 
   // Stubs for old map-extras functions — new layout renders list inline below map.
   function _hydrateMapSummary() {}
@@ -460,6 +489,8 @@
     // que "quando clica na localização é pra usar o gps e não puxar dos
     // locais preferidos do perfil". Sem center válido → sem filtro de raio.
     state.center = center;
+    _saveFilters();
+    state.showAllSP = false;
 
     // 1) Our own claimed venues. Não filtramos mais pelo texto do campo
     // "Local" no doc — o raio (Haversine) cobre a proximidade, e texto livre
@@ -521,8 +552,43 @@
     if (!box) return;
     var q = String(query || '').trim();
     if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.innerHTML = '';
+    var hasAny = false;
+    var qLow = q.toLowerCase();
+
+    // Section 1: registered scoreplace venues matching query by name/address
+    var matchedSP = (state.results || []).filter(function(v) {
+      return (v.name && v.name.toLowerCase().indexOf(qLow) !== -1) ||
+             (v.address && v.address.toLowerCase().indexOf(qLow) !== -1);
+    }).slice(0, 5);
+    if (matchedSP.length > 0) {
+      var spHdr = document.createElement('div');
+      spHdr.style.cssText = 'padding:5px 14px 4px;font-size:0.66rem;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;';
+      spHdr.textContent = '🏢 No scoreplace';
+      box.appendChild(spHdr);
+      matchedSP.forEach(function(v) {
+        var item = document.createElement('div');
+        item.style.cssText = 'padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);';
+        item.innerHTML = '<div style="color:var(--text-bright);font-size:0.88rem;font-weight:600;">✅ ' + _safe(v.name) + '</div>' +
+          (v.address ? '<div style="color:var(--text-muted);font-size:0.74rem;margin-top:1px;">' + _safe(v.address) + '</div>' : '');
+        item.addEventListener('mouseenter', function() { item.style.background = 'rgba(16,185,129,0.1)'; });
+        item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+        item.addEventListener('mousedown', function(ev) {
+          ev.preventDefault();
+          box.style.display = 'none';
+          window._venuesOpenDetail(v._id);
+        });
+        box.appendChild(item);
+      });
+      hasAny = true;
+    }
+
+    // Section 2: Google Places autocomplete
     await _ensureVenuesPlaces();
-    if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      if (hasAny) box.style.display = 'block';
+      return;
+    }
     var sugs = [];
     try {
       var result = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
@@ -532,22 +598,30 @@
         language: 'pt-BR'
       });
       sugs = (result.suggestions || []).filter(function(s) { return s.placePrediction; });
-    } catch(e) { return; }
-    if (sugs.length === 0) { box.style.display = 'none'; return; }
-    box.innerHTML = '';
-    sugs.slice(0, 8).forEach(function(s) {
-      var pred = s.placePrediction;
-      var main = pred.mainText ? pred.mainText.text : '';
-      var sec = pred.secondaryText ? pred.secondaryText.text : '';
-      var item = document.createElement('div');
-      item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
-      item.innerHTML = '<div style="color:var(--text-bright);font-size:0.88rem;font-weight:500;">📍 ' + _safe(main) + '</div>' +
-        (sec ? '<div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">' + _safe(sec) + '</div>' : '');
-      item.addEventListener('mouseenter', function() { item.style.background = 'rgba(99,102,241,0.12)'; });
-      item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
-      item.addEventListener('mousedown', function(ev) { ev.preventDefault(); _venuesSelectPlace(pred); });
-      box.appendChild(item);
-    });
+    } catch(e) {}
+    if (sugs.length > 0) {
+      if (hasAny) {
+        var gHdr = document.createElement('div');
+        gHdr.style.cssText = 'padding:5px 14px 4px;font-size:0.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-top:1px solid rgba(255,255,255,0.08);';
+        gHdr.textContent = '📍 Google Places';
+        box.appendChild(gHdr);
+      }
+      sugs.slice(0, 6).forEach(function(s) {
+        var pred = s.placePrediction;
+        var main = pred.mainText ? pred.mainText.text : '';
+        var sec = pred.secondaryText ? pred.secondaryText.text : '';
+        var item = document.createElement('div');
+        item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
+        item.innerHTML = '<div style="color:var(--text-bright);font-size:0.88rem;font-weight:500;">📍 ' + _safe(main) + '</div>' +
+          (sec ? '<div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">' + _safe(sec) + '</div>' : '');
+        item.addEventListener('mouseenter', function() { item.style.background = 'rgba(99,102,241,0.12)'; });
+        item.addEventListener('mouseleave', function() { item.style.background = 'transparent'; });
+        item.addEventListener('mousedown', function(ev) { ev.preventDefault(); _venuesSelectPlace(pred); });
+        box.appendChild(item);
+      });
+      hasAny = true;
+    }
+    if (!hasAny) { box.style.display = 'none'; return; }
     box.style.display = 'block';
   }
 
