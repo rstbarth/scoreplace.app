@@ -275,7 +275,7 @@ window._declareAbsent = function (tId, playerName) {
 
   let confirmTitle, confirmMsg, confirmBtn;
 
-  if (hasStandby && isIndividualWO) {
+  if (isIndividualWO) {
     confirmTitle = _t('participants.declareAbsence');
     confirmMsg = _t('participants.absenceMsgIndStandby', {player: playerName, num: friendlyNum});
     confirmBtn = _t('participants.btnSubstInd');
@@ -283,10 +283,6 @@ window._declareAbsent = function (tId, playerName) {
     confirmTitle = _t('participants.declareAbsence');
     confirmMsg = _t('participants.absenceMsgTeamStandby', {player: playerName, team: teamName, num: friendlyNum});
     confirmBtn = _t('participants.btnSubstStandby');
-  } else if (isIndividualWO) {
-    confirmTitle = _t('participants.declareAbsence');
-    confirmMsg = _t('participants.absenceMsgIndNoStandby', {player: playerName, num: friendlyNum});
-    confirmBtn = _t('participants.btnMarkAbsent');
   } else {
     confirmTitle = _t('participants.declareAbsenceWO');
     confirmMsg = _t('participants.absenceMsgWO', {player: playerName, team: teamName, num: friendlyNum, opponent: opponent || _t('common.opponent')});
@@ -300,8 +296,8 @@ window._declareAbsent = function (tId, playerName) {
     delete t.checkedIn[playerName];
     t.absent[playerName] = Date.now();
 
-    if (isIndividualWO && hasStandby && matchEntry) {
-      // Individual W.O. in teams — replace only the absent member, partner stays
+    if (isIndividualWO && matchEntry) {
+      // Individual W.O. in teams — try to replace only the absent member, partner stays
       if (!t.checkedIn) t.checkedIn = {};
       let nextStandby = null;
       let nextStandbyIdx = -1;
@@ -310,7 +306,11 @@ window._declareAbsent = function (tId, playerName) {
         if (t.checkedIn[sName]) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
       }
       if (!nextStandby) {
-        if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
+        // Sem substituto presente — apenas marca ausente e aguarda organizador
+        window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
+        window.AppStore.sync();
+        if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
+        _reRenderParticipants();
         return;
       }
       const nextName = typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name || nextStandby.email || '');
@@ -344,13 +344,6 @@ window._declareAbsent = function (tId, playerName) {
       window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
       window.AppStore.sync();
       if (typeof showNotification === 'function') showNotification(_t('sub.done'), _t('sub.donePartnerMsg', { name: nextName, absent: playerName, partner: partnerName }), 'success');
-      _reRenderParticipants();
-
-    } else if (isIndividualWO && !hasStandby && matchEntry) {
-      // Just mark absent — no standby available, wait for organizer to add someone
-      window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
-      window.AppStore.sync();
-      if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
       _reRenderParticipants();
 
     } else if (hasStandby && matchEntry) {

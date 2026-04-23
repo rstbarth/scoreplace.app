@@ -351,23 +351,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
   const ci = t.checkedIn || {};
   const ab = t.absent || {};
 
-  // Detect W.O. slots in the main bracket
-  const woPlayers = [];
-  try {
-    const _allMatchesForWO = (typeof window._collectAllMatches === 'function')
-      ? window._collectAllMatches(t)
-      : (Array.isArray(t.matches) ? t.matches : []);
-    (_allMatchesForWO || []).filter(m => m && !m.winner && !m.isBye).forEach(m => {
-      ['p1', 'p2'].forEach(slot => {
-        const name = m[slot];
-        if (!name || typeof name !== 'string' || name === 'TBD' || name === 'BYE') return;
-        const members = name.includes(' / ') ? name.split(' / ').map(n => n.trim()) : [name];
-        if (members.some(n => !!ab[n])) woPlayers.push({ name, matchId: m.id, slot });
-      });
-    });
-  } catch (woErr) { /* silent: panel must still render */ }
-  const hasWOSlot = woPlayers.length > 0;
-
   // Sort waitlist: checked-in first (by check-in timestamp ascending = first arrived), then unchecked
   const sorted = _merged.slice().sort((a, b) => {
     const na = getName(a), nb = getName(b);
@@ -377,16 +360,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
     if (tsb) return 1;                // b checked in, a didn't → b first
     return 0;                         // neither checked in: preserve insertion order
   });
-
-  // First present (checked-in, not W.O.) in sorted order gets the next slot
-  const firstPresent = sorted.find(p => { const n = getName(p); return !!ci[n] && !ab[n]; });
-  const firstPresentName = firstPresent ? getName(firstPresent) : null;
-  const firstPresentSafe = firstPresentName ? firstPresentName.replace(/'/g, "\\'") : '';
-
-  // Single "Preencher" button at top — only when organizer, there's a W.O. slot and someone is present
-  const preencherBtn = (isOrg && hasWOSlot && firstPresentName)
-    ? `<button class="btn btn-sm" onclick="window._autoSubstituteWO('${_tIdSafe}', '${firstPresentSafe}')" style="margin-left:auto;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(5,150,105,0.2));border:1px solid rgba(16,185,129,0.5);color:#4ade80;font-weight:800;font-size:0.78rem;white-space:nowrap;">🔄 Preencher</button>`
-    : '';
 
   const listItems = sorted.map((p, i) => {
     const name = getName(p);
@@ -413,7 +386,6 @@ window._renderStandbyPanel = function _renderStandbyPanel(t, isOrg) {
         <span style="font-size:1.3rem;">📋</span>
         <h3 style="margin:0;color:#f1f5f9;font-size:1.05rem;font-weight:700;">Lista de Espera</h3>
         <span style="font-size:0.75rem;background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 10px;border-radius:10px;font-weight:700;">${sorted.length}</span>
-        ${preencherBtn}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         ${listItems}

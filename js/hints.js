@@ -208,8 +208,7 @@
     { id: 'checkin-filter', selector: '[onclick*="_setCheckInFilter"]', text: 'Filtre a lista: Todos, Presentes ou Ausentes. Facilita o controle no dia do evento.', context: 'tournament-detail', priority: 4, position: 'top' },
     { id: 'checkin-reset', selector: '[onclick*="_resetCheckIn"]', text: 'Limpe todos os check-ins para recomeçar a chamada do zero.', context: 'tournament-detail', priority: 3, position: 'top' },
     { id: 'participants-sort', selector: '[onclick*="_enrollSortMode"]', text: 'Ordene a lista: alfabética (A-Z), cronológica (primeiro inscrito) ou inversa.', context: 'tournament-detail', priority: 3, position: 'top' },
-    { id: 'checkin-wo', selector: '[onclick*="_markAbsent"]', text: 'Marque W.O. (walkover): o jogador ausente perde a partida automaticamente.', context: 'bracket', priority: 5, position: 'top' },
-    { id: 'bracket-substitute-wo', selector: '[onclick*="_autoSubstituteWO"]', text: 'Substitua automaticamente o jogador W.O. pelo próximo da lista de espera presente.', context: 'bracket', priority: 5, position: 'top' },
+    { id: 'checkin-wo', selector: '[onclick*="_markAbsent"]', text: 'Marque W.O. (walkover): se houver alguém presente na lista de espera, substitui automaticamente. Senão, marca ausente e aguarda substituto.', context: 'bracket', priority: 5, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PRE-DRAW
