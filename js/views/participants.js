@@ -404,6 +404,12 @@ window._declareAbsent = function (tId, playerName) {
       if (typeof showNotification === 'function') showNotification(_t('sub.wo'), _t('sub.woMsg', { winner: matchEntry.winner, n: friendlyNum }), 'warning');
       _reRenderParticipants();
 
+    } else {
+      // Nenhum jogo pendente encontrado — apenas marca ausente e sincroniza
+      window.AppStore.logAction(tId, `Ausência: ${playerName} — sem jogo pendente`);
+      window.AppStore.sync();
+      if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
+      _reRenderParticipants();
     }
   }, null, { type: 'warning', confirmText: confirmBtn, cancelText: _t('btn.waitMore') });
 };
@@ -659,10 +665,11 @@ function renderParticipants(container, tournamentId) {
       const presentToggle = `<label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;flex-shrink:0;" onclick="event.stopPropagation();"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${tId}', '${safeName}');"><span class="toggle-slider"></span></label><span style="font-size:0.68rem;font-weight:700;color:${mc ? '#4ade80' : '#64748b'};white-space:nowrap;">${mc ? 'Presente' : 'Ausente'}</span>`;
 
       // W.O. button — marca W.O. / reverte W.O.
-      const isStandbyOrNoMatch = isStandby || !ind.matchNum;
+      // Standby players use simple toggle; active participants always go through the
+      // dialog (_declareAbsent uses _collectAllMatches which is more robust than ind.matchNum).
       const woAction = isAbsent
         ? `window._markAbsent('${tId}', '${safeName}')`
-        : (isStandbyOrNoMatch
+        : (isStandby
           ? `window._markAbsent('${tId}', '${safeName}')`
           : `window._declareAbsent('${tId}', '${safeName}')`);
       const woLabel = isAbsent ? 'Reverter' : 'W.O.';

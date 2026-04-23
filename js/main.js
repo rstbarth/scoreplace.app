@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.73-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Hamburger empurra conteúdo em todos os overlays + fix W.O.</b> (1) _reflowChrome: para overlays com back-header static (Novo Torneio, Partida Casual), o dropdown agora é posicionado na borda inferior do back-header real (getBoundingClientRect), não em viewport+topbarH fixo — resolve o overlay que aparecia longe do cabeçalho no modal ou sobrepunha o conteúdo. (2) participants.js: botão W.O. sempre usa _declareAbsent() para participantes ativos, independente de ind.matchNum — remove a rota para _markAbsent() silencioso que causava o padrão diferente no primeiro W.O. Adicionado fallback else em _declareAbsent para o caso de nenhum jogo encontrado.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.72-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Convidar e Apoie viram páginas reais.</b> Antes abriam como card flutuante sobre a tela atual (padrão inventado). Agora navegam via hash routing (#invite, #support) e renderizam no view-container como todas as demais páginas — cabeçalho padrão com Voltar + hamburger, conteúdo que empurra o menu, comportamento idêntico a Locais, Presença etc.</p>' +
         '</div>' +

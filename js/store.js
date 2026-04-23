@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.72-alpha';
+window.SCOREPLACE_VERSION = '0.15.73-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -497,18 +497,35 @@ window._reflowChrome = function() {
   var dd = document.getElementById('hamburger-dropdown');
   var ddOpen = dd && dd.classList.contains('open');
   var ddH = 0;
+
+  var backHeaders = document.querySelectorAll('.sticky-back-header');
+  var hasBackHeader = backHeaders.length > 0;
+
+  // Find any static back-header (inside an overlay/modal — not fixed).
+  // For overlays, the dropdown must snap to the back-header's actual bottom edge
+  // in the viewport, not to viewport+topbarH (which puts it in the backdrop above
+  // the card or at the wrong position inside a fullscreen overlay).
+  var staticBH = null;
+  backHeaders.forEach(function(bh) {
+    if (window.getComputedStyle(bh).position !== 'fixed') staticBH = bh;
+  });
+
   if (dd) {
-    // Pin the dropdown under the topbar regardless of scroll
-    dd.style.top = topbarH + 'px';
+    if (staticBH) {
+      // Overlay context: snap dropdown immediately below the back-header
+      var _bhRect = staticBH.getBoundingClientRect();
+      dd.style.top = Math.ceil(_bhRect.bottom) + 'px';
+    } else {
+      // Regular page: pin dropdown under topbar
+      dd.style.top = topbarH + 'px';
+    }
     if (ddOpen) ddH = Math.ceil(dd.getBoundingClientRect().height);
   }
-  var backHeaders = document.querySelectorAll('.sticky-back-header');
+
   var bhOffset = topbarH + ddH;
-  var hasBackHeader = backHeaders.length > 0;
   backHeaders.forEach(function(bh) {
     var isFixed = window.getComputedStyle(bh).position === 'fixed';
     if (isFixed) {
-      // Regular page: reposition fixed back-header under topbar + dropdown
       bh.style.top = bhOffset + 'px';
       var next = bh.nextElementSibling;
       if (next) {
@@ -516,14 +533,12 @@ window._reflowChrome = function() {
         next.style.marginTop = (ddH + bhH + 8) + 'px';
       }
     } else {
-      // Inside modal/overlay (position:static): push sibling content down by dropdown height only
       var next = bh.nextElementSibling;
       if (next) {
         next.style.marginTop = ddH > 0 ? (ddH + 8) + 'px' : '0';
       }
     }
   });
-  // On pages without any back-header (e.g. dashboard), push view-container by dropdown height
   var vc = document.getElementById('view-container');
   if (vc) {
     if (!hasBackHeader) {
