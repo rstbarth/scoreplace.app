@@ -1169,27 +1169,23 @@ async function simulateLoginSuccess(user) {
     } catch (err) { console.warn('_onProfileBtnClick error', err); }
   };
 
-  window._openMyProfileModal = function() {
+  // Populate all form fields in the profile modal from window.AppStore.currentUser.
+  // Extracted from _openMyProfileModal so we can re-populate after a fresh
+  // Firestore fetch lands (guards against PWA-reinstall race where the modal
+  // opens before loadUserProfile() merges the saved fields into currentUser).
+  window._populateProfileModalFields = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
-    if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
+    if (!cu) return;
 
     // Fallback robusto pra dados que vieram do provedor (Google/Apple/FB).
-    // Se o currentUser tá sem displayName/photoURL (race condition no load,
-    // existingProfile com campos vazios que não sobrescrevem), consultamos
-    // o firebase.auth().currentUser direto — que sempre reflete o estado
-    // do provedor autenticado. Também hidratamos currentUser de volta pra
-    // que outras partes do app (AppStore.currentUser.displayName etc) usem.
     try {
       var fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
       if (fbUser) {
         if (!cu.displayName && fbUser.displayName) { cu.displayName = fbUser.displayName; }
         if (!cu.photoURL && fbUser.photoURL) { cu.photoURL = fbUser.photoURL; }
         if (!cu.email && fbUser.email) { cu.email = fbUser.email; }
-        // Google/Apple não retornam phoneNumber por default, mas se por
-        // algum motivo o usuário logou com phone auth, respeitamos.
         if (!cu.phone && fbUser.phoneNumber) {
           var _p = String(fbUser.phoneNumber).replace(/\D/g, '');
-          // Tenta detectar DDI brasileiro
           if (_p.length > 11 && _p.indexOf('55') === 0) {
             cu.phoneCountry = '55';
             cu.phone = _p.slice(2);
@@ -1197,20 +1193,17 @@ async function simulateLoginSuccess(user) {
             cu.phone = _p;
           }
         }
-        // Providers available — pode ajudar pra mostrar "do Google/Apple" badge no futuro
         if (!cu.authProvider && fbUser.providerData && fbUser.providerData.length > 0) {
           cu.authProvider = fbUser.providerData[0].providerId;
         }
       }
     } catch (e) { console.warn('Profile fallback from firebase auth failed:', e); }
 
-    // Default phoneCountry da navegador locale quando não setado (pt-BR → 55).
     if (!cu.phoneCountry) {
       try {
         var _lang = navigator.language || navigator.userLanguage || '';
         if (/pt-br/i.test(_lang)) cu.phoneCountry = '55';
         else if (/en-us/i.test(_lang)) cu.phoneCountry = '1';
-        // Deixa undefined pra outros — form usa default do select.
       } catch (e) {}
     }
 
@@ -1218,21 +1211,14 @@ async function simulateLoginSuccess(user) {
     var avatar = document.getElementById('profile-avatar');
     if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
     var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
-    // Nome: prioridade displayName → firstName/lastName aglutinado → email prefix
-    // como último recurso (NÃO usa mais o fallback genérico "Usuário" — nome
-    // de email é mais útil pra identificar o usuário enquanto ele preenche).
     var _fallbackName = cu.displayName
                      || (cu.firstName && cu.lastName ? (cu.firstName + ' ' + cu.lastName) : '')
                      || (cu.email ? cu.email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();}) : '')
                      || '';
     _setVal('profile-edit-name', _fallbackName);
     _setVal('profile-edit-gender', cu.gender || '');
-    // Birthdate: Firestore armazena em ISO (YYYY-MM-DD); UI mostra
-    // dd/mm/aaaa (PT) ou mm/dd/yyyy (EN). Converte na carga.
     _setVal('profile-edit-birthdate', (typeof window._isoToDisplayDate === 'function') ? window._isoToDisplayDate(cu.birthDate) : (cu.birthDate || ''));
     _setVal('profile-edit-city', cu.city || '');
-    // Hidden field mantido por compat; fonte de verdade real são os pills.
-    // Aceita tanto array moderno quanto string CSV legacy.
     (function() {
       var raw = cu.preferredSports;
       var arr = [];
@@ -1264,22 +1250,49 @@ async function simulateLoginSuccess(user) {
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
     window._profileLocations = Array.isArray(cu.preferredLocations) ? cu.preferredLocations.slice() : [];
     var cepsEl = document.getElementById('profile-edit-ceps'); if (cepsEl) cepsEl.value = cu.preferredCeps || '';
-    // Presence settings: mute auto-expires. Active if until > now; else off.
     var _pv = cu.presenceVisibility || 'friends';
     var _until = Number(cu.presenceMuteUntil || 0);
     var _active = _until > Date.now();
-    // Reconstruct days remaining from stored until (or keep last-used as default)
     var _daysLeft = _active ? Math.max(1, Math.ceil((_until - Date.now()) / (24 * 3600 * 1000))) : (Number(cu.presenceMuteDays) || 7);
     if (typeof window._applyPresenceVisibilityUI === 'function') window._applyPresenceVisibilityUI(_pv);
     if (typeof window._applyPresenceMuteUI === 'function') window._applyPresenceMuteUI({ active: _active, days: _daysLeft });
-    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
-    // Venue-owner section was removed from profile in favor of the dedicated
-    // #my-venues view — see auth.js link block above.
-    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     if (typeof window._applyNotifyFilterUI === 'function') window._applyNotifyFilterUI(cu.notifyLevel || 'todas');
     var curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
+  };
+
+  window._openMyProfileModal = function() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
+
+    // Populate once immediately from whatever data we have — keeps the modal
+    // snappy (no blank state, no spinner) for the common case where the
+    // profile is already hydrated.
+    window._populateProfileModalFields();
+
+    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
+
     if (typeof openModal === 'function') openModal('modal-profile');
+
+    // SAFETY NET for the PWA-reinstall race: localStorage cache is gone,
+    // simulateLoginSuccess() awaits loadUserProfile but if the user taps
+    // the profile button in the ~300-500ms between "currentUser = user"
+    // and "await loadUserProfile()", only Google-basic fields are present
+    // and saved fields (gender, birthDate, city, preferredSports, phone,
+    // notify prefs, etc.) look empty. The data IS in Firestore — we just
+    // haven't read it yet. Force a fresh fetch here and re-populate when
+    // it lands. Runs every open; extra cost is one cheap doc read.
+    if (window.AppStore && typeof window.AppStore.loadUserProfile === 'function' && cu.uid) {
+      window.AppStore.loadUserProfile(cu.uid).then(function(profile) {
+        if (!profile) return;
+        // Only re-populate if the modal is still open — user may have
+        // closed it in the interim.
+        var modal = document.getElementById('modal-profile');
+        if (!modal || !modal.classList.contains('active')) return;
+        window._populateProfileModalFields();
+      }).catch(function(e) { console.warn('Profile refresh on open failed:', e); });
+    }
   };
 
   // Update notification badge (immediate + periodic refresh every 30s)

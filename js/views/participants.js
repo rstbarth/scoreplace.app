@@ -360,10 +360,25 @@ window._declareAbsent = function (tId, playerName) {
 
       // Update match
       matchEntry[matchSide] = newTeamName;
-      // Update all match refs
-      (t.matches || []).forEach(function(m) {
+      // Update all match refs across ALL structures (matches, rounds, groups) — espelha _autoSubstituteWO.
+      // Sem isso, em Liga/Suíço/Grupos outros jogos do mesmo time ficam com o nome antigo
+      // e o card do parceiro (renderParticipants) mostra jogo vinculado ao time antigo.
+      const _allStructMatches = (typeof window._collectAllMatches === 'function')
+        ? window._collectAllMatches(t)
+        : (Array.isArray(t.matches) ? t.matches.slice() : []);
+      _allStructMatches.forEach(function(m) {
+        if (!m) return;
         if (m.p1 === teamName) m.p1 = newTeamName;
         if (m.p2 === teamName) m.p2 = newTeamName;
+        // team1/team2 arrays (formato Rei/Rainha)
+        if (Array.isArray(m.team1)) {
+          const ti = m.team1.indexOf(playerName);
+          if (ti !== -1) m.team1[ti] = nextName;
+        }
+        if (Array.isArray(m.team2)) {
+          const ti2 = m.team2.indexOf(playerName);
+          if (ti2 !== -1) m.team2[ti2] = nextName;
+        }
       });
       // Update participants
       const pIdx = partsArr.findIndex(p => {
@@ -372,7 +387,31 @@ window._declareAbsent = function (tId, playerName) {
       });
       if (pIdx >= 0) {
         if (typeof partsArr[pIdx] === 'string') partsArr[pIdx] = newTeamName;
-        else { partsArr[pIdx].displayName = newTeamName; partsArr[pIdx].name = newTeamName; }
+        else {
+          partsArr[pIdx].displayName = newTeamName;
+          partsArr[pIdx].name = newTeamName;
+          // nested .participants[] (se existir) também precisa refletir o novo membro —
+          // caso contrário helpers que leem sub-objetos (ex: _buildMatchPlayersList em bracket-ui.js)
+          // continuam achando o jogador ausente.
+          if (Array.isArray(partsArr[pIdx].participants)) {
+            partsArr[pIdx].participants.forEach(function(sub) {
+              if (!sub) return;
+              const sn = typeof sub === 'string' ? sub : (sub.displayName || sub.name || '');
+              if (sn === playerName) {
+                if (typeof sub === 'object') {
+                  sub.displayName = nextName;
+                  sub.name = nextName;
+                  // uid/photoURL do substituto (se disponível no objeto nextStandby)
+                  if (typeof nextStandby === 'object' && nextStandby) {
+                    if (nextStandby.uid) sub.uid = nextStandby.uid;
+                    if (nextStandby.photoURL || nextStandby.photoUrl) sub.photoURL = nextStandby.photoURL || nextStandby.photoUrl;
+                    if (nextStandby.email) sub.email = nextStandby.email;
+                  }
+                }
+              }
+            });
+          }
+        }
       }
       t.participants = partsArr;
       _removeFromWaitlists(nextName);
@@ -507,8 +546,14 @@ function renderParticipants(container, tournamentId) {
   const checkedIn = t.checkedIn;
   const absent = t.absent;
 
-  // Standby participants
-  const standbyParts = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  // Standby participants — merge both sources (waitlist + standbyParticipants, dedup by name)
+  // mesmo padrão de _declareAbsent, _autoSubstituteWO e bracket.js
+  const _getStandbyName = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+  const _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  const _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
+  const _spNameSet = new Set(_sp.map(_getStandbyName));
+  const standbyParts = _sp.slice();
+  _wl.forEach(w => { const wn = _getStandbyName(w); if (wn && !_spNameSet.has(wn)) standbyParts.push(w); });
 
   // Count stats (includes standby): 3 states — presente, ausente, sem confirmação
   let totalIndividuals = 0;

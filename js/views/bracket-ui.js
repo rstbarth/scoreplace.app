@@ -484,7 +484,26 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
         var pi = partsArr.findIndex(function(p) { return getName(p) === oldEntry; });
         if (pi !== -1) {
           if (typeof partsArr[pi] === 'string') { partsArr[pi] = newTeamName; }
-          else { partsArr[pi].displayName = newTeamName; partsArr[pi].name = newTeamName; }
+          else {
+            partsArr[pi].displayName = newTeamName;
+            partsArr[pi].name = newTeamName;
+            // nested .participants[] (se existir) — replica substituição individual
+            if (Array.isArray(partsArr[pi].participants)) {
+              partsArr[pi].participants.forEach(function(sub) {
+                if (!sub || typeof sub !== 'object') return;
+                var sn = sub.displayName || sub.name || '';
+                if (sn === absentMemberName) {
+                  sub.displayName = replacementName;
+                  sub.name = replacementName;
+                  if (nextPresent && typeof nextPresent === 'object') {
+                    if (nextPresent.uid) sub.uid = nextPresent.uid;
+                    if (nextPresent.photoURL || nextPresent.photoUrl) sub.photoURL = nextPresent.photoURL || nextPresent.photoUrl;
+                    if (nextPresent.email) sub.email = nextPresent.email;
+                  }
+                }
+              });
+            }
+          }
         }
         t.participants = partsArr;
         // Remove replacement from standby
