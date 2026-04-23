@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.85-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cadastrar local direto da descoberta.</b> Na view <i>Locais</i> (#venues), quando o usuário escreve o nome/endereço e seleciona uma sugestão do Google que ainda não está cadastrada no scoreplace, o card de detalhe mostra agora um botão <b>+ Cadastrar</b>. Um tap leva ao <i>Meus locais</i> (#my-venues) com o local já pré-preenchido (nome, endereço, coordenadas, placeId) — sem precisar re-buscar o mesmo endereço. Se por acaso outro usuário cadastrou o mesmo placeId no intervalo, o formulário cai automaticamente no modo edição colaborativa.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.84-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Presença: fim real da duplicata visual (onSnapshot é a única fonte de verdade).</b> Depois do in-flight registry da v0.15.83 garantir 1 doc único no Firestore, a duplicata <i>visual</i> continuava aparecendo no <i>Estou aqui agora</i> e <i>Planejar ida</i>. Causa-raiz encontrada em <code>presence.js</code>: o <code>onSnapshot</code> da coleção rebuilda <code>state.myActive</code>/<code>state.presences</code> do Firestore a cada mudança, mas os handlers <code>_presenceCheckIn</code>/<code>_presenceConfirmPlan</code> também faziam <code>state.myActive.push(payload)</code> + <code>state.presences.push(payload)</code> dentro do <code>.then()</code>. Quando o snapshot chegava ANTES do <code>.then</code> (race comum), o array ficava com 2 cópias do mesmo registro. Removidos os pushes manuais — o listener do Firestore agora é única fonte de verdade. Verificado: 1 único card por check-in/plano.</p>' +
         '</div>' +

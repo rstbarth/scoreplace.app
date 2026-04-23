@@ -390,10 +390,15 @@
     } else {
       var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') +
         (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
-      return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:12px;padding:10px 14px;margin-bottom:14px;text-decoration:none;">' +
+      // Unregistered Google Place: offer a one-tap "Cadastrar este local" path
+      // that deep-links into #my-venues with the place data pre-stashed, so
+      // the user doesn't have to re-search the same place there.
+      var registerBtn = p.placeId ? '<button onclick="window._venuesRegisterPlace(event)" class="btn btn-sm btn-primary hover-lift" style="flex-shrink:0;white-space:nowrap;font-size:0.72rem;padding:4px 10px;">+ Cadastrar</button>' : '';
+      return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-card);border:2px solid ' + borderColor + ';border-radius:12px;padding:10px 14px;margin-bottom:14px;">' +
         '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;flex:1;min-width:0;word-break:break-word;">📍 ' + safeName + '</span>' +
-        '<span style="flex-shrink:0;font-size:0.72rem;color:#94a3b8;white-space:nowrap;">🗺️</span>' +
-      '</a>';
+        registerBtn +
+        '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="flex-shrink:0;font-size:0.72rem;color:#94a3b8;white-space:nowrap;text-decoration:none;" title="Abrir no Google Maps">🗺️</a>' +
+      '</div>';
     }
   }
 
@@ -471,6 +476,25 @@
   }
 
   window._venuesShowAllSP = function() { state.showAllSP = true; renderResults(); };
+
+  // Deep-link from a selected-but-unregistered Google Place into the #my-venues
+  // cadastro form. We stash what we already have (placeId/name/address/lat/lon)
+  // so the user doesn't need to re-search; venue-owner.js picks it up on entry.
+  window._venuesRegisterPlace = function(ev) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    var p = state.selectedPlace;
+    if (!p || !p.placeId) return;
+    try {
+      sessionStorage.setItem('scoreplace_pending_venue_registration', JSON.stringify({
+        placeId: p.placeId,
+        name: p.name || '',
+        address: p.address || '',
+        lat: (p.lat != null ? p.lat : null),
+        lon: (p.lng != null ? p.lng : null)
+      }));
+    } catch (e) {}
+    window.location.hash = '#my-venues';
+  };
 
   // Stubs for old map-extras functions — new layout renders list inline below map.
   function _hydrateMapSummary() {}

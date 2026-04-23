@@ -428,7 +428,54 @@
     setTimeout(function() { _ensureOwnerMap(); _loadRegisteredVenues(); }, 50);
     ensurePlaces();
     window._loadMyVenuesList();
+
+    // Deep-link de #venues: usuário clicou em "Cadastrar este local" num Google
+    // Place não registrado. Pegamos o payload stashed e abrimos direto o form
+    // com o que já temos — sem exigir que ele re-busque o mesmo endereço.
+    var pending = null;
+    try {
+      var raw = sessionStorage.getItem('scoreplace_pending_venue_registration');
+      if (raw) {
+        pending = JSON.parse(raw);
+        sessionStorage.removeItem('scoreplace_pending_venue_registration');
+      }
+    } catch (e) {}
+    if (pending && pending.placeId) {
+      setTimeout(function() { _startRegistrationFromData(pending); }, 200);
+    }
   };
+
+  // Abre o form de cadastro pré-preenchido com o que #venues já sabe sobre o
+  // local (nome, endereço, lat/lon, placeId). Se já existir doc no Firestore
+  // — race com outro usuário cadastrando o mesmo placeId — cai pro fluxo de
+  // edição; caso contrário abre _renderForm limpo.
+  async function _startRegistrationFromData(data) {
+    if (!data || !data.placeId) return;
+    var key = window.VenueDB.venueKey(data.placeId, data.name || '');
+    var existing = null;
+    try { existing = await window.VenueDB.loadVenue(key); } catch (e) {}
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var otherOwner = existing && existing.ownerUid && (!cu || existing.ownerUid !== cu.uid);
+    if (otherOwner) {
+      _renderForm(null, { warning: 'Este local já foi reivindicado por outro usuário. Se você é o verdadeiro dono, escreva para scoreplace.app@gmail.com.' });
+      return;
+    }
+    var alreadyCommunity = existing && !existing.ownerUid && existing.createdByName;
+    _renderForm({
+      placeId: key,
+      name: data.name || '',
+      address: data.address || '',
+      city: '',
+      lat: (data.lat != null ? Number(data.lat) : null),
+      lon: (data.lon != null ? Number(data.lon) : null)
+    }, {
+      existing: existing || null,
+      collaborativeBanner: !!alreadyCommunity,
+      creatorName: alreadyCommunity ? existing.createdByName : ''
+    });
+    var form = document.getElementById('venue-owner-form-wrap');
+    if (form) form.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 
   // Places autocomplete — busca dinâmica (v0.15.28): 2 char mínimo + 150ms
   // debounce pra match com a busca do profile (v0.15.19). Resposta quase
