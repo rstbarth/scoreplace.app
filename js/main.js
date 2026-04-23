@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.64-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Detalhe de local redesenhado.</b> Endereço completo no cabeçalho (sem truncar). Tag "cadastrado por" mais discreta. Política de acesso com rótulo "Acesso público/restrito". Ícone por modalidade nas quadras. Box "Detalhes" com descrição livre e preços.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.63-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Removido widget "Meus locais" do dashboard.</b> Era redundante — o acesso está disponível via #venues e #my-venues na navegação.</p>' +
         '</div>' +

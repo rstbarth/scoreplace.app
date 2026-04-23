@@ -1049,9 +1049,9 @@
     // Tags de proveniência: "✅ Informações oficiais" quando reivindicado;
     // "📝 Cadastrado por [nome]" quando é cadastro comunitário.
     var ownershipTag = v.ownerUid
-      ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;">✅ Informações oficiais</span>'
+      ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;font-weight:600;color:#10b981;opacity:0.85;">✅ oficial</span>'
       : (v.createdByName
-          ? '<span title="Este local foi cadastrado por um usuário da comunidade. Pode não refletir 100% a realidade até o proprietário reivindicar." style="display:inline-flex;align-items:center;gap:4px;background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.3);color:#94a3b8;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;">📝 Cadastrado por ' + _safe(v.createdByName) + '</span>'
+          ? '<span title="Cadastro comunitário — pode não refletir 100% a realidade até o proprietário reivindicar." style="display:inline-flex;flex-direction:column;font-size:0.65rem;color:#64748b;line-height:1.3;opacity:0.8;">🤝 comunidade<span>por ' + _safe(v.createdByName) + '</span></span>'
           : '');
     // Botão "Reivindicar como dono" quando ninguém reivindicou ainda e o
     // caller é um usuário autenticado diferente do caso trivial (ownerUid já é self).
@@ -1062,8 +1062,8 @@
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
         '<div style="position:sticky;top:0;background:var(--bg-card);padding:16px 18px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;z-index:2;">' +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏢 ' + _safe(v.name) + '</div>' +
-            (v.address ? '<div style="font-size:0.74rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + _safe(v.address) + '</div>' : '') +
+            '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;line-height:1.3;">🏢 ' + _safe(v.name) + '</div>' +
+            (v.address ? '<div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">📍 ' + _safe(v.address) + '</div>' : '') +
           '</div>' +
           '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'venues-detail-overlay\').remove()" style="flex-shrink:0;">Fechar</button>' +
         '</div>' +
@@ -1076,26 +1076,21 @@
           ((function() {
             var ap = v.accessPolicy || 'public';
             var apCfg = {
-              public: { icon: '🌐', label: 'Aberto ao público', bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
-              members: { icon: '👥', label: 'Só sócios', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
-              members_plus_guests: { icon: '👥🏆', label: 'Sócios + convidados de torneios', bg: 'rgba(251,191,36,0.12)', color: '#fbbf24' },
-              private: { icon: '🔒', label: 'Privado', bg: 'rgba(239,68,68,0.12)', color: '#f87171' }
+              public:              { icon: '🌐', category: 'Acesso público',   label: 'Aberto ao público',              bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
+              members:             { icon: '🔒', category: 'Acesso restrito',  label: 'Só sócios',                     bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
+              members_plus_guests: { icon: '🏆', category: 'Acesso restrito',  label: 'Sócios + convidados de torneios', bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+              private:             { icon: '🔒', category: 'Acesso restrito',  label: 'Privado',                       bg: 'rgba(239,68,68,0.12)',   color: '#f87171' }
             }[ap] || null;
             if (!apCfg) return '';
-            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + apCfg.bg + ';color:' + apCfg.color + ';border:1px solid ' + apCfg.color + '40;font-size:0.72rem;font-weight:700;margin-bottom:10px;">' +
-              apCfg.icon + ' ' + apCfg.label +
+            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:' + apCfg.bg + ';color:' + apCfg.color + ';border:1px solid ' + apCfg.color + '40;font-size:0.72rem;font-weight:700;margin-bottom:10px;">' +
+              apCfg.icon + ' <span>' + apCfg.category + '</span><span style="opacity:0.6;font-weight:400;font-size:0.68rem;">· ' + apCfg.label + '</span>' +
             '</div>';
           })()) +
-          '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:0.85rem;color:var(--text-bright);margin-bottom:12px;">' +
-            (v.courtCount ? '<div>🎾 ' + v.courtCount + ' quadra' + (v.courtCount === 1 ? '' : 's') + (v.courtType ? ' (' + _safe(v.courtType) + ')' : '') + '</div>' : '') +
-            (v.priceRange ? '<div>💰 ' + _safe(v.priceRange) + '</div>' : '') +
-            (v.city ? '<div>🏙️ ' + _safe(v.city) + '</div>' : '') +
-          '</div>' +
           // Slot pras quadras detalhadas (subcollection courts). Populado
           // async após a modal abrir — não bloqueia a exibição inicial.
           '<div id="venue-courts-agg-slot" style="margin-bottom:12px;"></div>' +
+          '<div id="venue-details-slot" style="margin-bottom:12px;"></div>' +
           (v.hours ? '<div style="font-size:0.82rem;color:var(--text-bright);margin-bottom:10px;">⏰ ' + _safe(v.hours) + '</div>' : '') +
-          (v.description ? '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">' + _safe(v.description) + '</div>' : '') +
           (contactBits.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' + contactBits.join('') + '</div>' : '') +
           '<div id="venue-owner-stats-slot" style="margin-bottom:12px;"></div>' +
           '<div id="venue-movimento-slot" style="margin-bottom:12px;"></div>' +
@@ -1123,6 +1118,15 @@
     // Async: courts agregados por modalidade — mostra "4 quadras de Beach
     // Tennis (compartilhadas) · 2 de Tênis (saibro) · ..." antes do resto
     // pra dar contexto imediato das opções. Read público via rules.
+    var _sportIcon = function(s) {
+      var icons = {
+        'Beach Tennis': '🎾', 'Pickleball': '🏓', 'Tênis': '🎾', 'Tennis': '🎾',
+        'Padel': '🏸', 'Tênis de Mesa': '🏓', 'Futebol': '⚽', 'Futsal': '⚽',
+        'Basquete': '🏀', 'Vôlei': '🏐', 'Vôlei de Praia': '🏐',
+        'Natação': '🏊', 'Handebol': '🤾', 'Squash': '🟡', 'Badminton': '🏸'
+      };
+      return icons[s] || '🏅';
+    };
     if (window.VenueDB && typeof window.VenueDB.aggregateVenueCourts === 'function') {
       window.VenueDB.aggregateVenueCourts(v.placeId).then(function(agg) {
         var slot = document.getElementById('venue-courts-agg-slot');
@@ -1130,26 +1134,53 @@
         var rows = agg.sports.map(function(sportName) {
           var info = agg.bySport[sportName];
           var surfaceList = Object.keys(info.surfaces || {});
-          var surfaceTxt = surfaceList.length > 0 ? ' (' + surfaceList.join(', ') + ')' : '';
+          var surfaceTxt = surfaceList.length > 0 ? ' <span style="opacity:0.6;font-weight:400;">(' + _safe(surfaceList.join(', ')) + ')</span>' : '';
           var sharedTxt = info.shared
             ? '<span style="font-size:0.62rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:1px 6px;border-radius:10px;margin-left:4px;">🔁 compartilhada</span>'
             : '';
-          return '<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-bright);padding:4px 0;">' +
-            '<b style="color:#a5b4fc;">' + info.count + '</b>' +
-            '<span>quadra' + (info.count === 1 ? '' : 's') + ' de <b>' + _safe(sportName) + '</b>' + _safe(surfaceTxt) + '</span>' +
+          return '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text-bright);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+            '<span style="font-size:1rem;flex-shrink:0;">' + _sportIcon(sportName) + '</span>' +
+            '<b style="color:#a5b4fc;min-width:16px;text-align:right;">' + info.count + '</b>' +
+            '<span>quadra' + (info.count === 1 ? '' : 's') + ' de <b>' + _safe(sportName) + '</b>' + surfaceTxt + '</span>' +
             sharedTxt +
           '</div>';
         }).join('');
         var contribLine = agg.contributors.length > 1
-          ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;opacity:0.75;">Informações contribuídas por ' + agg.contributors.length + ' jogadores</div>'
+          ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:6px;opacity:0.65;">Informações contribuídas por ' + agg.contributors.length + ' jogadores</div>'
           : '';
         slot.innerHTML =
-          '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;">' +
-            '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:4px;">🎾 Quadras disponíveis</div>' +
+          '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:8px;">🏟️ Quadras disponíveis</div>' +
             rows +
             contribLine +
           '</div>';
+        // Detalhes / Preços box (logo após as quadras)
+        var detailSlot = document.getElementById('venue-details-slot');
+        if (detailSlot && (v.description || v.priceRange)) {
+          var detailParts = '';
+          if (v.priceRange) detailParts += '<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:' + (v.description ? '8' : '0') + 'px;"><span style="flex-shrink:0;">💰</span><span style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">' + _safe(v.priceRange) + '</span></div>';
+          if (v.description) detailParts += '<div style="font-size:0.82rem;color:var(--text-muted);line-height:1.55;white-space:pre-wrap;">' + _safe(v.description) + '</div>';
+          detailSlot.innerHTML =
+            '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;">' +
+              '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:8px;">📋 Detalhes</div>' +
+              detailParts +
+            '</div>';
+        }
       }).catch(function(e) { console.warn('courts agg:', e); });
+    } else if (v.description || v.priceRange) {
+      // fallback quando courts DB não disponível — mostra o box de detalhes igualmente
+      setTimeout(function() {
+        var detailSlot = document.getElementById('venue-details-slot');
+        if (!detailSlot) return;
+        var detailParts = '';
+        if (v.priceRange) detailParts += '<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:' + (v.description ? '8' : '0') + 'px;"><span>💰</span><span style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">' + _safe(v.priceRange) + '</span></div>';
+        if (v.description) detailParts += '<div style="font-size:0.82rem;color:var(--text-muted);line-height:1.55;white-space:pre-wrap;">' + _safe(v.description) + '</div>';
+        detailSlot.innerHTML =
+          '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;margin-bottom:8px;">📋 Detalhes</div>' +
+            detailParts +
+          '</div>';
+      }, 0);
     }
     // Async: fetch presences + tournaments, inject into the slot so the
     // modal body stays snappy on open.
