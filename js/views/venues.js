@@ -285,12 +285,18 @@
     _selectedPlaceMarker = null;
     state.selectedPlace = null;
     state.showAllSP = false;
-    if (!state.location && !state.centerFromGps) {
+    // Regra: toda vez que entra, re-dispara GPS a menos que o usuário tenha
+    // digitado um endereço custom (state.location existe E não é o label do
+    // fallback "Minha localização atual"). Antes a flag centerFromGps
+    // persistida impedia re-pedir GPS em entradas subsequentes, o que fazia
+    // o pin sumir até um click manual em 📍.
+    var hasCustomAddress = state.location && state.location !== 'Minha localização atual';
+    if (!hasCustomAddress) {
       var cu = window.AppStore && window.AppStore.currentUser;
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
-      if (profileCity) state.location = profileCity;
+      if (!state.location && profileCity) state.location = profileCity;
+      _tryAutoGeolocate();
     }
-    if (!state.centerFromGps) _tryAutoGeolocate();
 
     container.innerHTML =
       (typeof window._renderBackHeader === 'function' ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' }) : '') +

@@ -1016,6 +1016,12 @@
       if (window.showNotification) window.showNotification('Você já está registrado neste local.', 'info');
       return;
     }
+    // Race guard: double-tap on "Estou aqui agora" creates two docs porque o
+    // dup-check acima lê state.myActive, mas o push pra myActive só acontece
+    // no .then() do save. Flag síncrono bloqueia a segunda chamada enquanto
+    // a primeira ainda está em voo.
+    if (state._savingCheckin) return;
+    state._savingCheckin = true;
     var now = Date.now();
     var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
     var payload = {
@@ -1052,6 +1058,8 @@
     }).catch(function(e) {
       console.error(e);
       if (window.showNotification) window.showNotification('Erro ao registrar presença.', 'error');
+    }).finally(function() {
+      state._savingCheckin = false;
     });
   };
 
@@ -1199,6 +1207,27 @@
       endsAt = startsAt + 12 * 60 * 60 * 1000;
     }
     var normSports = sports.map(window.PresenceDB.normalizeSport).filter(Boolean);
+    // Duplicate check: existe plano ativo no mesmo local com sports que
+    // intersectam e janela de tempo que se sobrepõe? Se sim, não cria de novo.
+    var dup = state.myActive.filter(function(p) {
+      if (p.type !== 'planned' || p.placeId !== state.venue.placeId) return false;
+      var pSports = Array.isArray(p.sports) ? p.sports : [];
+      var sportsOverlap = pSports.some(function(ns) { return normSports.indexOf(ns) !== -1; });
+      if (!sportsOverlap) return false;
+      var pStart = p.startsAt || 0;
+      var pEnd = p.endsAt || (pStart + 12 * 60 * 60 * 1000);
+      return (startsAt < pEnd && endsAt > pStart);
+    })[0];
+    if (dup) {
+      if (window.showNotification) window.showNotification('Você já tem um plano para este local neste horário.', 'info');
+      var ov0 = document.getElementById('presence-plan-overlay');
+      if (ov0) ov0.remove();
+      return;
+    }
+    // Race guard: evita criar dois docs num double-tap no Confirmar enquanto
+    // o save ainda está em voo.
+    if (state._savingPlan) return;
+    state._savingPlan = true;
     var payload = {
       uid: cu.uid,
       email_lower: (cu.email || '').toLowerCase(),
@@ -1235,6 +1264,8 @@
     }).catch(function(e) {
       console.error(e);
       if (window.showNotification) window.showNotification('Erro ao planejar ida.', 'error');
+    }).finally(function() {
+      state._savingPlan = false;
     });
   };
 

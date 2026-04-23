@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.15.79-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.15.80-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -36,6 +36,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 > **Nota:** entre v0.8.6 e v0.15.45 foram ~400 version bumps. O bloco abaixo consolida por tema. Para detalhe de uma versão específica, consulte `git log --oneline | grep vX.Y.Z`.
 
 **v0.15.x-alpha (Abril 2026) — Polimento final, 5 pilares, Apple Watch rollback**
+- **Presença sem duplicidade + #venues sempre pinado** (v0.15.80): `_presenceCheckIn` e `_presenceConfirmPlan` criavam dois docs idênticos num double-tap — dup-check lia `state.myActive` antes do push, que só acontecia no `.then()` do save. Flags síncronos `state._savingCheckin` / `state._savingPlan` bloqueiam a segunda chamada enquanto a primeira está em voo; plan também ganhou dup-check contra planos no mesmo local com sports/horário sobrepostos. Em `#venues`, flag `centerFromGps` persistida suprimia auto-GPS em entradas subsequentes — pin verde só voltava com click manual em 📍. Agora `render()` dispara `_tryAutoGeolocate()` em toda entrada a menos que o usuário tenha digitado endereço custom (não-vazio E ≠ "Minha localização atual").
 - **Encerrar Inscrições dispara diagnóstico completo** (v0.15.79): o botão "Encerrar Inscrições" agora roda o painel unificado de resolução (potência de 2, ímpar, times incompletos, resto) em Eliminatórias/Dupla Elim/Rei-Rainha e qualquer string de formato legada. Antes só o Sortear checava; `format === 'Eliminatórias Simples'` deixava passar drifts de string. Agora classifica por exclusão (Liga/Suíço → só incompletos+resto; Grupos → painel próprio; tudo mais → check completo), espelhando `showUnifiedResolutionPanel`.
 - **Menu empurra conteúdo também em overlays** (v0.15.78): em Novo Torneio/Partida Casual, regra CSS `margin-top: 0 !important` anulava o valor dinâmico que o `_reflowChrome` coloca quando o dropdown abre. Trocado `element.style.marginTop = …` por `setProperty(..., 'important')` — valor dinâmico vence o CSS, padrão 0 preservado com menu fechado.
 - **Menu empurra conteúdo em toda página** (v0.15.77): hamburger aberto empurra conteúdo para baixo em TODAS as páginas, inclusive dashboard. Contagem de back-headers visíveis (`_reflowChrome`) ignora os que estão dentro de modais inativos (`.modal-overlay` sem `.active`) — antes eles permaneciam no DOM via `opacity:0 + pointer-events:none` e falsavam a condição.
