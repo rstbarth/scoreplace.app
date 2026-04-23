@@ -2391,16 +2391,23 @@ window.toggleRegistrationStatus = function (tId) {
         return;
     }
 
-    if (typeof window._diagnoseAll === 'function') {
-        var diag = window._diagnoseAll(t);
+    // Run diagnostics. Wrap in try/catch so a malformed participant list (null,
+    // legacy shapes) doesn't make the whole handler die silently — which looks
+    // exactly like "panel didn't fire" from the user's perspective.
+    var diag = null;
+    var diagError = null;
+    try {
+        if (typeof window._diagnoseAll === 'function') diag = window._diagnoseAll(t);
+    } catch(e) {
+        diagError = e;
+    }
+
+    if (diag) {
         // Liga/Swiss: only incomplete teams and remainder matter.
         // Everything else (Elim, Dupla Elim, Rei/Rainha, unknown): full check.
         var hasRelevantIssues = isLigaOrSwiss
             ? (diag.incompleteTeams.length > 0 || diag.remainder > 0)
             : diag.hasIssues;
-        // Diagnóstico visível — console + toast — pra entender por que o painel
-        // não abre quando o usuário espera. Permite pinpointar format strings
-        // drift, classificação errada ou diag vazio.
         try {
             console.log('[Encerrar Inscrições] diag', {
                 format: t.format,
@@ -2416,9 +2423,50 @@ window.toggleRegistrationStatus = function (tId) {
             });
         } catch(e) {}
         if (hasRelevantIssues) {
-            window.showUnifiedResolutionPanel(tId);
+            // Fire the panel. If for any reason the overlay DOESN'T appear within
+            // one tick (missing function, throw inside panel, stale cache on older
+            // build) surface a visible toast so the organizer isn't left with a
+            // silently-failed button.
+            try {
+                if (typeof window.showUnifiedResolutionPanel === 'function') {
+                    window.showUnifiedResolutionPanel(tId);
+                } else {
+                    throw new Error('showUnifiedResolutionPanel is not defined');
+                }
+            } catch(e) {
+                console.error('[Encerrar Inscrições] panel throw:', e);
+                if (typeof showNotification === 'function') {
+                    showNotification('⚠️ Erro ao abrir painel', String(e && e.message || e), 'error');
+                }
+            }
+            // Verify the overlay actually appeared — if not, the panel returned
+            // early without rendering (unexpected). Surface details so we can
+            // pinpoint the real cause instead of guessing.
+            setTimeout(function() {
+                var rendered = document.getElementById('unified-resolution-panel') ||
+                               document.getElementById('groups-config-panel') ||
+                               document.getElementById('remainder-panel');
+                if (!rendered && typeof showNotification === 'function') {
+                    showNotification('⚠️ Painel não abriu',
+                        'fmt=' + (t.format || '?') +
+                        ' | teams=' + diag.effectiveTeams +
+                        ' | resto=' + diag.remainder +
+                        ' | pot2=' + diag.isPowerOf2 +
+                        ' | ímpar=' + diag.isOdd +
+                        ' | incomp=' + diag.incompleteTeams.length,
+                        'warning');
+                }
+            }, 120);
             return;
         }
+    } else if (diagError) {
+        console.error('[Encerrar Inscrições] _diagnoseAll throw:', diagError);
+        if (typeof showNotification === 'function') {
+            showNotification('⚠️ Falha no diagnóstico',
+                'Não consegui avaliar o número de inscritos: ' + (diagError.message || String(diagError)) + '. Encerrando mesmo assim.',
+                'warning');
+        }
+        // Fall through to confirm-close dialog below.
     }
 
     // Confirmar antes de encerrar
