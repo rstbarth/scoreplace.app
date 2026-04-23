@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.68-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cabeçalho padrão em todas as páginas + hamburger no Voltar.</b> (1) Botão Voltar adicionado à tela de partida casual (#casual/CODE) — todas as branches (loading, offline, não encontrado, encerrado, lobby, erro) agora exibem o Voltar fixo no topo. (2) O botão Voltar agora inclui o ícone de menu hamburger no canto direito, visível em mobile — mesmo dentro de modais fullscreen onde a topbar fica coberta, o menu principal continua acessível. (3) Modais "Convidar" e "Apoie" ganham cabeçalho padrão com Voltar + hamburger substituindo o botão "Fechar" no rodapé.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.67-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Botão Voltar no #venues.</b> Cabeçalho sticky com botão Voltar → Dashboard adicionado ao topo da página de descoberta de locais.</p>' +
         '</div>' +

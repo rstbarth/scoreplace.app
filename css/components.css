@@ -21,6 +21,10 @@
 .sticky-back-header + * {
   margin-top: 50px;
 }
+/* Hamburger button inside back header — shown on mobile/hamburger mode only */
+.back-hdr-ham { display: none !important; }
+@media (max-width: 767px) { .back-hdr-ham { display: inline-flex !important; } }
+.topbar.topbar-hamburger ~ .main-content .back-hdr-ham { display: inline-flex !important; }
 
 /* ==== HAMBURGER DROPDOWN (outside topbar) ==== */
 /* This element is a SIBLING of <header class="topbar">, NOT a child.

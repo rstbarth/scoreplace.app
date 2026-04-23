@@ -800,10 +800,14 @@ function renderTournaments(container, tournamentId = null) {
              <div id="invite-modal-${t.id}" class="invite-modal-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; cursor: default; box-sizing: border-box;" onclick="event.stopPropagation()">
                 <div style="position:absolute;top:1rem;left:50%;transform:translateX(-50%);background: var(--bg-card); width: calc(100% - 2rem); max-width: 340px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.2s ease; box-sizing: border-box; overflow: hidden;">
 
-                   <div style="padding: 0.6rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; box-sizing: border-box;">
+                   <!-- Standard back header row -->
+                   <div style="display:flex;align-items:center;gap:8px;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);">
+                      <button onclick="event.stopPropagation();closeInviteModal('${t.id}')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);cursor:pointer;font-size:0.78rem;font-weight:600;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>
+                      <div style="flex:1;text-align:center;font-size:0.85rem;font-weight:700;color:var(--text-bright);">Convidar para o Torneio</div>
+                      <button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="event.stopPropagation();typeof window._toggleHamburger==='function'&&window._toggleHamburger(this);" style="width:32px;height:32px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                   </div>
 
-                      <!-- Title -->
-                      <div style="text-align:center;font-size:0.95rem;font-weight:700;color:var(--text-bright);">Convidar para o Torneio</div>
+                   <div style="padding: 0.6rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; box-sizing: border-box;">
 
                       <!-- 3 buttons row -->
                       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
@@ -833,9 +837,6 @@ function renderTournaments(container, tournamentId = null) {
                          <input type="email" placeholder="email@exemplo.com" id="invite-email-${t.id}" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 0.75rem; min-width: 0; box-sizing: border-box;">
                          <button class="btn btn-indigo btn-sm hover-lift" style="font-size:0.75rem;" onclick="var email = document.getElementById('invite-email-${t.id}').value; if(!email){showNotification(window._t('tourn.attention'),window._t('tourn.enterEmail'),'warning');return;} window.open('mailto:' + email + '?subject=' + encodeURIComponent('Convite: ${window._safeHtml(t.name)}') + '&body=' + encodeURIComponent('${inviteTextSafe}'), '_self'); showNotification(window._t('tourn.emailOpening'),window._t('tourn.emailOpeningMsg'),'info');">E-mail</button>
                       </div>
-
-                      <!-- Close -->
-                      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="event.stopPropagation(); closeInviteModal('${t.id}')">Fechar</button>
 
                    </div>
                 </div>

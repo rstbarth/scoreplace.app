@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.67-alpha';
+window.SCOREPLACE_VERSION = '0.15.68-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -301,6 +301,8 @@ window._renderBackHeader = function(opts) {
     : opts.middleHtml;
   var _right = opts.rightHtml || '';
   var _below = opts.belowHtml || '';
+  var _hamSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+  var _hamBtn = '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;align-items:center;justify-content:center;flex-shrink:0;">' + _hamSvg + '</button>';
 
   // Override support: inline JS (legacy string) OR function (registered).
   var _overrideAttr = '';
@@ -326,6 +328,7 @@ window._renderBackHeader = function(opts) {
         '</button>' +
         _middle +
         _right +
+        _hamBtn +
       '</div>' +
       _below +
     '</div>'
@@ -725,18 +728,20 @@ window._showSupportModal = function() {
   if (existing) { existing.style.display = 'flex'; return; }
 
   var pixKey = '51590996000173';
+  var _hamSvgS = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+  var _backSvgS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
   var modal = document.createElement('div');
   modal.id = 'modal-support-pix';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
   modal.innerHTML =
     '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:360px;width:92%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-      '<div style="background:linear-gradient(135deg,#10b981,#059669);padding:1rem;text-align:center;flex-shrink:0;">' +
-        '<div style="font-size:1.8rem;margin-bottom:0.2rem;">💚</div>' +
-        '<div style="font-size:1.1rem;font-weight:800;color:#fff;">Apoie o scoreplace.app</div>' +
-        '<div style="font-size:0.75rem;color:rgba(255,255,255,0.8);margin-top:2px;">Contribuição voluntária — qualquer valor</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);flex-shrink:0;">' +
+        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);cursor:pointer;font-size:0.82rem;font-weight:600;flex-shrink:0;">' + _backSvgS + ' Voltar</button>' +
+        '<div style="flex:1;text-align:center;font-size:0.88rem;font-weight:700;color:var(--text-bright);">💚 Apoie o scoreplace.app</div>' +
+        '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">' + _hamSvgS + '</button>' +
       '</div>' +
       '<div style="padding:1rem;text-align:center;overflow-y:auto;flex:1;">' +
-        '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
+        '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Contribuição voluntária — qualquer valor. Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
         '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;flex-direction:column;align-items:center;">' +
           '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;margin-bottom:0.6rem;" />' +
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Chave PIX (CNPJ):</div>' +
@@ -746,7 +751,6 @@ window._showSupportModal = function() {
           '</div>' +
         '</div>' +
         '<p style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.8rem;">Escaneie o QR code ou copie a chave PIX no app do seu banco.</p>' +
-        '<button onclick="document.getElementById(\'modal-support-pix\').remove()" style="width:100%;padding:8px;background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.82rem;cursor:pointer;">Fechar</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(modal);

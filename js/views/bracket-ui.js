@@ -6770,14 +6770,22 @@ window._openCasualMatch = function() {
 window._renderCasualJoin = function(container, roomCode) {
   if (!container) return;
   var _safe = window._safeHtml || function(s) { return s; };
+  var _backHtml = typeof window._renderBackHeader === 'function'
+    ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' }) : '';
+  function _setBody(html) {
+    var body = document.getElementById('casual-join-body');
+    if (body) { body.innerHTML = html; return; }
+    container.innerHTML = _backHtml + '<div id="casual-join-body">' + html + '</div>';
+  }
 
-  container.innerHTML =
+  _setBody(
     '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;">' +
       '<div style="text-align:center;">' +
         '<div style="font-size:2rem;margin-bottom:1rem;">⏳</div>' +
         '<p style="color:var(--text-muted);font-size:0.9rem;">' + _t('casual.loading') + '</p>' +
       '</div>' +
-    '</div>';
+    '</div>'
+  );
 
   // Wait for Firebase Auth to rehydrate before deciding "logged-in vs anon".
   // On Safari/iOS the IndexedDB-backed auth state can take several hundred ms
@@ -6810,25 +6818,27 @@ window._renderCasualJoin = function(container, roomCode) {
   }
 
   if (typeof window.FirestoreDB === 'undefined' || !window.FirestoreDB.db) {
-    container.innerHTML =
+    _setBody(
       '<div style="text-align:center;padding:3rem 1rem;">' +
         '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
         '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.offline') + '</div>' +
         '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.offlineMsg') + '</p>' +
         '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
-      '</div>';
+      '</div>'
+    );
     return;
   }
 
   window.FirestoreDB.loadCasualMatch(roomCode).then(function(match) {
     if (!match) {
-      container.innerHTML =
+      _setBody(
         '<div style="text-align:center;padding:3rem 1rem;">' +
           '<div style="font-size:2.5rem;margin-bottom:1rem;">❌</div>' +
           '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.notFound') + '</div>' +
           '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.notFoundMsg', {code: _safe(roomCode)}) + '</p>' +
           '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
-        '</div>';
+        '</div>'
+      );
       return;
     }
 
@@ -6863,7 +6873,7 @@ window._renderCasualJoin = function(container, roomCode) {
       } else {
         winnerLabel = _t('casual.draw');
       }
-      container.innerHTML =
+      _setBody(
         '<div style="text-align:center;padding:2rem 1rem;max-width:500px;margin:0 auto;">' +
           '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🏆</div>' +
           '<div style="font-size:1.2rem;font-weight:800;color:#fbbf24;margin-bottom:0.3rem;">' + _t('casual.closed') + '</div>' +
@@ -6884,7 +6894,8 @@ window._renderCasualJoin = function(container, roomCode) {
             (winnerTeam !== 0 ? '<div style="font-size:0.82rem;color:#22c55e;margin-top:0.4rem;font-weight:600;">🏆 ' + _safe(winnerLabel) + '</div>' : '') +
           '</div>' +
           '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:0.5rem;">' + _t('casual.goToDashboard') + '</button>' +
-        '</div>';
+        '</div>'
+      );
       return;
     }
 
@@ -6975,7 +6986,7 @@ window._renderCasualJoin = function(container, roomCode) {
         html += '</div>' +
           '<button class="btn btn-ghost" onclick="try{sessionStorage.removeItem(\'_pendingCasualRoom\');}catch(e){} window._casualEvacuateToDashboard && window._casualEvacuateToDashboard();" style="margin-top:1rem;width:100%;">← ' + _t('casual.backDashboard') + '</button>' +
         '</div>';
-        container.innerHTML = html;
+        _setBody(html);
         return;
       }
 
@@ -7088,7 +7099,7 @@ window._renderCasualJoin = function(container, roomCode) {
       html += '<button class="btn btn-outline" onclick="window._casualLeaveMatch && window._casualLeaveMatch();" style="margin-top:0.5rem;">← ' + _t('casual.backDashboard') + '</button>';
       html += '</div>';
 
-      container.innerHTML = html;
+      _setBody(html);
     }
 
     // Auto-join: add logged-in user to match participants
@@ -7209,13 +7220,14 @@ window._renderCasualJoin = function(container, roomCode) {
     _startLobbyRefresh();
   }).catch(function(err) {
     console.error('Error loading casual match:', err);
-    container.innerHTML =
+    _setBody(
       '<div style="text-align:center;padding:3rem 1rem;">' +
         '<div style="font-size:2.5rem;margin-bottom:1rem;">⚠️</div>' +
         '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:0.5rem;">' + _t('casual.loadError') + '</div>' +
         '<p style="color:var(--text-muted);font-size:0.85rem;">' + _t('casual.loadErrorMsg') + '</p>' +
         '<button class="btn btn-primary" onclick="window.location.hash=\'#dashboard\';" style="margin-top:1rem;">' + _t('casual.goToDashboard') + '</button>' +
-      '</div>';
+      '</div>'
+    );
   });
 };
 
