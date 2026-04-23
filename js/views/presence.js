@@ -1074,17 +1074,24 @@
     // ambos permitem friends verem, então ambos notificam.
     if (cu.presenceVisibility === 'off') return;
 
-    // Throttle — 1 notif por amigo/local/sport/dia.
+    // Throttle — 1 notif por amigo/local/sports/dia. Usa sports.join pra uma
+    // chave estável quando o usuário está registrado em múltiplas modalidades.
+    var sportsKeyPart = (Array.isArray(payload.sports) && payload.sports.length > 0)
+      ? payload.sports.slice().sort().join(',')
+      : '';
     var throttleKey = 'scoreplace_checkin_notified_' + payload.placeId + '_' +
-                      (payload.sport || '') + '_' + payload.dayKey;
+                      sportsKeyPart + '_' + payload.dayKey;
     try {
       if (localStorage.getItem(throttleKey)) return; // já notificou hoje
       localStorage.setItem(throttleKey, '1');
     } catch (e) {}
 
+    var sportLabel = (Array.isArray(payload.sports) && payload.sports.length > 0)
+      ? payload.sports.join('/')
+      : 'agora';
     var msg = (cu.displayName || 'Um amigo') + ' chegou em ' +
               (payload.venueName || 'um local') + ' pra jogar ' +
-              (payload.sport || 'agora') + '. Vem junto!';
+              sportLabel + '. Vem junto!';
 
     friends.forEach(function(friendUid) {
       if (!friendUid) return;
@@ -1270,7 +1277,10 @@
 
     var d = new Date(payload.startsAt);
     var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    var msg = (cu.displayName || 'Um amigo') + ' vai jogar ' + payload.sport +
+    var sportLabel = (Array.isArray(payload.sports) && payload.sports.length > 0)
+      ? payload.sports.join('/')
+      : 'algo';
+    var msg = (cu.displayName || 'Um amigo') + ' vai jogar ' + sportLabel +
       ' em ' + (payload.venueName || 'um local') + ' às ' + hhmm + ' hoje. Quer ir junto?';
 
     friends.forEach(function(friendUid) {

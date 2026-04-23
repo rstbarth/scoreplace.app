@@ -2445,7 +2445,7 @@ window.toggleRegistrationStatus = function (tId) {
             setTimeout(function() {
                 var rendered = document.getElementById('unified-resolution-panel') ||
                                document.getElementById('groups-config-panel') ||
-                               document.getElementById('remainder-panel');
+                               document.getElementById('remainder-resolution-panel');
                 if (!rendered && typeof showNotification === 'function') {
                     showNotification('⚠️ Painel não abriu',
                         'fmt=' + (t.format || '?') +

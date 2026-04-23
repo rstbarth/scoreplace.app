@@ -143,30 +143,20 @@ window.VenueDB = {
     }
   },
 
-  // Paginated list for the public discovery view. Only one server-side
-  // inequality/array-contains is allowed per query, so we pick the most
-  // selective filter for the server and apply the rest client-side on the
-  // returned page. Precedence: sport (array-contains) > city (equality) >
-  // no filter. Results sorted by name alphabetically.
+  // Paginated list for the public discovery view. Todos os filtros agora são
+  // client-side — o filtro de sport *não* usa mais array-contains no servidor
+  // porque venues recém-cadastrados (sem quadras ainda) têm sports[] vazio e
+  // ficavam invisíveis na descoberta. Regra cliente: se o venue não declara
+  // sports[] ou declara vazio, ele passa como wildcard; se declara, precisa
+  // conter o esporte selecionado.
   async listVenues(filters, opts) {
     if (!this.db) return [];
     filters = filters || {};
     opts = opts || {};
     var limit = Math.max(1, Math.min(100, opts.limit || 50));
     var ref = this.db.collection('venues');
-    var q;
     try {
-      if (filters.sport) {
-        q = ref.where('sports', 'array-contains', filters.sport).limit(limit);
-      } else if (filters.city) {
-        // Normalize for match — we store the raw city. Equality with exact
-        // case match would miss "são paulo" vs "São Paulo"; keep a loose
-        // client-side filter instead of requiring a lowercased denorm field
-        // for this first iteration.
-        q = ref.limit(limit);
-      } else {
-        q = ref.limit(limit);
-      }
+      var q = ref.limit(limit);
       var snap = await q.get();
       var list = [];
       snap.forEach(function(doc) {
@@ -174,14 +164,22 @@ window.VenueDB = {
         d._id = doc.id;
         list.push(d);
       });
-      // Client-side filters for the parts we couldn't push to the server.
+      // Client-side filters.
       var cityQ = (filters.city || '').trim().toLowerCase();
       var priceQ = filters.priceRange || '';
       var minCourts = parseInt(filters.minCourts, 10) || 0;
+      var sportQ = (filters.sport || '').trim();
       return list.filter(function(v) {
         if (cityQ && !(v.city || '').toLowerCase().includes(cityQ)) return false;
         if (priceQ && v.priceRange !== priceQ) return false;
         if (minCourts > 0 && (!v.courtCount || v.courtCount < minCourts)) return false;
+        if (sportQ) {
+          var sportsArr = Array.isArray(v.sports) ? v.sports : [];
+          // Venues sem sports declarados (cadastro novo, sem quadras) passam
+          // como wildcard. Venues com sports declarados só passam se incluem
+          // o esporte filtrado.
+          if (sportsArr.length > 0 && sportsArr.indexOf(sportQ) === -1) return false;
+        }
         return true;
       }).sort(function(a, b) {
         // Pro always ranks above Free; within a tier, verified first, then name.
