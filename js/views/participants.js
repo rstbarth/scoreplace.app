@@ -879,8 +879,10 @@ function renderParticipants(container, tournamentId) {
   // Ready matches banner (check-in: jogos prontos para chamar)
   const readyBannerHtml = (typeof window._renderReadyMatchesBanner === 'function') ? window._renderReadyMatchesBanner(t) : '';
 
-  // Standby / waitlist panel
-  const standbyPanelHtml = (typeof window._renderStandbyPanel === 'function') ? window._renderStandbyPanel(t, isOrg) : '';
+  // Standby / waitlist panel — ocultado na lista de presença: standby já aparece
+  // integrado na lista principal em ordem alfabética com rótulo "Lista de Espera".
+  // O painel separado continua visível no bracket (via bracket.js).
+  const standbyPanelHtml = '';
 
   container.innerHTML = `
     ${(typeof window._renderBackHeader === 'function')

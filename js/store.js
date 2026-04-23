@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.74-alpha';
+window.SCOREPLACE_VERSION = '0.15.75-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -508,8 +508,15 @@ window._reflowChrome = function() {
   var staticBH = null;
   backHeaders.forEach(function(bh) {
     if (window.getComputedStyle(bh).position === 'fixed') return;
+    // Skip back-headers inside an inactive .modal-overlay. Modals are hidden via
+    // opacity:0 + pointer-events:none (NOT display:none), so their static
+    // back-headers still report non-zero rects — we have to check the ancestor
+    // explicitly. Without this check, staticBH would latch onto the inactive
+    // #modal-quick-create BH on every regular page and snap the dropdown to 0px.
+    var overlayAncestor = bh.closest && bh.closest('.modal-overlay');
+    if (overlayAncestor && !overlayAncestor.classList.contains('active')) return;
     var _r = bh.getBoundingClientRect();
-    if (_r.width === 0 && _r.height === 0) return; // display:none parent — skip
+    if (_r.width === 0 && _r.height === 0) return; // display:none — skip
     staticBH = bh;
   });
 
