@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.88-alpha';
+window.SCOREPLACE_VERSION = '0.15.89-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -70,7 +70,11 @@ window._softRefreshView = function() {
   var openModal = document.querySelector('.modal-overlay.active') ||
                   document.getElementById('qr-modal-overlay') ||
                   document.getElementById('player-stats-overlay') ||
-                  document.querySelector('.tv-overlay');
+                  document.querySelector('.tv-overlay') ||
+                  document.getElementById('unified-resolution-panel') ||
+                  document.getElementById('groups-config-panel') ||
+                  document.getElementById('remainder-resolution-panel') ||
+                  document.getElementById('removal-subchoice-panel');
   var active = document.activeElement;
   var isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
   if (openModal || isTyping) {
