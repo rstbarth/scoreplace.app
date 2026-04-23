@@ -6,7 +6,10 @@
     </linearGradient>
   </defs>
   <rect width="192" height="192" rx="32" fill="url(#bg)"/>
-  <text x="96" y="120" font-family="sans-serif" font-size="96" font-weight="800" fill="#fbbf24" text-anchor="middle" dominant-baseline="central">S</text>
-  <circle cx="145" cy="50" r="18" fill="none" stroke="#fbbf24" stroke-width="3" opacity="0.4"/>
-  <path d="M138 44 l7 6 l7-6" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+  <!-- Pódio: prata (2º), ouro (1º), bronze (3º) — cores universais de medalha -->
+  <rect x="44" y="100" width="32" height="52" rx="5" fill="#CBD5E1"/>
+  <rect x="80" y="68" width="32" height="84" rx="5" fill="#F59E0B"/>
+  <rect x="116" y="118" width="32" height="34" rx="5" fill="#FB923C"/>
+  <!-- Estrela sobre o 1º lugar -->
+  <path d="M 96 40 L 100 52 L 112 52 L 102 60 L 106 72 L 96 64 L 86 72 L 90 60 L 80 52 L 92 52 Z" fill="#F59E0B"/>
 </svg>

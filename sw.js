@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.15.94';
+var CACHE_NAME = 'scoreplace-v0.15.95';
 var STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -96,7 +96,9 @@ var STATIC_ASSETS = [
 
   '/js/views/enroll-modal.js',
   '/icons/icon-192.svg',
-  '/icons/icon-512.svg'
+  '/icons/icon-512.svg',
+  '/icons/logo-podium.svg',
+  '/icons/logo-wordmark.svg'
 ];
 
 // Domains that should NEVER be cached (APIs, auth, real-time data)

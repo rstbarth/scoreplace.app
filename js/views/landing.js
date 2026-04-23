@@ -37,7 +37,7 @@
     var ver = window.SCOREPLACE_VERSION || '';
     return '<section class="landing-hero">' +
       '<div class="landing-hero-content">' +
-        '<div class="landing-logo">🏆</div>' +
+        '<div class="landing-logo"><img src="icons/logo-podium.svg?v=0.15.95" alt="scoreplace" width="96" height="72" style="display:inline-block;filter:drop-shadow(0 4px 12px rgba(245,158,11,0.3));"></div>' +
         '<h1 class="landing-title">scoreplace<span class="landing-dot">.app</span></h1>' +
         (ver ? '<div class="landing-version" style="font-size:0.78rem;color:var(--text-muted,#9ca3af);margin-top:-4px;margin-bottom:14px;letter-spacing:0.3px;">v' + ver + '</div>' : '') +
         '<p class="landing-tagline">' + t('landing.tagline') + '</p>' +
@@ -130,7 +130,7 @@
 
     /* Hero */
     '.landing-hero { text-align: center; padding: 48px 0 32px; }' +
-    '.landing-logo { font-size: 3.5rem; margin-bottom: 8px; }' +
+    '.landing-logo { margin-bottom: 8px; line-height: 0; }' +
     '.landing-title { font-size: 2.2rem; font-weight: 800; color: var(--text-bright); margin: 0; }' +
     '.landing-dot { color: var(--primary-color); }' +
     '.landing-tagline { font-size: 1.1rem; color: var(--text-muted); margin: 12px 0 28px; max-width: 500px; margin-left: auto; margin-right: auto; }' +

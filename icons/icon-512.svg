@@ -5,8 +5,11 @@
       <stop offset="100%" stop-color="#0f0f23"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="80" fill="url(#bg)"/>
-  <text x="256" y="310" font-family="sans-serif" font-size="260" font-weight="800" fill="#fbbf24" text-anchor="middle" dominant-baseline="central">S</text>
-  <circle cx="390" cy="130" r="45" fill="none" stroke="#fbbf24" stroke-width="6" opacity="0.4"/>
-  <path d="M372 118 l18 16 l18-16" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+  <rect width="512" height="512" rx="85" fill="url(#bg)"/>
+  <!-- Pódio: prata (2º), ouro (1º), bronze (3º) -->
+  <rect x="117" y="267" width="85" height="139" rx="13" fill="#CBD5E1"/>
+  <rect x="213" y="181" width="86" height="225" rx="13" fill="#F59E0B"/>
+  <rect x="310" y="315" width="85" height="91" rx="13" fill="#FB923C"/>
+  <!-- Estrela sobre o 1º lugar -->
+  <path d="M 256 107 L 267 139 L 299 139 L 272 159 L 283 192 L 256 171 L 229 192 L 240 159 L 213 139 L 245 139 Z" fill="#F59E0B"/>
 </svg>

@@ -1,0 +1,11 @@
+<svg width="400" height="120" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="scoreplace.app">
+  <!-- Pódio: cores de medalha universais, funcionam em qualquer tema -->
+  <rect x="25" y="65" width="22" height="30" rx="3" fill="#CBD5E1"/>
+  <rect x="52" y="45" width="22" height="50" rx="3" fill="#F59E0B"/>
+  <rect x="79" y="75" width="22" height="20" rx="3" fill="#FB923C"/>
+  <!-- Estrela sobre o 1º lugar -->
+  <path d="M 63 35 L 65 41 L 71 41 L 66 45 L 68 51 L 63 47 L 58 51 L 60 45 L 55 41 L 61 41 Z" fill="#F59E0B"/>
+  <!-- Texto: currentColor permite herdar cor do tema pai via CSS (color: var(--text-color)) -->
+  <text x="125" y="65" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="600" fill="currentColor" letter-spacing="-0.5">scoreplace</text>
+  <text x="125" y="88" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="400" fill="currentColor" opacity="0.6">.app</text>
+</svg>

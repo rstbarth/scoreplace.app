@@ -1,0 +1,8 @@
+<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="scoreplace podium">
+  <!-- Pódio: cores de medalha universais -->
+  <rect x="2" y="30" width="22" height="30" rx="3" fill="#CBD5E1"/>
+  <rect x="29" y="10" width="22" height="50" rx="3" fill="#F59E0B"/>
+  <rect x="56" y="40" width="22" height="20" rx="3" fill="#FB923C"/>
+  <!-- Estrela sobre o 1º lugar -->
+  <path d="M 40 0 L 42 6 L 48 6 L 43 10 L 45 16 L 40 12 L 35 16 L 37 10 L 32 6 L 38 6 Z" fill="#F59E0B"/>
+</svg>
