@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.66-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix: página #venues abria e apagava resultados.</b> GPS re-disparava desnecessariamente quando já havia localização salva, causando race condition. Agora GPS só auto-dispara na primeira visita; nas seguintes, o centro salvo é usado diretamente.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.65-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Descoberta de locais (#venues) melhorada.</b> Página abre já pinada na última localização. Locais registrados no scoreplace exibidos em box separado (máx 5 + "Mostrar mais"). Sugestões do dropdown mostram locais do scoreplace primeiro, depois Google. Dropdown de esporte com margem na seta. Clicar no campo de busca seleciona tudo.</p>' +
         '</div>' +

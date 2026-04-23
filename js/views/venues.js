@@ -290,7 +290,7 @@
       var profileCity = cu && cu.city ? String(cu.city).trim() : '';
       if (profileCity) state.location = profileCity;
     }
-    _tryAutoGeolocate();
+    if (!state.centerFromGps) _tryAutoGeolocate();
 
     container.innerHTML =
       // ── Sport dropdown — full width, above map ──
