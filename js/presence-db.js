@@ -53,11 +53,58 @@ window.PresenceDB = {
   },
 
   // Create a check-in (now → now + window) or planned presence.
+  // Server-side dedup: antes de criar, consulta Firestore por presenças ativas
+  // do mesmo usuário com mesmo placeId/type e sport overlapping (+ tempo
+  // sobreposto para plan). Se já existe, retorna o id existente em vez de
+  // criar outro doc. Isso protege TODOS os caminhos (presence.js, venues.js,
+  // presence-geo.js) contra duplicatas de double-tap, multi-tab e race do
+  // state.myActive antes dele ser populado.
   async savePresence(data) {
     if (!this.db) throw new Error('Firestore not initialized');
     var clean = window.FirestoreDB._cleanUndefined(data);
     clean.createdAt = clean.createdAt || Date.now();
     if (!clean.dayKey) clean.dayKey = this.dayKey(new Date(clean.startsAt || Date.now()));
+
+    if (clean.uid && clean.placeId && clean.type) {
+      try {
+        var now = Date.now();
+        var snap = await this.db.collection('presences')
+          .where('uid', '==', clean.uid)
+          .where('endsAt', '>', now)
+          .get();
+        var reqSports = Array.isArray(clean.sports) ? clean.sports : [];
+        var existingId = null;
+        snap.forEach(function(doc) {
+          if (existingId) return;
+          var d = doc.data();
+          if (!d || d.cancelled) return;
+          if (d.type !== clean.type) return;
+          if (d.placeId !== clean.placeId) return;
+          var dSports = Array.isArray(d.sports) ? d.sports : (d.sport ? [d.sport] : []);
+          if (reqSports.length === 0 || dSports.length === 0) {
+            if (reqSports.length !== dSports.length) return;
+          } else {
+            var overlap = dSports.some(function(s) { return reqSports.indexOf(s) !== -1; });
+            if (!overlap) return;
+          }
+          if (clean.type === 'planned') {
+            var reqStart = clean.startsAt || 0;
+            var reqEnd = clean.endsAt || reqStart;
+            var dStart = d.startsAt || 0;
+            var dEnd = d.endsAt || (dStart + 12 * 3600 * 1000);
+            if (!(reqStart < dEnd && reqEnd > dStart)) return;
+          }
+          existingId = doc.id;
+        });
+        if (existingId) {
+          console.log('[PresenceDB] dedup: presença existente', existingId, '— reuso em vez de criar duplicata');
+          return existingId;
+        }
+      } catch (e) {
+        console.warn('[PresenceDB] dedup query falhou, seguindo com add:', e);
+      }
+    }
+
     var ref = await this.db.collection('presences').add(clean);
     return ref.id;
   },

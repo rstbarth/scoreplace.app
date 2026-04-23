@@ -2398,6 +2398,23 @@ window.toggleRegistrationStatus = function (tId) {
         var hasRelevantIssues = isLigaOrSwiss
             ? (diag.incompleteTeams.length > 0 || diag.remainder > 0)
             : diag.hasIssues;
+        // Diagnóstico visível — console + toast — pra entender por que o painel
+        // não abre quando o usuário espera. Permite pinpointar format strings
+        // drift, classificação errada ou diag vazio.
+        try {
+            console.log('[Encerrar Inscrições] diag', {
+                format: t.format,
+                isGrupos: isGrupos,
+                isLigaOrSwiss: isLigaOrSwiss,
+                effectiveTeams: diag.effectiveTeams,
+                remainder: diag.remainder,
+                isOdd: diag.isOdd,
+                isPowerOf2: diag.isPowerOf2,
+                incompleteTeams: diag.incompleteTeams.length,
+                hasIssues: diag.hasIssues,
+                hasRelevantIssues: hasRelevantIssues
+            });
+        } catch(e) {}
         if (hasRelevantIssues) {
             window.showUnifiedResolutionPanel(tId);
             return;
