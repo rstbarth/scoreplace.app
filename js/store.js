@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.68-alpha';
+window.SCOREPLACE_VERSION = '0.15.69-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -504,7 +504,7 @@ window._reflowChrome = function() {
     var next = bh.nextElementSibling;
     if (next) {
       var bhH = Math.ceil(bh.getBoundingClientRect().height);
-      next.style.marginTop = (bhH + 8) + 'px';
+      next.style.marginTop = (ddH + bhH + 8) + 'px';
     }
   });
 };

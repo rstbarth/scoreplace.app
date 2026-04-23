@@ -6583,23 +6583,19 @@ window._openCasualMatch = function() {
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   overlay.innerHTML =
-    '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
-        (cu && cu.photoURL ?
-          '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(56,189,248,0.4);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-          '<div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
-        : cu ?
-          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:700;">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>'
-        : '<span style="font-size:1.3rem;">⚡</span>') +
-        '<div>' +
-          '<div style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</div>' +
-          '<div style="font-size:0.68rem;color:var(--text-muted);">' + (cu && cu.displayName ? window._safeHtml(cu.displayName) : _t('casual.subtitle')) + '</div>' +
-        '</div>' +
+    '<div style="background:var(--bg-dark,#0f172a);padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
+      '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main,#cbd5e1);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
+        _t('btn.back') +
+      '</button>' +
+      '<div style="flex:1;display:flex;align-items:center;gap:8px;justify-content:center;">' +
+        '<span style="font-size:1rem;">⚡</span>' +
+        '<span style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</span>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:8px 18px;font-size:0.88rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;">' + _t('casual.start') + '</button>' +
-        '<button onclick="window._casualSetupClose && window._casualSetupClose();" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:10px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;">✕ ' + _t('casual.close') + '</button>' +
-      '</div>' +
+      '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:7px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;flex-shrink:0;">' + _t('casual.start') + '</button>' +
+      '<button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger===\'function\'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color,#fff);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' +
+      '</button>' +
     '</div>' +
     '<div id="casual-setup-content" style="flex:1;overflow-y:auto;padding:1rem 0.8rem;-webkit-overflow-scrolling:touch;"></div>';
 

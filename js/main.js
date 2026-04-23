@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.69-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Cabeçalho padrão completo em todas as páginas.</b> (1) Hamburger + conteúdo se empurram: quando o menu abre, o conteúdo desce em vez de ser sobreposto. (2) Modal "Novo Torneio" (Criação Rápida): cabeçalho padrão com Voltar + título + hamburger substituindo o antigo botão avulso. (3) Overlay "Partida Casual": cabeçalho padrão com Voltar + título + Iniciar + hamburger substituindo o gradiente personalizado. (4) Modal "Convidar para o app" (QR): cabeçalho padrão com Voltar + título + hamburger.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.68-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cabeçalho padrão em todas as páginas + hamburger no Voltar.</b> (1) Botão Voltar adicionado à tela de partida casual (#casual/CODE) — todas as branches (loading, offline, não encontrado, encerrado, lobby, erro) agora exibem o Voltar fixo no topo. (2) O botão Voltar agora inclui o ícone de menu hamburger no canto direito, visível em mobile — mesmo dentro de modais fullscreen onde a topbar fica coberta, o menu principal continua acessível. (3) Modais "Convidar" e "Apoie" ganham cabeçalho padrão com Voltar + hamburger substituindo o botão "Fechar" no rodapé.</p>' +
         '</div>' +
@@ -3105,14 +3109,17 @@
   const html = `
     <div class="modal-overlay" id="modal-quick-create">
       <div class="modal" style="max-width:420px;">
-        <div class="modal-voltar-bar" style="position:sticky;top:0;z-index:11;background:var(--bg-dark);padding:12px 1.5rem 10px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;">
-          <button class="btn btn-outline btn-sm hover-lift" onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <div style="position:sticky;top:0;z-index:11;background:var(--bg-dark);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button onclick="if(typeof closeModal==='function')closeModal('modal-quick-create');" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--text-main);font-size:0.82rem;font-weight:600;cursor:pointer;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             ${(window._t || function(k){return k;})('btn.back') || 'Voltar'}
           </button>
+          <div style="flex:1;text-align:center;font-size:0.9rem;font-weight:700;color:var(--text-bright);">${(window._t || function(k){return k;})('quickCreate.title')}</div>
+          <button class="back-hdr-ham" type="button" aria-label="Abrir menu" onclick="typeof window._toggleHamburger==='function'&&window._toggleHamburger(this);" style="width:36px;height:36px;border:none;background:transparent;color:var(--text-color);cursor:pointer;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
         </div>
-        <div style="padding:1.5rem 2rem 2rem;">
-        <h2 style="margin:0 0 1.25rem; font-size:1.3rem; font-weight:700; color:var(--text-bright); text-align:center;">${(window._t || function(k){return k;})('quickCreate.title')}</h2>
+        <div style="padding:1.25rem 2rem 2rem;">
         <div class="form-group" style="margin-bottom:1.25rem;">
           <label class="form-label">${(window._t || function(k){return k;})('quickCreate.sportLabel')}</label>
           <div id="qc-sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
