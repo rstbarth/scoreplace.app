@@ -293,6 +293,7 @@
     if (!state.centerFromGps) _tryAutoGeolocate();
 
     container.innerHTML =
+      (typeof window._renderBackHeader === 'function' ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' }) : '') +
       // ── Sport dropdown — full width, above map ──
       '<div style="padding:10px 16px;border-bottom:1px solid var(--border-color);">' +
         _sportSelectHtml() +
