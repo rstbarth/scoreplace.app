@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.72-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Convidar e Apoie viram páginas reais.</b> Antes abriam como card flutuante sobre a tela atual (padrão inventado). Agora navegam via hash routing (#invite, #support) e renderizam no view-container como todas as demais páginas — cabeçalho padrão com Voltar + hamburger, conteúdo que empurra o menu, comportamento idêntico a Locais, Presença etc.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.71-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Cabeçalho padrão unificado + hamburger empurra conteúdo.</b> Todos os overlays/modais (Partida Casual, Novo Torneio, Convidar QR, Apoie) agora usam _renderBackHeader centralizado com classe sticky-back-header. _reflowChrome atualizado: distingue back-headers fixed (páginas normais) de static (dentro de overlays) e empurra o conteúdo correto em cada contexto. Dashboard: quando o menu abre, o view-container recebe paddingTop igual à altura do dropdown — sem sobreposição. QR Convidar e Apoie: hamburger adicionado ao padrão. #qr-modal-overlay adicionado ao seletor de z-index elevado no _toggleHamburger.</p>' +
         '</div>' +

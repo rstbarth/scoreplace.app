@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.15.58-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `0.15.72-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -36,6 +36,7 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 > **Nota:** entre v0.8.6 e v0.15.45 foram ~400 version bumps. O bloco abaixo consolida por tema. Para detalhe de uma versão específica, consulte `git log --oneline | grep vX.Y.Z`.
 
 **v0.15.x-alpha (Abril 2026) — Polimento final, 5 pilares, Apple Watch rollback**
+- **Convidar e Apoie como páginas reais** (v0.15.72): convertidos de card flutuante para páginas navegáveis via hash routing (#invite, #support). `renderInvitePage` em tournaments-sharing.js e `renderSupportPage` em store.js. Router atualizado com novos casos. Dashboard buttons apontam para hashes. `_showAppInviteQR` e `_showSupportModal` viram wrappers de compat que só fazem `window.location.hash = '#invite'/'#support'`.
 - **#my-venues mapa único** (v0.15.50): o mapa interno menor do formulário (`#venue-owner-map`) foi removido — só sobra o mapa do topo (`#venue-owner-main-map`). Quando um venue é selecionado, `_focusOwnerMapOn` faz zoom 16 (street-level) no ponto e adiciona um pin vermelho 📌 (`_selectedPinMarker`). Ao cancelar, o pin é limpo. Evita duplicação visual observada na v0.15.49.
 - **#my-venues com mapa + busca unificada** (v0.15.49): mapa no topo mostra todos os venues cadastrados como pins (âmbar=free, índigo=Pro). Dropdown de busca tem duas seções — "🏢 Já cadastrados no scoreplace" (match por nome/city/address, badge ✓ oficial ou 🤝 comunitário) + "📍 Sugestões do Google — novo cadastro". Clique em cadastrado → abre edit; clique em Google → novo cadastro. Evita duplicatas. Helpers novos: `_ensureOwnerMap`, `_renderOwnerMarkers`, `_loadRegisteredVenues`, `_addSectionHeader`, `_addRegisteredItem`, `_addGoogleItem`. Container id novo: `venue-owner-main-map` (distinto do `venue-owner-map` que aparece dentro do form).
 - **#my-venues mais enxuto** (v0.15.48): removido header "🏢 Cadastre locais" + parágrafo explicativo. Rota entrega direto no input de busca + formulário; menos scroll no mobile.

@@ -174,6 +174,22 @@ function initRouter() {
           return;
         }
         break;
+      case 'support':
+        if (typeof window.renderSupportPage === 'function') {
+          window.renderSupportPage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
+      case 'invite':
+        if (typeof window.renderInvitePage === 'function') {
+          window.renderInvitePage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');

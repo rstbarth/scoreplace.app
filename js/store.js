@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.71-alpha';
+window.SCOREPLACE_VERSION = '0.15.72-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -747,39 +747,32 @@ window._startProCheckout = async function() {
   }
 };
 
-// Mostra modal de apoio voluntário via PIX
-window._showSupportModal = function() {
-  var existing = document.getElementById('modal-support-pix');
-  if (existing) { existing.style.display = 'flex'; return; }
-
+// Página de apoio voluntário via PIX — renderiza no view-container como página normal
+window.renderSupportPage = function(container) {
   var pixKey = '51590996000173';
-  var modal = document.createElement('div');
-  modal.id = 'modal-support-pix';
-  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100000;';
-  var _hdrHtml = window._renderBackHeader({
+  var hdr = window._renderBackHeader({
+    href: '#dashboard',
     label: 'Voltar',
-    onClickOverride: "document.getElementById('modal-support-pix').remove()",
     middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">💚 Apoie o scoreplace.app</span>'
   });
-  modal.innerHTML =
-    '<div style="background:var(--surface-color);border:1px solid var(--border-color);border-radius:20px;max-width:360px;width:92%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-      _hdrHtml +
-      '<div style="padding:1rem;text-align:center;overflow-y:auto;flex:1;">' +
-        '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Contribuição voluntária — qualquer valor. Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
-        '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;flex-direction:column;align-items:center;">' +
-          '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;margin-bottom:0.6rem;" />' +
-          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Chave PIX (CNPJ):</div>' +
-          '<div style="display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap;">' +
-            '<code id="pix-key-text" style="background:rgba(255,255,255,0.08);padding:6px 10px;border-radius:8px;font-size:0.85rem;color:var(--text-color);letter-spacing:0.3px;">' + pixKey + '</code>' +
-            '<button onclick="navigator.clipboard.writeText(\'' + pixKey + '\').then(function(){var b=event.target;b.textContent=\'Copiado!\';setTimeout(function(){b.textContent=\'Copiar\'},2000)})" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copiar</button>' +
-          '</div>' +
+  container.innerHTML = hdr +
+    '<div style="padding:1rem;text-align:center;max-width:400px;margin:0 auto;">' +
+      '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;line-height:1.5;">Contribuição voluntária — qualquer valor. Sua contribuição mantém o scoreplace.app no ar e financia novas funcionalidades!</p>' +
+      '<div style="background:var(--bg-dark);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;flex-direction:column;align-items:center;">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('00020126580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925SCOREPLACE6009SAO PAULO62070503***6304') + '" alt="QR Code PIX" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;margin-bottom:0.6rem;" />' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Chave PIX (CNPJ):</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap;">' +
+          '<code id="pix-key-text" style="background:rgba(255,255,255,0.08);padding:6px 10px;border-radius:8px;font-size:0.85rem;color:var(--text-color);letter-spacing:0.3px;">' + pixKey + '</code>' +
+          '<button onclick="navigator.clipboard.writeText(\'' + pixKey + '\').then(function(){var b=event.target;b.textContent=\'Copiado!\';setTimeout(function(){b.textContent=\'Copiar\'},2000)})" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copiar</button>' +
         '</div>' +
-        '<p style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.8rem;">Escaneie o QR code ou copie a chave PIX no app do seu banco.</p>' +
       '</div>' +
+      '<p style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.8rem;">Escaneie o QR code ou copie a chave PIX no app do seu banco.</p>' +
     '</div>';
-  document.body.appendChild(modal);
-  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  if (typeof window._reflowChrome === 'function') window._reflowChrome();
 };
+
+// Compat: botões antigos que chamam _showSupportModal redirecionam para a página
+window._showSupportModal = function() { window.location.hash = '#support'; };
 
 // Global HTML escape utility (XSS protection)
 window._safeHtml = function(str) {
