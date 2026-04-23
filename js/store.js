@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.15.73-alpha';
+window.SCOREPLACE_VERSION = '0.15.74-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -507,7 +507,10 @@ window._reflowChrome = function() {
   // the card or at the wrong position inside a fullscreen overlay).
   var staticBH = null;
   backHeaders.forEach(function(bh) {
-    if (window.getComputedStyle(bh).position !== 'fixed') staticBH = bh;
+    if (window.getComputedStyle(bh).position === 'fixed') return;
+    var _r = bh.getBoundingClientRect();
+    if (_r.width === 0 && _r.height === 0) return; // display:none parent — skip
+    staticBH = bh;
   });
 
   if (dd) {

@@ -1003,6 +1003,10 @@
       title: _t('help.changelog'),
       icon: '📋',
       content: '<div style="margin-bottom:1rem;">' +
+        '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.74-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
+        '<p><b>Fix hamburger + W.O. normalização de nomes.</b> (1) _reflowChrome: correção crítica — o modal #modal-quick-create existe no DOM permanentemente com position:static mesmo quando invisível, fazendo getBoundingClientRect() retornar zeros e o dropdown aparecer em top:0px (atrás da topbar). Agora o staticBH ignora elementos com rect zero (display:none). Restaura hamburger no dashboard e nas páginas normais. (2) _declareAbsent: normalização do separador de duplas — times salvos como "A/B" mas partidas armazenam "A / B" (com espaços), causando matchEntry = null e o diálogo de substituição falhar silenciosamente. Agora ambos são normalizados via replace(/\\s*\\/\\s*/g, \'/\') antes da comparação.</p>' +
+        '</div>' +
+        '<div style="margin-bottom:1rem;">' +
         '<div style="font-weight:700; color:var(--text-bright); font-size:0.9rem; margin-bottom:6px;">v0.15.73-alpha <span style="color:var(--text-muted); font-weight:400; font-size:0.75rem;">(Abril 2026)</span></div>' +
         '<p><b>Hamburger empurra conteúdo em todos os overlays + fix W.O.</b> (1) _reflowChrome: para overlays com back-header static (Novo Torneio, Partida Casual), o dropdown agora é posicionado na borda inferior do back-header real (getBoundingClientRect), não em viewport+topbarH fixo — resolve o overlay que aparecia longe do cabeçalho no modal ou sobrepunha o conteúdo. (2) participants.js: botão W.O. sempre usa _declareAbsent() para participantes ativos, independente de ind.matchNum — remove a rota para _markAbsent() silencioso que causava o padrão diferente no primeiro W.O. Adicionado fallback else em _declareAbsent para o caso de nenhum jogo encontrado.</p>' +
         '</div>' +

@@ -254,11 +254,13 @@ window._declareAbsent = function (tId, playerName) {
   const _allForWO = (typeof window._collectAllMatches === 'function')
     ? window._collectAllMatches(t)
     : (Array.isArray(t.matches) ? t.matches.slice() : []);
+  const _normTeam = (s) => (s || '').replace(/\s*\/\s*/g, '/').trim();
+  const _teamNameNorm = _normTeam(teamName);
   _allForWO.forEach((m, mi) => {
     if (!m || m.winner) return; // já decidido
     if (matchEntry) return; // já encontrado
-    if (m.p1 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p1'; }
-    else if (m.p2 === teamName) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
+    if (_normTeam(m.p1) === _teamNameNorm) { matchEntry = m; matchIdx = mi; matchSide = 'p1'; }
+    else if (_normTeam(m.p2) === _teamNameNorm) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
   });
 
   const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
