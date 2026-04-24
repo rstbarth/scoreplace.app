@@ -3119,12 +3119,37 @@ function setupProfileModal() {
     // atualiza currentUser com o que efetivamente persistiu → toast
     // SEMPRE aparece (sucesso ou erro, com versão visível).
     window.saveUserProfile = async function() {
-      if (!window.AppStore || !window.AppStore.currentUser) return;
-      var cu = window.AppStore.currentUser;
-      var uid = cu.uid;
-      if (!uid || !window.FirestoreDB || !window.FirestoreDB.db) {
+      // Dump state upfront para debug via DevTools — independente de qual guard dispara
+      try {
+        console.log('[Profile v' + window.SCOREPLACE_VERSION + '] save start',
+          'hasAppStore:', !!window.AppStore,
+          'hasCurrentUser:', !!(window.AppStore && window.AppStore.currentUser),
+          'currentUser:', window.AppStore && window.AppStore.currentUser,
+          'hasFirestoreDB:', !!window.FirestoreDB,
+          'hasFirestoreDB.db:', !!(window.FirestoreDB && window.FirestoreDB.db)
+        );
+      } catch(e) {}
+
+      if (!window.AppStore || !window.AppStore.currentUser) {
         if (typeof showNotification !== 'undefined') {
-          showNotification('Perfil — erro', '⚠️ Sem UID ou Firestore · v' + window.SCOREPLACE_VERSION, 'error');
+          showNotification('Perfil — erro', '⚠️ Sem sessão ativa · v' + window.SCOREPLACE_VERSION, 'error');
+        }
+        return;
+      }
+      var cu = window.AppStore.currentUser;
+      // Mesmo fallback histórico do saveUserProfileToFirestore antigo — em
+      // alguns caminhos de login, currentUser.uid pode estar vazio mas email
+      // existe, e o doc do Firestore é keyed pelo email nesse caso.
+      var uid = cu.uid || cu.email;
+      if (!uid) {
+        if (typeof showNotification !== 'undefined') {
+          showNotification('Perfil — erro', '⚠️ Sem UID/email · v' + window.SCOREPLACE_VERSION, 'error');
+        }
+        return;
+      }
+      if (!window.FirestoreDB || !window.FirestoreDB.db) {
+        if (typeof showNotification !== 'undefined') {
+          showNotification('Perfil — erro', '⚠️ Firestore não inicializado · v' + window.SCOREPLACE_VERSION, 'error');
         }
         return;
       }
