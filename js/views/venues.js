@@ -708,21 +708,24 @@
         var mins = Math.max(0, Math.round((now - p.startsAt) / 60000));
         var subtitle = 'há ' + mins + ' min';
         var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
-        var avatar = p.photoURL
-          ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:40px;height:40px;min-width:40px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
-          : '<div style="width:40px;height:40px;min-width:40px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+        var avatarInner = p.photoURL
+          ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:40px;height:40px;display:block;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
+          : '<div style="width:40px;height:40px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+        // v0.16.31: botão "Sair" sem círculo, ancorado no canto inferior
+        // direito da foto/ícone. text-shadow dá contraste sem precisar de
+        // background ou borda.
+        var leaveBtnOverlay = '';
+        if (klass === 'me' && p._id && realPid) {
+          var docIdSafe = String(p._id).replace(/"/g, '&quot;');
+          var pidSafe = String(realPid).replace(/"/g, '&quot;');
+          leaveBtnOverlay = '<button onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="position:absolute;bottom:-2px;right:-4px;background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:1rem;line-height:1;cursor:pointer;text-shadow:0 0 3px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);" title="Sair do local">✕</button>';
+        }
+        var avatar = '<div style="position:relative;width:40px;height:40px;min-width:40px;flex-shrink:0;">' + avatarInner + leaveBtnOverlay + '</div>';
         var nowSports = Array.isArray(p.sports) ? p.sports : [];
         var icons = _sportsIcons(nowSports);
         var iconsHtml = icons
           ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + icons + '</span>'
           : '';
-        // v0.16.30: botão "Sair" minimalista — ícone ✕ circular, sem texto.
-        var leaveBtn = '';
-        if (klass === 'me' && p._id && realPid) {
-          var docIdSafe = String(p._id).replace(/"/g, '&quot;');
-          var pidSafe = String(realPid).replace(/"/g, '&quot;');
-          leaveBtn = '<button class="hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;font-size:0.85rem;line-height:1;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;" title="Sair do local">✕</button>';
-        }
         friendsHtml.push(
           '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
             iconsHtml + avatar +
@@ -730,7 +733,6 @@
               '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</div>' +
               '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(subtitle) + '</div>' +
             '</div>' +
-            leaveBtn +
           '</div>'
         );
       } else if (p.visibility === 'public' || p.type === 'tournament') {
@@ -808,25 +810,25 @@
           friendsSet[key] = true;
           var name = klass === 'me' ? 'Você' : (p.displayName || 'Amigo');
           var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
-          var avatar = p.photoURL
-            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
-            : '<div style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
-          var chipSports = Array.isArray(p.sports) ? p.sports : [];
-          var iconStr = _sportsIcons(chipSports);
-          // v0.16.30: botão "Cancelar" minimalista — ícone ✕ circular
-          // pequeno (20x20), sem texto, só dentro do chip do próprio plano.
-          var cancelBtn = '';
+          var avatarInner = p.photoURL
+            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:26px;height:26px;display:block;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
+            : '<div style="width:26px;height:26px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+          // v0.16.31: botão "Cancelar" sem círculo, ancorado no canto
+          // inferior direito da foto/ícone dentro do chip.
+          var cancelBtnOverlay = '';
           if (klass === 'me' && p._id && realPid) {
             var upDocIdSafe = String(p._id).replace(/"/g, '&quot;');
             var upPidSafe = String(realPid).replace(/"/g, '&quot;');
-            cancelBtn = '<button class="hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);border-radius:50%;width:20px;height:20px;padding:0;font-weight:700;font-size:0.72rem;line-height:1;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;" title="Cancelar plano de ir">✕</button>';
+            cancelBtnOverlay = '<button onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="position:absolute;bottom:-3px;right:-4px;background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:0.85rem;line-height:1;cursor:pointer;text-shadow:0 0 3px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);" title="Cancelar plano de ir">✕</button>';
           }
+          var avatar = '<div style="position:relative;width:26px;height:26px;min-width:26px;flex-shrink:0;">' + avatarInner + cancelBtnOverlay + '</div>';
+          var chipSports = Array.isArray(p.sports) ? p.sports : [];
+          var iconStr = _sportsIcons(chipSports);
           friendChips.push(
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 6px 3px 6px;min-width:0;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 8px 3px 6px;min-width:0;">' +
               (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.88rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
               avatar +
               '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
-              cancelBtn +
             '</div>'
           );
         } else if (p.visibility === 'public' || p.type === 'tournament') {
