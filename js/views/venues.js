@@ -1163,10 +1163,19 @@
     // top-right (replaces the old "Fechar" — close is now a proper "Voltar"
     // arrow on the left, matching the back-header pattern used app-wide).
     var isOwner = !!(cu && cu.uid && v.ownerUid === cu.uid);
-    var canClaim = !!(cu && cu.uid && !v.ownerUid);
+    // Only non-public venues can be claimed. Public courts (beaches, praças,
+    // parques) são de domínio público — não fazem sentido ter dono declarado.
+    // Privadas (condominiais/comerciais) sim podem ser reivindicadas pelo
+    // responsável. accessPolicy ausente ⇒ trata como 'public' (default seguro).
+    var _effectiveAccessPolicy = v.accessPolicy || 'public';
+    var canClaim = !!(cu && cu.uid && !v.ownerUid && _effectiveAccessPolicy !== 'public');
     // Community edit is allowed on unclaimed venues (saveVenue transaction
-    // blocks non-owners on claimed ones). Owners can always edit.
-    var canEdit = isOwner || canClaim;
+    // blocks non-owners on claimed ones). Owners can always edit. Para
+    // quadras públicas, como não há dono possível, todo usuário logado pode
+    // editar (mantém espírito comunitário — correções de endereço, horário,
+    // etc.).
+    var canCommunityEdit = !!(cu && cu.uid && !v.ownerUid);
+    var canEdit = isOwner || canCommunityEdit;
     var editBtn = canEdit
       ? '<button class="btn btn-sm" onclick=\'window._venuesToggleEdit("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;flex-shrink:0;">✏️ Editar</button>'
       : '';

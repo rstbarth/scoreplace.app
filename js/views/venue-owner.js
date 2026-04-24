@@ -1173,6 +1173,24 @@
   window._venueOwnerEditExisting = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
     if (!v) return;
+    // Defense-in-depth: public-access venues (beaches, praças, parques) são
+    // de domínio público e não podem ter dono reivindicado. UI já esconde o
+    // botão "Reivindicar" em venues.js, mas alguém chamando esta função
+    // direto (via console/URL handoff) ainda cairia aqui — bloqueia e avisa.
+    // Donos existentes passam (edição de venue próprio é sempre permitida).
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var isOwnerAlready = !!(cu && cu.uid && v.ownerUid === cu.uid);
+    var effectivePolicy = v.accessPolicy || 'public';
+    if (!isOwnerAlready && effectivePolicy === 'public') {
+      if (window.showAlertDialog) {
+        window.showAlertDialog(
+          'Local público — sem dono',
+          'Quadras públicas (praias, praças, parques) são de domínio público e não podem ter proprietário declarado. Use o botão ✏️ Editar na página do local para sugerir correções comunitárias.',
+          'info'
+        );
+      }
+      return;
+    }
     _renderForm({
       placeId: v.placeId, name: v.name, address: v.address, city: v.city, lat: v.lat, lon: v.lon
     }, { existing: v });
