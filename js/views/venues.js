@@ -611,14 +611,24 @@
     // Strangers (klass='other') e ocupação virtual de torneios não são
     // contabilizados — evita o efeito de "mostrar gente genérica" mesmo
     // quando só o usuário tem plano/presença no local.
+    // v0.16.33: dedup por uid por hora. Múltiplos docs do mesmo usuário
+    // (ex: check-in + plano sobrepostos, ou check-ins antigos não encerrados)
+    // contam como 1 pessoa única na barra daquela hora. A barra representa
+    // "quantas pessoas estão/estarão", não "quantos registros existem".
+    var seenInBucket = {};
+    for (var ih = 0; ih < 24; ih++) seenInBucket[ih] = {};
     (presences || []).forEach(function(p) {
       var startH = _hourOf(p.startsAt);
       var endH = _hourOf(p.endsAt);
       if (startH == null || endH == null) return;
       var klass = _classifyPresence(p);
       if (klass !== 'me' && klass !== 'friend') return;
+      var key = p.uid || p.displayName || '';
+      if (!key) return;
       for (var h = startH; h <= endH; h++) {
         if (!buckets[h]) continue;
+        if (seenInBucket[h][key]) continue;
+        seenInBucket[h][key] = true;
         if (klass === 'me') buckets[h].me += 1;
         else buckets[h].friends += 1;
       }
