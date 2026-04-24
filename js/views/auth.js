@@ -3100,175 +3100,271 @@ function setupProfileModal() {
       }
     };
 
+    // v0.16.9: reescrita do save de perfil, do zero.
+    //
+    // Porque reescrever: a cadeia anterior (auth.js → currentUser → store.js
+    // saveUserProfileToFirestore → firebase-db.js saveUserProfile → Firestore
+    // set merge) tinha 4 camadas, 3 conversões, 2 "clobber guards"
+    // (_writeIfNonEmpty em auth.js, strip empty em store.js) e um round-trip
+    // a parte. O diagnóstico da v0.16.8 surfacearia falhas, mas:
+    // (1) _hintSystem.enable/disable era chamado INCONDICIONALMENTE a cada
+    //     save, mostrando "Dicas ativadas" em cima do toast de diagnóstico;
+    // (2) em caso de erro, v0.16.8 fazia `throw e` em store.js — o bloco
+    //     de diagnóstico em auth.js NUNCA chegava a rodar;
+    // (3) intermediação via currentUser criava janela de race onde o
+    //     currentUser podia ter estado inconsistente no momento do save.
+    //
+    // O novo fluxo: lê form → constrói payload direto (sem passar por
+    // currentUser) → grava direto no Firestore → re-lê pra verificar →
+    // atualiza currentUser com o que efetivamente persistiu → toast
+    // SEMPRE aparece (sucesso ou erro, com versão visível).
     window.saveUserProfile = async function() {
-      if (!window.AppStore.currentUser) return;
-      var _oldDisplayName = window.AppStore.currentUser.displayName || '';
-      var name = document.getElementById('profile-edit-name').value.trim();
-      // Se usuário apagou o nome sem querer, mantém o anterior em vez de
-      // gravar string vazia. Respeita a edição intencional quando o user
-      // digita algo novo; só protege contra "apagou tudo e salvou".
-      if (!name) {
-        name = _oldDisplayName || '';
-        // Tenta recuperar do Firebase auth como último recurso.
-        try {
-          var _fb = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-          if (!name && _fb && _fb.displayName) name = _fb.displayName;
-        } catch (e) {}
+      if (!window.AppStore || !window.AppStore.currentUser) return;
+      var cu = window.AppStore.currentUser;
+      var uid = cu.uid;
+      if (!uid || !window.FirestoreDB || !window.FirestoreDB.db) {
+        if (typeof showNotification !== 'undefined') {
+          showNotification('Perfil — erro', '⚠️ Sem UID ou Firestore · v' + window.SCOREPLACE_VERSION, 'error');
+        }
+        return;
       }
-      var gender = document.getElementById('profile-edit-gender').value;
-      // Birthdate: converte display → ISO pra armazenar. Se o usuário
-      // digitou algo inválido, mantém o valor anterior (protege contra
-      // typo acidental apagando o dado).
-      var birthRaw = document.getElementById('profile-edit-birthdate').value;
+
+      var _oldDisplayName = cu.displayName || '';
+
+      // ── 1. LER O FORM — snapshot bruto do que o usuário vê ──────────────
+      function _v(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+      }
+      function _chk(id, dflt) {
+        var el = document.getElementById(id);
+        return el ? !!el.checked : !!dflt;
+      }
+
+      var nameIn = (_v('profile-edit-name') || '').trim();
+      var genderIn = _v('profile-edit-gender'); // select value ('', 'feminino', 'masculino', 'outro')
+      var birthRaw = _v('profile-edit-birthdate');
+      var cityIn = (_v('profile-edit-city') || '').trim();
+      var phoneEl = document.getElementById('profile-edit-phone');
+      var phoneDigits = (phoneEl && (phoneEl.getAttribute('data-digits') || '')).replace(/\D/g, '');
+      var phoneCountry = _v('profile-phone-country') || '55';
+      var sportsArr = Array.isArray(window._profileSelectedSports)
+        ? window._profileSelectedSports.slice()
+        : [];
+      var category = (_v('profile-edit-category') || '').trim();
+      var preferredCeps = (_v('profile-edit-ceps') || '').trim();
+      var preferredLocations = Array.isArray(window._profileLocations)
+        ? window._profileLocations.slice()
+        : [];
+
+      var acceptFriends = _chk('profile-accept-friends', true);
+      var notifyPlatform = _chk('profile-notify-platform', true);
+      var notifyEmail = _chk('profile-notify-email', true);
+      var presenceAutoCheckin = _chk('profile-presence-auto-checkin', false);
+      var hintsEnabled = _chk('profile-hints-enabled', true);
+
+      var notifyLevel = _chk('profile-filter-todas', true)
+        ? 'todas'
+        : (_chk('profile-filter-importantes', false)
+          ? 'importantes'
+          : (_chk('profile-filter-fundamentais', false) ? 'fundamentais' : 'none'));
+
+      var presenceVisibility = _v('profile-presence-visibility') || 'friends';
+      var muteActive = _chk('profile-presence-mute-toggle', false);
+      var muteDays = parseInt(_v('profile-presence-mute-days'), 10);
+      if (!muteDays || muteDays < 1) muteDays = 7;
+      if (muteDays > 365) muteDays = 365;
+      var muteUntil = muteActive
+        ? ((typeof window._presenceMuteToUntil === 'function') ? window._presenceMuteToUntil(muteDays) : 0)
+        : 0;
+
+      // Converter birthdate: display ("dd/mm/yyyy") → ISO ("yyyy-mm-dd").
+      // Se o parse falhar, mantém o valor existente (evita apagar por typo).
       var birthDate = (typeof window._displayDateToIso === 'function')
         ? window._displayDateToIso(birthRaw)
         : birthRaw;
-      if (!birthDate && birthRaw && window.AppStore.currentUser.birthDate) {
-        // Entrada inválida — mantém o birthDate atual em vez de limpar.
-        birthDate = window.AppStore.currentUser.birthDate;
-      }
-      var city = document.getElementById('profile-edit-city').value.trim();
-      // Phone: grab raw digits only
-      var phoneDigits = (document.getElementById('profile-edit-phone').getAttribute('data-digits') || '').replace(/\D/g, '');
-      var phoneCountry = document.getElementById('profile-phone-country').value || '55';
-      // Sports: fonte de verdade é window._profileSelectedSports (array).
-      // Fallback pra hidden input em caso de race condition na inicialização.
-      var sportsArr = Array.isArray(window._profileSelectedSports)
-        ? window._profileSelectedSports.slice()
-        : (document.getElementById('profile-edit-sports').value.trim().split(/[,;]/).map(function(s){return s.trim();}).filter(Boolean));
-      var category = document.getElementById('profile-edit-category').value.trim();
-      // Toggle switches: read checked state
-      var acceptFriends = document.getElementById('profile-accept-friends') ? document.getElementById('profile-accept-friends').checked : true;
-      var notifyPlatform = document.getElementById('profile-notify-platform') ? document.getElementById('profile-notify-platform').checked : true;
-      var notifyEmail = document.getElementById('profile-notify-email') ? document.getElementById('profile-notify-email').checked : true;
-      var _todasChecked = document.getElementById('profile-filter-todas') ? document.getElementById('profile-filter-todas').checked : true;
-      var _impChecked = document.getElementById('profile-filter-importantes') ? document.getElementById('profile-filter-importantes').checked : false;
-      var _funChecked = document.getElementById('profile-filter-fundamentais') ? document.getElementById('profile-filter-fundamentais').checked : false;
-      var notifyLevel = _todasChecked ? 'todas' : (_impChecked ? 'importantes' : (_funChecked ? 'fundamentais' : 'none'));
-      var preferredCeps = document.getElementById('profile-edit-ceps').value.trim();
-      var preferredLocations = Array.isArray(window._profileLocations) ? window._profileLocations : [];
-      // Visual hints toggle
-      var hintsEnabled = document.getElementById('profile-hints-enabled') ? document.getElementById('profile-hints-enabled').checked : true;
-      if (window._hintSystem) {
-        if (hintsEnabled) window._hintSystem.enable();
-        else window._hintSystem.disable();
-      }
+      if (!birthDate && birthRaw && cu.birthDate) birthDate = cu.birthDate;
 
-      // v0.16.6 fix for profile data loss (continuação do v0.16.5):
-      // o fix anterior só cobriu `name`. Outros campos seguiam sendo gravados
-      // cruamente mesmo quando o form estava vazio (race entre login e
-      // populate, dropdown não-hidratado, etc.) → gravava "" / [] em
-      // currentUser e, na sequência, o save de perfil persistia "" / []
-      // no Firestore, clobbering valores reais.
-      //
-      // Regra agora: se o form está vazio E currentUser já tem valor, preserva
-      // o valor existente. Se o usuário quiser realmente trocar, digita um
-      // valor novo (não há UI explícita pra "apagar campo" no perfil).
-      var _cu = window.AppStore.currentUser;
-      if (name) {
-        _cu.displayName = name;
-        _cu.name = name;
-      }
-      // Helper local: escreve newVal se não-vazio; caso contrário, só escreve
-      // se currentUser ainda não tem valor real (primeira vez).
-      function _writeIfNonEmpty(field, newVal) {
-        var cur = _cu[field];
-        var newEmpty = (newVal == null) || newVal === '';
-        var curEmpty = (cur == null) || cur === '';
-        if (!newEmpty || curEmpty) _cu[field] = newVal;
-      }
-      function _writeArrayIfNonEmpty(field, newArr) {
-        var cur = _cu[field];
-        var newEmpty = !Array.isArray(newArr) || newArr.length === 0;
-        var curEmpty = !Array.isArray(cur) || cur.length === 0;
-        if (!newEmpty || curEmpty) _cu[field] = newArr;
-      }
-      _writeIfNonEmpty('gender', gender);
-      _writeIfNonEmpty('birthDate', birthDate);
-      _writeIfNonEmpty('city', city);
-      _writeIfNonEmpty('phone', phoneDigits);
-      _cu.phoneCountry = phoneCountry; // tem default "55", sempre OK escrever
-      // Grava como array (forma moderna e canônica). Readers antigos que
-      // chamam .split() são protegidos via helper tolerante em cada call
-      // site (bracket-ui, explore, tournaments-organizer, presence-geo).
-      _writeArrayIfNonEmpty('preferredSports', sportsArr);
-      _writeIfNonEmpty('defaultCategory', category);
-      // Booleans e níveis são sempre escritos — têm default claro na UI
-      _cu.acceptFriendRequests = acceptFriends;
-      _cu.notifyPlatform = notifyPlatform;
-      _cu.notifyEmail = notifyEmail;
-      _cu.notifyLevel = notifyLevel;
-      _writeIfNonEmpty('preferredCeps', preferredCeps);
-      _writeArrayIfNonEmpty('preferredLocations', preferredLocations);
-      // Presence settings
-      var _pvEl = document.getElementById('profile-presence-visibility');
-      var _pmToggle = document.getElementById('profile-presence-mute-toggle');
-      var _pmDaysEl = document.getElementById('profile-presence-mute-days');
-      var _pv = (_pvEl && _pvEl.value) || 'friends';
-      var _muteActive = !!(_pmToggle && _pmToggle.checked);
-      var _muteDays = _pmDaysEl ? parseInt(_pmDaysEl.value, 10) : 7;
-      if (!_muteDays || _muteDays < 1) _muteDays = 7;
-      if (_muteDays > 365) _muteDays = 365;
-      window.AppStore.currentUser.presenceVisibility = _pv;
-      window.AppStore.currentUser.presenceMuteDays = _muteDays;
-      window.AppStore.currentUser.presenceMuteUntil = _muteActive
-        ? ((typeof window._presenceMuteToUntil === 'function') ? window._presenceMuteToUntil(_muteDays) : 0)
-        : 0;
-      var _autoChkEl = document.getElementById('profile-presence-auto-checkin');
-      window.AppStore.currentUser.presenceAutoCheckin = !!(_autoChkEl && _autoChkEl.checked);
-
-      // Calcula idade se tem data de nascimento
+      // Calcular age a partir do birthDate
+      var age = null;
       if (birthDate) {
-        var parts = birthDate.split('-');
-        var bd = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        var today = new Date();
-        var age = today.getFullYear() - bd.getFullYear();
-        var m = today.getMonth() - bd.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
-        window.AppStore.currentUser.age = age;
+        var parts = String(birthDate).split('-');
+        if (parts.length === 3) {
+          var bd = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          var today = new Date();
+          age = today.getFullYear() - bd.getFullYear();
+          var mDiff = today.getMonth() - bd.getMonth();
+          if (mDiff < 0 || (mDiff === 0 && today.getDate() < bd.getDate())) age--;
+        }
       }
 
-      // Save profile to Firestore
-      if (window.AppStore.saveUserProfileToFirestore) {
-        await window.AppStore.saveUserProfileToFirestore();
-      }
-      // v0.16.7: diagnóstico visível. Mostra na tela os campos que foram
-      // efetivamente persistidos + resultado do round-trip.
-      // v0.16.8: adiciona detecção de MISMATCH de valor (não só ausência).
-      // Exemplo: se usuário pede gender='feminino' mas Firestore continua
-      // com 'masculino' (write silenciosamente rejeitado ou clobbado por
-      // outro path), o toast agora mostra "⚠️ gender: feminino→masculino".
-      // Também: se o save rejeitar (firebase-db.js agora propaga erros
-      // em v0.16.8), o toast mostra o erro real do Firestore/rules.
-      try {
-        var _diag = window._lastProfileSave;
-        if (_diag) {
-          var _summary = '';
-          if (_diag.ok === false) {
-            _summary = '⚠️ Falhou: ' + (_diag.error || 'erro desconhecido');
-          } else {
-            var _flds = (_diag.fields || []).filter(function(k) {
-              return k !== 'email' && k !== 'displayName' && k !== 'photoURL' && k !== 'updatedAt';
-            });
-            _summary = '✅ ' + _flds.length + ' campos · v' + (_diag.version || '?');
-            if (Array.isArray(_diag.roundtripMissing) && _diag.roundtripMissing.length > 0) {
-              _summary += ' · ⚠️ não voltou: ' + _diag.roundtripMissing.join(', ');
-            }
-            if (Array.isArray(_diag.roundtripMismatch) && _diag.roundtripMismatch.length > 0) {
-              var _mmDesc = _diag.roundtripMismatch.map(function(m) {
-                return m.field + ': ' + JSON.stringify(m.sent) + '→' + JSON.stringify(m.got);
-              }).join(', ');
-              _summary += ' · ⚠️ regrediu: ' + _mmDesc;
-            }
-          }
-          if (typeof showNotification !== 'undefined') {
-            var _isError = _diag.ok === false
-              || (Array.isArray(_diag.roundtripMissing) && _diag.roundtripMissing.length > 0)
-              || (Array.isArray(_diag.roundtripMismatch) && _diag.roundtripMismatch.length > 0);
-            showNotification('Perfil salvo', _summary, _isError ? 'error' : 'success');
-          }
+      // ── 2. NAME FALLBACK — nunca salvar displayName vazio ───────────────
+      // Usuário apagou o campo sem querer → preserva o anterior.
+      // Se currentUser também está vazio, tenta Firebase Auth.
+      var finalName = nameIn;
+      if (!finalName) {
+        finalName = _oldDisplayName;
+        if (!finalName) {
+          try {
+            var fbUser = (typeof firebase !== 'undefined' && firebase.auth)
+              ? firebase.auth().currentUser
+              : null;
+            if (fbUser && fbUser.displayName) finalName = fbUser.displayName;
+          } catch (e) {}
         }
-      } catch(_e) { console.warn('[Profile] diag surface error:', _e); }
+      }
+
+      // ── 3. CONSTRUIR PAYLOAD — só inclui campos não-vazios ──────────────
+      // Regra: Firestore set({merge:true}) preserva campos omitidos. Então
+      // CAMPO VAZIO = CAMPO OMITIDO = VALOR EXISTENTE PRESERVADO.
+      // Só envia strings/arrays vazias quando é intencional (toggles/defaults).
+      // Single source of truth: só o que está no payload vai pro Firestore E
+      // pro currentUser, evitando o drift de estado da v0.16.8.
+      var payload = {
+        updatedAt: new Date().toISOString()
+      };
+
+      // Strings: só envia se preenchido
+      if (finalName) payload.displayName = finalName;
+      if (genderIn) payload.gender = genderIn;          // "" = "Não informar" = preserva
+      if (birthDate) payload.birthDate = birthDate;
+      if (age != null) payload.age = age;
+      if (cityIn) payload.city = cityIn;
+      if (phoneDigits) payload.phone = phoneDigits;
+      if (category) payload.defaultCategory = category;
+      if (preferredCeps) payload.preferredCeps = preferredCeps;
+
+      // Arrays: só envia se tem pelo menos 1 item
+      if (sportsArr.length > 0) payload.preferredSports = sportsArr;
+      if (preferredLocations.length > 0) payload.preferredLocations = preferredLocations;
+
+      // Booleans / defaults: sempre envia (UI tem valor definido)
+      payload.phoneCountry = phoneCountry;
+      payload.acceptFriendRequests = acceptFriends;
+      payload.notifyPlatform = notifyPlatform;
+      payload.notifyEmail = notifyEmail;
+      payload.notifyLevel = notifyLevel;
+      payload.presenceVisibility = presenceVisibility;
+      payload.presenceMuteDays = muteDays;
+      payload.presenceMuteUntil = muteUntil;
+      payload.presenceAutoCheckin = presenceAutoCheckin;
+
+      // Denormalizados para lookups case-insensitive
+      if (payload.displayName) payload.displayName_lower = String(payload.displayName).toLowerCase();
+      if (cu.email) payload.email_lower = String(cu.email).toLowerCase();
+
+      // ── 4. INSTRUMENTAÇÃO — tudo visível no console e em window ─────────
+      console.log('[Profile v0.16.9] uid:', uid);
+      console.log('[Profile v0.16.9] form raw:', {
+        name: nameIn, gender: genderIn, birthRaw: birthRaw, city: cityIn,
+        phone: phoneDigits, sports: sportsArr, category: category
+      });
+      console.log('[Profile v0.16.9] payload:', JSON.parse(JSON.stringify(payload)));
+      window._lastProfileSave = {
+        uid: uid,
+        version: window.SCOREPLACE_VERSION,
+        at: new Date().toISOString(),
+        payload: payload,
+        fields: Object.keys(payload).sort()
+      };
+
+      // ── 5. GRAVAR DIRETO NO FIRESTORE ───────────────────────────────────
+      var saveError = null;
+      try {
+        await window.FirestoreDB.db.collection('users').doc(uid).set(payload, { merge: true });
+        window._lastProfileSave.ok = true;
+        console.log('[Profile v0.16.9] save ok');
+      } catch (e) {
+        saveError = (e && e.message) || String(e);
+        window._lastProfileSave.ok = false;
+        window._lastProfileSave.error = saveError;
+        console.error('[Profile v0.16.9] save FAILED:', e);
+      }
+
+      // ── 6. RE-LER PRA CONFIRMAR (round-trip por valor) ──────────────────
+      var mismatch = [];
+      if (!saveError) {
+        try {
+          var snap = await window.FirestoreDB.db.collection('users').doc(uid).get();
+          var got = snap.exists ? (snap.data() || {}) : {};
+          window._lastProfileLoad = {
+            uid: uid,
+            version: window.SCOREPLACE_VERSION,
+            at: new Date().toISOString(),
+            hasProfile: snap.exists,
+            gender: got.gender,
+            city: got.city,
+            phone: got.phone,
+            birthDate: got.birthDate,
+            fields: Object.keys(got).sort(),
+            data: got
+          };
+          Object.keys(payload).forEach(function(k) {
+            if (k === 'updatedAt' || k === 'displayName_lower' || k === 'email_lower') return;
+            var sent = JSON.stringify(payload[k]);
+            var gotVal = JSON.stringify(got[k]);
+            if (sent !== gotVal) {
+              mismatch.push({ field: k, sent: payload[k], got: got[k] });
+            }
+          });
+          window._lastProfileSave.mismatch = mismatch;
+          console.log('[Profile v0.16.9] readback gender:', got.gender, '· mismatch:', mismatch.length);
+
+          // Atualiza currentUser com o que REALMENTE está no Firestore —
+          // single source of truth. Próximo load não vai divergir.
+          Object.keys(got).forEach(function(k) { cu[k] = got[k]; });
+          cu.name = cu.displayName; // compat com código que ainda lê .name
+        } catch (e) {
+          window._lastProfileSave.readbackError = (e && e.message) || String(e);
+          console.warn('[Profile v0.16.9] readback failed:', e);
+        }
+      }
+
+      // ── 7. TOAST — SEMPRE aparece, com versão visível ──────────────────
+      // Contrato com o usuário: se vê a versão no toast, está na build certa.
+      // Sem versão visível = build velha cacheada = precisa hard refresh.
+      if (typeof showNotification !== 'undefined') {
+        var verSuffix = ' · v' + window.SCOREPLACE_VERSION;
+        if (saveError) {
+          showNotification(
+            'Perfil — erro',
+            '⚠️ ' + saveError + verSuffix,
+            'error'
+          );
+        } else if (mismatch.length > 0) {
+          var desc = mismatch.slice(0, 3).map(function(m) {
+            return m.field + ': ' + JSON.stringify(m.sent) + '→' + JSON.stringify(m.got);
+          }).join(', ');
+          showNotification(
+            'Perfil — divergência',
+            '⚠️ ' + desc + verSuffix,
+            'error'
+          );
+        } else {
+          var nFlds = Object.keys(payload).filter(function(k) {
+            return k !== 'updatedAt' && k !== 'displayName_lower' && k !== 'email_lower';
+          }).length;
+          showNotification(
+            'Perfil salvo',
+            '✅ ' + nFlds + ' campos' + verSuffix,
+            'success'
+          );
+        }
+      }
+
+      // ── 8. HINTS — só toggle quando state REALMENTE mudou ──────────────
+      // Antes: enable/disable era chamado incondicionalmente a cada save,
+      // gerando toast "Dicas ativadas" que sobrepunha o toast de diagnóstico.
+      if (window._hintSystem) {
+        var wasDisabled = window._hintSystem.isDisabled ? window._hintSystem.isDisabled() : false;
+        var wantDisabled = !hintsEnabled;
+        if (wasDisabled !== wantDisabled) {
+          if (hintsEnabled) window._hintSystem.enable();
+          else window._hintSystem.disable();
+        }
+      }
+
+      var name = finalName; // compat com código abaixo
 
       // Propagate name change to all tournaments if displayName changed
       if (name && _oldDisplayName && name !== _oldDisplayName) {

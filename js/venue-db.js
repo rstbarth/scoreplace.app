@@ -153,7 +153,13 @@ window.VenueDB = {
     if (!this.db) return [];
     filters = filters || {};
     opts = opts || {};
-    var limit = Math.max(1, Math.min(100, opts.limit || 50));
+    // Alpha-phase: pull até 1000 docs. limit(50) sem ordering retornava um
+    // subset arbitrário — venues próximos do usuário ficavam de fora se o
+    // Firestore decidisse retornar outros 50 primeiro. O filtro geográfico é
+    // 100% client-side, então temos que trazer tudo e deixar o caller filtrar
+    // por distância. Quando a base crescer para milhares, migrar para
+    // GeoFirestore ou sharding por célula S2/geohash.
+    var limit = Math.max(1, Math.min(1000, opts.limit || 500));
     var ref = this.db.collection('venues');
     try {
       var q = ref.limit(limit);
