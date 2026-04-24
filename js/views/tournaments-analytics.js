@@ -424,8 +424,9 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
             rightHtml: '<button onclick="var _o=document.getElementById(\'player-stats-overlay\');if(_o)_o.remove();" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>'
           })
         : '') +
-      '<div style="height:50px;"></div>' +
-      '<div style="text-align:center;margin-bottom:1rem;">' +
+      // CSS `.sticky-back-header + *` already adds 50px margin-top for the sticky header clearance.
+      // No extra spacer div needed — it was causing double padding (100px) above the avatar.
+      '<div style="text-align:center;margin-bottom:0.75rem;padding-top:4px;">' +
         avatarHtml +
         '<h3 style="margin:0;font-size:1.3rem;color:var(--text-bright,#fff);">' + safeN + '</h3>' +
       '</div>' +
@@ -1001,14 +1002,23 @@ window._renderPersistentMatchStats = function(records, uid) {
         var pctLC = !opts.noPct && casualSum > 0 ? Math.round((leftCasual || 0) / casualSum * 100) : null;
         var pctRC = !opts.noPct && casualSum > 0 ? Math.round((rightCasual || 0) / casualSum * 100) : null;
         var pctRT = !opts.noPct && tournSum > 0 ? Math.round((rightTourn || 0) / tournSum * 100) : null;
+        // Column layout: icon on top, value row below. When pct exists, pct is the
+        // prominent large number and abs is small parenthetical on the right.
+        // When pct is null (noPct mode: means/min/max), abs is shown large alone.
         var col = function(icon, val, clr, pct) {
-            var pctHtml = (pct !== null && pct !== undefined)
-                ? '<span style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(' + pct + '%)</span>'
-                : '';
-            return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:22px;">' +
+            var absVal = (val == null ? 0 : val);
+            var mainRow;
+            if (pct !== null && pct !== undefined) {
+                mainRow = '<div style="display:flex;align-items:baseline;gap:3px;">' +
+                    '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + pct + '%</span>' +
+                    '<span style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(' + absVal + ')</span>' +
+                '</div>';
+            } else {
+                mainRow = '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + absVal + '</span>';
+            }
+            return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
                 '<span style="font-size:0.7rem;opacity:0.85;line-height:1;">' + icon + '</span>' +
-                '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + (val || 0) + '</span>' +
-                pctHtml +
+                mainRow +
             '</div>';
         };
         return '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +
@@ -1018,15 +1028,19 @@ window._renderPersistentMatchStats = function(records, uid) {
                 '<div style="font-size:0.72rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;white-space:nowrap;">' + (centerLabel || '') + '</div>' +
                 '<div style="font-size:0.62rem;font-weight:700;color:' + rightClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:right;">' + (rightLabel || '') + '</div>' +
             '</div>' +
-            // Icons + numbers row: groups pushed to EXTREME left/right edges
-            // (outer = 🏆 tournament, inner = ⚡ casual)
+            // Icons + numbers row: tournament at extreme edge, casual halfway between
+            // center and tournament (via flex:1 spacers on both sides of casual).
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
-                '<div style="display:flex;justify-content:flex-start;gap:10px;">' +
+                '<div style="display:flex;align-items:end;">' +
                     col('🏆', leftTourn, leftClr, pctLT) +
+                    '<div style="flex:1;"></div>' +
                     col('⚡', leftCasual, leftClr, pctLC) +
+                    '<div style="flex:1;"></div>' +
                 '</div>' +
-                '<div style="display:flex;justify-content:flex-end;gap:10px;">' +
+                '<div style="display:flex;align-items:end;">' +
+                    '<div style="flex:1;"></div>' +
                     col('⚡', rightCasual, rightClr, pctRC) +
+                    '<div style="flex:1;"></div>' +
                     col('🏆', rightTourn, rightClr, pctRT) +
                 '</div>' +
             '</div>' +
