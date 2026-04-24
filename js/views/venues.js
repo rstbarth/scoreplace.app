@@ -2107,18 +2107,49 @@
     var now = new Date();
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+    // Calcula "Até" sugerido: sempre >= Das + 2h. Vazio se overflow do dia.
+    var _endSuggestion = function(hm) {
+      var parts = (hm || '').split(':').map(Number);
+      var baseMin = (parts[0] || 0) * 60 + (parts[1] || 0);
+      var endMin = baseMin + 120;
+      if (endMin >= 24 * 60) return '';
+      var h = Math.floor(endMin / 60);
+      var m = endMin % 60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    };
+    var defStartStr = fmt(defStart);
+    var defEndStr = _endSuggestion(defStartStr);
+    // Pills de modalidade: todas ativadas por padrão, clique desativa/reativa.
+    // Se houver apenas 1 esporte, não faz sentido oferecer toggle.
+    var sportsPills = (sports || []).map(function(s) {
+      var safeS = _safe(s);
+      return '<button type="button" class="plan-sport-pill" data-sport="' + safeS + '" data-active="1" ' +
+             'onclick="window._venuesTogglePlanSport(this)" ' +
+             'style="padding:6px 12px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:1px solid rgba(99,102,241,0.45);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s;">' +
+             safeS + '</button>';
+    }).join('');
+    var sportsBlock = (sports && sports.length > 1)
+      ? '<div style="margin-bottom:12px;">' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Modalidades (clique para ativar/desativar):</div>' +
+          '<div id="plan-sport-pills" style="display:flex;gap:6px;flex-wrap:wrap;">' + sportsPills + '</div>' +
+        '</div>'
+      : '<div id="plan-sport-pills" style="display:none;">' + sportsPills + '</div>';
+    var contextLine = (sports && sports.length === 1)
+      ? _safe(v.name || v.placeId) + ' · ' + _safe(sports[0]) + ' · hoje'
+      : _safe(v.name || v.placeId) + ' · hoje';
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
     overlay.innerHTML =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;max-width:420px;width:100%;">' +
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(v.name || v.placeId) + ' · ' + _safe(sports.join(' · ')) + ' · hoje</p>' +
+        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
+        sportsBlock +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="venue-plan-start" type="time" value="' + fmt(defStart) + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="venue-plan-start" type="time" value="' + defStartStr + '" oninput="window._venuesUpdatePlanEndSuggestion()" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" value="' + defEndStr + '" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
         '</div>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Sugestão de "Até" é 2h após a chegada. Deixe em branco se não quiser fixar.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
           '<button class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
@@ -2127,6 +2158,52 @@
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
   }
+
+  // Toggle de pill de modalidade no overlay de plano.
+  window._venuesTogglePlanSport = function(btn) {
+    if (!btn) return;
+    var active = btn.getAttribute('data-active') === '1';
+    if (active) {
+      btn.setAttribute('data-active', '0');
+      btn.style.background = 'var(--bg-darker)';
+      btn.style.color = 'var(--text-muted)';
+      btn.style.border = '1px solid var(--border-color)';
+      btn.style.opacity = '0.55';
+      btn.style.textDecoration = 'line-through';
+    } else {
+      btn.setAttribute('data-active', '1');
+      btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+      btn.style.color = '#fff';
+      btn.style.border = '1px solid rgba(99,102,241,0.45)';
+      btn.style.opacity = '1';
+      btn.style.textDecoration = 'none';
+    }
+  };
+
+  // Ao mudar "Das", reajusta "Até" para >= Das + 2h (preserva escolha válida do usuário).
+  window._venuesUpdatePlanEndSuggestion = function() {
+    var startEl = document.getElementById('venue-plan-start');
+    var endEl = document.getElementById('venue-plan-end');
+    if (!startEl || !endEl) return;
+    var startStr = startEl.value;
+    if (!startStr) return;
+    var toMin = function(hm) {
+      var p = (hm || '').split(':').map(Number);
+      return (p[0] || 0) * 60 + (p[1] || 0);
+    };
+    var startMin = toMin(startStr);
+    var curEnd = endEl.value;
+    // Se usuário já escolheu Até e está ao menos 2h depois, preserva.
+    if (curEnd && toMin(curEnd) >= startMin + 120) return;
+    var endMin = startMin + 120;
+    if (endMin >= 24 * 60) {
+      endEl.value = '';
+      return;
+    }
+    var h = Math.floor(endMin / 60);
+    var m = endMin % 60;
+    endEl.value = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  };
 
   window._venuesConfirmInlinePlan = async function() {
     if (!_pendingPlanState) return;
@@ -2137,7 +2214,23 @@
       return;
     }
     var v = _pendingPlanState.venue;
-    var sports = _pendingPlanState.sports;
+    // Lê modalidades ativas dos pills (se existirem); fallback para sports originais.
+    var sports;
+    var pillEls = document.querySelectorAll('#plan-sport-pills [data-sport]');
+    if (pillEls && pillEls.length > 0) {
+      sports = [];
+      pillEls.forEach(function(el) {
+        if (el.getAttribute('data-active') === '1') {
+          sports.push(el.getAttribute('data-sport'));
+        }
+      });
+      if (sports.length === 0) {
+        if (window.showNotification) window.showNotification('Selecione ao menos uma modalidade.', '', 'warning');
+        return;
+      }
+    } else {
+      sports = _pendingPlanState.sports;
+    }
     var startStr = (document.getElementById('venue-plan-start') || {}).value;
     var endStr = (document.getElementById('venue-plan-end') || {}).value;
     if (!startStr) return;
