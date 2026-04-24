@@ -2510,6 +2510,20 @@
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
     var defStartStr = fmt(defStart);
+    // v0.16.25: default de Saída = Chegada + 2h. Autofill do browser venceu todas
+    // as contra-medidas pra manter vazio — melhor assumir um default útil que o
+    // usuário pode sobrescrever. Cap em 23:30 quando ultrapassa meia-noite.
+    var _plusTwoHours = function(hmStr) {
+      if (!hmStr) return '';
+      var parts = hmStr.split(':');
+      var h = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10);
+      if (isNaN(h) || isNaN(m)) return '';
+      var newH = h + 2;
+      if (newH >= 24) return '23:30';
+      return String(newH).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    };
+    var defEndStr = _plusTwoHours(defStartStr);
     // v0.16.24: pills de modalidade SEMPRE visíveis quando há pelo menos 1 esporte
     // na interseção venue∩preferências. Com só 1 opção, a pill confirma visualmente
     // qual modalidade será registrada. Todas ativas por padrão, clique desativa.
@@ -2530,8 +2544,6 @@
       : '<div id="plan-sport-pills" style="display:none;"></div>';
     // v0.16.24: contextLine não repete mais a modalidade — ela já aparece na pill acima.
     var contextLine = _safe(v.name || v.placeId) + ' · hoje';
-    // v0.16.24: nome randômico por modal pra que o browser não case com form history
-    // (autocomplete=off sozinho não derrota autofill do Chrome/Safari).
     var uniqSuffix = Date.now() + '-' + Math.floor(Math.random() * 10000);
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
@@ -2543,8 +2555,8 @@
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Das<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="" placeholder="—" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Saída <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
           '</div>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
             '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
@@ -2554,14 +2566,33 @@
       '</div>';
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
-    // v0.16.24: clear Até value AFTER DOM insertion — autofill do browser roda
-    // na inserção mesmo com autocomplete=off + value="" no HTML. Setar via JS
-    // depois sobrepõe o autofill. Também reforça defStartStr no Das pra garantir.
+    // v0.16.25: forçar Chegada + defStartStr e Saída = Chegada+2h pós-insertion,
+    // sobrepondo qualquer autofill do browser. Listener no Chegada recalcula
+    // Saída automaticamente — mas só se o usuário ainda não editou Saída
+    // manualmente (tracking via _autoEndValue que guarda o último valor auto).
     setTimeout(function() {
-      var endEl = document.getElementById('venue-plan-end');
-      if (endEl) endEl.value = '';
       var startEl = document.getElementById('venue-plan-start');
-      if (startEl && !startEl.value) startEl.value = defStartStr;
+      var endEl = document.getElementById('venue-plan-end');
+      if (startEl) startEl.value = defStartStr;
+      if (endEl) endEl.value = defEndStr;
+      var autoEndValue = defEndStr;
+      if (startEl && endEl) {
+        startEl.addEventListener('input', function() {
+          var suggested = _plusTwoHours(startEl.value);
+          if (!suggested) return;
+          // só atualiza Saída se o valor atual = último auto-set (= usuário
+          // não editou manualmente). Isso preserva escolhas manuais válidas.
+          if (endEl.value === autoEndValue) {
+            endEl.value = suggested;
+            autoEndValue = suggested;
+          }
+        });
+        // Se o usuário editar Saída diretamente, invalida o auto-tracking
+        // pra que mudanças subsequentes em Chegada não sobrescrevam.
+        endEl.addEventListener('input', function() {
+          if (endEl.value !== autoEndValue) autoEndValue = null;
+        });
+      }
     }, 0);
   }
 
