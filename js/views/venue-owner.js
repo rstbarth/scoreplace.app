@@ -732,8 +732,8 @@
     // Courts button — if venue not yet saved, auto-saves first then opens courts.
     var safePlaceId = _safe(place.placeId).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
     var courtsBtnHtml = opts.existing
-      ? '<button type="button" onclick=\'window._venueCourtAddDialog("' + safePlaceId + '")\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>'
-      : '<button type="button" onclick=\'window._venueSaveAndOpenCourts()\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras / campos</button>';
+      ? '<button type="button" onclick=\'window._venueCourtAddDialog("' + safePlaceId + '")\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras</button>'
+      : '<button type="button" onclick=\'window._venueSaveAndOpenCourts()\' style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;border:1px solid rgba(99,102,241,0.5);background:rgba(99,102,241,0.15);color:#a5b4fc;">🎾 Cadastrar quadras</button>';
 
     wrap.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:14px;margin-top:6px;">' +

@@ -3334,10 +3334,24 @@ function setupProfileModal() {
             fields: Object.keys(got).sort(),
             data: got
           };
+          // Stable stringify — sorts object keys recursively so that
+          // {lat,lng} vs {lng,lat} don't trigger false-positive divergence.
+          // Firestore preserves values but NOT key insertion order on read-back.
+          function _stableStringify(v) {
+            if (v === null || v === undefined) return JSON.stringify(v);
+            if (typeof v !== 'object') return JSON.stringify(v);
+            if (Array.isArray(v)) {
+              return '[' + v.map(_stableStringify).join(',') + ']';
+            }
+            var keys = Object.keys(v).sort();
+            return '{' + keys.map(function(k) {
+              return JSON.stringify(k) + ':' + _stableStringify(v[k]);
+            }).join(',') + '}';
+          }
           Object.keys(payload).forEach(function(k) {
             if (k === 'updatedAt' || k === 'displayName_lower' || k === 'email_lower') return;
-            var sent = JSON.stringify(payload[k]);
-            var gotVal = JSON.stringify(got[k]);
+            var sent = _stableStringify(payload[k]);
+            var gotVal = _stableStringify(got[k]);
             if (sent !== gotVal) {
               mismatch.push({ field: k, sent: payload[k], got: got[k] });
             }

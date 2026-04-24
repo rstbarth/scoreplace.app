@@ -2107,18 +2107,7 @@
     var now = new Date();
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
-    // Calcula "Até" sugerido: sempre >= Das + 2h. Vazio se overflow do dia.
-    var _endSuggestion = function(hm) {
-      var parts = (hm || '').split(':').map(Number);
-      var baseMin = (parts[0] || 0) * 60 + (parts[1] || 0);
-      var endMin = baseMin + 120;
-      if (endMin >= 24 * 60) return '';
-      var h = Math.floor(endMin / 60);
-      var m = endMin % 60;
-      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-    };
     var defStartStr = fmt(defStart);
-    var defEndStr = _endSuggestion(defStartStr);
     // Pills de modalidade: todas ativadas por padrão, clique desativa/reativa.
     // Se houver apenas 1 esporte, não faz sentido oferecer toggle.
     var sportsPills = (sports || []).map(function(s) {
@@ -2146,10 +2135,10 @@
         '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
         sportsBlock +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="venue-plan-start" type="time" value="' + defStartStr + '" oninput="window._venuesUpdatePlanEndSuggestion()" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" value="' + defEndStr + '" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="venue-plan-start" type="time" value="' + defStartStr + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
         '</div>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Sugestão de "Até" é 2h após a chegada. Deixe em branco se não quiser fixar.</p>' +
+        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
           '<button class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
@@ -2158,6 +2147,79 @@
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
   }
+
+  // Overlay de confirmação pós-check-in / pós-plano. Dá ao usuário mais do que
+  // um toast: mostra o que foi registrado e um botão prominente pra cancelar
+  // imediatamente caso tenha sido sem querer.
+  function _showPresenceConfirmation(opts) {
+    opts = opts || {};
+    var prev = document.getElementById('venue-presence-confirm-overlay');
+    if (prev) prev.remove();
+    var isPlan = opts.type === 'planned';
+    var title = isPlan ? '🗓️ Ida planejada' : '✅ Você está aqui agora';
+    var subtitle = isPlan
+      ? 'Seus amigos já podem ver que você pretende ir.'
+      : 'Seus amigos já podem ver que você está no local.';
+    var sportsLine = (Array.isArray(opts.sports) && opts.sports.length > 0)
+      ? opts.sports.join(' · ')
+      : '';
+    var timeLine = opts.hmLabel || '';
+    var safeDocId = String(opts.docId || '').replace(/'/g, "\\'").replace(/"/g,'&quot;');
+    var safePid = String(opts.placeId || '').replace(/'/g, "\\'").replace(/"/g,'&quot;');
+    var safeType = isPlan ? 'planned' : 'checkin';
+    var overlay = document.createElement('div');
+    overlay.id = 'venue-presence-confirm-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10035;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:22px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.4);">' +
+        '<h3 style="margin:0 0 10px 0;color:var(--text-bright);font-size:1.1rem;">' + title + '</h3>' +
+        '<div style="color:var(--text-bright);font-weight:600;margin-bottom:4px;">' + _safe(opts.venueName || '') + '</div>' +
+        (sportsLine ? '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:4px;">' + _safe(sportsLine) + '</div>' : '') +
+        (timeLine ? '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:10px;">' + _safe(timeLine) + '</div>' : '') +
+        '<p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 16px 0;">' + subtitle + '</p>' +
+        '<div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;">' +
+          '<button class="btn btn-sm hover-lift" onclick="window._venuesCancelPresenceFromConfirm(\'' + safeDocId + '\',\'' + safePid + '\',\'' + safeType + '\')" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:8px 14px;">❌ Cancelar ' + (isPlan ? 'plano' : 'presença') + '</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'venue-presence-confirm-overlay\').remove()" style="padding:8px 18px;">OK</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  // Cancel handler disparado pelo overlay de confirmação. Fecha o overlay ao
+  // fim, re-hidrata todos os slots (botões, movimento, widget dashboard).
+  window._venuesCancelPresenceFromConfirm = async function(docId, placeId, type) {
+    var ov = document.getElementById('venue-presence-confirm-overlay');
+    if (!docId || !window.PresenceDB) { if (ov) ov.remove(); return; }
+    try {
+      await window.PresenceDB.cancelPresence(docId);
+      if (window.showNotification) {
+        window.showNotification(
+          type === 'planned' ? 'Plano cancelado.' : 'Presença cancelada.',
+          '',
+          'info'
+        );
+      }
+      var v = null;
+      try { v = await window.VenueDB.loadVenue(placeId); } catch (e) {}
+      if (v) {
+        _hydratePresenceButtonsForVenue(v);
+        _buildMovimentoHtml(v).then(function(html) {
+          var slot = document.getElementById('venue-movimento-slot');
+          if (slot && html) slot.innerHTML = html;
+        });
+      }
+      _hydratePreferredPresenceSlots();
+      if (typeof window._hydrateMyActivePresenceWidget === 'function') {
+        window._hydrateMyActivePresenceWidget();
+      }
+    } catch (e) {
+      console.error('Cancel from confirm failed:', e);
+      if (window.showNotification) window.showNotification('Erro ao cancelar.', '', 'error');
+    } finally {
+      if (ov) ov.remove();
+    }
+  };
 
   // Toggle de pill de modalidade no overlay de plano.
   window._venuesTogglePlanSport = function(btn) {
@@ -2178,31 +2240,6 @@
       btn.style.opacity = '1';
       btn.style.textDecoration = 'none';
     }
-  };
-
-  // Ao mudar "Das", reajusta "Até" para >= Das + 2h (preserva escolha válida do usuário).
-  window._venuesUpdatePlanEndSuggestion = function() {
-    var startEl = document.getElementById('venue-plan-start');
-    var endEl = document.getElementById('venue-plan-end');
-    if (!startEl || !endEl) return;
-    var startStr = startEl.value;
-    if (!startStr) return;
-    var toMin = function(hm) {
-      var p = (hm || '').split(':').map(Number);
-      return (p[0] || 0) * 60 + (p[1] || 0);
-    };
-    var startMin = toMin(startStr);
-    var curEnd = endEl.value;
-    // Se usuário já escolheu Até e está ao menos 2h depois, preserva.
-    if (curEnd && toMin(curEnd) >= startMin + 120) return;
-    var endMin = startMin + 120;
-    if (endMin >= 24 * 60) {
-      endEl.value = '';
-      return;
-    }
-    var h = Math.floor(endMin / 60);
-    var m = endMin % 60;
-    endEl.value = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
   };
 
   window._venuesConfirmInlinePlan = async function() {
@@ -2277,17 +2314,22 @@
       createdAt: Date.now()
     };
     try {
-      await window.PresenceDB.savePresence(payload);
-      if (window.showNotification) {
-        window.showNotification(
-          'Planejamento registrado em ' + (v.name || 'local') + '!',
-          'Seus amigos já podem ver.',
-          'success'
-        );
-      }
+      var docId = await window.PresenceDB.savePresence(payload);
       var ov = document.getElementById('venue-plan-overlay');
       if (ov) ov.remove();
       _pendingPlanState = null;
+      var d1 = new Date(startsAt);
+      var d2 = new Date(endsAt);
+      var hm = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+      var timeLabel = 'hoje · ' + hm(d1) + (openEnded ? '' : ' – ' + hm(d2));
+      _showPresenceConfirmation({
+        type: 'planned',
+        venueName: v.name || '',
+        sports: normSports,
+        hmLabel: timeLabel,
+        docId: docId,
+        placeId: v.placeId
+      });
       // Re-hidrata o bloco "Movimento no local" pra refletir a nova presença
       // sem precisar fechar e reabrir a modal do venue.
       _buildMovimentoHtml(v).then(function(html) {
@@ -2557,14 +2599,17 @@
       createdAt: now
     };
     try {
-      await window.PresenceDB.savePresence(payload);
-      if (window.showNotification) {
-        window.showNotification(
-          'Presença registrada em ' + (v.name || 'local') + '!',
-          'Seus amigos já podem ver.',
-          'success'
-        );
-      }
+      var docId = await window.PresenceDB.savePresence(payload);
+      var nowDate = new Date();
+      var timeLabel = 'agora · ' + String(nowDate.getHours()).padStart(2,'0') + ':' + String(nowDate.getMinutes()).padStart(2,'0');
+      _showPresenceConfirmation({
+        type: 'checkin',
+        venueName: v.name || '',
+        sports: normSports,
+        hmLabel: timeLabel,
+        docId: docId,
+        placeId: v.placeId
+      });
       // Notifica amigos com "Fulano chegou em X pra jogar". Throttled pra
       // não spammar caso o usuário faça múltiplos check-ins no mesmo dia.
       _notifyFriendsOfQuickCheckin(v, payload);
