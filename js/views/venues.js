@@ -428,10 +428,15 @@
     }
     var safeId = _safe(v._id);
     var safePid = _safe(v.placeId || v._id);
+    // v0.16.28: data-pref-placeid guarda o placeId real pra fetch de presenças
+    // em _hydrateAllPreferredMovement. Venues comunitários sem placeId ficam
+    // com string vazia — hidratação pula silenciosamente.
+    var safeRealPid = _safe(v.placeId || '');
+    var safeVenueName = _safe(v.name || '');
     // O botão-área clicável fica DENTRO do wrapper — o wrapper em si não é
     // clicável, assim os botões de presença podem ser siblings sem precisar
     // de stopPropagation pra não disparar o abrir-detalhe.
-    return '<div class="pref-matched-card hover-lift" data-pref-pid="' + safePid + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.35);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
+    return '<div class="pref-matched-card hover-lift" data-pref-pid="' + safePid + '" data-pref-placeid="' + safeRealPid + '" data-pref-venuename="' + safeVenueName + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.35);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
       '<div onclick="window._venuesOpenDetail(\'' + safeId + '\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">' +
@@ -444,6 +449,13 @@
         (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
       '</div>' +
       '<div id="pref-presence-slot-' + safePid + '" data-pref-presence-slot="' + safePid + '" style="display:flex;gap:6px;flex-wrap:wrap;"></div>' +
+      // v0.16.28: slots de movimento (chart + "Agora" + "Próximas horas") ficam
+      // dentro de cada card preferido. Os render functions self-wrapam e limpam
+      // silenciosamente quando não há atividade, então os 3 divs ficam ocultos
+      // visualmente (zero altura) em locais sem movimento.
+      '<div id="pref-chart-' + safePid + '"></div>' +
+      '<div id="pref-now-' + safePid + '"></div>' +
+      '<div id="pref-upcoming-' + safePid + '"></div>' +
     '</div>';
   }
 
@@ -580,11 +592,15 @@
     return out;
   }
 
-  // Renderiza o gráfico dentro do slot `#presence-chart-<safePid>` usando as
-  // presenças passadas (já carregadas por _hydrateFocusedPreferredChart) +
-  // ocupação virtual de torneios com startDate hoje no mesmo venue.
-  function _renderPreferredChart(safePid, presences, tournaments, dayKeyStr) {
-    var box = document.getElementById('presence-chart-' + safePid);
+  // Renderiza o gráfico dentro do slot `boxId` usando as presenças passadas
+  // (já carregadas por _hydrateAllPreferredMovement) + ocupação virtual de
+  // torneios com startDate hoje no mesmo venue.
+  // v0.16.28: aceita boxId direto (antes `safePid` com prefixo fixo) pra ser
+  // reusável entre o modo focado e os cards não-focados de cada preferido.
+  // Também self-wraps em container estilizado — assim o slot pode ficar vazio
+  // quando não há atividade, sem poluir o card com bg/borda de placeholder.
+  function _renderPreferredChart(boxId, presences, tournaments, dayKeyStr) {
+    var box = document.getElementById(boxId);
     if (!box) return;
     var win = _currentWindow();
 
@@ -642,21 +658,39 @@
       '</div>';
     });
 
+    // v0.16.28: só renderiza se há atividade real na janela; senão limpa
+    // silenciosamente (consistente com "Agora" e "Próximas horas"). Evita
+    // poluir card com caixa vazia quando o local não tem movimento.
+    var hasActivity = false;
+    for (var hh = 0; hh < 24; hh++) {
+      if (buckets[hh] && (buckets[hh].friends + buckets[hh].me + buckets[hh].others) > 0) {
+        hasActivity = true; break;
+      }
+    }
+    if (!hasActivity) { box.innerHTML = ''; return; }
+
+    // v0.16.28: self-wraps em container estilizado — assim o slot pode ficar
+    // vazio (sem bg/borda de placeholder) quando não há atividade, e o mesmo
+    // renderer funciona tanto no card (dentro da lista) quanto no modo focado.
     box.innerHTML =
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
-        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
-        '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> amigos</span>' +
-        '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#6b7280;border-radius:2px;"></span> outros</span>' +
-      '</div>' +
-      '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>';
+      '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
+          '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> amigos</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#6b7280;border-radius:2px;"></span> outros</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
+      '</div>';
   }
 
   // v0.16.27 — "Agora no local": card com avatares+ícones de modalidade pros
-  // amigos (e você) com presença ativa neste momento no venue focado. Outros
+  // amigos (e você) com presença ativa neste momento no venue. Outros
   // (não-amigos) agregam numa pill "+N". Portado do #presence (renderNowAtVenue
-  // em presence.js linhas 580-656) mas indexado pelo safePid do focado.
-  function _renderFocusedNowAtVenue(safePid, presences) {
-    var box = document.getElementById('presence-now-' + safePid);
+  // em presence.js linhas 580-656).
+  // v0.16.28: aceita boxId direto pra ser reusável em cada card preferido
+  // (não só no modo focado).
+  function _renderNowAtVenueBox(boxId, presences) {
+    var box = document.getElementById(boxId);
     if (!box) return;
     var now = Date.now();
     var active = (presences || []).filter(function(p) {
@@ -717,8 +751,9 @@
   // v0.16.27 — "Próximas horas": chips hora-a-hora dos amigos (e você) que
   // planejaram ir + ocupação virtual de torneios com startDate hoje. Portado
   // do #presence (renderUpcoming em presence.js linhas 659-740).
-  function _renderFocusedUpcoming(safePid, presences, tournaments, dayKeyStr) {
-    var box = document.getElementById('presence-upcoming-' + safePid);
+  // v0.16.28: aceita boxId direto pra ser reusável em cada card preferido.
+  function _renderUpcomingBox(boxId, presences, tournaments, dayKeyStr) {
+    var box = document.getElementById(boxId);
     if (!box) return;
     var now = Date.now();
     var rows = [];
@@ -800,64 +835,84 @@
     box.innerHTML = html;
   }
 
-  // Carrega presenças do placeId focado + lê torneios do AppStore e chama
-  // _renderPreferredChart. Chamada em renderResults quando focusedPreferred
-  // está ativo; também chamada pelo auto-tick pra slider a janela.
-  async function _hydrateFocusedPreferredChart() {
-    var fp = state.focusedPreferred;
-    if (!fp) return;
-    var safePid = _safe(fp.placeId);
-    var box = document.getElementById('presence-chart-' + safePid);
-    if (!box) return;
-    var dayKeyStr = window.PresenceDB.dayKey(new Date());
-    var presences = [];
-    try {
-      presences = await window.PresenceDB.loadForVenueDay(fp.placeId, dayKeyStr);
-    } catch (e) {
-      console.warn('[venues chart] load failed:', e);
-    }
-    // Visibility filter: 'public' sempre; 'friends' só self + friends.
+  // v0.16.28: itera todos os `[data-pref-pid]` cards no DOM e hidrata os 3
+  // slots de movimento (chart + "Agora" + "Próximas horas") de cada um.
+  // Cards com placeId real (data-pref-placeid não-vazio) disparam fetch do
+  // Firestore + ocupação virtual de torneios; cards label-only (synthetic
+  // pid) pulam a hidratação — os slots ficam vazios sem poluir o layout.
+  // Substitui o antigo _hydrateFocusedPreferredChart: mesma lógica, mas
+  // aplicada N vezes (uma por card visível) em vez de só pro focado.
+  async function _hydrateAllPreferredMovement() {
+    var cards = document.querySelectorAll('[data-pref-pid]');
+    if (!cards || cards.length === 0) return;
+    var dayKeyStr = window.PresenceDB && window.PresenceDB.dayKey
+      ? window.PresenceDB.dayKey(new Date())
+      : '';
     var cu = window.AppStore && window.AppStore.currentUser;
     var myUid = cu && cu.uid;
     var friends = (cu && Array.isArray(cu.friends)) ? cu.friends : [];
-    presences = presences.filter(function(p) {
-      if (!p) return false;
-      if (p.visibility === 'friends') {
-        if (myUid && p.uid === myUid) return true;
-        return p.uid && friends.indexOf(p.uid) !== -1;
-      }
-      return true;
-    });
     var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
-    // Filtra torneios cujo venue bate com o preferido atual.
-    var fpKey = window.PresenceDB.venueKey(fp.placeId, fp.venueName || '');
-    var focusedTournaments = tournaments.filter(function(t) {
-      if (!t) return false;
-      var tKey = window.PresenceDB.venueKey(t.venuePlaceId || '', t.venue || '');
-      return tKey && tKey === fpKey;
-    });
-    _renderPreferredChart(safePid, presences, focusedTournaments, dayKeyStr);
-    // v0.16.27: seções complementares "Agora" e "Próximas horas" — mesmas
-    // presenças/torneios já filtrados pra não refazer o fetch.
-    _renderFocusedNowAtVenue(safePid, presences);
-    _renderFocusedUpcoming(safePid, presences, focusedTournaments, dayKeyStr);
-  }
 
+    // Dedup por placeId real — múltiplos cards com o mesmo placeId (raro,
+    // mas possível se focused+lista coexistirem) compartilham o fetch.
+    var seenPlaceIds = {};
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var safePid = card.getAttribute('data-pref-pid') || '';
+      var realPid = card.getAttribute('data-pref-placeid') || '';
+      var venueName = card.getAttribute('data-pref-venuename') || '';
+      if (!safePid) continue;
+      // Sem placeId real → nada a hidratar (label-only sem match). Slots
+      // ficam vazios silenciosamente.
+      if (!realPid) continue;
+      // Cache por placeId pra não refazer fetch em cards duplicados.
+      if (seenPlaceIds[realPid]) continue;
+      seenPlaceIds[realPid] = true;
+
+      // Fire-and-forget async por card — cada um renderiza independentemente.
+      (function(safePid, realPid, venueName) {
+        window.PresenceDB.loadForVenueDay(realPid, dayKeyStr).then(function(presences) {
+          // Visibility filter: 'public' sempre; 'friends' só self + friends.
+          presences = (presences || []).filter(function(p) {
+            if (!p) return false;
+            if (p.visibility === 'friends') {
+              if (myUid && p.uid === myUid) return true;
+              return p.uid && friends.indexOf(p.uid) !== -1;
+            }
+            return true;
+          });
+          // Torneios cujo venue bate com este preferido.
+          var pKey = window.PresenceDB.venueKey(realPid, venueName);
+          var matchTournaments = tournaments.filter(function(t) {
+            if (!t) return false;
+            var tKey = window.PresenceDB.venueKey(t.venuePlaceId || '', t.venue || '');
+            return tKey && tKey === pKey;
+          });
+          _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr);
+          _renderNowAtVenueBox('pref-now-' + safePid, presences);
+          _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr);
+        }).catch(function(e) {
+          console.warn('[venues movement] load failed for', realPid, e);
+        });
+      })(safePid, realPid, venueName);
+    }
+  }
+  // Exposto globalmente pra que handlers de mutação em outros módulos
+  // (presence-geo, presence-db, etc.) também possam re-hidratar se precisarem.
+  window._venuesHydrateAllPreferredMovement = _hydrateAllPreferredMovement;
+
+  // v0.16.28: tick roda enquanto houver ao menos UM card [data-pref-pid]
+  // no DOM (antes: só no modo focado). Permite que a janela hora-a-hora
+  // deslize ao vivo em todos os preferidos visíveis simultaneamente.
   function _startChartAutoTick() {
     if (_chartTickInterval) return;
     _chartTickInterval = setInterval(function() {
-      if (!state.focusedPreferred) {
+      if (!document.querySelector('[data-pref-pid]')) {
         clearInterval(_chartTickInterval);
         _chartTickInterval = null;
         return;
       }
-      var safePid = _safe(state.focusedPreferred.placeId);
-      if (!document.getElementById('presence-chart-' + safePid)) {
-        clearInterval(_chartTickInterval);
-        _chartTickInterval = null;
-        return;
-      }
-      _hydrateFocusedPreferredChart();
+      _hydrateAllPreferredMovement();
     }, 60 * 1000);
   }
 
@@ -950,7 +1005,12 @@
       (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
     var pid = _prefSyntheticPid(p);
     var safePid = _safe(pid);
-    return '<div class="pref-nomatch-card hover-lift" data-pref-pid="' + safePid + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
+    // v0.16.28: placeId real do profile quando disponível (raro em label-only);
+    // vazio quando não há. data-pref-venuename é o nome limpo — usado pra casar
+    // tournaments (por venueKey) mesmo em preferidos sem placeId.
+    var safeRealPid = _safe(p.placeId || '');
+    var safeVenueName = _safe(name);
+    return '<div class="pref-nomatch-card hover-lift" data-pref-pid="' + safePid + '" data-pref-placeid="' + safeRealPid + '" data-pref-venuename="' + safeVenueName + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
       '<div style="display:flex;align-items:center;gap:10px;">' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⭐ ' + safeName + '</div>' +
@@ -960,6 +1020,12 @@
         '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();" title="Ver no Google Maps" style="flex-shrink:0;font-size:0.85rem;color:#94a3b8;text-decoration:none;padding:4px 6px;border-radius:6px;">🗺️</a>' +
       '</div>' +
       '<div id="pref-presence-slot-' + safePid + '" data-pref-presence-slot="' + safePid + '" data-pref-synthetic="1" style="display:flex;gap:6px;flex-wrap:wrap;"></div>' +
+      // v0.16.28: mesmos slots de movimento do matched card. Quando há placeId
+      // real (raro nesse caminho — profile geralmente salva só {lat,lng,label}),
+      // hidratação carrega presenças; senão fica vazio.
+      '<div id="pref-chart-' + safePid + '"></div>' +
+      '<div id="pref-now-' + safePid + '"></div>' +
+      '<div id="pref-upcoming-' + safePid + '"></div>' +
     '</div>';
   }
 
@@ -1086,22 +1152,17 @@
       }) || null;
     }
     if (focusedResolved) {
-      var fpSafePid = _safe(fp.placeId);
       html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
         '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;">⭐ ' + (fp.type === 'planned' ? 'Plano ativo' : 'Você está aqui') + '</div>' +
         '<button type="button" onclick="window._venuesClearFocusedPreferred()" style="background:none;border:none;color:#94a3b8;font-size:0.72rem;font-weight:600;cursor:pointer;padding:2px 6px;" title="Ver todos os preferidos">ver todos ↗</button>' +
       '</div>';
+      // v0.16.28: slots de chart/agora/próximas agora vivem DENTRO do card
+      // (pref-chart-* / pref-now-* / pref-upcoming-*), populados por
+      // _hydrateAllPreferredMovement. Não precisamos mais de slots externos.
       html += '<div style="display:flex;flex-direction:column;gap:10px;">';
       if (focusedResolved.match) html += _preferredCardMatched(focusedResolved.match);
       else html += _preferredCardNoMatch(focusedResolved.pref);
-      html += '<div id="presence-chart-' + fpSafePid + '" style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;min-height:120px;">' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:1rem 0;">Carregando movimento…</div>' +
-      '</div>';
-      // v0.16.27: seções "Agora no local" + "Próximas horas", portadas do
-      // #presence, hidratadas junto do chart via _hydrateFocusedPreferredChart.
-      html += '<div id="presence-now-' + fpSafePid + '"></div>';
-      html += '<div id="presence-upcoming-' + fpSafePid + '"></div>';
       html += '</div></div>';
     } else if (resolvedPreferred.length > 0) {
       html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
@@ -1153,9 +1214,11 @@
     // preferidos" com os botões corretos (Estou aqui / Planejar ida, ou
     // Cancelar se já houver presença ativa naquele venue).
     _hydratePreferredPresenceSlots();
-    // v0.16.20: se estamos no modo focado, carrega o gráfico de movimento.
-    if (state.focusedPreferred) {
-      _hydrateFocusedPreferredChart();
+    // v0.16.28: hidrata movimento (chart + "Agora" + "Próximas horas") em
+    // TODOS os cards preferidos visíveis — não só no modo focado. Cada card
+    // mostra sua própria atividade do dia; cards sem movimento ficam limpos.
+    _hydrateAllPreferredMovement();
+    if (document.querySelector('[data-pref-pid]')) {
       _startChartAutoTick();
     } else {
       _stopChartAutoTick();
@@ -2369,6 +2432,8 @@
           renderResults();
         } else {
           _hydratePreferredPresenceSlots();
+          // v0.16.28: movimento também precisa refletir cancelamento.
+          _hydrateAllPreferredMovement();
         }
         if (typeof window._hydrateMyActivePresenceWidget === 'function') {
           window._hydrateMyActivePresenceWidget();
@@ -2880,6 +2945,8 @@
         renderResults();
       } else {
         _hydratePreferredPresenceSlots();
+        // v0.16.28: movimento reflete cancelamento sem re-render completo.
+        _hydrateAllPreferredMovement();
       }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
@@ -3025,6 +3092,9 @@
         renderResults();
       } else {
         _hydratePreferredPresenceSlots();
+        // v0.16.28: novo plano pode ser de um preferido visível na lista —
+        // re-hidrata movimento pra refletir a presença planejada.
+        _hydrateAllPreferredMovement();
       }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
@@ -3325,6 +3395,10 @@
       } else {
         // Venue não-preferido — atualiza só os slots como antes.
         _hydratePreferredPresenceSlots();
+        // v0.16.28: check-in sempre re-hidrata movimento — pode haver outro
+        // preferido na lista cujo movimento mudou (ex: usuário check-in em
+        // venue vizinho notifica amigos que aparecem como "Agora" em todos).
+        _hydrateAllPreferredMovement();
       }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
