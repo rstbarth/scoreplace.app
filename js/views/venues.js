@@ -281,6 +281,25 @@
     return '🎾';
   }
 
+  // v0.16.27: helpers portados de presence.js pras seções "Agora no local"
+  // e "Próximas horas" do card focado.
+  function _sportsIcons(list) {
+    if (!Array.isArray(list) || list.length === 0) return '';
+    var seen = {};
+    var out = '';
+    list.forEach(function(s) {
+      var ic = _sportIcon(s);
+      if (ic && !seen[ic]) { seen[ic] = true; out += ic; }
+    });
+    return out;
+  }
+  function _initials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
   // Pills clicáveis e não-excludentes — usuário pode filtrar por 1, vários ou
   // nenhum esporte. Sem pill ativa = "todas as modalidades". Substitui o
   // <select> singular da v0.16.2- pra dar controle mais direto (tap 1x pra
@@ -632,6 +651,155 @@
       '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>';
   }
 
+  // v0.16.27 — "Agora no local": card com avatares+ícones de modalidade pros
+  // amigos (e você) com presença ativa neste momento no venue focado. Outros
+  // (não-amigos) agregam numa pill "+N". Portado do #presence (renderNowAtVenue
+  // em presence.js linhas 580-656) mas indexado pelo safePid do focado.
+  function _renderFocusedNowAtVenue(safePid, presences) {
+    var box = document.getElementById('presence-now-' + safePid);
+    if (!box) return;
+    var now = Date.now();
+    var active = (presences || []).filter(function(p) {
+      return p && p.startsAt <= now && p.endsAt > now && p.type !== 'planned';
+    });
+    if (active.length === 0) { box.innerHTML = ''; return; }
+    var seen = {};
+    var friendsHtml = [];
+    var otherCount = 0;
+    active.forEach(function(p) {
+      var klass = _classifyPresence(p);
+      if (klass === 'me' || klass === 'friend') {
+        var key = p.uid || (p.displayName + '|' + p.startsAt);
+        if (seen[key]) return;
+        seen[key] = true;
+        var name = p.displayName || 'Amigo';
+        var mins = Math.max(0, Math.round((now - p.startsAt) / 60000));
+        var subtitle = 'há ' + mins + ' min';
+        var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
+        var avatar = p.photoURL
+          ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:40px;height:40px;min-width:40px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
+          : '<div style="width:40px;height:40px;min-width:40px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+        var nowSports = Array.isArray(p.sports) ? p.sports : [];
+        var icons = _sportsIcons(nowSports);
+        var iconsHtml = icons
+          ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + icons + '</span>'
+          : '';
+        friendsHtml.push(
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
+            iconsHtml + avatar +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + (klass === 'me' ? ' (você)' : '') + '</div>' +
+              '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(subtitle) + '</div>' +
+            '</div>' +
+          '</div>'
+        );
+      } else if (p.visibility === 'public' || p.type === 'tournament') {
+        otherCount += 1;
+      }
+    });
+    if (friendsHtml.length === 0 && otherCount === 0) { box.innerHTML = ''; return; }
+    var friendsGrid = friendsHtml.length > 0
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:' + (otherCount > 0 ? '10px' : '0') + ';">' + friendsHtml.join('') + '</div>'
+      : '';
+    var othersPill = otherCount > 0
+      ? '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(107,114,128,0.15);border:1px solid rgba(107,114,128,0.3);border-radius:999px;color:var(--text-bright);font-weight:600;font-size:0.8rem;">👥 +' + otherCount + ' outro' + (otherCount === 1 ? '' : 's') + '</div>'
+      : '';
+    box.innerHTML =
+      '<div style="margin-top:10px;background:var(--bg-darker);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:10px 12px;">' +
+        '<div style="font-weight:700;color:var(--text-bright);margin-bottom:8px;font-size:0.88rem;display:flex;align-items:center;gap:6px;">' +
+          '<span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>' +
+          'Agora no local' +
+        '</div>' +
+        friendsGrid + othersPill +
+      '</div>';
+  }
+
+  // v0.16.27 — "Próximas horas": chips hora-a-hora dos amigos (e você) que
+  // planejaram ir + ocupação virtual de torneios com startDate hoje. Portado
+  // do #presence (renderUpcoming em presence.js linhas 659-740).
+  function _renderFocusedUpcoming(safePid, presences, tournaments, dayKeyStr) {
+    var box = document.getElementById('presence-upcoming-' + safePid);
+    if (!box) return;
+    var now = Date.now();
+    var rows = [];
+    (presences || []).forEach(function(p) {
+      if (p.type === 'planned' && p.startsAt > now) rows.push(p);
+    });
+    (tournaments || []).forEach(function(t) {
+      _tournamentOccupancy(t, dayKeyStr).forEach(function(p) {
+        if (p.startsAt > now) {
+          p._tournamentName = t.name || 'torneio';
+          p._tournamentId = t.id || t._id || '';
+          rows.push(p);
+        }
+      });
+    });
+    if (rows.length === 0) { box.innerHTML = ''; return; }
+    var groups = {};
+    rows.forEach(function(p) {
+      var h = _hourOf(p.startsAt);
+      if (h == null) return;
+      if (!groups[h]) groups[h] = [];
+      groups[h].push(p);
+    });
+    var hours = Object.keys(groups).map(Number).sort(function(a, b) { return a - b; });
+    var html =
+      '<div style="margin-top:10px;background:var(--bg-darker);border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:10px 12px;">' +
+        '<div style="font-weight:700;color:var(--text-bright);margin-bottom:8px;font-size:0.88rem;">🗓️ Próximas horas</div>';
+    var renderedAny = false;
+    hours.forEach(function(h) {
+      var list = groups[h];
+      var friendsSet = {};
+      var friendChips = [];
+      var otherCount = 0;
+      var tournamentBadge = '';
+      list.forEach(function(p) {
+        if (p.type === 'tournament' && !tournamentBadge) {
+          var tid = _safe(p._tournamentName || 'torneio');
+          tournamentBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;background:rgba(251,191,36,0.18);border:1px solid rgba(251,191,36,0.35);color:#fbbf24;padding:2px 8px;border-radius:999px;' +
+            (p._tournamentId ? 'cursor:pointer;" onclick="window.location.hash=\'#tournaments/' + _safe(p._tournamentId) + '\'' : '') +
+            '">🏆 ' + tid + '</span>';
+        }
+        var klass = _classifyPresence(p);
+        if (klass === 'me' || klass === 'friend') {
+          var key = p.uid || p.displayName;
+          if (friendsSet[key]) return;
+          friendsSet[key] = true;
+          var name = klass === 'me' ? 'Você' : (p.displayName || 'Amigo');
+          var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
+          var avatar = p.photoURL
+            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';">'
+            : '<div style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
+          var chipSports = Array.isArray(p.sports) ? p.sports : [];
+          var iconStr = _sportsIcons(chipSports);
+          friendChips.push(
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;">' +
+              (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.88rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
+              avatar +
+              '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
+            '</div>'
+          );
+        } else if (p.visibility === 'public' || p.type === 'tournament') {
+          otherCount += 1;
+        }
+      });
+      if (friendChips.length === 0 && otherCount === 0 && !tournamentBadge) return;
+      renderedAny = true;
+      html +=
+        '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);">' +
+          '<div style="min-width:36px;font-weight:700;color:var(--text-bright);font-size:0.88rem;flex-shrink:0;padding-top:2px;">' + h + 'h</div>' +
+          '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;">' +
+            friendChips.join('') +
+            (otherCount > 0 ? '<span style="background:rgba(107,114,128,0.18);border:1px solid rgba(107,114,128,0.3);color:var(--text-bright);font-size:0.72rem;font-weight:600;padding:2px 10px;border-radius:999px;">+' + otherCount + '</span>' : '') +
+            tournamentBadge +
+          '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    if (!renderedAny) { box.innerHTML = ''; return; }
+    box.innerHTML = html;
+  }
+
   // Carrega presenças do placeId focado + lê torneios do AppStore e chama
   // _renderPreferredChart. Chamada em renderResults quando focusedPreferred
   // está ativo; também chamada pelo auto-tick pra slider a janela.
@@ -669,6 +837,10 @@
       return tKey && tKey === fpKey;
     });
     _renderPreferredChart(safePid, presences, focusedTournaments, dayKeyStr);
+    // v0.16.27: seções complementares "Agora" e "Próximas horas" — mesmas
+    // presenças/torneios já filtrados pra não refazer o fetch.
+    _renderFocusedNowAtVenue(safePid, presences);
+    _renderFocusedUpcoming(safePid, presences, focusedTournaments, dayKeyStr);
   }
 
   function _startChartAutoTick() {
@@ -926,6 +1098,10 @@
       html += '<div id="presence-chart-' + fpSafePid + '" style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;min-height:120px;">' +
         '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:1rem 0;">Carregando movimento…</div>' +
       '</div>';
+      // v0.16.27: seções "Agora no local" + "Próximas horas", portadas do
+      // #presence, hidratadas junto do chart via _hydrateFocusedPreferredChart.
+      html += '<div id="presence-now-' + fpSafePid + '"></div>';
+      html += '<div id="presence-upcoming-' + fpSafePid + '"></div>';
       html += '</div></div>';
     } else if (resolvedPreferred.length > 0) {
       html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
