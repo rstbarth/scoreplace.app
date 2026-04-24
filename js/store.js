@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.5-alpha';
+window.SCOREPLACE_VERSION = '0.16.6-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1451,6 +1451,24 @@ window.AppStore = {
     Object.keys(payload).forEach(function(k) {
       if (payload[k] === undefined) delete payload[k];
     });
+    // v0.16.6 defense-in-depth: Firestore set({merge:true}) preserves fields
+    // apenas quando são `undefined` — strings vazias "" e arrays vazios []
+    // ainda sobrescrevem o valor existente. Esse era exatamente o buraco
+    // que fazia o perfil sumir: race condition pintava currentUser com ""
+    // antes do loadUserProfile merge, save persistia "", Firestore passava
+    // a ter "" definitivo. Agora também removemos "" e [] dos campos
+    // opcionais. Booleans, phoneCountry (default "55") e notifyLevel
+    // (default "todas") continuam sendo escritos sempre.
+    var _optionalTextFields = ['gender', 'birthDate', 'city', 'state', 'country',
+                               'phone', 'defaultCategory', 'preferredCeps'];
+    var _optionalArrayFields = ['preferredSports', 'preferredLocations'];
+    _optionalTextFields.forEach(function(k) {
+      if (payload[k] === '') delete payload[k];
+    });
+    _optionalArrayFields.forEach(function(k) {
+      if (Array.isArray(payload[k]) && payload[k].length === 0) delete payload[k];
+    });
+    console.log('[Profile Save]', uid, 'fields persisted:', Object.keys(payload).sort().join(','));
     await window.FirestoreDB.saveUserProfile(uid, payload);
   },
 

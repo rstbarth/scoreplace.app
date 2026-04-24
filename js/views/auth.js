@@ -3154,26 +3154,52 @@ function setupProfileModal() {
         else window._hintSystem.disable();
       }
 
+      // v0.16.6 fix for profile data loss (continuação do v0.16.5):
+      // o fix anterior só cobriu `name`. Outros campos seguiam sendo gravados
+      // cruamente mesmo quando o form estava vazio (race entre login e
+      // populate, dropdown não-hidratado, etc.) → gravava "" / [] em
+      // currentUser e, na sequência, o save de perfil persistia "" / []
+      // no Firestore, clobbering valores reais.
+      //
+      // Regra agora: se o form está vazio E currentUser já tem valor, preserva
+      // o valor existente. Se o usuário quiser realmente trocar, digita um
+      // valor novo (não há UI explícita pra "apagar campo" no perfil).
+      var _cu = window.AppStore.currentUser;
       if (name) {
-        window.AppStore.currentUser.displayName = name;
-        window.AppStore.currentUser.name = name;
+        _cu.displayName = name;
+        _cu.name = name;
       }
-      window.AppStore.currentUser.gender = gender;
-      window.AppStore.currentUser.birthDate = birthDate;
-      window.AppStore.currentUser.city = city;
-      window.AppStore.currentUser.phone = phoneDigits;
-      window.AppStore.currentUser.phoneCountry = phoneCountry;
+      // Helper local: escreve newVal se não-vazio; caso contrário, só escreve
+      // se currentUser ainda não tem valor real (primeira vez).
+      function _writeIfNonEmpty(field, newVal) {
+        var cur = _cu[field];
+        var newEmpty = (newVal == null) || newVal === '';
+        var curEmpty = (cur == null) || cur === '';
+        if (!newEmpty || curEmpty) _cu[field] = newVal;
+      }
+      function _writeArrayIfNonEmpty(field, newArr) {
+        var cur = _cu[field];
+        var newEmpty = !Array.isArray(newArr) || newArr.length === 0;
+        var curEmpty = !Array.isArray(cur) || cur.length === 0;
+        if (!newEmpty || curEmpty) _cu[field] = newArr;
+      }
+      _writeIfNonEmpty('gender', gender);
+      _writeIfNonEmpty('birthDate', birthDate);
+      _writeIfNonEmpty('city', city);
+      _writeIfNonEmpty('phone', phoneDigits);
+      _cu.phoneCountry = phoneCountry; // tem default "55", sempre OK escrever
       // Grava como array (forma moderna e canônica). Readers antigos que
       // chamam .split() são protegidos via helper tolerante em cada call
       // site (bracket-ui, explore, tournaments-organizer, presence-geo).
-      window.AppStore.currentUser.preferredSports = sportsArr;
-      window.AppStore.currentUser.defaultCategory = category;
-      window.AppStore.currentUser.acceptFriendRequests = acceptFriends;
-      window.AppStore.currentUser.notifyPlatform = notifyPlatform;
-      window.AppStore.currentUser.notifyEmail = notifyEmail;
-      window.AppStore.currentUser.notifyLevel = notifyLevel;
-      window.AppStore.currentUser.preferredCeps = preferredCeps;
-      window.AppStore.currentUser.preferredLocations = preferredLocations;
+      _writeArrayIfNonEmpty('preferredSports', sportsArr);
+      _writeIfNonEmpty('defaultCategory', category);
+      // Booleans e níveis são sempre escritos — têm default claro na UI
+      _cu.acceptFriendRequests = acceptFriends;
+      _cu.notifyPlatform = notifyPlatform;
+      _cu.notifyEmail = notifyEmail;
+      _cu.notifyLevel = notifyLevel;
+      _writeIfNonEmpty('preferredCeps', preferredCeps);
+      _writeArrayIfNonEmpty('preferredLocations', preferredLocations);
       // Presence settings
       var _pvEl = document.getElementById('profile-presence-visibility');
       var _pmToggle = document.getElementById('profile-presence-mute-toggle');
