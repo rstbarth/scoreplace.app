@@ -2591,15 +2591,8 @@ function setupProfileModal() {
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Meus locais — conta separada do perfil de jogador. Acesso agora
-            // pelo link dedicado abaixo ou pela CTA "Cadastrar meu local" em
-            // #venues.
-            '<div style="height: 1px; background: var(--border-color); margin: 1rem 0;"></div>' +
-            '<div style="margin-bottom:1rem;">' +
-              '<label class="form-label" style="font-size:0.8rem;font-weight:600;">🏢 Sou dono de um local</label>' +
-              '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px 0;">Gerenciamento de locais que você administra (endereço, quadras, preços, fotos, contatos) agora é separado do seu perfil de jogador.</p>' +
-              '<a href="#my-venues" onclick="if(document.getElementById(\'modal-profile\'))document.getElementById(\'modal-profile\').classList.remove(\'active\')" class="btn btn-primary btn-sm" style="text-decoration:none;">🏢 Abrir Meus locais</a>' +
-            '</div>' +
+            // Meus locais — conta separada do perfil de jogador. Acesso via
+            // CTA "Cadastrar meu local" em #place ou via hash #my-venues direto.
             // Buttons
             /* Salvar/Sair buttons moved to sticky header */ '' +
             '<div style="text-align: center; padding: 0.5rem 0 0.5rem;">' +
@@ -3362,15 +3355,15 @@ function setupProfileModal() {
         }
       }
 
-      // ── 7. TOAST — SEMPRE aparece, com versão visível ──────────────────
-      // Contrato com o usuário: se vê a versão no toast, está na build certa.
-      // Sem versão visível = build velha cacheada = precisa hard refresh.
+      // ── 7. TOAST — sucesso simples; erro/divergência ainda mostram detalhe ──
+      // Bugs de persistência foram fechados nas versões anteriores. A partir
+      // daqui, sucesso = "Perfil atualizado" sem ruído; só mantemos o toast
+      // de diagnóstico quando algo realmente dá errado.
       if (typeof showNotification !== 'undefined') {
-        var verSuffix = ' · v' + window.SCOREPLACE_VERSION;
         if (saveError) {
           showNotification(
             'Perfil — erro',
-            '⚠️ ' + saveError + verSuffix,
+            '⚠️ ' + saveError,
             'error'
           );
         } else if (mismatch.length > 0) {
@@ -3379,16 +3372,13 @@ function setupProfileModal() {
           }).join(', ');
           showNotification(
             'Perfil — divergência',
-            '⚠️ ' + desc + verSuffix,
+            '⚠️ ' + desc,
             'error'
           );
         } else {
-          var nFlds = Object.keys(payload).filter(function(k) {
-            return k !== 'updatedAt' && k !== 'displayName_lower' && k !== 'email_lower';
-          }).length;
           showNotification(
-            'Perfil salvo',
-            '✅ ' + nFlds + ' campos' + verSuffix,
+            'Perfil atualizado',
+            'Suas alterações foram salvas.',
             'success'
           );
         }
