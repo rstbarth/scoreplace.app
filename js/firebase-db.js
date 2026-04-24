@@ -7,14 +7,34 @@
 
 window.FirestoreDB = {
   db: null,
+  lastInitError: null,
 
   init() {
     try {
+      if (typeof firebase === 'undefined') {
+        this.lastInitError = 'SDK Firebase não carregado (firebase undefined)';
+        console.error('[FirestoreDB.init]', this.lastInitError);
+        return;
+      }
+      if (typeof firebase.firestore !== 'function') {
+        this.lastInitError = 'firebase-firestore-compat.js não carregado';
+        console.error('[FirestoreDB.init]', this.lastInitError);
+        return;
+      }
       this.db = firebase.firestore();
-      // Firestore inicializado com sucesso
+      this.lastInitError = null;
     } catch (e) {
-      console.error('Erro ao inicializar Firestore:', e);
+      this.lastInitError = (e && e.message) || String(e);
+      console.error('[FirestoreDB.init] Erro ao inicializar Firestore:', e);
     }
+  },
+
+  // Call this from code paths that need db and want to survive a late script load.
+  // Returns true if db is ready after the call.
+  ensureDb() {
+    if (this.db) return true;
+    this.init();
+    return !!this.db;
   },
 
   // ---- Utilities ----

@@ -3147,9 +3147,26 @@ function setupProfileModal() {
         }
         return;
       }
-      if (!window.FirestoreDB || !window.FirestoreDB.db) {
+      // Retry init on demand — se o script firebase-db.js carregou tarde
+      // (ou se firebase.firestore() falhou na primeira tentativa), ensureDb
+      // tenta de novo antes de desistir.
+      if (!window.FirestoreDB) {
         if (typeof showNotification !== 'undefined') {
-          showNotification('Perfil — erro', '⚠️ Firestore não inicializado · v' + window.SCOREPLACE_VERSION, 'error');
+          showNotification('Perfil — erro', '⚠️ FirestoreDB ausente (reload a página) · v' + window.SCOREPLACE_VERSION, 'error');
+        }
+        return;
+      }
+      if (!window.FirestoreDB.db) {
+        if (typeof window.FirestoreDB.ensureDb === 'function') {
+          window.FirestoreDB.ensureDb();
+        } else {
+          try { window.FirestoreDB.init(); } catch (e) {}
+        }
+      }
+      if (!window.FirestoreDB.db) {
+        var initErr = window.FirestoreDB.lastInitError || 'causa desconhecida';
+        if (typeof showNotification !== 'undefined') {
+          showNotification('Perfil — erro', '⚠️ Firestore não inicializado: ' + initErr + ' · v' + window.SCOREPLACE_VERSION, 'error');
         }
         return;
       }
