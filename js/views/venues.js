@@ -831,49 +831,103 @@
   }
 
   // Places nearby: lightweight discovery of external venues (not yet claimed
-  // in scoreplace) so the user sees what Google knows about the area. Free
-  // tier allows ~17k queries/month — debounced + gated on a real center so
-  // we don't burn quota. Returns up to 15 places.
+  // em scoreplace). Free tier allows ~17k queries/month — debounced + gated
+  // em um centro real pra não queimar cota.
   //
-  // Default query strategy (vamos refinar depois):
-  // - Sem modalidade: busca ampla com múltiplos termos esportivos
-  //   ("quadra esportiva clube arena") pra cobrir beach tennis, tênis,
-  //   padel, pickleball etc num único call — antes só "quadra" perdia
-  //   clubes que o Google indexa como "arena" ou "clube".
-  // - Com modalidade: usa a modalidade diretamente (Google indexa bem
-  //   "beach tennis", "padel", etc em PT-BR).
-  // - locationBias em vez de locationRestriction: vies SEM trava, então
-  //   lugares muito relevantes fora do raio também aparecem. O filtro
-  //   haversine client-side já cuida do raio exato via state.distanceKm
-  //   — então o API só precisa achar candidatos. Isso mata o cenário
-  //   "zero resultados" em áreas com poucos venues no raio estrito.
+  // Estratégia atual (v0.16.2+): **queries paralelas por termo** em vez de
+  // uma única query conjuntiva. Histórico: um único `searchByText` com
+  // "quadra esportiva clube arena tênis padel beach tennis pickleball" mais
+  // o label de localização aparentemente fazia o Google interpretar como
+  // match conjuntivo — venues cujo nome não contém "arena" ou "quadra"
+  // (ex: "Play Tennis Morumbi", "AB Academia de Tênis") eram deprioritizados
+  // ou dropados do ranking, mesmo estando mais próximos que resultados que
+  // apareciam. A cada termo rodamos uma busca focada e mergimos por placeId.
+  //
+  // Custo: 9 termos = 9 API calls por refresh. Refresh é debounced + só roda
+  // quando o user muda filtros ou ganha GPS — tipicamente 5-30 refreshs por
+  // sessão → 45-270 calls/sessão. Bem dentro do free tier.
+  //
+  // locationBias em vez de locationRestriction: vies SEM trava, então lugares
+  // relevantes fora do raio também aparecem. O haversine client-side filtra
+  // depois conforme state.distanceKm. Isso mata o cenário "zero resultados"
+  // em áreas com poucos venues no raio estrito.
+  //
+  // NOTA: `state.location` (label textual do GPS/endereço) NÃO é mais anexado
+  // ao textQuery — locationBias já resolve a geografia, e textos como
+  // "Minha localização atual" poluíam o matching.
   async function _loadGoogleNearby(center, radiusKm, sport) {
     if (!center || !window.google || !window.google.maps || !window.google.maps.importLibrary) return [];
     try {
       var placesLib = await google.maps.importLibrary('places');
       if (!placesLib || !placesLib.Place || typeof placesLib.Place.searchByText !== 'function') return [];
-      var defaultTerms = 'quadra esportiva clube arena tênis padel beach tennis pickleball';
-      var queryParts = [sport ? sport : defaultTerms];
-      if (state.location) queryParts.push(state.location);
-      var query = queryParts.join(' ').trim();
-      // Bias é mais permissivo que restriction — Google ainda prioriza
-      // o raio escolhido mas não descarta candidatos relevantes próximos.
-      // O haversine local filtra depois conforme state.distanceKm.
+
+      // Conjunto amplo de termos quando nenhuma modalidade específica está
+      // ativa. Cobre vocabulário que o Google indexa bem em PT-BR —
+      // modalidades + tipos de estabelecimento + redes conhecidas. Cada
+      // termo retorna ~10 candidatos distintos; o merge por placeId remove
+      // overlap e dá coverage muito maior que uma única query.
+      var baseTerms = [
+        'beach tennis',
+        'padel',
+        'tênis',
+        'pickleball',
+        'vôlei de praia',
+        'futevôlei',
+        'tênis de mesa',
+        'badminton',
+        'squash',
+        'academia de tênis',
+        'escola de tênis',
+        'arena esportiva',
+        'clube esportivo',
+        'quadra de tênis',
+        'quadra de padel',
+        'quadra de beach tennis'
+      ];
+      // Se uma modalidade específica está selecionada, priorizamos ela + os
+      // genéricos mais amplos (pega venues multi-esporte que podem ter essa
+      // modalidade mas não têm ela no nome).
+      var terms = sport
+        ? [sport, 'arena esportiva', 'clube esportivo', 'academia de tênis', 'escola de tênis']
+        : baseTerms;
+
       var biasRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
-      var req = {
-        textQuery: query,
-        fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
-        locationBias: {
-          center: new google.maps.LatLng(center.lat, center.lng),
-          radius: biasRadiusM
-        },
-        maxResultCount: 15,
-        language: 'pt-BR',
-        region: 'br'
-      };
-      var result = await placesLib.Place.searchByText(req);
-      var out = (result && result.places) || [];
-      return out.map(function(p) {
+      var biasCenter = new google.maps.LatLng(center.lat, center.lng);
+
+      var promises = terms.map(function(term) {
+        return placesLib.Place.searchByText({
+          textQuery: term,
+          fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
+          locationBias: {
+            center: biasCenter,
+            radius: biasRadiusM
+          },
+          maxResultCount: 10,
+          language: 'pt-BR',
+          region: 'br'
+        }).catch(function(e) {
+          console.warn('[Places] term failed:', term, e && e.message);
+          return null;
+        });
+      });
+
+      var results = await Promise.all(promises);
+
+      // Dedupe por placeId — primeiro termo a ver um venue ganha; como
+      // sortamos por distância depois no caller, a ordem de inserção aqui
+      // não importa muito.
+      var byId = {};
+      results.forEach(function(r) {
+        var places = (r && r.places) || [];
+        places.forEach(function(p) {
+          if (!p || !p.id) return;
+          if (byId[p.id]) return;
+          byId[p.id] = p;
+        });
+      });
+
+      var merged = Object.keys(byId).map(function(id) { return byId[id]; });
+      return merged.map(function(p) {
         var loc = p.location;
         return {
           placeId: p.id,
