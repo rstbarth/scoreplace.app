@@ -605,7 +605,7 @@
     var win = _currentWindow();
 
     var buckets = {};
-    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0 };
+    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0, me: 0 };
 
     // v0.16.30: gráfico reflete apenas atividade real do usuário + amigos.
     // Strangers (klass='other') e ocupação virtual de torneios não são
@@ -614,19 +614,22 @@
     // v0.16.33: dedup por uid por hora. Múltiplos docs do mesmo usuário
     // (ex: check-in + plano sobrepostos, ou check-ins antigos não encerrados)
     // contam como 1 pessoa única na barra daquela hora.
-    // v0.16.34: gráfico conta APENAS amigos — nunca o próprio usuário. A
-    // presença/plano do usuário já é visível em "Agora no local" + "Próximas
-    // horas"; contar o usuário de novo no gráfico é redundante e confunde
-    // ("por que mostra 1 pessoa se ninguém está lá?"). O gráfico serve pra
-    // responder "o que OS OUTROS estão fazendo aqui" — forecast social.
-    // Também dropa presenças já encerradas (endsAt < now) — defende contra
+    // v0.16.34: dropa presenças já encerradas (endsAt < now) — defende contra
     // docs stale de testes antigos que ninguém cancelou.
+    // v0.16.35: volta a contar o próprio usuário no gráfico. A v0.16.34 havia
+    // excluído "me" achando que era redundante com "Agora"/"Próximas horas",
+    // mas o usuário reportou via screenshot ("cade o grafico? se chego as 20h
+    // tem que aparecer isso no grafico") que quer ver sua própria presença/plano
+    // refletida na barra. Modelo mental natural: o gráfico é um mapa de quem
+    // estará presente naquela hora, **incluindo o próprio usuário**. Mantém
+    // dedup por uid (v0.16.33) pra evitar contar múltiplos docs da mesma pessoa
+    // + filtro stale (v0.16.34) pra ignorar docs não encerrados.
     var nowMs = Date.now();
     var seenInBucket = {};
     for (var ih = 0; ih < 24; ih++) seenInBucket[ih] = {};
     (presences || []).forEach(function(p) {
       var klass = _classifyPresence(p);
-      if (klass !== 'friend') return;
+      if (klass !== 'me' && klass !== 'friend') return;
       // Drop stale: presença já terminou
       var endTs = null;
       try {
@@ -645,7 +648,8 @@
         if (!buckets[h]) continue;
         if (seenInBucket[h][key]) continue;
         seenInBucket[h][key] = true;
-        buckets[h].friends += 1;
+        if (klass === 'me') buckets[h].me += 1;
+        else buckets[h].friends += 1;
       }
     });
 
@@ -654,7 +658,7 @@
     win.hours.forEach(function(slot) {
       if (slot < 0 || slot > 23) return;
       var b = buckets[slot];
-      var total = b.friends;
+      var total = b.friends + b.me;
       if (total > maxPerBucket) maxPerBucket = total;
     });
 
@@ -662,8 +666,8 @@
     win.hours.forEach(function(slot) {
       var inDay = slot >= 0 && slot <= 23;
       var labelH = ((slot % 24) + 24) % 24;
-      var b = inDay ? buckets[slot] : { friends: 0 };
-      var total = b.friends;
+      var b = inDay ? buckets[slot] : { friends: 0, me: 0 };
+      var total = b.friends + b.me;
       var totalPct = total > 0 ? Math.round((total / maxPerBucket) * 100) : 0;
       var isNow = slot === win.nowH;
       var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
@@ -681,11 +685,11 @@
     // v0.16.28: só renderiza se há atividade real na janela; senão limpa
     // silenciosamente (consistente com "Agora" e "Próximas horas"). Evita
     // poluir card com caixa vazia quando o local não tem movimento.
-    // v0.16.34: agora só amigos contam — se nenhum amigo estiver lá, o
-    // gráfico some inteiro (mesmo se o próprio usuário tiver check-in/plano).
+    // v0.16.35: volta a incluir o usuário no check — se o próprio usuário
+    // tem check-in/plano no local, o gráfico aparece mesmo sem amigos.
     var hasActivity = false;
     for (var hh = 0; hh < 24; hh++) {
-      if (buckets[hh] && buckets[hh].friends > 0) {
+      if (buckets[hh] && (buckets[hh].friends + buckets[hh].me) > 0) {
         hasActivity = true; break;
       }
     }
@@ -696,13 +700,12 @@
     // renderer funciona tanto no card (dentro da lista) quanto no modo focado.
     // v0.16.30: legenda reduzida a só "você/amigos" (barra âmbar única) —
     // strangers/torneios não contribuem mais ao gráfico.
-    // v0.16.34: legenda vira "amigos" — o gráfico não conta mais o próprio
-    // usuário (já visível em "Agora no local"/"Próximas horas").
+    // v0.16.35: legenda volta a "você e amigos" — o gráfico conta ambos de novo.
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
-          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> amigos</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
       '</div>';
