@@ -605,23 +605,22 @@
     var win = _currentWindow();
 
     var buckets = {};
-    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0, me: 0, others: 0 };
+    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0, me: 0 };
 
-    var allPresences = (presences || []).slice();
-    (tournaments || []).forEach(function(t) {
-      _tournamentOccupancy(t, dayKeyStr).forEach(function(p) { allPresences.push(p); });
-    });
-
-    allPresences.forEach(function(p) {
+    // v0.16.30: gráfico reflete apenas atividade real do usuário + amigos.
+    // Strangers (klass='other') e ocupação virtual de torneios não são
+    // contabilizados — evita o efeito de "mostrar gente genérica" mesmo
+    // quando só o usuário tem plano/presença no local.
+    (presences || []).forEach(function(p) {
       var startH = _hourOf(p.startsAt);
       var endH = _hourOf(p.endsAt);
       if (startH == null || endH == null) return;
       var klass = _classifyPresence(p);
+      if (klass !== 'me' && klass !== 'friend') return;
       for (var h = startH; h <= endH; h++) {
         if (!buckets[h]) continue;
         if (klass === 'me') buckets[h].me += 1;
-        else if (klass === 'friend') buckets[h].friends += 1;
-        else buckets[h].others += 1;
+        else buckets[h].friends += 1;
       }
     });
 
@@ -630,7 +629,7 @@
     win.hours.forEach(function(slot) {
       if (slot < 0 || slot > 23) return;
       var b = buckets[slot];
-      var total = b.friends + b.me + b.others;
+      var total = b.friends + b.me;
       if (total > maxPerBucket) maxPerBucket = total;
     });
 
@@ -638,19 +637,15 @@
     win.hours.forEach(function(slot) {
       var inDay = slot >= 0 && slot <= 23;
       var labelH = ((slot % 24) + 24) % 24;
-      var b = inDay ? buckets[slot] : { friends: 0, me: 0, others: 0 };
-      var total = b.friends + b.me + b.others;
+      var b = inDay ? buckets[slot] : { friends: 0, me: 0 };
+      var total = b.friends + b.me;
       var totalPct = total > 0 ? Math.round((total / maxPerBucket) * 100) : 0;
-      var friendsPct = total > 0 ? Math.round((b.friends + b.me) / total * 100) : 0;
       var isNow = slot === win.nowH;
       var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
-      bars += '<div title="' + labelH + 'h: ' + (b.friends + b.me) + ' amigo(s) · ' + b.others + ' outro(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
+      bars += '<div title="' + labelH + 'h: ' + total + ' pessoa(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
         '<div style="position:relative;height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:' + (isNow ? 'rgba(99,102,241,0.1)' : 'rgba(150,150,150,0.08)') + ';overflow:hidden;' + (isNow ? 'outline:2px solid rgba(99,102,241,0.4);' : '') + '">' +
           (total > 0
-            ? '<div style="height:' + totalPct + '%;width:100%;display:flex;flex-direction:column-reverse;">' +
-                '<div style="flex:' + (100 - friendsPct) + ';background:#6b7280;"></div>' +
-                '<div style="flex:' + friendsPct + ';background:#fbbf24;"></div>' +
-              '</div>'
+            ? '<div style="height:' + totalPct + '%;width:100%;background:#fbbf24;"></div>'
             : '') +
           (total > 0 ? '<span style="position:absolute;top:2px;left:0;right:0;text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-bright);text-shadow:0 1px 2px rgba(0,0,0,0.5);">' + total + '</span>' : '') +
         '</div>' +
@@ -663,7 +658,7 @@
     // poluir card com caixa vazia quando o local não tem movimento.
     var hasActivity = false;
     for (var hh = 0; hh < 24; hh++) {
-      if (buckets[hh] && (buckets[hh].friends + buckets[hh].me + buckets[hh].others) > 0) {
+      if (buckets[hh] && (buckets[hh].friends + buckets[hh].me) > 0) {
         hasActivity = true; break;
       }
     }
@@ -672,12 +667,13 @@
     // v0.16.28: self-wraps em container estilizado — assim o slot pode ficar
     // vazio (sem bg/borda de placeholder) quando não há atividade, e o mesmo
     // renderer funciona tanto no card (dentro da lista) quanto no modo focado.
+    // v0.16.30: legenda reduzida a só "você/amigos" (barra âmbar única) —
+    // strangers/torneios não contribuem mais ao gráfico.
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
-          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> amigos</span>' +
-          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#6b7280;border-radius:2px;"></span> outros</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
       '</div>';
@@ -706,7 +702,9 @@
         var key = p.uid || (p.displayName + '|' + p.startsAt);
         if (seen[key]) return;
         seen[key] = true;
-        var name = p.displayName || 'Amigo';
+        // v0.16.30: nome do próprio usuário vira "Você" (sem displayName).
+        // Pra amigos, mantém o nome real. Suffix "(você)" fica redundante.
+        var name = klass === 'me' ? 'Você' : (p.displayName || 'Amigo');
         var mins = Math.max(0, Math.round((now - p.startsAt) / 60000));
         var subtitle = 'há ' + mins + ' min';
         var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
@@ -718,20 +716,18 @@
         var iconsHtml = icons
           ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + icons + '</span>'
           : '';
-        // v0.16.29: botão "Sair" ao lado do próprio check-in — permite
-        // cancelar presença direto da seção "Agora no local" sem precisar
-        // achar o botão inline do card.
+        // v0.16.30: botão "Sair" minimalista — ícone ✕ circular, sem texto.
         var leaveBtn = '';
         if (klass === 'me' && p._id && realPid) {
           var docIdSafe = String(p._id).replace(/"/g, '&quot;');
           var pidSafe = String(realPid).replace(/"/g, '&quot;');
-          leaveBtn = '<button class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:4px 10px;font-size:0.72rem;flex-shrink:0;" title="Sair do local">🚪 Sair</button>';
+          leaveBtn = '<button class="hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;font-size:0.85rem;line-height:1;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;" title="Sair do local">✕</button>';
         }
         friendsHtml.push(
           '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
             iconsHtml + avatar +
             '<div style="flex:1;min-width:0;">' +
-              '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + (klass === 'me' ? ' (você)' : '') + '</div>' +
+              '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</div>' +
               '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(subtitle) + '</div>' +
             '</div>' +
             leaveBtn +
@@ -817,14 +813,13 @@
             : '<div style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
           var chipSports = Array.isArray(p.sports) ? p.sports : [];
           var iconStr = _sportsIcons(chipSports);
-          // v0.16.29: botão "Cancelar" embutido no chip do próprio plano —
-          // permite desmarcar a ida direto da lista "Próximas horas" sem
-          // precisar achar o botão inline no card.
+          // v0.16.30: botão "Cancelar" minimalista — ícone ✕ circular
+          // pequeno (20x20), sem texto, só dentro do chip do próprio plano.
           var cancelBtn = '';
           if (klass === 'me' && p._id && realPid) {
             var upDocIdSafe = String(p._id).replace(/"/g, '&quot;');
             var upPidSafe = String(realPid).replace(/"/g, '&quot;');
-            cancelBtn = '<button class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:2px 8px;font-size:0.66rem;flex-shrink:0;margin-left:4px;" title="Cancelar plano de ir">❌ Cancelar</button>';
+            cancelBtn = '<button class="hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);border-radius:50%;width:20px;height:20px;padding:0;font-weight:700;font-size:0.72rem;line-height:1;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;" title="Cancelar plano de ir">✕</button>';
           }
           friendChips.push(
             '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 6px 3px 6px;min-width:0;">' +
