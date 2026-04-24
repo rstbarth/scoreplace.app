@@ -920,8 +920,12 @@
     var activeNow = presences.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
     var planned = presences.filter(function(p) { return p.type === 'planned' && p.startsAt > now; });
 
-    // Split active into friends (with avatar) and others (counted)
-    var friendAvatars = [];
+    // Split active into friends (chip c/ avatar + nome) e outros (contador).
+    // Antes só avatares sobrepostos com nome só em tooltip — em mobile onde
+    // não há hover o usuário via "ícone distorcido sem nome". Agora cada
+    // presença vira chip visível: avatar 32px + nome ao lado, em linha própria
+    // para eliminar confusão visual.
+    var friendChips = [];
     var seen = {};
     var otherNow = 0;
     activeNow.forEach(function(p) {
@@ -934,10 +938,18 @@
         var name = p.displayName || 'Amigo';
         var initials = name.trim().split(/\s+/).map(function(s){return s.charAt(0);}).join('').substring(0,2).toUpperCase();
         var border = mine ? '#10b981' : '#fbbf24';
+        var chipBg = mine ? 'rgba(16,185,129,0.14)' : 'rgba(251,191,36,0.12)';
+        var chipBorder = mine ? 'rgba(16,185,129,0.35)' : 'rgba(251,191,36,0.30)';
         var avatar = p.photoURL
-          ? '<img title="' + _safe(name) + '" src="' + _safe(p.photoURL) + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid ' + border + ';margin-left:-6px;">'
-          : '<div title="' + _safe(name) + '" style="width:32px;height:32px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;border:2px solid ' + border + ';margin-left:-6px;">' + _safe(initials) + '</div>';
-        friendAvatars.push(avatar);
+          ? '<img alt="' + _safe(name) + '" src="' + _safe(p.photoURL) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid ' + border + ';flex-shrink:0;">'
+          : '<div style="width:28px;height:28px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.72rem;border:2px solid ' + border + ';flex-shrink:0;">' + _safe(initials) + '</div>';
+        var label = mine ? 'Você' : name;
+        friendChips.push(
+          '<div style="display:inline-flex;align-items:center;gap:6px;background:' + chipBg + ';border:1px solid ' + chipBorder + ';border-radius:999px;padding:3px 10px 3px 3px;">' +
+            avatar +
+            '<span style="font-size:0.78rem;font-weight:600;color:var(--text-bright);white-space:nowrap;">' + _safe(label) + '</span>' +
+          '</div>'
+        );
       } else if (p.visibility === 'public') {
         otherNow += 1;
       }
@@ -957,11 +969,11 @@
       '<span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span>' +
       'Agora no local' +
     '</div>';
-    if (friendAvatars.length === 0 && otherNow === 0) {
+    if (friendChips.length === 0 && otherNow === 0) {
       html += '<div style="font-size:0.78rem;color:var(--text-muted);">Ninguém registrou presença agora.</div>';
     } else {
       html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
-      if (friendAvatars.length > 0) html += '<div style="display:flex;margin-left:6px;">' + friendAvatars.join('') + '</div>';
+      if (friendChips.length > 0) html += friendChips.join('');
       if (otherNow > 0) html += '<span style="background:rgba(107,114,128,0.2);border:1px solid rgba(107,114,128,0.3);color:var(--text-bright);font-size:0.72rem;font-weight:600;padding:2px 10px;border-radius:999px;">👥 +' + otherNow + '</span>';
       html += '</div>';
     }
@@ -1090,6 +1102,17 @@
     '</div>';
   }
 
+  // Fecha o overlay de detalhe + restaura a back-header padrão da página que
+  // estava por trás. Usado por todos os call sites que antes faziam
+  // `document.getElementById('venues-detail-overlay').remove()` direto —
+  // agora passam por aqui pra não vazar a classe `.venue-detail-open` no
+  // body (que esconde a back-header da página durante o overlay).
+  window._venuesCloseDetail = function() {
+    var el = document.getElementById('venues-detail-overlay');
+    if (el) el.remove();
+    document.body.classList.remove('venue-detail-open');
+  };
+
   // Detail: compact modal with contact actions + quick links into the rest of the app.
   window._venuesOpenDetail = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
@@ -1100,16 +1123,16 @@
       if (prev) prev.remove();
       var overlay = document.createElement('div');
       overlay.id = 'venues-detail-overlay';
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10010;display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.style.cssText = 'position:fixed;top:60px;left:0;right:0;bottom:0;background:var(--bg-dark);z-index:10010;display:flex;align-items:center;justify-content:center;padding:16px;';
       overlay.innerHTML =
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:24px;max-width:420px;width:100%;text-align:center;">' +
           '<div style="font-size:2rem;margin-bottom:8px;">🧭</div>' +
           '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;margin-bottom:6px;">Local não encontrado</div>' +
           '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Este link pode estar desatualizado, ou o dono liberou a reivindicação. Volte à busca para explorar outros locais.</div>' +
-          '<button class="btn btn-primary" onclick="document.getElementById(\'venues-detail-overlay\').remove()">Entendi</button>' +
+          '<button class="btn btn-primary" onclick="window._venuesCloseDetail()">Entendi</button>' +
         '</div>';
-      overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
       document.body.appendChild(overlay);
+      document.body.classList.add('venue-detail-open');
       return;
     }
     // Fire-and-forget viewCount bump. Skip when the owner is viewing their own
@@ -1150,9 +1173,15 @@
       lat: v.lat, lon: v.lon
     });
 
+    // Overlay começa ABAIXO da topbar (top:60px) pra manter o cabeçalho
+    // padrão do app visível — logo + pódio ficam no topbar (z-index:100), e
+    // o overlay (z-index:10010) cobre o conteúdo embaixo. Background opaco
+    // (var(--bg-dark)) pra não bleedar o #venues por trás. O padrão
+    // voltar+título+hamburger fica dentro do próprio card via
+    // window._renderBackHeader — consistente com todas as outras views.
     var overlay = document.createElement('div');
     overlay.id = 'venues-detail-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10010;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+    overlay.style.cssText = 'position:fixed;top:60px;left:0;right:0;bottom:0;background:var(--bg-dark);z-index:10010;display:flex;align-items:flex-start;justify-content:center;padding:0;overflow-y:auto;';
     // Tags de proveniência: "✅ Informações oficiais" quando reivindicado;
     // "📝 Cadastrado por [nome]" quando é cadastro comunitário.
     var ownershipTag = v.ownerUid
@@ -1182,25 +1211,32 @@
       ? '<button class="btn btn-sm" onclick=\'window._venuesToggleEdit("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;flex-shrink:0;">✏️ Editar</button>'
       : '';
     var claimBtn = canClaim
-      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); document.getElementById("venues-detail-overlay").remove(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;">🏢 Reivindicar</button>'
+      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); window._venuesCloseDetail(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;">🏢 Reivindicar</button>'
       : '';
     var headerBtns = editBtn + claimBtn;
+    // Callback do voltar — fecha overlay + restaura back-header da página.
+    // Registrado em window._backNavCallbacks via _renderBackHeader.
+    var backCb = function() { if (typeof window._venuesCloseDetail === 'function') window._venuesCloseDetail(); };
+    var titleHtml =
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:0.95rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏢 ' + _safe(v.name) + '</div>' +
+        (v.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ' + _safe(v.address) + '</div>' : '') +
+      '</div>';
+    var rightHtml = headerBtns
+      ? '<div style="display:flex;gap:6px;flex-shrink:0;">' + headerBtns + '</div>'
+      : '';
+    var stdHeader = (typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+          label: 'Voltar',
+          middleHtml: titleHtml,
+          rightHtml: rightHtml,
+          extraStyle: 'background:var(--bg-card);padding:10px 14px;border-bottom:1px solid var(--border-color);',
+          onClickOverride: backCb
+        })
+      : '';
     overlay.innerHTML =
-      '<div id="venue-detail-card" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
-        '<div id="venue-detail-header" style="position:sticky;top:0;background:var(--bg-card);padding:12px 14px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;z-index:2;">' +
-          // Voltar (arrow) — closes the overlay, returns user to the venue
-          // discovery listing. Matches the back-header convention used across
-          // the app (svg arrow + label, pill shape).
-          '<button class="btn btn-outline btn-sm hover-lift" type="button" onclick="document.getElementById(\'venues-detail-overlay\').remove()" aria-label="Voltar" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;flex-shrink:0;">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
-            'Voltar' +
-          '</button>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:800;color:var(--text-bright);font-size:0.95rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏢 ' + _safe(v.name) + '</div>' +
-            (v.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ' + _safe(v.address) + '</div>' : '') +
-          '</div>' +
-          (headerBtns ? '<div style="display:flex;gap:6px;flex-shrink:0;">' + headerBtns + '</div>' : '') +
-        '</div>' +
+      '<div id="venue-detail-card" style="background:var(--bg-card);width:100%;max-width:640px;min-height:100%;box-shadow:0 0 0 1px var(--border-color);">' +
+        stdHeader +
         '<div id="venue-detail-body" style="padding:16px 18px;">' +
           (ownershipTag ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + '</div>' : '') +
           (sportsHtml ? '<div style="margin-bottom:10px;">' + sportsHtml + '</div>' : '') +
@@ -1233,14 +1269,13 @@
           // Histórico público de atualizações — quem cadastrou, quem mudou o
           // quê e quando. Hidratado async em _hydrateUpdateHistory.
           '<div id="venue-update-history-slot" style="margin-bottom:12px;"></div>' +
-          // Check-in inline: o usuário clicando "Estou aqui" na modal fecha o
-          // loop discovery→ação em um toque só, sem navegar até #presence.
-          // Só aparece para usuários logados; anônimos veem os outros botões.
+          // Check-in inline: slot hidratado async com os botões certos. Começa
+          // com os botões "cheios" (Estou aqui agora + Planejar ida); se o
+          // usuário já tiver check-in/plano ativo neste local, o slot é
+          // substituído por "Cancelar presença" / "Cancelar plano" pra que ele
+          // possa sair do local com um toque. Só aparece para usuários logados.
           (cu && cu.uid
-            ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
-                '<button id="venue-quickcheckin-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickCheckIn("' + _safe(v.placeId) + '")\' style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:8px 14px;">📍 Estou aqui agora</button>' +
-                '<button id="venue-quickplan-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickPlan("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:8px 14px;">🗓️ Planejar ida</button>' +
-              '</div>'
+            ? '<div id="venue-presence-btns-slot" data-placeid="' + _safe(v.placeId) + '" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>'
             : '') +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
             '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration:none;">🗺️ Ver no mapa</a>' +
@@ -1250,8 +1285,14 @@
           '</div>' +
         '</div>' +
       '</div>';
-    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    // Clique fora do card não fecha — com overlay full-width a margem é zero
+    // e o usuário poderia fechar por engano. Voltar é explícito via botão.
     document.body.appendChild(overlay);
+    // Esconde a back-header da página por trás do overlay. Sem isso, quando
+    // o card não preenche a altura total, a back-header de #venues aparece
+    // fora do card e vira um segundo "Voltar" visível. Restauração em
+    // _venuesCloseDetail.
+    document.body.classList.add('venue-detail-open');
     // Async: courts agregados por modalidade — mostra "4 quadras de Beach
     // Tennis (compartilhadas) · 2 de Tênis (saibro) · ..." antes do resto
     // pra dar contexto imediato das opções. Read público via rules.
@@ -1341,6 +1382,91 @@
     _hydrateReviews(v);
     // Histórico de atualizações (cadastro + edits da comunidade).
     _hydrateUpdateHistory(v);
+    // Botões de presença — render inicial é "Estou aqui / Planejar ida" ou
+    // "Cancelar presença / Cancelar plano" dependendo do estado atual do
+    // usuário neste venue.
+    if (cu && cu.uid) _hydratePresenceButtonsForVenue(v);
+  };
+
+  // Carrega as presenças ativas do usuário neste venue e substitui o conteúdo
+  // do slot `#venue-presence-btns-slot` pelos botões corretos:
+  // - Sem presença ativa: "📍 Estou aqui agora" + "🗓️ Planejar ida"
+  // - Check-in ativo aqui: "❌ Cancelar presença" no lugar do Estou aqui
+  // - Plano ativo aqui: "❌ Cancelar plano" no lugar do Planejar ida
+  // Reusado após cada mutação (check-in, plano, cancel) pra refletir o novo
+  // estado sem fechar/reabrir a modal.
+  async function _hydratePresenceButtonsForVenue(v) {
+    var slot = document.getElementById('venue-presence-btns-slot');
+    if (!slot) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !window.PresenceDB) { slot.innerHTML = ''; return; }
+    var myActive = [];
+    try { myActive = await window.PresenceDB.loadMyActive(cu.uid); } catch (e) {}
+    var now = Date.now();
+    var hereCheckin = null;
+    var herePlan = null;
+    (myActive || []).forEach(function(p) {
+      if (!p || p.placeId !== v.placeId) return;
+      if (p.type === 'checkin' && p.startsAt <= now && p.endsAt > now && !hereCheckin) hereCheckin = p;
+      if (p.type === 'planned' && p.startsAt > now && !herePlan) herePlan = p;
+    });
+    var safePid = _safe(v.placeId);
+    var checkinBtn = hereCheckin
+      ? '<button id="venue-quickcheckin-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesCancelMyPresenceHere("' + String(hereCheckin._id || '').replace(/"/g,'&quot;') + '","' + safePid + '","checkin")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:8px 14px;" title="Você está registrado aqui agora · clique pra sair">❌ Cancelar presença</button>'
+      : '<button id="venue-quickcheckin-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickCheckIn("' + safePid + '")\' style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:8px 14px;">📍 Estou aqui agora</button>';
+    var planBtn = herePlan
+      ? '<button id="venue-quickplan-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesCancelMyPresenceHere("' + String(herePlan._id || '').replace(/"/g,'&quot;') + '","' + safePid + '","planned")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:8px 14px;" title="Você tem plano ativo aqui · clique pra remover">❌ Cancelar plano</button>'
+      : '<button id="venue-quickplan-btn" class="btn btn-sm hover-lift" onclick=\'window._venuesQuickPlan("' + safePid + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:8px 14px;">🗓️ Planejar ida</button>';
+    slot.innerHTML = checkinBtn + planBtn;
+  }
+
+  // Cancela presença/plano ativo no venue e re-hidrata:
+  //  - Botões da modal (voltam a "Estou aqui / Planejar ida")
+  //  - Bloco "Agora no local" (some da lista)
+  //  - Widget de presença do dashboard (pill some quando usuário volta)
+  // Protege contra double-tap desabilitando o botão até a operação completar.
+  window._venuesCancelMyPresenceHere = async function(docId, placeId, type) {
+    if (!docId || !window.PresenceDB) return;
+    var label = type === 'planned' ? 'seu plano aqui' : 'sua presença aqui';
+    var msg = 'Cancelar ' + label + '?';
+    var doIt = async function() {
+      var btn = type === 'planned'
+        ? document.getElementById('venue-quickplan-btn')
+        : document.getElementById('venue-quickcheckin-btn');
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+      try {
+        await window.PresenceDB.cancelPresence(docId);
+        if (window.showNotification) {
+          window.showNotification(
+            type === 'planned' ? 'Plano cancelado.' : 'Presença cancelada.',
+            '',
+            'info'
+          );
+        }
+        // Re-hidrata: botões, movimento, e widget da dashboard.
+        var v = await window.VenueDB.loadVenue(placeId);
+        if (v) {
+          _hydratePresenceButtonsForVenue(v);
+          _buildMovimentoHtml(v).then(function(html) {
+            var slot = document.getElementById('venue-movimento-slot');
+            if (slot && html) slot.innerHTML = html;
+          });
+        }
+        if (typeof window._hydrateMyActivePresenceWidget === 'function') {
+          window._hydrateMyActivePresenceWidget();
+        }
+      } catch (e) {
+        console.warn('Cancel venue presence failed:', e);
+        if (window.showNotification) window.showNotification('Erro ao cancelar.', '', 'error');
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      }
+    };
+    // Prefere o diálogo nativo do app (coeso com temas/i18n); cai em confirm.
+    if (typeof window.showConfirmDialog === 'function') {
+      window.showConfirmDialog(msg, '', doIt, null, { confirmText: 'Cancelar presença', cancelText: 'Voltar', type: 'danger' });
+    } else if (window.confirm(msg)) {
+      doIt();
+    }
   };
 
   // Star widget com 5 posições. `value` determina quantas ficam cheias;
@@ -1773,6 +1899,11 @@
         var slot = document.getElementById('venue-movimento-slot');
         if (slot && html) slot.innerHTML = html;
       });
+      // Re-hidrata botões (swap pra "❌ Cancelar plano") + widget da dashboard
+      _hydratePresenceButtonsForVenue(v);
+      if (typeof window._hydrateMyActivePresenceWidget === 'function') {
+        window._hydrateMyActivePresenceWidget();
+      }
       // Notifica amigos — compartilha o helper com o quick-checkin pra manter
       // throttle consistente.
       try { _notifyFriendsOfPlan(v, payload); } catch (e) { console.warn('Plan notify failed:', e); }
@@ -1905,8 +2036,7 @@
   // Bridge to tournament creation — stashes venue so create-tournament can read.
   window._venuesStartTournamentHere = function(prefillJson) {
     try { sessionStorage.setItem('_venuePrefill', prefillJson); } catch (e) {}
-    var ov = document.getElementById('venues-detail-overlay');
-    if (ov) ov.remove();
+    if (typeof window._venuesCloseDetail === 'function') window._venuesCloseDetail();
     if (typeof openModal === 'function') openModal('modal-quick-create');
   };
 
@@ -2047,13 +2177,10 @@
         var slot = document.getElementById('venue-movimento-slot');
         if (slot && html) slot.innerHTML = html;
       });
-      // Desabilita o botão após sucesso pra evitar double-tap duplicata
-      var btn = document.getElementById('venue-quickcheckin-btn');
-      if (btn) {
-        btn.textContent = '✅ Presença registrada';
-        btn.style.opacity = '0.65';
-        btn.style.cursor = 'default';
-        btn.disabled = true;
+      // Re-hidrata botões (swap pra "❌ Cancelar presença") + widget da dashboard
+      _hydratePresenceButtonsForVenue(v);
+      if (typeof window._hydrateMyActivePresenceWidget === 'function') {
+        window._hydrateMyActivePresenceWidget();
       }
     } catch (e) {
       console.error('Quick check-in failed:', e);

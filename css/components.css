@@ -34,7 +34,8 @@
 #modal-quick-create .sticky-back-header,
 #casual-match-overlay .sticky-back-header,
 #modal-support-pix .sticky-back-header,
-#qr-modal-overlay .sticky-back-header {
+#qr-modal-overlay .sticky-back-header,
+#venues-detail-overlay .sticky-back-header {
   position: static !important;
   top: auto !important;
   left: auto !important;
@@ -46,8 +47,17 @@
 #modal-quick-create .sticky-back-header + *,
 #casual-match-overlay .sticky-back-header + *,
 #modal-support-pix .sticky-back-header + *,
-#qr-modal-overlay .sticky-back-header + * {
+#qr-modal-overlay .sticky-back-header + *,
+#venues-detail-overlay .sticky-back-header + * {
   margin-top: 0 !important;
+}
+/* Hide the page's own back-header while venue detail overlay is open — sem
+   isso, a back-header da página (ex: #venues ou #dashboard) aparece através
+   da top-bar area e o usuário vê dois "Voltar" duplicados. Aplica só no body,
+   preserva o back-header DENTRO do overlay (escopo diferente). */
+body.venue-detail-open > .sticky-back-header,
+body.venue-detail-open > div > .sticky-back-header {
+  display: none !important;
 }
 
 /* ==== HAMBURGER DROPDOWN (outside topbar) ==== */
