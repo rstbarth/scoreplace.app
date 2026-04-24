@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.6-alpha';
+window.SCOREPLACE_VERSION = '0.16.7-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1468,8 +1468,35 @@ window.AppStore = {
     _optionalArrayFields.forEach(function(k) {
       if (Array.isArray(payload[k]) && payload[k].length === 0) delete payload[k];
     });
-    console.log('[Profile Save]', uid, 'fields persisted:', Object.keys(payload).sort().join(','));
-    await window.FirestoreDB.saveUserProfile(uid, payload);
+    var _persistedKeys = Object.keys(payload).sort();
+    console.log('[Profile Save]', uid, 'fields persisted:', _persistedKeys.join(','));
+    // v0.16.7: evidência em tela. Expõe o último save pra UI consumir.
+    // A função saveUserProfile em auth.js lê isso e mostra uma notificação
+    // com os campos persistidos — usuário não precisa abrir o console pra
+    // saber se o fix está rodando.
+    window._lastProfileSave = {
+      uid: uid,
+      version: window.SCOREPLACE_VERSION,
+      at: new Date().toISOString(),
+      fields: _persistedKeys
+    };
+    try {
+      await window.FirestoreDB.saveUserProfile(uid, payload);
+      window._lastProfileSave.ok = true;
+      // Verificação round-trip: lê de volta e confirma que os campos chegaram.
+      try {
+        var _roundtrip = await window.FirestoreDB.loadUserProfile(uid);
+        var _missing = _persistedKeys.filter(function(k) {
+          return _roundtrip && _roundtrip[k] === undefined;
+        });
+        window._lastProfileSave.roundtripMissing = _missing;
+        if (_missing.length > 0) console.warn('[Profile Save] roundtrip missing:', _missing);
+      } catch (_e) {}
+    } catch (e) {
+      window._lastProfileSave.ok = false;
+      window._lastProfileSave.error = (e && e.message) || String(e);
+      throw e;
+    }
   },
 
   toggleViewMode() {

@@ -464,7 +464,12 @@
       return;
     }
     var hasResults = state.results.length > 0 || (state.googleResults || []).length > 0;
-    if (!state.center && !hasResults && !state.selectedPlace) {
+    // v0.16.7: se o usuário está logado E tem locais preferidos, pula o
+    // early-return "Onde você está?" e renderiza a seção Preferidos mesmo
+    // sem GPS. Sem preferidos, o prompt de localização continua visível.
+    var _cuEarly = window.AppStore && window.AppStore.currentUser;
+    var _hasPrefs = _cuEarly && Array.isArray(_cuEarly.preferredLocations) && _cuEarly.preferredLocations.length > 0;
+    if (!state.center && !hasResults && !state.selectedPlace && !_hasPrefs) {
       box.innerHTML =
         '<div style="text-align:center;padding:2rem 0;">' +
           '<div style="font-size:2.2rem;margin-bottom:8px;">📍</div>' +
@@ -544,6 +549,10 @@
     var html = selHtml;
 
     // 1) Locais preferidos (vem do perfil do usuário)
+    // v0.16.7: seção SEMPRE visível quando o usuário está logado, mesmo sem
+    // preferidos cadastrados — com CTA para adicionar via perfil. Antes a
+    // seção só aparecia quando resolvedPreferred.length > 0, o que deixava
+    // usuários sem preferidos achando que a feature não existia.
     if (resolvedPreferred.length > 0) {
       html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
       html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">⭐ Locais preferidos</div>';
@@ -553,6 +562,13 @@
         else html += _preferredCardNoMatch(x.pref);
       });
       html += '</div></div>';
+    } else if (cu) {
+      // Placeholder com CTA pro perfil — cristaliza que a feature existe.
+      html += '<div style="background:rgba(251,191,36,0.06);border:1px dashed rgba(251,191,36,0.35);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⭐ Locais preferidos</div>';
+      html += '<div style="font-size:0.82rem;color:var(--text-muted);line-height:1.4;margin-bottom:8px;">Marque seus lugares favoritos no perfil e eles aparecem aqui primeiro.</div>';
+      html += '<button type="button" onclick="if(window._openMyProfileModal)window._openMyProfileModal();else window.location.hash=\'#dashboard\';" style="background:rgba(251,191,36,0.14);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:10px;padding:6px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">Adicionar no perfil →</button>';
+      html += '</div>';
     }
 
     // 2) Locais registrados na plataforma (próximos do centro atual)

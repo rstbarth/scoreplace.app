@@ -3232,6 +3232,29 @@ function setupProfileModal() {
       if (window.AppStore.saveUserProfileToFirestore) {
         await window.AppStore.saveUserProfileToFirestore();
       }
+      // v0.16.7: diagnóstico visível. Mostra na tela os campos que foram
+      // efetivamente persistidos + resultado do round-trip. Usuário NÃO
+      // precisa abrir o console pra verificar se o save funcionou.
+      try {
+        var _diag = window._lastProfileSave;
+        if (_diag) {
+          var _summary = '';
+          if (_diag.ok === false) {
+            _summary = '⚠️ Falhou: ' + (_diag.error || 'erro desconhecido');
+          } else {
+            var _flds = (_diag.fields || []).filter(function(k) {
+              return k !== 'email' && k !== 'displayName' && k !== 'photoURL' && k !== 'updatedAt';
+            });
+            _summary = '✅ ' + _flds.length + ' campos · v' + (_diag.version || '?');
+            if (Array.isArray(_diag.roundtripMissing) && _diag.roundtripMissing.length > 0) {
+              _summary += ' · ⚠️ não voltou: ' + _diag.roundtripMissing.join(', ');
+            }
+          }
+          if (typeof showNotification !== 'undefined') {
+            showNotification('Perfil salvo', _summary, _diag.ok === false ? 'error' : 'success');
+          }
+        }
+      } catch(_e) { console.warn('[Profile] diag surface error:', _e); }
 
       // Propagate name change to all tournaments if displayName changed
       if (name && _oldDisplayName && name !== _oldDisplayName) {
@@ -3271,7 +3294,8 @@ function setupProfileModal() {
       }
 
       document.getElementById('modal-profile').classList.remove('active');
-      if (typeof showNotification !== 'undefined') showNotification(_t('auth.profileUpdated'), _t('auth.profileUpdatedMsg'), 'success');
+      // v0.16.7: toast genérico "Perfil atualizado" removido — substituído
+      // pelo toast de diagnóstico acima que mostra campos + versão.
 
       // Trigger a re-render if we're on the dashboard
       var container = document.getElementById('view-container');
