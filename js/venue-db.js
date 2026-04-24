@@ -143,6 +143,31 @@ window.VenueDB = {
     }
   },
 
+  // Hard-delete a venue document. Allowed only for the owner or the original
+  // creator — enforced client-side here (Firestore rules should mirror). In
+  // alpha-phase this is safe: referenced presences/tournaments become dangling
+  // references but the app degrades gracefully (UI falls back to "sem ficha").
+  // Reviews subcollection is intentionally NOT recursed into — they become
+  // orphaned but unreachable from UI. If the venue is later recreated with
+  // the same placeId, old reviews would resurface; acceptable in alpha.
+  async deleteVenue(key) {
+    if (!this.db || !key) throw new Error('key obrigatória');
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    if (!myUid) throw new Error('login obrigatório');
+    var ref = this.db.collection('venues').doc(key);
+    var doc = await ref.get();
+    if (!doc.exists) return true; // Already gone.
+    var data = doc.data() || {};
+    var imOwner = data.ownerUid && data.ownerUid === myUid;
+    var imCreator = data.createdByUid && data.createdByUid === myUid;
+    if (!imOwner && !imCreator) {
+      throw new Error('sem-permissão');
+    }
+    await ref.delete();
+    return true;
+  },
+
   // Paginated list for the public discovery view. Todos os filtros agora são
   // client-side — o filtro de sport *não* usa mais array-contains no servidor
   // porque venues recém-cadastrados (sem quadras ainda) têm sports[] vazio e

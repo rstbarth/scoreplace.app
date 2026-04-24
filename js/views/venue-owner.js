@@ -787,10 +787,19 @@
           courtsBtnHtml +
         '</div>' +
 
-        // ── Salvar / Cancelar ──
-        '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
-          '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? '💾 Salvar alterações' : '💾 Cadastrar local') + '</button>' +
+        // ── Salvar / Cancelar / Apagar ──
+        // Apagar só aparece em edição (já existe no DB) e se eu sou dono OU
+        // criador — outros usuários só podem editar colaborativamente. Fica
+        // no canto esquerdo separado dos botões positivos (Cancelar/Salvar)
+        // pra reduzir chance de clique acidental.
+        '<div style="display:flex;gap:6px;justify-content:space-between;align-items:center;flex-wrap:wrap;">' +
+          ((opts.existing && cu && cu.uid && (opts.existing.ownerUid === cu.uid || opts.existing.createdByUid === cu.uid))
+            ? '<button type="button" class="btn btn-sm" onclick=\'window._venueOwnerDelete("' + safePlaceId + '")\' style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;">🗑️ Apagar local</button>'
+            : '<span></span>') +
+          '<div style="display:flex;gap:6px;">' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="window._venueOwnerCancel()">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick=\'window._spinButton(this, "Salvando..."); window._venueOwnerSubmit(' + JSON.stringify(place).replace(/'/g, '&#39;') + ')\'>' + (opts.existing ? '💾 Salvar alterações' : '💾 Cadastrar local') + '</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
@@ -1171,9 +1180,19 @@
     list.forEach(function(v) {
       var sportsText = (v.sports && v.sports.length) ? v.sports.join(' · ') : '';
       var safePid = _safe(v.placeId);
-      html += '<div onclick="window._venueOwnerEditExisting(\'' + safePid + '\')" class="hover-lift" style="padding:12px 14px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;margin-bottom:8px;cursor:pointer;">' +
-        '<div style="font-weight:600;color:var(--text-bright);font-size:0.9rem;margin-bottom:2px;">' + _safe(v.name) + '</div>' +
-        (sportsText ? '<div style="font-size:0.75rem;color:var(--text-muted);">' + _safe(sportsText) + '</div>' : '') +
+      // Botão lixeira só pro dono OU criador — alinha com a permissão do
+      // deleteVenue em venue-db.js. event.stopPropagation pra não disparar
+      // o abrir-edição do wrapper clicável.
+      var canDelete = !!(cu && cu.uid && (v.ownerUid === cu.uid || v.createdByUid === cu.uid));
+      var deleteBtn = canDelete
+        ? '<button onclick="event.stopPropagation(); window._venueOwnerDelete(\'' + safePid + '\')" title="Apagar local" style="border:none;background:transparent;color:#ef4444;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:1rem;line-height:1;" onmouseover="this.style.background=\'rgba(239,68,68,0.12)\'" onmouseout="this.style.background=\'transparent\'">🗑️</button>'
+        : '';
+      html += '<div class="hover-lift" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;margin-bottom:8px;">' +
+        '<div onclick="window._venueOwnerEditExisting(\'' + safePid + '\')" style="flex:1;min-width:0;cursor:pointer;">' +
+          '<div style="font-weight:600;color:var(--text-bright);font-size:0.9rem;margin-bottom:2px;">' + _safe(v.name) + '</div>' +
+          (sportsText ? '<div style="font-size:0.75rem;color:var(--text-muted);">' + _safe(sportsText) + '</div>' : '') +
+        '</div>' +
+        deleteBtn +
       '</div>';
     });
     box.innerHTML = html;
@@ -1254,6 +1273,48 @@
           }
         });
       }, null, { confirmText: 'Liberar', cancelText: 'Cancelar', type: 'warning' }
+    );
+  };
+
+  // Apaga o venue em definitivo — só quem é dono ou criador pode chamar
+  // (VenueDB.deleteVenue valida o myUid antes do delete). Presenças/torneios
+  // que referenciavam o placeId ficam com referência pendurada mas a UI
+  // degrada graciosamente (cai no fallback "sem ficha cadastrada"). Dupla
+  // confirmação por ser operação destrutiva sem undo.
+  window._venueOwnerDelete = function(placeId) {
+    if (typeof window.showConfirmDialog !== 'function') return;
+    window.showConfirmDialog(
+      '🗑️ Apagar este local?',
+      'Esta ação é permanente. O cadastro do local será removido do scoreplace — presenças/torneios que o referenciavam continuarão existindo mas sem ficha cadastrada. Você poderá recadastrar depois se quiser.',
+      function() {
+        // Segunda confirmação pra dar mais uma chance de voltar atrás
+        window.showConfirmDialog(
+          'Tem certeza?',
+          'Não há como desfazer.',
+          function() {
+            window.VenueDB.deleteVenue(placeId).then(function(ok) {
+              if (ok) {
+                if (window.showNotification) window.showNotification('Local apagado.', '', 'success');
+                // Fecha o form se estiver aberto e recarrega a lista
+                if (typeof window._venueOwnerCancel === 'function') window._venueOwnerCancel();
+                window._loadMyVenuesList();
+                // Se tiver um marker ativo no mapa, limpa
+                if (window._selectedPinMarker) {
+                  try { window._selectedPinMarker.setMap(null); } catch (e) {}
+                  window._selectedPinMarker = null;
+                }
+              }
+            }).catch(function(e) {
+              var msg = String(e && e.message || e);
+              if (msg.indexOf('sem-permissão') !== -1) {
+                if (window.showNotification) window.showNotification('Sem permissão.', 'Só o dono ou o criador do cadastro pode apagar.', 'error');
+              } else {
+                if (window.showNotification) window.showNotification('Erro ao apagar.', msg, 'error');
+              }
+            });
+          }, null, { confirmText: 'Apagar definitivamente', cancelText: 'Voltar', type: 'danger' }
+        );
+      }, null, { confirmText: 'Apagar', cancelText: 'Cancelar', type: 'danger' }
     );
   };
 })();
