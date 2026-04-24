@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.7-alpha';
+window.SCOREPLACE_VERSION = '0.16.8-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1339,6 +1339,25 @@ window.AppStore = {
     if (!window.FirestoreDB || !window.FirestoreDB.db || !uid) return null;
     try {
       var profile = await window.FirestoreDB.loadUserProfile(uid);
+      // v0.16.8: expõe snapshot do que Firestore devolveu pra debug visual.
+      // Se o usuário reportar "gender sumiu", dá pra checar se foi (a) o save
+      // que não persistiu (_lastProfileSave mostra), (b) o load que pegou
+      // valor errado (_lastProfileLoad mostra), ou (c) o populate que
+      // falhou (comparar com formulário). Diagnóstico em 3 pontos.
+      try {
+        window._lastProfileLoad = {
+          uid: uid,
+          version: window.SCOREPLACE_VERSION,
+          at: new Date().toISOString(),
+          hasProfile: !!profile,
+          gender: profile ? profile.gender : undefined,
+          city: profile ? profile.city : undefined,
+          phone: profile ? profile.phone : undefined,
+          birthDate: profile ? profile.birthDate : undefined,
+          fields: profile ? Object.keys(profile).sort() : []
+        };
+        console.log('[Profile Load]', uid, 'gender:', window._lastProfileLoad.gender, 'city:', window._lastProfileLoad.city);
+      } catch (_e) {}
       if (profile && this.currentUser) {
         // Merge saved profile data into currentUser
         if (profile.gender) this.currentUser.gender = profile.gender;
@@ -1471,27 +1490,49 @@ window.AppStore = {
     var _persistedKeys = Object.keys(payload).sort();
     console.log('[Profile Save]', uid, 'fields persisted:', _persistedKeys.join(','));
     // v0.16.7: evidência em tela. Expõe o último save pra UI consumir.
-    // A função saveUserProfile em auth.js lê isso e mostra uma notificação
-    // com os campos persistidos — usuário não precisa abrir o console pra
-    // saber se o fix está rodando.
+    // v0.16.8: agora compara VALORES no round-trip (não só presença da chave).
+    // v0.16.7 checava apenas `_roundtrip[k] === undefined`, o que passava mesmo
+    // quando Firestore rejeitava silenciosamente a gravação — o doc antigo
+    // retornava com o VALOR VELHO da chave, que não é undefined, logo o check
+    // passava e o toast mostrava ✅. Agora comparamos stringify do valor
+    // enviado com o valor realmente gravado — se diferente, vai pra
+    // `roundtripMismatch` e o toast mostra exatamente qual campo regrediu.
     window._lastProfileSave = {
       uid: uid,
       version: window.SCOREPLACE_VERSION,
       at: new Date().toISOString(),
-      fields: _persistedKeys
+      fields: _persistedKeys,
+      payload: payload
     };
     try {
       await window.FirestoreDB.saveUserProfile(uid, payload);
       window._lastProfileSave.ok = true;
-      // Verificação round-trip: lê de volta e confirma que os campos chegaram.
+      // Verificação round-trip: lê de volta e confirma que os VALORES chegaram.
       try {
         var _roundtrip = await window.FirestoreDB.loadUserProfile(uid);
-        var _missing = _persistedKeys.filter(function(k) {
-          return _roundtrip && _roundtrip[k] === undefined;
+        var _missing = [];
+        var _mismatch = [];
+        _persistedKeys.forEach(function(k) {
+          if (k === 'updatedAt') return; // timestamp muda sempre — ignorar
+          if (!_roundtrip || _roundtrip[k] === undefined) {
+            _missing.push(k);
+            return;
+          }
+          // Compara valor enviado com valor gravado. JSON.stringify é
+          // bom o suficiente pra primitivos, arrays e objetos simples.
+          var _sent = JSON.stringify(payload[k]);
+          var _got = JSON.stringify(_roundtrip[k]);
+          if (_sent !== _got) {
+            _mismatch.push({ field: k, sent: payload[k], got: _roundtrip[k] });
+          }
         });
         window._lastProfileSave.roundtripMissing = _missing;
+        window._lastProfileSave.roundtripMismatch = _mismatch;
         if (_missing.length > 0) console.warn('[Profile Save] roundtrip missing:', _missing);
-      } catch (_e) {}
+        if (_mismatch.length > 0) console.warn('[Profile Save] roundtrip mismatch:', _mismatch);
+      } catch (_e) {
+        window._lastProfileSave.roundtripError = (_e && _e.message) || String(_e);
+      }
     } catch (e) {
       window._lastProfileSave.ok = false;
       window._lastProfileSave.error = (e && e.message) || String(e);

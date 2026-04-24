@@ -3233,8 +3233,13 @@ function setupProfileModal() {
         await window.AppStore.saveUserProfileToFirestore();
       }
       // v0.16.7: diagnóstico visível. Mostra na tela os campos que foram
-      // efetivamente persistidos + resultado do round-trip. Usuário NÃO
-      // precisa abrir o console pra verificar se o save funcionou.
+      // efetivamente persistidos + resultado do round-trip.
+      // v0.16.8: adiciona detecção de MISMATCH de valor (não só ausência).
+      // Exemplo: se usuário pede gender='feminino' mas Firestore continua
+      // com 'masculino' (write silenciosamente rejeitado ou clobbado por
+      // outro path), o toast agora mostra "⚠️ gender: feminino→masculino".
+      // Também: se o save rejeitar (firebase-db.js agora propaga erros
+      // em v0.16.8), o toast mostra o erro real do Firestore/rules.
       try {
         var _diag = window._lastProfileSave;
         if (_diag) {
@@ -3249,9 +3254,18 @@ function setupProfileModal() {
             if (Array.isArray(_diag.roundtripMissing) && _diag.roundtripMissing.length > 0) {
               _summary += ' · ⚠️ não voltou: ' + _diag.roundtripMissing.join(', ');
             }
+            if (Array.isArray(_diag.roundtripMismatch) && _diag.roundtripMismatch.length > 0) {
+              var _mmDesc = _diag.roundtripMismatch.map(function(m) {
+                return m.field + ': ' + JSON.stringify(m.sent) + '→' + JSON.stringify(m.got);
+              }).join(', ');
+              _summary += ' · ⚠️ regrediu: ' + _mmDesc;
+            }
           }
           if (typeof showNotification !== 'undefined') {
-            showNotification('Perfil salvo', _summary, _diag.ok === false ? 'error' : 'success');
+            var _isError = _diag.ok === false
+              || (Array.isArray(_diag.roundtripMissing) && _diag.roundtripMissing.length > 0)
+              || (Array.isArray(_diag.roundtripMismatch) && _diag.roundtripMismatch.length > 0);
+            showNotification('Perfil salvo', _summary, _isError ? 'error' : 'success');
           }
         }
       } catch(_e) { console.warn('[Profile] diag surface error:', _e); }

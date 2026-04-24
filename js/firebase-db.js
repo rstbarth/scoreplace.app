@@ -401,23 +401,26 @@ window.FirestoreDB = {
 
   async saveUserProfile(uid, profileData) {
     if (!this.db || !uid) return;
-    try {
-      // Denormalize lowercase copies for server-side search. Range queries
-      // on `displayName_lower` / `email_lower` replace the
-      // scan-the-whole-users-collection pattern in searchUsers(). Only write
-      // the `_lower` fields when the source field is present in this update,
-      // so merge-saves that don't touch displayName/email don't clobber them.
-      var toSave = Object.assign({}, profileData);
-      if (toSave.displayName) {
-        toSave.displayName_lower = String(toSave.displayName).toLowerCase();
-      }
-      if (toSave.email) {
-        toSave.email_lower = String(toSave.email).toLowerCase();
-      }
-      await this.db.collection('users').doc(uid).set(toSave, { merge: true });
-    } catch (e) {
-      console.error('Erro ao salvar perfil:', e);
+    // Denormalize lowercase copies for server-side search. Range queries
+    // on `displayName_lower` / `email_lower` replace the
+    // scan-the-whole-users-collection pattern in searchUsers(). Only write
+    // the `_lower` fields when the source field is present in this update,
+    // so merge-saves that don't touch displayName/email don't clobber them.
+    //
+    // v0.16.8: removido try/catch que engolia silenciosamente erros do
+    // Firestore (security rules reject, offline, etc). O caller
+    // (saveUserProfileToFirestore em store.js) depende de que o promise
+    // rejeite para surfaçar "⚠️ Falhou" no toast em vez de "✅ salvou".
+    // Erro aqui virava ok=true mentiroso — causa-raiz do bug "o perfil
+    // continua não salvando" reportado em v0.16.6 e v0.16.7.
+    var toSave = Object.assign({}, profileData);
+    if (toSave.displayName) {
+      toSave.displayName_lower = String(toSave.displayName).toLowerCase();
     }
+    if (toSave.email) {
+      toSave.email_lower = String(toSave.email).toLowerCase();
+    }
+    await this.db.collection('users').doc(uid).set(toSave, { merge: true });
   },
 
   async loadUserProfile(uid) {
