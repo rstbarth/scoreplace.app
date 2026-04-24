@@ -474,9 +474,30 @@
     return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
   }
 
+  // Chave sintética estável pra preferreds sem placeId (profile antigo só
+  // salvava {lat,lng,label}). Sem essa chave, cada preferred label-only viraria
+  // um "null" colidindo com outros, e os slots de presença não conseguiriam
+  // hidratar independentemente. A chave também é usada como `placeId` do doc
+  // de presença — presenças feitas aqui ficam casadas com o mesmo preferred
+  // em sessões futuras.
+  function _prefSyntheticPid(p) {
+    if (p && p.placeId) return p.placeId;
+    var lat = p && p.lat != null ? Number(p.lat) : null;
+    var lon = (p && (p.lng != null ? p.lng : (p.lon != null ? p.lon : null)));
+    if (lat != null && lon != null) {
+      return 'pref_' + Math.round(lat * 10000) + '_' + Math.round(lon * 10000);
+    }
+    var nm = String((p && (p.name || p.label)) || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+    return 'pref_' + (nm || 'unknown');
+  }
+
   // Card de local preferido que NÃO bateu com nenhum venue cadastrado na
-  // plataforma. Mantém a identidade visual da seção (estrela âmbar) sem
-  // prometer clique-pra-detalhe-completo (não temos doc no Firestore).
+  // plataforma. Agora também renderiza os botões de presença ("Estou aqui
+  // agora" / "Planejar ida") — presenças só precisam do placeId (real ou
+  // sintético), não de uma ficha no Firestore. Consistência com mobile e com
+  // o `_preferredCardMatched`: o usuário age direto no card, sem fricção.
+  // Link pra Google Maps vira ação secundária (ícone discreto), não o
+  // comportamento primário do card.
   function _preferredCardNoMatch(p) {
     var rawName = p.name || p.label || '';
     var name = _cleanVenueName(rawName) || rawName || 'Local preferido';
@@ -490,13 +511,19 @@
     }
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name) +
       (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
-    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="hover-lift" style="display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;text-decoration:none;">' +
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⭐ ' + safeName + '</div>' +
-        '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">do seu perfil · sem ficha cadastrada</div>' +
+    var pid = _prefSyntheticPid(p);
+    var safePid = _safe(pid);
+    return '<div class="pref-nomatch-card hover-lift" data-pref-pid="' + safePid + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⭐ ' + safeName + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">do seu perfil · não cadastrado</div>' +
+        '</div>' +
+        (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
+        '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();" title="Ver no Google Maps" style="flex-shrink:0;font-size:0.85rem;color:#94a3b8;text-decoration:none;padding:4px 6px;border-radius:6px;">🗺️</a>' +
       '</div>' +
-      (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
-    '</a>';
+      '<div id="pref-presence-slot-' + safePid + '" data-pref-presence-slot="' + safePid + '" data-pref-synthetic="1" style="display:flex;gap:6px;flex-wrap:wrap;"></div>' +
+    '</div>';
   }
 
   function renderResults() {
@@ -2729,28 +2756,74 @@
   // ∩ modalidades do venue). Alinha com o comportamento do auto check-in
   // por GPS (presence-geo.js), que também assume que um local preferido
   // com esportes preferidos não precisa de perguntas.
+  // Resolve placeId (real ou sintético "pref_xxx") para um objeto venue-shape.
+  // Primeiro tenta o Firestore (quando é placeId real e há doc cadastrado);
+  // se não existe, constrói a partir de `cu.preferredLocations`. Preserva a
+  // regra alpha: presença só precisa de placeId + name + lat/lng — ficha de
+  // venue é opcional.
+  async function _resolvePreferredVenue(placeId) {
+    try {
+      if (placeId && placeId.indexOf('pref_') !== 0 && window.VenueDB) {
+        var v = await window.VenueDB.loadVenue(placeId);
+        if (v) return v;
+      }
+    } catch (e) {}
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    var matched = prefLocs.find(function(pl) {
+      if (!pl) return false;
+      if (pl.placeId && pl.placeId === placeId) return true;
+      return _prefSyntheticPid(pl) === placeId;
+    });
+    if (!matched) return null;
+    var lat = matched.lat != null ? Number(matched.lat) : null;
+    var lon = (matched.lng != null ? Number(matched.lng) : (matched.lon != null ? Number(matched.lon) : null));
+    var name = _cleanVenueName(matched.name || matched.label || '') || matched.label || 'Local preferido';
+    return {
+      placeId: placeId,
+      name: name,
+      lat: lat,
+      lon: lon,
+      sports: [],            // ficha sem modalidades — preferido do usuário dita
+      address: matched.label || ''
+    };
+  }
+
   window._venuesQuickCheckInPreferred = async function(placeId) {
-    var v = await window.VenueDB.loadVenue(placeId);
+    var v = await _resolvePreferredVenue(placeId);
     if (!v) return;
     var cu = window.AppStore && window.AppStore.currentUser;
     var venueSports = Array.isArray(v.sports) ? v.sports.slice() : [];
     var prefSports = (cu && Array.isArray(cu.preferredSports)) ? cu.preferredSports.slice() : [];
-    // Interseção: preferidos que o venue oferece.
+    // Interseção: preferidos que o venue oferece. Quando a ficha do venue
+    // ainda não existe (preferred não cadastrado), venueSports fica vazio —
+    // caímos em `prefSports` direto, que é o comportamento esperado pra um
+    // preferred do usuário: ele marcou o local + marcou os esportes; assume.
     var picks = venueSports.length > 0 && prefSports.length > 0
       ? venueSports.filter(function(s) { return prefSports.indexOf(s) !== -1; })
-      : [];
+      : (venueSports.length === 0 ? prefSports : []);
     if (picks.length > 0) {
       _doQuickCheckIn(v, picks);
       return;
     }
-    // Sem interseção útil — cai no fluxo padrão (que pode perguntar).
-    window._venuesQuickCheckIn(placeId);
+    // Sem picks — cai no fluxo padrão (que pode abrir picker). Quando o venue
+    // tem ficha, _venuesQuickCheckIn funciona direto; sem ficha, abrimos
+    // picker local com a lista padrão de esportes.
+    if (placeId && placeId.indexOf('pref_') !== 0) {
+      window._venuesQuickCheckIn(placeId);
+      return;
+    }
+    var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
+    _pickSportOverlay(SPORTS_LIST, function(picked) {
+      if (!picked) return;
+      _doQuickCheckIn(v, [picked]);
+    });
   };
 
   // Plano rápido no card preferido — mesma lógica: usa todos os preferidos
   // que o venue oferece sem abrir picker.
   window._venuesQuickPlanPreferred = async function(placeId) {
-    var v = await window.VenueDB.loadVenue(placeId);
+    var v = await _resolvePreferredVenue(placeId);
     if (!v) return;
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) {
@@ -2761,13 +2834,20 @@
     var prefSports = (cu && Array.isArray(cu.preferredSports)) ? cu.preferredSports.slice() : [];
     var picks = venueSports.length > 0 && prefSports.length > 0
       ? venueSports.filter(function(s) { return prefSports.indexOf(s) !== -1; })
-      : [];
+      : (venueSports.length === 0 ? prefSports : []);
     if (picks.length > 0) {
       _openInlinePlanOverlay(v, picks);
       return;
     }
-    // Sem interseção útil — cai no fluxo padrão (que pode perguntar).
-    window._venuesQuickPlan(placeId);
+    if (placeId && placeId.indexOf('pref_') !== 0) {
+      window._venuesQuickPlan(placeId);
+      return;
+    }
+    var SPORTS_LIST2 = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
+    _pickSportOverlay(SPORTS_LIST2, function(picked) {
+      if (!picked) return;
+      _openInlinePlanOverlay(v, [picked]);
+    });
   };
 
   // Planejar ida: abre overlay inline POR CIMA da modal do venue. Mantém o
