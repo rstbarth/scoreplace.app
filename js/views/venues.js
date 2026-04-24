@@ -2510,8 +2510,9 @@
     var defStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     var fmt = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
     var defStartStr = fmt(defStart);
-    // Pills de modalidade: todas ativadas por padrão, clique desativa/reativa.
-    // Se houver apenas 1 esporte, não faz sentido oferecer toggle.
+    // v0.16.24: pills de modalidade SEMPRE visíveis quando há pelo menos 1 esporte
+    // na interseção venue∩preferências. Com só 1 opção, a pill confirma visualmente
+    // qual modalidade será registrada. Todas ativas por padrão, clique desativa.
     var sportsPills = (sports || []).map(function(s) {
       var safeS = _safe(s);
       return '<button type="button" class="plan-sport-pill" data-sport="' + safeS + '" data-active="1" ' +
@@ -2519,15 +2520,19 @@
              'style="padding:6px 12px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:1px solid rgba(99,102,241,0.45);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s;">' +
              safeS + '</button>';
     }).join('');
-    var sportsBlock = (sports && sports.length > 1)
+    var sportsBlock = (sports && sports.length >= 1)
       ? '<div style="margin-bottom:12px;">' +
-          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Modalidades (clique para ativar/desativar):</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">' +
+          (sports.length > 1 ? 'Modalidades (clique para ativar/desativar):' : 'Modalidade:') +
+          '</div>' +
           '<div id="plan-sport-pills" style="display:flex;gap:6px;flex-wrap:wrap;">' + sportsPills + '</div>' +
         '</div>'
-      : '<div id="plan-sport-pills" style="display:none;">' + sportsPills + '</div>';
-    var contextLine = (sports && sports.length === 1)
-      ? _safe(v.name || v.placeId) + ' · ' + _safe(sports[0]) + ' · hoje'
-      : _safe(v.name || v.placeId) + ' · hoje';
+      : '<div id="plan-sport-pills" style="display:none;"></div>';
+    // v0.16.24: contextLine não repete mais a modalidade — ela já aparece na pill acima.
+    var contextLine = _safe(v.name || v.placeId) + ' · hoje';
+    // v0.16.24: nome randômico por modal pra que o browser não case com form history
+    // (autocomplete=off sozinho não derrota autofill do Chrome/Safari).
+    var uniqSuffix = Date.now() + '-' + Math.floor(Math.random() * 10000);
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -2536,17 +2541,28 @@
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
         '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
         sportsBlock +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Das<input id="venue-plan-start" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" autocomplete="off" value="" placeholder="—" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-          '<button class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
-          '<button class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
-        '</div>' +
+        '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Das<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="" placeholder="—" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+            '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
+          '</div>' +
+        '</form>' +
       '</div>';
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+    // v0.16.24: clear Até value AFTER DOM insertion — autofill do browser roda
+    // na inserção mesmo com autocomplete=off + value="" no HTML. Setar via JS
+    // depois sobrepõe o autofill. Também reforça defStartStr no Das pra garantir.
+    setTimeout(function() {
+      var endEl = document.getElementById('venue-plan-end');
+      if (endEl) endEl.value = '';
+      var startEl = document.getElementById('venue-plan-start');
+      if (startEl && !startEl.value) startEl.value = defStartStr;
+    }, 0);
   }
 
   // Overlay de confirmação pós-check-in / pós-plano. Dá ao usuário mais do que
