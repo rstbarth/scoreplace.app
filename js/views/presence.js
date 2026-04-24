@@ -29,10 +29,12 @@
     if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('pickleball') !== -1) return '🥒';
+    // Futevôlei ANTES de qualquer match de "vôlei" (contém "volei" como substring).
+    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
+    // Vôlei de Praia (dupla) — SEM match genérico de "vôlei" porque indoor tem 6 jogadores
+    // por time e esportes com times >2 estão fora do app por enquanto.
+    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
     if (s.indexOf('tênis') !== -1 || s.indexOf('tennis') !== -1 || s.indexOf('beach') !== -1) return '🎾';
-    if (s.indexOf('futsal') !== -1 || s.indexOf('futebol') !== -1) return '⚽';
-    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
-    if (s.indexOf('basquete') !== -1) return '🏀';
     return '🏆';
   }
 

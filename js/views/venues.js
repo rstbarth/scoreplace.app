@@ -10,7 +10,7 @@
 
 (function() {
   // Mesma lista de modalidades de create-tournament.js / venue-owner.js.
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
   var PRICE_OPTIONS = [
     { val: '',    label: 'Qualquer' },
     { val: '$',   label: '$' },
@@ -253,6 +253,8 @@
   }
 
   // Sport icon helper (local copy — venue-owner.js has another in its closure).
+  // Somente modalidades com times de até 2 jogadores (esportes com times >2
+  // como vôlei indoor, basquete, futsal, futebol e handebol ficaram de fora).
   function _sportIcon(sport) {
     var s = String(sport || '').toLowerCase();
     if (s.indexOf('beach') !== -1) return '🏖️';
@@ -260,10 +262,10 @@
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('mesa') !== -1) return '🏓';
     if (s.indexOf('squash') !== -1) return '🟡';
-    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
-    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1) return '🏐';
-    if (s.indexOf('futebol') !== -1) return '⚽';
-    if (s.indexOf('basquete') !== -1) return '🏀';
+    if (s.indexOf('badminton') !== -1) return '🏸';
+    // Futevôlei ANTES de qualquer match contendo "volei".
+    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
+    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
     return '🎾';
   }
 
@@ -1254,11 +1256,15 @@
     // Tennis (compartilhadas) · 2 de Tênis (saibro) · ..." antes do resto
     // pra dar contexto imediato das opções. Read público via rules.
     var _sportIcon = function(s) {
+      // Somente modalidades com times de até 2 jogadores (regra atual do app
+      // — esportes com times >2 como vôlei indoor, basquete, futsal, futebol e
+      // handebol ficaram de fora por enquanto).
       var icons = {
         'Beach Tennis': '🎾', 'Pickleball': '🏓', 'Tênis': '🎾', 'Tennis': '🎾',
-        'Padel': '🏸', 'Tênis de Mesa': '🏓', 'Futebol': '⚽', 'Futsal': '⚽',
-        'Basquete': '🏀', 'Vôlei': '🏐', 'Vôlei de Praia': '🏐',
-        'Natação': '🏊', 'Handebol': '🤾', 'Squash': '🟡', 'Badminton': '🏸'
+        'Padel': '🏸', 'Tênis de Mesa': '🏓',
+        'Vôlei de Praia': '🏐',
+        'Futevôlei': '⚽', 'Futvôlei': '⚽',
+        'Squash': '🟡', 'Badminton': '🏸'
       };
       return icons[s] || '🏅';
     };
@@ -2140,7 +2146,7 @@
       _openInlinePlanOverlay(v, resolved.sports);
     } else {
       // Sem modalidade no venue nem preferência — pede ao usuário pra escolher.
-      var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'];
+      var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
       _pickSportOverlay(SPORTS_LIST, function(picked) {
         if (!picked) return;
         _openInlinePlanOverlay(v, [picked]);

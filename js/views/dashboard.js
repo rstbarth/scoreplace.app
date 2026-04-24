@@ -236,6 +236,10 @@ function renderDashboard(container) {
     if (s.includes('tênis de mesa') || s.includes('tenis de mesa') || s.includes('ping pong')) return '🏓';
     if (s.includes('padel')) return '🏸';
     if (s.includes('pickleball')) return '🥒';
+    // Futevôlei ANTES de vôlei-de-praia (contém "vôlei" como substring).
+    if (s.includes('futvôlei') || s.includes('futvolei') || s.includes('futevôlei') || s.includes('futevolei')) return '⚽';
+    // Só Vôlei de Praia é modalidade suportada — vôlei indoor (times de 6) fica de fora.
+    if (s.includes('vôlei de praia') || s.includes('volei de praia')) return '🏐';
     if (s.includes('tênis') || s.includes('tennis') || s.includes('beach')) return '🎾';
     return '🏆';
   };

@@ -33,10 +33,12 @@
   var _selectedPinMarker = null;     // pin vermelho destacando venue selecionado
   var _currentEditingPlace = null;   // venue em edição no _renderForm atual
 
-  // Modalidades suportadas — racket-family + wider list (squash, futvôlei etc.)
-  // Mantemos uma lista curta pro cadastro rápido; courts multi-sport permitem
-  // indicar que uma quadra atende várias modalidades compartilhadas.
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Squash', 'Vôlei de Praia', 'Futvôlei', 'Futebol Society', 'Basquete'];
+  // Modalidades suportadas — somente esportes com times de até 2 jogadores
+  // (racket-family + beach + derivados). Vôlei indoor, basquete, futsal,
+  // futebol e handebol ficaram de fora enquanto o app não suporta times >2.
+  // Courts multi-sport permitem indicar que uma quadra atende várias
+  // modalidades compartilhadas.
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Squash', 'Badminton', 'Vôlei de Praia', 'Futevôlei'];
 
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
 
@@ -825,17 +827,19 @@
   };
 
   function _sportIconFor(sport) {
+    // Somente modalidades com times de até 2 jogadores — vôlei indoor,
+    // basquete, futsal, futebol e handebol ficaram de fora por enquanto.
     var s = String(sport || '').toLowerCase();
     if (s.indexOf('beach') !== -1) return '🏖️';
     if (s.indexOf('pickleball') !== -1) return '🥒';
     if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('squash') !== -1) return '🎯';
-    if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1) return '🎾';
+    if (s.indexOf('badminton') !== -1) return '🏸';
+    // Futevôlei ANTES de qualquer match contendo "volei".
     if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
-    if (s.indexOf('vôlei') !== -1 || s.indexOf('volei') !== -1) return '🏐';
-    if (s.indexOf('basquete') !== -1 || s.indexOf('basket') !== -1) return '🏀';
-    if (s.indexOf('futebol') !== -1 || s.indexOf('soccer') !== -1) return '⚽';
+    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
+    if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1) return '🎾';
     return '🎾';
   }
 

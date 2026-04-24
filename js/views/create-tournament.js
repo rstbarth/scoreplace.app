@@ -5,6 +5,13 @@ window._sportScoringDefaults = {
   'Tênis':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:true },
   'Tênis de Mesa': { type:'sets', setsToWin:3, gamesPerSet:11, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false },
   'Padel':         { type:'sets', setsToWin:2, gamesPerSet:6, tiebreakEnabled:true, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:10, countingType:'tennis', advantageRule:false },
+  // Vôlei de Praia (FIVB 2026): best of 3, 21 pts nos sets 1/2, 15 no tie-break,
+  // sempre com 2 pontos de vantagem. Cada ponto = 1 rally (numeric counting),
+  // sem tiebreak interno (o set é uma corrida direta com margem de 2).
+  'Vôlei de Praia': { type:'sets', setsToWin:2, gamesPerSet:21, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:15, countingType:'numeric', advantageRule:true },
+  // Futevôlei (regra oficial 2025): best of 3, 18 pts nos sets 1/2, 15 no
+  // tie-break, também com 2 pontos de vantagem. Mesma lógica rally-point.
+  'Futevôlei':     { type:'sets', setsToWin:2, gamesPerSet:18, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:true, superTiebreakPoints:15, countingType:'numeric', advantageRule:true },
   '_default':      { type:'simple', setsToWin:1, gamesPerSet:1, tiebreakEnabled:false, tiebreakPoints:7, tiebreakMargin:2, superTiebreak:false, superTiebreakPoints:10, countingType:'numeric', advantageRule:false }
 };
 
@@ -35,6 +42,8 @@ function setupCreateTournamentModal() {
                     <option>🎾 Tênis</option>
                     <option>🏓 Tênis de Mesa</option>
                     <option>🏸 Padel</option>
+                    <option>🏐 Vôlei de Praia</option>
+                    <option>⚽ Futevôlei</option>
                   </select>
                   <div id="sport-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button type="button" class="sport-btn sport-btn-active" data-sport="🎾 Beach Tennis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:600;">🎾 Beach Tennis</button>
@@ -42,6 +51,8 @@ function setupCreateTournamentModal() {
                     <button type="button" class="sport-btn" data-sport="🎾 Tênis" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🎾 Tênis</button>
                     <button type="button" class="sport-btn" data-sport="🏓 Tênis de Mesa" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏓 Tênis de Mesa</button>
                     <button type="button" class="sport-btn" data-sport="🏸 Padel" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏸 Padel</button>
+                    <button type="button" class="sport-btn" data-sport="🏐 Vôlei de Praia" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">🏐 Vôlei de Praia</button>
+                    <button type="button" class="sport-btn" data-sport="⚽ Futevôlei" onclick="window._selectSport(this)" style="padding:6px 12px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;">⚽ Futevôlei</button>
                   </div>
                 </div>
               </div>
@@ -801,7 +812,9 @@ function setupCreateTournamentModal() {
   }
 
   const _sportTeamDefaults = {
-    'Beach Tennis': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1, 'Padel': 2
+    'Beach Tennis': 2, 'Pickleball': 2, 'Tênis': 1, 'Tênis de Mesa': 1, 'Padel': 2,
+    // Vôlei de Praia e Futevôlei são SEMPRE dupla vs dupla (regra oficial).
+    'Vôlei de Praia': 2, 'Futevôlei': 2
   };
 
   // ── Sport Button Selection ──
@@ -1201,6 +1214,10 @@ function setupCreateTournamentModal() {
       'Tênis':         [['#0369a1', '#38bdf8'], ['#0284c7', '#7dd3fc'], ['#1e40af', '#60a5fa']],
       'Tênis de Mesa': [['#b91c1c', '#ef4444'], ['#dc2626', '#f87171'], ['#991b1b', '#fca5a5']],
       'Padel':         [['#4338ca', '#6366f1'], ['#4f46e5', '#818cf8'], ['#3730a3', '#a5b4fc']],
+      // Vôlei de Praia — areia/oceano (azul-esverdeado + amarelo-quente)
+      'Vôlei de Praia':[['#0891b2', '#06b6d4'], ['#0e7490', '#22d3ee'], ['#f59e0b', '#fbbf24']],
+      // Futevôlei — tons quentes de praia + verde (bola de futebol no espírito brasileiro)
+      'Futevôlei':     [['#ea580c', '#fb923c'], ['#16a34a', '#4ade80'], ['#dc2626', '#f97316']],
     };
     var palettes = sportPalettes[sportName] || [
       ['#4338ca', '#6366f1'], ['#0f766e', '#14b8a6'], ['#b91c1c', '#ef4444'],
