@@ -689,7 +689,7 @@
   // em presence.js linhas 580-656).
   // v0.16.28: aceita boxId direto pra ser reusável em cada card preferido
   // (não só no modo focado).
-  function _renderNowAtVenueBox(boxId, presences) {
+  function _renderNowAtVenueBox(boxId, presences, realPid) {
     var box = document.getElementById(boxId);
     if (!box) return;
     var now = Date.now();
@@ -718,6 +718,15 @@
         var iconsHtml = icons
           ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + icons + '</span>'
           : '';
+        // v0.16.29: botão "Sair" ao lado do próprio check-in — permite
+        // cancelar presença direto da seção "Agora no local" sem precisar
+        // achar o botão inline do card.
+        var leaveBtn = '';
+        if (klass === 'me' && p._id && realPid) {
+          var docIdSafe = String(p._id).replace(/"/g, '&quot;');
+          var pidSafe = String(realPid).replace(/"/g, '&quot;');
+          leaveBtn = '<button class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:4px 10px;font-size:0.72rem;flex-shrink:0;" title="Sair do local">🚪 Sair</button>';
+        }
         friendsHtml.push(
           '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
             iconsHtml + avatar +
@@ -725,6 +734,7 @@
               '<div style="font-weight:600;font-size:0.88rem;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + (klass === 'me' ? ' (você)' : '') + '</div>' +
               '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(subtitle) + '</div>' +
             '</div>' +
+            leaveBtn +
           '</div>'
         );
       } else if (p.visibility === 'public' || p.type === 'tournament') {
@@ -752,7 +762,7 @@
   // planejaram ir + ocupação virtual de torneios com startDate hoje. Portado
   // do #presence (renderUpcoming em presence.js linhas 659-740).
   // v0.16.28: aceita boxId direto pra ser reusável em cada card preferido.
-  function _renderUpcomingBox(boxId, presences, tournaments, dayKeyStr) {
+  function _renderUpcomingBox(boxId, presences, tournaments, dayKeyStr, realPid) {
     var box = document.getElementById(boxId);
     if (!box) return;
     var now = Date.now();
@@ -807,11 +817,21 @@
             : '<div style="width:26px;height:26px;min-width:26px;flex-shrink:0;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';">' + _safe(_initials(name)) + '</div>';
           var chipSports = Array.isArray(p.sports) ? p.sports : [];
           var iconStr = _sportsIcons(chipSports);
+          // v0.16.29: botão "Cancelar" embutido no chip do próprio plano —
+          // permite desmarcar a ida direto da lista "Próximas horas" sem
+          // precisar achar o botão inline no card.
+          var cancelBtn = '';
+          if (klass === 'me' && p._id && realPid) {
+            var upDocIdSafe = String(p._id).replace(/"/g, '&quot;');
+            var upPidSafe = String(realPid).replace(/"/g, '&quot;');
+            cancelBtn = '<button class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:2px 8px;font-size:0.66rem;flex-shrink:0;margin-left:4px;" title="Cancelar plano de ir">❌ Cancelar</button>';
+          }
           friendChips.push(
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 6px 3px 6px;min-width:0;">' +
               (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.88rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
               avatar +
               '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
+              cancelBtn +
             '</div>'
           );
         } else if (p.visibility === 'public' || p.type === 'tournament') {
@@ -889,8 +909,8 @@
             return tKey && tKey === pKey;
           });
           _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr);
-          _renderNowAtVenueBox('pref-now-' + safePid, presences);
-          _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr);
+          _renderNowAtVenueBox('pref-now-' + safePid, presences, realPid);
+          _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr, realPid);
         }).catch(function(e) {
           console.warn('[venues movement] load failed for', realPid, e);
         });
