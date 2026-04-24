@@ -2536,11 +2536,10 @@
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
         '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
         sportsBlock +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Das<input id="venue-plan-start" type="time" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" placeholder="—" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Das<input id="venue-plan-start" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Até <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" type="time" autocomplete="off" value="" placeholder="—" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
         '</div>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
           '<button class="btn btn-primary" onclick="window._venuesConfirmInlinePlan()">Confirmar</button>' +
@@ -3085,8 +3084,14 @@
     if (typeof window._sendUserNotification !== 'function') return;
     if (cu.presenceVisibility === 'off') return;
 
+    // v0.16.23: payload tem sports[] (array), não sport (singular). Usar join
+    // garante que a notificação mostra as modalidades reais em vez de
+    // "undefined" / "agora". Throttle key usa sports.sort().join pra que
+    // check-in com mesmos esportes mesmo venue mesmo dia não duplique.
+    var sportsArr = Array.isArray(payload.sports) ? payload.sports.slice().sort() : [];
+    var sportsLabel = sportsArr.length > 0 ? sportsArr.join('/') : 'algo';
     var throttleKey = 'scoreplace_checkin_notified_' + v.placeId + '_' +
-                      (payload.sport || '') + '_' + payload.dayKey;
+                      sportsArr.join(',') + '_' + payload.dayKey;
     try {
       if (localStorage.getItem(throttleKey)) return;
       localStorage.setItem(throttleKey, '1');
@@ -3094,7 +3099,7 @@
 
     var msg = (cu.displayName || 'Um amigo') + ' chegou em ' +
               (v.name || 'um local') + ' pra jogar ' +
-              (payload.sport || 'agora') + '. Vem junto!';
+              sportsLabel + '. Vem junto!';
 
     friends.forEach(function(friendUid) {
       if (!friendUid) return;
@@ -3151,6 +3156,13 @@
         if (v) return v;
       }
     } catch (e) {}
+    // v0.16.23: se o preferido é label-only (synthetic pid) mas a v0.16.22
+    // casou com a ficha cadastrada via nome/coords em refresh(), o venue
+    // real está em state.prefVenueCache[placeId]. Usar esse doc preserva
+    // o campo `sports[]` e permite a dupla filtragem (venue ∩ preferências).
+    if (state.prefVenueCache && state.prefVenueCache[placeId]) {
+      return state.prefVenueCache[placeId];
+    }
     var cu = window.AppStore && window.AppStore.currentUser;
     var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
     var matched = prefLocs.find(function(pl) {
