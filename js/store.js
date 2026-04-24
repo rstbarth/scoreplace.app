@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.4-alpha';
+window.SCOREPLACE_VERSION = '0.16.5-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1365,6 +1365,14 @@ window.AppStore = {
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;
+        // Presence settings — previously set on currentUser via profile save but
+        // never actually persisted to Firestore (save payload omitted them).
+        // v0.16.5 adds save+load for these so the user's visibility/mute/auto
+        // check-in choices survive app restarts.
+        if (profile.presenceVisibility) this.currentUser.presenceVisibility = profile.presenceVisibility;
+        if (profile.presenceMuteDays !== undefined) this.currentUser.presenceMuteDays = profile.presenceMuteDays;
+        if (profile.presenceMuteUntil !== undefined) this.currentUser.presenceMuteUntil = profile.presenceMuteUntil;
+        if (profile.presenceAutoCheckin !== undefined) this.currentUser.presenceAutoCheckin = profile.presenceAutoCheckin;
         // Theme sync across devices
         if (profile.theme && window._themeOrder.indexOf(profile.theme) !== -1) {
           this.currentUser.theme = profile.theme;
@@ -1390,37 +1398,60 @@ window.AppStore = {
   },
 
   // Save user profile to Firestore
+  //
+  // v0.16.5 fix for silent data loss: the previous version wrote the full
+  // profile object with `|| ''` / `|| []` fallbacks, which meant any field
+  // not yet loaded into currentUser (race between login and loadUserProfile)
+  // got persisted as empty string / empty array and WIPED the existing
+  // Firestore value. Symptom reported: "mudo o perfil, salvo, fecho o app,
+  // reabro e as informações somem". Now we:
+  //   1. Add the presence settings to the save payload (they were never
+  //      persisted before — set on currentUser but never written).
+  //   2. Strip undefined fields so a race-hydrated currentUser can't clobber
+  //      existing Firestore data.
+  //   3. Drop friends / friendRequests* from this payload — those are owned
+  //      by the dedicated FirestoreDB.sendFriendRequest /
+  //      acceptFriendRequest / removeFriend flows which use arrayUnion /
+  //      arrayRemove. Writing them here on every profile save was another
+  //      clobber path when currentUser wasn't fully hydrated.
   async saveUserProfileToFirestore() {
     if (!window.FirestoreDB || !window.FirestoreDB.db || !this.currentUser) return;
     var user = this.currentUser;
     var uid = user.uid || user.email;
-    await window.FirestoreDB.saveUserProfile(uid, {
-      displayName: user.displayName || '',
-      email: user.email || '',
-      photoURL: user.photoURL || '',
-      gender: user.gender || '',
-      birthDate: user.birthDate || '',
-      age: user.age || '',
-      city: user.city || '',
-      state: user.state || '',
-      country: user.country || '',
-      locale: user.locale || '',
-      phone: user.phone || '',
-      phoneCountry: user.phoneCountry || '55',
-      preferredSports: user.preferredSports || '',
-      defaultCategory: user.defaultCategory || '',
-      acceptFriendRequests: user.acceptFriendRequests !== false,
-      notifyPlatform: user.notifyPlatform !== false,
-      notifyEmail: user.notifyEmail !== false,
-      notifyWhatsApp: user.notifyWhatsApp !== false,
-      notifyLevel: user.notifyLevel || 'todas',
-      preferredCeps: user.preferredCeps || '',
-      preferredLocations: user.preferredLocations || [],
-      friends: user.friends || [],
-      friendRequestsSent: user.friendRequestsSent || [],
-      friendRequestsReceived: user.friendRequestsReceived || [],
+    var payload = {
+      displayName: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+      gender: user.gender,
+      birthDate: user.birthDate,
+      age: user.age,
+      city: user.city,
+      state: user.state,
+      country: user.country,
+      locale: user.locale,
+      phone: user.phone,
+      phoneCountry: user.phoneCountry,
+      preferredSports: user.preferredSports,
+      defaultCategory: user.defaultCategory,
+      acceptFriendRequests: user.acceptFriendRequests,
+      notifyPlatform: user.notifyPlatform,
+      notifyEmail: user.notifyEmail,
+      notifyWhatsApp: user.notifyWhatsApp,
+      notifyLevel: user.notifyLevel,
+      preferredCeps: user.preferredCeps,
+      preferredLocations: user.preferredLocations,
+      presenceVisibility: user.presenceVisibility,
+      presenceMuteDays: user.presenceMuteDays,
+      presenceMuteUntil: user.presenceMuteUntil,
+      presenceAutoCheckin: user.presenceAutoCheckin,
       updatedAt: new Date().toISOString()
+    };
+    // Strip undefined so merge-save preserves existing Firestore values
+    // for fields that were never hydrated into currentUser.
+    Object.keys(payload).forEach(function(k) {
+      if (payload[k] === undefined) delete payload[k];
     });
+    await window.FirestoreDB.saveUserProfile(uid, payload);
   },
 
   toggleViewMode() {

@@ -1261,37 +1261,35 @@ async function simulateLoginSuccess(user) {
     if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
   };
 
-  window._openMyProfileModal = function() {
+  window._openMyProfileModal = async function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
 
-    // Populate once immediately from whatever data we have — keeps the modal
-    // snappy (no blank state, no spinner) for the common case where the
-    // profile is already hydrated.
+    // v0.16.5 fix: AWAIT a fresh loadUserProfile BEFORE populating the form.
+    // Previously the modal populated from whatever currentUser had at the
+    // moment (often stale — only the 4 Google basics during the ~300-500ms
+    // race after login) and deferred a re-populate to a then() callback.
+    // If the user clicked Save in that window, saveUserProfileToFirestore
+    // wrote undefined for everything and wiped the Firestore record.
+    // Now: open-modal first (keeps UX snappy), then load + populate.
+    // The save payload in store.js also strips undefined as defense-in-depth.
+    if (typeof openModal === 'function') openModal('modal-profile');
+    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
+    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+
+    // Populate immediately from whatever we have — no blank flash — then
+    // refresh from Firestore.
     window._populateProfileModalFields();
 
-    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
-    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
-
-    if (typeof openModal === 'function') openModal('modal-profile');
-
-    // SAFETY NET for the PWA-reinstall race: localStorage cache is gone,
-    // simulateLoginSuccess() awaits loadUserProfile but if the user taps
-    // the profile button in the ~300-500ms between "currentUser = user"
-    // and "await loadUserProfile()", only Google-basic fields are present
-    // and saved fields (gender, birthDate, city, preferredSports, phone,
-    // notify prefs, etc.) look empty. The data IS in Firestore — we just
-    // haven't read it yet. Force a fresh fetch here and re-populate when
-    // it lands. Runs every open; extra cost is one cheap doc read.
     if (window.AppStore && typeof window.AppStore.loadUserProfile === 'function' && cu.uid) {
-      window.AppStore.loadUserProfile(cu.uid).then(function(profile) {
-        if (!profile) return;
-        // Only re-populate if the modal is still open — user may have
-        // closed it in the interim.
+      try {
+        await window.AppStore.loadUserProfile(cu.uid);
+        // Re-populate only if modal is still open (user may have closed it).
         var modal = document.getElementById('modal-profile');
-        if (!modal || !modal.classList.contains('active')) return;
-        window._populateProfileModalFields();
-      }).catch(function(e) { console.warn('Profile refresh on open failed:', e); });
+        if (modal && modal.classList.contains('active')) {
+          window._populateProfileModalFields();
+        }
+      } catch (e) { console.warn('Profile refresh on open failed:', e); }
     }
   };
 
