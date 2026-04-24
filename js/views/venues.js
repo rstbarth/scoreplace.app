@@ -699,15 +699,51 @@
   // Se placeId pertence a algum preferido do usuário (real ou sintético),
   // retorna o objeto preferred correspondente; senão null. Usado pra decidir
   // se um check-in/plano deve ativar o modo focado.
-  function _findPreferredByPid(placeId) {
-    if (!placeId) return null;
+  // v0.16.26: aceita placeId string OU um objeto venue (`{placeId, name,
+  // lat, lon}`). Preferreds salvos via `_addProfileLocation` são label-only
+  // (sem placeId), então matching por placeId real do Google Places sempre
+  // falhava. Fallback por nome limpo + proximidade de coordenadas (~200m)
+  // — mesma regra que `resolvedPreferred` usa no `renderResults`.
+  function _findPreferredByPid(placeIdOrVenue) {
+    if (!placeIdOrVenue) return null;
     var cu = window.AppStore && window.AppStore.currentUser;
     var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    if (!prefLocs.length) return null;
+    var placeId, venueName, venueLat, venueLon;
+    if (typeof placeIdOrVenue === 'string') {
+      placeId = placeIdOrVenue;
+    } else {
+      placeId = placeIdOrVenue.placeId || '';
+      // aceita shape de venue ({name, lat, lon}) ou de presence doc
+      // ({venueName, venueLat, venueLon})
+      venueName = placeIdOrVenue.name || placeIdOrVenue.venueName || '';
+      venueLat = (placeIdOrVenue.lat != null) ? placeIdOrVenue.lat : placeIdOrVenue.venueLat;
+      venueLon = (placeIdOrVenue.lon != null) ? placeIdOrVenue.lon : placeIdOrVenue.venueLon;
+    }
+    var cleanName = venueName ? _cleanVenueName(venueName).toLowerCase() : '';
     for (var i = 0; i < prefLocs.length; i++) {
       var pl = prefLocs[i];
       if (!pl) continue;
-      if (pl.placeId && pl.placeId === placeId) return pl;
-      if (_prefSyntheticPid(pl) === placeId) return pl;
+      // 1. placeId exato
+      if (placeId && pl.placeId && pl.placeId === placeId) return pl;
+      // 2. pid sintético (quando caller passou pref_<lat4>_<lng4>)
+      if (placeId && _prefSyntheticPid(pl) === placeId) return pl;
+      // 3. nome limpo (label-only preferreds casando com venue real)
+      if (cleanName) {
+        var plClean = _cleanVenueName(pl.name || pl.label || '').toLowerCase();
+        if (plClean && plClean === cleanName) return pl;
+      }
+      // 4. proximidade de coordenadas (~200m) — última defesa
+      if (venueLat != null && venueLon != null && pl.lat != null) {
+        var plLon = (pl.lng != null ? pl.lng : pl.lon);
+        if (plLon != null) {
+          var dKm = _haversineKm(
+            { lat: Number(venueLat), lng: Number(venueLon) },
+            { lat: Number(pl.lat), lng: Number(plLon) }
+          );
+          if (dKm < 0.2) return pl;
+        }
+      }
     }
     return null;
   }
@@ -1155,7 +1191,9 @@
             for (var mi = 0; mi < myActive.length; mi++) {
               var mp = myActive[mi];
               if (!mp || !mp.placeId) continue;
-              var prefForMp = _findPreferredByPid(mp.placeId);
+              // v0.16.26: passa o presence doc inteiro — matching cai em
+              // nome/coords quando placeId não casa (preferreds label-only).
+              var prefForMp = _findPreferredByPid(mp);
               if (prefForMp) {
                 state.focusedPreferred = {
                   placeId: mp.placeId,
@@ -2612,9 +2650,12 @@
       ? opts.sports.join(' · ')
       : '';
     var timeLine = opts.hmLabel || '';
-    var safeDocId = String(opts.docId || '').replace(/'/g, "\\'").replace(/"/g,'&quot;');
-    var safePid = String(opts.placeId || '').replace(/'/g, "\\'").replace(/"/g,'&quot;');
-    var safeType = isPlan ? 'planned' : 'checkin';
+    // v0.16.26: botão "Cancelar" removido daqui — usuário pediu explicitamente
+    // ("o cancelar não deve ficar aqui"). Cancelamento é exclusivo do card
+    // focado da seção ⭐ Locais preferidos (swap inline pra "❌ Cancelar
+    // plano/presença" via `_hydratePreferredPresenceSlots`) OU dos botões no
+    // slot `#venue-presence-btns-slot` da ficha do venue. Esse overlay é só
+    // uma confirmação dispensável — OK pra fechar e ver o gráfico atrás.
     var overlay = document.createElement('div');
     overlay.id = 'venue-presence-confirm-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10035;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -2625,9 +2666,8 @@
         (sportsLine ? '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:4px;">' + _safe(sportsLine) + '</div>' : '') +
         (timeLine ? '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:10px;">' + _safe(timeLine) + '</div>' : '') +
         '<p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 16px 0;">' + subtitle + '</p>' +
-        '<div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;">' +
-          '<button class="btn btn-sm hover-lift" onclick="window._venuesCancelPresenceFromConfirm(\'' + safeDocId + '\',\'' + safePid + '\',\'' + safeType + '\')" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:8px 14px;">❌ Cancelar ' + (isPlan ? 'plano' : 'presença') + '</button>' +
-          '<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'venue-presence-confirm-overlay\').remove()" style="padding:8px 18px;">OK</button>' +
+        '<div style="display:flex;justify-content:flex-end;">' +
+          '<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'venue-presence-confirm-overlay\').remove()" style="padding:8px 24px;">OK</button>' +
         '</div>' +
       '</div>';
     overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
@@ -2777,14 +2817,12 @@
       var d2 = new Date(endsAt);
       var hm = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
       var timeLabel = 'hoje · ' + hm(d1) + (openEnded ? '' : ' – ' + hm(d2));
-      _showPresenceConfirmation({
-        type: 'planned',
-        venueName: v.name || '',
-        sports: normSports,
-        hmLabel: timeLabel,
-        docId: docId,
-        placeId: v.placeId
-      });
+      // v0.16.26: toast leve em vez de overlay bloqueante. O foco visual fica
+      // no card colapsado + gráfico de barras logo abaixo (via focusedPreferred
+      // abaixo), com o botão "Cancelar plano" já inline no próprio card.
+      if (window.showNotification) {
+        window.showNotification('🗓️ Ida planejada', timeLabel, 'success');
+      }
       // Re-hidrata o bloco "Movimento no local" pra refletir a nova presença
       // sem precisar fechar e reabrir a modal do venue.
       _buildMovimentoHtml(v).then(function(html) {
@@ -2794,7 +2832,9 @@
       // Re-hidrata botões (swap pra "❌ Cancelar plano") + widget da dashboard
       _hydratePresenceButtonsForVenue(v);
       // v0.16.20: se o venue é um preferido, ativa modo focado + gráfico.
-      var prefObjPlan = _findPreferredByPid(v.placeId);
+      // v0.16.26: passa o venue completo pra permitir match por nome/coords
+      // (preferreds label-only não casavam via placeId real do Google).
+      var prefObjPlan = _findPreferredByPid(v);
       if (prefObjPlan) {
         state.focusedPreferred = {
           placeId: v.placeId,
@@ -3072,14 +3112,12 @@
       var docId = await window.PresenceDB.savePresence(payload);
       var nowDate = new Date();
       var timeLabel = 'agora · ' + String(nowDate.getHours()).padStart(2,'0') + ':' + String(nowDate.getMinutes()).padStart(2,'0');
-      _showPresenceConfirmation({
-        type: 'checkin',
-        venueName: v.name || '',
-        sports: normSports,
-        hmLabel: timeLabel,
-        docId: docId,
-        placeId: v.placeId
-      });
+      // v0.16.26: toast leve em vez de overlay bloqueante. Foco visual vai
+      // pro card colapsado + gráfico de barras (focusedPreferred). Botão
+      // "Cancelar presença" fica inline no próprio card.
+      if (window.showNotification) {
+        window.showNotification('📍 Você está aqui', timeLabel, 'success');
+      }
       // Notifica amigos com "Fulano chegou em X pra jogar". Throttled pra
       // não spammar caso o usuário faça múltiplos check-ins no mesmo dia.
       _notifyFriendsOfQuickCheckin(v, payload);
@@ -3093,7 +3131,9 @@
       _hydratePresenceButtonsForVenue(v);
       // v0.16.20: se o venue é um preferido, ativa o modo focado e re-renderiza
       // a seção Preferidos pra colapsar demais cards + mostrar o gráfico.
-      var prefObj = _findPreferredByPid(v.placeId);
+      // v0.16.26: passa o venue completo (placeId real + nome + coords) pra
+      // casar com preferreds label-only também.
+      var prefObj = _findPreferredByPid(v);
       if (prefObj) {
         state.focusedPreferred = {
           placeId: v.placeId,
