@@ -379,6 +379,50 @@
     '</div>';
   }
 
+  // Variante do _venueCard usada SÓ na seção "Locais preferidos" quando o
+  // preferido bate com um venue registrado. Mantém a identidade do card mas
+  // adiciona uma linha de ações de presença ("Estou aqui agora" / "Planejar
+  // ida") direto no card, pra o usuário não precisar abrir o detalhe só pra
+  // registrar presença no seu local favorito.
+  //
+  // Auto check-in via GPS (presence-geo.js) continua funcionando em paralelo:
+  // quando o usuário ativa o toggle no perfil e chega fisicamente no local,
+  // o sistema dispara check-in sozinho com o primeiro esporte preferido. Os
+  // botões aqui cobrem os casos em que o usuário quer agir manualmente
+  // (sem GPS, chegou antes do radar detectar, ou quer planejar pra depois).
+  function _preferredCardMatched(v) {
+    var sportsHtml = (Array.isArray(v.sports) ? v.sports : []).slice(0, 5).map(function(s) {
+      return '<span style="font-size:0.65rem;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:2px 8px;border-radius:999px;">' + _safe(s) + '</span>';
+    }).join('');
+    var officialBadge = v.ownerUid
+      ? '<span style="font-size:0.6rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:1px 7px;border-radius:999px;font-weight:700;">✅ oficial</span>'
+      : (v.createdByName ? '<span style="font-size:0.6rem;background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.25);color:#94a3b8;padding:1px 7px;border-radius:999px;">comunidade</span>' : '');
+    var distText = '';
+    if (state.center && v.lat != null && v.lon != null) {
+      var d = _haversineKm(state.center, { lat: Number(v.lat), lng: Number(v.lon) });
+      distText = d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
+    }
+    var safeId = _safe(v._id);
+    var safePid = _safe(v.placeId || v._id);
+    // O botão-área clicável fica DENTRO do wrapper — o wrapper em si não é
+    // clicável, assim os botões de presença podem ser siblings sem precisar
+    // de stopPropagation pra não disparar o abrir-detalhe.
+    return '<div class="pref-matched-card hover-lift" data-pref-pid="' + safePid + '" style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.35);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;">' +
+      '<div onclick="window._venuesOpenDetail(\'' + safeId + '\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">' +
+            '<span style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⭐ ' + _safe(v.name) + '</span>' +
+            officialBadge +
+          '</div>' +
+          (v.address ? '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">' + _safe(v.address) + '</div>' : '') +
+          (sportsHtml ? '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + sportsHtml + '</div>' : '') +
+        '</div>' +
+        (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
+      '</div>' +
+      '<div id="pref-presence-slot-' + safePid + '" data-pref-presence-slot="' + safePid + '" style="display:flex;gap:6px;flex-wrap:wrap;"></div>' +
+    '</div>';
+  }
+
   function _googleVenueCard(p) {
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name || '') + (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
     var distText = '';
@@ -558,7 +602,7 @@
       html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">⭐ Locais preferidos</div>';
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
       resolvedPreferred.forEach(function(x) {
-        if (x.match) html += _venueCard(x.match);
+        if (x.match) html += _preferredCardMatched(x.match);
         else html += _preferredCardNoMatch(x.pref);
       });
       html += '</div></div>';
@@ -599,7 +643,49 @@
 
     html += _registerCtaHtml();
     box.innerHTML = html;
+    // v0.16.14: popula os slots de presença dos cards da seção "Locais
+    // preferidos" com os botões corretos (Estou aqui / Planejar ida, ou
+    // Cancelar se já houver presença ativa naquele venue).
+    _hydratePreferredPresenceSlots();
   }
+
+  // Itera todos os slots `[data-pref-presence-slot]` que o render deixou no
+  // DOM e preenche cada um com os botões de presença no estado correto.
+  // Compartilha a lógica com `_hydratePresenceButtonsForVenue` (detail modal)
+  // mas adaptada pra múltiplos slots simultâneos — por isso os IDs dos
+  // botões levam o placeId como sufixo pra não colidirem entre si.
+  async function _hydratePreferredPresenceSlots() {
+    var slots = document.querySelectorAll('[data-pref-presence-slot]');
+    if (!slots || slots.length === 0) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !window.PresenceDB) {
+      slots.forEach(function(s) { s.innerHTML = ''; });
+      return;
+    }
+    var myActive = [];
+    try { myActive = await window.PresenceDB.loadMyActive(cu.uid); } catch (e) {}
+    var now = Date.now();
+    slots.forEach(function(slot) {
+      var pid = slot.getAttribute('data-pref-presence-slot') || '';
+      var safePid = _safe(pid);
+      var hereCheckin = null, herePlan = null;
+      (myActive || []).forEach(function(p) {
+        if (!p || p.placeId !== pid) return;
+        if (p.type === 'checkin' && p.startsAt <= now && p.endsAt > now && !hereCheckin) hereCheckin = p;
+        if (p.type === 'planned' && p.startsAt > now && !herePlan) herePlan = p;
+      });
+      var checkinBtn = hereCheckin
+        ? '<button id="pref-checkin-btn-' + safePid + '" class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + String(hereCheckin._id || '').replace(/"/g,'&quot;') + '","' + safePid + '","checkin")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:6px 10px;font-size:0.75rem;flex:1;min-width:0;" title="Você está registrado aqui · clique pra sair">❌ Cancelar presença</button>'
+        : '<button id="pref-checkin-btn-' + safePid + '" class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesQuickCheckInPreferred("' + safePid + '")\' style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:6px 10px;font-size:0.75rem;flex:1;min-width:0;" title="Registra presença com suas modalidades preferidas neste local">📍 Estou aqui agora</button>';
+      var planBtn = herePlan
+        ? '<button id="pref-plan-btn-' + safePid + '" class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + String(herePlan._id || '').replace(/"/g,'&quot;') + '","' + safePid + '","planned")\' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none;font-weight:700;padding:6px 10px;font-size:0.75rem;flex:1;min-width:0;" title="Você tem plano ativo aqui · clique pra remover">❌ Cancelar plano</button>'
+        : '<button id="pref-plan-btn-' + safePid + '" class="btn btn-sm hover-lift" onclick=\'event.stopPropagation(); window._venuesQuickPlanPreferred("' + safePid + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;padding:6px 10px;font-size:0.75rem;flex:1;min-width:0;" title="Planejar ida com suas modalidades preferidas neste local">🗓️ Planejar ida</button>';
+      slot.innerHTML = checkinBtn + planBtn;
+    });
+  }
+  // Exposto globalmente pra que os handlers de mutação (check-in, plano,
+  // cancelamento) possam re-hidratar os cards preferidos sem re-render total.
+  window._venuesHydratePreferredPresenceSlots = _hydratePreferredPresenceSlots;
 
   window._venuesShowAllSP = function() { state.showAllSP = true; renderResults(); };
 
@@ -1664,6 +1750,10 @@
             if (slot && html) slot.innerHTML = html;
           });
         }
+        // Re-hidrata botões dos cards da seção "Locais preferidos" — se o
+        // venue cancelado é um preferido, o botão volta a mostrar "Estou
+        // aqui agora" / "Planejar ida".
+        _hydratePreferredPresenceSlots();
         if (typeof window._hydrateMyActivePresenceWidget === 'function') {
           window._hydrateMyActivePresenceWidget();
         }
@@ -2113,6 +2203,8 @@
       });
       // Re-hidrata botões (swap pra "❌ Cancelar plano") + widget da dashboard
       _hydratePresenceButtonsForVenue(v);
+      // Re-hidrata cards da seção "Locais preferidos" (se o venue é preferido).
+      _hydratePreferredPresenceSlots();
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
       }
@@ -2391,6 +2483,8 @@
       });
       // Re-hidrata botões (swap pra "❌ Cancelar presença") + widget da dashboard
       _hydratePresenceButtonsForVenue(v);
+      // Re-hidrata cards da seção "Locais preferidos" (se o venue é preferido).
+      _hydratePreferredPresenceSlots();
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
       }
@@ -2458,6 +2552,53 @@
       } catch(e) {}
       window.location.hash = '#presence';
     }
+  };
+
+  // Entrada alternativa usada no card de "Locais preferidos": quando o
+  // usuário tem preferidos cadastrados, skippa o picker de modalidade e
+  // registra presença com TODAS as modalidades da interseção (preferidos
+  // ∩ modalidades do venue). Alinha com o comportamento do auto check-in
+  // por GPS (presence-geo.js), que também assume que um local preferido
+  // com esportes preferidos não precisa de perguntas.
+  window._venuesQuickCheckInPreferred = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var venueSports = Array.isArray(v.sports) ? v.sports.slice() : [];
+    var prefSports = (cu && Array.isArray(cu.preferredSports)) ? cu.preferredSports.slice() : [];
+    // Interseção: preferidos que o venue oferece.
+    var picks = venueSports.length > 0 && prefSports.length > 0
+      ? venueSports.filter(function(s) { return prefSports.indexOf(s) !== -1; })
+      : [];
+    if (picks.length > 0) {
+      _doQuickCheckIn(v, picks);
+      return;
+    }
+    // Sem interseção útil — cai no fluxo padrão (que pode perguntar).
+    window._venuesQuickCheckIn(placeId);
+  };
+
+  // Plano rápido no card preferido — mesma lógica: usa todos os preferidos
+  // que o venue oferece sem abrir picker.
+  window._venuesQuickPlanPreferred = async function(placeId) {
+    var v = await window.VenueDB.loadVenue(placeId);
+    if (!v) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) {
+      if (window.showNotification) window.showNotification('Faça login para planejar.', 'info');
+      return;
+    }
+    var venueSports = Array.isArray(v.sports) ? v.sports.slice() : [];
+    var prefSports = (cu && Array.isArray(cu.preferredSports)) ? cu.preferredSports.slice() : [];
+    var picks = venueSports.length > 0 && prefSports.length > 0
+      ? venueSports.filter(function(s) { return prefSports.indexOf(s) !== -1; })
+      : [];
+    if (picks.length > 0) {
+      _openInlinePlanOverlay(v, picks);
+      return;
+    }
+    // Sem interseção útil — cai no fluxo padrão (que pode perguntar).
+    window._venuesQuickPlan(placeId);
   };
 
   // Planejar ida: abre overlay inline POR CIMA da modal do venue. Mantém o
