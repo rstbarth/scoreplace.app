@@ -159,6 +159,9 @@ function initRouter() {
         }
         break;
       case 'venues':
+      case 'place':
+        // `#place` é o alias oficial do botão "Place" do dashboard (v0.16.3+).
+        // `#venues` continua funcionando para deep-links antigos.
         if (typeof window.renderVenues === 'function') {
           window.renderVenues(viewContainer, cleanParam);
         } else {

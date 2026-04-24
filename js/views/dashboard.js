@@ -1080,12 +1080,11 @@ function renderDashboard(container) {
         '<div style="grid-column:1/-1;background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:16px;padding:2rem 1.5rem;text-align:center;">' +
           '<div style="font-size:2.5rem;margin-bottom:8px;">🏆</div>' +
           '<div style="font-size:1.15rem;font-weight:800;color:var(--text-bright);margin-bottom:6px;">Seja bem-vindo ao scoreplace!</div>' +
-          '<div style="font-size:0.88rem;color:var(--text-muted);max-width:520px;margin:0 auto 1.25rem auto;line-height:1.5;">Aqui você organiza torneios, joga partidas casuais com placar ao vivo, registra presença no local, descobre quadras próximas e acompanha seus amigos. Comece por um dos caminhos abaixo:</div>' +
+          '<div style="font-size:0.88rem;color:var(--text-muted);max-width:520px;margin:0 auto 1.25rem auto;line-height:1.5;">Aqui você organiza torneios, joga partidas casuais com placar ao vivo, descobre quadras próximas e marca presença, e acompanha seus amigos. Comece por um dos caminhos abaixo:</div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:600px;margin:0 auto;">' +
-            '<button class="btn hover-lift" onclick="if(typeof openModal===\'function\')openModal(\'modal-quick-create\')" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">🏆 Criar torneio</button>' +
             '<button class="btn hover-lift" onclick="if(typeof window._openCasualMatch===\'function\')window._openCasualMatch()" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">⚡ Partida Casual</button>' +
-            '<button class="btn hover-lift" onclick="window.location.hash=\'#venues\'" style="background:#0ea5e9;color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">🏢 Descobrir locais</button>' +
-            '<button class="btn hover-lift" onclick="window.location.hash=\'#presence\'" style="background:#f59e0b;color:#1a0f00;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">📍 Registrar presença</button>' +
+            '<button class="btn hover-lift" onclick="if(typeof openModal===\'function\')openModal(\'modal-quick-create\')" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">🏆 Criar torneio</button>' +
+            '<button class="btn hover-lift" title="Procure lugares para seus jogos e marque presença" onclick="window.location.hash=\'#place\'" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a0f00;border:none;font-weight:800;padding:10px 18px;font-size:0.85rem;border-radius:10px;">📍 Place</button>' +
             '<button class="btn hover-lift" onclick="window.location.hash=\'#explore\'" style="background:rgba(99,102,241,0.2);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);font-weight:700;padding:10px 18px;font-size:0.85rem;border-radius:10px;">👥 Encontrar amigos</button>' +
           '</div>' +
           '<div style="margin-top:1.25rem;font-size:0.78rem;color:var(--text-muted);">Dica: se já existe um torneio público na sua cidade, ele vai aparecer aqui automaticamente.</div>' +
@@ -1201,22 +1200,24 @@ function renderDashboard(container) {
       <div style="text-align:center;margin-bottom:8px;font-size:0.75rem;color:rgba(255,255,255,1);font-weight:600;letter-spacing:0.5px;">v${window.SCOREPLACE_VERSION || ''}</div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:nowrap;width:100%;max-width:480px;">
-          <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 8px;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
-            <span style="font-size:1.5rem;line-height:1;">🏆</span>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:nowrap;width:100%;max-width:580px;">
+          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
+            <span style="font-size:1.4rem;line-height:1;">⚡</span>
+            <span>${_t('dashboard.casualMatch')}</span>
+          </button>
+          <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
+            <span style="font-size:1.4rem;line-height:1;">🏆</span>
             <span>${_t('dashboard.newTournament')}</span>
           </button>
-          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 8px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
-            <span style="font-size:1.5rem;line-height:1;">⚡</span>
-            <span>${_t('dashboard.casualMatch')}</span>
+          <button class="btn btn-cta hover-lift" id="btn-place" title="Procure lugares para seus jogos e marque presença" style="background:linear-gradient(135deg,#f59e0b,#d97706); color: #1a0f00; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 800; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="window.location.hash='#place'">
+            <span style="font-size:1.4rem;line-height:1;">📍</span>
+            <span>Place</span>
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
           <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
           <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
-          <button id="btn-venues" class="btn hover-lift" title="Descobrir locais para jogar" style="background: #0ea5e9; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px; font-weight:700;" onclick="window.location.hash='#venues'">🏢 Locais</button>
-          <button id="btn-presence" class="btn hover-lift" title="Ver quem está no local" style="background: #f59e0b; color: #1a0f00; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px; font-weight:700;" onclick="window.location.hash='#presence'">📍 Presença</button>
         </div>
       </div>
 
