@@ -1143,7 +1143,12 @@
         accessPolicy: (accessPolicyEl && accessPolicyEl.value) || 'public',
         openingHours: _gridAny(hoursGrid) ? { grid: _flattenGrid(hoursGrid) } : null,
         plan: (claimAsOwner && isUserPro) ? 'pro' : 'free',
-        claimAsOwner: true
+        // BUG FIX (v0.16.17): era `claimAsOwner: true` hardcoded — qualquer
+        // usuário que clicava "Cadastrar quadras" antes de salvar virava dono
+        // automático (venue ficava "✅ oficial"), mesmo sem ter tocado o botão
+        // "Reivindicar como proprietário". Agora respeita a escolha real do
+        // usuário via data-claimed do botão (mesma leitura que _venueOwnerSubmit).
+        claimAsOwner: claimAsOwner
       };
       try {
         await window.VenueDB.saveVenue(place.placeId, payload);

@@ -528,6 +528,7 @@
     // Layout order (v0.16.4): Preferidos → Registrados → Sugestões Google.
     var cu = window.AppStore && window.AppStore.currentUser;
     var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    var prefCache = state.prefVenueCache || {};
     var resolvedPreferred = prefLocs.map(function(pl) {
       if (!pl) return null;
       var pid = pl.placeId || '';
@@ -537,6 +538,10 @@
         if (plName && v.name && String(v.name).toLowerCase() === plName) return true;
         return false;
       });
+      // Fallback: se não veio em state.results (distância/filtro excluiu),
+      // usa o fetch direto por placeId feito em refresh(). Assim, preferidos
+      // cadastrados sempre aparecem como "matched" mesmo fora do raio.
+      if (!match && pid && prefCache[pid]) match = prefCache[pid];
       return { pref: pl, match: match || null };
     }).filter(function(x) { return x && (x.match || x.pref); });
 
@@ -773,7 +778,33 @@
       state.results = [];
     }
 
-    // 2) Google Places nearby — external suggestions. Only fires when we
+    // 2) Preferred venues — fetch direto por placeId, independente do filtro
+    // de distância / modalidade aplicado acima em state.results. O usuário
+    // explicitamente marcou esses locais como preferidos; distância/filtro
+    // não deve esconder a ficha. Ex: usuário em SP tem Spazio Verde 1
+    // (Sorocaba) como preferido — se state.distanceKm=50km, o venue cai fora
+    // de state.results, mas ainda deve aparecer como "matched" na seção de
+    // preferidos. (v0.16.17 bug fix)
+    state.prefVenueCache = {};
+    try {
+      var cuForPref = window.AppStore && window.AppStore.currentUser;
+      var prefList = (cuForPref && Array.isArray(cuForPref.preferredLocations)) ? cuForPref.preferredLocations : [];
+      var pidsToFetch = prefList
+        .map(function(pl) { return pl && pl.placeId; })
+        .filter(function(pid) { return pid && !state.results.some(function(v) { return v.placeId === pid; }); });
+      if (pidsToFetch.length > 0 && window.VenueDB) {
+        var fetched = await Promise.all(pidsToFetch.map(function(pid) {
+          return window.VenueDB.loadVenue(pid).catch(function() { return null; });
+        }));
+        fetched.forEach(function(v, i) {
+          if (v) state.prefVenueCache[pidsToFetch[i]] = v;
+        });
+      }
+    } catch (e) {
+      console.warn('preferred venue fetch failed:', e);
+    }
+
+    // 3) Google Places nearby — external suggestions. Only fires when we
     // have a real center so we don't waste the Places quota.
     if (center) {
       state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sports);
