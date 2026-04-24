@@ -64,7 +64,12 @@
     googleResults: [],
     showAllSP: false,
     mode: 'map',
-    selectedPlace: null
+    selectedPlace: null,
+    // v0.16.20: quando o usuário faz check-in/plano em um preferido, a seção
+    // "⭐ Locais preferidos" colapsa pra mostrar só o focado + um gráfico de
+    // barras com movimento por hora. Campo null = lista completa como antes.
+    // Shape: { placeId, docId, type, startsAt, endsAt, sports[], venue, prefObj }
+    focusedPreferred: null
   };
 
   // Google Maps state — persisted across re-renders so we don't re-init.
@@ -491,6 +496,230 @@
     return 'pref_' + (nm || 'unknown');
   }
 
+  // ----------------------------------------------------------------------
+  // v0.16.20 — Gráfico de movimento por hora, portado de presence.js.
+  // Quando o usuário faz check-in/plano em um preferido, a seção Preferidos
+  // colapsa e mostra só o focado + este gráfico com a janela de 13h centrada
+  // na hora atual. Barras amarelas = amigos+você, cinzas = outros usuários.
+  // Inclui ocupação virtual derivada de torneios com startDate hoje.
+  // ----------------------------------------------------------------------
+  var WINDOW_HOURS = 13;
+  var _chartTickInterval = null;
+
+  function _hourOf(ts) {
+    if (!ts) return null;
+    var d = new Date(ts);
+    return d.getHours();
+  }
+
+  // Classify a presence as 'me' / 'friend' / 'other'. venues.js não mantém
+  // um índice de amigos em state, então lemos direto de cu.friends a cada
+  // chamada (lista é pequena — sem impacto de perf).
+  function _classifyPresence(p) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && (cu.uid || '');
+    if (myUid && p.uid === myUid) return 'me';
+    var friends = (cu && Array.isArray(cu.friends)) ? cu.friends : [];
+    if (p.uid && friends.indexOf(p.uid) !== -1) return 'friend';
+    return 'other';
+  }
+
+  function _currentWindow() {
+    var nowH = new Date().getHours();
+    var half = Math.floor(WINDOW_HOURS / 2);
+    var out = [];
+    for (var i = -half; i <= WINDOW_HOURS - half - 1; i++) out.push(nowH + i);
+    return { hours: out, nowH: nowH };
+  }
+
+  // Mesma lógica do presence.js: torneio com startDate hoje conta como N
+  // "presenças virtuais" (1 por participante, ancoradas no startDate→endDate
+  // ou 3h). Organizador fica fora pra não inflar as barras.
+  function _tournamentOccupancy(t, dayKeyStr) {
+    var out = [];
+    if (!t || !t.startDate) return out;
+    var start = new Date(t.startDate);
+    if (isNaN(start.getTime())) return out;
+    if (window.PresenceDB.dayKey(start) !== dayKeyStr) return out;
+    var endMs = start.getTime() + (3 * 60 * 60 * 1000);
+    if (t.endDate) {
+      var end = new Date(t.endDate);
+      if (!isNaN(end.getTime()) && end.getTime() > start.getTime()) endMs = end.getTime();
+    }
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    var count = Math.max(parts.length, 1);
+    for (var i = 0; i < count; i++) {
+      var p = parts[i] || {};
+      out.push({
+        _virtual: true,
+        uid: p.uid || null,
+        startsAt: start.getTime(),
+        endsAt: endMs,
+        type: 'tournament'
+      });
+    }
+    return out;
+  }
+
+  // Renderiza o gráfico dentro do slot `#presence-chart-<safePid>` usando as
+  // presenças passadas (já carregadas por _hydrateFocusedPreferredChart) +
+  // ocupação virtual de torneios com startDate hoje no mesmo venue.
+  function _renderPreferredChart(safePid, presences, tournaments, dayKeyStr) {
+    var box = document.getElementById('presence-chart-' + safePid);
+    if (!box) return;
+    var win = _currentWindow();
+
+    var buckets = {};
+    for (var h = 0; h < 24; h++) buckets[h] = { friends: 0, me: 0, others: 0 };
+
+    var allPresences = (presences || []).slice();
+    (tournaments || []).forEach(function(t) {
+      _tournamentOccupancy(t, dayKeyStr).forEach(function(p) { allPresences.push(p); });
+    });
+
+    allPresences.forEach(function(p) {
+      var startH = _hourOf(p.startsAt);
+      var endH = _hourOf(p.endsAt);
+      if (startH == null || endH == null) return;
+      var klass = _classifyPresence(p);
+      for (var h = startH; h <= endH; h++) {
+        if (!buckets[h]) continue;
+        if (klass === 'me') buckets[h].me += 1;
+        else if (klass === 'friend') buckets[h].friends += 1;
+        else buckets[h].others += 1;
+      }
+    });
+
+    // Max só olha slots da janela — escala proporcional e estável.
+    var maxPerBucket = 1;
+    win.hours.forEach(function(slot) {
+      if (slot < 0 || slot > 23) return;
+      var b = buckets[slot];
+      var total = b.friends + b.me + b.others;
+      if (total > maxPerBucket) maxPerBucket = total;
+    });
+
+    var bars = '';
+    win.hours.forEach(function(slot) {
+      var inDay = slot >= 0 && slot <= 23;
+      var labelH = ((slot % 24) + 24) % 24;
+      var b = inDay ? buckets[slot] : { friends: 0, me: 0, others: 0 };
+      var total = b.friends + b.me + b.others;
+      var totalPct = total > 0 ? Math.round((total / maxPerBucket) * 100) : 0;
+      var friendsPct = total > 0 ? Math.round((b.friends + b.me) / total * 100) : 0;
+      var isNow = slot === win.nowH;
+      var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
+      bars += '<div title="' + labelH + 'h: ' + (b.friends + b.me) + ' amigo(s) · ' + b.others + ' outro(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
+        '<div style="position:relative;height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:' + (isNow ? 'rgba(99,102,241,0.1)' : 'rgba(150,150,150,0.08)') + ';overflow:hidden;' + (isNow ? 'outline:2px solid rgba(99,102,241,0.4);' : '') + '">' +
+          (total > 0
+            ? '<div style="height:' + totalPct + '%;width:100%;display:flex;flex-direction:column-reverse;">' +
+                '<div style="flex:' + (100 - friendsPct) + ';background:#6b7280;"></div>' +
+                '<div style="flex:' + friendsPct + ';background:#fbbf24;"></div>' +
+              '</div>'
+            : '') +
+          (total > 0 ? '<span style="position:absolute;top:2px;left:0;right:0;text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-bright);text-shadow:0 1px 2px rgba(0,0,0,0.5);">' + total + '</span>' : '') +
+        '</div>' +
+        '<span style="font-size:0.65rem;color:' + labelColor + ';font-weight:' + (isNow ? 700 : 500) + ';">' + labelH + '</span>' +
+      '</div>';
+    });
+
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
+        '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> amigos</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#6b7280;border-radius:2px;"></span> outros</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>';
+  }
+
+  // Carrega presenças do placeId focado + lê torneios do AppStore e chama
+  // _renderPreferredChart. Chamada em renderResults quando focusedPreferred
+  // está ativo; também chamada pelo auto-tick pra slider a janela.
+  async function _hydrateFocusedPreferredChart() {
+    var fp = state.focusedPreferred;
+    if (!fp) return;
+    var safePid = _safe(fp.placeId);
+    var box = document.getElementById('presence-chart-' + safePid);
+    if (!box) return;
+    var dayKeyStr = window.PresenceDB.dayKey(new Date());
+    var presences = [];
+    try {
+      presences = await window.PresenceDB.loadForVenueDay(fp.placeId, dayKeyStr);
+    } catch (e) {
+      console.warn('[venues chart] load failed:', e);
+    }
+    // Visibility filter: 'public' sempre; 'friends' só self + friends.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    var friends = (cu && Array.isArray(cu.friends)) ? cu.friends : [];
+    presences = presences.filter(function(p) {
+      if (!p) return false;
+      if (p.visibility === 'friends') {
+        if (myUid && p.uid === myUid) return true;
+        return p.uid && friends.indexOf(p.uid) !== -1;
+      }
+      return true;
+    });
+    var tournaments = (window.AppStore && window.AppStore.tournaments) || [];
+    // Filtra torneios cujo venue bate com o preferido atual.
+    var fpKey = window.PresenceDB.venueKey(fp.placeId, fp.venueName || '');
+    var focusedTournaments = tournaments.filter(function(t) {
+      if (!t) return false;
+      var tKey = window.PresenceDB.venueKey(t.venuePlaceId || '', t.venue || '');
+      return tKey && tKey === fpKey;
+    });
+    _renderPreferredChart(safePid, presences, focusedTournaments, dayKeyStr);
+  }
+
+  function _startChartAutoTick() {
+    if (_chartTickInterval) return;
+    _chartTickInterval = setInterval(function() {
+      if (!state.focusedPreferred) {
+        clearInterval(_chartTickInterval);
+        _chartTickInterval = null;
+        return;
+      }
+      var safePid = _safe(state.focusedPreferred.placeId);
+      if (!document.getElementById('presence-chart-' + safePid)) {
+        clearInterval(_chartTickInterval);
+        _chartTickInterval = null;
+        return;
+      }
+      _hydrateFocusedPreferredChart();
+    }, 60 * 1000);
+  }
+
+  function _stopChartAutoTick() {
+    if (_chartTickInterval) {
+      clearInterval(_chartTickInterval);
+      _chartTickInterval = null;
+    }
+  }
+
+  // Se placeId pertence a algum preferido do usuário (real ou sintético),
+  // retorna o objeto preferred correspondente; senão null. Usado pra decidir
+  // se um check-in/plano deve ativar o modo focado.
+  function _findPreferredByPid(placeId) {
+    if (!placeId) return null;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    for (var i = 0; i < prefLocs.length; i++) {
+      var pl = prefLocs[i];
+      if (!pl) continue;
+      if (pl.placeId && pl.placeId === placeId) return pl;
+      if (_prefSyntheticPid(pl) === placeId) return pl;
+    }
+    return null;
+  }
+
+  // Escape hatch: usuário pode clicar "Ver outros preferidos" pra sair do
+  // modo focado sem cancelar a presença.
+  window._venuesClearFocusedPreferred = function() {
+    state.focusedPreferred = null;
+    _stopChartAutoTick();
+    renderResults();
+  };
+
   // Card de local preferido que NÃO bateu com nenhum venue cadastrado na
   // plataforma. Agora também renderiza os botões de presença ("Estou aqui
   // agora" / "Planejar ida") — presenças só precisam do placeId (real ou
@@ -626,10 +855,38 @@
 
     // 1) Locais preferidos (vem do perfil do usuário)
     // v0.16.7: seção SEMPRE visível quando o usuário está logado, mesmo sem
-    // preferidos cadastrados — com CTA para adicionar via perfil. Antes a
-    // seção só aparecia quando resolvedPreferred.length > 0, o que deixava
-    // usuários sem preferidos achando que a feature não existia.
-    if (resolvedPreferred.length > 0) {
+    // preferidos cadastrados — com CTA para adicionar via perfil.
+    // v0.16.20: se state.focusedPreferred aponta pra uma presença ativa em
+    // um preferido, colapsa a lista pra só ele + gráfico de movimento.
+    var fp = state.focusedPreferred;
+    // Valida: expirou? limpa silenciosamente.
+    if (fp && fp.endsAt && fp.endsAt <= Date.now()) {
+      state.focusedPreferred = null;
+      fp = null;
+      _stopChartAutoTick();
+    }
+    var focusedResolved = null;
+    if (fp) {
+      focusedResolved = resolvedPreferred.find(function(x) {
+        var xPid = (x.match && x.match.placeId) || (x.pref && x.pref.placeId) || _prefSyntheticPid(x.pref);
+        return xPid === fp.placeId;
+      }) || null;
+    }
+    if (focusedResolved) {
+      var fpSafePid = _safe(fp.placeId);
+      html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;">⭐ ' + (fp.type === 'planned' ? 'Plano ativo' : 'Você está aqui') + '</div>' +
+        '<button type="button" onclick="window._venuesClearFocusedPreferred()" style="background:none;border:none;color:#94a3b8;font-size:0.72rem;font-weight:600;cursor:pointer;padding:2px 6px;" title="Ver todos os preferidos">ver todos ↗</button>' +
+      '</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+      if (focusedResolved.match) html += _preferredCardMatched(focusedResolved.match);
+      else html += _preferredCardNoMatch(focusedResolved.pref);
+      html += '<div id="presence-chart-' + fpSafePid + '" style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;min-height:120px;">' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:1rem 0;">Carregando movimento…</div>' +
+      '</div>';
+      html += '</div></div>';
+    } else if (resolvedPreferred.length > 0) {
       html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
       html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">⭐ Locais preferidos</div>';
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
@@ -679,6 +936,13 @@
     // preferidos" com os botões corretos (Estou aqui / Planejar ida, ou
     // Cancelar se já houver presença ativa naquele venue).
     _hydratePreferredPresenceSlots();
+    // v0.16.20: se estamos no modo focado, carrega o gráfico de movimento.
+    if (state.focusedPreferred) {
+      _hydrateFocusedPreferredChart();
+      _startChartAutoTick();
+    } else {
+      _stopChartAutoTick();
+    }
   }
 
   // Itera todos os slots `[data-pref-presence-slot]` que o render deixou no
@@ -837,6 +1101,39 @@
       state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sports);
     } else {
       state.googleResults = [];
+    }
+
+    // 4) Auto-focus preferred se usuário já tem presença ativa num local
+    // preferido. Reabrir #place deve trazer de volta o foco+gráfico sem
+    // exigir novo clique nos botões. Só roda na primeira renderização
+    // (state.focusedPreferred ainda null) pra não sobrescrever clear manual.
+    if (!state.focusedPreferred) {
+      try {
+        var cuFocus = window.AppStore && window.AppStore.currentUser;
+        if (cuFocus && cuFocus.uid && window.PresenceDB) {
+          var myActive = await window.PresenceDB.loadMyActive(cuFocus.uid);
+          if (Array.isArray(myActive) && myActive.length > 0) {
+            for (var mi = 0; mi < myActive.length; mi++) {
+              var mp = myActive[mi];
+              if (!mp || !mp.placeId) continue;
+              var prefForMp = _findPreferredByPid(mp.placeId);
+              if (prefForMp) {
+                state.focusedPreferred = {
+                  placeId: mp.placeId,
+                  docId: mp._id || null,
+                  type: mp.type || 'checkin',
+                  startsAt: mp.startsAt || Date.now(),
+                  endsAt: mp.endsAt || (Date.now() + 4 * 3600 * 1000),
+                  sports: Array.isArray(mp.sports) ? mp.sports : (mp.sport ? [mp.sport] : []),
+                  venueName: mp.venueName || '',
+                  prefObj: prefForMp
+                };
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) { console.warn('auto-focus preferred failed:', e); }
     }
 
     state.loading = false;
@@ -1811,7 +2108,15 @@
         // Re-hidrata botões dos cards da seção "Locais preferidos" — se o
         // venue cancelado é um preferido, o botão volta a mostrar "Estou
         // aqui agora" / "Planejar ida".
-        _hydratePreferredPresenceSlots();
+        // v0.16.20: se o doc cancelado é o que tá sendo focado no modo
+        // colapsado, limpa o foco e re-renderiza pra reabrir a lista.
+        if (state.focusedPreferred && state.focusedPreferred.docId === docId) {
+          state.focusedPreferred = null;
+          _stopChartAutoTick();
+          renderResults();
+        } else {
+          _hydratePreferredPresenceSlots();
+        }
         if (typeof window._hydrateMyActivePresenceWidget === 'function') {
           window._hydrateMyActivePresenceWidget();
         }
@@ -2267,7 +2572,14 @@
           if (slot && html) slot.innerHTML = html;
         });
       }
-      _hydratePreferredPresenceSlots();
+      // v0.16.20: se o cancel bate com o foco ativo, reabre a lista completa.
+      if (state.focusedPreferred && state.focusedPreferred.docId === docId) {
+        state.focusedPreferred = null;
+        _stopChartAutoTick();
+        renderResults();
+      } else {
+        _hydratePreferredPresenceSlots();
+      }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
       }
@@ -2396,8 +2708,23 @@
       });
       // Re-hidrata botões (swap pra "❌ Cancelar plano") + widget da dashboard
       _hydratePresenceButtonsForVenue(v);
-      // Re-hidrata cards da seção "Locais preferidos" (se o venue é preferido).
-      _hydratePreferredPresenceSlots();
+      // v0.16.20: se o venue é um preferido, ativa modo focado + gráfico.
+      var prefObjPlan = _findPreferredByPid(v.placeId);
+      if (prefObjPlan) {
+        state.focusedPreferred = {
+          placeId: v.placeId,
+          docId: docId,
+          type: 'planned',
+          startsAt: startsAt,
+          endsAt: endsAt,
+          sports: normSports,
+          venueName: v.name || '',
+          prefObj: prefObjPlan
+        };
+        renderResults();
+      } else {
+        _hydratePreferredPresenceSlots();
+      }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
       }
@@ -2679,8 +3006,25 @@
       });
       // Re-hidrata botões (swap pra "❌ Cancelar presença") + widget da dashboard
       _hydratePresenceButtonsForVenue(v);
-      // Re-hidrata cards da seção "Locais preferidos" (se o venue é preferido).
-      _hydratePreferredPresenceSlots();
+      // v0.16.20: se o venue é um preferido, ativa o modo focado e re-renderiza
+      // a seção Preferidos pra colapsar demais cards + mostrar o gráfico.
+      var prefObj = _findPreferredByPid(v.placeId);
+      if (prefObj) {
+        state.focusedPreferred = {
+          placeId: v.placeId,
+          docId: docId,
+          type: 'checkin',
+          startsAt: payload.startsAt,
+          endsAt: payload.endsAt,
+          sports: normSports,
+          venueName: v.name || '',
+          prefObj: prefObj
+        };
+        renderResults();
+      } else {
+        // Venue não-preferido — atualiza só os slots como antes.
+        _hydratePreferredPresenceSlots();
+      }
       if (typeof window._hydrateMyActivePresenceWidget === 'function') {
         window._hydrateMyActivePresenceWidget();
       }
