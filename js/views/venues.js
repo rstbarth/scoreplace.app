@@ -791,13 +791,18 @@
       var plName = _cleanVenueName(pl.name || pl.label || '').toLowerCase();
       var match = state.results.find(function(v) {
         if (pid && v.placeId && v.placeId === pid) return true;
-        if (plName && v.name && String(v.name).toLowerCase() === plName) return true;
+        if (plName && v.name && _cleanVenueName(v.name).toLowerCase() === plName) return true;
         return false;
       });
       // Fallback: se não veio em state.results (distância/filtro excluiu),
-      // usa o fetch direto por placeId feito em refresh(). Assim, preferidos
-      // cadastrados sempre aparecem como "matched" mesmo fora do raio.
+      // usa o cache preenchido em refresh(). Preferred COM placeId: cacheado
+      // por placeId. Preferred SEM placeId (label-only, profile map antigo):
+      // cacheado pelo pid sintético após match por nome/coord no allVenuesRaw.
       if (!match && pid && prefCache[pid]) match = prefCache[pid];
+      if (!match) {
+        var synthPid = _prefSyntheticPid(pl);
+        if (synthPid && prefCache[synthPid]) match = prefCache[synthPid];
+      }
       return { pref: pl, match: match || null };
     }).filter(function(x) { return x && (x.match || x.pref); });
 
@@ -907,7 +912,7 @@
     // 2) Locais registrados na plataforma (próximos do centro atual)
     if (spResults.length > 0) {
       html += '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.22);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
-      html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Locais registrados no scoreplace</div>';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Outros locais no scoreplace</div>';
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
       displaySP.forEach(function(v) { html += _venueCard(v); });
       html += '</div>';
@@ -1037,6 +1042,7 @@
     // Paulo". Se o geocoder falhar e não resolver um centro, não filtramos
     // nada de localidade (mostra todos os venues). Campo `city` ainda é
     // aceito pelo VenueDB para compat mas passamos vazio aqui.
+    var _allVenuesRaw = [];
     try {
       // Não passamos sport pro VenueDB — filtro multi-sport é aplicado aqui
       // client-side (VenueDB.listVenues aceita só 1 esporte single-string).
@@ -1044,6 +1050,12 @@
         priceRange: state.priceRange,
         minCourts: state.minCourts
       });
+      // Guarda cópia crua (pré-filtros modalidade/distância) para resolver
+      // preferreds sem placeId na etapa (2) abaixo. Um preferred salvo via
+      // profile map (`_addProfileLocation`) só tem {lat,lng,label} — sem
+      // placeId a distance-filter exclui o venue de state.results e ele
+      // cairia como "não cadastrado" mesmo existindo no Firestore.
+      _allVenuesRaw = list.slice();
       // Filtro multi-esporte (pills): venue passa se oferece qualquer uma das
       // modalidades selecionadas, OU se não declarou sports[] (wildcard —
       // cadastro novo, ainda sem quadras). Sem pill ativa = sem filtro.
@@ -1089,6 +1101,33 @@
         }));
         fetched.forEach(function(v, i) {
           if (v) state.prefVenueCache[pidsToFetch[i]] = v;
+        });
+      }
+      // Bug #1 (v0.16.22): preferreds salvos via profile map só têm
+      // {lat,lng,label} — nunca placeId. A etapa acima nunca os casa com
+      // a ficha cadastrada. Aqui varremos a lista CRUA (pré-distância,
+      // pré-modalidade) casando por nome ou coordenada (~200m, mesmo
+      // threshold do dedup em _addProfileLocation). Quando achamos match,
+      // cacheamos sob o pid sintético do preferred (`pref_<lat4>_<lng4>`)
+      // pra que o fallback no mapper de resolvedPreferred encontre.
+      if (Array.isArray(_allVenuesRaw) && _allVenuesRaw.length > 0) {
+        prefList.forEach(function(pl) {
+          if (!pl || pl.placeId) return; // só label-only preferreds
+          var synthPid = _prefSyntheticPid(pl);
+          if (!synthPid || state.prefVenueCache[synthPid]) return;
+          var plName = _cleanVenueName(pl.name || pl.label || '').toLowerCase();
+          var plLat = pl.lat != null ? Number(pl.lat) : null;
+          var plLon = (pl.lng != null ? Number(pl.lng) : (pl.lon != null ? Number(pl.lon) : null));
+          var found = _allVenuesRaw.find(function(v) {
+            // Match por nome limpo (case-insensitive)
+            if (plName && v.name && _cleanVenueName(v.name).toLowerCase() === plName) return true;
+            // Match por coordenada próxima (~200m em ambos eixos)
+            if (plLat != null && plLon != null && v.lat != null && v.lon != null) {
+              if (Math.abs(Number(v.lat) - plLat) < 0.002 && Math.abs(Number(v.lon) - plLon) < 0.002) return true;
+            }
+            return false;
+          });
+          if (found) state.prefVenueCache[synthPid] = found;
         });
       }
     } catch (e) {

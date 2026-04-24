@@ -1281,8 +1281,38 @@
   // que referenciavam o placeId ficam com referência pendurada mas a UI
   // degrada graciosamente (cai no fallback "sem ficha cadastrada"). Dupla
   // confirmação por ser operação destrutiva sem undo.
-  window._venueOwnerDelete = function(placeId) {
+  window._venueOwnerDelete = async function(placeId) {
     if (typeof window.showConfirmDialog !== 'function') return;
+    // v0.16.22: re-valida permissão com doc FRESH antes de abrir o diálogo.
+    // Se a UI mostrou o botão com base em dados stale (cache, race), evita
+    // frustração de "confirmar → erro de permissão". Caso realmente não tenha
+    // permissão, atualiza a lista (o botão some no próximo render) e apenas
+    // avisa o usuário sem mostrar o fluxo destrutivo.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var myUid = cu && cu.uid;
+    if (!myUid) {
+      if (window.showNotification) window.showNotification('Sessão ausente.', 'Entre novamente para apagar locais.', 'warning');
+      return;
+    }
+    try {
+      var fresh = await window.VenueDB.loadVenue(placeId);
+      if (!fresh) {
+        // Já sumiu — só atualiza a lista.
+        if (typeof window._loadMyVenuesList === 'function') window._loadMyVenuesList();
+        return;
+      }
+      var imOwner = fresh.ownerUid && fresh.ownerUid === myUid;
+      var imCreator = fresh.createdByUid && fresh.createdByUid === myUid;
+      if (!imOwner && !imCreator) {
+        if (window.showNotification) window.showNotification('Sem permissão.', 'Só o dono ou o criador do cadastro pode apagar. Atualizando a lista.', 'warning');
+        if (typeof window._loadMyVenuesList === 'function') window._loadMyVenuesList();
+        return;
+      }
+    } catch (e) {
+      // Falha de leitura — deixa a transação do delete tratar. Não bloqueia
+      // o fluxo destrutivo por um erro transitório de rede.
+      console.warn('[venue-delete] pre-check failed:', e && e.message);
+    }
     window.showConfirmDialog(
       '🗑️ Apagar este local?',
       'Esta ação é permanente. O cadastro do local será removido do scoreplace — presenças/torneios que o referenciavam continuarão existindo mas sem ficha cadastrada. Você poderá recadastrar depois se quiser.',
@@ -1307,7 +1337,9 @@
             }).catch(function(e) {
               var msg = String(e && e.message || e);
               if (msg.indexOf('sem-permissão') !== -1) {
-                if (window.showNotification) window.showNotification('Sem permissão.', 'Só o dono ou o criador do cadastro pode apagar.', 'error');
+                if (window.showNotification) window.showNotification('Sem permissão.', 'Só o dono ou o criador do cadastro pode apagar. Atualizando a lista.', 'error');
+                // Atualiza a lista — se a permissão realmente mudou, o botão some no re-render
+                if (typeof window._loadMyVenuesList === 'function') window._loadMyVenuesList();
               } else {
                 if (window.showNotification) window.showNotification('Erro ao apagar.', msg, 'error');
               }
