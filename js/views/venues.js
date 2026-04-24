@@ -33,7 +33,7 @@
     try {
       localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
         location: state.location,
-        sport: state.sport,
+        sports: state.sports,
         priceRange: state.priceRange,
         minCourts: state.minCourts,
         distanceKm: state.distanceKm,
@@ -44,9 +44,16 @@
   }
   var _saved = _loadSavedFilters();
 
+  // Migração: v0.16.3 trocou dropdown único (_saved.sport) por pills multi-select
+  // (_saved.sports). Preservamos a escolha antiga seeded no array se o usuário
+  // tinha filtrado por 1 esporte antes.
+  var _initialSports = Array.isArray(_saved.sports)
+    ? _saved.sports.slice()
+    : (_saved.sport ? [_saved.sport] : []);
+
   var state = {
     location: _saved.location || '',
-    sport: _saved.sport || '',
+    sports: _initialSports,
     priceRange: _saved.priceRange || '',
     minCourts: _saved.minCourts || 1,
     distanceKm: _saved.distanceKm || 10,
@@ -269,16 +276,25 @@
     return '🎾';
   }
 
-  function _sportSelectHtml() {
-    var opts = [''].concat(SPORTS).map(function(s) {
-      var label = s === '' ? 'Todas as modalidades' : (_sportIcon(s) + ' ' + s);
-      var sel = state.sport === s ? ' selected' : '';
-      return '<option value="' + _safe(s) + '"' + sel + '>' + _safe(label) + '</option>';
+  // Pills clicáveis e não-excludentes — usuário pode filtrar por 1, vários ou
+  // nenhum esporte. Sem pill ativa = "todas as modalidades". Substitui o
+  // <select> singular da v0.16.2- pra dar controle mais direto (tap 1x pra
+  // ligar, tap 1x pra desligar, estado visível sem abrir dropdown).
+  function _sportPillsHtml() {
+    return SPORTS.map(function(s) {
+      var sel = Array.isArray(state.sports) && state.sports.indexOf(s) !== -1;
+      var bg = sel ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'var(--bg-card)';
+      var bd = sel ? '#6366f1' : 'var(--border-color)';
+      var col = sel ? '#ffffff' : 'var(--text-bright)';
+      var shadow = sel ? 'box-shadow:0 0 0 2px rgba(99,102,241,0.18);' : '';
+      var safeS = String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      return '<button type="button" onclick="window._venuesToggleSport(\'' + safeS + '\')" ' +
+        'aria-pressed="' + sel + '" ' +
+        'style="padding:7px 12px;border-radius:999px;border:1px solid ' + bd + ';' +
+        'background:' + bg + ';color:' + col + ';font-size:0.78rem;font-weight:600;' +
+        'cursor:pointer;white-space:nowrap;transition:all 0.15s;line-height:1;' + shadow + '">' +
+        _sportIcon(s) + ' ' + _safe(s) + '</button>';
     }).join('');
-    return '<select id="venues-sport-select" onchange="window._venuesSetSport(this.value)" style="' +
-      'width:100%;padding:10px 40px 10px 14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color);' +
-      'color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;outline:none;">' +
-      opts + '</select>';
   }
 
   function render(container) {
@@ -302,9 +318,11 @@
 
     container.innerHTML =
       (typeof window._renderBackHeader === 'function' ? window._renderBackHeader({ href: '#dashboard', label: 'Voltar' }) : '') +
-      // ── Sport dropdown — full width, above map ──
+      // ── Sport pills (multi-select, não-excludentes) — full width, above map ──
       '<div style="padding:10px 16px;border-bottom:1px solid var(--border-color);">' +
-        _sportSelectHtml() +
+        '<div id="venues-sport-pills" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">' +
+          _sportPillsHtml() +
+        '</div>' +
       '</div>' +
       // ── Map — padded + rounded to match the fields ──
       '<div style="padding:10px 16px 0;">' +
@@ -404,6 +422,39 @@
     }
   }
 
+  // Limpa o tail de endereço que o geocoder às vezes empilha depois do nome
+  // ("MatchBall Beach & Padel — Av. Paulista 1000") pra exibir só o nome.
+  function _cleanVenueName(label) {
+    if (!label) return '';
+    var idx = String(label).search(/\s[—–-]\s/);
+    return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
+  }
+
+  // Card de local preferido que NÃO bateu com nenhum venue cadastrado na
+  // plataforma. Mantém a identidade visual da seção (estrela âmbar) sem
+  // prometer clique-pra-detalhe-completo (não temos doc no Firestore).
+  function _preferredCardNoMatch(p) {
+    var rawName = p.name || p.label || '';
+    var name = _cleanVenueName(rawName) || rawName || 'Local preferido';
+    var safeName = _safe(name);
+    var lat = p.lat != null ? p.lat : null;
+    var lon = (p.lng != null ? p.lng : (p.lon != null ? p.lon : null));
+    var distText = '';
+    if (state.center && lat != null && lon != null) {
+      var d = _haversineKm(state.center, { lat: Number(lat), lng: Number(lon) });
+      distText = d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
+    }
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name) +
+      (p.placeId ? '&query_place_id=' + encodeURIComponent(p.placeId) : '');
+    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" class="hover-lift" style="display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;text-decoration:none;">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⭐ ' + safeName + '</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">do seu perfil · sem ficha cadastrada</div>' +
+      '</div>' +
+      (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);text-align:right;min-width:36px;">' + _safe(distText) + '</div>' : '') +
+    '</a>';
+  }
+
   function renderResults() {
     var box = document.getElementById('venues-results');
     if (!box) return;
@@ -423,8 +474,48 @@
       return;
     }
 
-    // Section 1: Scoreplace registered venues sorted by distance
-    var spResults = state.results.slice();
+    // Section 1: Locais preferidos (from user profile) — resolve against the
+    // registered venue list first; unmatched preferreds render as plain cards.
+    // Layout order (v0.16.4): Preferidos → Registrados → Sugestões Google.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var prefLocs = (cu && Array.isArray(cu.preferredLocations)) ? cu.preferredLocations : [];
+    var resolvedPreferred = prefLocs.map(function(pl) {
+      if (!pl) return null;
+      var pid = pl.placeId || '';
+      var plName = _cleanVenueName(pl.name || pl.label || '').toLowerCase();
+      var match = state.results.find(function(v) {
+        if (pid && v.placeId && v.placeId === pid) return true;
+        if (plName && v.name && String(v.name).toLowerCase() === plName) return true;
+        return false;
+      });
+      return { pref: pl, match: match || null };
+    }).filter(function(x) { return x && (x.match || x.pref); });
+
+    // Ordena por distância quando disponível (usa match se existir, senão coord do pref).
+    if (state.center) {
+      resolvedPreferred.sort(function(a, b) {
+        function coord(x) {
+          if (x.match && x.match.lat != null && x.match.lon != null) return { lat: Number(x.match.lat), lng: Number(x.match.lon) };
+          var lat = x.pref.lat != null ? Number(x.pref.lat) : null;
+          var lon = (x.pref.lng != null ? Number(x.pref.lng) : (x.pref.lon != null ? Number(x.pref.lon) : null));
+          if (lat == null || lon == null) return null;
+          return { lat: lat, lng: lon };
+        }
+        var ca = coord(a); var cb = coord(b);
+        var da = ca ? _haversineKm(state.center, ca) : Infinity;
+        var db = cb ? _haversineKm(state.center, cb) : Infinity;
+        return da - db;
+      });
+    }
+
+    // IDs dos matched para remover da seção de Registrados (evita duplicata).
+    var preferredMatchIds = {};
+    resolvedPreferred.forEach(function(x) {
+      if (x.match && x.match._id) preferredMatchIds[x.match._id] = true;
+    });
+
+    // Section 2: Scoreplace registered venues sorted by distance (excluindo preferidos)
+    var spResults = state.results.filter(function(v) { return !preferredMatchIds[v._id]; });
     if (state.center) {
       spResults.sort(function(a, b) {
         var da = (a.lat != null && a.lon != null) ? _haversineKm(state.center, { lat: Number(a.lat), lng: Number(a.lon) }) : Infinity;
@@ -435,9 +526,12 @@
     var SHOW_LIMIT = 5;
     var displaySP = state.showAllSP ? spResults : spResults.slice(0, SHOW_LIMIT);
 
-    // Section 2: Google Places deduplicated and sorted by distance
+    // Section 3: Google Places deduplicated (também exclui os que já saem como preferidos).
     var gResults = (state.googleResults || []).filter(function(p) {
-      return !state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; });
+      if (state.results.some(function(v) { return v.placeId && v.placeId === p.placeId; })) return false;
+      // Também filtra se já aparece como preferido com match por placeId.
+      if (resolvedPreferred.some(function(x) { return x.pref.placeId && x.pref.placeId === p.placeId; })) return false;
+      return true;
     });
     if (state.center) {
       gResults.sort(function(a, b) {
@@ -449,6 +543,19 @@
 
     var html = selHtml;
 
+    // 1) Locais preferidos (vem do perfil do usuário)
+    if (resolvedPreferred.length > 0) {
+      html += '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">⭐ Locais preferidos</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      resolvedPreferred.forEach(function(x) {
+        if (x.match) html += _venueCard(x.match);
+        else html += _preferredCardNoMatch(x.pref);
+      });
+      html += '</div></div>';
+    }
+
+    // 2) Locais registrados na plataforma (próximos do centro atual)
     if (spResults.length > 0) {
       html += '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.22);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
       html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Locais registrados no scoreplace</div>';
@@ -461,15 +568,16 @@
       html += '</div>';
     }
 
+    // 3) Sugestões do Google
     if (gResults.length > 0) {
-      var gTop = spResults.length > 0 ? 'margin-top:14px;margin-bottom:8px;' : 'margin-bottom:8px;';
+      var gTop = (resolvedPreferred.length > 0 || spResults.length > 0) ? 'margin-top:14px;margin-bottom:8px;' : 'margin-bottom:8px;';
       html += '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;' + gTop + '">📍 Sugestões do Google</div>';
       html += '<div style="display:flex;flex-direction:column;gap:8px;">';
       gResults.forEach(function(p) { html += _googleVenueCard(p); });
       html += '</div>';
     }
 
-    if (spResults.length === 0 && gResults.length === 0) {
+    if (resolvedPreferred.length === 0 && spResults.length === 0 && gResults.length === 0) {
       html += '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>';
     }
 
@@ -532,11 +640,23 @@
     // nada de localidade (mostra todos os venues). Campo `city` ainda é
     // aceito pelo VenueDB para compat mas passamos vazio aqui.
     try {
+      // Não passamos sport pro VenueDB — filtro multi-sport é aplicado aqui
+      // client-side (VenueDB.listVenues aceita só 1 esporte single-string).
       var list = await window.VenueDB.listVenues({
-        sport: state.sport,
         priceRange: state.priceRange,
         minCourts: state.minCourts
       });
+      // Filtro multi-esporte (pills): venue passa se oferece qualquer uma das
+      // modalidades selecionadas, OU se não declarou sports[] (wildcard —
+      // cadastro novo, ainda sem quadras). Sem pill ativa = sem filtro.
+      var selSports = Array.isArray(state.sports) ? state.sports : [];
+      if (selSports.length > 0) {
+        list = list.filter(function(v) {
+          var vs = Array.isArray(v.sports) ? v.sports : [];
+          if (vs.length === 0) return true; // wildcard
+          return selSports.some(function(s) { return vs.indexOf(s) !== -1; });
+        });
+      }
       // Apply distance filter when we have a center — keeps results relevant.
       if (center && state.distanceKm > 0) {
         list = list.filter(function(v) {
@@ -554,7 +674,7 @@
     // 2) Google Places nearby — external suggestions. Only fires when we
     // have a real center so we don't waste the Places quota.
     if (center) {
-      state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sport);
+      state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sports);
     } else {
       state.googleResults = [];
     }
@@ -700,7 +820,27 @@
     clearTimeout(window._venuesLocationDebounce);
     window._venuesLocationDebounce = setTimeout(function() { _doVenuesSearch(v); }, 200);
   };
-  window._venuesSetSport = function(v) { state.sport = v; _saveFilters(); refresh(); };
+  // Multi-select: toggle um esporte dentro/fora do array. Sem esporte = todas.
+  window._venuesToggleSport = function(sport) {
+    if (!Array.isArray(state.sports)) state.sports = [];
+    var i = state.sports.indexOf(sport);
+    if (i === -1) state.sports.push(sport);
+    else state.sports.splice(i, 1);
+    _saveFilters();
+    // Atualiza visual das pills imediatamente (feedback snappy) antes do fetch.
+    var pillsBox = document.getElementById('venues-sport-pills');
+    if (pillsBox) pillsBox.innerHTML = _sportPillsHtml();
+    refresh();
+  };
+  // Compat: callers antigos ou deep links com ?sport= podem tentar setar um
+  // esporte único. Converte pra array pra não quebrar.
+  window._venuesSetSport = function(v) {
+    state.sports = v ? [v] : [];
+    _saveFilters();
+    var pillsBox = document.getElementById('venues-sport-pills');
+    if (pillsBox) pillsBox.innerHTML = _sportPillsHtml();
+    refresh();
+  };
   window._venuesSetPrice = function(v) { state.priceRange = v; _saveFilters(); refresh(); render(document.getElementById('view-container')); };
   window._venuesSetMinCourts = function(v) {
     state.minCourts = parseInt(v, 10) || 1;
@@ -855,7 +995,7 @@
   // NOTA: `state.location` (label textual do GPS/endereço) NÃO é mais anexado
   // ao textQuery — locationBias já resolve a geografia, e textos como
   // "Minha localização atual" poluíam o matching.
-  async function _loadGoogleNearby(center, radiusKm, sport) {
+  async function _loadGoogleNearby(center, radiusKm, sports) {
     if (!center || !window.google || !window.google.maps || !window.google.maps.importLibrary) return [];
     try {
       var placesLib = await google.maps.importLibrary('places');
@@ -884,11 +1024,13 @@
         'quadra de padel',
         'quadra de beach tennis'
       ];
-      // Se uma modalidade específica está selecionada, priorizamos ela + os
-      // genéricos mais amplos (pega venues multi-esporte que podem ter essa
-      // modalidade mas não têm ela no nome).
-      var terms = sport
-        ? [sport, 'arena esportiva', 'clube esportivo', 'academia de tênis', 'escola de tênis']
+      // Compat: aceita string (caminho legacy) OU array (multi-select da v0.16.3).
+      var sportsArr = Array.isArray(sports) ? sports : (sports ? [sports] : []);
+      // Se há modalidades selecionadas, usamos elas como termos primários +
+      // genéricos multi-esporte (pega venues que oferecem a modalidade mas não
+      // têm o nome dela, tipo "Clube X" que tem quadra de padel).
+      var terms = sportsArr.length > 0
+        ? sportsArr.concat(['arena esportiva', 'clube esportivo', 'academia de tênis', 'escola de tênis'])
         : baseTerms;
 
       var biasRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
@@ -2344,7 +2486,10 @@
     // voltado depois de um logout/login.
     var fresh = _loadSavedFilters();
     if (fresh.location) state.location = fresh.location;
-    if (fresh.sport != null) state.sport = fresh.sport;
+    // v0.16.3: sports[] array (pills multi-select). Migra fresh.sport singular
+    // se for o único dado disponível (estado antigo persistido).
+    if (Array.isArray(fresh.sports)) state.sports = fresh.sports.slice();
+    else if (fresh.sport) state.sports = [fresh.sport];
     if (fresh.priceRange != null) state.priceRange = fresh.priceRange;
     if (fresh.minCourts) state.minCourts = fresh.minCourts;
     if (fresh.distanceKm) state.distanceKm = fresh.distanceKm;
