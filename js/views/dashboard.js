@@ -1311,7 +1311,39 @@ function renderDashboard(container) {
       var _inProgress = _filterByInterest(discoveryByCategory.inProgress);
       var _closedNoStart = _filterByInterest(discoveryByCategory.closedNoStart);
       var _finishedDiscovery = _filterByInterest(discoveryByCategory.finished);
-      if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) return '';
+      // v0.16.59: diag inline pro caso "Nelson não vê torneios públicos do
+      // Rodrigo". Mostra contagem em cada estágio do pipeline pra identificar
+      // onde o filtro está sumindo com o torneio.
+      var _DIAG_VERSION = 'v0.16.59';
+      var _diagLineD = function(label, value, color) {
+        return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
+          label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
+      };
+      var _allCount = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery)) ? window.AppStore.publicDiscovery.length : 0;
+      var _afterDedup = discoveryDedup.length;
+      var _byCat = discoveryByCategory;
+      var _diagD = '<details style="margin:8px 0;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
+        '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico discovery ' + _DIAG_VERSION + '</summary>' +
+        '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
+          _diagLineD('versão renderer', _DIAG_VERSION) +
+          _diagLineD('cu.publicDiscovery raw', _allCount, _allCount > 0 ? '#10b981' : '#f87171') +
+          _diagLineD('após dedup vs próprios', _afterDedup) +
+          _diagLineD('preferredSports do user', _prefSports.length > 0 ? _prefSports.join(', ') : '(nenhuma — sem filtro)', _prefSports.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
+          _diagLineD('cat: open (sem filtro)', _byCat.open.length) +
+          _diagLineD('cat: inProgress (sem filtro)', _byCat.inProgress.length) +
+          _diagLineD('cat: closedNoStart (sem filtro)', _byCat.closedNoStart.length) +
+          _diagLineD('cat: finished (sem filtro)', _byCat.finished.length) +
+          _diagLineD('após filtro modalidade — inProgress', _inProgress.length) +
+          _diagLineD('após filtro modalidade — closedNoStart', _closedNoStart.length) +
+          _diagLineD('após filtro modalidade — finished', _finishedDiscovery.length) +
+          (_afterDedup === 0 && _allCount === 0 ? _diagLineD('sugestão', 'discovery vazio. Login pode estar antigo (loadPublicDiscovery só roda no login). v0.16.59 re-fetch automático.', '#fbbf24') : '') +
+          (_afterDedup > 0 && _inProgress.length === 0 && _byCat.inProgress.length > 0 ? _diagLineD('atenção', 'tem ' + _byCat.inProgress.length + ' em andamento mas filtro de modalidade derrubou todos. Cheque preferredSports vs sport do torneio.', '#fbbf24') : '') +
+        '</div>' +
+      '</details>';
+      // Sempre mostra o diag mesmo quando categorias vazias — ajuda Nelson a ver POR QUE não tá vendo nada.
+      if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) {
+        return '<div style="margin-top:0.5rem;">' + _diagD + '</div>';
+      }
       var _interestNote = _prefSports.length
         ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">Filtrado pelas suas modalidades favoritas: ' + _prefSports.map(function(s) { return window._safeHtml(s); }).join(', ') + '</div>'
         : '';
@@ -1343,6 +1375,51 @@ function renderDashboard(container) {
   // ─── Friends' presences widget (async load) ───
   _hydrateMyActivePresenceWidget();
   _hydrateFriendsPresenceWidget();
+
+  // v0.16.59: re-fetch do discovery feed quando dashboard renderiza pra
+  // pegar torneios novos do Rodrigo (ou outros) que podem ter sido criados
+  // depois do login do Nelson. Antes só rodava 1x no login (auth.js:1123)
+  // — Nelson logado a horas atrás não via torneios criados depois. Limita
+  // o spam: só re-fetch se já passou ≥30s do último.
+  if (window.AppStore && typeof window.AppStore.loadPublicDiscovery === 'function') {
+    var _lastFetch = window.AppStore._publicDiscoveryLastFetch || 0;
+    if (Date.now() - _lastFetch > 30000) {
+      window.AppStore._publicDiscoveryLastFetch = Date.now();
+      window.AppStore.loadPublicDiscovery().then(function() {
+        // Re-render se ainda estamos no dashboard
+        if (window.location.hash === '' || window.location.hash === '#' || window.location.hash.indexOf('#dashboard') === 0) {
+          var c = document.getElementById('view-container');
+          if (c && typeof renderDashboard === 'function') {
+            // Evita loop infinito: só re-renderiza se o número de itens mudou
+            var newLen = (window.AppStore.publicDiscovery || []).length;
+            if (newLen !== window._lastDiscoveryLen) {
+              window._lastDiscoveryLen = newLen;
+              renderDashboard(c);
+            }
+          }
+        }
+      }).catch(function(e) { console.warn('[discovery refresh]', e); });
+    }
+  }
+
+  // v0.16.59: auto-refresh do widget de amigos a cada 60s pra detectar
+  // cancelamentos de presença. Antes o widget só re-hidratava quando o
+  // próprio usuário fazia ação (check-in/plan/cancel). Se um amigo cancelava,
+  // Rodrigo continuava vendo o plano dele como ativo. Agora o intervalo
+  // global atualiza periódico — também roda só enquanto o widget está
+  // visível (dashboard ativo).
+  if (!window._friendsPresenceRefreshInterval) {
+    window._friendsPresenceRefreshInterval = setInterval(function() {
+      var box = document.getElementById('dashboard-presences-widget');
+      if (!box) {
+        // Dashboard saiu — limpa intervalo pra economizar.
+        clearInterval(window._friendsPresenceRefreshInterval);
+        window._friendsPresenceRefreshInterval = null;
+        return;
+      }
+      _hydrateFriendsPresenceWidget();
+    }, 60000);
+  }
 
   // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───
   _checkPendingInvitesAndRedirect(visible);
