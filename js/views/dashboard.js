@@ -1734,13 +1734,21 @@ function _hydrateFriendsPresenceWidget() {
   // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
   // perfil, quantos eram email vs uid, e — após a query — quantos docs
   // voltaram. Vai sumir definitivamente quando a feature estabilizar.
-  var DIAG_VERSION = 'v0.16.47';
+  var DIAG_VERSION = 'v0.16.64';
   function _diagLine(label, value, color) {
     return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
       label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
   }
+  // v0.16.64: novo slot 👤 sua presença — sempre visível dentro do diag,
+  // mostra o último doc do PRÓPRIO user logado (independente de filtros de
+  // tempo/cancelled). Resolve a ambiguidade "meu plano foi salvo? OU é o
+  // friends list que não tem o outro?" — quando Rodrigo abre seu próprio
+  // diag, ele vê se o plano dele realmente está no Firestore com os campos
+  // corretos. Se Nelson abre o diag dele, vê o mesmo da própria perspectiva.
+  // Slot é populado async via probe; até resolver mostra "carregando…".
+  var SELF_PROBE_SLOT = 'fwidget-self-probe-' + Date.now();
   function _diagBlock(extraLines) {
-    return '<details style="margin-top:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
+    return '<details style="margin-top:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;" open>' +
       '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico ' + DIAG_VERSION + '</summary>' +
       '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
         _diagLine('versão renderer', DIAG_VERSION) +
@@ -1750,10 +1758,68 @@ function _hydrateFriendsPresenceWidget() {
         _diagLine('como email (com @)', friendsLikeEmail.length, friendsLikeEmail.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
         (friendsLikeEmail.length > 0 ? _diagLine('emails pendentes', friendsLikeEmail.join(', '), '#fbbf24') : '') +
         (friendsLikeUid.length > 0 ? _diagLine('uids consultados', friendsLikeUid.slice(0,3).join(', ') + (friendsLikeUid.length > 3 ? '...' : '')) : '') +
+        '<div id="' + SELF_PROBE_SLOT + '" style="margin-top:6px;border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;">' +
+          _diagLine('👤 sua presença', 'consultando…', '#fbbf24') +
+        '</div>' +
         (extraLines || '') +
       '</div>' +
     '</details>';
   }
+  // Schedule the self-probe on next tick so the slot exists in DOM. Probes
+  // ALL my docs (any time, any state) — sorted by createdAt desc — and
+  // shows latest. Distinguishes 4 states: nada (sem docs), apenas cancelados,
+  // apenas expirados, ATIVO (cancelled=false e endsAt > now). Em "ativo",
+  // pinta verde — esse é o único estado em que amigos COM você nos friends
+  // ENXERGAM seu plano via loadForFriends.
+  function _runSelfProbe() {
+    if (!window.FirestoreDB || !window.FirestoreDB.db || !cu.uid) return;
+    var slot = document.getElementById(SELF_PROBE_SLOT);
+    if (!slot) return;
+    window.FirestoreDB.db.collection('presences')
+      .where('uid', '==', cu.uid)
+      .limit(50)
+      .get()
+      .then(function(snap) {
+        var docs = [];
+        snap.forEach(function(doc) { docs.push(doc.data()); });
+        docs.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+        var nowMs = Date.now();
+        var totals = { total: docs.length, active: 0, cancelled: 0, expired: 0, future: 0 };
+        docs.forEach(function(d) {
+          if (d.cancelled) totals.cancelled++;
+          else if (!d.endsAt || d.endsAt <= nowMs) totals.expired++;
+          else if (d.startsAt && d.startsAt > nowMs + 48 * 3600 * 1000) totals.future++;
+          else totals.active++;
+        });
+        var hdrColor = totals.active > 0 ? '#10b981' : (totals.total > 0 ? '#fbbf24' : '#f87171');
+        var hdrTxt = totals.active > 0
+          ? totals.active + ' ATIVO(s) — amigos enxergam ✓'
+          : (totals.total > 0
+              ? '0 ativos (' + totals.cancelled + ' cancel, ' + totals.expired + ' expir)'
+              : 'sem docs no Firestore');
+        var html = _diagLine('👤 sua presença', hdrTxt, hdrColor);
+        if (docs[0]) {
+          var d0 = docs[0];
+          var createdLbl = d0.createdAt ? new Date(d0.createdAt).toLocaleString('pt-BR') : 'N/A';
+          var startLbl = d0.startsAt ? new Date(d0.startsAt).toLocaleString('pt-BR') : 'N/A';
+          var endLbl = d0.endsAt ? new Date(d0.endsAt).toLocaleString('pt-BR') : 'N/A';
+          var liveActive = !d0.cancelled && d0.endsAt && d0.endsAt > nowMs;
+          html += _diagLine('  último: type', d0.type || '(none)');
+          html += _diagLine('  último: venueName', d0.venueName || '(none)');
+          html += _diagLine('  último: createdAt', createdLbl);
+          html += _diagLine('  último: startsAt', startLbl);
+          html += _diagLine('  último: endsAt', endLbl);
+          html += _diagLine('  último: visibility', d0.visibility || '(none)', d0.visibility === 'friends' || d0.visibility === 'public' ? '#10b981' : '#f87171');
+          html += _diagLine('  último: cancelled', d0.cancelled ? 'true' : 'false', d0.cancelled ? '#f87171' : '#10b981');
+          html += _diagLine('  ↳ visível pra amigos?', liveActive ? 'SIM' : 'NÃO', liveActive ? '#10b981' : '#f87171');
+        }
+        slot.innerHTML = html;
+      })
+      .catch(function(e) {
+        slot.innerHTML = _diagLine('👤 sua presença', 'erro: ' + String(e && e.message || e).substring(0, 100), '#f87171');
+      });
+  }
+  setTimeout(_runSelfProbe, 80);
 
   if (friendsRaw.length === 0) {
     box.innerHTML =
@@ -1963,6 +2029,11 @@ function _hydrateFriendsPresenceWidget() {
           '<div id="pref-upcoming-' + safePid + '"></div>' +
         '</div>';
     });
+    // v0.16.64: diag também aparece no caminho "tem amigos com presença".
+    // Sem isso, quando o widget renderiza venues, perdemos visibilidade do
+    // própio plano do user — exatamente o cenário que precisamos investigar
+    // quando "amigo X não vê meu plano". Probe rola assim que o DOM injeta.
+    html += _diagBlock(_diagLine('query firestore', list.length + ' docs ATIVOS', '#10b981'));
     html += '</div>';
     box.innerHTML = html;
     // v0.16.48: dispara o ciclo de hidratação dos venues (chart + now +
