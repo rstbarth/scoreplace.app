@@ -785,8 +785,11 @@
         var iconsHtml = icons
           ? '<span title="' + _safe(nowSports.join(', ')) + '" style="font-size:1rem;line-height:1;flex-shrink:0;">' + icons + '</span>'
           : '';
+        // v0.16.51: min-height fixo (60px) + box-sizing border-box garantem
+        // que cards com ✕ (1.15rem) tenham mesma altura que cards sem ✕.
+        // Avatar 40px + padding 8px*2 = 56px; 60px dá folga pro border.
         friendsHtml.push(
-          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-darker);border-radius:10px;min-height:60px;box-sizing:border-box;">' +
             iconsHtml + avatar +
             '<div style="flex:1;min-width:0;">' +
               '<div style="display:flex;align-items:center;gap:6px;min-width:0;">' +
@@ -885,8 +888,11 @@
           }
           var chipSports = Array.isArray(p.sports) ? p.sports : [];
           var iconStr = _sportsIcons(chipSports);
+          // v0.16.51: min-height fixo (36px) garante que chips com ✕ (1rem)
+          // tenham mesma altura que chips sem ✕ (nome em 0.76rem). Antes o ✕
+          // do "Você" esticava a altura do chip vs Nelson sem ✕.
           friendChips.push(
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;min-height:36px;box-sizing:border-box;">' +
               (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.88rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
               avatar +
               '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
