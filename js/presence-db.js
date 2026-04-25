@@ -240,13 +240,17 @@ window.PresenceDB = {
   // to stay within Firestore's `in` operator limit. Filters to currently-active
   // or upcoming presences within the next 48h.
   async loadForFriends(uids, windowMs) {
-    if (!this.db || !Array.isArray(uids) || uids.length === 0) return [];
+    if (!this.db || !Array.isArray(uids) || uids.length === 0) {
+      console.log('[loadForFriends v0.16.43] short-circuit:', { hasDb: !!this.db, uidsLen: (uids||[]).length });
+      return [];
+    }
     var win = windowMs || (48 * 60 * 60 * 1000);
     var now = Date.now();
     var horizon = now + win;
     var chunks = [];
     for (var i = 0; i < uids.length; i += 10) chunks.push(uids.slice(i, i + 10));
     var all = [];
+    var droppedCancelled = 0, droppedHorizon = 0, totalRaw = 0;
     try {
       for (var c = 0; c < chunks.length; c++) {
         var snap = await this.db.collection('presences')
@@ -254,16 +258,26 @@ window.PresenceDB = {
           .where('endsAt', '>', now)
           .get();
         snap.forEach(function(doc) {
+          totalRaw++;
           var d = doc.data();
-          if (!d || d.cancelled) return;
-          if (d.startsAt && d.startsAt > horizon) return;
+          if (!d || d.cancelled) { droppedCancelled++; return; }
+          if (d.startsAt && d.startsAt > horizon) { droppedHorizon++; return; }
           d._id = doc.id;
           all.push(d);
         });
       }
+      console.log('[loadForFriends v0.16.43]', {
+        uidsCount: uids.length,
+        chunksCount: chunks.length,
+        totalRaw: totalRaw,
+        droppedCancelled: droppedCancelled,
+        droppedHorizon: droppedHorizon,
+        kept: all.length,
+        sample: all[0] ? { uid: all[0].uid, type: all[0].type, venueName: all[0].venueName, startsAt: new Date(all[0].startsAt).toLocaleString() } : null
+      });
       return all;
     } catch (e) {
-      console.error('Erro ao carregar presenças de amigos:', e);
+      console.error('[loadForFriends v0.16.43] erro:', e);
       return [];
     }
   }

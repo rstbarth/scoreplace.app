@@ -1422,7 +1422,78 @@ function _hydrateFriendsPresenceWidget() {
   // (dado corrompido via migração ou bug). Sem isso, o usuário veria a
   // própria presença APARECER TANTO no widget "Sua presença ativa" quanto
   // no widget "Amigos no local" — duplicidade confusa.
-  var friends = Array.isArray(cu.friends) ? cu.friends.filter(function(u) { return u && u !== cu.uid; }) : [];
+  // v0.16.43: também filtra entries com '@' (emails antigos não migrados pra
+  // uid). Antes da v0.x.x todo amigo era salvo por email; uma migração roda
+  // em login (auth.js:999) mas só atualiza o doc do *outro* lado quando o
+  // OUTRO usuário faz login. Se o amigo nunca relogou, o array do usuário
+  // atual ainda tem email — e `where('uid', 'in', emails)` no loadForFriends
+  // nunca casa, fazendo o widget render "Nenhum amigo registrou presença".
+  var friendsRaw = Array.isArray(cu.friends) ? cu.friends.filter(function(u) { return u && u !== cu.uid; }) : [];
+  var friendsLikeUid = friendsRaw.filter(function(u) { return typeof u === 'string' && u.indexOf('@') === -1; });
+  var friendsLikeEmail = friendsRaw.filter(function(u) { return typeof u === 'string' && u.indexOf('@') !== -1; });
+  console.log('[FriendsWidget v0.16.43]', {
+    uid: cu.uid,
+    friendsRawCount: friendsRaw.length,
+    friendsRaw: friendsRaw,
+    friendsLikeUidCount: friendsLikeUid.length,
+    friendsLikeEmailCount: friendsLikeEmail.length,
+    friendsLikeEmail: friendsLikeEmail
+  });
+  var friends = friendsLikeUid;
+
+  // v0.16.43: tenta resolver emails antigos → uid via query Firestore.
+  // Faz best-effort: pra cada email no array friends, busca em users where
+  // email_lower == email; se acha, adiciona o uid em `friends` E também
+  // grava a migração no perfil do usuário (arrayUnion uid + arrayRemove email)
+  // pra não precisar refazer a query toda vez.
+  if (friendsLikeEmail.length > 0 && window.FirestoreDB && window.FirestoreDB.db) {
+    var resolvePromises = friendsLikeEmail.map(function(em) {
+      var emLower = String(em).toLowerCase();
+      return window.FirestoreDB.db.collection('users').where('email_lower', '==', emLower).limit(1).get()
+        .then(function(snap) {
+          if (snap.empty) {
+            // Fallback: alguns docs antigos usam 'email' em vez de 'email_lower'
+            return window.FirestoreDB.db.collection('users').where('email', '==', em).limit(1).get();
+          }
+          return snap;
+        })
+        .then(function(snap) {
+          if (snap.empty) {
+            console.warn('[FriendsWidget] email não resolvido pra uid:', em);
+            return null;
+          }
+          var doc = snap.docs[0];
+          var resolvedUid = doc.id;
+          console.log('[FriendsWidget] email resolvido:', em, '→', resolvedUid);
+          // Persiste a migração no doc do usuário atual
+          try {
+            var FV = firebase.firestore.FieldValue;
+            window.FirestoreDB.db.collection('users').doc(cu.uid).update({
+              friends: FV.arrayUnion(resolvedUid)
+            }).then(function() {
+              return window.FirestoreDB.db.collection('users').doc(cu.uid).update({
+                friends: FV.arrayRemove(em)
+              });
+            }).catch(function(e) { console.warn('[FriendsWidget] migrate persist falhou:', e); });
+          } catch (e) {}
+          return resolvedUid;
+        })
+        .catch(function(e) { console.warn('[FriendsWidget] resolve query falhou pra', em, e); return null; });
+    });
+    Promise.all(resolvePromises).then(function(resolved) {
+      var added = resolved.filter(function(u) { return u && friends.indexOf(u) === -1; });
+      if (added.length > 0) {
+        console.log('[FriendsWidget] re-querying com uids resolvidos:', added);
+        // Atualiza cache local também
+        if (Array.isArray(cu.friends)) {
+          added.forEach(function(u) { if (cu.friends.indexOf(u) === -1) cu.friends.push(u); });
+        }
+        // Re-dispara a hidratação com a lista completa — o caminho normal
+        // abaixo já vai pegar (friends agora tem os uids resolvidos).
+        setTimeout(_hydrateFriendsPresenceWidget, 100);
+      }
+    });
+  }
   // Empty state quando usuário não tem amigos: CTA pra Explorar. Antes o
   // widget ficava silenciosamente vazio, sem indicação de que a funcionalidade
   // existia — usuário descobria por acaso que "Amigos no local" precisava de
