@@ -1643,84 +1643,77 @@ function _hydrateFriendsPresenceWidget() {
       }
       return;
     }
-    // Defense-in-depth: descarta entries do próprio usuário que por acaso
-    // venham no list (auto-amizade no data, ou loadForFriends devolvendo
-    // mais do que pediu). Sem isso, a presença do próprio usuário
-    // apareceria aqui EM PARALELO ao widget "Sua presença ativa" —
-    // duplicidade reportada em v0.15.34.
-    list = list.filter(function(p) { return p && p.uid !== cu.uid; });
-    // Dedupe per (uid, placeId, sport) keeping the soonest-starting entry.
-    var bestByKey = {};
+    // Defense-in-depth: descarta entries do próprio usuário (auto-amizade no
+    // data, ou loadForFriends devolvendo mais do que pediu). Sem isso a
+    // presença do próprio usuário apareceria aqui em paralelo ao widget
+    // "Sua presença ativa" — duplicidade reportada em v0.15.34.
+    list = list.filter(function(p) { return p && p.uid !== cu.uid && p.placeId; });
+    if (list.length === 0) {
+      // Pode acontecer se todos os planos eram do próprio usuário ou sem placeId.
+      box.innerHTML = '';
+      return;
+    }
+
+    // v0.16.48: ao invés de cards flat por amigo (com bug "·undefined" porque
+    // p.sport não existe — schema tem sports[] array), renderiza UM CARD POR
+    // VENUE com o trio "Agora no local" + "Próximas horas" + gráfico horário,
+    // mesmo padrão usado no #place. Reusa os helpers de venues.js via
+    // window._venuesHydrateAllPreferredMovement (que itera todos os
+    // [data-pref-pid] no DOM e hidrata os 3 slots de cada um).
+    var venuesByPid = {};
     list.forEach(function(p) {
-      var k = (p.uid || '') + '|' + p.placeId + '|' + window.PresenceDB.normalizeSport(p.sport);
-      var prev = bestByKey[k];
-      if (!prev || p.startsAt < prev.startsAt) bestByKey[k] = p;
+      var pid = p.placeId;
+      if (!venuesByPid[pid]) {
+        venuesByPid[pid] = {
+          placeId: pid,
+          venueName: p.venueName || 'Local',
+          venueLat: p.venueLat,
+          venueLon: p.venueLon
+        };
+      }
     });
-    var rows = Object.keys(bestByKey).map(function(k) { return bestByKey[k]; });
-    // Sort: currently checked-in first, then soonest-starting planned
-    var now = Date.now();
-    rows.sort(function(a, b) {
-      var aActive = a.type === 'checkin' && a.startsAt <= now && a.endsAt > now;
-      var bActive = b.type === 'checkin' && b.startsAt <= now && b.endsAt > now;
-      if (aActive !== bActive) return aActive ? -1 : 1;
-      return a.startsAt - b.startsAt;
-    });
-    rows = rows.slice(0, 6);
+    var venueList = Object.keys(venuesByPid).map(function(k) { return venuesByPid[k]; });
 
     var _safe = window._safeHtml || function(s) { return String(s || ''); };
+    var sanitizePid = function(pid) { return 'dash_' + String(pid || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+
     var html =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">' +
           '<span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>' +
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Amigos no local</span>' +
-          '<a href="#presence" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Ver tudo →</a>' +
-        '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;">';
+          '<a href="#place" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Ver tudo →</a>' +
+        '</div>';
 
-    rows.forEach(function(p) {
-      var name = p.displayName || 'Amigo';
-      var initials = name.trim().split(/\s+/).map(function(s) { return s.charAt(0); }).join('').substring(0,2).toUpperCase();
-      var avatar = p.photoURL
-        ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #fbbf24;flex-shrink:0;">'
-        : '<div style="width:38px;height:38px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;border:2px solid #fbbf24;flex-shrink:0;">' + _safe(initials) + '</div>';
-
-      var isActive = p.type === 'checkin' && p.startsAt <= now && p.endsAt > now;
-      var statusStr;
-      if (isActive) {
-        var mins = Math.max(0, Math.round((now - p.startsAt) / 60000));
-        statusStr = '🟢 agora · há ' + mins + ' min';
-      } else {
-        var d = new Date(p.startsAt);
-        statusStr = '🗓️ ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-      }
-
-      var prefillPayload = {
-        placeId: p.placeId,
-        venueName: p.venueName,
-        sport: p.sport,
-        lat: p.venueLat,
-        lon: p.venueLon
-      };
-      var prefillJson = _safe(JSON.stringify(prefillPayload));
-      // Card clicável no todo → navega pra #presence com venue/sport prefilados.
-      // Nome clicável separadamente → abre stats do jogador (modal player-stats).
-      // event.stopPropagation() impede o click do nome de também triggerar o
-      // click do card pai.
-      var safeName = _safe(name).replace(/'/g, "&#39;");
+    venueList.forEach(function(v, idx) {
+      var safePid = sanitizePid(v.placeId);
+      var realPid = _safe(v.placeId);
+      var name = _safe(v.venueName);
+      var separator = idx > 0 ? 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);' : '';
+      // data-pref-pid + data-pref-placeid + data-pref-venuename = mesma assinatura
+      // dos cards de #place. Quando _venuesHydrateAllPreferredMovement() roda,
+      // ele encontra estes cards no DOM e hidrata os slots automaticamente.
       html +=
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-darker);border-radius:10px;cursor:pointer;" onclick="try{sessionStorage.setItem(\'_presencePrefill\',\'' + prefillJson.replace(/'/g,"&#39;") + '\');}catch(e){}window.location.hash=\'#presence\'">' +
-          avatar +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:600;color:var(--text-bright);font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-              '<span onclick="event.stopPropagation();if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + safeName + '\')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.2);" title="Ver estatísticas">' + _safe(name) + '</span>' +
-            '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe((p.venueName || p.placeId) + ' · ' + p.sport) + '</div>' +
-            '<div style="font-size:0.7rem;color:var(--text-muted);">' + _safe(statusStr) + '</div>' +
+        '<div data-pref-pid="' + safePid + '" data-pref-placeid="' + realPid + '" data-pref-venuename="' + name + '" style="' + separator + '">' +
+          '<div onclick="window.location.hash=\'#venues/' + realPid + '\'" style="cursor:pointer;font-weight:700;color:var(--text-bright);font-size:0.92rem;margin-bottom:8px;display:flex;align-items:center;gap:6px;">' +
+            '📍 ' + name +
           '</div>' +
+          '<div id="pref-chart-' + safePid + '" style="margin-bottom:8px;"></div>' +
+          '<div id="pref-now-' + safePid + '" style="margin-bottom:8px;"></div>' +
+          '<div id="pref-upcoming-' + safePid + '"></div>' +
         '</div>';
     });
-    html += '</div></div>';
+    html += '</div>';
     box.innerHTML = html;
+    // v0.16.48: dispara o ciclo de hidratação dos venues (chart + now +
+    // upcoming) que vive em venues.js. Ele itera todos os [data-pref-pid]
+    // no DOM — incluindo os que acabamos de inserir aqui no dashboard — e
+    // popula os slots pref-chart-*, pref-now-*, pref-upcoming-*. Single
+    // source of truth: nenhuma duplicação de lógica entre #place e #dashboard.
+    if (typeof window._venuesHydrateAllPreferredMovement === 'function') {
+      // Pequeno delay pra garantir que o DOM está pronto pra querySelectorAll.
+      setTimeout(window._venuesHydrateAllPreferredMovement, 50);
+    }
   }).catch(function(e) {
     console.warn('Erro ao carregar presenças de amigos:', e);
   });
