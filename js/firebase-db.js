@@ -39,7 +39,14 @@ window.FirestoreDB = {
 
   // ---- Utilities ----
 
-  // Recursively strip undefined values from objects/arrays (Firestore rejects undefined)
+  // Recursively strip undefined values from objects/arrays (Firestore rejects undefined).
+  // v0.16.58: também remove keys que começam E terminam com `__` — Firestore
+  // reserva esse padrão pra fields internos (`__name__` etc) e rejeita o save
+  // com `[invalid-argument] Document fields cannot begin and end with "__"`.
+  // Bug capturado pelo diag v0.16.54: `sitOutHistory.__all__` (default key
+  // antiga do auto-draw) batia nessa regra. Defesa global aqui pega esse
+  // padrão em qualquer campo, em qualquer profundidade — protege contra
+  // futuras introduções acidentais e cobre docs legacy ainda em memória.
   _cleanUndefined(obj) {
     if (obj === null || obj === undefined) return null;
     if (Array.isArray(obj)) {
@@ -48,9 +55,12 @@ window.FirestoreDB = {
     if (typeof obj === 'object' && obj.constructor === Object) {
       var cleaned = {};
       Object.keys(obj).forEach(function(key) {
-        if (obj[key] !== undefined) {
-          cleaned[key] = window.FirestoreDB._cleanUndefined(obj[key]);
+        if (obj[key] === undefined) return;
+        // Firestore rejeita keys com padrão `__xxx__` em qualquer field nested.
+        if (typeof key === 'string' && key.length >= 4 && key.indexOf('__') === 0 && key.lastIndexOf('__') === key.length - 2) {
+          return;
         }
+        cleaned[key] = window.FirestoreDB._cleanUndefined(obj[key]);
       });
       return cleaned;
     }

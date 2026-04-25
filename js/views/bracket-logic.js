@@ -1334,7 +1334,16 @@ function _chooseSitOutPlayers(t, players, numToSitOut, category) {
   if (numToSitOut <= 0) return { playing: players, sitOut: [] };
   // Build sit-out count per player from history
   var history = t.sitOutHistory || {};
-  var catKey = category || '__all__';
+  // v0.16.58: Firestore não aceita field names que começam E terminam com
+  // `__` (reserva pra internos como `__name__`). Antes usávamos `__all__`
+  // como chave default, o que causava `[invalid-argument]` no save:
+  // "Document fields cannot begin and end with '__' (found in field
+  // sitOutHistory.__all__)". Trocado pra `_default_` (single underscore,
+  // safe). Migração: ligas existentes que já têm `sitOutHistory.__all__`
+  // continuam funcionando — `_recordSitOut` cria a nova chave; o histórico
+  // antigo só vira "esquecido" mas nada quebra (sit-out é só fairness, não
+  // afeta resultado de partida).
+  var catKey = category || '_default_';
   var catHistory = history[catKey] || {};
   // Sort players by sit-out count ascending, then by standing position (worse players sit out first)
   var indexed = players.map(function(name, idx) {
@@ -1354,7 +1363,16 @@ function _chooseSitOutPlayers(t, players, numToSitOut, category) {
 function _recordSitOut(t, sitOutPlayers, category) {
   if (!sitOutPlayers || sitOutPlayers.length === 0) return;
   if (!t.sitOutHistory) t.sitOutHistory = {};
-  var catKey = category || '__all__';
+  // v0.16.58: Firestore não aceita field names que começam E terminam com
+  // `__` (reserva pra internos como `__name__`). Antes usávamos `__all__`
+  // como chave default, o que causava `[invalid-argument]` no save:
+  // "Document fields cannot begin and end with '__' (found in field
+  // sitOutHistory.__all__)". Trocado pra `_default_` (single underscore,
+  // safe). Migração: ligas existentes que já têm `sitOutHistory.__all__`
+  // continuam funcionando — `_recordSitOut` cria a nova chave; o histórico
+  // antigo só vira "esquecido" mas nada quebra (sit-out é só fairness, não
+  // afeta resultado de partida).
+  var catKey = category || '_default_';
   if (!t.sitOutHistory[catKey]) t.sitOutHistory[catKey] = {};
   sitOutPlayers.forEach(function(name) {
     t.sitOutHistory[catKey][name] = (t.sitOutHistory[catKey][name] || 0) + 1;
