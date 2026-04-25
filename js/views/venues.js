@@ -774,10 +774,14 @@
           : '<div style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;border:2px solid ' + borderColor + ';flex-shrink:0;">' + _safe(_initials(name)) + '</div>';
         // v0.16.32: botão "Sair" discreto, bold, maior, inline logo depois
         // do nome "Você" — sem círculo, sem sobreposição na foto.
+        // v0.16.65: usa p.placeId do próprio doc com fallback pra realPid (igual
+        // ao chip de "Próximas horas"). Sem essa relaxada, ✕ sumia em preferidos
+        // label-only / venues comunitários sem Google placeId.
         var leaveBtn = '';
-        if (klass === 'me' && p._id && realPid) {
+        var pidForLeave = p.placeId || realPid || '';
+        if (klass === 'me' && p._id) {
           var docIdSafe = String(p._id).replace(/"/g, '&quot;');
-          var pidSafe = String(realPid).replace(/"/g, '&quot;');
+          var pidSafe = String(pidForLeave).replace(/"/g, '&quot;');
           leaveBtn = '<button onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + docIdSafe + '","' + pidSafe + '","checkin")\' style="background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:1.15rem;line-height:1;cursor:pointer;flex-shrink:0;" title="Sair do local">✕</button>';
         }
         var nowSports = Array.isArray(p.sports) ? p.sports : [];
@@ -880,10 +884,16 @@
             : '<div style="width:26px;height:26px;min-width:26px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';flex-shrink:0;">' + _safe(_initials(name)) + '</div>';
           // v0.16.32: botão "Cancelar" discreto, bold, maior, inline logo
           // depois do nome "Você" — sem círculo, sem sobreposição na foto.
+          // v0.16.65: o placeId vem do PRÓPRIO doc da presença (sempre existe
+          // quando salvo via savePresence), com fallback pra realPid do slot.
+          // Antes a guard estrita `&& realPid` escondia o ✕ em preferidos
+          // label-only/comunitários sem Google placeId no card — apesar do
+          // doc da presença ter o placeId perfeitamente válido pro cancel.
           var cancelBtn = '';
-          if (klass === 'me' && p._id && realPid) {
+          var pidForCancel = p.placeId || realPid || '';
+          if (klass === 'me' && p._id) {
             var upDocIdSafe = String(p._id).replace(/"/g, '&quot;');
-            var upPidSafe = String(realPid).replace(/"/g, '&quot;');
+            var upPidSafe = String(pidForCancel).replace(/"/g, '&quot;');
             cancelBtn = '<button onclick=\'event.stopPropagation(); window._venuesCancelMyPresenceHere("' + upDocIdSafe + '","' + upPidSafe + '","planned")\' style="background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:1rem;line-height:1;cursor:pointer;flex-shrink:0;" title="Cancelar plano de ir">✕</button>';
           }
           var chipSports = Array.isArray(p.sports) ? p.sports : [];
