@@ -1896,16 +1896,40 @@ function _hydrateFriendsPresenceWidget() {
     // mesmo padrão usado no #place. Reusa os helpers de venues.js via
     // window._venuesHydrateAllPreferredMovement (que itera todos os
     // [data-pref-pid] no DOM e hidrata os 3 slots de cada um).
+    // v0.16.63: dedup por NOME canônico do venue, não placeId. Usuário
+    // reportou widget mostrando "Clube Paineiras do Morumby" duas vezes
+    // (uma com placeId Google, outra com synthetic `pref_lat_lng` cadastrado
+    // por amigo nos preferidos). Antes a chave era `p.placeId` direta —
+    // 2 placeIds diferentes pro mesmo venue físico = 2 cards. Agora canon
+    // key é `venueName.trim().toLowerCase()` (sem acentos, sem espaços
+    // extras) com fallback pra placeId quando nome ausente. Pra `realPid`
+    // do hidratador, prefere placeId que NÃO começa com `pref_` (synthetic
+    // de preferidos) — Google placeId é mais estável e tem dados completos
+    // no `loadVenue`.
     var venuesByPid = {};
+    var _canonName = function(name) {
+      return String(name || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    };
+    var _isSyntheticPid = function(pid) {
+      return typeof pid === 'string' && pid.indexOf('pref_') === 0;
+    };
     list.forEach(function(p) {
-      var pid = p.placeId;
-      if (!venuesByPid[pid]) {
-        venuesByPid[pid] = {
-          placeId: pid,
+      var canon = _canonName(p.venueName) || p.placeId || '';
+      if (!canon) return;
+      if (!venuesByPid[canon]) {
+        venuesByPid[canon] = {
+          placeId: p.placeId,
           venueName: p.venueName || 'Local',
           venueLat: p.venueLat,
           venueLon: p.venueLon
         };
+      } else {
+        // Já tem bucket. Se este doc tem placeId Google (não-synthetic) e
+        // o bucket atual tem synthetic, troca pra usar o real.
+        var existing = venuesByPid[canon];
+        if (_isSyntheticPid(existing.placeId) && !_isSyntheticPid(p.placeId) && p.placeId) {
+          existing.placeId = p.placeId;
+        }
       }
     });
     var venueList = Object.keys(venuesByPid).map(function(k) { return venuesByPid[k]; });
