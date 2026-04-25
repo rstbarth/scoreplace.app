@@ -1498,7 +1498,7 @@ function _hydrateFriendsPresenceWidget() {
   // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
   // perfil, quantos eram email vs uid, e — após a query — quantos docs
   // voltaram. Vai sumir definitivamente quando a feature estabilizar.
-  var DIAG_VERSION = 'v0.16.44';
+  var DIAG_VERSION = 'v0.16.45';
   function _diagLine(label, value, color) {
     return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
       label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
@@ -1554,18 +1554,90 @@ function _hydrateFriendsPresenceWidget() {
   window.PresenceDB.loadForFriends(friends).then(function(list) {
     var rawCount = (list || []).length;
     if (!list || list.length === 0) {
-      box.innerHTML =
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
-              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+      // v0.16.45: query principal vazia → dispara queries individuais SEM
+      // filtros de tempo pra ver o que existe de verdade pra cada uid. Diz
+      // se o problema é uid não casa, doc cancelled, endsAt no passado,
+      // startsAt fora do horizon, ou doc sem campo uid.
+      var renderEmpty = function(extraDiag) {
+        box.innerHTML =
+          '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
+                '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+              '</div>' +
+              '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
             '</div>' +
-            '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
-          '</div>' +
-          _diagBlock(_diagLine('query firestore', rawCount + ' docs', rawCount > 0 ? '#10b981' : '#f87171')) +
-        '</div>';
+            _diagBlock(_diagLine('query firestore', rawCount + ' docs', rawCount > 0 ? '#10b981' : '#f87171') + (extraDiag || '')) +
+          '</div>';
+      };
+      // Render imediato com info parcial; depois reescreve com info expandida
+      renderEmpty(_diagLine('fallback', 'consultando docs por uid…', '#fbbf24'));
+      if (window.FirestoreDB && window.FirestoreDB.db) {
+        var nowMs = Date.now();
+        var probePromises = friends.map(function(uid) {
+          return window.FirestoreDB.db.collection('presences')
+            .where('uid', '==', uid)
+            .orderBy('createdAt', 'desc')
+            .limit(3)
+            .get()
+            .then(function(snap) {
+              var info = { uid: uid, total: 0, active: 0, cancelled: 0, expired: 0, future: 0, latest: null };
+              snap.forEach(function(doc) {
+                var d = doc.data();
+                info.total++;
+                if (d.cancelled) info.cancelled++;
+                else if (!d.endsAt || d.endsAt <= nowMs) info.expired++;
+                else if (d.startsAt && d.startsAt > nowMs + 48 * 3600 * 1000) info.future++;
+                else info.active++;
+                if (!info.latest) {
+                  info.latest = {
+                    type: d.type,
+                    venueName: d.venueName,
+                    startsAt: d.startsAt ? new Date(d.startsAt).toLocaleString('pt-BR') : 'N/A',
+                    endsAt: d.endsAt ? new Date(d.endsAt).toLocaleString('pt-BR') : 'N/A',
+                    cancelled: !!d.cancelled,
+                    visibility: d.visibility || '(none)',
+                    docHasUid: !!d.uid,
+                    docUid: d.uid || '(empty)'
+                  };
+                }
+              });
+              return info;
+            })
+            .catch(function(e) { return { uid: uid, error: String(e && e.message || e) }; });
+        });
+        Promise.all(probePromises).then(function(results) {
+          var lines = '';
+          results.forEach(function(r, idx) {
+            lines += '<div style="margin-top:6px;border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;">';
+            lines += _diagLine('amigo #' + (idx + 1), r.uid.substring(0, 12) + '…');
+            if (r.error) {
+              lines += _diagLine('  erro', r.error, '#f87171');
+            } else {
+              lines += _diagLine('  total docs', r.total, r.total > 0 ? '#10b981' : '#f87171');
+              if (r.total > 0) {
+                lines += _diagLine('  ativos válidos', r.active, r.active > 0 ? '#10b981' : '#f87171');
+                lines += _diagLine('  cancelled', r.cancelled, r.cancelled > 0 ? '#fbbf24' : 'var(--text-muted)');
+                lines += _diagLine('  expired (endsAt<now)', r.expired, r.expired > 0 ? '#fbbf24' : 'var(--text-muted)');
+                lines += _diagLine('  fora horizon (>48h)', r.future, r.future > 0 ? '#fbbf24' : 'var(--text-muted)');
+                if (r.latest) {
+                  lines += _diagLine('  doc.uid presente?', r.latest.docHasUid ? 'sim' : 'NÃO', r.latest.docHasUid ? '#10b981' : '#f87171');
+                  lines += _diagLine('  último: type', r.latest.type || '(none)');
+                  lines += _diagLine('  último: venueName', r.latest.venueName || '(none)');
+                  lines += _diagLine('  último: startsAt', r.latest.startsAt);
+                  lines += _diagLine('  último: endsAt', r.latest.endsAt);
+                  lines += _diagLine('  último: visibility', r.latest.visibility);
+                  lines += _diagLine('  último: cancelled', r.latest.cancelled ? 'true' : 'false', r.latest.cancelled ? '#f87171' : 'var(--text-muted)');
+                }
+              }
+            }
+            lines += '</div>';
+          });
+          renderEmpty(lines);
+        });
+      }
       return;
     }
     // Defense-in-depth: descarta entries do próprio usuário que por acaso
