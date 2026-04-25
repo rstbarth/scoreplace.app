@@ -772,13 +772,14 @@ function renderTournaments(container, tournamentId = null) {
         const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="btn ${t.status === 'closed' ? 'btn-success' : 'btn-danger'} hover-lift" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ ' + _t('org.reopenRegistration') : '🛑 ' + _t('org.closeRegistration')}</button>` : '';
 
         // v0.16.55: Liga com sorteio automático (drawManual !== true) nunca mostra
-        // botão Sortear nas ferramentas — o auto-draw cuida de tudo. Antes a
-        // primeira branch testava `t.drawManual` DENTRO de `!t.drawManual` (dead
-        // code) e Liga sem `drawFirstDate` configurada caía no else e mostrava
-        // Sortear, confundindo o organizador. Agora regra é simples: Liga auto
-        // = sem botão manual; Liga manual ou outros formatos = botão conforme
-        // estado de inscrição/sorteio.
-        const isLigaAutoDraw = isLigaFormat && t.drawManual !== true;
+        // botão Sortear nas ferramentas — o auto-draw cuida de tudo.
+        // v0.16.56: regra agora exige `drawFirstDate` setado pra considerar
+        // "auto-draw funcional". Liga auto SEM data agendada (estado inválido
+        // que ligas antigas podem ter) volta a mostrar o botão manual como
+        // fallback de recovery — assim organizador não fica preso sem ação.
+        // Ligas novas criadas a partir da v0.16.56 sempre têm drawFirstDate
+        // (default: amanhã 19:00) — esse fallback só pega legado.
+        const isLigaAutoDraw = isLigaFormat && t.drawManual !== true && !!t.drawFirstDate;
         const isAutoDrawFormat = isSuicoFormat || isLigaAutoDraw;
         let sortearBtn = '';
         let sortearAberto = '';

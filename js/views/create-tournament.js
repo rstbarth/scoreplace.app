@@ -3229,6 +3229,24 @@ function setupCreateTournamentModal() {
           tourData.drawFirstTime = document.getElementById('liga-first-draw-time').value || '19:00';
           tourData.drawIntervalDays = parseInt(document.getElementById('liga-draw-interval').value) || 7;
           tourData.drawManual = document.getElementById('liga-manual-draw').checked;
+          // v0.16.56: Liga com sorteio automático REQUER drawFirstDate.
+          // Se o usuário deixou em branco, defaulta pra amanhã 19:00 (sensível
+          // ao caso comum: criou hoje à noite, primeira rodada amanhã). Sem
+          // isso, a Liga ficava em estado inválido: poller pulava (`if
+          // (!t.drawFirstDate) continue;`), countdown não renderizava, e
+          // botão Sortear ficava escondido (v0.16.55) — org não via nada.
+          if (!tourData.drawManual && !tourData.drawFirstDate) {
+            var _tomorrow = new Date();
+            _tomorrow.setDate(_tomorrow.getDate() + 1);
+            var _yyyy = _tomorrow.getFullYear();
+            var _mm = String(_tomorrow.getMonth() + 1).padStart(2, '0');
+            var _dd = String(_tomorrow.getDate()).padStart(2, '0');
+            tourData.drawFirstDate = _yyyy + '-' + _mm + '-' + _dd;
+            if (!tourData.drawFirstTime) tourData.drawFirstTime = '19:00';
+            if (typeof showNotification === 'function') {
+              showNotification('🎲 Sorteio automático agendado', 'Primeira rodada: amanhã às ' + tourData.drawFirstTime + '. Você pode editar a data depois.', 'info');
+            }
+          }
           tourData.ligaRoundFormat = document.getElementById('liga-round-format').value || 'standard';
           // Limpeza de campos legados do formato Ranking (migrados para liga-*)
           tourData.rankingNewPlayerScore = null;
