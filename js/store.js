@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.56-alpha';
+window.SCOREPLACE_VERSION = '0.16.57-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1295,15 +1295,25 @@ window.AppStore = {
   // isn't in). Paginated via cursor. Pass { append: true } to fetch the next
   // page; otherwise replaces the current list (pull-to-refresh style).
   async loadPublicDiscovery(opts) {
-    if (!window.FirestoreDB || typeof window.FirestoreDB.loadPublicOpenTournaments !== 'function') return;
+    // v0.16.57: usa loadAllPublicTournaments (sem filtro de status) pra
+    // popular o feed completo. Antes usava loadPublicOpenTournaments que
+    // filtrava só inscrições abertas — discovery escondia torneios em
+    // andamento, encerrados sem sorteio e finished. Pedido do usuário:
+    // mostrar TODOS os públicos categorizados (abertas → andamento →
+    // fechadas-sem-sorteio → encerrados). Categorização é client-side
+    // no dashboard via _classifyDiscoveryTournament.
+    if (!window.FirestoreDB) return;
+    var loader = window.FirestoreDB.loadAllPublicTournaments
+      || window.FirestoreDB.loadPublicOpenTournaments;
+    if (typeof loader !== 'function') return;
     opts = opts || {};
     var cursor = opts.append ? this._publicDiscoveryCursor : null;
     var myEmail = this.currentUser && this.currentUser.email
       ? String(this.currentUser.email).toLowerCase()
       : '';
     try {
-      var res = await window.FirestoreDB.loadPublicOpenTournaments({
-        limit: opts.limit || 20,
+      var res = await loader.call(window.FirestoreDB, {
+        limit: opts.limit || 50,
         cursor: cursor
       });
       // Drop tournaments the user already has a relationship with — they

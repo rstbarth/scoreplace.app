@@ -383,6 +383,45 @@ window.FirestoreDB = {
     }
   },
 
+  // v0.16.57: novo loader que retorna TODOS os torneios públicos (sem filtro
+  // de status). Diferente de `loadPublicOpenTournaments`, que filtra apenas
+  // os "open"/Liga-aceitando-inscrição, este traz tudo (open, closed, active,
+  // finished). Usado pelo dashboard pra mostrar 4 categorias separadas:
+  // (a) inscrições abertas, (b) em andamento, (c) inscrições encerradas sem
+  // sorteio, (d) encerrados. Categorização vai pra client-side.
+  async loadAllPublicTournaments(opts) {
+    if (!this.db) return { tournaments: [], nextCursor: null, hasMore: false };
+    opts = opts || {};
+    var limit = Math.max(1, Math.min(100, opts.limit || 50));
+    try {
+      var q = this.db.collection('tournaments')
+        .where('isPublic', '==', true)
+        .orderBy('createdAt', 'desc');
+      if (opts.cursor) q = q.startAfter(opts.cursor);
+      q = q.limit(limit + 1);
+      var snap = await q.get();
+      var tournaments = [];
+      var lastDoc = null;
+      var count = 0;
+      snap.forEach(function(doc) {
+        if (count >= limit) return;
+        var d = doc.data();
+        if (!d) return;
+        tournaments.push(d);
+        lastDoc = doc;
+        count++;
+      });
+      return {
+        tournaments: tournaments,
+        nextCursor: lastDoc,
+        hasMore: snap.size > limit
+      };
+    } catch (e) {
+      console.error('Erro ao carregar todos os torneios públicos:', e);
+      return { tournaments: [], nextCursor: null, hasMore: false };
+    }
+  },
+
   // Scan open tournaments across the whole DB — used by the nearby/sport-match
   // notification check, which has to look outside the current user's scoped
   // load (that's the whole point: show tournaments they aren't part of yet).

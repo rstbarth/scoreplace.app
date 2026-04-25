@@ -211,19 +211,44 @@ function renderDashboard(container) {
   const discovery = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery))
     ? window.AppStore.publicDiscovery
     : [];
+
+  // v0.16.57: helper que classifica um torneio em uma das 4 categorias do
+  // discovery feed pra renderizar na ordem pedida pelo usuário:
+  //   1. open       → inscrições abertas (topo)
+  //   2. inProgress → já começou (sorteio realizado, !finished)
+  //   3. closedNoStart → inscrições encerradas mas sem sorteio
+  //   4. finished   → encerrados (sessão separada/colapsada)
+  const _classifyDiscoveryTournament = (t) => {
+    if (!t) return null;
+    if (t.status === 'finished') return 'finished';
+    const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                    (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                    (Array.isArray(t.groups) && t.groups.length > 0);
+    if (hasDraw) return 'inProgress';
+    const isLiga = t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking';
+    const ligaAcceptsEnroll = isLiga && t.ligaOpenEnrollment !== false && t.status !== 'closed';
+    const deadlinePassed = t.registrationLimit && new Date(t.registrationLimit) < new Date();
+    if ((t.status === 'closed' || deadlinePassed) && !ligaAcceptsEnroll) return 'closedNoStart';
+    return 'open';
+  };
+
   // (a) Torneios próprios do usuário com inscrição aberta — lista primeiro
   // porque são os mais relevantes (próprios).
   const myOpenTournaments = visible.filter(_isOpenEnrollment);
-  // (b) Torneios do discovery feed com inscrição aberta, excluindo os que
-  // já estão em (a) por id pra evitar duplicata.
+  // (b) Discovery: deduplica vs próprios e organiza nas 4 categorias.
   const myOpenIds = new Set(myOpenTournaments.map(t => String(t.id)));
-  const discoveryOpen = discovery.filter(t => {
-    if (myOpenIds.has(String(t.id))) return false;
-    const isOrg = organizados.some(org => org.id === t.id);
-    const isPart = participacoes.some(pt => pt.id === t.id);
-    if (isOrg || isPart) return false;
-    return _isOpenEnrollment(t);
+  const seenInOwn = new Set([...organizados, ...participacoes].map(t => String(t.id)));
+  const discoveryDedup = discovery.filter(t => !seenInOwn.has(String(t.id)) && !myOpenIds.has(String(t.id)));
+  const discoveryByCategory = { open: [], inProgress: [], closedNoStart: [], finished: [] };
+  discoveryDedup.forEach(t => {
+    const cat = _classifyDiscoveryTournament(t);
+    if (cat && discoveryByCategory[cat]) discoveryByCategory[cat].push(t);
   });
+  // Ordena cada categoria por data
+  Object.keys(discoveryByCategory).forEach(k => discoveryByCategory[k].sort(sortByDate));
+  // Backwards-compat: discoveryOpen ainda alimenta `abertosParaVoce` que
+  // outras partes do dashboard consomem.
+  const discoveryOpen = discoveryByCategory.open;
   // União ordenada por data — próprios primeiro (já sortiráveis), depois
   // discovery. Mantida como única variável pra minimizar diff do resto
   // da dashboard que consome `abertosParaVoce`.
@@ -1256,6 +1281,55 @@ function renderDashboard(container) {
     <div class="dashboard-list" style="margin-bottom: 2rem;">
       ${(window._dashView === 'compact') ? '<div class="compact-list">' + _buildCompactList(filtered) + '</div>' : '<div class="cards-grid">' + filteredHtml + '</div>'}
     </div>
+    ${(() => {
+      // v0.16.57: 3 seções extras do discovery feed quando estamos no filtro
+      // 'todos' SEM filtros secundários ativos. Mostra torneios públicos que
+      // não cabem no bloco principal (que só tem inscrições abertas + meus).
+      // Ordem solicitada pelo usuário:
+      //   1. (no bloco principal acima): inscrições abertas
+      //   2. Em andamento (sorteio realizado, não finished)
+      //   3. Inscrições encerradas mas não iniciado
+      //   4. Encerrados (em <details> colapsado)
+      // Filtra por modalidade preferida do usuário quando há `cu.preferredSports`
+      // — atende "interesse na modalidade". Sem preferências, mostra todos.
+      var _curFilter = window._dashFilter || 'todos';
+      if (_curFilter !== 'todos' || curSport || curLocation || curFormat) return '';
+      var _cuPref = window.AppStore && window.AppStore.currentUser;
+      var _prefSports = (_cuPref && Array.isArray(_cuPref.preferredSports))
+        ? _cuPref.preferredSports.map(function(s) { return cleanSportName(s); }).filter(Boolean)
+        : (typeof (_cuPref && _cuPref.preferredSports) === 'string' && _cuPref.preferredSports.trim()
+            ? _cuPref.preferredSports.split(/[,;]/).map(function(s) { return cleanSportName(s); }).filter(Boolean)
+            : []);
+      var _filterByInterest = function(arr) {
+        if (!_prefSports.length) return arr;
+        return arr.filter(function(t) {
+          if (!t.sport) return true; // torneio sem modalidade declarada não é filtrado
+          var tsClean = cleanSportName(t.sport).toLowerCase();
+          return _prefSports.some(function(p) { return p.toLowerCase() === tsClean; });
+        });
+      };
+      var _inProgress = _filterByInterest(discoveryByCategory.inProgress);
+      var _closedNoStart = _filterByInterest(discoveryByCategory.closedNoStart);
+      var _finishedDiscovery = _filterByInterest(discoveryByCategory.finished);
+      if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) return '';
+      var _interestNote = _prefSports.length
+        ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">Filtrado pelas suas modalidades favoritas: ' + _prefSports.map(function(s) { return window._safeHtml(s); }).join(', ') + '</div>'
+        : '';
+      var _section = function(title, items, color, collapsed) {
+        if (!items || items.length === 0) return '';
+        var _cards = '<div class="cards-grid">' + items.map(function(t) { return renderTournamentCard(t, ''); }).join('') + '</div>';
+        if (collapsed) {
+          return '<details style="margin-top:1rem;"><summary style="cursor:pointer;font-weight:700;font-size:0.92rem;color:' + color + ';padding:8px 0;user-select:none;">' + title + ' (' + items.length + ')</summary><div style="margin-top:0.75rem;">' + _cards + '</div></details>';
+        }
+        return '<div style="margin-top:1.25rem;"><div style="font-weight:800;font-size:0.95rem;color:' + color + ';margin-bottom:0.5rem;border-left:3px solid ' + color + ';padding-left:10px;">' + title + ' <span style="font-weight:500;color:var(--text-muted);font-size:0.78rem;">(' + items.length + ')</span></div>' + _cards + '</div>';
+      };
+      return '<div style="margin-top:0.5rem;">' +
+        _interestNote +
+        _section('🎮 Em andamento (públicos)', _inProgress, '#10b981', false) +
+        _section('🚪 Inscrições encerradas (aguardando início)', _closedNoStart, '#fb923c', false) +
+        _section('🏁 Encerrados (públicos)', _finishedDiscovery, '#94a3b8', true) +
+      '</div>';
+    })()}
   `;
   container.innerHTML = html;
 
