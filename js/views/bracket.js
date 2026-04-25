@@ -1552,8 +1552,31 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       </button>
     </div>` : '';
 
+  // v0.16.52: ordena subgroups pra que o grupo do usuário (se houver) venha
+  // primeiro. Mesma lógica usada no renderer de Liga/Rei-Rainha.
+  const _cuGS = window.AppStore && window.AppStore.currentUser;
+  const _cuGSName = _cuGS ? (_cuGS.displayName || '') : '';
+  const _cuGSEmail = _cuGS ? (_cuGS.email || '') : '';
+  const _subgroupHasMe = (sg) => {
+    if (!_cuGS || !sg) return false;
+    const players = (sg.players && sg.players.length) ? sg.players : ((sg.participants) || []);
+    return players.some(function(n) {
+      if (!n) return false;
+      if (_cuGSName && (n === _cuGSName || n.indexOf(_cuGSName) !== -1)) return true;
+      if (_cuGSEmail && n === _cuGSEmail) return true;
+      if (typeof n === 'string' && n.indexOf('/') !== -1) {
+        return n.split('/').map(s => s.trim()).some(m => (_cuGSName && m === _cuGSName) || (_cuGSEmail && m === _cuGSEmail));
+      }
+      return false;
+    });
+  };
+  // Mantém um índice original pra que `groups[gi]` continue mapeando o doc
+  // certo após o sort (gi do callback agora é a posição NO ARRAY ORDENADO).
+  const sortedSubgroups = subgroups.map((sg, originalIdx) => ({ sg: sg, originalIdx: originalIdx }))
+    .sort((a, b) => (_subgroupHasMe(a.sg) ? 0 : 1) - (_subgroupHasMe(b.sg) ? 0 : 1));
+
   let groupGlobalMatchNum = 0;
-  const groupsHtml = subgroups.map((sg, gi) => {
+  const groupsHtml = sortedSubgroups.map(({ sg, originalIdx: gi }) => {
     // Compute group standings. Players list comes from the subgroup (falls
     // back to participants for shapes that omit .players).
     const gParticipants = (sg.players && sg.players.length) ? sg.players : (groups[gi] ? (groups[gi].participants || groups[gi].players || []) : []);
@@ -1598,26 +1621,34 @@ function renderGroupStage(t, isOrg, canEnterResult) {
       </tr>`).join('');
 
     // Mostrar TODAS as rodadas do grupo (completas, ativa e pendentes)
+    // v0.16.52: cards de jogo viram grid com colunas iguais (auto-fill +
+    // minmax). Antes (`flex:1 + max-width:300px`) o último card sozinho na
+    // linha esticava até max enquanto os anteriores dividiam — diferença visual.
     const allRoundsHtml = gRounds.map((r, ri) => {
       const roundLabel = _t('bracket.round', {n: ri + 1}) + (r.status === 'complete' ? ' — ' + _t('bracket.complete') + ' ✓' : r.status === 'active' ? ' — ' + _t('bracket.ongoing') : '');
       const roundLabelColor = r.status === 'complete' ? '#4ade80' : r.status === 'active' ? '#fbbf24' : 'var(--text-muted)';
       const matchesInRound = (r.matches || []).map(m => {
         groupGlobalMatchNum++;
-        return `<div style="min-width:250px;max-width:300px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, groupGlobalMatchNum)}</div>`;
+        return `<div>${renderMatchCard(m, canEnterResult, t.id, groupGlobalMatchNum)}</div>`;
       }).join('');
       return `
         <div style="margin-bottom:0.75rem;">
           <h5 style="font-size:0.7rem;color:${roundLabelColor};text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;border-left:3px solid ${roundLabelColor};padding-left:8px;">${roundLabel}</h5>
-          <div style="display:flex;flex-wrap:wrap;gap:12px;">${matchesInRound}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">${matchesInRound}</div>
         </div>`;
     }).join('');
     const matchesHtml = allRoundsHtml;
 
     const groupColor = ['#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'][gi % 8];
+    // v0.16.52: highlight visual quando o grupo é do usuário logado.
+    const isMyGroupGS = _subgroupHasMe(sg);
+    const myGroupBadge = isMyGroupGS
+      ? '<span style="font-size:0.6rem;padding:2px 8px;border-radius:5px;background:rgba(34,211,238,0.15);color:#22d3ee;font-weight:700;margin-left:8px;">SEU GRUPO</span>'
+      : '';
 
     return `
-      <div class="card" id="group-section-${gi}" style="border-left:4px solid ${groupColor};scroll-margin-top:120px;">
-        <h3 style="margin:0 0 1rem;color:${groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(sg.name)}</h3>
+      <div class="card" id="group-section-${gi}" style="border-left:4px solid ${isMyGroupGS ? '#22d3ee' : groupColor};scroll-margin-top:120px;">
+        <h3 style="margin:0 0 1rem;color:${isMyGroupGS ? '#22d3ee' : groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(sg.name)}${myGroupBadge}</h3>
         <div style="overflow-x:auto;margin-bottom:1rem;">
           <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
             <thead>
@@ -1880,7 +1911,31 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
       </div>
       ${_isReiRainhaRound ? (() => {
         var _useSetsMonarch = !!(t.scoring && t.scoring.type === 'gsm');
-        return currentRoundData.monarchGroups.map(function(g) {
+        // v0.16.52: ordena os grupos pra que o grupo do usuário (se houver) venha
+        // primeiro. Comparação tolerante: nome exato, dupla "X/Y" desmembrada, e
+        // email. Estável: preserva ordem original entre grupos sem o usuário.
+        var _cuRR = window.AppStore && window.AppStore.currentUser;
+        var _cuRRName = _cuRR ? (_cuRR.displayName || '') : '';
+        var _cuRREmail = _cuRR ? (_cuRR.email || '') : '';
+        var _groupHasMe = function(g) {
+          if (!_cuRR || !g || !Array.isArray(g.players)) return false;
+          return g.players.some(function(n) {
+            if (!n) return false;
+            if (_cuRRName && (n === _cuRRName || n.indexOf(_cuRRName) !== -1)) return true;
+            if (_cuRREmail && n === _cuRREmail) return true;
+            if (n.indexOf('/') !== -1) {
+              var members = n.split('/').map(function(s) { return s.trim(); });
+              return members.some(function(m) { return (_cuRRName && m === _cuRRName) || (_cuRREmail && m === _cuRREmail); });
+            }
+            return false;
+          });
+        };
+        var sortedGroups = currentRoundData.monarchGroups.slice().sort(function(a, b) {
+          var aMe = _groupHasMe(a) ? 0 : 1;
+          var bMe = _groupHasMe(b) ? 0 : 1;
+          return aMe - bMe;
+        });
+        return sortedGroups.map(function(g) {
           var gStandings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
           var gDone = g.matches.length > 0 && g.matches.every(function(m) { return !!m.winner; });
           var gRows = gStandings.map(function(s, si) {
@@ -1924,14 +1979,26 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             extraHeaders +
             '<th style="padding:5px 8px;text-align:center;color:var(--text-muted);font-size:0.65rem;" title="Aproveitamento (V/J)">%</th>' +
             '</tr></thead><tbody>' + gRows + '</tbody></table>';
+          // v0.16.52: cards de jogo viram itens de CSS Grid em vez de flex.
+          // Antes (`flex:1 + max-width:320px`): cards na mesma linha disputavam
+          // espaço (ficavam menores que max), mas o último sozinho na linha
+          // subsequente esticava até max-width — diferença visual entre cards
+          // do mesmo grupo. Grid com `auto-fill, minmax(280px, 1fr)` distribui
+          // colunas iguais e o último card mantém a largura da coluna em vez
+          // de "comer" o espaço restante da linha.
           var gCards = g.matches.map(function(m, mi) {
-            return '<div style="min-width:240px;max-width:320px;flex:1;">' + renderMatchCard(m, canEnterResult, t.id, mi + 1) + '</div>';
+            return '<div>' + renderMatchCard(m, canEnterResult, t.id, mi + 1) + '</div>';
           }).join('');
           var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">' + _t('bracket.ongoing') + '</span>';
-          return '<div style="background:rgba(251,191,36,0.03);border:1px solid rgba(251,191,36,0.15);border-left:3px solid ' + (gDone?'#4ade80':'#fbbf24') + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + '</div>' +
+          // Highlight visual quando o grupo é do usuário logado.
+          var isMyGroup = _groupHasMe(g);
+          var groupBorderLeft = gDone ? '#4ade80' : (isMyGroup ? '#22d3ee' : '#fbbf24');
+          var groupBg = isMyGroup ? 'rgba(34,211,238,0.06)' : 'rgba(251,191,36,0.03)';
+          var groupBorder = isMyGroup ? 'rgba(34,211,238,0.25)' : 'rgba(251,191,36,0.15)';
+          return '<div style="background:' + groupBg + ';border:1px solid ' + groupBorder + ';border-left:3px solid ' + groupBorderLeft + ';border-radius:10px;padding:1rem;margin-bottom:1rem;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + (isMyGroup ? '<span style="font-size:0.6rem;padding:2px 8px;border-radius:5px;background:rgba(34,211,238,0.15);color:#22d3ee;font-weight:700;">SEU GRUPO</span>' : '') + '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;">Jogadores: ' + g.players.map(function(n){return window._safeHtml(n);}).join(', ') + '</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + gCards + '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:0.75rem;">' + gCards + '</div>' +
             '<div style="overflow-x:auto;">' + gTable + '</div>' +
           '</div>';
         }).join('');
