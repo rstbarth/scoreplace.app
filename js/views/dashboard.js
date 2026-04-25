@@ -1494,35 +1494,77 @@ function _hydrateFriendsPresenceWidget() {
       }
     });
   }
-  // Empty state quando usuário não tem amigos: CTA pra Explorar. Antes o
-  // widget ficava silenciosamente vazio, sem indicação de que a funcionalidade
-  // existia — usuário descobria por acaso que "Amigos no local" precisava de
-  // amigos pra funcionar. Agora promove o fluxo de onboarding explicitamente.
-  if (friends.length === 0) {
+  // v0.16.44: empty state agora carrega DIAGNÓSTICO inline (sem precisar
+  // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
+  // perfil, quantos eram email vs uid, e — após a query — quantos docs
+  // voltaram. Vai sumir definitivamente quando a feature estabilizar.
+  var DIAG_VERSION = 'v0.16.44';
+  function _diagLine(label, value, color) {
+    return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
+      label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
+  }
+  function _diagBlock(extraLines) {
+    return '<details style="margin-top:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
+      '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico ' + DIAG_VERSION + '</summary>' +
+      '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
+        _diagLine('versão renderer', DIAG_VERSION) +
+        _diagLine('uid logado', cu.uid || '(vazio)') +
+        _diagLine('cu.friends raw count', friendsRaw.length) +
+        _diagLine('como uid (sem @)', friendsLikeUid.length, friendsLikeUid.length > 0 ? '#10b981' : '#f87171') +
+        _diagLine('como email (com @)', friendsLikeEmail.length, friendsLikeEmail.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
+        (friendsLikeEmail.length > 0 ? _diagLine('emails pendentes', friendsLikeEmail.join(', '), '#fbbf24') : '') +
+        (friendsLikeUid.length > 0 ? _diagLine('uids consultados', friendsLikeUid.slice(0,3).join(', ') + (friendsLikeUid.length > 3 ? '...' : '')) : '') +
+        (extraLines || '') +
+      '</div>' +
+    '</details>';
+  }
+
+  if (friendsRaw.length === 0) {
     box.innerHTML =
-      '<div style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-        '<div style="flex:1;min-width:200px;">' +
-          '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">👥 Veja seus amigos jogando</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Adicione amigos na Explorar pra acompanhar presenças e planos nos locais que vocês frequentam.</div>' +
+      '<div style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:14px;padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:200px;">' +
+            '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">👥 Veja seus amigos jogando</div>' +
+            '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Adicione amigos na Explorar pra acompanhar presenças e planos nos locais que vocês frequentam.</div>' +
+          '</div>' +
+          '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#explore\'" style="white-space:nowrap;">Encontrar amigos →</button>' +
         '</div>' +
-        '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#explore\'" style="white-space:nowrap;">Encontrar amigos →</button>' +
+        _diagBlock() +
+      '</div>';
+    return;
+  }
+
+  if (friends.length === 0) {
+    // friendsRaw.length > 0 mas todos eram email — mostra mensagem específica
+    // enquanto a auto-resolução (acima) trabalha em background.
+    box.innerHTML =
+      '<div style="background:linear-gradient(135deg, rgba(251,191,36,0.10), rgba(245,158,11,0.06));border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:1.2rem;">⏳</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:0.86rem;color:var(--text-bright);font-weight:700;">Migrando amigos antigos…</div>' +
+            '<div style="font-size:0.74rem;color:var(--text-muted);">Seu perfil tem ' + friendsLikeEmail.length + ' amigo(s) em formato antigo. Resolvendo automaticamente — aguarde o re-render.</div>' +
+          '</div>' +
+        '</div>' +
+        _diagBlock() +
       '</div>';
     return;
   }
 
   window.PresenceDB.loadForFriends(friends).then(function(list) {
-    // Sem presenças ativas dos amigos: empty state discreto ao invés de
-    // omissão total (antes o widget ficava invisível em dias calmos, e o
-    // usuário não tinha sinal de que a funcionalidade estava ativa).
+    var rawCount = (list || []).length;
     if (!list || list.length === 0) {
       box.innerHTML =
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;">' +
-          '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
+              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+            '</div>' +
+            '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
           '</div>' +
-          '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
+          _diagBlock(_diagLine('query firestore', rawCount + ' docs', rawCount > 0 ? '#10b981' : '#f87171')) +
         '</div>';
       return;
     }
