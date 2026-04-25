@@ -1498,7 +1498,7 @@ function _hydrateFriendsPresenceWidget() {
   // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
   // perfil, quantos eram email vs uid, e — após a query — quantos docs
   // voltaram. Vai sumir definitivamente quando a feature estabilizar.
-  var DIAG_VERSION = 'v0.16.46';
+  var DIAG_VERSION = 'v0.16.47';
   function _diagLine(label, value, color) {
     return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
       label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';

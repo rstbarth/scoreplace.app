@@ -241,7 +241,7 @@ window.PresenceDB = {
   // or upcoming presences within the next 48h.
   async loadForFriends(uids, windowMs) {
     if (!this.db || !Array.isArray(uids) || uids.length === 0) {
-      console.log('[loadForFriends v0.16.43] short-circuit:', { hasDb: !!this.db, uidsLen: (uids||[]).length });
+      console.log('[loadForFriends v0.16.47] short-circuit:', { hasDb: !!this.db, uidsLen: (uids||[]).length });
       return [];
     }
     var win = windowMs || (48 * 60 * 60 * 1000);
@@ -250,34 +250,42 @@ window.PresenceDB = {
     var chunks = [];
     for (var i = 0; i < uids.length; i += 10) chunks.push(uids.slice(i, i + 10));
     var all = [];
-    var droppedCancelled = 0, droppedHorizon = 0, totalRaw = 0;
+    var droppedCancelled = 0, droppedExpired = 0, droppedHorizon = 0, totalRaw = 0;
+    // v0.16.47: removido o `.where('endsAt', '>', now)` — combinação `in` +
+    // inequality exigia índice composto (uid, endsAt) que não existia, a
+    // query falhava silenciosamente e o try/catch retornava [] sem nenhum
+    // sinal de erro. Filtro de tempo agora é client-side — custo extra é
+    // desprezível (poucos docs por uid em prática) e elimina dependência
+    // de índice externo. Confirmado pelo diag v0.16.46 que docs ativos
+    // existiam mas a query principal devolvia 0.
     try {
       for (var c = 0; c < chunks.length; c++) {
         var snap = await this.db.collection('presences')
           .where('uid', 'in', chunks[c])
-          .where('endsAt', '>', now)
           .get();
         snap.forEach(function(doc) {
           totalRaw++;
           var d = doc.data();
           if (!d || d.cancelled) { droppedCancelled++; return; }
+          if (!d.endsAt || d.endsAt <= now) { droppedExpired++; return; }
           if (d.startsAt && d.startsAt > horizon) { droppedHorizon++; return; }
           d._id = doc.id;
           all.push(d);
         });
       }
-      console.log('[loadForFriends v0.16.43]', {
+      console.log('[loadForFriends v0.16.47]', {
         uidsCount: uids.length,
         chunksCount: chunks.length,
         totalRaw: totalRaw,
         droppedCancelled: droppedCancelled,
+        droppedExpired: droppedExpired,
         droppedHorizon: droppedHorizon,
         kept: all.length,
         sample: all[0] ? { uid: all[0].uid, type: all[0].type, venueName: all[0].venueName, startsAt: new Date(all[0].startsAt).toLocaleString() } : null
       });
       return all;
     } catch (e) {
-      console.error('[loadForFriends v0.16.43] erro:', e);
+      console.error('[loadForFriends v0.16.47] erro:', e);
       return [];
     }
   }
