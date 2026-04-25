@@ -728,15 +728,13 @@
     // v0.16.30: legenda reduzida a só "você/amigos" (barra âmbar única) —
     // strangers/torneios não contribuem mais ao gráfico.
     // v0.16.35: legenda volta a "você e amigos" — o gráfico conta ambos de novo.
-    var capLabel = hasCapacity
-      ? '<span style="font-size:0.68rem;color:var(--text-muted);">escala: ' + venueCapacity + ' (' + venueCapacity / 4 + ' quadras × 4)</span>'
-      : '';
+    // v0.16.50: label "escala: N (X quadras × 4)" removida do header — info
+    // continua disponível no tooltip ao passar mouse na barra ("Nh: P / N (X%)").
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
           '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
-          capLabel +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
       '</div>';
