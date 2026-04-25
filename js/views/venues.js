@@ -599,7 +599,26 @@
   // reusável entre o modo focado e os cards não-focados de cada preferido.
   // Também self-wraps em container estilizado — assim o slot pode ficar vazio
   // quando não há atividade, sem poluir o card com bg/borda de placeholder.
-  function _renderPreferredChart(boxId, presences, tournaments, dayKeyStr) {
+  // v0.16.49: capacidade do venue = sum(court.count) × 4 jogadores por quadra.
+  // Usado como denominador fixo do gráfico horário — barra cheia = venue lotado
+  // (todas as quadras com 4 jogadores). Antes a escala era relativa ao máximo
+  // bucket encontrado, então 1 amigo num venue vazio enchia a barra inteira,
+  // dando impressão de movimento alto. Agora 1 pessoa em venue de 36 vagas
+  // (Paineiras BT) renderiza barra de ~3% — visualmente "vazio".
+  // Sem courts cadastrados: retorna 0 (caller cai no fallback de max-bucket).
+  function _calcVenueCapacity(venue) {
+    if (!venue) return 0;
+    var courts = Array.isArray(venue.courts) ? venue.courts : [];
+    var totalCourts = 0;
+    courts.forEach(function(c) {
+      var n = parseInt(c && c.count, 10);
+      if (n > 0) totalCourts += n;
+    });
+    return totalCourts * 4; // 4 jogadores por quadra (default razoável pra todas as modalidades suportadas)
+  }
+  window._venuesCalcCapacity = _calcVenueCapacity;
+
+  function _renderPreferredChart(boxId, presences, tournaments, dayKeyStr, venueCapacity) {
     var box = document.getElementById(boxId);
     if (!box) return;
     var win = _currentWindow();
@@ -653,14 +672,20 @@
       }
     });
 
-    // Max só olha slots da janela — escala proporcional e estável.
-    var maxPerBucket = 1;
-    win.hours.forEach(function(slot) {
-      if (slot < 0 || slot > 23) return;
-      var b = buckets[slot];
-      var total = b.friends + b.me;
-      if (total > maxPerBucket) maxPerBucket = total;
-    });
+    // v0.16.49: escala muda dependendo de ter capacidade do venue ou não.
+    //   - Com capacidade (courts cadastrados): denominador = capacidade fixa.
+    //     1 pessoa em venue de 36 vagas = barra ~3% (visualmente "vazio").
+    //   - Sem capacidade: fallback antigo de max-bucket relativo.
+    var hasCapacity = venueCapacity && venueCapacity > 0;
+    var maxPerBucket = hasCapacity ? venueCapacity : 1;
+    if (!hasCapacity) {
+      win.hours.forEach(function(slot) {
+        if (slot < 0 || slot > 23) return;
+        var b = buckets[slot];
+        var total = b.friends + b.me;
+        if (total > maxPerBucket) maxPerBucket = total;
+      });
+    }
 
     var bars = '';
     win.hours.forEach(function(slot) {
@@ -668,10 +693,12 @@
       var labelH = ((slot % 24) + 24) % 24;
       var b = inDay ? buckets[slot] : { friends: 0, me: 0 };
       var total = b.friends + b.me;
-      var totalPct = total > 0 ? Math.round((total / maxPerBucket) * 100) : 0;
+      // Clamp em 100% pro caso (raro) de venue lotado além da capacidade declarada.
+      var totalPct = total > 0 ? Math.min(100, Math.round((total / maxPerBucket) * 100)) : 0;
       var isNow = slot === win.nowH;
       var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
-      bars += '<div title="' + labelH + 'h: ' + total + ' pessoa(s)" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
+      var tooltipExtra = hasCapacity ? ' / ' + venueCapacity + ' (' + totalPct + '%)' : '';
+      bars += '<div title="' + labelH + 'h: ' + total + ' pessoa(s)' + tooltipExtra + '" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
         '<div style="position:relative;height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:' + (isNow ? 'rgba(99,102,241,0.1)' : 'rgba(150,150,150,0.08)') + ';overflow:hidden;' + (isNow ? 'outline:2px solid rgba(99,102,241,0.4);' : '') + '">' +
           (total > 0
             ? '<div style="height:' + totalPct + '%;width:100%;background:#fbbf24;"></div>'
@@ -701,11 +728,15 @@
     // v0.16.30: legenda reduzida a só "você/amigos" (barra âmbar única) —
     // strangers/torneios não contribuem mais ao gráfico.
     // v0.16.35: legenda volta a "você e amigos" — o gráfico conta ambos de novo.
+    var capLabel = hasCapacity
+      ? '<span style="font-size:0.68rem;color:var(--text-muted);">escala: ' + venueCapacity + ' (' + venueCapacity / 4 + ' quadras × 4)</span>'
+      : '';
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
           '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
+          capLabel +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
       '</div>';
@@ -921,7 +952,19 @@
 
       // Fire-and-forget async por card — cada um renderiza independentemente.
       (function(safePid, realPid, venueName) {
-        window.PresenceDB.loadForVenueDay(realPid, dayKeyStr).then(function(presences) {
+        // v0.16.49: carrega venue em paralelo com presences pra ter capacidade
+        // de quadras pro denominador do gráfico. Falha do loadVenue não bloqueia
+        // o chart (cai no fallback de max-bucket).
+        var venuePromise = window.VenueDB && typeof window.VenueDB.loadVenue === 'function'
+          ? window.VenueDB.loadVenue(realPid).catch(function() { return null; })
+          : Promise.resolve(null);
+        Promise.all([
+          window.PresenceDB.loadForVenueDay(realPid, dayKeyStr),
+          venuePromise
+        ]).then(function(results) {
+          var presences = results[0];
+          var venue = results[1];
+          var capacity = _calcVenueCapacity(venue);
           // Visibility filter: 'public' sempre; 'friends' só self + friends.
           presences = (presences || []).filter(function(p) {
             if (!p) return false;
@@ -938,7 +981,7 @@
             var tKey = window.PresenceDB.venueKey(t.venuePlaceId || '', t.venue || '');
             return tKey && tKey === pKey;
           });
-          _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr);
+          _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr, capacity);
           _renderNowAtVenueBox('pref-now-' + safePid, presences, realPid);
           _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr, realPid);
         }).catch(function(e) {
