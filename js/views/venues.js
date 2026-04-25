@@ -2891,16 +2891,20 @@
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
+    // v0.16.40: campos Chegada/Saída com mais respiro — gap aumentado pra 16px,
+    // padding interno do input pra 10px 12px (mais alto, mais legível e tap-friendly),
+    // padding do modal subiu de 20px → 22px. "Saída (opcional)" virou "Saída" com
+    // hint menor abaixo pra evitar wrap esquisito em mobile estreito.
     overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;max-width:420px;width:100%;">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:22px;max-width:420px;width:100%;">' +
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
+        '<p style="margin:0 0 14px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
           dayBlock +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Saída <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
+            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
           '</div>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
             '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
@@ -3434,10 +3438,23 @@
     return { needsPicker: true, options: venueSports };
   }
 
-  // Picker overlay pra quando um venue oferece múltiplas modalidades e a
-  // preferência do usuário não desempata. Botões simples retornando o sport
-  // escolhido via callback.
+  // v0.16.40: removido o picker single-choice "Qual modalidade agora?" — agora
+  // o check-in usa o mesmo padrão multi-pill do plano (_openInlineCheckInOverlay).
+  // Função mantida apenas como compat para qualquer chamada residual; redireciona
+  // pro novo overlay multi-select com a primeira opção pré-selecionada.
   function _pickSportOverlay(options, cb) {
+    // Compat shim: alguns call sites podem ainda passar callback estilo single.
+    // Resolve via novo overlay e devolve apenas a primeira pill ativa via cb.
+    if (!Array.isArray(options) || options.length === 0) {
+      if (typeof cb === 'function') cb(null);
+      return;
+    }
+    if (options.length === 1) {
+      if (typeof cb === 'function') cb(options[0]);
+      return;
+    }
+    // Sem venue context aqui — delega ao caller via callback no estilo antigo.
+    // Caller deve preferir _openInlineCheckInOverlay diretamente.
     var prev = document.getElementById('venue-sport-pick-overlay');
     if (prev) prev.remove();
     var overlay = document.createElement('div');
@@ -3448,8 +3465,7 @@
     }).join('');
     overlay.innerHTML =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center;">' +
-        '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;margin-bottom:6px;">Qual modalidade agora?</div>' +
-        '<div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:14px;">Você pode estar jogando mais de uma — escolha a principal.</div>' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;margin-bottom:14px;">Selecione a modalidade</div>' +
         '<div style="display:flex;flex-wrap:wrap;justify-content:center;">' + btns + '</div>' +
         '<button class="btn btn-secondary btn-sm" onclick=\'document.getElementById("venue-sport-pick-overlay").remove(); window._venueSportPickerCb && window._venueSportPickerCb(null)\' style="margin-top:10px;">Cancelar</button>' +
       '</div>';
@@ -3459,6 +3475,85 @@
     document.body.appendChild(overlay);
     window._venueSportPickerCb = cb;
   }
+
+  // ── v0.16.40: Inline "Estou aqui agora" overlay (multi-modalidade) ──────
+  // Substitui o picker single-choice "Qual modalidade agora?". Pills toggleáveis
+  // (mesmo padrão do _openInlinePlanOverlay) — todas pré-selecionadas, usuário
+  // pode desativar as que não está jogando agora. Sem campos de horário porque
+  // "agora" é implícito (startsAt = now, endsAt = now + CHECKIN_WINDOW_MS).
+  var _pendingCheckInState = null;
+
+  function _openInlineCheckInOverlay(v, sports) {
+    _pendingCheckInState = { venue: v, sports: sports };
+    var prev = document.getElementById('venue-checkin-overlay');
+    if (prev) prev.remove();
+    var nowDate = new Date();
+    var nowLabel = String(nowDate.getHours()).padStart(2, '0') + ':' + String(nowDate.getMinutes()).padStart(2, '0');
+    var sportsPills = (sports || []).map(function(s) {
+      var safeS = _safe(s);
+      return '<button type="button" class="checkin-sport-pill" data-sport="' + safeS + '" data-active="1" ' +
+             'onclick="window._venuesToggleCheckInSport(this)" ' +
+             'style="padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:1px solid rgba(16,185,129,0.45);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;">' +
+             safeS + '</button>';
+    }).join('');
+    var overlay = document.createElement('div');
+    overlay.id = 'venue-checkin-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:22px;max-width:420px;width:100%;">' +
+        '<h3 style="margin:0 0 8px 0;color:var(--text-bright);">📍 Estou aqui agora</h3>' +
+        '<p style="margin:0 0 16px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(v.name || v.placeId) + ' · ' + nowLabel + '</p>' +
+        '<div style="margin-bottom:18px;">' +
+          '<div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:8px;">' +
+          (sports.length > 1 ? 'Modalidades (clique para ativar/desativar):' : 'Modalidade:') +
+          '</div>' +
+          '<div id="checkin-sport-pills" style="display:flex;gap:8px;flex-wrap:wrap;">' + sportsPills + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-checkin-overlay\').remove()">Cancelar</button>' +
+          '<button type="button" class="btn btn-primary" onclick="window._venuesConfirmInlineCheckIn()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;">Confirmar</button>' +
+        '</div>' +
+      '</div>';
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  // Toggle de pill de modalidade no overlay de check-in (verde, mesma UX do plano).
+  window._venuesToggleCheckInSport = function(btn) {
+    if (!btn) return;
+    var active = btn.getAttribute('data-active') === '1';
+    if (active) {
+      btn.setAttribute('data-active', '0');
+      btn.style.background = 'var(--bg-darker)';
+      btn.style.color = 'var(--text-muted)';
+      btn.style.border = '1px solid var(--border-color)';
+      btn.style.opacity = '0.55';
+      btn.style.textDecoration = 'line-through';
+    } else {
+      btn.setAttribute('data-active', '1');
+      btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+      btn.style.color = '#fff';
+      btn.style.border = '1px solid rgba(16,185,129,0.45)';
+      btn.style.opacity = '1';
+      btn.style.textDecoration = 'none';
+    }
+  };
+
+  // Confirma o check-in com as pills ativas. Bloqueia se nenhuma selecionada.
+  window._venuesConfirmInlineCheckIn = function() {
+    if (!_pendingCheckInState) return;
+    var pills = document.querySelectorAll('#checkin-sport-pills [data-sport][data-active="1"]');
+    if (pills.length === 0) {
+      if (window.showNotification) window.showNotification('Selecione ao menos uma modalidade.', '', 'warning');
+      return;
+    }
+    var sports = Array.prototype.slice.call(pills).map(function(p) { return p.getAttribute('data-sport'); });
+    var v = _pendingCheckInState.venue;
+    var ov = document.getElementById('venue-checkin-overlay');
+    if (ov) ov.remove();
+    _pendingCheckInState = null;
+    _doQuickCheckIn(v, sports);
+  };
 
   async function _doQuickCheckIn(v, sports) {
     var cu = window.AppStore && window.AppStore.currentUser;
@@ -3592,15 +3687,12 @@
   window._venuesQuickCheckIn = async function(placeId) {
     var v = await window.VenueDB.loadVenue(placeId);
     if (!v) return;
+    // v0.16.40: tela única — multi-pills sempre que há 2+ opções; direto quando só 1.
     var resolved = _pickSportForVenue(v);
-    if (resolved.needsPicker) {
-      _pickSportOverlay(resolved.options, function(picked) {
-        if (!picked) return;
-        _doQuickCheckIn(v, [picked]);
-      });
-    } else if (resolved.sports && resolved.sports.length > 0) {
-      _doQuickCheckIn(v, resolved.sports);
-    } else {
+    var sports = resolved.needsPicker
+      ? (resolved.options || [])
+      : (resolved.sports || []);
+    if (sports.length === 0) {
       // Sem modalidade nem no venue nem no perfil — manda pro fluxo completo
       // em #presence onde o picker está montado com todas as opções.
       try {
@@ -3609,7 +3701,13 @@
         }));
       } catch(e) {}
       window.location.hash = '#presence';
+      return;
     }
+    if (sports.length === 1) {
+      _doQuickCheckIn(v, sports);
+      return;
+    }
+    _openInlineCheckInOverlay(v, sports);
   };
 
   // Entrada alternativa usada no card de "Locais preferidos": quando o
@@ -3664,29 +3762,24 @@
     var cu = window.AppStore && window.AppStore.currentUser;
     var venueSports = Array.isArray(v.sports) ? v.sports.slice() : [];
     var prefSports = (cu && Array.isArray(cu.preferredSports)) ? cu.preferredSports.slice() : [];
-    // Interseção: preferidos que o venue oferece. Quando a ficha do venue
-    // ainda não existe (preferred não cadastrado), venueSports fica vazio —
-    // caímos em `prefSports` direto, que é o comportamento esperado pra um
-    // preferred do usuário: ele marcou o local + marcou os esportes; assume.
+    // v0.16.40: interseção venue ∩ preferências = pré-seleção das pills. Quando
+    // a ficha do venue ainda não existe (preferred não cadastrado), venueSports
+    // fica vazio — caímos em prefSports direto. Sem nenhum dos dois, lista padrão.
     var picks = venueSports.length > 0 && prefSports.length > 0
       ? venueSports.filter(function(s) { return prefSports.indexOf(s) !== -1; })
-      : (venueSports.length === 0 ? prefSports : []);
-    if (picks.length > 0) {
+      : (venueSports.length === 0 ? prefSports : venueSports);
+    if (picks.length === 0) {
+      if (placeId && placeId.indexOf('pref_') !== 0) {
+        window._venuesQuickCheckIn(placeId);
+        return;
+      }
+      picks = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
+    }
+    if (picks.length === 1) {
       _doQuickCheckIn(v, picks);
       return;
     }
-    // Sem picks — cai no fluxo padrão (que pode abrir picker). Quando o venue
-    // tem ficha, _venuesQuickCheckIn funciona direto; sem ficha, abrimos
-    // picker local com a lista padrão de esportes.
-    if (placeId && placeId.indexOf('pref_') !== 0) {
-      window._venuesQuickCheckIn(placeId);
-      return;
-    }
-    var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
-    _pickSportOverlay(SPORTS_LIST, function(picked) {
-      if (!picked) return;
-      _doQuickCheckIn(v, [picked]);
-    });
+    _openInlineCheckInOverlay(v, picks);
   };
 
   // Plano rápido no card preferido — mesma lógica: usa todos os preferidos
