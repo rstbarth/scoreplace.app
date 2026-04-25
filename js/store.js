@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.53-alpha';
+window.SCOREPLACE_VERSION = '0.16.54-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1045,8 +1045,24 @@ window.AppStore = {
       return true;
     } catch (err) {
       console.error('syncImmediate: FAILED to save tournament ' + tournamentId, err);
+      // v0.16.54: expor mensagem real do erro no toast (antes era genérico
+      // "Não foi possível salvar no servidor. Tente novamente." que escondia
+      // a causa). Inclui código Firestore (permission-denied, resource-
+      // exhausted, deadline-exceeded, etc.) + mensagem detalhada + tamanho
+      // estimado do doc pra detectar erros de "documento muito grande" (>1MiB).
+      var _diagMsg = '';
+      try {
+        var _code = (err && err.code) || '';
+        var _msg = (err && err.message) || String(err);
+        var _docBytes = 0;
+        try { _docBytes = new Blob([JSON.stringify(t)]).size; } catch(e2) {}
+        _diagMsg = (_code ? '[' + _code + '] ' : '') + _msg.substring(0, 200);
+        if (_docBytes > 0) _diagMsg += ' · ~' + Math.round(_docBytes / 1024) + 'KB';
+        // window expose pra inspeção
+        window._lastSaveError = { tournamentId: tournamentId, code: _code, message: _msg, docBytes: _docBytes, at: new Date().toISOString() };
+      } catch (e3) { _diagMsg = String(err); }
       if (typeof showNotification === 'function') {
-        showNotification(window._t('store.saveError'), window._t('store.saveErrorMsg'), 'error');
+        showNotification(window._t('store.saveError') + ' (v0.16.54)', _diagMsg, 'error');
       }
       return false;
     }
