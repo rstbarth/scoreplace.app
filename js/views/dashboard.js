@@ -1498,7 +1498,7 @@ function _hydrateFriendsPresenceWidget() {
   // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
   // perfil, quantos eram email vs uid, e — após a query — quantos docs
   // voltaram. Vai sumir definitivamente quando a feature estabilizar.
-  var DIAG_VERSION = 'v0.16.45';
+  var DIAG_VERSION = 'v0.16.46';
   function _diagLine(label, value, color) {
     return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
       label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
@@ -1576,37 +1576,40 @@ function _hydrateFriendsPresenceWidget() {
       renderEmpty(_diagLine('fallback', 'consultando docs por uid…', '#fbbf24'));
       if (window.FirestoreDB && window.FirestoreDB.db) {
         var nowMs = Date.now();
+        // v0.16.46: single-field query (sem orderBy) pra evitar exigência
+        // de índice composto. Ordena client-side por createdAt desc.
         var probePromises = friends.map(function(uid) {
           return window.FirestoreDB.db.collection('presences')
             .where('uid', '==', uid)
-            .orderBy('createdAt', 'desc')
-            .limit(3)
+            .limit(50)
             .get()
             .then(function(snap) {
-              var info = { uid: uid, total: 0, active: 0, cancelled: 0, expired: 0, future: 0, latest: null };
-              snap.forEach(function(doc) {
-                var d = doc.data();
-                info.total++;
+              var docs = [];
+              snap.forEach(function(doc) { docs.push(doc.data()); });
+              docs.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+              var info = { uid: uid, total: docs.length, active: 0, cancelled: 0, expired: 0, future: 0, latest: null };
+              docs.forEach(function(d) {
                 if (d.cancelled) info.cancelled++;
                 else if (!d.endsAt || d.endsAt <= nowMs) info.expired++;
                 else if (d.startsAt && d.startsAt > nowMs + 48 * 3600 * 1000) info.future++;
                 else info.active++;
-                if (!info.latest) {
-                  info.latest = {
-                    type: d.type,
-                    venueName: d.venueName,
-                    startsAt: d.startsAt ? new Date(d.startsAt).toLocaleString('pt-BR') : 'N/A',
-                    endsAt: d.endsAt ? new Date(d.endsAt).toLocaleString('pt-BR') : 'N/A',
-                    cancelled: !!d.cancelled,
-                    visibility: d.visibility || '(none)',
-                    docHasUid: !!d.uid,
-                    docUid: d.uid || '(empty)'
-                  };
-                }
               });
+              if (docs[0]) {
+                var d0 = docs[0];
+                info.latest = {
+                  type: d0.type,
+                  venueName: d0.venueName,
+                  startsAt: d0.startsAt ? new Date(d0.startsAt).toLocaleString('pt-BR') : 'N/A',
+                  endsAt: d0.endsAt ? new Date(d0.endsAt).toLocaleString('pt-BR') : 'N/A',
+                  cancelled: !!d0.cancelled,
+                  visibility: d0.visibility || '(none)',
+                  docHasUid: !!d0.uid,
+                  docUid: d0.uid || '(empty)'
+                };
+              }
               return info;
             })
-            .catch(function(e) { return { uid: uid, error: String(e && e.message || e) }; });
+            .catch(function(e) { return { uid: uid, error: String(e && e.message || e).substring(0, 200) }; });
         });
         Promise.all(probePromises).then(function(results) {
           var lines = '';
