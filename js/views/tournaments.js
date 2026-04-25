@@ -771,16 +771,20 @@ function renderTournaments(container, tournamentId = null) {
         const isLigaOpenEnroll = isLigaFormat && t.ligaOpenEnrollment !== false;
         const toggleRegBtn = (!hasDraw && !isLigaOpenEnroll && isOrg) ? `<button class="btn ${t.status === 'closed' ? 'btn-success' : 'btn-danger'} hover-lift" onclick="event.stopPropagation(); window.toggleRegistrationStatus('${t.id}')">${t.status === 'closed' ? '✅ ' + _t('org.reopenRegistration') : '🛑 ' + _t('org.closeRegistration')}</button>` : '';
 
-        const isAutoDrawFormat = isSuicoFormat || (isLigaFormat && !t.drawManual && t.drawFirstDate);
+        // v0.16.55: Liga com sorteio automático (drawManual !== true) nunca mostra
+        // botão Sortear nas ferramentas — o auto-draw cuida de tudo. Antes a
+        // primeira branch testava `t.drawManual` DENTRO de `!t.drawManual` (dead
+        // code) e Liga sem `drawFirstDate` configurada caía no else e mostrava
+        // Sortear, confundindo o organizador. Agora regra é simples: Liga auto
+        // = sem botão manual; Liga manual ou outros formatos = botão conforme
+        // estado de inscrição/sorteio.
+        const isLigaAutoDraw = isLigaFormat && t.drawManual !== true;
+        const isAutoDrawFormat = isSuicoFormat || isLigaAutoDraw;
         let sortearBtn = '';
         let sortearAberto = '';
         if (isOrg) {
-            if (isLigaFormat && !t.drawManual && t.drawFirstDate) {
-                if (t.drawManual && !hasDraw) {
-                    sortearAberto = `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear Rodada</button>`;
-                } else if (t.drawManual && hasDraw) {
-                    sortearBtn = `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
-                }
+            if (isLigaAutoDraw) {
+                // Sem botão manual — auto-draw fica responsável.
             } else if (isLigaFormat && t.drawManual) {
                 sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
                 sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
