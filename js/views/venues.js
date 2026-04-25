@@ -2917,24 +2917,37 @@
     setTimeout(function() {
       var startEl = document.getElementById('venue-plan-start');
       var endEl = document.getElementById('venue-plan-end');
-      if (startEl) startEl.value = defStartStr;
-      if (endEl) endEl.value = defEndStr;
-      var autoEndValue = defEndStr;
+      if (startEl) {
+        startEl.value = defStartStr;
+        // v0.16.37: dataset.autoValue permite ao toggle Hoje/Amanhã saber se
+        // Chegada ainda é o default (pode reescrever) ou foi editada manualmente
+        // (deve preservar). Closure local não basta porque o toggle é window-scoped.
+        startEl.dataset.autoValue = defStartStr;
+      }
+      if (endEl) {
+        endEl.value = defEndStr;
+        endEl.dataset.autoValue = defEndStr;
+      }
       if (startEl && endEl) {
         startEl.addEventListener('input', function() {
+          // v0.16.37: usuário editou Chegada manualmente — para de auto-tracker
+          // pra que toggle Hoje/Amanhã não sobrescreva sua escolha.
+          if (startEl.value !== startEl.dataset.autoValue) {
+            startEl.dataset.autoValue = '';
+          }
           var suggested = _plusTwoHours(startEl.value);
           if (!suggested) return;
           // só atualiza Saída se o valor atual = último auto-set (= usuário
           // não editou manualmente). Isso preserva escolhas manuais válidas.
-          if (endEl.value === autoEndValue) {
+          if (endEl.value === endEl.dataset.autoValue) {
             endEl.value = suggested;
-            autoEndValue = suggested;
+            endEl.dataset.autoValue = suggested;
           }
         });
         // Se o usuário editar Saída diretamente, invalida o auto-tracking
         // pra que mudanças subsequentes em Chegada não sobrescrevam.
         endEl.addEventListener('input', function() {
-          if (endEl.value !== autoEndValue) autoEndValue = null;
+          if (endEl.value !== endEl.dataset.autoValue) endEl.dataset.autoValue = '';
         });
       }
     }, 0);
@@ -3049,6 +3062,8 @@
   // Permite planejar com 1 dia de antecedência. Comportamento radio: ativar
   // um desativa o outro. O dia escolhido é lido em _venuesConfirmInlinePlan
   // pra construir startsAt/endsAt no dia certo.
+  // v0.16.37: ao clicar em Amanhã, sugere Chegada=07:00 (se ainda for o auto-value).
+  // Hoje volta a sugerir now+2h. Saída recalcula via tracking de autoValue.
   window._venuesTogglePlanDay = function(btn) {
     if (!btn) return;
     var pills = document.querySelectorAll('#plan-day-pills [data-day]');
@@ -3062,6 +3077,31 @@
     btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
     btn.style.color = '#fff';
     btn.style.border = '1px solid rgba(99,102,241,0.45)';
+
+    // v0.16.37: ajustar Chegada baseado no dia escolhido (preserva edição manual)
+    var day = btn.getAttribute('data-day');
+    var startEl = document.getElementById('venue-plan-start');
+    var endEl = document.getElementById('venue-plan-end');
+    if (!startEl || !endEl) return;
+    var stillAuto = startEl.dataset.autoValue && startEl.value === startEl.dataset.autoValue;
+    if (!stillAuto) return; // usuário editou manualmente — não mexer
+    var newStart;
+    if (day === 'tomorrow') {
+      newStart = '07:00';
+    } else {
+      var n = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      newStart = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    }
+    startEl.value = newStart;
+    startEl.dataset.autoValue = newStart;
+    // Recalcular Saída se ainda for o auto-value (inline +2h, helper é closure-local)
+    if (endEl.dataset.autoValue && endEl.value === endEl.dataset.autoValue) {
+      var parts = newStart.split(':');
+      var nh = parseInt(parts[0], 10) + 2;
+      var newEnd = (nh >= 24) ? '23:30' : String(nh).padStart(2, '0') + ':' + parts[1];
+      endEl.value = newEnd;
+      endEl.dataset.autoValue = newEnd;
+    }
   };
 
   window._venuesConfirmInlinePlan = async function() {
