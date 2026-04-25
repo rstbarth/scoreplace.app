@@ -821,6 +821,59 @@ function renderDashboard(container) {
       if (typeof showNotification === 'function') showNotification('❌ Re-fetch falhou', String(e && e.message || e).substring(0, 200), 'error');
     });
   };
+  // v0.16.61: query diagnóstica SEM filtro pra ver TODOS os torneios no banco
+  // (até 10). Resolve a pergunta "o banco tá vazio mesmo, ou só não tem com
+  // isPublic === true?". Mostra resultado em alertDialog grande pra o user
+  // tirar screenshot. Auth user tem read em qualquer doc (rule permite).
+  window._dashDiagnoseTournaments = async function() {
+    if (!window.FirestoreDB || !window.FirestoreDB.db) {
+      if (typeof showNotification === 'function') showNotification('Erro', 'Firestore.db não disponível', 'error');
+      return;
+    }
+    if (typeof showNotification === 'function') showNotification('🔍 Diagnosticando…', 'Lendo até 10 torneios sem filtro…', 'info');
+    try {
+      var snap = await window.FirestoreDB.db.collection('tournaments').limit(10).get();
+      var items = [];
+      snap.forEach(function(doc) {
+        var d = doc.data() || {};
+        items.push({
+          id: doc.id.substring(0, 30),
+          name: (d.name || '(sem nome)').substring(0, 40),
+          isPublic: d.isPublic,
+          isPublicType: typeof d.isPublic,
+          status: d.status || '(undefined)',
+          createdAt: d.createdAt ? String(d.createdAt).substring(0, 25) : '(sem)',
+          organizerEmail: d.organizerEmail || '(sem)',
+          memberEmailsCount: Array.isArray(d.memberEmails) ? d.memberEmails.length : -1
+        });
+      });
+      var totalSnap = snap.size;
+      var publicTrue = items.filter(function(x) { return x.isPublic === true; }).length;
+      var publicTruthy = items.filter(function(x) { return !!x.isPublic; }).length;
+      var msg = 'TOTAL no banco (limit 10): ' + totalSnap + '\n' +
+                'isPublic === true (boolean): ' + publicTrue + '\n' +
+                'isPublic truthy (qualquer): ' + publicTruthy + '\n\n' +
+                'Amostra:\n' +
+                items.slice(0, 5).map(function(x, i) {
+                  return (i+1) + '. "' + x.name + '"\n' +
+                    '   id=' + x.id + '\n' +
+                    '   isPublic=' + JSON.stringify(x.isPublic) + ' (' + x.isPublicType + ')\n' +
+                    '   status=' + x.status + '\n' +
+                    '   org=' + x.organizerEmail + '\n' +
+                    '   memberEmails.length=' + x.memberEmailsCount;
+                }).join('\n\n');
+      console.log('[Discovery v0.16.61 diag]', items);
+      if (typeof showAlertDialog === 'function') {
+        showAlertDialog('🔍 Diagnose torneios (v0.16.61)', '<pre style="font-size:0.7rem;white-space:pre-wrap;text-align:left;font-family:monospace;line-height:1.4;">' + msg.replace(/</g, '&lt;') + '</pre>');
+      } else {
+        alert(msg);
+      }
+    } catch (e) {
+      var em = String(e && e.message || e);
+      console.error('[Discovery v0.16.61 diag] FAILED', e);
+      if (typeof showNotification === 'function') showNotification('❌ Diagnose falhou', em.substring(0, 200), 'error');
+    }
+  };
   window._loadMoreDiscovery = function() {
     if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') return;
     window.AppStore.loadPublicDiscovery({ append: true }).then(function() {
@@ -1359,7 +1412,10 @@ function renderDashboard(container) {
           _diagLineD('após filtro modalidade — finished', _finishedDiscovery.length) +
           (_afterDedup === 0 && _allCount === 0 ? _diagLineD('sugestão', 'discovery vazio. Verifique erro acima ou re-fetch automático ainda não rodou.', '#fbbf24') : '') +
           (_afterDedup > 0 && _inProgress.length === 0 && _byCat.inProgress.length > 0 ? _diagLineD('atenção', 'tem ' + _byCat.inProgress.length + ' em andamento mas filtro de modalidade derrubou todos. Cheque preferredSports vs sport do torneio.', '#fbbf24') : '') +
-          '<button onclick="window._dashForceFetchDiscovery && window._dashForceFetchDiscovery()" style="margin-top:8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔄 Forçar re-fetch agora</button>' +
+          '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">' +
+            '<button onclick="window._dashForceFetchDiscovery && window._dashForceFetchDiscovery()" style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔄 Forçar re-fetch</button>' +
+            '<button onclick="window._dashDiagnoseTournaments && window._dashDiagnoseTournaments()" style="background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔍 Diagnose banco (v0.16.61)</button>' +
+          '</div>' +
         '</div>' +
       '</details>';
       // v0.16.60: diag SEMPRE renderiza. Se não estamos no filtro 'todos',
