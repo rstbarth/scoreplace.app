@@ -803,6 +803,24 @@ function renderDashboard(container) {
     var c = document.getElementById('view-container');
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
+  // v0.16.60: força re-fetch ignorando throttle. Botão visível no diag.
+  window._dashForceFetchDiscovery = function() {
+    if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') {
+      if (typeof showNotification === 'function') showNotification('Erro', 'AppStore.loadPublicDiscovery não disponível', 'error');
+      return;
+    }
+    window.AppStore._publicDiscoveryLastFetch = 0; // reset throttle
+    if (typeof showNotification === 'function') showNotification('🔄 Buscando torneios públicos…', '', 'info');
+    window.AppStore.loadPublicDiscovery().then(function() {
+      var n = (window.AppStore.publicDiscovery || []).length;
+      if (typeof showNotification === 'function') showNotification('✅ Re-fetch completo', n + ' torneios públicos no feed', 'success');
+      var c = document.getElementById('view-container');
+      if (c && typeof renderDashboard === 'function') renderDashboard(c);
+    }).catch(function(e) {
+      window._lastDiscoveryError = String(e && e.message || e);
+      if (typeof showNotification === 'function') showNotification('❌ Re-fetch falhou', String(e && e.message || e).substring(0, 200), 'error');
+    });
+  };
   window._loadMoreDiscovery = function() {
     if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') return;
     window.AppStore.loadPublicDiscovery({ append: true }).then(function() {
@@ -1282,18 +1300,13 @@ function renderDashboard(container) {
       ${(window._dashView === 'compact') ? '<div class="compact-list">' + _buildCompactList(filtered) + '</div>' : '<div class="cards-grid">' + filteredHtml + '</div>'}
     </div>
     ${(() => {
-      // v0.16.57: 3 seções extras do discovery feed quando estamos no filtro
-      // 'todos' SEM filtros secundários ativos. Mostra torneios públicos que
-      // não cabem no bloco principal (que só tem inscrições abertas + meus).
-      // Ordem solicitada pelo usuário:
-      //   1. (no bloco principal acima): inscrições abertas
-      //   2. Em andamento (sorteio realizado, não finished)
-      //   3. Inscrições encerradas mas não iniciado
-      //   4. Encerrados (em <details> colapsado)
-      // Filtra por modalidade preferida do usuário quando há `cu.preferredSports`
-      // — atende "interesse na modalidade". Sem preferências, mostra todos.
+      // v0.16.60: diag SEMPRE visível, independente de filtro — usuário
+      // reportou "nelson ainda nao ve torneio algum" mas o diag da v0.16.59
+      // ficava escondido se tivesse filtro ativo. Agora o diag sempre
+      // aparece; apenas as 3 seções extras (em andamento, fechadas-sem-início,
+      // encerrados) ficam restritas ao filtro 'todos'.
       var _curFilter = window._dashFilter || 'todos';
-      if (_curFilter !== 'todos' || curSport || curLocation || curFormat) return '';
+      var _showExtraSections = (_curFilter === 'todos' && !curSport && !curLocation && !curFormat);
       var _cuPref = window.AppStore && window.AppStore.currentUser;
       var _prefSports = (_cuPref && Array.isArray(_cuPref.preferredSports))
         ? _cuPref.preferredSports.map(function(s) { return cleanSportName(s); }).filter(Boolean)
@@ -1314,7 +1327,7 @@ function renderDashboard(container) {
       // v0.16.59: diag inline pro caso "Nelson não vê torneios públicos do
       // Rodrigo". Mostra contagem em cada estágio do pipeline pra identificar
       // onde o filtro está sumindo com o torneio.
-      var _DIAG_VERSION = 'v0.16.59';
+      var _DIAG_VERSION = 'v0.16.60';
       var _diagLineD = function(label, value, color) {
         return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
           label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
@@ -1322,11 +1335,19 @@ function renderDashboard(container) {
       var _allCount = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery)) ? window.AppStore.publicDiscovery.length : 0;
       var _afterDedup = discoveryDedup.length;
       var _byCat = discoveryByCategory;
-      var _diagD = '<details style="margin:8px 0;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
+      var _lastErr = window._lastDiscoveryError || '';
+      var _hasFirestoreDB = !!(window.FirestoreDB && window.FirestoreDB.db);
+      var _hasNewLoader = !!(window.FirestoreDB && typeof window.FirestoreDB.loadAllPublicTournaments === 'function');
+      var _myEmail = (window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.email) || '(sem email)';
+      var _diagD = '<details open style="margin:8px 0;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
         '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico discovery ' + _DIAG_VERSION + '</summary>' +
         '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
           _diagLineD('versão renderer', _DIAG_VERSION) +
+          _diagLineD('email logado', _myEmail) +
+          _diagLineD('FirestoreDB.db disponível', _hasFirestoreDB ? 'sim' : 'NÃO', _hasFirestoreDB ? '#10b981' : '#f87171') +
+          _diagLineD('loadAllPublicTournaments existe', _hasNewLoader ? 'sim' : 'NÃO', _hasNewLoader ? '#10b981' : '#f87171') +
           _diagLineD('cu.publicDiscovery raw', _allCount, _allCount > 0 ? '#10b981' : '#f87171') +
+          _diagLineD('último erro de fetch', _lastErr || '(nenhum)', _lastErr ? '#f87171' : 'var(--text-muted)') +
           _diagLineD('após dedup vs próprios', _afterDedup) +
           _diagLineD('preferredSports do user', _prefSports.length > 0 ? _prefSports.join(', ') : '(nenhuma — sem filtro)', _prefSports.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
           _diagLineD('cat: open (sem filtro)', _byCat.open.length) +
@@ -1336,11 +1357,17 @@ function renderDashboard(container) {
           _diagLineD('após filtro modalidade — inProgress', _inProgress.length) +
           _diagLineD('após filtro modalidade — closedNoStart', _closedNoStart.length) +
           _diagLineD('após filtro modalidade — finished', _finishedDiscovery.length) +
-          (_afterDedup === 0 && _allCount === 0 ? _diagLineD('sugestão', 'discovery vazio. Login pode estar antigo (loadPublicDiscovery só roda no login). v0.16.59 re-fetch automático.', '#fbbf24') : '') +
+          (_afterDedup === 0 && _allCount === 0 ? _diagLineD('sugestão', 'discovery vazio. Verifique erro acima ou re-fetch automático ainda não rodou.', '#fbbf24') : '') +
           (_afterDedup > 0 && _inProgress.length === 0 && _byCat.inProgress.length > 0 ? _diagLineD('atenção', 'tem ' + _byCat.inProgress.length + ' em andamento mas filtro de modalidade derrubou todos. Cheque preferredSports vs sport do torneio.', '#fbbf24') : '') +
+          '<button onclick="window._dashForceFetchDiscovery && window._dashForceFetchDiscovery()" style="margin-top:8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔄 Forçar re-fetch agora</button>' +
         '</div>' +
       '</details>';
-      // Sempre mostra o diag mesmo quando categorias vazias — ajuda Nelson a ver POR QUE não tá vendo nada.
+      // v0.16.60: diag SEMPRE renderiza. Se não estamos no filtro 'todos',
+      // só o diag aparece (nada de seções extras).
+      if (!_showExtraSections) {
+        return '<div style="margin-top:0.5rem;">' + _diagD + '</div>';
+      }
+      // Sem dados em nenhuma categoria mas estamos em 'todos' — mostra só diag.
       if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) {
         return '<div style="margin-top:0.5rem;">' + _diagD + '</div>';
       }
@@ -1376,29 +1403,31 @@ function renderDashboard(container) {
   _hydrateMyActivePresenceWidget();
   _hydrateFriendsPresenceWidget();
 
-  // v0.16.59: re-fetch do discovery feed quando dashboard renderiza pra
-  // pegar torneios novos do Rodrigo (ou outros) que podem ter sido criados
-  // depois do login do Nelson. Antes só rodava 1x no login (auth.js:1123)
-  // — Nelson logado a horas atrás não via torneios criados depois. Limita
-  // o spam: só re-fetch se já passou ≥30s do último.
+  // v0.16.60: re-fetch do discovery feed sempre que renderiza dashboard.
+  // Throttle de 15s (bem mais agressivo que v0.16.59 que era 30s) E ignora
+  // throttle quando publicDiscovery está vazio (force fetch quando tem
+  // motivo claro pra estar vazio — Nelson não vê NADA).
   if (window.AppStore && typeof window.AppStore.loadPublicDiscovery === 'function') {
+    var _curLen = (window.AppStore.publicDiscovery || []).length;
     var _lastFetch = window.AppStore._publicDiscoveryLastFetch || 0;
-    if (Date.now() - _lastFetch > 30000) {
+    var _force = _curLen === 0; // sem dados = sempre re-fetch, sem throttle
+    if (_force || Date.now() - _lastFetch > 15000) {
       window.AppStore._publicDiscoveryLastFetch = Date.now();
+      console.log('[Discovery v0.16.60] re-fetch disparado', { curLen: _curLen, force: _force, msSinceLast: Date.now() - _lastFetch });
       window.AppStore.loadPublicDiscovery().then(function() {
-        // Re-render se ainda estamos no dashboard
+        var newLen = (window.AppStore.publicDiscovery || []).length;
+        console.log('[Discovery v0.16.60] re-fetch retornou', { newLen: newLen, oldLen: _curLen });
+        // Re-render se ainda estamos no dashboard E o count mudou.
         if (window.location.hash === '' || window.location.hash === '#' || window.location.hash.indexOf('#dashboard') === 0) {
-          var c = document.getElementById('view-container');
-          if (c && typeof renderDashboard === 'function') {
-            // Evita loop infinito: só re-renderiza se o número de itens mudou
-            var newLen = (window.AppStore.publicDiscovery || []).length;
-            if (newLen !== window._lastDiscoveryLen) {
-              window._lastDiscoveryLen = newLen;
-              renderDashboard(c);
-            }
+          if (newLen !== _curLen) {
+            var c = document.getElementById('view-container');
+            if (c && typeof renderDashboard === 'function') renderDashboard(c);
           }
         }
-      }).catch(function(e) { console.warn('[discovery refresh]', e); });
+      }).catch(function(e) {
+        console.error('[Discovery v0.16.60] re-fetch FAILED', e);
+        window._lastDiscoveryError = String(e && e.message || e);
+      });
     }
   }
 
