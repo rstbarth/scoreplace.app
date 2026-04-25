@@ -45,6 +45,14 @@ try {
   } else if (firebase.auth && firebase.auth.GoogleAuthProvider) {
     authProvider = new firebase.auth.GoogleAuthProvider();
   }
+  // v0.16.38: força o seletor de conta Google a aparecer SEMPRE no popup.
+  // Sem isso, usuários com múltiplas contas Google (ex: pessoal + trabalho)
+  // entram automaticamente na última conta usada, sem chance de escolher.
+  // 'select_account' obriga Google a mostrar o picker mesmo quando há sessão
+  // ativa — comportamento esperado após logoff explícito do app.
+  if (authProvider && typeof authProvider.setCustomParameters === 'function') {
+    authProvider.setCustomParameters({ prompt: 'select_account' });
+  }
   // Force LOCAL persistence so auth survives page reloads in Safari/ITP contexts.
   // (LOCAL is already the default, but Safari sometimes downgrades silently —
   // setting it explicitly also surfaces storage-blocked errors early.)
