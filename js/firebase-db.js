@@ -353,9 +353,16 @@ window.FirestoreDB = {
         var d = doc.data();
         if (!d) return;
         // Aceita status ausente (legacy) ou explicitamente 'open'.
-        // Bloqueia status 'closed', 'finished', 'active' (em andamento).
+        // Bloqueia status 'closed', 'finished', 'active' (em andamento) —
+        // EXCETO Liga/Ranking que aceita inscrição mesmo com sorteio iniciado
+        // (status='active') desde que ligaOpenEnrollment !== false.
+        // v0.16.53: bug onde Liga pública sumia do feed de descoberta assim
+        // que o organizador iniciava a 1ª rodada — Nelson não conseguia ver
+        // Liga pública criada por Rodrigo porque status virou 'active'.
         var st = d.status;
-        var isOpen = !st || st === 'open';
+        var isLigaFmt = d.format === 'Liga' || d.format === 'Ranking' || d.format === 'liga' || d.format === 'ranking';
+        var ligaStillOpen = isLigaFmt && d.ligaOpenEnrollment !== false && st !== 'closed' && st !== 'finished';
+        var isOpen = !st || st === 'open' || ligaStillOpen;
         if (!isOpen) return;
         // Lastdoc sempre avança mesmo quando filtrado — precisa pra cursor
         // funcionar corretamente na próxima página.
