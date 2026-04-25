@@ -2872,7 +2872,21 @@
         '</div>'
       : '<div id="plan-sport-pills" style="display:none;"></div>';
     // v0.16.24: contextLine não repete mais a modalidade — ela já aparece na pill acima.
-    var contextLine = _safe(v.name || v.placeId) + ' · hoje';
+    // v0.16.36: removido "· hoje" hardcoded — o seletor Hoje/Amanhã abaixo
+    // comunica o dia escolhido sem conflito de informação.
+    var contextLine = _safe(v.name || v.placeId);
+    // v0.16.36: pills Hoje/Amanhã (excludentes) acima do horário. Permitem ao
+    // usuário planejar com 1 dia de antecedência e avisar amigos. Default = Hoje.
+    var dayBlock =
+      '<div style="margin-bottom:12px;">' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">Quando:</div>' +
+        '<div id="plan-day-pills" style="display:flex;gap:6px;">' +
+          '<button type="button" data-day="today" data-active="1" onclick="window._venuesTogglePlanDay(this)" ' +
+            'style="padding:6px 16px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:1px solid rgba(99,102,241,0.45);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.15s;">Hoje</button>' +
+          '<button type="button" data-day="tomorrow" data-active="0" onclick="window._venuesTogglePlanDay(this)" ' +
+            'style="padding:6px 16px;border-radius:999px;background:var(--bg-darker);color:var(--text-muted);border:1px solid var(--border-color);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.15s;">Amanhã</button>' +
+        '</div>' +
+      '</div>';
     var uniqSuffix = Date.now() + '-' + Math.floor(Math.random() * 10000);
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
@@ -2883,6 +2897,7 @@
         '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
+          dayBlock +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
             '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
             '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Saída <span style="font-weight:400;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;"></label>' +
@@ -3030,6 +3045,25 @@
     }
   };
 
+  // v0.16.36: toggle excludente Hoje/Amanhã no modal Planejar ida.
+  // Permite planejar com 1 dia de antecedência. Comportamento radio: ativar
+  // um desativa o outro. O dia escolhido é lido em _venuesConfirmInlinePlan
+  // pra construir startsAt/endsAt no dia certo.
+  window._venuesTogglePlanDay = function(btn) {
+    if (!btn) return;
+    var pills = document.querySelectorAll('#plan-day-pills [data-day]');
+    pills.forEach(function(el) {
+      el.setAttribute('data-active', '0');
+      el.style.background = 'var(--bg-darker)';
+      el.style.color = 'var(--text-muted)';
+      el.style.border = '1px solid var(--border-color)';
+    });
+    btn.setAttribute('data-active', '1');
+    btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+    btn.style.color = '#fff';
+    btn.style.border = '1px solid rgba(99,102,241,0.45)';
+  };
+
   window._venuesConfirmInlinePlan = async function() {
     if (!_pendingPlanState) return;
     var cu = window.AppStore && window.AppStore.currentUser;
@@ -3059,10 +3093,15 @@
     var startStr = (document.getElementById('venue-plan-start') || {}).value;
     var endStr = (document.getElementById('venue-plan-end') || {}).value;
     if (!startStr) return;
-    var now = new Date();
+    // v0.16.36: lê o dia escolhido nas pills (Hoje/Amanhã). Default = hoje.
+    var selectedDay = 'today';
+    var dayBtn = document.querySelector('#plan-day-pills [data-day][data-active="1"]');
+    if (dayBtn) selectedDay = dayBtn.getAttribute('data-day') || 'today';
+    var baseDate = new Date();
+    if (selectedDay === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
     var build = function(hm) {
       var parts = hm.split(':').map(Number);
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0, 0);
+      var d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), parts[0] || 0, parts[1] || 0, 0, 0);
       return d.getTime();
     };
     var startsAt = build(startStr);
@@ -3109,7 +3148,8 @@
       var d1 = new Date(startsAt);
       var d2 = new Date(endsAt);
       var hm = function(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
-      var timeLabel = 'hoje · ' + hm(d1) + (openEnded ? '' : ' – ' + hm(d2));
+      var dayLabel = (selectedDay === 'tomorrow') ? 'amanhã' : 'hoje';
+      var timeLabel = dayLabel + ' · ' + hm(d1) + (openEnded ? '' : ' – ' + hm(d2));
       // v0.16.26: toast leve em vez de overlay bloqueante. O foco visual fica
       // no card colapsado + gráfico de barras logo abaixo (via focusedPreferred
       // abaixo), com o botão "Cancelar plano" já inline no próprio card.
@@ -3170,8 +3210,15 @@
     var sportLabel = (Array.isArray(payload.sports) && payload.sports.length > 0)
       ? payload.sports.join('/')
       : 'algo';
+    // v0.16.36: detecta se o plano é pra hoje ou amanhã pra rotular a notificação
+    // corretamente. Compara dia/mês/ano (não basta diff em ms — meia-noite truncada).
+    var nowD = new Date();
+    var sameDay = (d.getFullYear() === nowD.getFullYear() &&
+                   d.getMonth() === nowD.getMonth() &&
+                   d.getDate() === nowD.getDate());
+    var dayLabel = sameDay ? 'hoje' : 'amanhã';
     var msg = (cu.displayName || 'Um amigo') + ' vai jogar ' + sportLabel +
-      ' em ' + (payload.venueName || 'um local') + ' às ' + hhmm + ' hoje. Quer ir junto?';
+      ' em ' + (payload.venueName || 'um local') + ' às ' + hhmm + ' ' + dayLabel + '. Quer ir junto?';
     friends.forEach(function(friendUid) {
       if (!friendUid) return;
       window._sendUserNotification(friendUid, {
