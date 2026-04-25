@@ -236,7 +236,14 @@ function handleGoogleLogin() {
   // handles popup auth via postMessage without requiring 3rd-party cookies.
   // If popup fails (blocked, unsupported, cookies disabled), the error handler
   // falls back to signInWithRedirect.
-  console.log('[scoreplace-auth] Google popup starting... UA:', navigator.userAgent);
+  // v0.16.39: re-aplica setCustomParameters('select_account') JUST-IN-TIME no
+  // momento do clique. Belt+suspenders contra qualquer reset do provider entre
+  // a inicialização do módulo e a hora do clique. Garante que o picker de
+  // contas Google aparece SEMPRE, mesmo após logoff explícito do app.
+  if (authProvider && typeof authProvider.setCustomParameters === 'function') {
+    authProvider.setCustomParameters({ prompt: 'select_account' });
+  }
+  console.log('[scoreplace-auth] Google popup starting (prompt=select_account)... UA:', navigator.userAgent);
   firebase.auth().signInWithPopup(authProvider)
     .then(function(result) {
       var user = result.user;
@@ -274,6 +281,10 @@ function handleGoogleLogin() {
       console.error('[scoreplace-auth] Firebase auth error:', error);
       // Popup blocked / failed — fall back to redirect flow so the user can still log in.
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment' || error.code === 'auth/web-storage-unsupported') {
+        // v0.16.39: garante prompt=select_account também no fallback de redirect
+        if (authProvider && typeof authProvider.setCustomParameters === 'function') {
+          authProvider.setCustomParameters({ prompt: 'select_account' });
+        }
         firebase.auth().signInWithRedirect(authProvider).catch(function(err2) {
           console.error('Redirect fallback error:', err2);
           showNotification(_t('auth.popupBlocked'), _t('auth.popupBlockedMsg'), 'error');
