@@ -404,27 +404,42 @@ window.FirestoreDB = {
     opts = opts || {};
     var limit = Math.max(1, Math.min(100, opts.limit || 50));
     try {
+      // v0.16.62: REMOVIDO `.orderBy('createdAt', 'desc')` da query Firestore.
+      // Causa-raiz do bug "Nelson não vê torneios públicos" mesmo com Liga
+      // existindo no banco com isPublic=true: Firestore EXCLUI docs do
+      // resultado de orderBy quando o campo de ordenação está ausente OU
+      // num tipo inconsistente. Como `createdAt` é salvo como ISO string
+      // em alguns paths, mas pode estar undefined em docs criados via
+      // outros caminhos (ou via update sem o campo), a query orderBy zerava
+      // tudo silenciosamente. Fix: query single-field `where('isPublic',
+      // '==', true).limit(N)` SEM orderBy. Ordenação por createdAt vira
+      // client-side. Custo: paginação por cursor não funciona temporaria-
+      // mente (volume alpha é baixo, aceitável). Quando crescer a base,
+      // backfill `createdAt` em todos os docs e voltar pro orderBy server-side.
       var q = this.db.collection('tournaments')
         .where('isPublic', '==', true)
-        .orderBy('createdAt', 'desc');
-      if (opts.cursor) q = q.startAfter(opts.cursor);
-      q = q.limit(limit + 1);
+        .limit(limit + 1);
       var snap = await q.get();
       var tournaments = [];
-      var lastDoc = null;
-      var count = 0;
       snap.forEach(function(doc) {
-        if (count >= limit) return;
         var d = doc.data();
         if (!d) return;
+        d._docId = doc.id;
         tournaments.push(d);
-        lastDoc = doc;
-        count++;
       });
+      // Sort client-side por createdAt desc. Docs sem createdAt vão pro fim.
+      tournaments.sort(function(a, b) {
+        var aT = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        var bT = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bT - aT;
+      });
+      var hasMore = tournaments.length > limit;
+      if (hasMore) tournaments = tournaments.slice(0, limit);
+      console.log('[loadAllPublicTournaments v0.16.62]', { snapSize: snap.size, returned: tournaments.length, hasMore: hasMore });
       return {
         tournaments: tournaments,
-        nextCursor: lastDoc,
-        hasMore: snap.size > limit
+        nextCursor: null, // paginação por cursor desabilitada temporariamente
+        hasMore: hasMore
       };
     } catch (e) {
       console.error('Erro ao carregar todos os torneios públicos:', e);
