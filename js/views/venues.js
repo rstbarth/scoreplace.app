@@ -3438,43 +3438,9 @@
     return { needsPicker: true, options: venueSports };
   }
 
-  // v0.16.40: removido o picker single-choice "Qual modalidade agora?" — agora
-  // o check-in usa o mesmo padrão multi-pill do plano (_openInlineCheckInOverlay).
-  // Função mantida apenas como compat para qualquer chamada residual; redireciona
-  // pro novo overlay multi-select com a primeira opção pré-selecionada.
-  function _pickSportOverlay(options, cb) {
-    // Compat shim: alguns call sites podem ainda passar callback estilo single.
-    // Resolve via novo overlay e devolve apenas a primeira pill ativa via cb.
-    if (!Array.isArray(options) || options.length === 0) {
-      if (typeof cb === 'function') cb(null);
-      return;
-    }
-    if (options.length === 1) {
-      if (typeof cb === 'function') cb(options[0]);
-      return;
-    }
-    // Sem venue context aqui — delega ao caller via callback no estilo antigo.
-    // Caller deve preferir _openInlineCheckInOverlay diretamente.
-    var prev = document.getElementById('venue-sport-pick-overlay');
-    if (prev) prev.remove();
-    var overlay = document.createElement('div');
-    overlay.id = 'venue-sport-pick-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10020;display:flex;align-items:center;justify-content:center;padding:16px;';
-    var btns = options.map(function(s) {
-      return '<button class="btn btn-primary hover-lift" onclick=\'document.getElementById("venue-sport-pick-overlay").remove(); window._venueSportPickerCb && window._venueSportPickerCb("' + _safe(s) + '")\' style="margin:4px;">' + _safe(s) + '</button>';
-    }).join('');
-    overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center;">' +
-        '<div style="font-weight:800;color:var(--text-bright);font-size:1rem;margin-bottom:14px;">Selecione a modalidade</div>' +
-        '<div style="display:flex;flex-wrap:wrap;justify-content:center;">' + btns + '</div>' +
-        '<button class="btn btn-secondary btn-sm" onclick=\'document.getElementById("venue-sport-pick-overlay").remove(); window._venueSportPickerCb && window._venueSportPickerCb(null)\' style="margin-top:10px;">Cancelar</button>' +
-      '</div>';
-    overlay.addEventListener('click', function(ev) {
-      if (ev.target === overlay) { overlay.remove(); if (window._venueSportPickerCb) window._venueSportPickerCb(null); }
-    });
-    document.body.appendChild(overlay);
-    window._venueSportPickerCb = cb;
-  }
+  // v0.16.41: _pickSportOverlay removido por completo — todos os call sites
+  // (check-in e plano) agora abrem direto o overlay multi-pill correspondente
+  // (_openInlineCheckInOverlay verde / _openInlinePlanOverlay índigo).
 
   // ── v0.16.40: Inline "Estou aqui agora" overlay (multi-modalidade) ──────
   // Substitui o picker single-choice "Qual modalidade agora?". Pills toggleáveis
@@ -3805,11 +3771,10 @@
       window._venuesQuickPlan(placeId);
       return;
     }
+    // v0.16.41: sem interseção venue×preferidos — abre overlay multi-pill com a
+    // lista completa de modalidades; usuário desativa as que não vai jogar.
     var SPORTS_LIST2 = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
-    _pickSportOverlay(SPORTS_LIST2, function(picked) {
-      if (!picked) return;
-      _openInlinePlanOverlay(v, [picked]);
-    });
+    _openInlinePlanOverlay(v, SPORTS_LIST2);
   };
 
   // Planejar ida: abre overlay inline POR CIMA da modal do venue. Mantém o
@@ -3827,22 +3792,19 @@
       if (window.showNotification) window.showNotification('Faça login para planejar.', 'info');
       return;
     }
+    // v0.16.41: nunca mais picker single-choice. _openInlinePlanOverlay já
+    // suporta multi-pill desde v0.16.15 — passa o array direto e deixa o usuário
+    // ativar/desativar cada modalidade na mesma tela.
     var resolved = _pickSportForVenue(v);
+    var planSports;
     if (resolved.needsPicker) {
-      _pickSportOverlay(resolved.options, function(picked) {
-        if (!picked) return;
-        _openInlinePlanOverlay(v, [picked]);
-      });
+      planSports = resolved.options || [];
     } else if (resolved.sports && resolved.sports.length > 0) {
-      _openInlinePlanOverlay(v, resolved.sports);
+      planSports = resolved.sports;
     } else {
-      // Sem modalidade no venue nem preferência — pede ao usuário pra escolher.
-      var SPORTS_LIST = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
-      _pickSportOverlay(SPORTS_LIST, function(picked) {
-        if (!picked) return;
-        _openInlinePlanOverlay(v, [picked]);
-      });
+      planSports = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
     }
+    _openInlinePlanOverlay(v, planSports);
   };
 
   // Public entry point. `deepLinkPlaceId` (optional, from #venues/<placeId>)

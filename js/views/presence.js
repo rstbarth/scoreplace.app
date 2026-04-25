@@ -1109,31 +1109,10 @@
     });
   }
 
-  // Picker overlay used when the user has multiple sports active and we
-  // need to resolve which one to write. Renders a lightweight row of
-  // buttons; clicking one calls the continuation.
-  function _pickSportThen(action, sports, cb) {
-    var prev = document.getElementById('presence-sport-pick-overlay');
-    if (prev) prev.remove();
-    var overlay = document.createElement('div');
-    overlay.id = 'presence-sport-pick-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-    var btns = sports.map(function(s) {
-      return '<button class="btn btn-primary" onclick="document.getElementById(\'presence-sport-pick-overlay\').remove(); window._presencePickedSport=\'' + _safe(s) + '\'; (window._presencePickedCb&&window._presencePickedCb(\'' + _safe(s) + '\'))" style="margin:4px;">' + _safe(s) + '</button>';
-    }).join('');
-    overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:18px;max-width:360px;width:100%;">' +
-        '<h3 style="margin:0 0 10px 0;color:var(--text-bright);font-size:1rem;">Qual modalidade agora?</h3>' +
-        '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 10px 0;">Você selecionou várias. Escolha a que vai jogar para ' + (action === 'plan' ? 'planejar' : 'registrar') + ' presença.</p>' +
-        '<div style="display:flex;flex-wrap:wrap;">' + btns + '</div>' +
-        '<div style="text-align:right;margin-top:8px;">' +
-          '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'presence-sport-pick-overlay\').remove();">Cancelar</button>' +
-        '</div>' +
-      '</div>';
-    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
-    window._presencePickedCb = cb;
-    document.body.appendChild(overlay);
-  }
+  // v0.16.41: _pickSportThen removido. Era dead code (zero call sites) e
+  // apresentava o mesmo dialog "Qual modalidade agora?" que o usuário pediu pra
+  // eliminar. Multi-modalidade agora se resolve via overlays multi-pill em
+  // venues.js (_openInlineCheckInOverlay / _openInlinePlanOverlay).
 
   window._presencePlanDialog = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
