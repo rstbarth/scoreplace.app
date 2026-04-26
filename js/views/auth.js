@@ -2865,15 +2865,33 @@ function setupProfileModal() {
         if (typeof showNotification === 'function') showNotification(_t('auth.venueLimit'), _t('auth.venueLimitMsg'), 'warning');
         return;
       }
-      // Avoid duplicates (within ~200m)
+      // v0.16.66: dedup primário por placeId (Google) quando AMBOS têm — ID
+      // estável vence margem de 200m em coordenadas. Mas se ambos têm placeId
+      // e são DIFERENTES, são entidades distintas mesmo em coords próximas
+      // (Google é preciso o suficiente pra diferenciar venues vizinhos).
+      // Fallback de coordenadas só roda quando ao menos um lado é legacy
+      // (sem placeId — clique no mapa, _locateMe, profile antigo).
       var isDup = locs.some(function(l) {
+        if (loc.placeId && l.placeId) return loc.placeId === l.placeId;
         return Math.abs(l.lat - loc.lat) < 0.002 && Math.abs(l.lng - loc.lng) < 0.002;
       });
       if (isDup) {
         if (typeof showNotification === 'function') showNotification(_t('auth.venueDuplicate'), _t('auth.venueDuplicateMsg'), 'info');
         return;
       }
-      locs.push({ lat: loc.lat, lng: loc.lng, label: loc.label || '' });
+      // v0.16.66: aproveita TODOS os campos do Google quando disponíveis
+      // (placeId, name, address, city). Preferreds com placeId real (ChIJ...)
+      // permitem que _resolvePreferredVenue chame VenueDB.loadVenue diretamente
+      // (sem fallback de matching por nome/coords) e que o widget de amigos
+      // dedup-e venues por ID estável em vez de coordenadas. Preferreds
+      // sem placeId (clique no mapa, _locateMe sem reverse-establishment)
+      // continuam funcionando via synthetic `pref_lat_lng` em _prefSyntheticPid.
+      var entry = { lat: loc.lat, lng: loc.lng, label: loc.label || '' };
+      if (loc.placeId) entry.placeId = loc.placeId;
+      if (loc.name) entry.name = loc.name;
+      if (loc.address) entry.address = loc.address;
+      if (loc.city) entry.city = loc.city;
+      locs.push(entry);
       window._profileLocations = locs;
       _renderProfileMarkers();
       _renderProfileLocationsList();
@@ -2931,11 +2949,29 @@ function setupProfileModal() {
         listEl.innerHTML = '<div style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:6px;">' + _t('auth.noLocationAdded') + '</div>';
         return;
       }
+      // v0.16.66: quando a entry vem do Google (tem placeId), exibe o nome
+      // em destaque + endereço em segunda linha + badge "📍 Google" — comunica
+      // visualmente que esse preferred terá ficha rica (ID estável, dedup
+      // confiável, matching com venue cadastrado, ✕ inline, etc.). Entries
+      // legacy só com label seguem renderizando como antes.
       listEl.innerHTML = locs.map(function(loc, idx) {
+        var primary = loc.name || loc.label || '';
+        var secondary = loc.name && loc.address ? loc.address : '';
+        var hasGoogle = !!loc.placeId;
+        var badge = hasGoogle
+          ? '<span style="font-size:0.55rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;padding:1px 5px;border-radius:6px;font-weight:700;flex-shrink:0;" title="Local do Google — ficha completa">📍 Google</span>'
+          : '';
+        var titleAttr = window._safeHtml((primary || '') + (secondary ? '\n' + secondary : ''));
         return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;">' +
           '<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (idx + 1) + '</span>' +
-          '<span style="flex:1;font-size:0.72rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + window._safeHtml(loc.label) + '">' + window._safeHtml(loc.label) + '</span>' +
-          '<button type="button" onclick="window._removeProfileLocation(' + idx + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1;" title="Remover">&times;</button>' +
+          '<div style="flex:1;min-width:0;" title="' + titleAttr + '">' +
+            '<div style="display:flex;align-items:center;gap:6px;">' +
+              '<span style="font-size:0.74rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + window._safeHtml(primary) + '</span>' +
+              badge +
+            '</div>' +
+            (secondary ? '<div style="font-size:0.65rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;">' + window._safeHtml(secondary) + '</div>' : '') +
+          '</div>' +
+          '<button type="button" onclick="window._removeProfileLocation(' + idx + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1;flex-shrink:0;" title="Remover">&times;</button>' +
         '</div>';
       }).join('');
     }
@@ -3056,12 +3092,34 @@ function setupProfileModal() {
     async function _selectProfileSuggestion(prediction) {
       try {
         var place = prediction.toPlace();
-        await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+        // v0.16.66: campos expandidos pra capturar TODA a info do Google.
+        // Antes só pegava location+displayName+formattedAddress; faltavam id
+        // (placeId estável) e addressComponents (pra extrair city). Sem placeId,
+        // o preferred virava label-only com synthetic `pref_lat_lng` — quebrava
+        // dedup (v0.16.63), ✕ inline (v0.16.65) e matching com ficha de venue.
+        await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'id', 'addressComponents'] });
         var lat = place.location.lat();
         var lng = place.location.lng();
-        var label = (place.displayName || '') + (place.formattedAddress ? ' — ' + place.formattedAddress : '');
+        var name = place.displayName || '';
+        var addr = place.formattedAddress || '';
+        var pid = place.id || '';
+        // Extrai cidade (mesmo padrão do venue-owner.js _selectPlace).
+        var city = '';
+        if (place.addressComponents) {
+          for (var i = 0; i < place.addressComponents.length; i++) {
+            var comp = place.addressComponents[i];
+            if ((comp.types || []).indexOf('administrative_area_level_2') !== -1) { city = comp.longText || comp.shortText; break; }
+            if ((comp.types || []).indexOf('locality') !== -1) { city = comp.longText || comp.shortText; break; }
+          }
+        }
+        // Label combinado (display visual). Mantido pra retro-compat com
+        // _renderProfileLocationsList legado e _syncCepsFromLocations.
+        var label = name + (addr ? ' — ' + addr : '');
         if (label.length > 60) label = label.substring(0, 57) + '...';
-        _addProfileLocation({ lat: lat, lng: lng, label: label });
+        _addProfileLocation({
+          lat: lat, lng: lng, label: label,
+          placeId: pid, name: name, address: addr, city: city
+        });
         // Clear search
         var input = document.getElementById('profile-location-search');
         if (input) input.value = '';
