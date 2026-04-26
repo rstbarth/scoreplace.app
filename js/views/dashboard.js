@@ -944,20 +944,74 @@ function renderDashboard(container) {
         }
       }
 
+      // v0.16.74: extrai info rica de cada match — formato, fase, parceiro,
+      // adversários, e (pra Rei/Rainha) os 4 do grupo. Antes só mostrava
+      // "vs Adv" + nome do torneio. Pedido do usuário: "coloque o nome do
+      // torneio que tem próximas partidas e coloque o parceiro e os
+      // adversários e a fase da partida no torneio. se for rei/rainha
+      // coloque isso e os sorteados junto."
       matchSources.forEach(function(m) {
         if (!m || m.winner) return; // Already has result
         if (m.p1 === 'TBD' || m.p2 === 'TBD' || m.p1 === 'BYE' || m.p2 === 'BYE') return;
-        var imP1 = _isMe(m.p1);
-        var imP2 = _isMe(m.p2);
-        if (!imP1 && !imP2) return;
 
-        var opponent = imP1 ? (m.p2 || '?') : (m.p1 || '?');
+        // Detecta se sou parte do match (singles, doubles slash-separated, ou monarch team).
+        var isMonarchMatch = m.isMonarch && Array.isArray(m.team1) && Array.isArray(m.team2);
+        var inTeam1 = false, inTeam2 = false;
+        var team1Names = [], team2Names = [];
+        if (isMonarchMatch) {
+          team1Names = m.team1.slice();
+          team2Names = m.team2.slice();
+          inTeam1 = team1Names.some(_isMe);
+          inTeam2 = team2Names.some(_isMe);
+        } else {
+          // Singles: m.p1/p2 são nomes; doubles: slash-separated.
+          team1Names = String(m.p1 || '').split(/\s*\/\s*/).filter(Boolean);
+          team2Names = String(m.p2 || '').split(/\s*\/\s*/).filter(Boolean);
+          inTeam1 = team1Names.some(_isMe) || _isMe(m.p1);
+          inTeam2 = team2Names.some(_isMe) || _isMe(m.p2);
+        }
+        if (!inTeam1 && !inTeam2) return;
+
+        var myTeam = inTeam1 ? team1Names : team2Names;
+        var oppTeam = inTeam1 ? team2Names : team1Names;
+        // Parceiro = qualquer nome no meu time que não sou eu.
+        var partner = null;
+        for (var pi = 0; pi < myTeam.length; pi++) {
+          if (!_isMe(myTeam[pi])) { partner = myTeam[pi]; break; }
+        }
+
+        // Format label
+        var formatLabel = '';
+        if (isMonarchMatch) formatLabel = 'Rei/Rainha';
+        else if (t.format) formatLabel = t.format;
+        // Liga com rodadas Rei/Rainha
+        if (t.format === 'Liga' && t.ligaRoundFormat === 'rei_rainha' && isMonarchMatch) {
+          formatLabel = 'Liga · Rei/Rainha';
+        }
+
+        // Phase label — Rei/Rainha tem m.label rico ("R1 Grupo A • Jogo 1"),
+        // Liga/Suíço usa rodada, Eliminatórias deriva de m.round.
+        var phaseLabel = '';
+        if (m.label) {
+          phaseLabel = String(m.label);
+        } else if (m.roundLabel) {
+          phaseLabel = String(m.roundLabel);
+        } else if (m.round != null) {
+          phaseLabel = 'Rodada ' + m.round;
+        }
+
         pending.push({
           tournament: tName,
           tournamentId: tId,
-          opponent: opponent,
-          round: m.round || m.roundLabel || '',
-          sport: t.sport || ''
+          sport: t.sport || '',
+          formatLabel: formatLabel,
+          phaseLabel: phaseLabel,
+          partner: partner,
+          oppTeam: oppTeam,
+          isMonarch: isMonarchMatch,
+          // Pra Rei/Rainha, o "grupo" é os 4 nomes — usuário pediu pra
+          // mostrar os sorteados juntos (rotação de duplas a cada jogo).
+          monarchGroup: isMonarchMatch ? [].concat(team1Names, team2Names) : null
         });
       });
     });
@@ -967,17 +1021,37 @@ function renderDashboard(container) {
     var maxShow = Math.min(pending.length, 5);
     var html = '<div style="margin-bottom:1.25rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px 16px;">';
     var _t2 = window._t || function(k) { return k; };
+    var _safe = window._safeHtml || function(s) { return String(s || ''); };
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:1.1rem;">⚔️</span><span style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">' + _t2('dashboard.nextMatches') + '</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">' + pending.length + '</span></div>';
 
     for (var i = 0; i < maxShow; i++) {
       var p = pending[i];
-      var safeOpp = window._safeHtml ? window._safeHtml(p.opponent) : p.opponent;
-      var safeTourney = window._safeHtml ? window._safeHtml(p.tournament) : p.tournament;
-      html += '<div onclick="window.location.hash=\'#tournaments/' + p.tournamentId + '\'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
-      html += '<span style="font-size:1.1rem;">' + getSportIcon(p.sport) + '</span>';
-      html += '<div style="flex:1;overflow:hidden;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ' + safeOpp + '</div>';
-      html += '<div style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + safeTourney + (p.round ? ' — ' + p.round : '') + '</div></div>';
-      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;"><path d="M9 18l6-6-6-6"/></svg>';
+      var safeTourney = _safe(p.tournament);
+      var safeOpps = (p.oppTeam || []).map(_safe).join(' + ');
+      var meLine = p.partner ? 'Você + ' + _safe(p.partner) : 'Você';
+      // Format · phase line — só mostra se tiver algum dos dois.
+      var fmtPhase = [];
+      if (p.formatLabel) fmtPhase.push(_safe(p.formatLabel));
+      if (p.phaseLabel) fmtPhase.push(_safe(p.phaseLabel));
+      var fmtPhaseLine = fmtPhase.length > 0
+        ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fmtPhase.join(' · ') + '</div>'
+        : '';
+      // Linha de monarch group — só pra Rei/Rainha.
+      var monarchLine = '';
+      if (p.isMonarch && p.monarchGroup && p.monarchGroup.length > 0) {
+        var groupTxt = p.monarchGroup.map(_safe).join(' · ');
+        monarchLine = '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="Grupo de 4 com rotação de duplas a cada jogo">🎲 Grupo: ' + groupTxt + '</div>';
+      }
+      html += '<div onclick="window.location.hash=\'#tournaments/' + p.tournamentId + '\'" style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
+      html += '<span style="font-size:1.1rem;line-height:1.2;flex-shrink:0;margin-top:1px;">' + getSportIcon(p.sport) + '</span>';
+      html += '<div style="flex:1;min-width:0;overflow:hidden;">';
+      html +=   '<div style="font-size:0.86rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + safeTourney + '</div>';
+      html +=   fmtPhaseLine;
+      html +=   '<div style="font-size:0.78rem;color:var(--text-color);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + meLine + '</div>';
+      html +=   '<div style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="opacity:0.65;">vs</span> ' + safeOpps + '</div>';
+      html +=   monarchLine;
+      html += '</div>';
+      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;margin-top:3px;"><path d="M9 18l6-6-6-6"/></svg>';
       html += '</div>';
     }
     if (pending.length > maxShow) {
