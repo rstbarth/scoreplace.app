@@ -2948,20 +2948,28 @@
     var overlay = document.createElement('div');
     overlay.id = 'venue-plan-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10030;display:flex;align-items:center;justify-content:center;padding:16px;';
-    // v0.16.40: campos Chegada/Saída com mais respiro — gap aumentado pra 16px,
-    // padding interno do input pra 10px 12px (mais alto, mais legível e tap-friendly),
-    // padding do modal subiu de 20px → 22px. "Saída (opcional)" virou "Saída" com
-    // hint menor abaixo pra evitar wrap esquisito em mobile estreito.
+    // v0.16.68: campos Chegada/Saída compactos. Antes (v0.16.40) `padding:10px 12px`
+    // + font-size:1rem deixava cada input ~50px de altura. Em iPhone com inputs
+    // type=time iOS aplica padding interno EXTRA, o que multiplica o efeito —
+    // "11:05" parece flutuando dentro de uma caixa enorme à esquerda. Agora:
+    // padding:7px 8px (compacto mas clicável), font-size:0.95rem (legível, sem
+    // forçar zoom em mobile), text-align:center pra valor sentar no centro
+    // horizontal (melhor balanço visual). Modal padding 22→18, gap entre
+    // inputs 16→12, margin-bottom do grid 18→14 — tudo proporcionalmente mais
+    // enxuto pra que os campos virem ELEMENTO do modal, não DOMINAREM ele.
     overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:22px;max-width:420px;width:100%;">' +
-        '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        '<p style="margin:0 0 14px 0;color:var(--text-muted);font-size:0.85rem;">' + contextLine + '</p>' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:18px;max-width:420px;width:100%;box-sizing:border-box;">' +
+        '<h3 style="margin:0 0 10px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
+        // v0.16.68: nome do local com destaque — antes era 0.85rem cinza
+        // (igual o resto do texto secundário). Usuário pediu mais ênfase pra
+        // confirmar visualmente onde a presença vai ser registrada.
+        '<p style="margin:0 0 14px 0;color:var(--text-bright);font-size:1.05rem;font-weight:600;line-height:1.25;">' + contextLine + '</p>' +
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
           dayBlock +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
-            '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:7px 8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:7px 8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
           '</div>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
             '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
