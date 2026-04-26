@@ -2960,16 +2960,26 @@
     overlay.innerHTML =
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:18px;max-width:420px;width:100%;box-sizing:border-box;">' +
         '<h3 style="margin:0 0 10px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        // v0.16.68: nome do local com destaque — antes era 0.85rem cinza
-        // (igual o resto do texto secundário). Usuário pediu mais ênfase pra
-        // confirmar visualmente onde a presença vai ser registrada.
-        '<p style="margin:0 0 14px 0;color:var(--text-bright);font-size:1.05rem;font-weight:600;line-height:1.25;">' + contextLine + '</p>' +
+        // v0.16.68/70: nome do local em destaque maior — usuário pediu (duas
+        // vezes) mais ênfase. 1.05→1.2rem, font-weight 700.
+        '<p style="margin:0 0 14px 0;color:var(--text-bright);font-size:1.2rem;font-weight:700;line-height:1.25;">' + contextLine + '</p>' +
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
           dayBlock +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
-            '<label style="font-size:0.72rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:7px 8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
-            '<label style="font-size:0.72rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:100%;box-sizing:border-box;min-width:0;margin-top:4px;padding:7px 8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
+          // v0.16.70: largura FIXA dos inputs em vez de grid 1fr 1fr. "11:20"
+          // precisa de ~70px de texto; iOS aplica padding interno extra que
+          // chega a ~95-110px de largura mínima — então width:108px cobre o
+          // texto + chevron nativo sem overflow visual. flex justify-center
+          // centraliza o par de campos no modal, gap:28px entre eles deixa
+          // respiro claro, e o resto do espaço (modal_width - 2*108 - 28 -
+          // 36padding) vira margem visual NATURAL nas laterais. Resultado:
+          // campos parecem "compactos no centro" em vez de "esticados pelas
+          // bordas". Nas v0.16.21/24/25/40/67/68 a UI usava grid 1fr 1fr —
+          // fundamentalmente errado pra inputs cujo conteúdo é muito menor
+          // que a célula.
+          '<div style="display:flex;justify-content:center;gap:28px;margin-bottom:14px;">' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:4px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:4px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
           '</div>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
             '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
