@@ -1571,14 +1571,17 @@ function _hydrateMyActivePresenceWidget() {
   if (!cu || !cu.uid) return;
   var _safe = window._safeHtml || function(s) { return String(s || ''); };
 
-  // Pill 0: Partida casual em andamento. Fonte de verdade: cu.activeCasualRoom
-  // (gravado no perfil quando o usuário cria/entra numa sala; limpo pelos
-  // paths de fechar). Quando setado, o usuário tem uma sala ATIVA e pode ter
-  // navegado pra dashboard sem fechar — oferece atalho pra voltar.
-  var casualPart = '';
+  // v0.16.78: UNIFICAÇÃO. Antes este widget mostrava pills separados pra
+  // check-in/plano + empty CTA — duplicando info que o widget Movimento já
+  // mostra (chip "Você" no venue card + ✕ inline). Resultado: usuário via
+  // "Sua presença" pill vazia EM CIMA de "Movimento nos seus locais"
+  // também vazio = duas seções de presença mostrando a mesma coisa.
+  // Agora este widget mostra APENAS a sala casual em andamento (conceito
+  // separado, não mostrado em nenhum outro lugar). Toda presença
+  // (plano/checkin) consolidada no widget Movimento com seu CTA único.
   if (cu.activeCasualRoom) {
     var safeRoom = String(cu.activeCasualRoom).replace(/\\/g, '\\\\').replace(/\'/g, "\\'");
-    casualPart =
+    box.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(56,189,248,0.15),rgba(14,165,233,0.06));border:1px solid rgba(56,189,248,0.35);border-radius:12px;flex-wrap:wrap;">' +
         '<span style="font-size:1.2rem;flex-shrink:0;">⚡</span>' +
         '<div style="flex:1;min-width:150px;">' +
@@ -1587,120 +1590,9 @@ function _hydrateMyActivePresenceWidget() {
         '</div>' +
         '<button onclick="window.location.hash=\'#casual/' + safeRoom + '\'" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;">⚡ Voltar</button>' +
       '</div>';
-  }
-
-  // Respeita mute — se presença silenciada, não carrega presenças; mas ainda
-  // pode mostrar o pill de casual match (é um estado separado).
-  var muteUntil = Number(cu.presenceMuteUntil || 0);
-  if (muteUntil > Date.now() || !window.PresenceDB || typeof window.PresenceDB.loadMyActive !== 'function') {
-    box.innerHTML = casualPart ? ('<div style="display:flex;flex-direction:column;gap:8px;">' + casualPart + '</div>') : '';
-    return;
-  }
-
-  // v0.16.77: re-usa cache compartilhado de presença (window._dashPresenceCache)
-  // se foi populado nos últimos 30s pelo widget Movimento. Garante consistência
-  // entre os dois widgets — mesma fonte de dados, render simultâneo. Se cache
-  // não está fresco, fetcha normalmente.
-  var presencePromise;
-  if (window._dashPresenceCache && window._dashPresenceCache.own && (Date.now() - (window._dashPresenceCache.ts || 0)) < 30000) {
-    presencePromise = Promise.resolve(window._dashPresenceCache.own);
   } else {
-    presencePromise = window.PresenceDB.loadMyActive(cu.uid);
+    box.innerHTML = '';
   }
-  presencePromise.then(function(list) {
-    // Empty state CTA tratado mais abaixo em `if (allParts.length === 0)`.
-    var now = Date.now();
-    // Dedupe defensivo por (type + placeId + sport) — pra que docs
-    // duplicados em Firestore (criados por double-tap antes do state
-    // atualizar, ou sync entre dispositivos) não virem pills repetidos
-    // no widget. Mantém o que tem startsAt mais recente.
-    if (Array.isArray(list) && list.length > 0) {
-      var _bestByKey = {};
-      list.forEach(function(p) {
-        if (!p || !p.type) return;
-        var _sport = (p.sport || (Array.isArray(p.sports) ? p.sports[0] : '') || '').toLowerCase();
-        var _k = p.type + '|' + (p.placeId || '') + '|' + _sport;
-        var _prev = _bestByKey[_k];
-        if (!_prev || (p.startsAt || 0) > (_prev.startsAt || 0)) _bestByKey[_k] = p;
-      });
-      list = Object.keys(_bestByKey).map(function(k) { return _bestByKey[k]; });
-    }
-    // Prioriza check-in ativo > plan mais próximo
-    var checkins = list.filter(function(p) { return p.type === 'checkin' && p.startsAt <= now && p.endsAt > now; });
-    var plans = list.filter(function(p) { return p.type === 'planned' && p.startsAt > now; });
-    plans.sort(function(a, b) { return a.startsAt - b.startsAt; });
-
-    var parts = [];
-    checkins.forEach(function(p) {
-      var venueName = p.venueName || 'Local';
-      var sport = p.sport || '';
-      var safeId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var safePid = String(p.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      // Usa data-countdown-target pra que o ticker global (setInterval em
-      // store.js) atualize a cada segundo — "expira em" fica live sem
-      // precisar re-renderizar o widget inteiro.
-      var endsAtNum = Number(p.endsAt) || 0;
-      parts.push(
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.06));border:1px solid rgba(16,185,129,0.35);border-radius:12px;flex-wrap:wrap;">' +
-          '<span style="width:10px;height:10px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;flex-shrink:0;"></span>' +
-          '<div style="flex:1;min-width:150px;">' +
-            '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">📍 Você está em <span style="color:#10b981;">' + _safe(venueName) + '</span>' + (sport ? ' · <span style="font-weight:500;font-size:0.82rem;color:var(--text-muted);">' + _safe(sport) + '</span>' : '') + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);">Check-in ativo · expira em <b data-countdown-target="' + endsAtNum + '">...</b></div>' +
-          '</div>' +
-          (p.placeId ? '<button onclick="window.location.hash=\'#venues/' + safePid + '\'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;">Ver local</button>' : '') +
-          '<button onclick="window._dashCancelPresence(\'' + safeId + '\')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;" title="Cancelar meu check-in">Cancelar</button>' +
-        '</div>'
-      );
-    });
-    plans.slice(0, 2).forEach(function(p) {
-      var d = new Date(p.startsAt);
-      var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-      var dayLabel = (d.toDateString() === new Date().toDateString()) ? 'hoje' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-      var venueName = p.venueName || 'Local';
-      var sport = p.sport || '';
-      var safeId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var safePid = String(p.placeId || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      parts.push(
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:12px;flex-wrap:wrap;">' +
-          '<span style="font-size:1rem;flex-shrink:0;">🗓️</span>' +
-          '<div style="flex:1;min-width:150px;">' +
-            '<div style="font-weight:600;color:var(--text-bright);font-size:0.86rem;">Planejado: <span style="color:#a5b4fc;">' + _safe(venueName) + '</span>' + (sport ? ' · <span style="font-weight:500;font-size:0.8rem;color:var(--text-muted);">' + _safe(sport) + '</span>' : '') + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);">' + _safe(dayLabel) + ' às <b>' + _safe(hhmm) + '</b></div>' +
-          '</div>' +
-          (p.placeId ? '<button onclick="window.location.hash=\'#venues/' + safePid + '\'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;">Ver local</button>' : '') +
-          '<button onclick="window._dashCancelPresence(\'' + safeId + '\')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;" title="Cancelar plano">Cancelar</button>' +
-        '</div>'
-      );
-    });
-    // Combina casualPart (se existir) + presenças. Casual vai primeiro
-    // porque é uma sala ATIVA ao vivo — prioridade sobre check-in/plans.
-    var allParts = [];
-    if (casualPart) allParts.push(casualPart);
-    allParts = allParts.concat(parts);
-    // v0.16.76: empty-state com CTA em vez de silêncio. Usuário reportou
-    // "o box de presença sumiu de vez" — antes o box renderizava nada
-    // quando não havia plano/checkin/casual, deixando um vazio na UI sem
-    // explicação. Agora um pill convidativo com link pro #place sempre
-    // aparece pra que o usuário veja onde marcar presença.
-    if (allParts.length === 0) {
-      box.innerHTML =
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px dashed rgba(16,185,129,0.35);border-radius:12px;">' +
-          '<span style="font-size:1rem;flex-shrink:0;">📍</span>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-weight:600;color:var(--text-bright);font-size:0.84rem;">Sua presença</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);">Marque "Estou aqui" ou planeje uma ida pra avisar seus amigos.</div>' +
-          '</div>' +
-          '<a href="#place" style="background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.4);color:#10b981;border-radius:8px;padding:6px 12px;font-size:0.74rem;font-weight:700;text-decoration:none;white-space:nowrap;">Marcar →</a>' +
-        '</div>';
-      return;
-    }
-    box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + allParts.join('') + '</div>';
-  }).catch(function(e) {
-    console.warn('myActive widget error:', e);
-    // Mesmo com erro na query de presenças, mostra o casual pill se
-    // aplicável — degradação graciosa.
-    if (casualPart) box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + casualPart + '</div>';
-  });
 }
 
 // Handler pro botão Cancelar do status de presença. Marca localmente pra
@@ -1916,6 +1808,57 @@ function _hydrateFriendsPresenceWidget() {
           '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Movimento nos seus locais</span>' +
           '<a href="#place" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Ver tudo →</a>' +
         '</div>';
+
+    // v0.16.78: banner prominente listando os planos/checkins do PRÓPRIO user
+    // ANTES dos venue cards. Pedido do usuário: "aqui deveria aparecer que
+    // nelson estara no paineiras tal horas (para o proprio nelson)". Antes,
+    // o plano só aparecia como chip discreto em "Próximas horas" do venue
+    // card — fácil de não ver. Agora aparece como linha destacada verde
+    // (check-in) ou índigo (plano) com horário, esporte, e botão Cancelar
+    // logo no topo da seção.
+    var nowMs = Date.now();
+    var ownActive = ownList.filter(function(p) { return p && !p.cancelled; });
+    var ownCheckins = ownActive.filter(function(p) { return p.type === 'checkin' && p.startsAt <= nowMs && p.endsAt > nowMs; });
+    var ownPlans = ownActive.filter(function(p) { return p.type === 'planned' && p.startsAt > nowMs; });
+    ownPlans.sort(function(a, b) { return a.startsAt - b.startsAt; });
+    if (ownCheckins.length > 0 || ownPlans.length > 0) {
+      var myRows = '';
+      ownCheckins.forEach(function(p) {
+        var pVenue = _safe(p.venueName || 'Local');
+        var pSports = Array.isArray(p.sports) && p.sports.length ? p.sports.join('/') : '';
+        var docId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+        var endsAt = Number(p.endsAt) || 0;
+        myRows +=
+          '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(16,185,129,0.06));border:1px solid rgba(16,185,129,0.4);border-radius:10px;">' +
+            '<span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;flex-shrink:0;"></span>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-weight:700;color:var(--text-bright);font-size:0.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 Você está em <span style="color:#10b981;">' + pVenue + '</span>' + (pSports ? ' <span style="font-weight:500;color:var(--text-muted);">· ' + _safe(pSports) + '</span>' : '') + '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);">expira em <b data-countdown-target="' + endsAt + '">…</b></div>' +
+            '</div>' +
+            '<button onclick="window._dashCancelPresence(\'' + docId + '\')" style="background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:1.05rem;line-height:1;cursor:pointer;flex-shrink:0;" title="Sair do local">✕</button>' +
+          '</div>';
+      });
+      ownPlans.slice(0, 3).forEach(function(p) {
+        var pVenue = _safe(p.venueName || 'Local');
+        var pSports = Array.isArray(p.sports) && p.sports.length ? p.sports.join('/') : '';
+        var docId = String(p._id || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+        var d = new Date(p.startsAt);
+        var hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        var dayLabel = (d.toDateString() === new Date().toDateString())
+          ? 'hoje'
+          : (d.toDateString() === new Date(nowMs + 86400000).toDateString() ? 'amanhã' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
+        myRows +=
+          '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.35);border-radius:10px;">' +
+            '<span style="font-size:1rem;flex-shrink:0;">🗓️</span>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-weight:700;color:var(--text-bright);font-size:0.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Você estará em <span style="color:#a5b4fc;">' + pVenue + '</span>' + (pSports ? ' <span style="font-weight:500;color:var(--text-muted);">· ' + _safe(pSports) + '</span>' : '') + '</div>' +
+              '<div style="font-size:0.7rem;color:var(--text-muted);">' + _safe(dayLabel) + ' às <b>' + _safe(hhmm) + '</b></div>' +
+            '</div>' +
+            '<button onclick="window._dashCancelPresence(\'' + docId + '\')" style="background:transparent;color:#ef4444;border:none;padding:0;margin:0;font-weight:900;font-size:1.05rem;line-height:1;cursor:pointer;flex-shrink:0;" title="Cancelar plano">✕</button>' +
+          '</div>';
+      });
+      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">' + myRows + '</div>';
+    }
 
     venueList.forEach(function(v, idx) {
       var safePid = sanitizePid(v.placeId);
