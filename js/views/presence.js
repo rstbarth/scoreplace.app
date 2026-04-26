@@ -1124,6 +1124,19 @@
     var fmt = function(d) {
       return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     };
+    // v0.16.67: default Saída = Chegada+2h (cap em 23:30 pra evitar cross-date
+    // num input type=time). Mesma regra do overlay venues.js v0.16.25.
+    var defStartStr = fmt(defStart);
+    var _plusTwoHours = function(hmStr) {
+      var p = (hmStr || '').split(':').map(Number);
+      if (p.length < 2 || isNaN(p[0]) || isNaN(p[1])) return '';
+      var totalMin = p[0] * 60 + p[1] + 120;
+      if (totalMin >= 24 * 60) totalMin = 23 * 60 + 30;
+      var hh = Math.floor(totalMin / 60);
+      var mm = totalMin % 60;
+      return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    };
+    var defEndStr = _plusTwoHours(defStartStr);
     var sportsLabel = sports.join(' · ');
 
     // Remove any prior overlay
@@ -1133,15 +1146,21 @@
     var overlay = document.createElement('div');
     overlay.id = 'presence-plan-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    // v0.16.67: fix paridade mobile com inputs type=time. Inputs nativos em
+    // iOS Safari têm largura intrínseca > 0 — sem `box-sizing:border-box` +
+    // `min-width:0` no input + min-width:0 no <label>, escapam da coluna 1fr
+    // do grid e se sobrepõem. Mesma cura aplicada em venues.js v0.16.21/25.
+    // Padding interno bumpado pra 10px 12px (era 8px) e font-size 1rem
+    // garantem que o picker nativo não corta dígitos. Gap do grid 10→16,
+    // padding do modal 20→22, margin-bottom do grid 8→18.
     overlay.innerHTML =
-      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;max-width:420px;width:100%;">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:22px;max-width:420px;width:100%;box-sizing:border-box;">' +
         '<h3 style="margin:0 0 12px 0;color:var(--text-bright);">🗓️ Planejar ida</h3>' +
-        '<p style="margin:0 0 12px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(state.venue.name || state.venue.placeId) + ' · ' + _safe(sportsLabel) + ' · hoje</p>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Das<input id="plan-start" type="time" value="' + fmt(defStart) + '" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
-          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;">Até <span style="font-weight:400;">(opcional)</span><input id="plan-end" type="time" placeholder="—" style="display:block;width:100%;margin-top:4px;padding:8px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);"></label>' +
+        '<p style="margin:0 0 14px 0;color:var(--text-muted);font-size:0.85rem;">' + _safe(state.venue.name || state.venue.placeId) + ' · ' + _safe(sportsLabel) + ' · hoje</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Chegada<input id="plan-start" type="time" value="' + defStartStr + '" autocomplete="off" style="display:block;width:100%;min-width:0;box-sizing:border-box;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
+          '<label style="font-size:0.78rem;color:var(--text-muted);display:block;min-width:0;box-sizing:border-box;">Saída <span style="font-weight:400;">(opcional)</span><input id="plan-end" type="time" value="' + defEndStr + '" autocomplete="off" style="display:block;width:100%;min-width:0;box-sizing:border-box;margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:1rem;"></label>' +
         '</div>' +
-        '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 12px 0;">Deixe "Até" em branco se não quiser fixar hora de saída.</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
           '<button class="btn btn-outline" onclick="document.getElementById(\'presence-plan-overlay\').remove()">Cancelar</button>' +
           '<button class="btn btn-primary" onclick="window._spinButton(this, \'Salvando...\'); window._presenceConfirmPlan()">Confirmar</button>' +
