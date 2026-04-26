@@ -1088,29 +1088,23 @@ function renderDashboard(container) {
       // limpar a duplicação ("já tem a informação abaixo" — os 4 nomes
       // aparecem nos confrontos Jogo 1/2/3 logo abaixo).
       var monarchLine = '';
-      // v0.16.76: countdown pro próximo sorteio em Liga com auto-draw.
-      // Pedido do usuário: "no caso de liga seria legal nessa sessao tambem
-      // colocar a contagem regressiva para o proximo sorteio".
+      // v0.16.76/77: countdown pro próximo sorteio em Liga com auto-draw —
+      // INCLUI segundos via tick global em store.js. Pedido do usuário: "a
+      // contagem regressiva deve conter os segundos tambem". span tem
+      // data-countdown-target=timestamp; setInterval(1s) em store.js
+      // re-renderiza textContent via window._formatCountdown — formato
+      // "3d 2h 15m 30s" / "18h 30m 15s" / "45m 22s" / "30s".
       var ligaCountdownLine = '';
       if (g.nextDrawAt) {
         var diffMs = g.nextDrawAt - Date.now();
-        var lbl = '';
-        if (diffMs <= 0) {
-          lbl = 'sorteio em instantes';
-        } else {
-          var totalMin = Math.floor(diffMs / 60000);
-          var days = Math.floor(totalMin / (60 * 24));
-          var hours = Math.floor((totalMin % (60 * 24)) / 60);
-          var mins = totalMin % 60;
-          if (days > 0) lbl = days + 'd ' + hours + 'h';
-          else if (hours > 0) lbl = hours + 'h ' + mins + 'min';
-          else lbl = mins + 'min';
-        }
         var urgent = diffMs > 0 && diffMs < 24 * 3600 * 1000;
         var color = urgent ? '#fbbf24' : '#a5b4fc';
         var bg = urgent ? 'rgba(251,191,36,0.12)' : 'rgba(99,102,241,0.12)';
         var border = urgent ? 'rgba(251,191,36,0.3)' : 'rgba(99,102,241,0.3)';
-        ligaCountdownLine = '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:6px;">⏱️ próximo sorteio em ' + lbl + '</div>';
+        var initialText = (typeof window._formatCountdown === 'function' && diffMs > 0)
+          ? window._formatCountdown(diffMs)
+          : (diffMs <= 0 ? 'Agora!' : '...');
+        ligaCountdownLine = '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:6px;">⏱️ próximo sorteio em <span data-countdown-target="' + g.nextDrawAt + '">' + initialText + '</span></div>';
       }
       // Linhas de confronto — uma por match no grupo
       var matchLines = '';
@@ -1603,8 +1597,18 @@ function _hydrateMyActivePresenceWidget() {
     return;
   }
 
-  window.PresenceDB.loadMyActive(cu.uid).then(function(list) {
-    if ((!list || list.length === 0) && !casualPart) { box.innerHTML = ''; return; }
+  // v0.16.77: re-usa cache compartilhado de presença (window._dashPresenceCache)
+  // se foi populado nos últimos 30s pelo widget Movimento. Garante consistência
+  // entre os dois widgets — mesma fonte de dados, render simultâneo. Se cache
+  // não está fresco, fetcha normalmente.
+  var presencePromise;
+  if (window._dashPresenceCache && window._dashPresenceCache.own && (Date.now() - (window._dashPresenceCache.ts || 0)) < 30000) {
+    presencePromise = Promise.resolve(window._dashPresenceCache.own);
+  } else {
+    presencePromise = window.PresenceDB.loadMyActive(cu.uid);
+  }
+  presencePromise.then(function(list) {
+    // Empty state CTA tratado mais abaixo em `if (allParts.length === 0)`.
     var now = Date.now();
     // Dedupe defensivo por (type + placeId + sport) — pra que docs
     // duplicados em Firestore (criados por double-tap antes do state
@@ -1807,65 +1811,52 @@ function _hydrateFriendsPresenceWidget() {
   // poluía a UI sem propósito ativo. Caminhos de empty state agora são
   // limpos — só copy + CTA. Restaurar pelo histórico do git se regredir.
 
-  if (friendsRaw.length === 0) {
-    box.innerHTML =
-      '<div style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.25);border-radius:14px;padding:14px;">' +
-        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-          '<div style="flex:1;min-width:200px;">' +
-            '<div style="font-weight:700;color:var(--text-bright);font-size:0.92rem;">👥 Veja seus amigos jogando</div>' +
-            '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Adicione amigos na Explorar pra acompanhar presenças e planos nos locais que vocês frequentam.</div>' +
-          '</div>' +
-          '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#explore\'" style="white-space:nowrap;">Encontrar amigos →</button>' +
-        '</div>' +
-      '</div>';
-    return;
-  }
-
-  if (friends.length === 0) {
-    // friendsRaw.length > 0 mas todos eram email — auto-resolução roda em
-    // background (acima); enquanto isso, mostra mensagem específica.
-    box.innerHTML =
-      '<div style="background:linear-gradient(135deg, rgba(251,191,36,0.10), rgba(245,158,11,0.06));border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:14px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-          '<span style="font-size:1.2rem;">⏳</span>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:0.86rem;color:var(--text-bright);font-weight:700;">Migrando amigos antigos…</div>' +
-            '<div style="font-size:0.74rem;color:var(--text-muted);">Seu perfil tem ' + friendsLikeEmail.length + ' amigo(s) em formato antigo. Resolvendo automaticamente — aguarde o re-render.</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    return;
-  }
-
-  // v0.16.75: também carrega as presenças do PRÓPRIO user em paralelo.
-  // Pedido do usuário: "como nelson disse que vai ao paineiras logo mais
-  // deveria aparecer isso pra ele (além de para os amigos)." Antes o widget
-  // só mostrava amigos (filtrava cu.uid out, defense-in-depth da v0.15.34).
-  // Agora as presenças do user entram na lista que vai pro agrupamento por
-  // venue — venues onde só o user tem plano aparecem com chip "Você",
-  // venues compartilhados mostram user+amigos no mesmo card. Pill "Sua
-  // presença ativa" acima continua existindo (focada em "você tem plano");
-  // este widget é venue-centric ("o que está rolando nos seus locais").
-  var loadUserPresence = (window.PresenceDB && typeof window.PresenceDB.loadMyActive === 'function')
+  // v0.16.77: SEMPRE carrega o próprio plano do user, INDEPENDENTE de ter
+  // amigos ou de eles ainda estarem em formato email. Bug crítico anterior
+  // (até v0.16.76): early-return em friendsRaw=0 OU friends=0 escondia o
+  // plano do user. Nelson sem amigos cadastrados que planejava Paineiras
+  // não via NADA na seção Movimento. Agora o fetch único cobre os 3 cenários
+  // (friendsRaw=0, friends=email, friends ok) e renderiza o card do venue
+  // do user em qualquer caso onde ele tem plano.
+  // v0.16.77: fetch UNIFICADO compartilhado entre os dois widgets de
+  // presença (Sua presença + Movimento). Antes cada um chamava loadMyActive
+  // separadamente — duas idas ao Firestore, sem garantia de consistência
+  // entre eles. Agora window._dashPresenceCache guarda o resultado e ambos
+  // re-usam. Refresh invalida o cache.
+  var fetchOwn = (window.PresenceDB && typeof window.PresenceDB.loadMyActive === 'function')
     ? window.PresenceDB.loadMyActive(cu.uid).catch(function() { return []; })
     : Promise.resolve([]);
-  Promise.all([
-    window.PresenceDB.loadForFriends(friends),
-    loadUserPresence
-  ]).then(function(results) {
+  var fetchFriends = (friends.length > 0 && window.PresenceDB && typeof window.PresenceDB.loadForFriends === 'function')
+    ? window.PresenceDB.loadForFriends(friends).catch(function() { return []; })
+    : Promise.resolve([]);
+  Promise.all([fetchFriends, fetchOwn]).then(function(results) {
     var friendsList = (results[0] || []).filter(function(p) { return p && p.uid !== cu.uid && p.placeId; });
     var ownList = (results[1] || []).filter(function(p) { return p && p.placeId; });
+    // Cache compartilhado pra outros consumidores (myactive widget) re-usarem.
+    window._dashPresenceCache = { own: ownList, friends: friendsList, ts: Date.now() };
     var list = friendsList.concat(ownList);
     if (list.length === 0) {
+      // Empty state diferenciado: sem amigos vs sem movimento.
+      var hasFriends = friendsRaw.length > 0;
+      var msgTitle = hasFriends
+        ? 'Nenhum movimento nos seus locais hoje'
+        : '👥 Veja seus amigos jogando';
+      var msgSub = hasFriends
+        ? 'Quando você ou um amigo marcar "Estou aqui" ou planejar ida, aparece aqui.'
+        : 'Adicione amigos na Explorar pra acompanhar presenças nos locais que vocês frequentam.';
+      var ctaText = hasFriends ? 'Minha presença →' : 'Encontrar amigos →';
+      var ctaHref = hasFriends ? '#place' : '#explore';
+      var bg = hasFriends ? 'var(--bg-card)' : 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08))';
+      var border = hasFriends ? 'var(--border-color)' : 'rgba(99,102,241,0.25)';
       box.innerHTML =
-        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum movimento nos seus locais hoje</div>' +
-              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando você ou um amigo marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+        '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:14px;padding:12px 14px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+            (hasFriends ? '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' : '') +
+            '<div style="flex:1;min-width:200px;">' +
+              '<div style="font-size:' + (hasFriends ? '0.82rem' : '0.92rem') + ';color:var(--text-bright);font-weight:' + (hasFriends ? '600' : '700') + ';">' + msgTitle + '</div>' +
+              '<div style="font-size:' + (hasFriends ? '0.72rem' : '0.78rem') + ';color:var(--text-muted);margin-top:2px;">' + msgSub + '</div>' +
             '</div>' +
-            '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
+            '<a href="' + ctaHref + '" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">' + ctaText + '</a>' +
           '</div>' +
         '</div>';
       return;
