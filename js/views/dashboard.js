@@ -1050,6 +1050,17 @@ function renderDashboard(container) {
       grouped[keyToIdx[key]].matches.push({
         partner: p.partner, oppTeam: p.oppTeam, phaseLabel: p.phaseLabel
       });
+      // v0.16.76: pra Liga com sorteio automático, guarda referência ao
+      // próximo draw scheduled — countdown vai pro header do card.
+      if (!grouped[keyToIdx[key]].nextDrawAt) {
+        // Acha o tournament real pra ler drawFirstDate/drawIntervalDays.
+        var tFull = participacoes.find(function(tt) { return tt.id === p.tournamentId; });
+        if (tFull && tFull.format === 'Liga' && !tFull.drawManual && tFull.drawFirstDate &&
+            typeof window._calcNextDrawDate === 'function') {
+          var nd = window._calcNextDrawDate(tFull);
+          if (nd) grouped[keyToIdx[key]].nextDrawAt = nd.getTime();
+        }
+      }
     });
 
     var maxShowGroups = Math.min(grouped.length, 5);
@@ -1073,15 +1084,33 @@ function renderDashboard(container) {
       var fmtPhaseLine = fmtPhase.length > 0
         ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fmtPhase.join(' · ') + '</div>'
         : '';
-      // Linha do grupo monarch — coloca "Você" primeiro pra fácil identificação.
+      // v0.16.76: dice line "🎲 Grupo: ..." removida — usuário pediu pra
+      // limpar a duplicação ("já tem a informação abaixo" — os 4 nomes
+      // aparecem nos confrontos Jogo 1/2/3 logo abaixo).
       var monarchLine = '';
-      if (g.isMonarch && g.monarchGroup && g.monarchGroup.length > 0) {
-        var groupSorted = g.monarchGroup.slice().sort(function(a, b) {
-          if (_isMe(a)) return -1;
-          if (_isMe(b)) return 1;
-          return 0;
-        }).map(function(n) { return _isMe(n) ? 'Você' : _safe(n); });
-        monarchLine = '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="Grupo de 4 com rotação de duplas a cada jogo">🎲 Grupo: ' + groupSorted.join(' · ') + '</div>';
+      // v0.16.76: countdown pro próximo sorteio em Liga com auto-draw.
+      // Pedido do usuário: "no caso de liga seria legal nessa sessao tambem
+      // colocar a contagem regressiva para o proximo sorteio".
+      var ligaCountdownLine = '';
+      if (g.nextDrawAt) {
+        var diffMs = g.nextDrawAt - Date.now();
+        var lbl = '';
+        if (diffMs <= 0) {
+          lbl = 'sorteio em instantes';
+        } else {
+          var totalMin = Math.floor(diffMs / 60000);
+          var days = Math.floor(totalMin / (60 * 24));
+          var hours = Math.floor((totalMin % (60 * 24)) / 60);
+          var mins = totalMin % 60;
+          if (days > 0) lbl = days + 'd ' + hours + 'h';
+          else if (hours > 0) lbl = hours + 'h ' + mins + 'min';
+          else lbl = mins + 'min';
+        }
+        var urgent = diffMs > 0 && diffMs < 24 * 3600 * 1000;
+        var color = urgent ? '#fbbf24' : '#a5b4fc';
+        var bg = urgent ? 'rgba(251,191,36,0.12)' : 'rgba(99,102,241,0.12)';
+        var border = urgent ? 'rgba(251,191,36,0.3)' : 'rgba(99,102,241,0.3)';
+        ligaCountdownLine = '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:6px;">⏱️ próximo sorteio em ' + lbl + '</div>';
       }
       // Linhas de confronto — uma por match no grupo
       var matchLines = '';
@@ -1108,7 +1137,7 @@ function renderDashboard(container) {
       html += '<div style="flex:1;min-width:0;overflow:hidden;">';
       html +=   '<div style="font-size:0.86rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + safeTourney + '</div>';
       html +=   fmtPhaseLine;
-      html +=   monarchLine;
+      html +=   ligaCountdownLine;
       html +=   '<div style="margin-top:8px;display:flex;flex-direction:column;">' + matchLines + '</div>';
       html += '</div>';
       html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;margin-top:3px;"><path d="M9 18l6-6-6-6"/></svg>';
@@ -1644,7 +1673,23 @@ function _hydrateMyActivePresenceWidget() {
     var allParts = [];
     if (casualPart) allParts.push(casualPart);
     allParts = allParts.concat(parts);
-    if (allParts.length === 0) { box.innerHTML = ''; return; }
+    // v0.16.76: empty-state com CTA em vez de silêncio. Usuário reportou
+    // "o box de presença sumiu de vez" — antes o box renderizava nada
+    // quando não havia plano/checkin/casual, deixando um vazio na UI sem
+    // explicação. Agora um pill convidativo com link pro #place sempre
+    // aparece pra que o usuário veja onde marcar presença.
+    if (allParts.length === 0) {
+      box.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px dashed rgba(16,185,129,0.35);border-radius:12px;">' +
+          '<span style="font-size:1rem;flex-shrink:0;">📍</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:600;color:var(--text-bright);font-size:0.84rem;">Sua presença</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);">Marque "Estou aqui" ou planeje uma ida pra avisar seus amigos.</div>' +
+          '</div>' +
+          '<a href="#place" style="background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.4);color:#10b981;border-radius:8px;padding:6px 12px;font-size:0.74rem;font-weight:700;text-decoration:none;white-space:nowrap;">Marcar →</a>' +
+        '</div>';
+      return;
+    }
     box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + allParts.join('') + '</div>';
   }).catch(function(e) {
     console.warn('myActive widget error:', e);
