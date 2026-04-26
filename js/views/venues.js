@@ -2966,20 +2966,30 @@
         sportsBlock +
         '<form autocomplete="off" onsubmit="return false;" style="margin:0;">' +
           dayBlock +
-          // v0.16.70: largura FIXA dos inputs em vez de grid 1fr 1fr. "11:20"
-          // precisa de ~70px de texto; iOS aplica padding interno extra que
-          // chega a ~95-110px de largura mínima — então width:108px cobre o
-          // texto + chevron nativo sem overflow visual. flex justify-center
-          // centraliza o par de campos no modal, gap:28px entre eles deixa
-          // respiro claro, e o resto do espaço (modal_width - 2*108 - 28 -
-          // 36padding) vira margem visual NATURAL nas laterais. Resultado:
-          // campos parecem "compactos no centro" em vez de "esticados pelas
-          // bordas". Nas v0.16.21/24/25/40/67/68 a UI usava grid 1fr 1fr —
-          // fundamentalmente errado pra inputs cujo conteúdo é muito menor
-          // que a célula.
-          '<div style="display:flex;justify-content:center;gap:28px;margin-bottom:14px;">' +
-            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">Chegada<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:4px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
-            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span><input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:4px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;"></label>' +
+          // v0.16.70: largura FIXA dos inputs em vez de grid 1fr 1fr.
+          // v0.16.71: alinhamento robusto. (1) `align-items:flex-end` no flex
+          // pai garante que os inputs SEMPRE ficam na mesma linha da base
+          // mesmo se um label quebrar em 2 linhas (defense-in-depth). (2)
+          // `white-space:nowrap` em cada label força "Saída (opcional)" a
+          // ficar numa linha só — antes quebrava em 2 porque o label tinha
+          // width=108px (= input) e não cabia o texto inteiro. (3) margin
+          // do container subiu pra 18px top/bottom (era 14 só bottom) — mais
+          // respiro acima e abaixo, conforme pedido do usuário.
+          // v0.16.71/72: o label tem que ter EXATAMENTE 2 children pro flex
+          // column funcionar (texto único + input). Quando tinha "Saída " +
+          // <span>(opcional)</span>, esses viravam DOIS flex items distintos
+          // (anonymous text node + element) — cada um em sua linha vertical.
+          // Solução: wrap o texto inteiro num único <span> com nowrap, virando
+          // 1 flex item. Aí align-items:flex-end no pai mantém a base alinhada.
+          '<div style="display:flex;justify-content:center;align-items:flex-end;gap:28px;margin:18px 0 18px 0;">' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">' +
+              '<span style="white-space:nowrap;">Chegada</span>' +
+              '<input id="venue-plan-start" name="pstart-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defStartStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:6px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;">' +
+            '</label>' +
+            '<label style="font-size:0.72rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;box-sizing:border-box;">' +
+              '<span style="white-space:nowrap;">Saída <span style="font-weight:400;opacity:0.75;">(opcional)</span></span>' +
+              '<input id="venue-plan-end" name="pend-' + uniqSuffix + '" type="time" autocomplete="off" value="' + defEndStr + '" style="display:block;width:108px;box-sizing:border-box;margin-top:6px;padding:7px 6px;border-radius:8px;background:var(--bg-darker);border:1px solid var(--border-color);color:var(--text-bright);font-size:0.95rem;text-align:center;">' +
+            '</label>' +
           '</div>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
             '<button type="button" class="btn btn-outline" onclick="document.getElementById(\'venue-plan-overlay\').remove()">Cancelar</button>' +
