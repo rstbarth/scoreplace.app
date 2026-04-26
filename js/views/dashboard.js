@@ -1018,44 +1018,104 @@ function renderDashboard(container) {
 
     if (pending.length === 0) return '';
 
-    var maxShow = Math.min(pending.length, 5);
+    // v0.16.75: agrupa partidas que dividem o mesmo torneio + grupo Rei/Rainha
+    // (ou tournament + phase pra não-monarch). Pedido do usuário: "como sao 3
+    // jogos do mesmo torneio, podemos colocar o torneio, modo rei/rainha, grupo
+    // do sorteio uma unica vez e já colocar em boxes os confrontos em seguinda
+    // alinhados numa unica linha." Antes cada match era um card próprio com
+    // headers repetidos (3 cards iguais com "liga / Liga · Rei/Rainha · R2
+    // Grupo H / 🎲 Grupo: A·B·C·D" idênticos, só mudando "Você + X vs Y + Z").
+    // Agora um único card por (tournament + group/phase) com header + N linhas
+    // compactas de confrontos.
+    var grouped = [];
+    var keyToIdx = {};
+    pending.forEach(function(p) {
+      var key;
+      if (p.isMonarch && p.monarchGroup && p.monarchGroup.length > 0) {
+        // Grupo Rei/Rainha = mesmo torneio + mesmo conjunto canônico de 4.
+        key = p.tournamentId + '|monarch|' + p.monarchGroup.slice().sort().join(',');
+      } else {
+        // Não-monarch: agrupa por torneio + fase (mesma rodada de Liga/Suíço).
+        key = p.tournamentId + '|single|' + (p.phaseLabel || '');
+      }
+      if (keyToIdx[key] == null) {
+        keyToIdx[key] = grouped.length;
+        grouped.push({
+          tournament: p.tournament, tournamentId: p.tournamentId, sport: p.sport,
+          formatLabel: p.formatLabel, phaseLabel: p.phaseLabel,
+          isMonarch: p.isMonarch, monarchGroup: p.monarchGroup,
+          matches: []
+        });
+      }
+      grouped[keyToIdx[key]].matches.push({
+        partner: p.partner, oppTeam: p.oppTeam, phaseLabel: p.phaseLabel
+      });
+    });
+
+    var maxShowGroups = Math.min(grouped.length, 5);
     var html = '<div style="margin-bottom:1.25rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px 16px;">';
     var _t2 = window._t || function(k) { return k; };
     var _safe = window._safeHtml || function(s) { return String(s || ''); };
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:1.1rem;">⚔️</span><span style="font-size:0.9rem;font-weight:700;color:var(--text-bright);">' + _t2('dashboard.nextMatches') + '</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">' + pending.length + '</span></div>';
 
-    for (var i = 0; i < maxShow; i++) {
-      var p = pending[i];
-      var safeTourney = _safe(p.tournament);
-      var safeOpps = (p.oppTeam || []).map(_safe).join(' + ');
-      var meLine = p.partner ? 'Você + ' + _safe(p.partner) : 'Você';
-      // Format · phase line — só mostra se tiver algum dos dois.
-      var fmtPhase = [];
-      if (p.formatLabel) fmtPhase.push(_safe(p.formatLabel));
-      if (p.phaseLabel) fmtPhase.push(_safe(p.phaseLabel));
-      var fmtPhaseLine = fmtPhase.length > 0
-        ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fmtPhase.join(' · ') + '</div>'
-        : '';
-      // Linha de monarch group — só pra Rei/Rainha.
-      var monarchLine = '';
-      if (p.isMonarch && p.monarchGroup && p.monarchGroup.length > 0) {
-        var groupTxt = p.monarchGroup.map(_safe).join(' · ');
-        monarchLine = '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="Grupo de 4 com rotação de duplas a cada jogo">🎲 Grupo: ' + groupTxt + '</div>';
+    for (var gi = 0; gi < maxShowGroups; gi++) {
+      var g = grouped[gi];
+      var safeTourney = _safe(g.tournament);
+      // Pra Rei/Rainha, descasca "• Jogo N" do phaseLabel pro header (deixa
+      // só "R2 Grupo H"); pra não-monarch, mantém o phaseLabel inteiro.
+      var headerPhase = g.phaseLabel;
+      if (g.isMonarch && headerPhase) {
+        headerPhase = headerPhase.replace(/\s*[•·]\s*Jogo\s*\d+.*/i, '');
       }
-      html += '<div onclick="window.location.hash=\'#tournaments/' + p.tournamentId + '\'" style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
-      html += '<span style="font-size:1.1rem;line-height:1.2;flex-shrink:0;margin-top:1px;">' + getSportIcon(p.sport) + '</span>';
+      var fmtPhase = [];
+      if (g.formatLabel) fmtPhase.push(_safe(g.formatLabel));
+      if (headerPhase) fmtPhase.push(_safe(headerPhase));
+      var fmtPhaseLine = fmtPhase.length > 0
+        ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fmtPhase.join(' · ') + '</div>'
+        : '';
+      // Linha do grupo monarch — coloca "Você" primeiro pra fácil identificação.
+      var monarchLine = '';
+      if (g.isMonarch && g.monarchGroup && g.monarchGroup.length > 0) {
+        var groupSorted = g.monarchGroup.slice().sort(function(a, b) {
+          if (_isMe(a)) return -1;
+          if (_isMe(b)) return 1;
+          return 0;
+        }).map(function(n) { return _isMe(n) ? 'Você' : _safe(n); });
+        monarchLine = '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="Grupo de 4 com rotação de duplas a cada jogo">🎲 Grupo: ' + groupSorted.join(' · ') + '</div>';
+      }
+      // Linhas de confronto — uma por match no grupo
+      var matchLines = '';
+      g.matches.forEach(function(m, mi) {
+        var meLbl = m.partner ? 'Você + ' + _safe(m.partner) : 'Você';
+        var oppLbl = (m.oppTeam || []).map(_safe).join(' + ');
+        // Pra monarch, extrai "Jogo N" do phaseLabel da própria match (cada
+        // match no grupo tem phaseLabel diferente: "R2 Grupo H • Jogo 1/2/3").
+        var jogoBadge = '';
+        if (g.isMonarch && m.phaseLabel) {
+          var jm = m.phaseLabel.match(/Jogo\s*(\d+)/i);
+          if (jm) jogoBadge = '<span style="display:inline-block;font-size:0.66rem;font-weight:700;color:#a5b4fc;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:6px;padding:1px 7px;margin-right:8px;flex-shrink:0;">Jogo ' + jm[1] + '</span>';
+        }
+        // Box compacto numa linha — Você+Partner vs Adv+Adv
+        matchLines += '<div style="display:flex;align-items:center;font-size:0.78rem;padding:5px 0;' + (mi > 0 ? 'border-top:1px dashed rgba(255,255,255,0.06);' : '') + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+          jogoBadge +
+          '<span style="color:var(--text-color);overflow:hidden;text-overflow:ellipsis;">' +
+            meLbl + ' <span style="opacity:0.5;font-weight:400;margin:0 4px;">vs</span> <span style="color:var(--text-muted);">' + oppLbl + '</span>' +
+          '</span>' +
+        '</div>';
+      });
+      html += '<div onclick="window.location.hash=\'#tournaments/' + g.tournamentId + '\'" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.15s;' + (gi > 0 ? 'border-top:1px solid var(--border-color);margin-top:6px;padding-top:14px;' : '') + '" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
+      html += '<span style="font-size:1.1rem;line-height:1.2;flex-shrink:0;margin-top:1px;">' + getSportIcon(g.sport) + '</span>';
       html += '<div style="flex:1;min-width:0;overflow:hidden;">';
       html +=   '<div style="font-size:0.86rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + safeTourney + '</div>';
       html +=   fmtPhaseLine;
-      html +=   '<div style="font-size:0.78rem;color:var(--text-color);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + meLine + '</div>';
-      html +=   '<div style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="opacity:0.65;">vs</span> ' + safeOpps + '</div>';
       html +=   monarchLine;
+      html +=   '<div style="margin-top:8px;display:flex;flex-direction:column;">' + matchLines + '</div>';
       html += '</div>';
       html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;margin-top:3px;"><path d="M9 18l6-6-6-6"/></svg>';
       html += '</div>';
     }
-    if (pending.length > maxShow) {
-      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">' + _t2('dashboard.andMore', {count: pending.length - maxShow}) + '</div>';
+    if (grouped.length > maxShowGroups) {
+      html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">' + _t2('dashboard.andMore', {count: grouped.length - maxShowGroups}) + '</div>';
     }
     html += '</div>';
     return html;
@@ -1732,29 +1792,37 @@ function _hydrateFriendsPresenceWidget() {
     return;
   }
 
-  window.PresenceDB.loadForFriends(friends).then(function(list) {
-    if (!list || list.length === 0) {
+  // v0.16.75: também carrega as presenças do PRÓPRIO user em paralelo.
+  // Pedido do usuário: "como nelson disse que vai ao paineiras logo mais
+  // deveria aparecer isso pra ele (além de para os amigos)." Antes o widget
+  // só mostrava amigos (filtrava cu.uid out, defense-in-depth da v0.15.34).
+  // Agora as presenças do user entram na lista que vai pro agrupamento por
+  // venue — venues onde só o user tem plano aparecem com chip "Você",
+  // venues compartilhados mostram user+amigos no mesmo card. Pill "Sua
+  // presença ativa" acima continua existindo (focada em "você tem plano");
+  // este widget é venue-centric ("o que está rolando nos seus locais").
+  var loadUserPresence = (window.PresenceDB && typeof window.PresenceDB.loadMyActive === 'function')
+    ? window.PresenceDB.loadMyActive(cu.uid).catch(function() { return []; })
+    : Promise.resolve([]);
+  Promise.all([
+    window.PresenceDB.loadForFriends(friends),
+    loadUserPresence
+  ]).then(function(results) {
+    var friendsList = (results[0] || []).filter(function(p) { return p && p.uid !== cu.uid && p.placeId; });
+    var ownList = (results[1] || []).filter(function(p) { return p && p.placeId; });
+    var list = friendsList.concat(ownList);
+    if (list.length === 0) {
       box.innerHTML =
         '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
           '<div style="display:flex;align-items:center;gap:10px;">' +
             '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
             '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
-              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
+              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum movimento nos seus locais hoje</div>' +
+              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando você ou um amigo marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
             '</div>' +
             '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
           '</div>' +
         '</div>';
-      return;
-    }
-    // Defense-in-depth: descarta entries do próprio usuário (auto-amizade no
-    // data, ou loadForFriends devolvendo mais do que pediu). Sem isso a
-    // presença do próprio usuário apareceria aqui em paralelo ao widget
-    // "Sua presença ativa" — duplicidade reportada em v0.15.34.
-    list = list.filter(function(p) { return p && p.uid !== cu.uid && p.placeId; });
-    if (list.length === 0) {
-      // Pode acontecer se todos os planos eram do próprio usuário ou sem placeId.
-      box.innerHTML = '';
       return;
     }
 
@@ -1809,7 +1877,7 @@ function _hydrateFriendsPresenceWidget() {
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">' +
           '<span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>' +
-          '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Amigos no local</span>' +
+          '<span style="font-weight:700;color:var(--text-bright);font-size:0.95rem;">Movimento nos seus locais</span>' +
           '<a href="#place" style="margin-left:auto;font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;">Ver tudo →</a>' +
         '</div>';
 
