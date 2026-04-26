@@ -3062,6 +3062,13 @@
     document.body.appendChild(overlay);
   }
 
+  // v0.16.69: expose o overlay globalmente pra que outros entry points
+  // (presence.js _presencePlanDialog) deleguem aqui em vez de manter UI
+  // duplicada. Single source of truth — qualquer melhoria no overlay (pills
+  // de modalidade, pills Hoje/Amanhã, fix de tamanho dos campos) aparece
+  // automaticamente em ambos os caminhos do app.
+  window._openInlinePlanOverlay = _openInlinePlanOverlay;
+
   // Cancel handler disparado pelo overlay de confirmação. Fecha o overlay ao
   // fim, re-hidrata todos os slots (botões, movimento, widget dashboard).
   window._venuesCancelPresenceFromConfirm = async function(docId, placeId, type) {
