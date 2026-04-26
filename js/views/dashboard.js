@@ -803,77 +803,10 @@ function renderDashboard(container) {
     var c = document.getElementById('view-container');
     if (c && typeof renderDashboard === 'function') renderDashboard(c);
   };
-  // v0.16.60: força re-fetch ignorando throttle. Botão visível no diag.
-  window._dashForceFetchDiscovery = function() {
-    if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') {
-      if (typeof showNotification === 'function') showNotification('Erro', 'AppStore.loadPublicDiscovery não disponível', 'error');
-      return;
-    }
-    window.AppStore._publicDiscoveryLastFetch = 0; // reset throttle
-    if (typeof showNotification === 'function') showNotification('🔄 Buscando torneios públicos…', '', 'info');
-    window.AppStore.loadPublicDiscovery().then(function() {
-      var n = (window.AppStore.publicDiscovery || []).length;
-      if (typeof showNotification === 'function') showNotification('✅ Re-fetch completo', n + ' torneios públicos no feed', 'success');
-      var c = document.getElementById('view-container');
-      if (c && typeof renderDashboard === 'function') renderDashboard(c);
-    }).catch(function(e) {
-      window._lastDiscoveryError = String(e && e.message || e);
-      if (typeof showNotification === 'function') showNotification('❌ Re-fetch falhou', String(e && e.message || e).substring(0, 200), 'error');
-    });
-  };
-  // v0.16.61: query diagnóstica SEM filtro pra ver TODOS os torneios no banco
-  // (até 10). Resolve a pergunta "o banco tá vazio mesmo, ou só não tem com
-  // isPublic === true?". Mostra resultado em alertDialog grande pra o user
-  // tirar screenshot. Auth user tem read em qualquer doc (rule permite).
-  window._dashDiagnoseTournaments = async function() {
-    if (!window.FirestoreDB || !window.FirestoreDB.db) {
-      if (typeof showNotification === 'function') showNotification('Erro', 'Firestore.db não disponível', 'error');
-      return;
-    }
-    if (typeof showNotification === 'function') showNotification('🔍 Diagnosticando…', 'Lendo até 10 torneios sem filtro…', 'info');
-    try {
-      var snap = await window.FirestoreDB.db.collection('tournaments').limit(10).get();
-      var items = [];
-      snap.forEach(function(doc) {
-        var d = doc.data() || {};
-        items.push({
-          id: doc.id.substring(0, 30),
-          name: (d.name || '(sem nome)').substring(0, 40),
-          isPublic: d.isPublic,
-          isPublicType: typeof d.isPublic,
-          status: d.status || '(undefined)',
-          createdAt: d.createdAt ? String(d.createdAt).substring(0, 25) : '(sem)',
-          organizerEmail: d.organizerEmail || '(sem)',
-          memberEmailsCount: Array.isArray(d.memberEmails) ? d.memberEmails.length : -1
-        });
-      });
-      var totalSnap = snap.size;
-      var publicTrue = items.filter(function(x) { return x.isPublic === true; }).length;
-      var publicTruthy = items.filter(function(x) { return !!x.isPublic; }).length;
-      var msg = 'TOTAL no banco (limit 10): ' + totalSnap + '\n' +
-                'isPublic === true (boolean): ' + publicTrue + '\n' +
-                'isPublic truthy (qualquer): ' + publicTruthy + '\n\n' +
-                'Amostra:\n' +
-                items.slice(0, 5).map(function(x, i) {
-                  return (i+1) + '. "' + x.name + '"\n' +
-                    '   id=' + x.id + '\n' +
-                    '   isPublic=' + JSON.stringify(x.isPublic) + ' (' + x.isPublicType + ')\n' +
-                    '   status=' + x.status + '\n' +
-                    '   org=' + x.organizerEmail + '\n' +
-                    '   memberEmails.length=' + x.memberEmailsCount;
-                }).join('\n\n');
-      console.log('[Discovery v0.16.61 diag]', items);
-      if (typeof showAlertDialog === 'function') {
-        showAlertDialog('🔍 Diagnose torneios (v0.16.61)', '<pre style="font-size:0.7rem;white-space:pre-wrap;text-align:left;font-family:monospace;line-height:1.4;">' + msg.replace(/</g, '&lt;') + '</pre>');
-      } else {
-        alert(msg);
-      }
-    } catch (e) {
-      var em = String(e && e.message || e);
-      console.error('[Discovery v0.16.61 diag] FAILED', e);
-      if (typeof showNotification === 'function') showNotification('❌ Diagnose falhou', em.substring(0, 200), 'error');
-    }
-  };
+  // v0.16.73: removidos handlers _dashForceFetchDiscovery e
+  // _dashDiagnoseTournaments (v0.16.60-61) — eram acionados por botões do
+  // diag inline removido junto. Discovery feed estável desde v0.16.62.
+  // Restaurar pelo histórico do git se algum bug regredir.
   window._loadMoreDiscovery = function() {
     if (!window.AppStore || typeof window.AppStore.loadPublicDiscovery !== 'function') return;
     window.AppStore.loadPublicDiscovery({ append: true }).then(function() {
@@ -1377,56 +1310,14 @@ function renderDashboard(container) {
       var _inProgress = _filterByInterest(discoveryByCategory.inProgress);
       var _closedNoStart = _filterByInterest(discoveryByCategory.closedNoStart);
       var _finishedDiscovery = _filterByInterest(discoveryByCategory.finished);
-      // v0.16.59: diag inline pro caso "Nelson não vê torneios públicos do
-      // Rodrigo". Mostra contagem em cada estágio do pipeline pra identificar
-      // onde o filtro está sumindo com o torneio.
-      var _DIAG_VERSION = 'v0.16.60';
-      var _diagLineD = function(label, value, color) {
-        return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
-          label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
-      };
-      var _allCount = (window.AppStore && Array.isArray(window.AppStore.publicDiscovery)) ? window.AppStore.publicDiscovery.length : 0;
-      var _afterDedup = discoveryDedup.length;
-      var _byCat = discoveryByCategory;
-      var _lastErr = window._lastDiscoveryError || '';
-      var _hasFirestoreDB = !!(window.FirestoreDB && window.FirestoreDB.db);
-      var _hasNewLoader = !!(window.FirestoreDB && typeof window.FirestoreDB.loadAllPublicTournaments === 'function');
-      var _myEmail = (window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.email) || '(sem email)';
-      var _diagD = '<details open style="margin:8px 0;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;">' +
-        '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico discovery ' + _DIAG_VERSION + '</summary>' +
-        '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
-          _diagLineD('versão renderer', _DIAG_VERSION) +
-          _diagLineD('email logado', _myEmail) +
-          _diagLineD('FirestoreDB.db disponível', _hasFirestoreDB ? 'sim' : 'NÃO', _hasFirestoreDB ? '#10b981' : '#f87171') +
-          _diagLineD('loadAllPublicTournaments existe', _hasNewLoader ? 'sim' : 'NÃO', _hasNewLoader ? '#10b981' : '#f87171') +
-          _diagLineD('cu.publicDiscovery raw', _allCount, _allCount > 0 ? '#10b981' : '#f87171') +
-          _diagLineD('último erro de fetch', _lastErr || '(nenhum)', _lastErr ? '#f87171' : 'var(--text-muted)') +
-          _diagLineD('após dedup vs próprios', _afterDedup) +
-          _diagLineD('preferredSports do user', _prefSports.length > 0 ? _prefSports.join(', ') : '(nenhuma — sem filtro)', _prefSports.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
-          _diagLineD('cat: open (sem filtro)', _byCat.open.length) +
-          _diagLineD('cat: inProgress (sem filtro)', _byCat.inProgress.length) +
-          _diagLineD('cat: closedNoStart (sem filtro)', _byCat.closedNoStart.length) +
-          _diagLineD('cat: finished (sem filtro)', _byCat.finished.length) +
-          _diagLineD('após filtro modalidade — inProgress', _inProgress.length) +
-          _diagLineD('após filtro modalidade — closedNoStart', _closedNoStart.length) +
-          _diagLineD('após filtro modalidade — finished', _finishedDiscovery.length) +
-          (_afterDedup === 0 && _allCount === 0 ? _diagLineD('sugestão', 'discovery vazio. Verifique erro acima ou re-fetch automático ainda não rodou.', '#fbbf24') : '') +
-          (_afterDedup > 0 && _inProgress.length === 0 && _byCat.inProgress.length > 0 ? _diagLineD('atenção', 'tem ' + _byCat.inProgress.length + ' em andamento mas filtro de modalidade derrubou todos. Cheque preferredSports vs sport do torneio.', '#fbbf24') : '') +
-          '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">' +
-            '<button onclick="window._dashForceFetchDiscovery && window._dashForceFetchDiscovery()" style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔄 Forçar re-fetch</button>' +
-            '<button onclick="window._dashDiagnoseTournaments && window._dashDiagnoseTournaments()" style="background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;font-family:monospace;">🔍 Diagnose banco (v0.16.61)</button>' +
-          '</div>' +
-        '</div>' +
-      '</details>';
-      // v0.16.60: diag SEMPRE renderiza. Se não estamos no filtro 'todos',
-      // só o diag aparece (nada de seções extras).
-      if (!_showExtraSections) {
-        return '<div style="margin-top:0.5rem;">' + _diagD + '</div>';
-      }
-      // Sem dados em nenhuma categoria mas estamos em 'todos' — mostra só diag.
-      if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) {
-        return '<div style="margin-top:0.5rem;">' + _diagD + '</div>';
-      }
+      // v0.16.73: removido o bloco de diag inline da v0.16.59-61 (renderer
+      // version, FirestoreDB.db disponível, contagens por categoria, botões
+      // "Forçar re-fetch" / "Diagnose banco"). Discovery feed estável desde
+      // v0.16.62 (fix do orderBy que excluía docs sem createdAt). Manter o
+      // diag em produção poluía a UI sem propósito ativo. Pode ser
+      // restaurado pelo histórico do git se algum bug regredir.
+      if (!_showExtraSections) return '';
+      if (_inProgress.length === 0 && _closedNoStart.length === 0 && _finishedDiscovery.length === 0) return '';
       var _interestNote = _prefSports.length
         ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">Filtrado pelas suas modalidades favoritas: ' + _prefSports.map(function(s) { return window._safeHtml(s); }).join(', ') + '</div>'
         : '';
@@ -1730,96 +1621,12 @@ function _hydrateFriendsPresenceWidget() {
       }
     });
   }
-  // v0.16.44: empty state agora carrega DIAGNÓSTICO inline (sem precisar
-  // abrir DevTools). Mostra qual versão renderizou, quantos amigos no
-  // perfil, quantos eram email vs uid, e — após a query — quantos docs
-  // voltaram. Vai sumir definitivamente quando a feature estabilizar.
-  var DIAG_VERSION = 'v0.16.64';
-  function _diagLine(label, value, color) {
-    return '<div style="font-size:0.7rem;color:' + (color || 'var(--text-muted)') + ';font-family:monospace;">' +
-      label + ': <b style="color:var(--text-bright);">' + value + '</b></div>';
-  }
-  // v0.16.64: novo slot 👤 sua presença — sempre visível dentro do diag,
-  // mostra o último doc do PRÓPRIO user logado (independente de filtros de
-  // tempo/cancelled). Resolve a ambiguidade "meu plano foi salvo? OU é o
-  // friends list que não tem o outro?" — quando Rodrigo abre seu próprio
-  // diag, ele vê se o plano dele realmente está no Firestore com os campos
-  // corretos. Se Nelson abre o diag dele, vê o mesmo da própria perspectiva.
-  // Slot é populado async via probe; até resolver mostra "carregando…".
-  var SELF_PROBE_SLOT = 'fwidget-self-probe-' + Date.now();
-  function _diagBlock(extraLines) {
-    return '<details style="margin-top:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;" open>' +
-      '<summary style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);font-family:monospace;">🔧 diagnóstico ' + DIAG_VERSION + '</summary>' +
-      '<div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">' +
-        _diagLine('versão renderer', DIAG_VERSION) +
-        _diagLine('uid logado', cu.uid || '(vazio)') +
-        _diagLine('cu.friends raw count', friendsRaw.length) +
-        _diagLine('como uid (sem @)', friendsLikeUid.length, friendsLikeUid.length > 0 ? '#10b981' : '#f87171') +
-        _diagLine('como email (com @)', friendsLikeEmail.length, friendsLikeEmail.length > 0 ? '#fbbf24' : 'var(--text-muted)') +
-        (friendsLikeEmail.length > 0 ? _diagLine('emails pendentes', friendsLikeEmail.join(', '), '#fbbf24') : '') +
-        (friendsLikeUid.length > 0 ? _diagLine('uids consultados', friendsLikeUid.slice(0,3).join(', ') + (friendsLikeUid.length > 3 ? '...' : '')) : '') +
-        '<div id="' + SELF_PROBE_SLOT + '" style="margin-top:6px;border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;">' +
-          _diagLine('👤 sua presença', 'consultando…', '#fbbf24') +
-        '</div>' +
-        (extraLines || '') +
-      '</div>' +
-    '</details>';
-  }
-  // Schedule the self-probe on next tick so the slot exists in DOM. Probes
-  // ALL my docs (any time, any state) — sorted by createdAt desc — and
-  // shows latest. Distinguishes 4 states: nada (sem docs), apenas cancelados,
-  // apenas expirados, ATIVO (cancelled=false e endsAt > now). Em "ativo",
-  // pinta verde — esse é o único estado em que amigos COM você nos friends
-  // ENXERGAM seu plano via loadForFriends.
-  function _runSelfProbe() {
-    if (!window.FirestoreDB || !window.FirestoreDB.db || !cu.uid) return;
-    var slot = document.getElementById(SELF_PROBE_SLOT);
-    if (!slot) return;
-    window.FirestoreDB.db.collection('presences')
-      .where('uid', '==', cu.uid)
-      .limit(50)
-      .get()
-      .then(function(snap) {
-        var docs = [];
-        snap.forEach(function(doc) { docs.push(doc.data()); });
-        docs.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-        var nowMs = Date.now();
-        var totals = { total: docs.length, active: 0, cancelled: 0, expired: 0, future: 0 };
-        docs.forEach(function(d) {
-          if (d.cancelled) totals.cancelled++;
-          else if (!d.endsAt || d.endsAt <= nowMs) totals.expired++;
-          else if (d.startsAt && d.startsAt > nowMs + 48 * 3600 * 1000) totals.future++;
-          else totals.active++;
-        });
-        var hdrColor = totals.active > 0 ? '#10b981' : (totals.total > 0 ? '#fbbf24' : '#f87171');
-        var hdrTxt = totals.active > 0
-          ? totals.active + ' ATIVO(s) — amigos enxergam ✓'
-          : (totals.total > 0
-              ? '0 ativos (' + totals.cancelled + ' cancel, ' + totals.expired + ' expir)'
-              : 'sem docs no Firestore');
-        var html = _diagLine('👤 sua presença', hdrTxt, hdrColor);
-        if (docs[0]) {
-          var d0 = docs[0];
-          var createdLbl = d0.createdAt ? new Date(d0.createdAt).toLocaleString('pt-BR') : 'N/A';
-          var startLbl = d0.startsAt ? new Date(d0.startsAt).toLocaleString('pt-BR') : 'N/A';
-          var endLbl = d0.endsAt ? new Date(d0.endsAt).toLocaleString('pt-BR') : 'N/A';
-          var liveActive = !d0.cancelled && d0.endsAt && d0.endsAt > nowMs;
-          html += _diagLine('  último: type', d0.type || '(none)');
-          html += _diagLine('  último: venueName', d0.venueName || '(none)');
-          html += _diagLine('  último: createdAt', createdLbl);
-          html += _diagLine('  último: startsAt', startLbl);
-          html += _diagLine('  último: endsAt', endLbl);
-          html += _diagLine('  último: visibility', d0.visibility || '(none)', d0.visibility === 'friends' || d0.visibility === 'public' ? '#10b981' : '#f87171');
-          html += _diagLine('  último: cancelled', d0.cancelled ? 'true' : 'false', d0.cancelled ? '#f87171' : '#10b981');
-          html += _diagLine('  ↳ visível pra amigos?', liveActive ? 'SIM' : 'NÃO', liveActive ? '#10b981' : '#f87171');
-        }
-        slot.innerHTML = html;
-      })
-      .catch(function(e) {
-        slot.innerHTML = _diagLine('👤 sua presença', 'erro: ' + String(e && e.message || e).substring(0, 100), '#f87171');
-      });
-  }
-  setTimeout(_runSelfProbe, 80);
+  // v0.16.73: removido o diag block (DIAG_VERSION/SELF_PROBE_SLOT/_diagLine/
+  // _diagBlock/_runSelfProbe) introduzido nas v0.16.43-64. Cumpriu a missão
+  // (debug iterativo de email→uid migration, query empty, self-presence
+  // rendering, dedup de venues) e a feature estabilizou. Diag em produção
+  // poluía a UI sem propósito ativo. Caminhos de empty state agora são
+  // limpos — só copy + CTA. Restaurar pelo histórico do git se regredir.
 
   if (friendsRaw.length === 0) {
     box.innerHTML =
@@ -1831,14 +1638,13 @@ function _hydrateFriendsPresenceWidget() {
           '</div>' +
           '<button class="btn btn-primary btn-sm hover-lift" onclick="window.location.hash=\'#explore\'" style="white-space:nowrap;">Encontrar amigos →</button>' +
         '</div>' +
-        _diagBlock() +
       '</div>';
     return;
   }
 
   if (friends.length === 0) {
-    // friendsRaw.length > 0 mas todos eram email — mostra mensagem específica
-    // enquanto a auto-resolução (acima) trabalha em background.
+    // friendsRaw.length > 0 mas todos eram email — auto-resolução roda em
+    // background (acima); enquanto isso, mostra mensagem específica.
     box.innerHTML =
       '<div style="background:linear-gradient(135deg, rgba(251,191,36,0.10), rgba(245,158,11,0.06));border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:14px;">' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
@@ -1848,101 +1654,23 @@ function _hydrateFriendsPresenceWidget() {
             '<div style="font-size:0.74rem;color:var(--text-muted);">Seu perfil tem ' + friendsLikeEmail.length + ' amigo(s) em formato antigo. Resolvendo automaticamente — aguarde o re-render.</div>' +
           '</div>' +
         '</div>' +
-        _diagBlock() +
       '</div>';
     return;
   }
 
   window.PresenceDB.loadForFriends(friends).then(function(list) {
-    var rawCount = (list || []).length;
     if (!list || list.length === 0) {
-      // v0.16.45: query principal vazia → dispara queries individuais SEM
-      // filtros de tempo pra ver o que existe de verdade pra cada uid. Diz
-      // se o problema é uid não casa, doc cancelled, endsAt no passado,
-      // startsAt fora do horizon, ou doc sem campo uid.
-      var renderEmpty = function(extraDiag) {
-        box.innerHTML =
-          '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
-            '<div style="display:flex;align-items:center;gap:10px;">' +
-              '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
-              '<div style="flex:1;min-width:0;">' +
-                '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
-                '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
-              '</div>' +
-              '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
+      box.innerHTML =
+        '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:12px 14px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:1.1rem;opacity:0.65;">👥</span>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:0.82rem;color:var(--text-bright);font-weight:600;">Nenhum amigo registrou presença hoje</div>' +
+              '<div style="font-size:0.72rem;color:var(--text-muted);">Quando alguém marcar "Estou aqui" ou planejar ida, aparece aqui.</div>' +
             '</div>' +
-            _diagBlock(_diagLine('query firestore', rawCount + ' docs', rawCount > 0 ? '#10b981' : '#f87171') + (extraDiag || '')) +
-          '</div>';
-      };
-      // Render imediato com info parcial; depois reescreve com info expandida
-      renderEmpty(_diagLine('fallback', 'consultando docs por uid…', '#fbbf24'));
-      if (window.FirestoreDB && window.FirestoreDB.db) {
-        var nowMs = Date.now();
-        // v0.16.46: single-field query (sem orderBy) pra evitar exigência
-        // de índice composto. Ordena client-side por createdAt desc.
-        var probePromises = friends.map(function(uid) {
-          return window.FirestoreDB.db.collection('presences')
-            .where('uid', '==', uid)
-            .limit(50)
-            .get()
-            .then(function(snap) {
-              var docs = [];
-              snap.forEach(function(doc) { docs.push(doc.data()); });
-              docs.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-              var info = { uid: uid, total: docs.length, active: 0, cancelled: 0, expired: 0, future: 0, latest: null };
-              docs.forEach(function(d) {
-                if (d.cancelled) info.cancelled++;
-                else if (!d.endsAt || d.endsAt <= nowMs) info.expired++;
-                else if (d.startsAt && d.startsAt > nowMs + 48 * 3600 * 1000) info.future++;
-                else info.active++;
-              });
-              if (docs[0]) {
-                var d0 = docs[0];
-                info.latest = {
-                  type: d0.type,
-                  venueName: d0.venueName,
-                  startsAt: d0.startsAt ? new Date(d0.startsAt).toLocaleString('pt-BR') : 'N/A',
-                  endsAt: d0.endsAt ? new Date(d0.endsAt).toLocaleString('pt-BR') : 'N/A',
-                  cancelled: !!d0.cancelled,
-                  visibility: d0.visibility || '(none)',
-                  docHasUid: !!d0.uid,
-                  docUid: d0.uid || '(empty)'
-                };
-              }
-              return info;
-            })
-            .catch(function(e) { return { uid: uid, error: String(e && e.message || e).substring(0, 200) }; });
-        });
-        Promise.all(probePromises).then(function(results) {
-          var lines = '';
-          results.forEach(function(r, idx) {
-            lines += '<div style="margin-top:6px;border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;">';
-            lines += _diagLine('amigo #' + (idx + 1), r.uid.substring(0, 12) + '…');
-            if (r.error) {
-              lines += _diagLine('  erro', r.error, '#f87171');
-            } else {
-              lines += _diagLine('  total docs', r.total, r.total > 0 ? '#10b981' : '#f87171');
-              if (r.total > 0) {
-                lines += _diagLine('  ativos válidos', r.active, r.active > 0 ? '#10b981' : '#f87171');
-                lines += _diagLine('  cancelled', r.cancelled, r.cancelled > 0 ? '#fbbf24' : 'var(--text-muted)');
-                lines += _diagLine('  expired (endsAt<now)', r.expired, r.expired > 0 ? '#fbbf24' : 'var(--text-muted)');
-                lines += _diagLine('  fora horizon (>48h)', r.future, r.future > 0 ? '#fbbf24' : 'var(--text-muted)');
-                if (r.latest) {
-                  lines += _diagLine('  doc.uid presente?', r.latest.docHasUid ? 'sim' : 'NÃO', r.latest.docHasUid ? '#10b981' : '#f87171');
-                  lines += _diagLine('  último: type', r.latest.type || '(none)');
-                  lines += _diagLine('  último: venueName', r.latest.venueName || '(none)');
-                  lines += _diagLine('  último: startsAt', r.latest.startsAt);
-                  lines += _diagLine('  último: endsAt', r.latest.endsAt);
-                  lines += _diagLine('  último: visibility', r.latest.visibility);
-                  lines += _diagLine('  último: cancelled', r.latest.cancelled ? 'true' : 'false', r.latest.cancelled ? '#f87171' : 'var(--text-muted)');
-                }
-              }
-            }
-            lines += '</div>';
-          });
-          renderEmpty(lines);
-        });
-      }
+            '<a href="#presence" style="font-size:0.78rem;color:var(--primary-color);text-decoration:none;font-weight:600;white-space:nowrap;">Minha presença →</a>' +
+          '</div>' +
+        '</div>';
       return;
     }
     // Defense-in-depth: descarta entries do próprio usuário (auto-amizade no
@@ -2029,11 +1757,6 @@ function _hydrateFriendsPresenceWidget() {
           '<div id="pref-upcoming-' + safePid + '"></div>' +
         '</div>';
     });
-    // v0.16.64: diag também aparece no caminho "tem amigos com presença".
-    // Sem isso, quando o widget renderiza venues, perdemos visibilidade do
-    // própio plano do user — exatamente o cenário que precisamos investigar
-    // quando "amigo X não vê meu plano". Probe rola assim que o DOM injeta.
-    html += _diagBlock(_diagLine('query firestore', list.length + ' docs ATIVOS', '#10b981'));
     html += '</div>';
     box.innerHTML = html;
     // v0.16.48: dispara o ciclo de hidratação dos venues (chart + now +
