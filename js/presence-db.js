@@ -96,9 +96,12 @@ window.PresenceDB = {
       if (clean.uid && clean.placeId && clean.type) {
         try {
           var now = Date.now();
+          // v0.16.79: REMOVIDO where('endsAt', '>', now) — composto exigia
+          // índice (uid, endsAt) que pode não existir. Mesmo bug fixado em
+          // loadMyActive nesta versão e em loadForFriends na v0.16.47.
+          // Filtro de endsAt agora é client-side junto com os outros filtros.
           var snap = await self.db.collection('presences')
             .where('uid', '==', clean.uid)
-            .where('endsAt', '>', now)
             .get();
           var reqSports = Array.isArray(clean.sports) ? clean.sports : [];
           var existingId = null;
@@ -106,6 +109,7 @@ window.PresenceDB = {
             if (existingId) return;
             var d = doc.data();
             if (!d || d.cancelled) return;
+            if (!d.endsAt || d.endsAt <= now) return;  // só dedup contra docs ainda ativos
             if (d.type !== clean.type) return;
             if (d.placeId !== clean.placeId) return;
             var dSports = Array.isArray(d.sports) ? d.sports : (d.sport ? [d.sport] : []);
@@ -214,24 +218,50 @@ window.PresenceDB = {
   // planned presence in the future). Used by dashboard to show "you're checked
   // in at X" and by the presence view to avoid duplicate check-ins.
   async loadMyActive(uid) {
-    if (!this.db || !uid) return [];
+    if (!this.db || !uid) {
+      console.log('[loadMyActive v0.16.79] short-circuit: hasDb=' + !!this.db + ' uid=' + uid);
+      return [];
+    }
     try {
       var now = Date.now();
+      // v0.16.79: REMOVIDO o `.where('endsAt', '>', now)`. Combinar dois
+      // where (uid igualdade + endsAt inequality) exige índice composto
+      // (uid asc, endsAt asc) que pode não existir — query falha silenciosa
+      // e o catch retorna []. EXATO mesmo bug que afetou loadForFriends na
+      // v0.16.47, sintoma "Nelson vê seu plano em Rodrigo (via loadForFriends
+      // single-field) mas não vê em si mesmo (via loadMyActive composto)".
+      // Filtro endsAt + cancelled agora é client-side em loop simples, custo
+      // extra desprezível (poucos docs por uid em prática).
       var snap = await this.db.collection('presences')
         .where('uid', '==', uid)
-        .where('endsAt', '>', now)
         .get();
       var list = [];
+      var droppedCancelled = 0, droppedExpired = 0, totalRaw = 0;
       snap.forEach(function(doc) {
+        totalRaw++;
         var d = doc.data();
-        if (d && !d.cancelled) {
-          d._id = doc.id;
-          list.push(d);
-        }
+        if (!d || d.cancelled) { droppedCancelled++; return; }
+        if (!d.endsAt || d.endsAt <= now) { droppedExpired++; return; }
+        d._id = doc.id;
+        list.push(d);
+      });
+      console.log('[loadMyActive v0.16.79]', {
+        uid: String(uid).substring(0, 12) + '…',
+        totalRaw: totalRaw,
+        droppedCancelled: droppedCancelled,
+        droppedExpired: droppedExpired,
+        kept: list.length,
+        sample: list[0] ? {
+          type: list[0].type,
+          venueName: list[0].venueName,
+          placeId: list[0].placeId ? String(list[0].placeId).substring(0, 20) + '…' : '(empty)',
+          startsAt: list[0].startsAt ? new Date(list[0].startsAt).toLocaleString('pt-BR') : 'N/A',
+          endsAt: list[0].endsAt ? new Date(list[0].endsAt).toLocaleString('pt-BR') : 'N/A'
+        } : null
       });
       return list;
     } catch (e) {
-      console.error('Erro ao carregar presenças próprias:', e);
+      console.error('[loadMyActive v0.16.79] erro:', e);
       return [];
     }
   },
