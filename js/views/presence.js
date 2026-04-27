@@ -1061,7 +1061,11 @@
   function _notifyFriendsOfCheckin(payload) {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) return;
-    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    // v0.17.5: dedup pra evitar "várias notificações em cada evento" quando
+    // cu.friends tem mesmo amigo em formatos diferentes (email + uid).
+    var friends = (typeof window._dedupFriendsForNotify === 'function')
+      ? window._dedupFriendsForNotify(cu.friends, cu.uid)
+      : (Array.isArray(cu.friends) ? cu.friends : []);
     if (friends.length === 0) return;
     if (typeof window._sendUserNotification !== 'function') return;
     // Respeita visibilidade — 'off' bloqueia upstream; 'public' e 'friends'
@@ -1231,7 +1235,10 @@
   function _notifyFriendsOfPlan(payload) {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) return;
-    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    // v0.17.5: dedup (ver _notifyFriendsOfCheckin)
+    var friends = (typeof window._dedupFriendsForNotify === 'function')
+      ? window._dedupFriendsForNotify(cu.friends, cu.uid)
+      : (Array.isArray(cu.friends) ? cu.friends : []);
     if (friends.length === 0) return;
     if (typeof window._sendUserNotification !== 'function') return;
 

@@ -3368,7 +3368,10 @@
   function _notifyFriendsOfPlan(v, payload) {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) return;
-    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    // v0.17.5: dedup (ver _notifyFriendsOfQuickCheckin)
+    var friends = (typeof window._dedupFriendsForNotify === 'function')
+      ? window._dedupFriendsForNotify(cu.friends, cu.uid)
+      : (Array.isArray(cu.friends) ? cu.friends : []);
     if (friends.length === 0) return;
     if (typeof window._sendUserNotification !== 'function') return;
     var d = new Date(payload.startsAt);
@@ -3736,7 +3739,11 @@
   function _notifyFriendsOfQuickCheckin(v, payload) {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) return;
-    var friends = Array.isArray(cu.friends) ? cu.friends : [];
+    // v0.17.5: dedup pra evitar "várias notificações em cada evento" quando
+    // cu.friends tem mesmo amigo como email + uid (legado pré-migração).
+    var friends = (typeof window._dedupFriendsForNotify === 'function')
+      ? window._dedupFriendsForNotify(cu.friends, cu.uid)
+      : (Array.isArray(cu.friends) ? cu.friends : []);
     if (friends.length === 0) return;
     if (typeof window._sendUserNotification !== 'function') return;
     if (cu.presenceVisibility === 'off') return;

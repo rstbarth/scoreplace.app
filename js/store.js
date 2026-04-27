@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.4-alpha';
+window.SCOREPLACE_VERSION = '0.17.5-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -667,6 +667,31 @@ window._tournamentUrl = function(tournamentId) {
 };
 window._whatsappShareUrl = function(text) {
     return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+};
+
+// v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
+// "várias notificações em cada evento". cu.friends pode conter o mesmo
+// amigo em formatos diferentes (email legado + uid migrado) ou duplicatas
+// estrangulhadas — cada entrada virava 1 notif separada. Filtra:
+// - vazios/não-strings
+// - emails (formato pré-v0.16.43, deveriam estar migrados; se não, ainda
+//   notifica via uid quando o email não casa)
+// - o próprio uid (defensiva contra auto-amizade)
+// - duplicatas
+window._dedupFriendsForNotify = function(friends, ownUid) {
+  if (!Array.isArray(friends)) return [];
+  var seen = {};
+  var out = [];
+  for (var i = 0; i < friends.length; i++) {
+    var f = friends[i];
+    if (!f || typeof f !== 'string') continue;
+    if (ownUid && f === ownUid) continue;
+    if (f.indexOf('@') !== -1) continue; // emails são pre-migration; uid é canônico
+    if (seen[f]) continue;
+    seen[f] = true;
+    out.push(f);
+  }
+  return out;
 };
 
 // v0.17.2: helpers de string compartilhados — antes duplicados em
