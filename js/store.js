@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.2-alpha';
+window.SCOREPLACE_VERSION = '0.17.3-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1466,9 +1466,27 @@ window.AppStore = {
         if (profile.stripeCustomerId) this.currentUser.stripeCustomerId = profile.stripeCustomerId;
         if (profile.stripeSubscriptionId) this.currentUser.stripeSubscriptionId = profile.stripeSubscriptionId;
       }
+      // v0.17.3: sinaliza que o profile load attempt completou (sucesso OU
+      // doc inexistente — first-time user). Views que dependem de campos do
+      // profile (preferredLocations, friends, etc.) escutam esse evento pra
+      // re-renderizar quando os dados chegam, em vez de mostrar placeholder
+      // vazio durante o gap async entre simulateLoginSuccess e profile merge.
+      // Causa-raiz reportada: usuário em #place com auto-update reload — view
+      // renderizou antes do profile carregar, "Marque seus lugares favoritos"
+      // apareceu mesmo com preferreds salvos.
+      if (this.currentUser) this.currentUser._profileLoaded = true;
+      try {
+        document.dispatchEvent(new CustomEvent('scoreplace:profile-loaded', { detail: { uid: uid } }));
+      } catch (e) {}
       return profile;
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);
+      // v0.17.3: mesmo em erro, marca como "tentativa concluída" pra views
+      // não ficarem esperando indefinidamente. Erro real continua logado.
+      if (this.currentUser) this.currentUser._profileLoaded = true;
+      try {
+        document.dispatchEvent(new CustomEvent('scoreplace:profile-loaded', { detail: { uid: uid, error: true } }));
+      } catch (e2) {}
       return null;
     }
   },

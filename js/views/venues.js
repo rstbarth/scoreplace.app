@@ -323,6 +323,34 @@
     _selectedPlaceMarker = null;
     state.selectedPlace = null;
     state.showAllSP = false;
+
+    // v0.17.3: se profile ainda não carregou, registra listener one-shot
+    // pra re-disparar refresh() quando os dados chegam. Evita race que
+    // mostrava "Marque seus lugares favoritos" mesmo com preferreds salvos
+    // (auto-update + reload + render antes do loadUserProfile completar).
+    var _cuRender = window.AppStore && window.AppStore.currentUser;
+    if (_cuRender && !_cuRender._profileLoaded && !state._waitingForProfile) {
+      state._waitingForProfile = true;
+      var _onProfile = function() {
+        state._waitingForProfile = false;
+        // Só re-renderiza se ainda estamos em #place / #venues
+        var hash = window.location.hash || '';
+        if (hash.indexOf('#place') === 0 || hash.indexOf('#venues') === 0) {
+          try { refresh(); } catch (e) { console.warn('[venues v0.17.3] retry refresh failed', e); }
+        }
+      };
+      document.addEventListener('scoreplace:profile-loaded', _onProfile, { once: true });
+      // Safety net: se profile demora >5s ou evento perde, força retry uma vez
+      setTimeout(function() {
+        if (state._waitingForProfile) {
+          state._waitingForProfile = false;
+          var hash = window.location.hash || '';
+          if (hash.indexOf('#place') === 0 || hash.indexOf('#venues') === 0) {
+            try { refresh(); } catch (e) {}
+          }
+        }
+      }, 5000);
+    }
     // Regra: toda vez que entra, re-dispara GPS a menos que o usuário tenha
     // digitado um endereço custom (state.location existe E não é o label do
     // fallback "Minha localização atual"). Antes a flag centerFromGps
@@ -1271,12 +1299,23 @@
         else html += _preferredCardNoMatch(x.pref);
       });
       html += '</div></div>';
-    } else if (cu) {
-      // Placeholder com CTA pro perfil — cristaliza que a feature existe.
+    } else if (cu && cu._profileLoaded) {
+      // v0.17.3: só mostra placeholder DEPOIS que o profile carregou de verdade.
+      // Antes mostrava sempre que `cu` existia, o que disparava placeholder
+      // errado durante o gap async entre simulateLoginSuccess e profile merge —
+      // usuário com preferreds salvos via "Marque seus lugares" mesmo tendo.
       html += '<div style="background:rgba(251,191,36,0.06);border:1px dashed rgba(251,191,36,0.35);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
       html += '<div style="font-size:0.7rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⭐ Locais preferidos</div>';
       html += '<div style="font-size:0.82rem;color:var(--text-muted);line-height:1.4;margin-bottom:8px;">Marque seus lugares favoritos no perfil e eles aparecem aqui primeiro.</div>';
       html += '<button type="button" onclick="if(window._openMyProfileModal)window._openMyProfileModal();else window.location.hash=\'#dashboard\';" style="background:rgba(251,191,36,0.14);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:10px;padding:6px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">Adicionar no perfil →</button>';
+      html += '</div>';
+    } else if (cu && !cu._profileLoaded) {
+      // Profile ainda carregando — mostra loading sutil sem CTA enganoso.
+      // O listener registrado no início de render() vai re-disparar refresh()
+      // quando o profile chegar.
+      html += '<div style="background:rgba(251,191,36,0.04);border:1px dashed rgba(251,191,36,0.18);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+      html += '<div style="font-size:0.7rem;font-weight:700;color:rgba(251,191,36,0.6);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">⭐ Locais preferidos</div>';
+      html += '<div style="font-size:0.78rem;color:var(--text-muted);">Carregando perfil…</div>';
       html += '</div>';
     }
 
