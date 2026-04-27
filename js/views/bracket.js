@@ -246,6 +246,17 @@ function renderBracket(container, tournamentId, isInline) {
 window._renderReadyMatchesBanner = function _renderReadyMatchesBanner(t) {
   var _t = window._t || function(k) { return k; };
   if (!t || !t.tournamentStarted || !t.checkedIn) return '';
+  // v0.16.86: pula em Liga/Ranking/Suíço — formatos contínuos sem ato de
+  // "chamar pra quadra" no sentido de evento. Pedido do usuário: "essas
+  // sessoes tambem não fazem sentido serem mostradas na liga." Liga tem
+  // sorteio automático periódico e jogos auto-agendados; check-in/banner
+  // pronto-pra-chamar é UX de evento presencial (Eliminatórias, Grupos,
+  // Dupla Elim).
+  var isLigaFmt = (typeof window._isLigaFormat === 'function')
+    ? window._isLigaFormat(t)
+    : (t.format === 'Liga' || t.format === 'Ranking');
+  var isSwissFmt = t.format === 'Suíço' || t.format === 'Suico' || t.format === 'Suíço Clássico';
+  if (isLigaFmt || isSwissFmt) return '';
   const ci = t.checkedIn;
   const hasAnyCheckin = Object.keys(ci).length > 0;
   if (!hasAnyCheckin) return '';
