@@ -655,4 +655,51 @@ window._toggleLigaActive = function(tId, isActive) {
   });
 };
 
+// v0.16.89: helper compartilhado pra renderizar o toggle "Ativo/Inativo no
+// próximo sorteio" alinhado à direita. Usado em 3 pontos onde o countdown
+// do sorteio aparece (dashboard widget Próximas Partidas, card de Liga
+// na dashboard, página de detalhe do torneio). Pedido do usuário: "na liga
+// temos que ter um botao para que o usuário fique ativado/desativado para
+// o proximo sorteio. o melhor local para esse botão é logo acima da
+// contagem regressiva para o proximo sorteio (alinhado na direita)."
+// Renderiza VAZIO quando: não é Liga, user não logado, user não é
+// participante, ou torneio finished/sem auto-draw configurado. Estado
+// inicial: ligaActive===false → desativado; senão → ativado (default ON).
+window._buildLigaActiveToggleHtml = function(t) {
+  if (!t) return '';
+  var isLiga = (typeof window._isLigaFormat === 'function')
+    ? window._isLigaFormat(t)
+    : (t.format === 'Liga' || t.format === 'Ranking');
+  if (!isLiga) return '';
+  if (t.status === 'finished') return '';
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !cu.uid && !cu.email) return '';
+  var arr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var found = arr.find(function(p) {
+    if (typeof p !== 'object' || !p) return false;
+    if (p.uid && cu.uid && p.uid === cu.uid) return true;
+    if (p.email && cu.email && p.email === cu.email) return true;
+    return false;
+  });
+  if (!found) return ''; // só mostra pra quem está inscrito
+  var isActive = found.ligaActive !== false; // default true
+  var safeTid = String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var stateLabel = isActive ? 'Ativado' : 'Desativado';
+  var stateColor = isActive ? '#34d399' : '#f87171';
+  var titleAttr = isActive
+    ? 'Clique para ficar de fora do próximo sorteio'
+    : 'Clique para voltar ao próximo sorteio';
+  return '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:6px;" ' +
+    'onclick="event.stopPropagation();" ' +
+    'title="' + window._safeHtml(titleAttr) + '">' +
+    '<span style="font-size:0.7rem;font-weight:700;color:var(--text-muted);">No próximo sorteio:</span>' +
+    '<span style="font-size:0.72rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;">' + stateLabel + '</span>' +
+    '<label class="toggle-switch toggle-sm" style="flex-shrink:0;" onclick="event.stopPropagation();">' +
+      '<input type="checkbox" ' + (isActive ? 'checked' : '') +
+        ' onchange="window._toggleLigaActive(\'' + safeTid + '\', this.checked)">' +
+      '<span class="toggle-slider"></span>' +
+    '</label>' +
+  '</div>';
+};
+
 })();

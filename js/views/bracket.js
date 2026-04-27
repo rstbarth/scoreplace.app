@@ -1894,7 +1894,13 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         if (_d > 0) _parts.push(_d + 'd');
         if (_h > 0) _parts.push(_h + 'h');
         _parts.push(_m + 'min');
-        rankingCountdownHtml = `<div style="text-align:center;margin-bottom:1rem;padding:10px 16px;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.25);border-radius:10px;font-size:0.85rem;">
+        // v0.16.89: toggle "ativado/desativado próximo sorteio" alinhado
+        // direita acima do countdown. Pedido do usuário aplicado ao card
+        // de detalhe do torneio.
+        var _rcToggle = (typeof window._buildLigaActiveToggleHtml === 'function')
+          ? window._buildLigaActiveToggleHtml(t)
+          : '';
+        rankingCountdownHtml = _rcToggle + `<div style="text-align:center;margin-bottom:1rem;padding:10px 16px;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.25);border-radius:10px;font-size:0.85rem;">
           <span style="color:#fb923c;font-weight:700;">⏱️ Próximo sorteio automático em <b>${_parts.join(' ')}</b></span>
         </div>`;
       }

@@ -1193,7 +1193,14 @@ function renderTournaments(container, tournamentId = null) {
                 var _countdownText = window._formatCountdown ? window._formatCountdown(_ligaEvent.ts - _now) : '';
                 var _colorMap = { '#10b981': '16,185,129', '#fb923c': '251,146,60', '#8b5cf6': '139,92,246' };
                 var _rgb = _colorMap[_ligaEvent.color] || '139,92,246';
-                return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
+                // v0.16.89: toggle "ativado/desativado próximo sorteio" só
+                // aparece quando o evento é o próximo SORTEIO (não início ou
+                // fim de temporada). Posicionado acima da pill, alinhado direita.
+                var _ligaToggleHtml = (_ligaEvent.label === _t('tourn.nextDraw') && typeof window._buildLigaActiveToggleHtml === 'function')
+                  ? window._buildLigaActiveToggleHtml(t)
+                  : '';
+                return _ligaToggleHtml +
+                  '<div style="margin-top:' + (_ligaToggleHtml ? '0' : '10px') + ';display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
                   '<span style="font-size:1.3rem;">' + _ligaEvent.icon + '</span>' +
                   '<span style="font-size:0.85rem;font-weight:700;color:' + _ligaEvent.color + ';">' + _ligaEvent.label + '</span>' +
                   '<span data-countdown-target="' + _ligaEvent.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ligaEvent.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
