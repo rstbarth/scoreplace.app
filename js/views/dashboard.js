@@ -278,7 +278,7 @@ function renderDashboard(container) {
     if (!sport) return '🏆';
     const s = sport.toLowerCase();
     if (s.includes('tênis de mesa') || s.includes('tenis de mesa') || s.includes('ping pong')) return '🏓';
-    if (s.includes('padel')) return '🏸';
+    if (s.includes('padel')) return window._PADEL_ICON || '🏸';
     if (s.includes('pickleball')) return window._PICKLEBALL_ICON || '🥒';
     // Futevôlei ANTES de vôlei-de-praia (contém "vôlei" como substring).
     if (s.includes('futvôlei') || s.includes('futvolei') || s.includes('futevôlei') || s.includes('futevolei')) return '⚽';

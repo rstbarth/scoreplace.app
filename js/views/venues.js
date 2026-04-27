@@ -273,7 +273,7 @@
     // estilo tênis). Pedido do usuário: bola como tênis mas laranja.
     if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
     if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
-    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
     if (s.indexOf('mesa') !== -1) return '🏓';
     if (s.indexOf('squash') !== -1) return '🟡';
     if (s.indexOf('badminton') !== -1) return '🏸';
@@ -2418,7 +2418,7 @@
       // handebol ficaram de fora por enquanto).
       var icons = {
         'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': (window._PICKLEBALL_ICON || '🥒'), 'Tênis': '🎾', 'Tennis': '🎾',
-        'Padel': '🏸', 'Tênis de Mesa': '🏓',
+        'Padel': (window._PADEL_ICON || '🏸'), 'Tênis de Mesa': '🏓',
         'Vôlei de Praia': '🏐',
         'Futevôlei': '⚽', 'Futvôlei': '⚽',
         'Squash': '🟡', 'Badminton': '🏸'

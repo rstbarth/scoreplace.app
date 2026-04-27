@@ -3040,7 +3040,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var lower = sn.toLowerCase();
     if (lower.indexOf('pickleball') !== -1) _sportBall = window._PICKLEBALL_ICON || '🥒';
     else if (lower.indexOf('mesa') !== -1 || lower.indexOf('ping') !== -1) _sportBall = '🏓';
-    else if (lower.indexOf('padel') !== -1 || lower.indexOf('badminton') !== -1) _sportBall = '🏸';
+    else if (lower.indexOf('padel') !== -1) _sportBall = window._PADEL_ICON || '🏸';
+    else if (lower.indexOf('badminton') !== -1) _sportBall = '🏸';
     // Futevôlei ANTES de vôlei-de-praia (futevôlei contém "vôlei" como substring)
     else if (lower.indexOf('futvôlei') !== -1 || lower.indexOf('futvolei') !== -1 || lower.indexOf('futevôlei') !== -1 || lower.indexOf('futevolei') !== -1) _sportBall = '⚽';
     // Só Vôlei de Praia é modalidade suportada — vôlei indoor (times de 6) fica de fora.
@@ -6026,7 +6027,7 @@ window._openCasualMatch = function() {
     { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._PICKLEBALL_ICON) || '🥒', label: 'Pickleball', defaultDoubles: false },
     { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
     { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
-    { key: 'Padel', icon: '🏸', label: 'Padel', defaultDoubles: true },
+    { key: 'Padel', icon: (typeof window !== 'undefined' && window._PADEL_ICON) || '🏸', label: 'Padel', defaultDoubles: true },
     // Vôlei de Praia e Futevôlei são sempre disputados em dupla vs dupla
     // (regra oficial) — sem opção de individual.
     { key: 'Vôlei de Praia', icon: '🏐', label: 'Vôlei de Praia', defaultDoubles: true },

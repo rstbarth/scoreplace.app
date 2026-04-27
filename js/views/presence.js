@@ -27,7 +27,7 @@
     if (!sport) return '';
     var s = String(sport).toLowerCase();
     if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
-    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
     if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
     // Futevôlei ANTES de qualquer match de "vôlei" (contém "volei" como substring).
     if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';

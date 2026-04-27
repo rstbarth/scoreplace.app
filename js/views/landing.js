@@ -4,7 +4,7 @@
 
   var _sportIcons = {
     'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': (window._PICKLEBALL_ICON || '🥒'), 'Tenis': '🎾',
-    'Tenis de Mesa': '🏓', 'Padel': '🏸',
+    'Tenis de Mesa': '🏓', 'Padel': (window._PADEL_ICON || '🏸'),
     'Vôlei de Praia': '🏐', 'Volei de Praia': '🏐', 'Futevôlei': '⚽', 'Futevolei': '⚽'
   };
 

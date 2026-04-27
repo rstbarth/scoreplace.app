@@ -843,7 +843,7 @@
     if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
     if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
     if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
-    if (s.indexOf('padel') !== -1) return '🏸';
+    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
     if (s.indexOf('squash') !== -1) return '🎯';
     if (s.indexOf('badminton') !== -1) return '🏸';
     // Futevôlei ANTES de qualquer match contendo "volei".

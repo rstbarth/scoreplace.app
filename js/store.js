@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.12-alpha';
+window.SCOREPLACE_VERSION = '0.17.13-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -695,6 +695,14 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
 window._PICKLEBALL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Pickleball"><circle cx="12" cy="12" r="11" fill="#facc15"/><circle cx="12" cy="4" r="1.1" fill="#a16207"/><circle cx="7" cy="7.5" r="1.1" fill="#a16207"/><circle cx="12" cy="7.5" r="1.1" fill="#a16207"/><circle cx="17" cy="7.5" r="1.1" fill="#a16207"/><circle cx="4.5" cy="12" r="1.1" fill="#a16207"/><circle cx="9" cy="12" r="1.1" fill="#a16207"/><circle cx="15" cy="12" r="1.1" fill="#a16207"/><circle cx="19.5" cy="12" r="1.1" fill="#a16207"/><circle cx="7" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="16.5" r="1.1" fill="#a16207"/><circle cx="17" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="20" r="1.1" fill="#a16207"/></svg>';
+
+// v0.17.13: ícone Padel — SVG só raquete sem detalhes de furos, angulada
+// como 🏸 (badminton emoji). Pedido literal do usuário: "use a raquete
+// angulada como está no icone atual e não detalhe furos na raquete."
+// Paddle teardrop azul (#0284c7) com cabo dark slate, rotacionado -30°
+// em torno do centro pra dar a inclinação característica do emoji 🏸.
+// Sem furos individuais — silhueta limpa, mais legível em 1em.
+window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(-30 12 12)"><path d="M 12 3 C 16 3, 18 6, 18 10 C 18 14, 16 17, 13 18.5 L 11 18.5 C 8 17, 6 14, 6 10 C 6 6, 8 3, 12 3 Z" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="10.5" y="18.5" width="3" height="4" rx="0.5" fill="#1e293b"/></g></svg>';
 
 // v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
 // "várias notificações em cada evento". cu.friends pode conter o mesmo
