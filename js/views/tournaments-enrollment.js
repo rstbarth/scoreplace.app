@@ -635,6 +635,35 @@ window._toggleLigaActive = function(tId, isActive) {
   } else {
     savePromise = Promise.resolve();
   }
+  // v0.16.93: update do texto do toggle in-place + skip re-render. Pedido
+  // do usuário: "quando clicamos no togle ativado/desativado na dashboard
+  // mantenha tudo parado no lugar e não fique scrolando a pagina (isso
+  // causa uma baita confusão na cabeça do usuário)." Antes
+  // renderTournaments(container, tId) era chamado — quando tId é setado,
+  // a função renderiza a página de DETALHE do torneio (substituindo a
+  // dashboard) → causa navegação + scroll jump. Agora atualizamos só os
+  // labels do próprio toggle via querySelectorAll por data-attribute. Toast
+  // continua disparando pra confirmar a ação. Firestore onSnapshot já
+  // sincroniza na próxima soft-refresh sem causar scroll jump (suprimida
+  // por _suppressSoftRefresh quando preciso).
+  var _syncTogglesInDom = function() {
+    var newLabel = isActive ? 'Ativado' : 'Desativado';
+    var newColor = isActive ? '#34d399' : '#f87171';
+    var newTitle = isActive
+      ? 'Clique para ficar de fora do próximo sorteio'
+      : 'Clique para voltar ao próximo sorteio';
+    // Toggle wrappers carregam data-liga-toggle-tid pra ser query-friendly.
+    var wrappers = document.querySelectorAll('[data-liga-toggle-tid="' + String(tId).replace(/"/g, '\\"') + '"]');
+    wrappers.forEach(function(w) {
+      var lbl = w.querySelector('.liga-toggle-state-label');
+      if (lbl) { lbl.textContent = newLabel; lbl.style.color = newColor; }
+      w.setAttribute('title', newTitle);
+      var inp = w.querySelector('input[type="checkbox"]');
+      if (inp) inp.checked = !!isActive;
+    });
+  };
+  // Update otimista imediato — não espera o save.
+  _syncTogglesInDom();
   Promise.resolve(savePromise).then(function() {
     if (typeof window.showNotification === 'function') {
       window.showNotification(
@@ -643,12 +672,14 @@ window._toggleLigaActive = function(tId, isActive) {
         isActive ? 'success' : 'warning'
       );
     }
-    if (typeof window.renderTournaments === 'function') {
-      var container = document.getElementById('view-container');
-      if (container) window.renderTournaments(container, tId);
-    }
+    // Não re-renderiza. DOM já foi atualizado in-place. Firestore listener
+    // sincroniza next soft-refresh (preservando scroll).
   }).catch(function(e) {
     console.warn('[toggle-liga] save failed', e);
+    // Reverte o update otimista no DOM se save falhou.
+    isActive = !isActive;
+    found.ligaActive = !!isActive;
+    _syncTogglesInDom();
     if (typeof window.showNotification === 'function') {
       window.showNotification('Erro', 'Não foi possível salvar a alteração.', 'error');
     }
@@ -688,18 +719,14 @@ window._buildLigaActiveToggleHtml = function(t) {
   var titleAttr = isActive
     ? 'Clique para ficar de fora do próximo sorteio'
     : 'Clique para voltar ao próximo sorteio';
-  // v0.16.92: stopPropagation EM TODOS os elementos do toggle. Pedido do
-  // usuário: "quando clicarmos no togle ativado/desativado na dashboard, não
-  // entre no detalhe do card (isso está acontecendo automaticamente)." Antes
-  // só o outer span e label tinham — mas o slider span (alvo visual real do
-  // clique no toggle-switch CSS) não tinha onclick, e algum click parecia
-  // atravessar pra o handler do card pai. Agora cada elemento tem seu próprio
-  // onclick=stopPropagation, garantia múltipla de que o clique morre dentro
-  // do toggle e não navega pra detalhe.
+  // v0.16.92: stopPropagation EM TODOS os elementos do toggle.
+  // v0.16.93: data-liga-toggle-tid no outer wrapper + class
+  // liga-toggle-state-label no text span permite update in-place pelo
+  // _toggleLigaActive sem re-render do view (sem scroll jump).
   var STOP = 'onclick="event.stopPropagation();"';
-  return '<span style="display:inline-flex;align-items:center;gap:8px;flex-shrink:0;" ' + STOP + ' ' +
+  return '<span data-liga-toggle-tid="' + safeTid + '" style="display:inline-flex;align-items:center;gap:8px;flex-shrink:0;" ' + STOP + ' ' +
     'title="' + window._safeHtml(titleAttr) + '">' +
-    '<span style="font-size:0.95rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;" ' + STOP + '>' + stateLabel + '</span>' +
+    '<span class="liga-toggle-state-label" style="font-size:0.95rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;" ' + STOP + '>' + stateLabel + '</span>' +
     '<label class="toggle-switch toggle-sm" style="flex-shrink:0;" ' + STOP + '>' +
       '<input type="checkbox" ' + (isActive ? 'checked' : '') + ' ' + STOP +
         ' onchange="window._toggleLigaActive(\'' + safeTid + '\', this.checked)">' +

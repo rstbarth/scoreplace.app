@@ -2128,8 +2128,14 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     var title = displayLabel
       ? _t('bracket.standingsTitleCat', {cat: displayLabel, n: _roundLabel})
       : _t('bracket.standingsTitle', {n: _roundLabel});
+    // v0.16.93: classificação MOSTRADA por default (open) — pedido do
+    // usuário "no detalhe do torneio a classificação deve estar mostrada
+    // por padrao e pode ser ocultada pelo usuário." Spans show/hide mantêm
+    // estilos inline originais — CSS bracket.css já tem regras
+    // details[open] > summary .standings-toggle-{show,hide} que invertem
+    // a visibilidade automaticamente quando o details abre/fecha.
     return `<div class="card" style="margin-bottom:1rem;">
-      <details>
+      <details open>
         <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:.75rem;">
           <h3 class="card-title" style="margin:0;border-left:3px solid #38bdf8;padding-left:10px;">${title}</h3>
           <span class="standings-toggle-indicator" style="font-size:.85rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">

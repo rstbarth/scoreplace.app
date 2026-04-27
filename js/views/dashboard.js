@@ -1,3 +1,22 @@
+// v0.16.93/94: handler de click no card de torneio na dashboard. Detecta
+// se o click veio de dentro de um elemento que NÃO deve disparar navegação
+// (ex: toggle Liga ativado/desativado, botão de inscrever, etc.) e ignora.
+// Pedido do usuário: "quando clicarmos no togle ... não entre no detalhe
+// do card" + "quando clicamos no togle ... mantenha tudo parado no lugar".
+// Em vez de confiar em stopPropagation no toggle (que tem múltiplas camadas
+// e às vezes falha em CSS toggle-switch), o handler do card próprio checa
+// se event.target está dentro de um elemento "no-nav" via closest().
+window._dashCardClick = function(event, tournamentId) {
+  if (!event || !tournamentId) return;
+  var target = event.target;
+  // Se o click veio de dentro do toggle Liga, NÃO navega.
+  if (target && target.closest && target.closest('[data-liga-toggle-tid]')) return;
+  // Se o click veio de qualquer botão ou label/input dentro do card, NÃO navega.
+  // Botões já têm stopPropagation no próprio onclick mas defesa em profundidade.
+  if (target && target.closest && target.closest('button, input, label, select, textarea, a[href], [data-no-card-nav]')) return;
+  window.location.hash = '#tournaments/' + tournamentId;
+};
+
 // ─── Organizer Analytics Section ────────────────────────────────────────────
 window._buildAnalyticsSection = function _buildAnalyticsSection(organizados) {
   if (!window.AppStore || !window.AppStore.currentUser) return '';
@@ -454,7 +473,7 @@ function renderDashboard(container) {
 
     const _isFav = typeof window._isFavorite === 'function' && window._isFavorite(t.id);
     return `
-        <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: 1px solid ${_isLight ? 'rgba(0,0,0,0.08)' : 'transparent'}; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,${_isLight ? '0.06' : '0.1'}); cursor: pointer; transition: transform 0.2s;" onclick="window.location.hash='#tournaments/${t.id}'" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
+        <div class="card mb-3" style="position: relative; overflow: hidden; ${venuePhotoBg ? venuePhotoBg : 'background: ' + bgGradient + ';'} color: ${_cardTextColor}; border: 1px solid ${_isLight ? 'rgba(0,0,0,0.08)' : 'transparent'}; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,${_isLight ? '0.06' : '0.1'}); cursor: pointer; transition: transform 0.2s;" onclick="window._dashCardClick(event, '${t.id}')" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='none'">
           ${isOrg ? `
              <div style="position: absolute; bottom: 6px; right: 8px; opacity: 0.9; pointer-events: none;" title="Organizador">
                <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(251,191,36,0.95)"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>
