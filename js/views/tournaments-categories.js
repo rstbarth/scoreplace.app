@@ -364,6 +364,15 @@ window._buildCategoryCountHtml = function(t) {
 window._buildTimeEstimation = function(t) {
   // Só mostra se NÃO tem data/hora de fim
   if (t.endDate) return '';
+  // v0.16.82: Liga não tem duração estimada — formato é uma "temporada
+  // contínua" com sorteios automáticos a cada N dias, não um evento de
+  // duração fixa. Mostrar simulação de partidas é enganoso. Pedido do
+  // usuário: "quando o campeonato for liga vamos ocultar a sessao duração
+  // estimada que não faz sentido em ligas."
+  var isLigaFmt = (typeof window._isLigaFormat === 'function')
+    ? window._isLigaFormat(t)
+    : (t.format === 'Liga' || t.format === 'Ranking');
+  if (isLigaFmt) return '';
 
   var format = t.format || 'Eliminatórias';
   var gameDur = parseInt(t.gameDuration) || 30; // minutos por partida

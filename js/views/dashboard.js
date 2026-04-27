@@ -1068,11 +1068,15 @@ function renderDashboard(container) {
       }
       if (keyToIdx[key] == null) {
         keyToIdx[key] = grouped.length;
+        // v0.16.82: guarda referência ao tournament real pra computar
+        // standings ao renderizar (Liga/Suíço) sem precisar buscar de novo.
+        var tRef = participacoes.find(function(tt) { return tt.id === p.tournamentId; });
         grouped.push({
           tournament: p.tournament, tournamentId: p.tournamentId, sport: p.sport,
           formatLabel: p.formatLabel, phaseLabel: p.phaseLabel,
           isMonarch: p.isMonarch, monarchGroup: p.monarchGroup,
-          matches: []
+          matches: [],
+          tRef: tRef
         });
       }
       grouped[keyToIdx[key]].matches.push({
@@ -1081,8 +1085,7 @@ function renderDashboard(container) {
       // v0.16.76: pra Liga com sorteio automático, guarda referência ao
       // próximo draw scheduled — countdown vai pro header do card.
       if (!grouped[keyToIdx[key]].nextDrawAt) {
-        // Acha o tournament real pra ler drawFirstDate/drawIntervalDays.
-        var tFull = participacoes.find(function(tt) { return tt.id === p.tournamentId; });
+        var tFull = grouped[keyToIdx[key]].tRef;
         if (tFull && tFull.format === 'Liga' && !tFull.drawManual && tFull.drawFirstDate &&
             typeof window._calcNextDrawDate === 'function') {
           var nd = window._calcNextDrawDate(tFull);
@@ -1154,6 +1157,70 @@ function renderDashboard(container) {
           '</span>' +
         '</div>';
       });
+      // v0.16.82: classificação consolidada das rodadas (Liga/Suíço).
+      // Pedido do usuário: "na liga, logo após os jogos da rodada em
+      // andamento, vamos colocar a classificação de todos os participantes
+      // computadas todas as rodadas." Renderiza tabela compacta abaixo dos
+      // confrontos. Usa _computeStandings(t) que já contabiliza pontos
+      // (V/E/D), saldo de pontos, sets/games (GSM), e suporta Rei/Rainha
+      // (matches monarch dão stats individuais via team1/team2). Pra
+      // tournaments com categorias múltiplas (Fem A, Masc B, etc.),
+      // chamada sem categoria = standings agregado de todos.
+      var standingsBlock = '';
+      var tFull = g.tRef;
+      var isLigaCardFmt = tFull && (
+        (typeof window._isLigaFormat === 'function' && window._isLigaFormat(tFull)) ||
+        tFull.format === 'Liga' || tFull.format === 'Ranking' ||
+        tFull.format === 'Suíço' || tFull.format === 'Suico'
+      );
+      if (isLigaCardFmt && typeof window._computeStandings === 'function') {
+        try {
+          var standings = window._computeStandings(tFull);
+          if (Array.isArray(standings) && standings.length > 0) {
+            // Cabeçalho compacto: Pos · Jogador · P · V · S±
+            // (omite empates e GSM detalhado pra caber em mobile estreito —
+            // usuário clica no card pra ver tabela completa em #tournaments)
+            var rowsHtml = '';
+            standings.forEach(function(s, idx) {
+              var isMyRow = _isMe(s.name);
+              var rowBg = isMyRow ? 'background:rgba(16,185,129,0.10);' : '';
+              var rowColor = isMyRow ? 'color:#10b981;font-weight:700;' : 'color:var(--text-color);';
+              var posLbl = (idx + 1) + 'º';
+              var nameLbl = isMyRow ? 'Você' : _safe(s.name);
+              var pts = s.points || 0;
+              var w = s.wins || 0;
+              var saldoSets = (s.setsWon || 0) - (s.setsLost || 0);
+              var saldoLbl = (saldoSets > 0 ? '+' : '') + saldoSets;
+              rowsHtml +=
+                '<tr style="' + rowBg + '">' +
+                  '<td style="padding:4px 6px;text-align:center;font-size:0.72rem;color:var(--text-muted);">' + posLbl + '</td>' +
+                  '<td style="padding:4px 6px;font-size:0.76rem;' + rowColor + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">' + nameLbl + '</td>' +
+                  '<td style="padding:4px 6px;text-align:center;font-size:0.78rem;font-weight:700;' + rowColor + '">' + pts + '</td>' +
+                  '<td style="padding:4px 6px;text-align:center;font-size:0.72rem;color:var(--text-muted);">' + w + '</td>' +
+                  '<td style="padding:4px 6px;text-align:center;font-size:0.72rem;color:var(--text-muted);">' + saldoLbl + '</td>' +
+                '</tr>';
+            });
+            standingsBlock =
+              '<div style="margin-top:12px;border-top:1px solid var(--border-color);padding-top:10px;">' +
+                '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📊 Classificação</div>' +
+                '<table style="width:100%;border-collapse:collapse;">' +
+                  '<thead>' +
+                    '<tr style="border-bottom:1px solid rgba(255,255,255,0.08);">' +
+                      '<th style="padding:3px 6px;text-align:center;font-size:0.66rem;color:var(--text-muted);font-weight:600;">Pos</th>' +
+                      '<th style="padding:3px 6px;text-align:left;font-size:0.66rem;color:var(--text-muted);font-weight:600;">Jogador</th>' +
+                      '<th style="padding:3px 6px;text-align:center;font-size:0.66rem;color:var(--text-muted);font-weight:600;" title="Pontos">P</th>' +
+                      '<th style="padding:3px 6px;text-align:center;font-size:0.66rem;color:var(--text-muted);font-weight:600;" title="Vitórias">V</th>' +
+                      '<th style="padding:3px 6px;text-align:center;font-size:0.66rem;color:var(--text-muted);font-weight:600;" title="Saldo de sets">±S</th>' +
+                    '</tr>' +
+                  '</thead>' +
+                  '<tbody>' + rowsHtml + '</tbody>' +
+                '</table>' +
+              '</div>';
+          }
+        } catch (e) {
+          console.warn('[upcoming-matches] standings calc failed:', e);
+        }
+      }
       html += '<div onclick="window.location.hash=\'#tournaments/' + g.tournamentId + '\'" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.15s;' + (gi > 0 ? 'border-top:1px solid var(--border-color);margin-top:6px;padding-top:14px;' : '') + '" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'transparent\'">';
       html += '<span style="font-size:1.1rem;line-height:1.2;flex-shrink:0;margin-top:1px;">' + getSportIcon(g.sport) + '</span>';
       html += '<div style="flex:1;min-width:0;overflow:hidden;">';
@@ -1161,6 +1228,7 @@ function renderDashboard(container) {
       html +=   fmtPhaseLine;
       html +=   ligaCountdownLine;
       html +=   '<div style="margin-top:8px;display:flex;flex-direction:column;">' + matchLines + '</div>';
+      html +=   standingsBlock;
       html += '</div>';
       html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5;margin-top:3px;"><path d="M9 18l6-6-6-6"/></svg>';
       html += '</div>';
