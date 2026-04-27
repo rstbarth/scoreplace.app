@@ -128,6 +128,20 @@ function _rerenderBracket(tId, anchorMatchId) {
   var bracketWrapper = document.querySelector('.bracket-sticky-scroll-wrapper');
   var _bsx = bracketWrapper ? bracketWrapper.scrollLeft : 0;
 
+  // v0.16.96: captura valores typed-but-unsaved de TODOS os inputs de placar
+  // antes do re-render. Pedido do usuário: "quando o usuário está lançando
+  // valores de placar o sistema registra, mas apaga assim que ele coloca o
+  // resultado em outro jogo." Cenário: user digita 6-3 em match A + clica
+  // Confirmar → _saveResultInline → _rerenderBracket → re-render destrói
+  // OUTROS inputs (s1-B, s2-B) que tinham valores typed mas ainda não
+  // confirmados. Restauração via dataset após o renderBracket completar.
+  var _typedScores = {};
+  document.querySelectorAll('input[id^="s1-"], input[id^="s2-"], input[id^="tb1-"], input[id^="tb2-"]').forEach(function(inp) {
+    if (inp.value !== '' && inp.value != null) {
+      _typedScores[inp.id] = inp.value;
+    }
+  });
+
   // 3. Suppress Firestore soft-refresh
   window._suppressSoftRefresh = true;
   clearTimeout(window._pendingSoftRefresh);
@@ -174,6 +188,25 @@ function _rerenderBracket(tId, anchorMatchId) {
       }
     }
   }
+
+  // v0.16.96: restaura valores typed-but-unsaved capturados antes do
+  // re-render. Quando o user digita 6-3 em match A, confirma, o re-render
+  // do bracket destruiria os inputs de match B onde ele já tinha digitado.
+  // Agora os valores voltam após o re-render.
+  Object.keys(_typedScores).forEach(function(inputId) {
+    var inp = document.getElementById(inputId);
+    if (inp && (inp.value === '' || inp.value == null)) {
+      inp.value = _typedScores[inputId];
+    }
+  });
+  // Re-aplica destaque visual de winner pros matches restaurados (tanto
+  // s1- quanto s2- — _highlightWinner colore o lado vencedor).
+  Object.keys(_typedScores).forEach(function(inputId) {
+    var matchId = inputId.replace(/^s[12]-/, '').replace(/^tb[12]-/, '');
+    if (matchId && typeof window._highlightWinner === 'function') {
+      try { window._highlightWinner(matchId); } catch (e) {}
+    }
+  });
 
   // 6. Restore scroll anchored to the reference element
   function _restore() {
