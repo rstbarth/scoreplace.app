@@ -1926,6 +1926,41 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           </button>` : ''}
         ${isFinished ? `<span style="color:#fbbf24;font-weight:700;">${_t('bracket.tournamentFinished')}</span>` : ''}
       </div>
+      ${(() => {
+        // v0.16.95: seção "Ficaram de fora desta rodada" — lista jogadores
+        // que não entraram no sorteio da rodada atual, separados por motivo:
+        // inativos (toggle "Desativado") vs sem grupo (resto da divisão por
+        // 4 que sobrou). Pedido do usuário: "Mostre em cada rodada da liga
+        // os que ficaram de fora do sorteio (por falta de jogadores
+        // suficientes) e tambem quem ficou de fora por estar desativado."
+        // Sit-out matches têm isSitOut=true + sitOutReason='inactive'/'remainder'.
+        var _allRoundMatches = currentRoundData.matches || [];
+        var _sitOuts = _allRoundMatches.filter(function(m) { return m && m.isSitOut; });
+        if (_sitOuts.length === 0) return '';
+        var _inactive = _sitOuts.filter(function(m) { return m.sitOutReason === 'inactive'; });
+        var _remainder = _sitOuts.filter(function(m) { return m.sitOutReason !== 'inactive'; });
+        var _renderRow = function(label, items, color, bg, border, icon, hint) {
+          if (items.length === 0) return '';
+          var _names = items.map(function(m) {
+            return '<span style="background:rgba(255,255,255,0.06);border:1px solid ' + border + ';color:' + color + ';font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;" onclick="if(window._showPlayerStats)window._showPlayerStats(\'' + window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + '\',\'' + String(t.id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">' + window._safeHtml(m.p1) + '</span>';
+          }).join('');
+          return '<div style="margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:' + color + ';margin-bottom:4px;">' +
+              '<span>' + icon + '</span>' +
+              '<span>' + label + ' (' + items.length + ')</span>' +
+              (hint ? '<span style="font-size:0.66rem;font-weight:400;color:var(--text-muted);">— ' + hint + '</span>' : '') +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;background:' + bg + ';border:1px solid ' + border + ';border-radius:10px;padding:8px 10px;">' + _names + '</div>' +
+          '</div>';
+        };
+        var _inactiveHtml = _renderRow('Desativados', _inactive, '#f87171', 'rgba(239,68,68,0.05)', 'rgba(239,68,68,0.25)', '🔴', 'optaram por sair desta rodada');
+        var _remainderHtml = _renderRow('Sem grupo', _remainder, '#fbbf24', 'rgba(251,191,36,0.05)', 'rgba(251,191,36,0.25)', '😴', 'falta de jogadores pro sorteio');
+        if (!_inactiveHtml && !_remainderHtml) return '';
+        return '<details open style="margin-bottom:1rem;background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:10px;padding:10px 14px;">' +
+          '<summary style="cursor:pointer;user-select:none;font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:8px;">📋 Ficaram de fora desta rodada</summary>' +
+          '<div style="margin-top:8px;">' + _inactiveHtml + _remainderHtml + '</div>' +
+        '</details>';
+      })()}
       ${_isReiRainhaRound ? (() => {
         var _useSetsMonarch = !!(t.scoring && t.scoring.type === 'gsm');
         // v0.16.52: ordena os grupos pra que o grupo do usuário (se houver) venha
@@ -2047,7 +2082,9 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         return sortedGroups.map(_renderGroup).join('');
       })() : (() => {
         const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0);
-        const allMatches = currentRoundData.matches || [];
+        // v0.16.95: filtra sit-outs (isSitOut) — eles aparecem na seção
+        // dedicada "Ficaram de fora desta rodada" acima, não no grid.
+        const allMatches = (currentRoundData.matches || []).filter(function(m) { return m && !m.isSitOut; });
         const buildCard = (m, absIdx) => `<div style="min-width:260px;max-width:320px;flex:1;">${renderMatchCard(m, canEnterResult, t.id, prevMatches + absIdx + 1)}</div>`;
         const _cu = window.AppStore && window.AppStore.currentUser;
         const _cuName = _cu ? (_cu.displayName || '') : '';
