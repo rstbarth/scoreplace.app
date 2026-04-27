@@ -269,7 +269,9 @@
   // como vôlei indoor, basquete, futsal, futebol e handebol ficaram de fora).
   function _sportIcon(sport) {
     var s = String(sport || '').toLowerCase();
-    if (s.indexOf('beach') !== -1) return '🏖️';
+    // v0.17.9: Beach Tennis = SVG inline (bola laranja com seam branco
+    // estilo tênis). Pedido do usuário: bola como tênis mas laranja.
+    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
     if (s.indexOf('pickleball') !== -1) return '🥒';
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('mesa') !== -1) return '🏓';
@@ -898,9 +900,14 @@
           friendsSet[key] = true;
           var name = klass === 'me' ? 'Você' : (p.displayName || 'Amigo');
           var borderColor = klass === 'me' ? '#10b981' : '#fbbf24';
+          // v0.17.9: box-sizing:border-box pra que avatar e initial-circle
+          // tenham EXATAMENTE 26px total (border inclusa). Antes,
+          // content-box default + border 2px = 30px effective. Inconsistência
+          // entre img (object-fit cover) e div initial gerava chips de
+          // alturas diferentes em "Você" vs Nelson.
           var avatar = p.photoURL
-            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:26px;height:26px;display:block;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';flex-shrink:0;">'
-            : '<div style="width:26px;height:26px;min-width:26px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';flex-shrink:0;">' + _safe(_initials(name)) + '</div>';
+            ? '<img src="' + _safe(p.photoURL) + '" alt="" style="width:26px;height:26px;display:block;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';box-sizing:border-box;flex-shrink:0;">'
+            : '<div style="width:26px;height:26px;min-width:26px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;border:2px solid ' + borderColor + ';box-sizing:border-box;flex-shrink:0;">' + _safe(_initials(name)) + '</div>';
           // v0.16.32: botão "Cancelar" discreto, bold, maior, inline logo
           // depois do nome "Você" — sem círculo, sem sobreposição na foto.
           // v0.16.65: o placeId vem do PRÓPRIO doc da presença (sempre existe
@@ -917,14 +924,17 @@
           }
           var chipSports = Array.isArray(p.sports) ? p.sports : [];
           var iconStr = _sportsIcons(chipSports);
-          // v0.16.51: min-height fixo (36px) garante que chips com ✕ (1rem)
-          // tenham mesma altura que chips sem ✕ (nome em 0.76rem). Antes o ✕
-          // do "Você" esticava a altura do chip vs Nelson sem ✕.
+          // v0.17.9: HEIGHT fixo (36px) substitui min-height — força altura
+          // idêntica entre chips com ✕ e sem ✕. Avatar (26px com box-sizing
+          // border-box) + padding 3+3 = 32px max, dentro do height 36px.
+          // Todos os spans com line-height:1 pra evitar overflow vertical.
+          // Pedido do usuário: cards na "Próximas horas" têm que ter MESMA
+          // altura — bug reportado várias vezes, finalmente forçado.
           friendChips.push(
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;min-height:36px;box-sizing:border-box;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:999px;padding:3px 10px 3px 6px;min-width:0;height:36px;box-sizing:border-box;line-height:1;">' +
               (iconStr ? '<span title="' + _safe(chipSports.join(', ')) + '" style="font-size:0.88rem;line-height:1;flex-shrink:0;">' + iconStr + '</span>' : '') +
               avatar +
-              '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(name) + '</span>' +
+              '<span style="font-size:0.76rem;color:var(--text-bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;">' + _safe(name) + '</span>' +
               cancelBtn +
             '</div>'
           );
@@ -2407,7 +2417,7 @@
       // — esportes com times >2 como vôlei indoor, basquete, futsal, futebol e
       // handebol ficaram de fora por enquanto).
       var icons = {
-        'Beach Tennis': '🎾', 'Pickleball': '🏓', 'Tênis': '🎾', 'Tennis': '🎾',
+        'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': '🏓', 'Tênis': '🎾', 'Tennis': '🎾',
         'Padel': '🏸', 'Tênis de Mesa': '🏓',
         'Vôlei de Praia': '🏐',
         'Futevôlei': '⚽', 'Futvôlei': '⚽',

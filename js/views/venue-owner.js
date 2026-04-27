@@ -839,7 +839,8 @@
     // Somente modalidades com times de até 2 jogadores — vôlei indoor,
     // basquete, futsal, futebol e handebol ficaram de fora por enquanto.
     var s = String(sport || '').toLowerCase();
-    if (s.indexOf('beach') !== -1) return '🏖️';
+    // v0.17.9: Beach Tennis = SVG bola laranja com seam (defined em store.js)
+    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
     if (s.indexOf('pickleball') !== -1) return '🥒';
     if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
     if (s.indexOf('padel') !== -1) return '🏸';

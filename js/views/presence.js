@@ -34,7 +34,9 @@
     // Vôlei de Praia (dupla) — SEM match genérico de "vôlei" porque indoor tem 6 jogadores
     // por time e esportes com times >2 estão fora do app por enquanto.
     if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
-    if (s.indexOf('tênis') !== -1 || s.indexOf('tennis') !== -1 || s.indexOf('beach') !== -1) return '🎾';
+    // v0.17.9: Beach Tennis ANTES de tennis genérico — usa SVG bicolor laranja+amarelo.
+    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
+    if (s.indexOf('tênis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
     return '🏆';
   }
 

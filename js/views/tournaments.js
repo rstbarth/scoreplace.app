@@ -493,7 +493,9 @@ function renderTournaments(container, tournamentId = null) {
         if (s.includes('futvôlei') || s.includes('futvolei') || s.includes('futevôlei') || s.includes('futevolei')) return '⚽';
         // Só Vôlei de Praia é modalidade suportada — vôlei indoor (times de 6) fica de fora.
         if (s.includes('vôlei de praia') || s.includes('volei de praia')) return '🏐';
-        if (s.includes('tênis') || s.includes('tennis') || s.includes('beach')) return '🎾';
+        // v0.17.9: Beach Tennis ANTES de tennis — SVG bicolor.
+        if (s.includes('beach')) return window._BEACH_TENNIS_ICON || '🟠';
+        if (s.includes('tênis') || s.includes('tennis')) return '🎾';
         return '🏆';
     };
 

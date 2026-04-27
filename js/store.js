@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.8-alpha';
+window.SCOREPLACE_VERSION = '0.17.9-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -668,6 +668,16 @@ window._tournamentUrl = function(tournamentId) {
 window._whatsappShareUrl = function(text) {
     return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
 };
+
+// v0.17.9: ícone de Beach Tennis — SVG inline BICOLOR (metade laranja +
+// metade amarelo-verde com seam branco), fiel à bola real (foto enviada
+// pelo usuário). Pedido literal: "a bola precisa ser como a de tenis
+// (com as riscas brancas), mas trocando o amarelo pelo laranja" + foto
+// mostrando bolas half-orange/half-yellow. Emoji unicode não tem variante;
+// SVG dá consistência visual entre plataformas. Tamanho via 1em escala
+// com font-size do pai. vertical-align:-0.15em alinha com baseline de
+// texto adjacente.
+window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#cde54a"/><path d="M 1 12 A 11 11 0 0 1 23 12 Q 17 14 12 12.5 Q 7 11 1 12 Z" fill="#f97316"/><path d="M 1 12 Q 7 14 12 12.5 Q 17 11 23 12" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
 
 // v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
 // "várias notificações em cada evento". cu.friends pode conter o mesmo
