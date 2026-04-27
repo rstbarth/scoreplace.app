@@ -944,6 +944,34 @@ function renderDashboard(container) {
         }
       }
 
+      // v0.16.80: para Liga/Suíço, só consideramos matches da ÚLTIMA rodada
+      // como "próximas partidas". Pedido do usuário: "na liga quando há um
+      // novo sorteio, os jogos da rodada anterior que não tiverem resultado
+      // registrado devem ser considerados encerrados. ... jogos que não
+      // tiveram os resultaos lançados não podem constar como próximas
+      // partidas do jogador." Antes, qualquer match sem winner aparecia
+      // como pendente — incluindo rounds antigos abandonados (jogo nunca
+      // foi disputado, novo sorteio veio sem resultado registrado). Agora
+      // filtramos pela rodada mais alta encontrada (m.round máximo) entre
+      // todos os matches do torneio. Outros formatos (Eliminatórias, Grupos)
+      // mantêm comportamento atual — nesses todo match pendente é válido
+      // até que seja resolvido.
+      var isLigaFmt = (typeof window._isLigaFormat === 'function')
+        ? window._isLigaFormat(t)
+        : (t.format === 'Liga' || t.format === 'Ranking');
+      var isSwissFmt = t.format === 'Suíço' || t.format === 'Suico';
+      if (isLigaFmt || isSwissFmt) {
+        var maxRound = -Infinity;
+        matchSources.forEach(function(m) {
+          if (m && typeof m.round === 'number' && m.round > maxRound) maxRound = m.round;
+        });
+        if (isFinite(maxRound)) {
+          matchSources = matchSources.filter(function(m) {
+            return m && m.round === maxRound;
+          });
+        }
+      }
+
       // v0.16.74: extrai info rica de cada match — formato, fase, parceiro,
       // adversários, e (pra Rei/Rainha) os 4 do grupo. Antes só mostrava
       // "vs Adv" + nome do torneio. Pedido do usuário: "coloque o nome do
