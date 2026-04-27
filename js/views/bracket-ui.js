@@ -1,6 +1,76 @@
 // ── Bracket UI Handlers ──
 var _t = window._t || function(k) { return k; };
 
+// v0.16.87: propaga mutação de um match (m) pra todas as refs com mesmo id
+// no tournament. Necessário porque após Firestore deserialização (onSnapshot
+// dispara em todo save), refs entre t.rounds[i].matches[k] e
+// t.rounds[i].monarchGroups[gi].matches[mi] ficam SEPARADAS — antes eram o
+// mesmo object (criado em _generateReiRainhaRoundForPlayers e shared), mas
+// JSON serialize/deserialize só preserva valores. Se mutar uma ref, a outra
+// continua estale e o renderer lê dela. Fix: após mutar a "primary" ref,
+// achar todas as outras refs com mesmo id e copiar os campos mutáveis.
+// Lista de campos cobre o que `_saveResultInline` e `_editResult` mexem.
+function _propagateMatchUpdate(t, m) {
+  if (!t || !m || !m.id) return;
+  var FIELDS = ['winner', 'draw', 'scoreP1', 'scoreP2', 'sets', 'setsWonP1', 'setsWonP2', 'totalGamesP1', 'totalGamesP2', 'fixedSet', 'isBye'];
+  var updateRef = function(ref) {
+    if (!ref || ref === m) return; // skip self (already mutated)
+    if (ref.id !== m.id) return;
+    FIELDS.forEach(function(f) {
+      if (m[f] === undefined) {
+        delete ref[f];
+      } else {
+        ref[f] = m[f];
+      }
+    });
+  };
+  // 1. Walk t.matches (flat elim list)
+  if (Array.isArray(t.matches)) t.matches.forEach(updateRef);
+  // 2. Walk t.rounds[i].matches and t.rounds[i].monarchGroups[gi].matches
+  if (Array.isArray(t.rounds)) {
+    t.rounds.forEach(function(r) {
+      if (!r) return;
+      if (Array.isArray(r.matches)) r.matches.forEach(updateRef);
+      if (Array.isArray(r.monarchGroups)) {
+        r.monarchGroups.forEach(function(g) {
+          if (g && Array.isArray(g.matches)) g.matches.forEach(updateRef);
+          if (g && Array.isArray(g.rounds)) {
+            g.rounds.forEach(function(gr) {
+              if (Array.isArray(gr)) gr.forEach(updateRef);
+              else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(updateRef);
+            });
+          }
+        });
+      }
+    });
+  }
+  // 3. Walk t.groups (group stage)
+  if (Array.isArray(t.groups)) {
+    t.groups.forEach(function(g) {
+      if (!g) return;
+      if (Array.isArray(g.matches)) g.matches.forEach(updateRef);
+      if (Array.isArray(g.rounds)) {
+        g.rounds.forEach(function(gr) {
+          if (Array.isArray(gr)) gr.forEach(updateRef);
+          else if (gr && Array.isArray(gr.matches)) gr.matches.forEach(updateRef);
+        });
+      }
+    });
+  }
+  // 4. Walk t.rodadas (legacy)
+  if (Array.isArray(t.rodadas)) {
+    t.rodadas.forEach(function(r) {
+      if (!r) return;
+      if (Array.isArray(r.matches)) r.matches.forEach(updateRef);
+      if (Array.isArray(r.jogos)) r.jogos.forEach(updateRef);
+      if (Array.isArray(r)) r.forEach(updateRef);
+    });
+  }
+  // 5. thirdPlaceMatch
+  if (t.thirdPlaceMatch) updateRef(t.thirdPlaceMatch);
+}
+window._propagateMatchUpdate = _propagateMatchUpdate;
+
 // Helper: re-render bracket preserving scroll position (zero jump)
 // Uses anchor-based approach: saves the viewport-relative offset of a reference
 // element, re-renders, then scrolls so the same element is at the same offset.
@@ -70,10 +140,40 @@ function _rerenderBracket(tId, anchorMatchId) {
     container.style.minHeight = prevHeight + 'px';
   }
 
+  // v0.16.87: log diagnóstico — qual container, anchor encontrado, modo inline
+  try {
+    console.log('[_rerenderBracket v0.16.87]', {
+      tId: tId,
+      anchorMatchId: anchorMatchId,
+      anchorElFound: !!anchorEl,
+      anchorElParent: anchorEl && anchorEl.parentElement ? anchorEl.parentElement.tagName + (anchorEl.parentElement.id ? '#' + anchorEl.parentElement.id : '') : '(none)',
+      inlineContainerFound: !!inlineContainer,
+      containerId: container ? (container.id || '(no id)') : '(null)',
+      isInlineFlag: !!inlineContainer
+    });
+  } catch (e) {}
+
   // 5. Re-render — passa isInline=true quando estamos no contexto de
   // tournament detail pra renderBracket usar o layout compacto sem cabeçalho
   // próprio (que duplicaria o header da página de detalhe).
-  renderBracket(container, tId, !!inlineContainer);
+  try {
+    renderBracket(container, tId, !!inlineContainer);
+    console.log('[_rerenderBracket v0.16.87] renderBracket completed OK');
+  } catch (rerr) {
+    console.error('[_rerenderBracket v0.16.87] renderBracket THREW:', rerr);
+    // Fallback: tenta view-container se inlineContainer falhou
+    if (inlineContainer) {
+      var fallbackContainer = document.getElementById('view-container');
+      if (fallbackContainer) {
+        try {
+          renderBracket(fallbackContainer, tId, false);
+          console.log('[_rerenderBracket v0.16.87] fallback view-container render OK');
+        } catch (fallbackErr) {
+          console.error('[_rerenderBracket v0.16.87] fallback ALSO threw:', fallbackErr);
+        }
+      }
+    }
+  }
 
   // 6. Restore scroll anchored to the reference element
   function _restore() {
@@ -1378,6 +1478,19 @@ window._saveResultInline = function (tId, matchId) {
   });
   if (!t.tournamentStarted) t.tournamentStarted = Date.now();
 
+  // v0.16.87: CAUSA-RAIZ do "resultado em monarch Liga não persiste". Após
+  // Firestore deserialização (onSnapshot dispara em todo save), as refs
+  // entre `t.rounds[idx].matches[k]` e
+  // `t.rounds[idx].monarchGroups[gi].matches[mi]` ficam SEPARADAS — antes
+  // eram o mesmo object (criado uma vez em _generateReiRainhaRoundForPlayers
+  // e referenciado nos dois lugares), mas JSON serialize/deserialize não
+  // preserva identity de referência, só valores. _findMatch retorna a ref
+  // de .matches, mutamos winner ali, mas o renderer (renderStandings →
+  // currentRoundData.monarchGroups[gi].matches[mi]) lê da OUTRA ref que
+  // ainda não foi mutada → showInputs=true → botão volta pra "Confirmar"
+  // verde. Fix: após mutação, propagar os mesmos valores pra qualquer ref
+  // do mesmo match (por id) em monarchGroups e t.rodadas legacy.
+  _propagateMatchUpdate(t, m);
   window.AppStore.logAction(tId, `Resultado: ${m.p1} ${s1} × ${s2} ${m.p2}${m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner}`);
   window.AppStore.syncImmediate(tId);
 
@@ -1462,6 +1575,10 @@ window._editResult = function (tId, matchId) {
       m.setsWonP2 = undefined;
       m.totalGamesP1 = undefined;
       m.totalGamesP2 = undefined;
+      // v0.16.87: propaga reset pra outras refs do mesmo match (monarch
+      // groups, t.rodadas legacy) que ficaram separadas após Firestore
+      // deserialização.
+      _propagateMatchUpdate(t, m);
 
       window.AppStore.logAction(tId, `Resultado editado: partida ${m.label || matchId} reaberta`);
       window.AppStore.syncImmediate(tId);
