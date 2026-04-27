@@ -1186,7 +1186,12 @@ function renderDashboard(container) {
               var rowBg = isMyRow ? 'background:rgba(16,185,129,0.10);' : '';
               var rowColor = isMyRow ? 'color:#10b981;font-weight:700;' : 'color:var(--text-color);';
               var posLbl = (idx + 1) + 'º';
-              var nameLbl = isMyRow ? 'Você' : _safe(s.name);
+              // v0.16.83: pra linha do user, mostra "Nome (Você)" em vez de
+              // só "Você" — usuário pediu pra deixar o nome dele junto com o
+              // (Você) entre parênteses, mantendo o destaque verde.
+              var nameLbl = isMyRow
+                ? _safe(s.name) + ' <span style="font-weight:500;opacity:0.85;">(Você)</span>'
+                : _safe(s.name);
               var pts = s.points || 0;
               var w = s.wins || 0;
               var saldoSets = (s.setsWon || 0) - (s.setsLost || 0);
