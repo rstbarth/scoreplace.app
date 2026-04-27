@@ -1285,13 +1285,11 @@ async function simulateLoginSuccess(user) {
     if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
 
     // v0.16.5 fix: AWAIT a fresh loadUserProfile BEFORE populating the form.
-    // Previously the modal populated from whatever currentUser had at the
-    // moment (often stale — only the 4 Google basics during the ~300-500ms
-    // race after login) and deferred a re-populate to a then() callback.
-    // If the user clicked Save in that window, saveUserProfileToFirestore
-    // wrote undefined for everything and wiped the Firestore record.
-    // Now: open-modal first (keeps UX snappy), then load + populate.
-    // The save payload in store.js also strips undefined as defense-in-depth.
+    // v0.17.7: indicador visual de loading enquanto profile não carrega.
+    // Antes o modal abria com campos vazios (race entre simulateLoginSuccess
+    // e merge do profile) e o user ficava esperando "demorou demais" sem
+    // feedback. Agora banner âmbar no topo "Carregando seu perfil…" some
+    // assim que cu._profileLoaded vira true (via v0.17.3 flag).
     if (typeof openModal === 'function') openModal('modal-profile');
     setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
     setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
@@ -1299,6 +1297,29 @@ async function simulateLoginSuccess(user) {
     // Populate immediately from whatever we have — no blank flash — then
     // refresh from Firestore.
     window._populateProfileModalFields();
+
+    // v0.17.7: se profile não carregou ainda, mostra banner de loading no topo
+    // do modal pra dar feedback visual durante o gap async.
+    var _loadingBanner = null;
+    if (!cu._profileLoaded) {
+      var modalEl = document.getElementById('modal-profile');
+      var modalContent = modalEl ? modalEl.querySelector('.modal-content') : null;
+      if (modalContent) {
+        _loadingBanner = document.createElement('div');
+        _loadingBanner.id = 'profile-loading-banner';
+        _loadingBanner.style.cssText = 'background:linear-gradient(90deg,rgba(251,191,36,0.18),rgba(251,191,36,0.08));border:1px solid rgba(251,191,36,0.35);border-radius:10px;padding:8px 14px;margin:10px 14px 0;display:flex;align-items:center;gap:10px;font-size:0.82rem;color:#fbbf24;font-weight:600;';
+        _loadingBanner.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(251,191,36,0.35);border-top-color:#fbbf24;border-radius:50%;animation:spin 0.8s linear infinite;"></span><span>Carregando seu perfil…</span>';
+        // Inserir como primeiro filho do modalContent
+        modalContent.insertBefore(_loadingBanner, modalContent.firstChild);
+        // Adiciona keyframes de spin se não existir
+        if (!document.getElementById('_profile-loading-spin-style')) {
+          var style = document.createElement('style');
+          style.id = '_profile-loading-spin-style';
+          style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+          document.head.appendChild(style);
+        }
+      }
+    }
 
     if (window.AppStore && typeof window.AppStore.loadUserProfile === 'function' && cu.uid) {
       try {
@@ -1310,6 +1331,12 @@ async function simulateLoginSuccess(user) {
         }
       } catch (e) { console.warn('Profile refresh on open failed:', e); }
     }
+    // Remove loading banner se ainda existe
+    if (_loadingBanner && _loadingBanner.parentNode) {
+      _loadingBanner.parentNode.removeChild(_loadingBanner);
+    }
+    var _stuckBanner = document.getElementById('profile-loading-banner');
+    if (_stuckBanner && _stuckBanner.parentNode) _stuckBanner.parentNode.removeChild(_stuckBanner);
   };
 
   // Update notification badge (immediate + periodic refresh every 30s)
