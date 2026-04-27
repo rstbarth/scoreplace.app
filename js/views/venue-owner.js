@@ -841,7 +841,7 @@
     var s = String(sport || '').toLowerCase();
     // v0.17.9: Beach Tennis = SVG bola laranja com seam (defined em store.js)
     if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.indexOf('pickleball') !== -1) return '🥒';
+    if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
     if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('squash') !== -1) return '🎯';

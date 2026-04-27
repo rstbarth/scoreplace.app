@@ -272,7 +272,7 @@
     // v0.17.9: Beach Tennis = SVG inline (bola laranja com seam branco
     // estilo tênis). Pedido do usuário: bola como tênis mas laranja.
     if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.indexOf('pickleball') !== -1) return '🥒';
+    if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
     if (s.indexOf('padel') !== -1) return '🏸';
     if (s.indexOf('mesa') !== -1) return '🏓';
     if (s.indexOf('squash') !== -1) return '🟡';
@@ -2417,7 +2417,7 @@
       // — esportes com times >2 como vôlei indoor, basquete, futsal, futebol e
       // handebol ficaram de fora por enquanto).
       var icons = {
-        'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': '🏓', 'Tênis': '🎾', 'Tennis': '🎾',
+        'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': (window._PICKLEBALL_ICON || '🥒'), 'Tênis': '🎾', 'Tennis': '🎾',
         'Padel': '🏸', 'Tênis de Mesa': '🏓',
         'Vôlei de Praia': '🏐',
         'Futevôlei': '⚽', 'Futvôlei': '⚽',

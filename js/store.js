@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.10-alpha';
+window.SCOREPLACE_VERSION = '0.17.11-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -677,12 +677,23 @@ window._whatsappShareUrl = function(text) {
 // SVG dá consistência visual entre plataformas. Tamanho via 1em escala
 // com font-size do pai. vertical-align:-0.15em alinha com baseline de
 // texto adjacente.
-// Geometria refinada após segunda foto: split DIAGONAL (laranja upper-right,
-// amarelo lower-left) com seam em forma de GOMO (curva S, não horizontal).
-// Cubic bezier C 7,10 17,11 com control points puxando o curve pra criar
-// o S-shape característico da bola real. Orange path: começa em (6,3),
-// faz S-curve até (22,15), volta pelo arc top.
-window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#cde54a"/><path d="M 6 3 C 7 10, 17 11, 22 15 A 11 11 0 0 0 6 3 Z" fill="#f97316"/><path d="M 6 3 C 7 10, 17 11, 22 15" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+// v0.17.11: cores invertidas — laranja agora é o BASE (cobre mais que metade)
+// e amarelo é o gomo (segmento menor). Pedido do usuário: "inverta as cores
+// do icone na bola de beach tennis para que tenha mais laranja do que
+// amarelo." Implementação: (a) swap dos fills (circle agora orange, path
+// agora yellow); (b) flip do arc sweep-flag 0→1 pra que o path enclose a
+// parte INFERIOR em vez da superior — yellow gomo fica no lower-left,
+// orange domina upper-right + topo. Mesma S-curve do seam preservada.
+window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#f97316"/><path d="M 6 3 C 7 10, 17 11, 22 15 A 11 11 0 0 1 6 3 Z" fill="#cde54a"/><path d="M 6 3 C 7 10, 17 11, 22 15" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+
+// v0.17.11: ícone Pickleball — SVG inline com bola amarela e furos visíveis
+// (bola real tem 40 furos; reduzido pra 13 num grid distribuído pra que
+// fiquem perceptíveis no tamanho 1em). Pedido do usuário com foto de
+// referência: bola amarela perfurada característica do esporte. Substitui
+// 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
+// mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
+// furos #a16207 (amber escuro pra dar profundidade).
+window._PICKLEBALL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Pickleball"><circle cx="12" cy="12" r="11" fill="#facc15"/><circle cx="12" cy="4" r="1.1" fill="#a16207"/><circle cx="7" cy="7.5" r="1.1" fill="#a16207"/><circle cx="12" cy="7.5" r="1.1" fill="#a16207"/><circle cx="17" cy="7.5" r="1.1" fill="#a16207"/><circle cx="4.5" cy="12" r="1.1" fill="#a16207"/><circle cx="9" cy="12" r="1.1" fill="#a16207"/><circle cx="15" cy="12" r="1.1" fill="#a16207"/><circle cx="19.5" cy="12" r="1.1" fill="#a16207"/><circle cx="7" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="16.5" r="1.1" fill="#a16207"/><circle cx="17" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="20" r="1.1" fill="#a16207"/></svg>';
 
 // v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
 // "várias notificações em cada evento". cu.friends pode conter o mesmo

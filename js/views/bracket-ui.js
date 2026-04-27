@@ -3038,7 +3038,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   (function() {
     var sn = isCasual ? (opts.sportName || '') : (t && t.sport ? t.sport : '');
     var lower = sn.toLowerCase();
-    if (lower.indexOf('pickleball') !== -1) _sportBall = '🥒';
+    if (lower.indexOf('pickleball') !== -1) _sportBall = window._PICKLEBALL_ICON || '🥒';
     else if (lower.indexOf('mesa') !== -1 || lower.indexOf('ping') !== -1) _sportBall = '🏓';
     else if (lower.indexOf('padel') !== -1 || lower.indexOf('badminton') !== -1) _sportBall = '🏸';
     // Futevôlei ANTES de vôlei-de-praia (futevôlei contém "vôlei" como substring)
@@ -6023,7 +6023,7 @@ window._openCasualMatch = function() {
   // Available sports
   var sports = [
     { key: 'Beach Tennis', icon: (typeof window !== 'undefined' && window._BEACH_TENNIS_ICON) || '🟠', label: 'Beach Tennis', defaultDoubles: true },
-    { key: 'Pickleball', icon: '🥒', label: 'Pickleball', defaultDoubles: false },
+    { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._PICKLEBALL_ICON) || '🥒', label: 'Pickleball', defaultDoubles: false },
     { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
     { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
     { key: 'Padel', icon: '🏸', label: 'Padel', defaultDoubles: true },
