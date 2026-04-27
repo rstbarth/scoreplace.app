@@ -1135,14 +1135,18 @@ function renderDashboard(container) {
         var initialText = (typeof window._formatCountdown === 'function' && diffMs > 0)
           ? window._formatCountdown(diffMs)
           : (diffMs <= 0 ? 'Agora!' : '...');
-        // v0.16.89: toggle "ativado/desativado próximo sorteio" alinhado
-        // direita logo ACIMA do countdown. Pedido do usuário aplicado ao
-        // widget Próximas Partidas.
+        // v0.16.90: toggle Liga "Ativado/Desativado" agora aparece numa
+        // linha própria acima do countdown, alinhado à direita (mesmo
+        // aspecto dos cards de torneio). Em widget compacto não há linha
+        // "Atualizado em" pra encostar — toggle solo na borda direita.
         var _ligaToggleWidget = (g.tRef && typeof window._buildLigaActiveToggleHtml === 'function')
           ? window._buildLigaActiveToggleHtml(g.tRef)
           : '';
-        ligaCountdownLine = _ligaToggleWidget +
-          '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:' + (_ligaToggleWidget ? '0' : '6px') + ';">⏱️ próximo sorteio em <span data-countdown-target="' + g.nextDrawAt + '">' + initialText + '</span></div>';
+        var _toggleRow = _ligaToggleWidget
+          ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' + _ligaToggleWidget + '</div>'
+          : '';
+        ligaCountdownLine = _toggleRow +
+          '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:6px;">⏱️ próximo sorteio em <span data-countdown-target="' + g.nextDrawAt + '">' + initialText + '</span></div>';
       }
       // Linhas de confronto — uma por match no grupo
       var matchLines = '';

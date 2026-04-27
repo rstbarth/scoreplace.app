@@ -655,16 +655,15 @@ window._toggleLigaActive = function(tId, isActive) {
   });
 };
 
-// v0.16.89: helper compartilhado pra renderizar o toggle "Ativo/Inativo no
-// próximo sorteio" alinhado à direita. Usado em 3 pontos onde o countdown
-// do sorteio aparece (dashboard widget Próximas Partidas, card de Liga
-// na dashboard, página de detalhe do torneio). Pedido do usuário: "na liga
-// temos que ter um botao para que o usuário fique ativado/desativado para
-// o proximo sorteio. o melhor local para esse botão é logo acima da
-// contagem regressiva para o proximo sorteio (alinhado na direita)."
-// Renderiza VAZIO quando: não é Liga, user não logado, user não é
-// participante, ou torneio finished/sem auto-draw configurado. Estado
-// inicial: ligaActive===false → desativado; senão → ativado (default ON).
+// v0.16.89/90: helper compartilhado pra renderizar o toggle "Ativado/
+// Desativado para o próximo sorteio". Usado em 3 pontos: dashboard widget
+// Próximas Partidas, card de Liga na lista da dashboard, e página de
+// detalhe do torneio. Renderiza VAZIO quando: não é Liga, user não logado,
+// user não é participante, ou torneio finished. Estado inicial:
+// ligaActive===false → Desativado; senão → Ativado (default ON).
+// v0.16.90: retorna inline (sem wrapper de row) — caller posiciona. Texto
+// dinâmico só "Ativado" (verde) ou "Desativado" (vermelho) sem prefixo,
+// com fonte 0.95rem (mais visível).
 window._buildLigaActiveToggleHtml = function(t) {
   if (!t) return '';
   var isLiga = (typeof window._isLigaFormat === 'function')
@@ -689,17 +688,16 @@ window._buildLigaActiveToggleHtml = function(t) {
   var titleAttr = isActive
     ? 'Clique para ficar de fora do próximo sorteio'
     : 'Clique para voltar ao próximo sorteio';
-  return '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:6px;" ' +
+  return '<span style="display:inline-flex;align-items:center;gap:8px;flex-shrink:0;" ' +
     'onclick="event.stopPropagation();" ' +
     'title="' + window._safeHtml(titleAttr) + '">' +
-    '<span style="font-size:0.7rem;font-weight:700;color:var(--text-muted);">No próximo sorteio:</span>' +
-    '<span style="font-size:0.72rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;">' + stateLabel + '</span>' +
+    '<span style="font-size:0.95rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;">' + stateLabel + '</span>' +
     '<label class="toggle-switch toggle-sm" style="flex-shrink:0;" onclick="event.stopPropagation();">' +
       '<input type="checkbox" ' + (isActive ? 'checked' : '') +
         ' onchange="window._toggleLigaActive(\'' + safeTid + '\', this.checked)">' +
       '<span class="toggle-slider"></span>' +
     '</label>' +
-  '</div>';
+  '</span>';
 };
 
 })();

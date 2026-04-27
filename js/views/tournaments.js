@@ -711,8 +711,12 @@ function renderTournaments(container, tournamentId = null) {
              <div style="font-size: 0.65rem; font-weight: 700; color: #fef08a; text-transform: uppercase; letter-spacing: 0.5px;">${_t('enroll.enrolled')} ✓</div>
           ` : ''));
 
-        // Liga active toggle is rendered directly on each participant card
-        let ligaActiveToggleHtml = '';
+        // v0.16.90: Liga active toggle ("Ativado/Desativado p/ próximo sorteio")
+        // renderizado na linha acima do countdown (compartilhado entre card de
+        // detalhe e card da lista de torneios na dashboard).
+        let ligaActiveToggleHtml = (typeof window._buildLigaActiveToggleHtml === 'function')
+          ? window._buildLigaActiveToggleHtml(t)
+          : '';
 
         // ─── Pending co-org/transfer invite banner ───
         let pendingInviteBannerHtml = '';
@@ -1101,7 +1105,6 @@ function renderTournaments(container, tournamentId = null) {
             ${enrollBtnHtml ? `<div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
                ${enrollBtnHtml}
                ${tournamentId ? `<div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : ''}
-               ${ligaActiveToggleHtml}
             </div>` : (tournamentId ? `<div style="display: flex; justify-content: flex-end; margin-top: 6px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6;">Inscrição: ${enrollmentText}</div>` : '')}
 
             ${pendingInviteBannerHtml}
@@ -1125,10 +1128,21 @@ function renderTournaments(container, tournamentId = null) {
                <span style="font-size: 1.1rem;">🗓️</span>
                <span>${dates}</span>
             </div>
-            ${tournamentId && t.updatedAt ? `<div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 400; opacity: 0.5; margin-top: 4px;">
-               <span>🔄</span>
-               <span>Atualizado em ${(() => { try { var d = new Date(t.updatedAt); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); } catch(e) { return t.updatedAt; } })()}</span>
-            </div>` : ''}
+            ${(() => {
+              // v0.16.90: linha "Atualizado em..." + toggle Liga "Ativado/
+              // Desativado" alinhados nas pontas (left/right). Se não há
+              // updatedAt, left fica vazio e o toggle ocupa a direita; se
+              // não há toggle (não-Liga ou user não inscrito), só "Atualizado".
+              var _hasUpdated = !!(tournamentId && t.updatedAt);
+              if (!_hasUpdated && !ligaActiveToggleHtml) return '';
+              var _updatedHtml = _hasUpdated
+                ? `<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:400;opacity:0.5;">
+                     <span>🔄</span>
+                     <span>Atualizado em ${(() => { try { var d = new Date(t.updatedAt); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); } catch(e) { return t.updatedAt; } })()}</span>
+                   </div>`
+                : '<div></div>';
+              return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;flex-wrap:wrap;">${_updatedHtml}${ligaActiveToggleHtml}</div>`;
+            })()}
             ${(typeof window._buildTimeEstimation === 'function') ? window._buildTimeEstimation(t) : ''}
             ${t.venue ? `
             <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; font-weight: 500; opacity: 0.65; margin-top: 6px;">
@@ -1193,14 +1207,9 @@ function renderTournaments(container, tournamentId = null) {
                 var _countdownText = window._formatCountdown ? window._formatCountdown(_ligaEvent.ts - _now) : '';
                 var _colorMap = { '#10b981': '16,185,129', '#fb923c': '251,146,60', '#8b5cf6': '139,92,246' };
                 var _rgb = _colorMap[_ligaEvent.color] || '139,92,246';
-                // v0.16.89: toggle "ativado/desativado próximo sorteio" só
-                // aparece quando o evento é o próximo SORTEIO (não início ou
-                // fim de temporada). Posicionado acima da pill, alinhado direita.
-                var _ligaToggleHtml = (_ligaEvent.label === _t('tourn.nextDraw') && typeof window._buildLigaActiveToggleHtml === 'function')
-                  ? window._buildLigaActiveToggleHtml(t)
-                  : '';
-                return _ligaToggleHtml +
-                  '<div style="margin-top:' + (_ligaToggleHtml ? '0' : '10px') + ';display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
+                // v0.16.90: toggle Liga removido daqui — agora vive na linha
+                // "Atualizado em..." acima (compartilhada entre lista e detalhe).
+                return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
                   '<span style="font-size:1.3rem;">' + _ligaEvent.icon + '</span>' +
                   '<span style="font-size:0.85rem;font-weight:700;color:' + _ligaEvent.color + ';">' + _ligaEvent.label + '</span>' +
                   '<span data-countdown-target="' + _ligaEvent.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ligaEvent.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _countdownText + '</span>' +
