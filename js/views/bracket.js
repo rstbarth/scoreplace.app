@@ -1879,33 +1879,12 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     }, 0);
   }
 
-  // Liga/Ranking: show auto-draw countdown if applicable
+  // v0.16.98: toggle "Ativado/Desativado" + countdown "Próximo sorteio
+  // automático em..." removidos daqui — ambos já aparecem no card de detalhe
+  // do torneio acima. Pedido do usuário: "aqui não precisa nem o toggle
+  // ativado/desativado, nem essa contagem regressiva (isso já está no card
+  // de detalhe mais acima)."
   let rankingCountdownHtml = '';
-  if (isLigaFmt && !t.drawManual && t.drawFirstDate && typeof window._calcNextDrawDate === 'function') {
-    const _nextDraw = window._calcNextDrawDate(t);
-    if (_nextDraw) {
-      const _now = new Date();
-      const _diff = _nextDraw.getTime() - _now.getTime();
-      if (_diff > 0) {
-        const _d = Math.floor(_diff / 86400000);
-        const _h = Math.floor((_diff % 86400000) / 3600000);
-        const _m = Math.floor((_diff % 3600000) / 60000);
-        const _parts = [];
-        if (_d > 0) _parts.push(_d + 'd');
-        if (_h > 0) _parts.push(_h + 'h');
-        _parts.push(_m + 'min');
-        // v0.16.89: toggle "ativado/desativado próximo sorteio" alinhado
-        // direita acima do countdown. Pedido do usuário aplicado ao card
-        // de detalhe do torneio.
-        var _rcToggle = (typeof window._buildLigaActiveToggleHtml === 'function')
-          ? window._buildLigaActiveToggleHtml(t)
-          : '';
-        rankingCountdownHtml = _rcToggle + `<div style="text-align:center;margin-bottom:1rem;padding:10px 16px;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.25);border-radius:10px;font-size:0.85rem;">
-          <span style="color:#fb923c;font-weight:700;">⏱️ Próximo sorteio automático em <b>${_parts.join(' ')}</b></span>
-        </div>`;
-      }
-    }
-  }
 
   const _isReiRainhaRound = currentRoundData.format === 'rei_rainha' && Array.isArray(currentRoundData.monarchGroups) && currentRoundData.monarchGroups.length > 0;
 
