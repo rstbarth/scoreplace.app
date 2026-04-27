@@ -1611,28 +1611,94 @@ function renderDashboard(container) {
     }
   }
 
-  // v0.16.59: auto-refresh do widget de amigos a cada 60s pra detectar
-  // cancelamentos de presença. Antes o widget só re-hidratava quando o
-  // próprio usuário fazia ação (check-in/plan/cancel). Se um amigo cancelava,
-  // Rodrigo continuava vendo o plano dele como ativo. Agora o intervalo
-  // global atualiza periódico — também roda só enquanto o widget está
-  // visível (dashboard ativo).
-  if (!window._friendsPresenceRefreshInterval) {
-    window._friendsPresenceRefreshInterval = setInterval(function() {
+  // v0.17.4: real-time listeners SUBSTITUEM o polling de 60s. Pedido do
+  // usuário: "sempre que um amigo fizer alguma alteração nesse estado isso
+  // deve imediatamente refletir para ele e para seus amigos. isso precisa
+  // ocorrer independente do usuário ter que dar refresh na pagina."
+  // onSnapshot do Firestore dispara em qualquer write — ms de latência,
+  // não 60s. Cleanup quando dashboard sai do DOM.
+  _setupPresenceListeners();
+  // v0.17.4: também escuta profile-loaded pra cobrir a race onde o user
+  // chega no dashboard antes do profile carregar (cu.friends undefined).
+  // Quando profile chega, re-setup garante listeners com friends list correto.
+  if (!window._dashProfileLoadedHandlerInstalled) {
+    window._dashProfileLoadedHandlerInstalled = true;
+    document.addEventListener('scoreplace:profile-loaded', function() {
       var box = document.getElementById('dashboard-presences-widget');
-      if (!box) {
-        // Dashboard saiu — limpa intervalo pra economizar.
-        clearInterval(window._friendsPresenceRefreshInterval);
-        window._friendsPresenceRefreshInterval = null;
-        return;
-      }
+      if (!box) return;
+      _setupPresenceListeners(true); // force re-setup with new friends list
       _hydrateFriendsPresenceWidget();
-    }, 60000);
+    });
   }
 
   // ─── Pending invite detection: auto-redirect to tournament with pending co-org or participation invite ───
   _checkPendingInvitesAndRedirect(visible);
 }
+
+// v0.17.4: real-time listeners. Mantém listener vivo enquanto o dashboard
+// está no DOM. Cada snapshot do Firestore (write de qualquer pessoa que
+// afeta minha visão — eu mesmo ou amigos) re-hidrata o widget. Substitui
+// o setInterval de 60s — agora propagação é em ms.
+function _setupPresenceListeners(forceReset) {
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !cu.uid || !window.PresenceDB) return;
+  if (cu.presenceMuteUntil && Number(cu.presenceMuteUntil) > Date.now()) return;
+
+  // Já tem listener ativo pro mesmo uid + friends? Skip (idempotente).
+  // Quando forceReset=true (ex: profile-loaded com friends novos), tira
+  // os listeners antigos antes.
+  var friends = Array.isArray(cu.friends)
+    ? cu.friends.filter(function(u) { return u && u !== cu.uid && u.indexOf('@') === -1; })
+    : [];
+  var sig = cu.uid + '|' + friends.slice().sort().join(',');
+  if (window._dashListenerSig === sig && !forceReset) return;
+  if (window._dashListenerCleanup) {
+    try { window._dashListenerCleanup(); } catch (e) {}
+    window._dashListenerCleanup = null;
+  }
+
+  var ownUnsub = window.PresenceDB.listenMyActive(cu.uid, function(list) {
+    var box = document.getElementById('dashboard-presences-widget');
+    if (!box) {
+      // Dashboard saiu — cleanup automático
+      _teardownPresenceListeners();
+      return;
+    }
+    if (!window._dashPresenceCache) window._dashPresenceCache = { own: [], friends: [], ts: 0 };
+    window._dashPresenceCache.own = list;
+    window._dashPresenceCache.ts = Date.now();
+    _hydrateFriendsPresenceWidget();
+  });
+
+  var friendsUnsub = function() {};
+  if (friends.length > 0) {
+    friendsUnsub = window.PresenceDB.listenForFriends(friends, function(list) {
+      var box = document.getElementById('dashboard-presences-widget');
+      if (!box) { _teardownPresenceListeners(); return; }
+      // filtra eu mesmo (defesa contra auto-amizade)
+      var filtered = list.filter(function(p) { return p && p.uid !== cu.uid && p.placeId; });
+      if (!window._dashPresenceCache) window._dashPresenceCache = { own: [], friends: [], ts: 0 };
+      window._dashPresenceCache.friends = filtered;
+      window._dashPresenceCache.ts = Date.now();
+      _hydrateFriendsPresenceWidget();
+    });
+  }
+
+  window._dashListenerSig = sig;
+  window._dashListenerCleanup = function() {
+    try { ownUnsub(); } catch (e) {}
+    try { friendsUnsub(); } catch (e) {}
+  };
+}
+
+function _teardownPresenceListeners() {
+  if (window._dashListenerCleanup) {
+    try { window._dashListenerCleanup(); } catch (e) {}
+    window._dashListenerCleanup = null;
+    window._dashListenerSig = null;
+  }
+}
+window._teardownPresenceListeners = _teardownPresenceListeners;
 
 // Load the user's OWN active presences (check-in ativo ou plan no futuro)
 // e renderiza um pill status no topo da dashboard. Antes, o usuário fazia

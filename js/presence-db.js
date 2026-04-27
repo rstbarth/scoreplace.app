@@ -318,5 +318,77 @@ window.PresenceDB = {
       console.error('[loadForFriends v0.16.47] erro:', e);
       return [];
     }
+  },
+
+  // v0.17.4: real-time listeners — substituem o polling de 60s no dashboard.
+  // Pedido do usuário: "sempre que um amigo fizer alguma alteração nesse
+  // estado isso deve imediatamente refletir para ele e para seus amigos."
+  // Mesmo padrão de query do loadMyActive/loadForFriends (single-field +
+  // filter client-side pra evitar índice composto). Retorna função de
+  // unsubscribe — caller deve chamar quando view sai do DOM.
+
+  listenMyActive: function(uid, callback) {
+    if (!this.db || !uid || typeof callback !== 'function') return function() {};
+    var unsub = this.db.collection('presences')
+      .where('uid', '==', uid)
+      .onSnapshot(function(snap) {
+        var now = Date.now();
+        var list = [];
+        snap.forEach(function(doc) {
+          var d = doc.data();
+          if (!d || d.cancelled) return;
+          if (!d.endsAt || d.endsAt <= now) return;
+          d._id = doc.id;
+          list.push(d);
+        });
+        try { callback(list); } catch (e) { console.error('[listenMyActive cb]', e); }
+      }, function(err) {
+        console.error('[listenMyActive] err:', err);
+      });
+    return unsub;
+  },
+
+  listenForFriends: function(uids, callback, windowMs) {
+    if (!this.db || !Array.isArray(uids) || uids.length === 0 || typeof callback !== 'function') {
+      return function() {};
+    }
+    var win = windowMs || (48 * 60 * 60 * 1000);
+    var chunks = [];
+    for (var i = 0; i < uids.length; i += 10) chunks.push(uids.slice(i, i + 10));
+    var perChunk = chunks.map(function() { return []; });
+    var unsubs = [];
+    var emit = function() {
+      var now = Date.now();
+      var horizon = now + win;
+      var all = [];
+      perChunk.forEach(function(arr) {
+        arr.forEach(function(d) {
+          if (d.cancelled) return;
+          if (!d.endsAt || d.endsAt <= now) return;
+          if (d.startsAt && d.startsAt > horizon) return;
+          all.push(d);
+        });
+      });
+      try { callback(all); } catch (e) { console.error('[listenForFriends cb]', e); }
+    };
+    var self = this;
+    chunks.forEach(function(chunk, idx) {
+      var u = self.db.collection('presences')
+        .where('uid', 'in', chunk)
+        .onSnapshot(function(snap) {
+          var arr = [];
+          snap.forEach(function(doc) {
+            var d = doc.data();
+            d._id = doc.id;
+            arr.push(d);
+          });
+          perChunk[idx] = arr;
+          emit();
+        }, function(err) {
+          console.error('[listenForFriends chunk', idx, '] err:', err);
+        });
+      unsubs.push(u);
+    });
+    return function() { unsubs.forEach(function(u) { try { u(); } catch (e) {} }); };
   }
 };
