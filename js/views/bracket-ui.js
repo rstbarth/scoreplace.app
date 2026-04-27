@@ -27,6 +27,31 @@ function _rerenderBracket(tId, anchorMatchId) {
     anchorOffsetY = anchorEl.getBoundingClientRect().top;
   }
 
+  // v0.16.85: detecta contexto INLINE — quando o user está em #tournaments/<id>
+  // o bracket vive dentro de #inline-bracket-container, NÃO em #view-container.
+  // Antes, _rerenderBracket sempre re-renderizava em view-container, o que (a)
+  // substituía a página inteira por bracket-only ou (b) o erro silencioso
+  // deixava view-container vazio e o inline container ficava com a versão
+  // PRÉ-save do bracket — botão continuava como "Confirmar" verde mesmo após
+  // m.winner ter sido setado em memória. Agora detectamos o contexto pelo
+  // anchor: se a card do match está dentro de #inline-bracket-container,
+  // re-renderizamos APENAS o inline container (preservando a página de
+  // detalhe do torneio). Caso contrário, behavior normal (view-container).
+  var inlineContainer = anchorEl && anchorEl.closest
+    ? anchorEl.closest('#inline-bracket-container')
+    : null;
+  // Fallback: se anchorEl não foi achado mas a página tem inline container,
+  // ainda assim usa-o (ex: re-render após scroll diferente).
+  if (!inlineContainer && document.getElementById('inline-bracket-container')) {
+    // Só usa inline se NÃO estamos numa página que é dedicated bracket view.
+    // Heurística: se view-container tem #inline-bracket-container como child,
+    // estamos em #tournaments e o bracket é inline.
+    var vc0 = document.getElementById('view-container');
+    if (vc0 && vc0.querySelector('#inline-bracket-container')) {
+      inlineContainer = document.getElementById('inline-bracket-container');
+    }
+  }
+
   // 2. Save horizontal scrolls
   var _sx = window.scrollX || window.pageXOffset || 0;
   var _sy = window.scrollY || window.pageYOffset || 0;
@@ -37,7 +62,7 @@ function _rerenderBracket(tId, anchorMatchId) {
   window._suppressSoftRefresh = true;
   clearTimeout(window._pendingSoftRefresh);
 
-  var container = document.getElementById('view-container');
+  var container = inlineContainer || document.getElementById('view-container');
 
   // 4. Lock container height to prevent flash
   var prevHeight = container ? container.offsetHeight : 0;
@@ -45,8 +70,10 @@ function _rerenderBracket(tId, anchorMatchId) {
     container.style.minHeight = prevHeight + 'px';
   }
 
-  // 5. Re-render
-  renderBracket(container, tId);
+  // 5. Re-render — passa isInline=true quando estamos no contexto de
+  // tournament detail pra renderBracket usar o layout compacto sem cabeçalho
+  // próprio (que duplicaria o header da página de detalhe).
+  renderBracket(container, tId, !!inlineContainer);
 
   // 6. Restore scroll anchored to the reference element
   function _restore() {
