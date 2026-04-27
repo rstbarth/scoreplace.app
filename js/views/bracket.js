@@ -1946,7 +1946,17 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           var bMe = _groupHasMe(b) ? 0 : 1;
           return aMe - bMe;
         });
-        return sortedGroups.map(function(g) {
+        // v0.16.88: pra Liga + Rei/Rainha, separa grupos do USUÁRIO dos demais
+        // pra que a classificação geral apareça ENTRE os dois (depois dos
+        // jogos do user, antes dos demais jogos). Pedido do usuário: "nesse
+        // ponto que quero a classificação geral da liga computando todos os
+        // jogos realizados ... entre os jogos do usuário e os demais jogos
+        // da rodada." Mesmo padrão do split user-vs-other em Liga não-monarch
+        // (linha 2041-2063 abaixo). Stash dos grupos "demais" em
+        // ligaOtherMatchesHtml — acessível via let do escopo externo.
+        var _myGroups = isLigaFmt ? sortedGroups.filter(_groupHasMe) : sortedGroups;
+        var _otherGroups = isLigaFmt ? sortedGroups.filter(function(g) { return !_groupHasMe(g); }) : [];
+        var _renderGroup = function(g) {
           var gStandings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
           var gDone = g.matches.length > 0 && g.matches.every(function(m) { return !!m.winner; });
           var gRows = gStandings.map(function(s, si) {
@@ -2012,7 +2022,23 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:0.75rem;">' + gCards + '</div>' +
             '<div style="overflow-x:auto;">' + gTable + '</div>' +
           '</div>';
-        }).join('');
+        };
+        // v0.16.88: se há split user-vs-others, stash os outros grupos em
+        // ligaOtherMatchesHtml como collapsible (mesmo padrão do não-monarch
+        // Liga). Senão, renderiza tudo junto.
+        if (isLigaFmt && _myGroups.length > 0 && _otherGroups.length > 0) {
+          var _otherCount = _otherGroups.reduce(function(acc, g) { return acc + (g.matches ? g.matches.length : 0); }, 0);
+          ligaOtherMatchesHtml = '<div class="card" style="margin-bottom:1rem;">' +
+            '<details>' +
+              '<summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:0.9rem;font-weight:600;color:var(--text-muted);">' +
+                '<span>▸ Demais jogos da rodada (' + _otherCount + ')</span>' +
+              '</summary>' +
+              '<div style="margin-top:1rem;">' + _otherGroups.map(_renderGroup).join('') + '</div>' +
+            '</details>' +
+          '</div>';
+          return _myGroups.map(_renderGroup).join('');
+        }
+        return sortedGroups.map(_renderGroup).join('');
       })() : (() => {
         const prevMatches = rounds.slice(0, currentRound - 1).reduce((sum, r) => sum + (r.matches || []).length, 0);
         const allMatches = currentRoundData.matches || [];
