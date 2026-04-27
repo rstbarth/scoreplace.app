@@ -372,11 +372,13 @@ window._checkNearbyTournaments = async function() {
         }
 
         // Also check if tournament sport matches user preferred sports.
-        // Aceita array (forma moderna pós-v0.15.19) ou string CSV (legacy).
-        var _rawSports = cu.preferredSports;
-        var userSports = Array.isArray(_rawSports)
-          ? _rawSports.join(',').toLowerCase()
-          : String(_rawSports || '').toLowerCase();
+        // v0.17.2: removido compat string-CSV (auditoria L3.1) — alpha rule
+        // permite descartar shape antigo, e nenhum caminho atual escreve
+        // preferredSports como string. Doc legado com string vira no-match
+        // gracioso (sportMatch=false), comportamento aceitável.
+        var userSports = Array.isArray(cu.preferredSports)
+          ? cu.preferredSports.join(',').toLowerCase()
+          : '';
         var sportMatch = !userSports || (t.sport && userSports.indexOf(t.sport.toLowerCase()) !== -1);
 
         if (matched || sportMatch) {

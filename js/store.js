@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.1-alpha';
+window.SCOREPLACE_VERSION = '0.17.2-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -667,6 +667,25 @@ window._tournamentUrl = function(tournamentId) {
 };
 window._whatsappShareUrl = function(text) {
     return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+};
+
+// v0.17.2: helpers de string compartilhados — antes duplicados em
+// presence.js e venues.js (auditoria L4.2 + L4.3).
+// _initials: primeira letra do primeiro nome + primeira letra do último nome.
+// Avatar fallback quando não há foto. Tolerante a nome vazio (retorna '?').
+window._initials = function(name) {
+  var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+// _cleanVenueName: o geocoder retorna labels no formato "Nome — Endereço".
+// Para a UI mostrar só o nome do venue, cortamos a partir do primeiro
+// dash/em-dash/en-dash cercado por espaços. Funciona com "—", "–", " - ".
+window._cleanVenueName = function(label) {
+  if (!label) return '';
+  var idx = String(label).search(/\s[—–-]\s/);
+  return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
 };
 
 // ─── Beta Testers (acesso Pro completo) ─────────────────────────────────────

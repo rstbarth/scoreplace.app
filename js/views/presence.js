@@ -58,12 +58,10 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#039;'));
   }
 
-  function _initials(name) {
-    if (!name) return '?';
-    var parts = String(name).trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
+  // v0.17.2: delega ao helper global em store.js (era duplicado aqui e em
+  // venues.js — auditoria L4.2). A versão global é mais defensiva (filter(Boolean)
+  // antes de checar length), comportamento idêntico no uso real.
+  function _initials(name) { return window._initials(name); }
 
   function _hourOf(ts) {
     if (!ts) return null;
@@ -123,14 +121,8 @@
     return out;
   }
 
-  // Geocoder labels come as "Name — Address". Strip the address so our UI
-  // shows just the venue name (user asked for this explicitly).
-  function _cleanVenueName(label) {
-    if (!label) return '';
-    // Split on any em-dash/en-dash/hyphen surrounded by spaces.
-    var idx = String(label).search(/\s[—–-]\s/);
-    return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
-  }
+  // v0.17.2: delega ao helper global em store.js (auditoria L4.3).
+  function _cleanVenueName(label) { return window._cleanVenueName(label); }
 
   function _defaultVenue() {
     // Profile preference takes priority — user explicitly saved these.

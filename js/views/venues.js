@@ -293,12 +293,8 @@
     });
     return out;
   }
-  function _initials(name) {
-    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
+  // v0.17.2: delega ao helper global em store.js (auditoria L4.2).
+  function _initials(name) { return window._initials(name); }
 
   // Pills clicáveis e não-excludentes — usuário pode filtrar por 1, vários ou
   // nenhum esporte. Sem pill ativa = "todas as modalidades". Substitui o
@@ -502,13 +498,8 @@
     }
   }
 
-  // Limpa o tail de endereço que o geocoder às vezes empilha depois do nome
-  // ("MatchBall Beach & Padel — Av. Paulista 1000") pra exibir só o nome.
-  function _cleanVenueName(label) {
-    if (!label) return '';
-    var idx = String(label).search(/\s[—–-]\s/);
-    return idx > 0 ? String(label).slice(0, idx).trim() : String(label).trim();
-  }
+  // v0.17.2: delega ao helper global em store.js (auditoria L4.3).
+  function _cleanVenueName(label) { return window._cleanVenueName(label); }
 
   // Chave sintética estável pra preferreds sem placeId (profile antigo só
   // salvava {lat,lng,label}). Sem essa chave, cada preferred label-only viraria

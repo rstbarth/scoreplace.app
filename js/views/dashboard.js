@@ -871,18 +871,11 @@ function renderDashboard(container) {
     } catch (e) {}
     var missing = [];
     var hasCity = cu.city && String(cu.city).trim().length > 0;
-    // Aceita preferredSports em array (forma moderna pós-v0.15.19) ou
-    // string CSV (legacy). Antes o nudge só contava Array.isArray e
-    // usuários com perfil salvo em formato antigo viam "faltam modalidades"
-    // mesmo tendo preenchido.
-    var hasSports;
-    if (Array.isArray(cu.preferredSports)) {
-      hasSports = cu.preferredSports.length > 0;
-    } else if (typeof cu.preferredSports === 'string') {
-      hasSports = cu.preferredSports.trim().length > 0;
-    } else {
-      hasSports = false;
-    }
+    // v0.17.2: removido compat string-CSV pra preferredSports (auditoria
+    // L3.1 — mesmo padrão de tournaments-organizer.js). auth.js sempre
+    // grava como array; doc legado com string vira hasSports=false (nudge
+    // reaparece, comportamento aceitável).
+    var hasSports = Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0;
     // Locais preferidos é OPCIONAL quando o usuário já tem city — city
     // sozinho já permite a maioria das features (torneios perto, sugestões
     // de parceiros). preferredLocations é um plus pra check-in rápido,
