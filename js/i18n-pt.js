@@ -1067,7 +1067,7 @@ window._translations['pt'] = {
   'enroll.ligaActive': '🟢 Ativado',
   'enroll.ligaActiveMsg': 'Você participará dos próximos sorteios.',
   'enroll.ligaInactive': '🔴 Desativado',
-  'enroll.ligaInactiveMsg': 'Você ficará de fora dos próximos sorteios e receberá pontuação média.',
+  'enroll.ligaInactiveMsg': 'Você ficará de fora dos próximos sorteios e fará 0 pontos nas rodadas em que estiver desativado.',
   'liga.availabilityTitle': 'Disponibilidade para o próximo sorteio',
   'liga.availabilityHelp': 'Só participantes ativos entram no sorteio da próxima rodada. Você pode ver o estado de todos, mas só pode alterar o seu próprio toggle.',
   'liga.active': 'Ativo',

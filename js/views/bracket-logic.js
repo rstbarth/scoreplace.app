@@ -1410,7 +1410,12 @@ function _computeAvgPointsPerRound(t, playerName, category) {
     });
     if (playedThisRound) roundsPlayed++;
   });
-  return roundsPlayed > 0 ? Math.round(totalPoints / roundsPlayed) : 1;
+  // v0.16.97: fallback 0 (era 1) quando o jogador não tem nenhuma rodada
+  // anterior pra basear média. Pedido do usuário: regra explícita "remainder
+  // recebe sua pontuação média no torneio até ali" — sem média, sem pontos.
+  // Antes retornava 1 (compensação simbólica) mas isso premiava jogadores
+  // recém-chegados sem mérito.
+  return roundsPlayed > 0 ? Math.round(totalPoints / roundsPlayed) : 0;
 }
 
 window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPlayers(t, category) {

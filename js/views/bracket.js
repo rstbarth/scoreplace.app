@@ -1939,10 +1939,17 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         if (_sitOuts.length === 0) return '';
         var _inactive = _sitOuts.filter(function(m) { return m.sitOutReason === 'inactive'; });
         var _remainder = _sitOuts.filter(function(m) { return m.sitOutReason !== 'inactive'; });
+        // v0.16.97: cada pill mostra os pontos atribuídos. Inativos sempre
+        // 0 pts (regra explícita do usuário: "deve fazer zero pontos na
+        // rodada que estiver desativado"). Remainder recebe sua média até
+        // ali (calculada por _computeAvgPointsPerRound — agora retorna 0
+        // quando jogador ainda não tem rodadas anteriores).
         var _renderRow = function(label, items, color, bg, border, icon, hint) {
           if (items.length === 0) return '';
           var _names = items.map(function(m) {
-            return '<span style="background:rgba(255,255,255,0.06);border:1px solid ' + border + ';color:' + color + ';font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;" onclick="if(window._showPlayerStats)window._showPlayerStats(\'' + window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + '\',\'' + String(t.id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">' + window._safeHtml(m.p1) + '</span>';
+            var _pts = m.sitOutPoints != null ? m.sitOutPoints : 0;
+            var _ptsLbl = '<span style="font-size:0.7rem;font-weight:700;opacity:0.85;margin-left:4px;">+' + _pts + ' pt' + (_pts !== 1 ? 's' : '') + '</span>';
+            return '<span style="background:rgba(255,255,255,0.06);border:1px solid ' + border + ';color:' + color + ';font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;" onclick="if(window._showPlayerStats)window._showPlayerStats(\'' + window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + '\',\'' + String(t.id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">' + window._safeHtml(m.p1) + _ptsLbl + '</span>';
           }).join('');
           return '<div style="margin-bottom:8px;">' +
             '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:' + color + ';margin-bottom:4px;">' +
@@ -1953,8 +1960,8 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             '<div style="display:flex;flex-wrap:wrap;gap:6px;background:' + bg + ';border:1px solid ' + border + ';border-radius:10px;padding:8px 10px;">' + _names + '</div>' +
           '</div>';
         };
-        var _inactiveHtml = _renderRow('Desativados', _inactive, '#f87171', 'rgba(239,68,68,0.05)', 'rgba(239,68,68,0.25)', '🔴', 'optaram por sair desta rodada');
-        var _remainderHtml = _renderRow('Sem grupo', _remainder, '#fbbf24', 'rgba(251,191,36,0.05)', 'rgba(251,191,36,0.25)', '😴', 'falta de jogadores pro sorteio');
+        var _inactiveHtml = _renderRow('Desativados', _inactive, '#f87171', 'rgba(239,68,68,0.05)', 'rgba(239,68,68,0.25)', '🔴', 'fizeram 0 pts (optaram por sair)');
+        var _remainderHtml = _renderRow('Sem grupo', _remainder, '#fbbf24', 'rgba(251,191,36,0.05)', 'rgba(251,191,36,0.25)', '😴', 'recebem sua média do torneio');
         if (!_inactiveHtml && !_remainderHtml) return '';
         return '<details open style="margin-bottom:1rem;background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:10px;padding:10px 14px;">' +
           '<summary style="cursor:pointer;user-select:none;font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:8px;">📋 Ficaram de fora desta rodada</summary>' +

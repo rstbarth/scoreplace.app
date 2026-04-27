@@ -1067,7 +1067,7 @@ window._translations['en'] = {
   'enroll.ligaActive': '🟢 Active',
   'enroll.ligaActiveMsg': 'You will participate in upcoming draws.',
   'enroll.ligaInactive': '🔴 Inactive',
-  'enroll.ligaInactiveMsg': 'You will be excluded from upcoming draws and receive average points.',
+  'enroll.ligaInactiveMsg': 'You will be excluded from upcoming draws and score 0 points in rounds you stay inactive.',
   'liga.availabilityTitle': 'Availability for next draw',
   'liga.availabilityHelp': 'Only active players enter the next round\'s draw. You can see everyone\'s state, but you can only change your own toggle.',
   'liga.active': 'Active',
