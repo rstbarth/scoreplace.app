@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.9-alpha';
+window.SCOREPLACE_VERSION = '0.17.10-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -677,7 +677,12 @@ window._whatsappShareUrl = function(text) {
 // SVG dá consistência visual entre plataformas. Tamanho via 1em escala
 // com font-size do pai. vertical-align:-0.15em alinha com baseline de
 // texto adjacente.
-window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#cde54a"/><path d="M 1 12 A 11 11 0 0 1 23 12 Q 17 14 12 12.5 Q 7 11 1 12 Z" fill="#f97316"/><path d="M 1 12 Q 7 14 12 12.5 Q 17 11 23 12" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+// Geometria refinada após segunda foto: split DIAGONAL (laranja upper-right,
+// amarelo lower-left) com seam em forma de GOMO (curva S, não horizontal).
+// Cubic bezier C 7,10 17,11 com control points puxando o curve pra criar
+// o S-shape característico da bola real. Orange path: começa em (6,3),
+// faz S-curve até (22,15), volta pelo arc top.
+window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#cde54a"/><path d="M 6 3 C 7 10, 17 11, 22 15 A 11 11 0 0 0 6 3 Z" fill="#f97316"/><path d="M 6 3 C 7 10, 17 11, 22 15" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
 
 // v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
 // "várias notificações em cada evento". cu.friends pode conter o mesmo
