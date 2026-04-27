@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.16.80-alpha';
+window.SCOREPLACE_VERSION = '0.16.81-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -529,15 +529,27 @@ window._reflowChrome = function() {
     if (staticBH) {
       // Overlay context: snap dropdown immediately below the back-header
       var _bhRect = staticBH.getBoundingClientRect();
-      dd.style.top = Math.ceil(_bhRect.bottom) + 'px';
+      // v0.16.81: -1px de overlap pra eliminar gap subpixel (idem fix do
+      // back-header abaixo). Topbar e back-header usam o mesmo bg-darker,
+      // então 1px de sobreposição é invisível.
+      dd.style.top = (Math.ceil(_bhRect.bottom) - 1) + 'px';
     } else {
       // Regular page: pin dropdown under topbar
-      dd.style.top = topbarH + 'px';
+      dd.style.top = (topbarH - 1) + 'px';
     }
     if (ddOpen) ddH = Math.ceil(dd.getBoundingClientRect().height);
   }
 
-  var bhOffset = topbarH + ddH;
+  // v0.16.81: -1px de overlap entre topbar/dropdown e back-header.
+  // Usuário reportou em larguras intermediárias (não estreitas, não
+  // largas) gap visível mostrando conteúdo de fundo passando entre o
+  // topbar e o "Voltar" sticky. Causa: subpixel rendering — topbar
+  // renderiza em e.g. 60.5px, Math.ceil arredonda pra 61 mas o navegador
+  // pinta o edge em 60.5 → 0.5px de gap visível antialiased pra ~1px.
+  // Mesmo problema entre dropdown do hamburger e back-header. Como
+  // topbar/dropdown/back-header todos usam var(--bg-darker), 1px de
+  // overlap é invisível e cobre qualquer rounding antialiased.
+  var bhOffset = topbarH + ddH - 1;
   backHeaders.forEach(function(bh) {
     var isFixed = window.getComputedStyle(bh).position === 'fixed';
     if (isFixed) {
