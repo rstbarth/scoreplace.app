@@ -577,8 +577,11 @@ function renderDashboard(container) {
                 var _ligaToggleDash = (typeof window._buildLigaActiveToggleHtml === 'function')
                   ? window._buildLigaActiveToggleHtml(t)
                   : '';
+                // v0.16.92: stopPropagation no wrapper da row pra cobrir
+                // cliques fora do toggle (área vazia à esquerda). Caso
+                // contrário a row inteira é "área quente" do card click.
                 var _toggleRowDash = _ligaToggleDash
-                  ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' + _ligaToggleDash + '</div>'
+                  ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;" onclick="event.stopPropagation();">' + _ligaToggleDash + '</div>'
                   : '';
                 return _toggleRowDash +
                   '<div style="margin-top:' + (_toggleRowDash ? '4px' : '10px') + ';display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
@@ -1153,8 +1156,11 @@ function renderDashboard(container) {
         var _ligaToggleWidget = (g.tRef && typeof window._buildLigaActiveToggleHtml === 'function')
           ? window._buildLigaActiveToggleHtml(g.tRef)
           : '';
+        // v0.16.92: stopPropagation na row do toggle (mesmo padrão da
+        // dashboard card) — clique no toggle não dispara navegação pra
+        // detalhe via card click handler.
         var _toggleRow = _ligaToggleWidget
-          ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' + _ligaToggleWidget + '</div>'
+          ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;" onclick="event.stopPropagation();">' + _ligaToggleWidget + '</div>'
           : '';
         ligaCountdownLine = _toggleRow +
           '<div style="display:inline-flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;color:' + color + ';background:' + bg + ';border:1px solid ' + border + ';border-radius:999px;padding:2px 10px;margin-top:6px;">⏱️ próximo sorteio em <span data-countdown-target="' + g.nextDrawAt + '">' + initialText + '</span></div>';

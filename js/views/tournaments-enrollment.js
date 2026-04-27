@@ -688,14 +688,22 @@ window._buildLigaActiveToggleHtml = function(t) {
   var titleAttr = isActive
     ? 'Clique para ficar de fora do próximo sorteio'
     : 'Clique para voltar ao próximo sorteio';
-  return '<span style="display:inline-flex;align-items:center;gap:8px;flex-shrink:0;" ' +
-    'onclick="event.stopPropagation();" ' +
+  // v0.16.92: stopPropagation EM TODOS os elementos do toggle. Pedido do
+  // usuário: "quando clicarmos no togle ativado/desativado na dashboard, não
+  // entre no detalhe do card (isso está acontecendo automaticamente)." Antes
+  // só o outer span e label tinham — mas o slider span (alvo visual real do
+  // clique no toggle-switch CSS) não tinha onclick, e algum click parecia
+  // atravessar pra o handler do card pai. Agora cada elemento tem seu próprio
+  // onclick=stopPropagation, garantia múltipla de que o clique morre dentro
+  // do toggle e não navega pra detalhe.
+  var STOP = 'onclick="event.stopPropagation();"';
+  return '<span style="display:inline-flex;align-items:center;gap:8px;flex-shrink:0;" ' + STOP + ' ' +
     'title="' + window._safeHtml(titleAttr) + '">' +
-    '<span style="font-size:0.95rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;">' + stateLabel + '</span>' +
-    '<label class="toggle-switch toggle-sm" style="flex-shrink:0;" onclick="event.stopPropagation();">' +
-      '<input type="checkbox" ' + (isActive ? 'checked' : '') +
+    '<span style="font-size:0.95rem;font-weight:700;color:' + stateColor + ';white-space:nowrap;" ' + STOP + '>' + stateLabel + '</span>' +
+    '<label class="toggle-switch toggle-sm" style="flex-shrink:0;" ' + STOP + '>' +
+      '<input type="checkbox" ' + (isActive ? 'checked' : '') + ' ' + STOP +
         ' onchange="window._toggleLigaActive(\'' + safeTid + '\', this.checked)">' +
-      '<span class="toggle-slider"></span>' +
+      '<span class="toggle-slider" ' + STOP + '></span>' +
     '</label>' +
   '</span>';
 };

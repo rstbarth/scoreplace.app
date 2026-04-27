@@ -1141,7 +1141,7 @@ function renderTournaments(container, tournamentId = null) {
                      <span>Atualizado em ${(() => { try { var d = new Date(t.updatedAt); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); } catch(e) { return t.updatedAt; } })()}</span>
                    </div>`
                 : '<div></div>';
-              return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;flex-wrap:wrap;">${_updatedHtml}${ligaActiveToggleHtml}</div>`;
+              return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;flex-wrap:wrap;" onclick="event.stopPropagation();">${_updatedHtml}${ligaActiveToggleHtml}</div>`;
             })()}
             ${(typeof window._buildTimeEstimation === 'function') ? window._buildTimeEstimation(t) : ''}
             ${t.venue ? `
