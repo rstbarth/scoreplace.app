@@ -570,7 +570,18 @@ function renderDashboard(container) {
                 var _ct = window._formatCountdown ? window._formatCountdown(_ligaEv.ts - _now) : '';
                 var _cm = { '#10b981': '16,185,129', '#fb923c': '251,146,60', '#8b5cf6': '139,92,246' };
                 var _rgb = _cm[_ligaEv.color] || '139,92,246';
-                return '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
+                // v0.16.91: toggle Liga "Ativado/Desativado" alinhado à direita
+                // logo acima do countdown — mesmo aspecto do card de detalhe.
+                // Pedido do usuário: "o botao ativado deve aparecer de forma
+                // consistente tambem no card da dashboard."
+                var _ligaToggleDash = (typeof window._buildLigaActiveToggleHtml === 'function')
+                  ? window._buildLigaActiveToggleHtml(t)
+                  : '';
+                var _toggleRowDash = _ligaToggleDash
+                  ? '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' + _ligaToggleDash + '</div>'
+                  : '';
+                return _toggleRowDash +
+                  '<div style="margin-top:' + (_toggleRowDash ? '4px' : '10px') + ';display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(' + _rgb + ',0.1);border:1px solid rgba(' + _rgb + ',0.3);border-radius:12px;">' +
                   '<span style="font-size:1.3rem;">' + _ligaEv.icon + '</span>' +
                   '<span style="font-size:0.85rem;font-weight:700;color:' + _ligaEv.color + ';">' + _ligaEv.label + '</span>' +
                   '<span data-countdown-target="' + _ligaEv.ts + '" style="margin-left:auto;font-size:1.15rem;font-weight:900;color:' + _ligaEv.color + ';font-variant-numeric:tabular-nums;letter-spacing:0.5px;">' + _ct + '</span>' +
