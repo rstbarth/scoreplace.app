@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.7-alpha';
+window.SCOREPLACE_VERSION = '0.17.8-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1607,7 +1607,11 @@ window.AppStore = {
     });
     emailsToResolve.forEach(function(em) {
       var resolved = resolvedMap[em];
-      if (resolved && !added[resolved]) {
+      // v0.17.8: filtra também se email resolve pro próprio uid (caso edge —
+      // user pode ter o próprio email antigo na lista por bug histórico). Se
+      // entra aqui, ownUid acabaria em cu.friends e o user notificaria a si
+      // mesmo nas chamadas de presence_checkin/plan.
+      if (resolved && resolved !== uid && !added[resolved]) {
         added[resolved] = true;
         clean.push(resolved);
       }

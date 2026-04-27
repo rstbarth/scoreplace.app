@@ -6985,6 +6985,12 @@ window._openCasualMatch = function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !Array.isArray(cu.friends) || cu.friends.length === 0) return;
     if (typeof window._sendUserNotification !== 'function') return;
+    // v0.17.8: usa o helper de dedup (call site missed na v0.17.5). Filtra
+    // emails legados, próprio uid e duplicatas pra evitar notificação spam.
+    var friendsList = (typeof window._dedupFriendsForNotify === 'function')
+      ? window._dedupFriendsForNotify(cu.friends, cu.uid)
+      : cu.friends;
+    if (friendsList.length === 0) return;
     var btn = document.getElementById('casual-notify-friends-btn');
     if (btn) {
       btn.disabled = true;
@@ -6998,10 +7004,10 @@ window._openCasualMatch = function() {
               (sportLabel || 'scoreplace') + '. Entra junto: ' + roomCode;
     var sent = 0;
     var fails = 0;
-    var total = cu.friends.length;
-    for (var i = 0; i < cu.friends.length; i++) {
+    var total = friendsList.length;
+    for (var i = 0; i < friendsList.length; i++) {
       try {
-        await window._sendUserNotification(cu.friends[i], {
+        await window._sendUserNotification(friendsList[i], {
           type: 'casual_invite',
           message: msg,
           level: 'all',

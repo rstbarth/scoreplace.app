@@ -86,6 +86,16 @@ window._resolveOrganizerUid = async function(t) {
  */
 window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
     if (!window.FirestoreDB || !window.FirestoreDB.db || !uid) return;
+    // v0.17.8: defesa contra self-notification. cu.friends pode conter o
+    // próprio uid em casos edge (auto-friendship via bugs históricos ou
+    // email que resolve pra si mesmo). Notif pra si mesmo é sempre noise —
+    // user já sabe o que acabou de fazer (toast no momento da ação cobre).
+    // Nenhum call site legítimo notifica a si mesmo: todos visam organizador,
+    // amigo, participante, oponente, etc.
+    var _cu = window.AppStore && window.AppStore.currentUser;
+    if (_cu && _cu.uid && uid === _cu.uid) {
+        return;
+    }
     try {
         var profile = await window.FirestoreDB.loadUserProfile(uid);
         if (!profile) return;

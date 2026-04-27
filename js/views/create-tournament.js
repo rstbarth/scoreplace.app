@@ -3380,7 +3380,12 @@ function setupCreateTournamentModal() {
           if (_cu && _newTour && Array.isArray(_cu.friends) && _cu.friends.length > 0) {
             var _tFnCreate = window._t || function(k) { return k; };
             var _createMsg = _tFnCreate('notif.newTournamentByFriend').replace('{friend}', _cu.displayName || 'Um amigo').replace('{name}', _newTour.name || 'Torneio');
-            _cu.friends.forEach(function(friendUid) {
+            // v0.17.8: dedup pra evitar duplicatas (email + uid pra mesma
+            // pessoa) e self-notification (auto-amizade via bug histórico).
+            var _ctFriends = (typeof window._dedupFriendsForNotify === 'function')
+              ? window._dedupFriendsForNotify(_cu.friends, _cu.uid)
+              : _cu.friends;
+            _ctFriends.forEach(function(friendUid) {
               window._sendUserNotification(friendUid, {
                 type: 'tournament_created',
                 message: _createMsg,
