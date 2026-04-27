@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.5-alpha';
+window.SCOREPLACE_VERSION = '0.17.6-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1491,6 +1491,18 @@ window.AppStore = {
         if (profile.stripeCustomerId) this.currentUser.stripeCustomerId = profile.stripeCustomerId;
         if (profile.stripeSubscriptionId) this.currentUser.stripeSubscriptionId = profile.stripeSubscriptionId;
       }
+      // v0.17.6: self-heal de cu.friends — roda em background após profile
+      // load. Resolve emails legados pra uid, dropa órfãos e dedup. Persiste
+      // a lista limpa no Firestore. Atende pedido do usuário pra prevenir
+      // notificações duplicadas. Background pra não bloquear render do app.
+      if (this.currentUser && this.currentUser.uid) {
+        var self = this;
+        setTimeout(function() {
+          self._selfHealFriendsList().catch(function(e) {
+            console.warn('[selfHealFriends] background failed:', e);
+          });
+        }, 0);
+      }
       // v0.17.3: sinaliza que o profile load attempt completou (sucesso OU
       // doc inexistente — first-time user). Views que dependem de campos do
       // profile (preferredLocations, friends, etc.) escutam esse evento pra
@@ -1513,6 +1525,121 @@ window.AppStore = {
         document.dispatchEvent(new CustomEvent('scoreplace:profile-loaded', { detail: { uid: uid, error: true } }));
       } catch (e2) {}
       return null;
+    }
+  },
+
+  // v0.17.6: normaliza cu.friends — resolve emails legados → uid, dropa
+  // órfãos (email não casa com nenhum user), dedup. Persiste a lista limpa
+  // no Firestore. Disparado em background após loadUserProfile. Resolve a
+  // causa-raiz das "várias notificações em cada evento" — antes da v0.17.5
+  // o dedup era só no momento de notificar; agora a lista persistida é
+  // canônica. Não bloqueia render — usuário pode usar o app enquanto roda.
+  // Idempotente: pode chamar várias vezes, só faz write quando há mudança.
+  async _selfHealFriendsList() {
+    if (!this.currentUser || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    var uid = this.currentUser.uid;
+    if (!uid) return;
+    var friends = Array.isArray(this.currentUser.friends) ? this.currentUser.friends.slice() : [];
+    if (friends.length === 0) return;
+
+    // Categoriza
+    var uidEntries = {}; // uid → true
+    var emailsToResolve = []; // emails únicos pra resolver
+    var emailSet = {};
+    var hasSelfRef = false;
+    for (var i = 0; i < friends.length; i++) {
+      var f = friends[i];
+      if (!f || typeof f !== 'string') continue;
+      if (f === uid) { hasSelfRef = true; continue; }
+      if (f.indexOf('@') === -1) {
+        uidEntries[f] = true;
+      } else {
+        if (!emailSet[f]) { emailSet[f] = true; emailsToResolve.push(f); }
+      }
+    }
+
+    // Precisa limpar se: tem email, tem self-ref, ou lista atual tem
+    // duplicatas (length > unique uids).
+    var uniqueUidCount = Object.keys(uidEntries).length;
+    var needsClean = emailsToResolve.length > 0 || hasSelfRef ||
+                     friends.length !== (uniqueUidCount + emailsToResolve.length);
+    if (!needsClean) return;
+
+    console.log('[selfHealFriends v0.17.6] starting', {
+      total: friends.length,
+      uniqueUids: uniqueUidCount,
+      emailsToResolve: emailsToResolve.length,
+      hasSelfRef: hasSelfRef
+    });
+
+    var db = window.FirestoreDB.db;
+    var resolvedMap = {}; // email → uid (or null se não resolveu)
+
+    // Resolve emails em paralelo
+    await Promise.all(emailsToResolve.map(async function(email) {
+      try {
+        var emLower = String(email).toLowerCase();
+        var snap = await db.collection('users')
+          .where('email_lower', '==', emLower).limit(1).get();
+        if (snap.empty) {
+          // Fallback: campo legacy 'email' (não-lowercase)
+          snap = await db.collection('users').where('email', '==', email).limit(1).get();
+        }
+        if (!snap.empty) {
+          var docId = snap.docs[0].id;
+          // Se docId é também email (legacy doc keyed por email), preserva
+          // como está — usuário ainda não migrou. Se não, é uid resolvido.
+          resolvedMap[email] = docId;
+        } else {
+          resolvedMap[email] = null; // órfão, dropar
+        }
+      } catch (e) {
+        console.warn('[selfHealFriends] resolve falhou pra', email, e);
+        resolvedMap[email] = null;
+      }
+    }));
+
+    // Constrói lista limpa
+    var clean = [];
+    var added = {};
+    Object.keys(uidEntries).forEach(function(u) {
+      if (!added[u]) { added[u] = true; clean.push(u); }
+    });
+    emailsToResolve.forEach(function(em) {
+      var resolved = resolvedMap[em];
+      if (resolved && !added[resolved]) {
+        added[resolved] = true;
+        clean.push(resolved);
+      }
+    });
+
+    // Se nada mudou (clean tem mesmo conteúdo de friends original), bail
+    var origSet = {};
+    friends.forEach(function(f) { if (f) origSet[f] = true; });
+    var cleanSet = {};
+    clean.forEach(function(f) { cleanSet[f] = true; });
+    var origKeys = Object.keys(origSet);
+    var cleanKeys = Object.keys(cleanSet);
+    if (origKeys.length === cleanKeys.length && origKeys.every(function(k) { return cleanSet[k]; })) {
+      console.log('[selfHealFriends] no changes after dedup');
+      return;
+    }
+
+    // Persiste lista limpa
+    try {
+      await db.collection('users').doc(uid).update({ friends: clean });
+      this.currentUser.friends = clean;
+      console.log('[selfHealFriends v0.17.6] cleaned', {
+        before: friends.length,
+        after: clean.length,
+        droppedOrphans: emailsToResolve.filter(function(em) { return !resolvedMap[em]; }).length,
+        resolvedEmails: emailsToResolve.filter(function(em) { return resolvedMap[em]; }).length
+      });
+      try {
+        document.dispatchEvent(new CustomEvent('scoreplace:friends-cleaned', { detail: { uid: uid, before: friends.length, after: clean.length } }));
+      } catch (e) {}
+    } catch (e) {
+      console.error('[selfHealFriends v0.17.6] commit falhou:', e);
     }
   },
 
