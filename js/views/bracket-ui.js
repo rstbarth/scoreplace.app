@@ -12,7 +12,7 @@ var _t = window._t || function(k) { return k; };
 // Lista de campos cobre o que `_saveResultInline` e `_editResult` mexem.
 function _propagateMatchUpdate(t, m) {
   if (!t || !m || !m.id) return;
-  var FIELDS = ['winner', 'draw', 'scoreP1', 'scoreP2', 'sets', 'setsWonP1', 'setsWonP2', 'totalGamesP1', 'totalGamesP2', 'fixedSet', 'isBye'];
+  var FIELDS = ['winner', 'draw', 'scoreP1', 'scoreP2', 'sets', 'setsWonP1', 'setsWonP2', 'totalGamesP1', 'totalGamesP2', 'fixedSet', 'isBye', 'pendingResult'];
   var updateRef = function(ref) {
     if (!ref || ref === m) return; // skip self (already mutated)
     if (ref.id !== m.id) return;
@@ -71,7 +71,184 @@ function _propagateMatchUpdate(t, m) {
 }
 window._propagateMatchUpdate = _propagateMatchUpdate;
 
+// ─── v0.17.1: Result Approval Flow ─────────────────────────────────────────
+// Quando jogador (não-organizador) lança placar de match em torneio, o
+// resultado fica em m.pendingResult e o time adversário (+ organizador)
+// recebe notificação pra aprovar. Só após aprovação m.winner/m.scoreP1/etc.
+// são populados. Pedido do usuário: "quando o placar for lançado pelo
+// usuário em torneios o time adversário deve ser notificado para aprovar
+// o resultado e só ai é que o placar é considerado concluido. antes disso
+// fica pendente. o organizador também pode aprovar um placar lançado pelo
+// usuário."
+
+// Retorna array de nomes que compõem o lado (1 ou 2) do match.
+// Suporta: monarch (m.team1/m.team2 arrays), duplas ("X / Y"), individual.
+function _matchSideMembers(m, side) {
+  if (!m) return [];
+  if (m.isMonarch) {
+    if (side === 1 && Array.isArray(m.team1)) return m.team1.slice();
+    if (side === 2 && Array.isArray(m.team2)) return m.team2.slice();
+  }
+  var s = side === 1 ? m.p1 : m.p2;
+  if (!s || s === 'TBD' || s === 'BYE') return [];
+  if (s.indexOf('/') !== -1) return s.split('/').map(function(n) { return n.trim(); }).filter(Boolean);
+  return [s.trim()];
+}
+
+// Retorna 1 ou 2 se user está num dos lados do match; 0 se em nenhum.
+// Compara por uid (preferido), email e displayName.
+function _userTeamInMatch(t, m, user) {
+  if (!t || !m || !user) return 0;
+  var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  var checkSide = function(side) {
+    var members = _matchSideMembers(m, side);
+    for (var i = 0; i < members.length; i++) {
+      var nm = members[i];
+      if (!nm) continue;
+      // Look up participant by name
+      var pp = null;
+      for (var j = 0; j < parts.length; j++) {
+        var p = parts[j];
+        var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        if (pName === nm) { pp = p; break; }
+      }
+      if (pp && typeof pp === 'object') {
+        if (user.uid && pp.uid && pp.uid === user.uid) return true;
+        if (user.email && pp.email && pp.email === user.email) return true;
+        if (user.email && pp.email_lower && pp.email_lower === (user.email || '').toLowerCase()) return true;
+      }
+      // Fallback by displayName
+      if (user.displayName && nm === user.displayName) return true;
+    }
+    return false;
+  };
+  if (checkSide(1)) return 1;
+  if (checkSide(2)) return 2;
+  return 0;
+}
+
+// Verifica se user é organizador ou co-host ativo (independente de viewMode —
+// pra approval queremos a permissão real, não a visualização atual).
+function _isUserOrgOrCoHost(t, user) {
+  if (!t || !user) return false;
+  var email = user.email;
+  if (!email) return false;
+  if (t.organizerEmail === email) return true;
+  if (t.creatorEmail === email) return true;
+  if (Array.isArray(t.coHosts)) {
+    return t.coHosts.some(function(ch) { return ch.email === email && ch.status === 'active'; });
+  }
+  return false;
+}
+
+// Decide se um placar lançado por `user` precisa de aprovação do adversário.
+// Regras: (a) organizador/co-host → não precisa; (b) user não está em nenhum
+// dos times do match → não precisa (referee/external); (c) time adversário
+// não tem nenhum humano (uid presente) → não precisa (auto-approve);
+// (d) caso contrário → precisa.
+function _resultNeedsApproval(t, m, user) {
+  if (!t || !m || !user) return false;
+  if (_isUserOrgOrCoHost(t, user)) return false;
+  var userSide = _userTeamInMatch(t, m, user);
+  if (userSide === 0) return false;
+  var opposingSide = userSide === 1 ? 2 : 1;
+  var opposingMembers = _matchSideMembers(m, opposingSide);
+  if (opposingMembers.length === 0) return false;
+  var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  for (var i = 0; i < opposingMembers.length; i++) {
+    var nm = opposingMembers[i];
+    var pp = null;
+    for (var j = 0; j < parts.length; j++) {
+      var p = parts[j];
+      var pName = typeof p === 'string' ? p : (p.displayName || p.name || '');
+      if (pName === nm) { pp = p; break; }
+    }
+    if (pp && typeof pp === 'object' && pp.uid) return true;
+  }
+  return false;
+}
+
+// Notifica o time adversário (cada player com uid) + organizador
+// que há um resultado pendente de aprovação.
+function _notifyPendingApproval(t, m, proposerName) {
+  if (typeof window._sendUserNotification !== 'function') return;
+  var pr = m.pendingResult || {};
+  var scoreText = '';
+  if (pr.useSets && Array.isArray(pr.sets) && pr.sets.length > 0) {
+    scoreText = pr.sets.map(function(s) { return s.gamesP1 + '-' + s.gamesP2; }).join(' ');
+  } else {
+    scoreText = (pr.scoreP1 != null ? pr.scoreP1 : '?') + ' × ' + (pr.scoreP2 != null ? pr.scoreP2 : '?');
+  }
+  var matchLabel = (m.p1 || '?') + ' vs ' + (m.p2 || '?');
+  var notifData = {
+    type: 'match-pending-approval',
+    title: '⏳ Resultado precisa de aprovação',
+    message: (proposerName || 'Alguém') + ' lançou: ' + matchLabel + ' — ' + scoreText + '. Aprove ou rejeite.',
+    tournamentId: t.id,
+    tournamentName: t.name,
+    matchId: m.id,
+    level: 'important',
+    timestamp: Date.now()
+  };
+  // Find proposer's side, then notify opposing team
+  var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  // Build set of UIDs that are on the same team as proposer (don't notify them)
+  var proposerSide = 0;
+  if (pr.proposedBy || pr.proposedByEmail) {
+    var fakeUser = { uid: pr.proposedBy, email: pr.proposedByEmail };
+    proposerSide = _userTeamInMatch(t, m, fakeUser);
+  }
+  var skipUids = {};
+  if (proposerSide > 0) {
+    var sameTeamMembers = _matchSideMembers(m, proposerSide);
+    sameTeamMembers.forEach(function(nm) {
+      var pp = parts.find(function(p) {
+        var n = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return n === nm;
+      });
+      if (pp && typeof pp === 'object' && pp.uid) skipUids[pp.uid] = true;
+    });
+  } else {
+    // Couldn't determine proposer side — at least skip the proposer's own uid
+    if (pr.proposedBy) skipUids[pr.proposedBy] = true;
+  }
+  // Notify everyone on opposing side
+  [1, 2].forEach(function(side) {
+    if (side === proposerSide) return;
+    var members = _matchSideMembers(m, side);
+    members.forEach(function(nm) {
+      var pp = parts.find(function(p) {
+        var n = typeof p === 'string' ? p : (p.displayName || p.name || '');
+        return n === nm;
+      });
+      if (pp && typeof pp === 'object' && pp.uid && !skipUids[pp.uid]) {
+        window._sendUserNotification(pp.uid, notifData);
+        skipUids[pp.uid] = true;
+      }
+    });
+  });
+  // Also notify organizer if not proposer and not already notified
+  var orgEmail = t.organizerEmail || t.creatorEmail;
+  if (orgEmail) {
+    var orgPart = parts.find(function(p) {
+      return typeof p === 'object' && p.email === orgEmail;
+    });
+    if (orgPart && orgPart.uid && !skipUids[orgPart.uid]) {
+      window._sendUserNotification(orgPart.uid, notifData);
+    } else if (!orgPart) {
+      // Organizer might not be a participant — try by email lookup against AppStore.users? skip for now.
+    }
+  }
+}
+
+window._matchSideMembers = _matchSideMembers;
+window._userTeamInMatch = _userTeamInMatch;
+window._isUserOrgOrCoHost = _isUserOrgOrCoHost;
+window._resultNeedsApproval = _resultNeedsApproval;
+
 // Helper: re-render bracket preserving scroll position (zero jump)
+// Uses anchor-based approach: saves the viewport-relative offset of a reference
+// element, re-renders, then scrolls so the same element is at the same offset.
 // Uses anchor-based approach: saves the viewport-relative offset of a reference
 // element, re-renders, then scrolls so the same element is at the same offset.
 function _rerenderBracket(tId, anchorMatchId) {
@@ -1276,6 +1453,57 @@ window._saveSetResult = function(tId, matchId) {
     }
   }
 
+  let totalGamesP1Pre = 0, totalGamesP2Pre = 0;
+  sets.forEach(function(s) { totalGamesP1Pre += s.gamesP1; totalGamesP2Pre += s.gamesP2; });
+
+  // v0.17.1: aprovação do adversário no caminho GSM. Mesma regra do
+  // _saveResultInline. Se user é jogador (não-org) e adversário tem humano,
+  // resultado vai pra m.pendingResult e adversário/organizador aprovam.
+  var _curUserGsm = window.AppStore && window.AppStore.currentUser;
+  if (_curUserGsm && _resultNeedsApproval(t, m, _curUserGsm)) {
+    var _proposedWinnerGsm = '';
+    var _proposedDrawGsm = false;
+    if (p1Sets > p2Sets) _proposedWinnerGsm = m.p1;
+    else if (p2Sets > p1Sets) _proposedWinnerGsm = m.p2;
+    else { _proposedWinnerGsm = 'draw'; _proposedDrawGsm = true; }
+    var _scoreP1Gsm, _scoreP2Gsm;
+    if (isFixedSet) {
+      var _fs0g = sets[0];
+      _scoreP1Gsm = _fs0g ? _fs0g.gamesP1 : p1Sets;
+      _scoreP2Gsm = _fs0g ? _fs0g.gamesP2 : p2Sets;
+    } else {
+      _scoreP1Gsm = p1Sets;
+      _scoreP2Gsm = p2Sets;
+    }
+    m.pendingResult = {
+      kind: 'gsm',
+      proposedBy: _curUserGsm.uid || null,
+      proposedByEmail: _curUserGsm.email || null,
+      proposedByName: _curUserGsm.displayName || _curUserGsm.email || 'Jogador',
+      proposedAt: Date.now(),
+      winner: _proposedWinnerGsm,
+      draw: _proposedDrawGsm,
+      sets: sets,
+      setsWonP1: p1Sets,
+      setsWonP2: p2Sets,
+      scoreP1: _scoreP1Gsm,
+      scoreP2: _scoreP2Gsm,
+      totalGamesP1: totalGamesP1Pre,
+      totalGamesP2: totalGamesP2Pre,
+      useSets: true,
+      isFixedSet: !!isFixedSet
+    };
+    var _ovGsm = document.getElementById('set-scoring-overlay');
+    if (_ovGsm) _ovGsm.remove();
+    _propagateMatchUpdate(t, m);
+    window.AppStore.logAction(tId, 'Resultado proposto (sets): ' + m.p1 + ' vs ' + m.p2 + ' — aguardando aprovação (' + m.pendingResult.proposedByName + ')');
+    window.AppStore.syncImmediate(tId);
+    try { _notifyPendingApproval(t, m, m.pendingResult.proposedByName); } catch (e) { console.error('[pendingApproval gsm] notify failed', e); }
+    showNotification('⏳ Resultado enviado', 'Aguardando aprovação do time adversário ou do organizador.', 'success');
+    _rerenderBracket(tId, matchId);
+    return;
+  }
+
   m.sets = sets;
   m.setsWonP1 = p1Sets;
   m.setsWonP2 = p2Sets;
@@ -1305,6 +1533,7 @@ window._saveSetResult = function(tId, matchId) {
     m.winner = m.p2;
     m.draw = false;
   }
+  if (m.pendingResult) delete m.pendingResult;
 
   const ov = document.getElementById('set-scoring-overlay');
   if (ov) ov.remove();
@@ -1435,6 +1664,54 @@ window._saveResultInline = function (tId, matchId) {
     return;
   }
 
+  // v0.17.1: aprovação do adversário. Se o user que está lançando o placar
+  // está num dos times do match e NÃO é organizador/co-host, o resultado
+  // vai pra m.pendingResult em vez de m.winner direto. Time adversário
+  // recebe notificação pra aprovar.
+  var _curUser = window.AppStore && window.AppStore.currentUser;
+  if (_curUser && _resultNeedsApproval(t, m, _curUser)) {
+    var _proposedWinner;
+    var _proposedDraw = false;
+    if (s1 === s2 && allowDraw) {
+      _proposedWinner = 'draw';
+      _proposedDraw = true;
+    } else {
+      _proposedWinner = s1 > s2 ? m.p1 : m.p2;
+    }
+    var _pendingPayload = {
+      kind: 'inline',
+      proposedBy: _curUser.uid || null,
+      proposedByEmail: _curUser.email || null,
+      proposedByName: _curUser.displayName || _curUser.email || 'Jogador',
+      proposedAt: Date.now(),
+      winner: _proposedWinner,
+      draw: _proposedDraw,
+      scoreP1: s1,
+      scoreP2: s2,
+      useSets: !!useSets,
+      isFixedSet: !!isFixedSet,
+      isTiebreakEntry: !!isTiebreakEntry,
+      tbP1: isTiebreakEntry ? tbP1 : null,
+      tbP2: isTiebreakEntry ? tbP2 : null
+    };
+    if (useSets) {
+      var _setData = { gamesP1: s1, gamesP2: s2 };
+      if (isFixedSet) _setData.fixedSet = true;
+      if (isTiebreakEntry) _setData.tiebreak = { pointsP1: tbP1, pointsP2: tbP2 };
+      _pendingPayload.sets = [_setData];
+      _pendingPayload.setsWonP1 = s1 > s2 ? 1 : 0;
+      _pendingPayload.setsWonP2 = s2 > s1 ? 1 : 0;
+    }
+    m.pendingResult = _pendingPayload;
+    _propagateMatchUpdate(t, m);
+    window.AppStore.logAction(tId, 'Resultado proposto: ' + m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — aguardando aprovação (' + _pendingPayload.proposedByName + ')');
+    window.AppStore.syncImmediate(tId);
+    try { _notifyPendingApproval(t, m, _pendingPayload.proposedByName); } catch (e) { console.error('[pendingApproval] notify failed', e); }
+    showNotification('⏳ Resultado enviado', 'Aguardando aprovação do time adversário ou do organizador.', 'success');
+    _rerenderBracket(tId, matchId);
+    return;
+  }
+
   if (useSets) {
     // Store as a single set for GSM compatibility
     var setData = { gamesP1: s1, gamesP2: s2 };
@@ -1463,6 +1740,9 @@ window._saveResultInline = function (tId, matchId) {
     m.winner = s1 > s2 ? m.p1 : m.p2;
     m.draw = false;
   }
+  // Se havia um pendingResult (proposta anterior) — agora foi finalizado
+  // pelo organizador OU pelo adversário, libera o slot.
+  if (m.pendingResult) delete m.pendingResult;
 
   if (!isGroupMatch && !isRoundMatch) {
     // Eliminatórias — vencedor avança
@@ -1561,6 +1841,200 @@ window._saveResultInline = function (tId, matchId) {
   }
 
   _rerenderBracket(tId, matchId);
+};
+
+// v0.17.1: aprovar resultado pendente. Disponível pra: (a) qualquer membro
+// do time adversário (uid bate com participante daquele lado); (b)
+// organizador/co-host. Usuário que propôs não pode aprovar a própria
+// proposta (UI esconde o botão pra ele).
+window._approveResult = function(tId, matchId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+  if (!t) return;
+  var m = _findMatch(t, matchId);
+  if (!m || !m.pendingResult) {
+    showNotification('Sem proposta ativa', 'Esse jogo não tem resultado pendente.', 'warning');
+    return;
+  }
+  var pr = m.pendingResult;
+  var cu = window.AppStore && window.AppStore.currentUser;
+  // Permission: org OR opposing team member
+  var canApprove = false;
+  if (cu) {
+    if (_isUserOrgOrCoHost(t, cu)) {
+      canApprove = true;
+    } else {
+      var userSide = _userTeamInMatch(t, m, cu);
+      // Determine proposer's side (might differ from approver)
+      var proposerSide = 0;
+      if (pr.proposedBy || pr.proposedByEmail) {
+        proposerSide = _userTeamInMatch(t, m, { uid: pr.proposedBy, email: pr.proposedByEmail });
+      }
+      if (userSide > 0 && userSide !== proposerSide) canApprove = true;
+    }
+  }
+  if (!canApprove) {
+    showNotification('Sem permissão', 'Só o time adversário ou o organizador pode aprovar.', 'warning');
+    return;
+  }
+
+  // Apply pending → final
+  var s1 = pr.scoreP1, s2 = pr.scoreP2;
+  if (pr.useSets && Array.isArray(pr.sets)) {
+    m.sets = pr.sets.slice();
+    m.setsWonP1 = pr.setsWonP1 || 0;
+    m.setsWonP2 = pr.setsWonP2 || 0;
+    if (pr.isFixedSet) m.fixedSet = true;
+    m.scoreP1 = s1;
+    m.scoreP2 = s2;
+    m.totalGamesP1 = s1;
+    m.totalGamesP2 = s2;
+  } else {
+    m.scoreP1 = s1;
+    m.scoreP2 = s2;
+  }
+  m.winner = pr.winner;
+  m.draw = !!pr.draw;
+  delete m.pendingResult;
+
+  // Auto check-in pros participantes do match
+  if (!t.checkedIn) t.checkedIn = {};
+  if (!t.absent) t.absent = {};
+  [m.p1, m.p2].forEach(function(side) {
+    if (!side || side === 'TBD' || side === 'BYE') return;
+    if (side.indexOf(' / ') !== -1) {
+      side.split(' / ').forEach(function(n) { var nm = n.trim(); if (nm) { t.checkedIn[nm] = t.checkedIn[nm] || Date.now(); delete t.absent[nm]; } });
+    } else {
+      t.checkedIn[side] = t.checkedIn[side] || Date.now();
+      delete t.absent[side];
+    }
+  });
+  if (!t.tournamentStarted) t.tournamentStarted = Date.now();
+
+  // Determine match context for advance/round logic
+  var isGroupMatch = m.group !== undefined;
+  var isRoundMatch = m.roundIndex !== undefined || (t.rounds && t.rounds.some(function(r) {
+    return (r.matches || []).some(function(rm) { return rm.id === matchId; });
+  }));
+
+  if (!isGroupMatch && !isRoundMatch) {
+    _advanceWinner(t, m);
+    showNotification('✅ Resultado aprovado', m.winner + ' avança!', 'success');
+  } else if (isRoundMatch) {
+    showNotification('✅ Resultado aprovado', m.draw ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
+    var _roundIdxAuto = -1;
+    (t.rounds || []).forEach(function(r, idx) {
+      (r.matches || []).forEach(function(rm) { if (rm.id === matchId) _roundIdxAuto = idx; });
+    });
+    if (_roundIdxAuto >= 0) {
+      var _thisRound = t.rounds[_roundIdxAuto];
+      var _thisComplete = (_thisRound.matches || []).every(function(rm) { return !!rm.winner; });
+      var _isLast = _roundIdxAuto === (t.rounds.length - 1);
+      if (_thisComplete && _isLast && _thisRound.status !== 'complete') {
+        setTimeout(function() {
+          if (typeof window._closeRound === 'function') window._closeRound(tId, _roundIdxAuto);
+        }, 0);
+      }
+    }
+  } else {
+    _checkGroupRoundComplete(t, m.group);
+    showNotification('✅ Resultado aprovado', m.draw ? _t('bui.draw') : _t('bui.matchWon', {winner: m.winner}), 'success');
+  }
+
+  _propagateMatchUpdate(t, m);
+  window.AppStore.logAction(tId, 'Resultado aprovado: ' + m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + (m.draw ? ' — Empate' : ' — Vencedor: ' + m.winner));
+  window.AppStore.syncImmediate(tId);
+
+  // Notifica participantes do match (proposer + opposing team)
+  try { _persistInlineTournamentMatchRecord(t, m, s1, s2, pr.tbP1, pr.tbP2, !!pr.isTiebreakEntry, !!pr.useSets); } catch(e) {}
+  if (typeof window._sendUserNotification === 'function') {
+    var resultText = m.p1 + ' ' + s1 + ' × ' + s2 + ' ' + m.p2 + ' — ' + (m.draw ? _t('bui.drawResult') : _t('bui.matchWon', {winner: m.winner}));
+    var notifData = {
+      type: 'result',
+      title: '✅ Resultado confirmado',
+      message: resultText,
+      tournamentId: tId,
+      tournamentName: t.name,
+      level: 'fundamental',
+      timestamp: Date.now()
+    };
+    var parts = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    [m.p1, m.p2].forEach(function(side) {
+      if (!side || side === 'TBD' || side === 'BYE') return;
+      var members = side.indexOf('/') !== -1 ? side.split('/').map(function(n) { return n.trim(); }) : [side];
+      members.forEach(function(nm) {
+        var p = parts.find(function(pp) {
+          var n = typeof pp === 'string' ? pp : (pp.displayName || pp.name || '');
+          return n === nm;
+        });
+        if (p && typeof p === 'object' && p.uid) window._sendUserNotification(p.uid, notifData);
+      });
+    });
+  }
+
+  _rerenderBracket(tId, matchId);
+};
+
+// v0.17.1: rejeitar resultado pendente. Limpa m.pendingResult e re-abre
+// inputs pra novo lançamento. Notifica o proposer.
+window._rejectResult = function(tId, matchId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
+  if (!t) return;
+  var m = _findMatch(t, matchId);
+  if (!m || !m.pendingResult) {
+    showNotification('Sem proposta ativa', 'Esse jogo não tem resultado pendente.', 'warning');
+    return;
+  }
+  var pr = m.pendingResult;
+  var cu = window.AppStore && window.AppStore.currentUser;
+  // Permission: org OR opposing team OR proposer (cancel own proposal)
+  var canReject = false;
+  var isProposerSelf = false;
+  if (cu) {
+    if (_isUserOrgOrCoHost(t, cu)) {
+      canReject = true;
+    } else {
+      var userSide = _userTeamInMatch(t, m, cu);
+      var proposerSide = 0;
+      if (pr.proposedBy || pr.proposedByEmail) {
+        proposerSide = _userTeamInMatch(t, m, { uid: pr.proposedBy, email: pr.proposedByEmail });
+      }
+      if (userSide > 0 && userSide !== proposerSide) canReject = true;
+      // Proposer can also cancel their own proposal
+      if (cu.uid && pr.proposedBy && cu.uid === pr.proposedBy) { canReject = true; isProposerSelf = true; }
+      if (cu.email && pr.proposedByEmail && cu.email === pr.proposedByEmail) { canReject = true; isProposerSelf = true; }
+    }
+  }
+  if (!canReject) {
+    showNotification('Sem permissão', 'Só o time adversário, o organizador ou quem propôs pode rejeitar.', 'warning');
+    return;
+  }
+
+  showConfirmDialog(
+    isProposerSelf ? 'Cancelar proposta?' : 'Rejeitar resultado?',
+    isProposerSelf ? 'Sua proposta de placar será descartada.' : 'O placar será descartado e o time adversário poderá lançar de novo.',
+    function() {
+      delete m.pendingResult;
+      _propagateMatchUpdate(t, m);
+      window.AppStore.logAction(tId, (isProposerSelf ? 'Proposta cancelada' : 'Resultado rejeitado') + ': ' + m.p1 + ' vs ' + m.p2);
+      window.AppStore.syncImmediate(tId);
+      // Notifica proposer (se não foi self-cancel)
+      if (!isProposerSelf && typeof window._sendUserNotification === 'function' && pr.proposedBy) {
+        window._sendUserNotification(pr.proposedBy, {
+          type: 'match-rejected',
+          title: '❌ Resultado rejeitado',
+          message: 'O resultado de ' + m.p1 + ' vs ' + m.p2 + ' foi rejeitado. Lance novamente quando combinar com o adversário.',
+          tournamentId: tId,
+          tournamentName: t.name,
+          level: 'important',
+          timestamp: Date.now()
+        });
+      }
+      showNotification(isProposerSelf ? 'Proposta cancelada' : 'Resultado rejeitado', '', 'success');
+      _rerenderBracket(tId, matchId);
+    },
+    'OK',
+    'Cancelar'
+  );
 };
 
 window._editResult = function (tId, matchId) {

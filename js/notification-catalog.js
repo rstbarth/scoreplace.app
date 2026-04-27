@@ -29,6 +29,9 @@ window.NOTIF_CATALOG = {
 
   // Match events
   result:                      { level: 'fundamental', icon: '🏅', color: '#a78bfa' },
+  // v0.17.1: aprovação de placar pelo time adversário
+  'match-pending-approval':    { level: 'important',   icon: '⏳', color: '#fbbf24' },
+  'match-rejected':            { level: 'important',   icon: '❌', color: 'var(--danger-color, #ef4444)' },
 
   // Reminders
   tournament_reminder:         { level: 'important',   icon: '⏰', color: '#f59e0b' },

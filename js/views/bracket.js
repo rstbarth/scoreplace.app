@@ -1191,6 +1191,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   const isByeMatch = m.isBye || m.p2 === 'BYE';
   const hasTBD = !m.p1 || m.p1 === 'TBD' || !m.p2 || m.p2 === 'TBD';
 
+  // v0.17.1: estado pendente — placar lançado por jogador aguardando aprovação
+  // do time adversário (ou organizador). Quando true, suprime inputs e mostra
+  // os valores propostos com banner "Pendente" + botões Aprovar/Rejeitar.
+  const hasPending = !!m.pendingResult && !isDecided;
+  const _pr = hasPending ? m.pendingResult : null;
+
   // Check-in status for match readiness
   const p1ci = _getCheckInStatus(tId, m.p1);
   const p2ci = _getCheckInStatus(tId, m.p2);
@@ -1206,6 +1212,15 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     const base = 'padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;';
     if (isWinner) return base + 'background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
     if (isDecided) return base + 'background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.55;';
+    if (hasPending) {
+      // v0.17.1: pending — accent âmbar; lado proposto vencedor com tom mais
+      // forte. _pendingP1Win/_pendingP2Win declarados acima do rowStyle.
+      var _isPropWin = (side === 'p1' && hasPending && _pr.winner === m.p1 && !_pr.draw)
+        || (side === 'p2' && hasPending && _pr.winner === m.p2 && !_pr.draw);
+      return base + (_isPropWin
+        ? 'background:rgba(251,191,36,0.18);border-left:3px solid #fbbf24;'
+        : 'background:rgba(0,0,0,0.2);border-left:3px solid rgba(251,191,36,0.35);opacity:0.85;');
+    }
     return base + (side === 'p1'
       ? 'background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);'
       : 'background:rgba(0,0,0,0.25);border-left:3px solid rgba(239,68,68,0.4);');
@@ -1235,7 +1250,9 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
   };
 
   // Inline score inputs: only for undecided matches with both players known
-  const showInputs = !isDecided && !isByeMatch && !hasTBD && canEnterResult;
+  // v0.17.1: também hidden quando hasPending (mostra valores propostos em modo
+  // read-only com Aprovar/Rejeitar).
+  const showInputs = !isDecided && !hasPending && !isByeMatch && !hasTBD && canEnterResult;
 
   // Check-in dot indicator
   const ciDot = (status) => {
@@ -1265,14 +1282,34 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
         oninput="window._highlightWinner('${_esc(m.id)}')">${p1TbInput}`
     : null;
-  const p1ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1, p1IsWinner) : null;
+  // v0.17.1: quando pending, lê scoreP1/scoreP2 (ou sets) do _pr em vez do m.
+  const _p1Display = hasPending
+    ? (_pr.useSets && Array.isArray(_pr.sets) ? _pr.sets.map(function(s) { return s.gamesP1; }).join(' ') : _pr.scoreP1)
+    : (useSets && isDecided ? formatSetScores(m, 1) : m.scoreP1);
+  const _pendingP1Win = hasPending && _pr.winner === m.p1 && !_pr.draw;
+  const _scorePendingStyle = function(isWin) {
+    return 'font-weight:800;font-size:1rem;min-width:24px;text-align:center;color:' + (isWin ? '#fbbf24' : 'rgba(251,191,36,0.55)') + ';font-style:italic;';
+  };
+  const p1ScoreVal = (!showInputs)
+    ? (hasPending
+        ? '<span style="' + _scorePendingStyle(_pendingP1Win) + '">' + (_p1Display != null ? _p1Display : '') + '</span>'
+        : scoreDisplay(_p1Display, p1IsWinner))
+    : null;
 
   const p2Score = showInputs
     ? `<input type="number" id="s2-${m.id}" min="0" placeholder="0"
         style="width:52px;text-align:center;font-size:0.95rem;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:6px;padding:4px 6px;"
         oninput="window._highlightWinner('${_esc(m.id)}')">${p2TbInput}`
     : null;
-  const p2ScoreVal = (!showInputs) ? scoreDisplay(useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2, p2IsWinner) : null;
+  const _p2Display = hasPending
+    ? (_pr.useSets && Array.isArray(_pr.sets) ? _pr.sets.map(function(s) { return s.gamesP2; }).join(' ') : _pr.scoreP2)
+    : (useSets && isDecided ? formatSetScores(m, 2) : m.scoreP2);
+  const _pendingP2Win = hasPending && _pr.winner === m.p2 && !_pr.draw;
+  const p2ScoreVal = (!showInputs)
+    ? (hasPending
+        ? '<span style="' + _scorePendingStyle(_pendingP2Win) + '">' + (_p2Display != null ? _p2Display : '') + '</span>'
+        : scoreDisplay(_p2Display, p2IsWinner))
+    : null;
 
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
@@ -1317,12 +1354,54 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     : '';
 
 
-  // Confirm button: only for undecided matches with inputs
+  // Confirm button: only for undecided matches with inputs (no pending state)
   const headerConfirmBtn = showInputs && !isDecided
     ? `<button id="confirm-${m.id}" onclick="window._saveResultInline('${_esc(tId)}','${_esc(m.id)}')"
         style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
+
+  // v0.17.1: Approve / Reject / Cancel buttons when there's a pending result.
+  // Visibility:
+  //  - Approve: opposing team OR organizer (NOT the proposer himself)
+  //  - Reject: opposing team OR organizer OR proposer (proposer cancels his own)
+  let pendingActionBtns = '';
+  if (hasPending) {
+    var _isProposerSelf = !!(_cu && (
+      (_pr.proposedBy && _cu.uid && _pr.proposedBy === _cu.uid) ||
+      (_pr.proposedByEmail && _cuEmail && _pr.proposedByEmail === _cuEmail)
+    ));
+    var _isUserOrgInner = (typeof window._isUserOrgOrCoHost === 'function')
+      ? window._isUserOrgOrCoHost(t, _cu)
+      : isOrg;
+    // Determine if current user is on opposing team
+    var _userSideInner = (typeof window._userTeamInMatch === 'function')
+      ? window._userTeamInMatch(t, m, _cu)
+      : 0;
+    var _proposerSideInner = 0;
+    if (_pr && (_pr.proposedBy || _pr.proposedByEmail) && typeof window._userTeamInMatch === 'function') {
+      _proposerSideInner = window._userTeamInMatch(t, m, { uid: _pr.proposedBy, email: _pr.proposedByEmail });
+    }
+    var _isOpposingMember = _userSideInner > 0 && _userSideInner !== _proposerSideInner;
+    var _canApprove = _isUserOrgInner || _isOpposingMember;
+    var _canReject = _canApprove || _isProposerSelf;
+
+    if (_canApprove) {
+      pendingActionBtns += `<button onclick="window._approveResult('${_esc(tId)}','${_esc(m.id)}')"
+          style="background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.4);color:#4ade80;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+          onmouseover="this.style.background='rgba(16,185,129,0.32)'" onmouseout="this.style.background='rgba(16,185,129,0.18)'"
+          title="Aprovar resultado">✅ Aprovar</button>`;
+    }
+    if (_canReject) {
+      pendingActionBtns += `<button onclick="window._rejectResult('${_esc(tId)}','${_esc(m.id)}')"
+          style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.32);color:#f87171;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;margin-left:4px;"
+          onmouseover="this.style.background='rgba(239,68,68,0.24)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'"
+          title="${_isProposerSelf ? 'Cancelar proposta' : 'Rejeitar resultado'}">${_isProposerSelf ? '🚫 Cancelar' : '❌ Rejeitar'}</button>`;
+    }
+    if (!_canApprove && !_canReject && _isProposerSelf) {
+      // Already covered above (proposer always gets _canReject), but keep for clarity
+    }
+  }
 
   // Edit button: for decided matches — opens inline inputs for editing
   const headerEditBtn = isDecided && !isByeMatch && canEnterResult
@@ -1391,12 +1470,27 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
     cardBorder = 'rgba(99,102,241,0.6)';
   }
 
+  // v0.17.1: pending banner exibido entre o header e p1Row quando há
+  // proposta aguardando aprovação. Mostra quem propôs + a quanto tempo.
+  let pendingBanner = '';
+  if (hasPending && _pr) {
+    var _agoMs = Date.now() - (_pr.proposedAt || Date.now());
+    var _agoMin = Math.floor(_agoMs / 60000);
+    var _agoLabel = _agoMin < 1 ? 'agora' : (_agoMin < 60 ? 'há ' + _agoMin + ' min' : 'há ' + Math.floor(_agoMin / 60) + 'h');
+    var _proposerName = window._safeHtml(_pr.proposedByName || 'Jogador');
+    pendingBanner = `<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:0.72rem;color:#fbbf24;display:flex;align-items:center;gap:6px;">
+      <span style="font-size:0.85rem;">⏳</span>
+      <span><b>Aguardando aprovação</b> — proposto por <b>${_proposerName}</b> · ${_agoLabel}</span>
+    </div>`;
+  }
+
   return `
-    <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:${_isMyMatch ? 'rgba(99,102,241,0.06)' : 'var(--bg-card)'};border:${_isMyMatch ? '2px' : '1px'} solid ${cardBorder};border-radius:12px;padding:14px;box-shadow:${_isMyMatch ? '0 0 20px rgba(99,102,241,0.25),0 0 8px rgba(99,102,241,0.12),0 4px 12px rgba(0,0,0,0.15)' : matchReady ? '0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15)' : matchPartial ? '0 0 10px rgba(245,158,11,0.1),0 4px 12px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.15)'};${hasTBD ? 'opacity:0.6;' : ''}">
+    <div id="card-${m.id}" data-my-match="${_isMyMatch ? '1' : '0'}" style="background:${_isMyMatch ? 'rgba(99,102,241,0.06)' : 'var(--bg-card)'};border:${_isMyMatch ? '2px' : '1px'} solid ${hasPending ? 'rgba(251,191,36,0.5)' : cardBorder};border-radius:12px;padding:14px;box-shadow:${_isMyMatch ? '0 0 20px rgba(99,102,241,0.25),0 0 8px rgba(99,102,241,0.12),0 4px 12px rgba(0,0,0,0.15)' : hasPending ? '0 0 14px rgba(251,191,36,0.18),0 4px 12px rgba(0,0,0,0.15)' : matchReady ? '0 0 16px rgba(16,185,129,0.15),0 4px 12px rgba(0,0,0,0.15)' : matchPartial ? '0 0 10px rgba(245,158,11,0.1),0 4px 12px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.15)'};${hasTBD ? 'opacity:0.6;' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">
         <span style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">${window._safeHtml(matchLabel)}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${readyBadge}${liveBtn}${headerConfirmBtn}${headerEditBtn}</div>
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">${readyBadge}${liveBtn}${headerConfirmBtn}${pendingActionBtns}${headerEditBtn}</div>
       </div>
+      ${pendingBanner}
       ${p1Row}
       ${vsRow}
       ${p2Row}
