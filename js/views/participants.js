@@ -370,11 +370,21 @@ window._declareAbsent = function (tId, playerName) {
     if (isIndividualWO && matchEntry) {
       // Individual W.O. in teams — try to replace only the absent member, partner stays
       if (!t.checkedIn) t.checkedIn = {};
+      // v0.17.37: FIFO real por TIMESTAMP de check-in — alinhado com a
+      // ordem do display da Lista de Espera (bracket.js já ordena por
+      // ci[name] ascendente). Antes pegava o primeiro DA ARRAY, ignorando
+      // ordem de chegada → bug: usuário via Bot 15 como "próximo" no
+      // display (porque checou primeiro), mas substituição pegava outro
+      // que estava em posição menor no array (mais antigo na lista).
       let nextStandby = null;
       let nextStandbyIdx = -1;
-      for (let si = 0; si < standby.length; si++) {
-        const sName = typeof standby[si] === 'string' ? standby[si] : (standby[si].displayName || standby[si].name || standby[si].email || '');
-        if (t.checkedIn[sName]) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
+      const _presentSorted = standby
+        .map((p, idx) => ({ p, idx, ts: t.checkedIn[typeof p === 'string' ? p : (p.displayName || p.name || p.email || '')] || 0 }))
+        .filter(o => o.ts > 0)
+        .sort((a, b) => a.ts - b.ts);
+      if (_presentSorted.length > 0) {
+        nextStandby = _presentSorted[0].p;
+        nextStandbyIdx = _presentSorted[0].idx;
       }
       if (!nextStandby) {
         // Sem substituto presente — apenas marca ausente e aguarda organizador
@@ -474,13 +484,29 @@ window._declareAbsent = function (tId, playerName) {
     } else if (hasStandby && matchEntry) {
       // Team W.O. scope — promote next standby to replace entire team
       if (!t.checkedIn) t.checkedIn = {};
+      // v0.17.37: FIFO real por timestamp — mesma regra do W.O. individual.
+      // Pra equipes da lista de espera, "presente" = todos os membros checados.
+      // Timestamp do MENOR membro vence (a equipe ficou completa quando o
+      // último checou).
       let nextStandby = null;
       let nextStandbyIdx = -1;
-      for (let si = 0; si < standby.length; si++) {
-        const sName = typeof standby[si] === 'string' ? standby[si] : (standby[si].displayName || standby[si].name || standby[si].email || '');
-        const sMembers = sName.includes('/') ? sName.split('/').map(n => n.trim()).filter(n => n) : [sName];
-        const allPresent = sMembers.every(m => !!t.checkedIn[m]);
-        if (allPresent) { nextStandby = standby[si]; nextStandbyIdx = si; break; }
+      const _eligibleSorted = standby
+        .map((p, idx) => {
+          const sName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          const sMembers = sName.includes('/') ? sName.split('/').map(n => n.trim()).filter(n => n) : [sName];
+          const allPresent = sMembers.every(m => !!t.checkedIn[m]);
+          if (!allPresent) return null;
+          // Timestamp da equipe = MAIOR ts dos membros (último a chegar
+          // completou a equipe). Equipes que completaram mais cedo entram
+          // primeiro.
+          const teamTs = sMembers.reduce((max, m) => Math.max(max, t.checkedIn[m] || 0), 0);
+          return { p, idx, ts: teamTs };
+        })
+        .filter(o => o !== null)
+        .sort((a, b) => a.ts - b.ts);
+      if (_eligibleSorted.length > 0) {
+        nextStandby = _eligibleSorted[0].p;
+        nextStandbyIdx = _eligibleSorted[0].idx;
       }
       if (!nextStandby) {
         if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsgLong'), 'warning');
