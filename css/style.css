@@ -38,137 +38,149 @@
    Ordem de ciclagem: dark → light → sunset → ocean
    ═══════════════════════════════════════════════════════════════ */
 
+/* v0.17.25: paleta Apple HIG. 4 temas — 2 light + 2 dark — cada um com
+   identidade própria mas todos atingindo WCAG AAA pra texto principal.
+   Cores systemColors oficiais da Apple onde aplicável.
+
+   Mapping:
+   - Noturno (dark) — Apple Dark Mode: systemBlue accent on systemGray6 dark
+   - Claro (light) — Apple Light Mode: systemBlue accent on white
+   - Pôr do Sol (light warm) — sépia/cream com amber-700 accent (modo leitura)
+   - Oceano (dark navy) — preserva identidade cyan/teal sobre navy profundo
+*/
+
 :root, [data-theme="dark"] {
-  /* Cores Principais - Tema Noturno */
-  --bg-darker: #0e1015;
-  --bg-dark: #13141a;
-  --bg-card: #1f2128;
-  --bg-card-hover: #292d36;
+  /* NOTURNO — Apple Dark Mode */
+  --bg-darker: #000000;        /* systemBackground dark */
+  --bg-dark: #1c1c1e;          /* systemGray6 dark */
+  --bg-card: #2c2c2e;          /* systemGray5 dark */
+  --bg-card-hover: #3a3a3c;    /* systemGray4 dark */
 
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --secondary-color: #8b5cf6;
-  --secondary-hover: #a78bfa;
+  --primary-color: #0a84ff;    /* systemBlue dark */
+  --primary-hover: #5ac8fa;    /* systemTeal dark */
+  --secondary-color: #bf5af2;  /* systemPurple dark */
+  --secondary-hover: #d18df7;
 
-  --text-main: #d1d5db;
-  --text-muted: #9ca3af;
+  --text-main: #ebebf5;         /* secondaryLabel dark @ 100% */
+  --text-muted: #98989d;        /* tertiaryLabel dark */
   --text-bright: #ffffff;
 
-  --border-color: #374151;
-  --border-focus: #3b82f6;
+  --border-color: #38383a;      /* systemGray3 dark */
+  --border-focus: #0a84ff;
 
-  --danger-color: #ef4444;
-  --success-color: #10b981;
-  --info-color: #3b82f6;
+  --danger-color: #ff453a;      /* systemRed dark */
+  --success-color: #30d158;     /* systemGreen dark */
+  --info-color: #0a84ff;
 
   /* Componentes */
-  --btn-secondary-bg: #1e3a5f;
-  --btn-secondary-text: #93c5fd;
-  --btn-secondary-hover: #1e4a7a;
-  --btn-danger-ghost-text: #fca5a5;
-  --btn-danger-ghost-bg: rgba(239,68,68,0.15);
-  --btn-danger-ghost-border: rgba(239,68,68,0.35);
-  --info-pill-bg: rgba(0,0,0,0.28);
-  --info-box-bg: rgba(0,0,0,0.28);
-  --stat-box-bg: rgba(0,0,0,0.28);
-  --card-org-border: rgba(59,130,246,0.3);
-  --card-part-border: rgba(139,92,246,0.3);
+  --btn-secondary-bg: #2c2c2e;
+  --btn-secondary-text: #ebebf5;
+  --btn-secondary-hover: #3a3a3c;
+  --btn-danger-ghost-text: #ff6961;
+  --btn-danger-ghost-bg: rgba(255,69,58,0.18);
+  --btn-danger-ghost-border: rgba(255,69,58,0.4);
+  --info-pill-bg: rgba(255,255,255,0.06);
+  --info-box-bg: rgba(255,255,255,0.04);
+  --stat-box-bg: rgba(255,255,255,0.05);
+  --card-org-border: rgba(10,132,255,0.3);
+  --card-part-border: rgba(191,90,242,0.3);
 }
 
 [data-theme="light"] {
-  --bg-darker: #f0f2f5;
-  --bg-dark: #ffffff;
+  /* CLARO — Apple Light Mode */
+  --bg-darker: #f2f2f7;        /* systemGray6 */
+  --bg-dark: #ffffff;          /* systemBackground */
   --bg-card: #ffffff;
-  --bg-card-hover: #f3f4f6;
+  --bg-card-hover: #f9f9fb;
 
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --secondary-color: #7c3aed;
-  --secondary-hover: #6d28d9;
+  --primary-color: #007aff;    /* systemBlue */
+  --primary-hover: #0051d5;
+  --secondary-color: #af52de;  /* systemPurple */
+  --secondary-hover: #8e3ec4;
 
-  --text-main: #1f2937;
-  --text-muted: #4b5563;
-  --text-bright: #111827;
+  --text-main: #1c1c1e;         /* near-black label */
+  --text-muted: #6c6c70;        /* systemGray2 */
+  --text-bright: #000000;
 
-  --border-color: #d1d5db;
-  --border-focus: #2563eb;
+  --border-color: #d1d1d6;      /* systemGray4 */
+  --border-focus: #007aff;
 
-  --danger-color: #dc2626;
-  --success-color: #059669;
-  --info-color: #2563eb;
+  --danger-color: #ff3b30;      /* systemRed */
+  --success-color: #34c759;     /* systemGreen */
+  --info-color: #007aff;
 
   /* Componentes */
-  --btn-secondary-bg: #e5e7eb;
-  --btn-secondary-text: #1f2937;
-  --btn-secondary-hover: #d1d5db;
-  --btn-danger-ghost-text: #dc2626;
-  --btn-danger-ghost-bg: rgba(220,38,38,0.08);
-  --btn-danger-ghost-border: rgba(220,38,38,0.25);
-  --info-pill-bg: rgba(0,0,0,0.06);
-  --info-box-bg: rgba(0,0,0,0.04);
-  --stat-box-bg: rgba(0,0,0,0.05);
-  --card-org-border: rgba(37,99,235,0.25);
-  --card-part-border: rgba(124,58,237,0.25);
+  --btn-secondary-bg: #e5e5ea;  /* systemGray5 */
+  --btn-secondary-text: #1c1c1e;
+  --btn-secondary-hover: #d1d1d6;
+  --btn-danger-ghost-text: #ff3b30;
+  --btn-danger-ghost-bg: rgba(255,59,48,0.1);
+  --btn-danger-ghost-border: rgba(255,59,48,0.3);
+  --info-pill-bg: rgba(0,0,0,0.05);
+  --info-box-bg: rgba(0,0,0,0.03);
+  --stat-box-bg: rgba(0,0,0,0.04);
+  --card-org-border: rgba(0,122,255,0.25);
+  --card-part-border: rgba(175,82,222,0.25);
 }
 
 [data-theme="sunset"] {
-  /* Tema Pôr do Sol — quente e acolhedor */
-  --bg-darker: #1a1210;
-  --bg-dark: #231816;
-  --bg-card: #2d1f1b;
-  --bg-card-hover: #3d2b25;
+  /* PÔR DO SOL — light warm cream/sépia (modo leitura) com accent amber */
+  --bg-darker: #f5efe6;        /* warm cream darker */
+  --bg-dark: #faf6f0;          /* cream */
+  --bg-card: #fffdf8;          /* near-white warm */
+  --bg-card-hover: #f5efe6;
 
-  --primary-color: #f59e0b;
-  --primary-hover: #fbbf24;
-  --secondary-color: #f97316;
-  --secondary-hover: #fb923c;
+  --primary-color: #b45309;    /* amber-700 */
+  --primary-hover: #92400e;    /* amber-800 */
+  --secondary-color: #c2410c;  /* orange-700 */
+  --secondary-hover: #9a3412;
 
-  --text-main: #e7d5c0;
-  --text-muted: #b09880;
-  --text-bright: #fff5eb;
+  --text-main: #44403c;         /* warm gray-700 */
+  --text-muted: #78716c;        /* warm gray-500 */
+  --text-bright: #1c1917;       /* warm gray-900 */
 
-  --border-color: #4a3328;
-  --border-focus: #f59e0b;
+  --border-color: #d6cfc4;      /* cream border */
+  --border-focus: #b45309;
 
-  --danger-color: #ef4444;
-  --success-color: #22c55e;
-  --info-color: #f59e0b;
+  --danger-color: #b91c1c;      /* red-700 */
+  --success-color: #15803d;     /* green-700 */
+  --info-color: #b45309;
 
   /* Componentes */
-  --btn-secondary-bg: #4a3328;
-  --btn-secondary-text: #fde68a;
-  --btn-secondary-hover: #5c4030;
-  --btn-danger-ghost-text: #fca5a5;
-  --btn-danger-ghost-bg: rgba(239,68,68,0.15);
-  --btn-danger-ghost-border: rgba(239,68,68,0.35);
-  --info-pill-bg: rgba(0,0,0,0.25);
-  --info-box-bg: rgba(0,0,0,0.22);
-  --stat-box-bg: rgba(0,0,0,0.22);
-  --card-org-border: rgba(245,158,11,0.35);
-  --card-part-border: rgba(249,115,22,0.35);
+  --btn-secondary-bg: #ede5d6;  /* lighter cream */
+  --btn-secondary-text: #44403c;
+  --btn-secondary-hover: #d6cfc4;
+  --btn-danger-ghost-text: #b91c1c;
+  --btn-danger-ghost-bg: rgba(185,28,28,0.08);
+  --btn-danger-ghost-border: rgba(185,28,28,0.25);
+  --info-pill-bg: rgba(120,80,40,0.08);
+  --info-box-bg: rgba(120,80,40,0.05);
+  --stat-box-bg: rgba(120,80,40,0.06);
+  --card-org-border: rgba(180,83,9,0.3);
+  --card-part-border: rgba(194,65,12,0.3);
 }
 
 [data-theme="ocean"] {
-  /* Tema Oceano — azul marinho vivo, distinto do Noturno */
-  --bg-darker: #122a42;
-  --bg-dark: #173352;
+  /* OCEANO — dark navy profundo com accent cyan/teal */
+  --bg-darker: #0c1e35;        /* deep navy */
+  --bg-dark: #122a42;
   --bg-card: #1c3d5e;
-  --bg-card-hover: #24506f;
+  --bg-card-hover: #244c75;
 
-  --primary-color: #22d3ee;
-  --primary-hover: #67e8f9;
-  --secondary-color: #38bdf8;
+  --primary-color: #22d3ee;    /* cyan-400 */
+  --primary-hover: #67e8f9;    /* cyan-300 */
+  --secondary-color: #38bdf8;  /* sky-400 */
   --secondary-hover: #7dd3fc;
 
-  --text-main: #d0e8f7;
-  --text-muted: #8ab4d4;
+  --text-main: #cce7f4;         /* pale blue */
+  --text-muted: #7fb3d0;
   --text-bright: #f0f9ff;
 
-  --border-color: #2a5a80;
+  --border-color: #2c5e85;
   --border-focus: #22d3ee;
 
-  --danger-color: #fb7185;
-  --success-color: #34d399;
+  --danger-color: #fb7185;      /* rose-400 */
+  --success-color: #34d399;     /* emerald-400 */
   --info-color: #22d3ee;
 
   /* Componentes */
