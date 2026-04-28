@@ -1469,22 +1469,22 @@ function renderDashboard(container) {
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:nowrap;width:100%;max-width:580px;">
           <!-- v0.17.45: Row 1 mais alta — min-height 64→80px, ícone 1.4→1.7rem.
-               v0.17.54: labels QUEBRAM RESPONSIVAMENTE — 1 linha quando cabe,
-               2 linhas quando não. width:100% no span faz ele ocupar todo o
-               espaço horizontal disponível do botão; default white-space:normal
-               quebra no espaço quando o texto não cabe. Sem word-break agressivo
-               (que cortaria mid-word) — só quebra natural por espaços. -->
+               v0.17.55: white-space:normal explícito no label pra OVERRIDE o
+               white-space:nowrap herdado da classe .btn (components.css:192).
+               Sem isso, o texto não quebrava E era cortado pelo overflow:hidden.
+               Combinação completa: display:block; width:100%; white-space:normal
+               + overflow:hidden no botão (defense-in-depth). -->
           <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;overflow:hidden;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
             <span style="font-size:1.7rem;line-height:1;">⚡</span>
-            <span style="line-height:1.15;text-align:center;width:100%;display:block;">${_t('dashboard.casualMatch')}</span>
+            <span style="line-height:1.15;text-align:center;width:100%;display:block;white-space:normal;">${_t('dashboard.casualMatch')}</span>
           </button>
           <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;overflow:hidden;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
             <span style="font-size:1.7rem;line-height:1;">🏆</span>
-            <span style="line-height:1.15;text-align:center;width:100%;display:block;">${_t('dashboard.newTournament')}</span>
+            <span style="line-height:1.15;text-align:center;width:100%;display:block;white-space:normal;">${_t('dashboard.newTournament')}</span>
           </button>
           <button class="btn btn-cta hover-lift" id="btn-place" title="Procure lugares para seus jogos e marque presença" style="background:linear-gradient(135deg,#FFD700,#DAA520); color: #1a0f00; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 800; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;overflow:hidden;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="window.location.hash='#place'">
             <span style="font-size:1.7rem;line-height:1;">📍</span>
-            <span style="line-height:1.15;text-align:center;width:100%;display:block;">Place</span>
+            <span style="line-height:1.15;text-align:center;width:100%;display:block;white-space:normal;">Place</span>
           </button>
         </div>
         <!-- v0.17.46: Row 2 (interativos: Pessoas + Convidar) e Row 3
