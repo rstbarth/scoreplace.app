@@ -1156,27 +1156,102 @@ function _maybeGenerate3rdPlace(t) {
 }
 
 // ─── Close round + generate next ─────────────────────────────────────────────
-window._closeRound = function (tId, roundIdx) {
+// v0.17.27: auto-approve pending results scattered no bracket. Pedido do
+// usuário: "quando temos resultados pendentes de aprovação e um novo
+// sorteio está para acontecer, vamos fazer o sistema automaticamente
+// aprovar o resultado." Aplica m.pendingResult → m.winner/scores em todos
+// os matches que tem proposta mas ninguém aprovou. Chamado:
+//   - No início de _closeRound (antes do unfinished check)
+//   - No _fireLigaAutoDraw (antes de _generateNextRound subsequente)
+// Retorna número de matches auto-aprovados (>0 = registra em t.history).
+window._autoApprovePendingResults = function(t) {
+  if (!t) return 0;
+  var allMatches = [];
+  if (Array.isArray(t.matches)) allMatches = allMatches.concat(t.matches);
+  if (Array.isArray(t.rounds)) {
+    t.rounds.forEach(function(r) {
+      if (!r) return;
+      if (Array.isArray(r.matches)) allMatches = allMatches.concat(r.matches);
+      if (Array.isArray(r.monarchGroups)) {
+        r.monarchGroups.forEach(function(g) {
+          if (g && Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
+        });
+      }
+    });
+  }
+  if (Array.isArray(t.groups)) {
+    t.groups.forEach(function(g) {
+      if (g && Array.isArray(g.matches)) allMatches = allMatches.concat(g.matches);
+    });
+  }
+  if (t.thirdPlaceMatch) allMatches.push(t.thirdPlaceMatch);
+
+  var count = 0;
+  // Dedup by id pra não aplicar 2x quando o mesmo match aparece em refs múltiplas
+  var seenIds = {};
+  allMatches.forEach(function(m) {
+    if (!m || m.winner || !m.pendingResult) return;
+    if (m.id && seenIds[m.id]) return;
+    if (m.id) seenIds[m.id] = true;
+    var pr = m.pendingResult;
+    var s1 = pr.scoreP1, s2 = pr.scoreP2;
+    if (pr.useSets && Array.isArray(pr.sets)) {
+      m.sets = pr.sets.slice();
+      m.setsWonP1 = pr.setsWonP1 || 0;
+      m.setsWonP2 = pr.setsWonP2 || 0;
+      if (pr.isFixedSet) m.fixedSet = true;
+    }
+    m.scoreP1 = s1;
+    m.scoreP2 = s2;
+    m.totalGamesP1 = pr.totalGamesP1 != null ? pr.totalGamesP1 : s1;
+    m.totalGamesP2 = pr.totalGamesP2 != null ? pr.totalGamesP2 : s2;
+    m.winner = pr.winner;
+    m.draw = !!pr.draw;
+    delete m.pendingResult;
+    if (typeof window._propagateMatchUpdate === 'function') {
+      window._propagateMatchUpdate(t, m);
+    }
+    count++;
+  });
+
+  if (count > 0 && window.AppStore && typeof window.AppStore.logAction === 'function') {
+    window.AppStore.logAction(t.id, count + ' resultado(s) pendente(s) auto-aprovado(s) (sem aprovação manual antes do encerramento da rodada)');
+  }
+  return count;
+};
+
+// v0.17.27: anchorMatchId permite que o re-render preserve scroll ancorando
+// no match que disparou o close (auto-close após save/approve). Sem ele,
+// _rerenderBracket fazia fallback pra "primeiro card visível" → scroll
+// jumpava após aprovações.
+window._closeRound = function (tId, roundIdx, anchorMatchId) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
   const round = (t.rounds || [])[roundIdx];
   if (!round) return;
+
+  // v0.17.27: auto-aprova resultados pendentes ANTES de checar unfinished —
+  // se ninguém aprovou/contestou um placar proposto, considera aprovado
+  // implicitamente quando a rodada vai fechar.
+  if (typeof window._autoApprovePendingResults === 'function') {
+    window._autoApprovePendingResults(t);
+  }
 
   const unfinished = (round.matches || []).filter(m => !m.winner && !m.isBye && !m.isSitOut);
   if (unfinished.length > 0) {
     showConfirmDialog(
       _t('bui.incompleteRound'),
       _t('bui.incompleteRoundMsg', {n: unfinished.length}),
-      () => _doCloseRound(t, tId, roundIdx),
+      () => _doCloseRound(t, tId, roundIdx, anchorMatchId),
       null,
       { type: 'warning', confirmText: _t('btn.finishAnyway'), cancelText: _t('btn.back') }
     );
     return;
   }
-  _doCloseRound(t, tId, roundIdx);
+  _doCloseRound(t, tId, roundIdx, anchorMatchId);
 };
 
-function _doCloseRound(t, tId, roundIdx) {
+function _doCloseRound(t, tId, roundIdx, anchorMatchId) {
   // Guard: only close the most recent round. A stale call (from a duplicate
   // auto-close path, e.g. _saveResultInline + render-time safety net both
   // dispatching for the same round) would otherwise advance the next-round
@@ -1278,7 +1353,11 @@ function _doCloseRound(t, tId, roundIdx) {
   window.AppStore.logAction(tId, `Rodada ${roundIdx + 1} encerrada`);
   window.AppStore.syncImmediate(tId);
   if (typeof window._rerenderBracket === 'function') {
-    window._rerenderBracket(tId);
+    // v0.17.27: passa anchorMatchId quando vem de auto-close (após approve/save)
+    // pra preservar scroll. Quando vem do botão "Encerrar Rodada" manual,
+    // anchorMatchId é undefined → _rerenderBracket faz fallback pra primeiro
+    // visível (comportamento anterior).
+    window._rerenderBracket(tId, anchorMatchId);
   } else {
     renderBracket(document.getElementById('view-container'), tId);
   }
@@ -1878,6 +1957,11 @@ async function _fireLigaAutoDraw(t, scheduledTime) {
     }
   } else {
     // Subsequent draw — generate next round from current standings.
+    // Auto-approve any pending results before drawing — if no one approved/contested
+    // before the new round, system considers them approved (v0.17.27).
+    if (typeof window._autoApprovePendingResults === 'function') {
+      window._autoApprovePendingResults(t);
+    }
     // _generateNextRound handles active-player filtering and sit-outs internally.
     _generateNextRound(t);
 

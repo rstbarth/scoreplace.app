@@ -1763,10 +1763,11 @@ window._saveResultInline = function (tId, matchId) {
       var _thisComplete = (_thisRound.matches || []).every(function(rm) { return !!rm.winner; });
       var _isLast = _roundIdxAuto === (t.rounds.length - 1);
       if (_thisComplete && _isLast && _thisRound.status !== 'complete') {
-        // Defer to close-round logic so Swiss/Liga dispatch & elim-transition run uniformly
+        // Defer to close-round logic so Swiss/Liga dispatch & elim-transition run uniformly.
+        // v0.17.27: passa matchId pra preservar scroll no re-render disparado por _doCloseRound.
         setTimeout(function() {
           if (typeof window._closeRound === 'function') {
-            window._closeRound(tId, _roundIdxAuto);
+            window._closeRound(tId, _roundIdxAuto, matchId);
           }
         }, 0);
       }
@@ -1931,7 +1932,7 @@ window._approveResult = function(tId, matchId) {
       var _isLast = _roundIdxAuto === (t.rounds.length - 1);
       if (_thisComplete && _isLast && _thisRound.status !== 'complete') {
         setTimeout(function() {
-          if (typeof window._closeRound === 'function') window._closeRound(tId, _roundIdxAuto);
+          if (typeof window._closeRound === 'function') window._closeRound(tId, _roundIdxAuto, matchId);
         }, 0);
       }
     }
