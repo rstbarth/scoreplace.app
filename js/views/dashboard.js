@@ -1437,7 +1437,11 @@ function renderDashboard(container) {
     // v0.17.31: pills usam --hero-pill-* tokens — adaptam ao tema (light/dark).
     // v0.17.45: tamanhos reduzidos pra dar mais respiro pros CTAs acima —
     // padding 1.5→0.9rem, emoji 2→1.4rem, count 2.5→1.7rem, h3 1→0.78rem.
-    return `<div style="background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.9rem 0.75rem;border-radius:12px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 16px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 16px var(--hero-pill-glow)' : 'none'}'">
+    // v0.17.50: container pai virou flex — adicionado flex:0 1 130px
+    // pra cada pill. Cresce até caber, encolhe se necessário, base 130px
+    // (≥minmax do grid antigo). flex-grow 0 evita que 1 pill sozinho na
+    // última linha vire um banner gigante.
+    return `<div style="flex:0 1 130px;min-width:110px;background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.9rem 0.75rem;border-radius:12px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 16px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 16px var(--hero-pill-glow)' : 'none'}'">
       <div style="font-size:1.4rem;margin-bottom:0.15rem;line-height:1;">${emoji}</div>
       <span style="font-size:1.7rem;font-weight:800;line-height:1;">${count}</span>
       <h3 style="margin:0.3rem 0 0 0;font-size:0.78rem;font-weight:600;opacity:0.9;line-height:1.1;">${label}</h3>
@@ -1494,9 +1498,14 @@ function renderDashboard(container) {
         </div>
       </div>
 
-      <!-- v0.17.45: minmax 140→110px e gap 1rem→0.6rem — pills menores
-           podem ficar mais juntas, mostrando mais filtros sem wrap. -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem;">
+      <!-- v0.17.50: trocado de grid auto-fit pra flex centralizado.
+           Antes (grid auto-fit minmax 110px): 4 pills em viewport médio
+           viravam 3+1 com a sobrante alinhada à esquerda — visualmente
+           desbalanceado. Agora flex+center+wrap: pills ficam em linha
+           cheia quando cabe, e quando wraps (2+2 ou 3+1), os itens
+           da última linha ficam centralizados. min-width 110px em cada
+           pill mantém leitura consistente. -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center;">
         ${_fStyle('todos', '📋', allUnique.length, _t('dashboard.filterAll'))}
         ${_fStyle('organizados', '🏆', organizadosCount, _t('dashboard.filterOrganized'))}
         ${_fStyle('participando', '👤', participacoesCount, _t('dashboard.filterParticipating'))}
