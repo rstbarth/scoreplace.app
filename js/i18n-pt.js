@@ -1231,6 +1231,7 @@ window._translations['pt'] = {
   'casual.leftMatch': 'Saiu da partida',
   'casual.matchCancelled': 'Partida cancelada',
   'casual.matchCancelledMsg': 'O organizador encerrou esta partida casual.',
+  'casual.matchCancelledByYouMsg': 'Partida desmobilizada — todos os participantes voltaram ao dashboard.',
   'casual.loadError': 'Erro ao carregar',
   'casual.loadErrorMsg': 'Não foi possível carregar a partida. Verifique o código e tente novamente.',
   'casual.goToDashboard': 'Ir ao Dashboard',

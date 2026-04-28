@@ -1231,6 +1231,7 @@ window._translations['en'] = {
   'casual.leftMatch': 'Left match',
   'casual.matchCancelled': 'Match cancelled',
   'casual.matchCancelledMsg': 'The organizer ended this casual match.',
+  'casual.matchCancelledByYouMsg': 'Match dismantled — all participants returned to dashboard.',
   'casual.loadError': 'Load error',
   'casual.loadErrorMsg': 'Could not load the match. Check the code and try again.',
   'casual.goToDashboard': 'Go to Dashboard',

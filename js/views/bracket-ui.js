@@ -7549,6 +7549,73 @@ window._renderCasualJoin = function(container, roomCode) {
     var sportName = match.sport || _t('casual.title');
     var creatorName = match.createdByName || _t('casual.someone');
     var docId = match._docId;
+
+    // v0.17.49: substitui o back-header inicial (href='#dashboard' simples)
+    // por um que faz cancel/leave da partida ao voltar. Pedido do usuário:
+    // "na partida casual o botão voltar antes da partida começar deve
+    // retirar o participante efetivamente da partida. Se for o organizador
+    // deve desmobilizar a partida casual e retirar a todos os demais
+    // participantes." Lógica em uma função global pra capturar o estado
+    // atual (createdBy/uid) no momento do clique.
+    function _smartBack() {
+      var _cuBack = (typeof _resolveCurrentUser === 'function') ? _resolveCurrentUser() : null;
+      var _myUid = _cuBack && _cuBack.uid;
+      var _isCreator = !!(_myUid && match.createdBy === _myUid);
+      // Match já começou (active)? Apenas navega — não cancela uma partida
+      // em andamento por engano. Mesma lógica do live scoring.
+      var _matchStarted = match.status === 'active';
+      if (_matchStarted) {
+        if (typeof _evacuateToDashboard === 'function') _evacuateToDashboard();
+        else { try { window.location.replace('#dashboard'); } catch(e) { window.location.hash = '#dashboard'; } }
+        return;
+      }
+      if (_isCreator) {
+        // Organizador volta → cancela a partida pra todos. cancelCasualMatch
+        // deleta o doc; o lobby polling de cada guest detecta e evacua.
+        try {
+          if (docId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+            var p = window.FirestoreDB.cancelCasualMatch(docId);
+            if (p && typeof p.catch === 'function') p.catch(function(){});
+          }
+        } catch(e) {}
+        // Limpa marca de "partida ativa" do perfil + sessionStorage
+        try {
+          if (_myUid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+            window._suppressCasualResumeUntil = Date.now() + 6000;
+            window.FirestoreDB.saveUserProfile(_myUid, { activeCasualRoom: null }).catch(function(){});
+          }
+        } catch(e) {}
+        if (typeof showNotification === 'function') {
+          showNotification(_t('casual.matchCancelled') || 'Partida cancelada', _t('casual.matchCancelledByYouMsg') || 'Partida desmobilizada — todos os participantes foram retornados ao dashboard.', 'info');
+        }
+        if (typeof _evacuateToDashboard === 'function') _evacuateToDashboard();
+        else { try { window.location.replace('#dashboard'); } catch(e) { window.location.hash = '#dashboard'; } }
+      } else {
+        // Participante volta → libera só o slot dele. _casualLeaveMatch já
+        // existe e faz tudo: leaveCasualMatch + cleanup + evacuate.
+        if (typeof window._casualLeaveMatch === 'function') {
+          window._casualLeaveMatch();
+        } else if (typeof _evacuateToDashboard === 'function') {
+          _evacuateToDashboard();
+        } else {
+          try { window.location.replace('#dashboard'); } catch(e) { window.location.hash = '#dashboard'; }
+        }
+      }
+    }
+
+    // Substitui o back-header existente no DOM por um com onClickOverride.
+    if (container && typeof window._renderBackHeader === 'function') {
+      try {
+        var _newBackHtml = window._renderBackHeader({
+          label: _t('btn.back') || 'Voltar',
+          onClickOverride: _smartBack
+        });
+        var _existingBackHdr = container.querySelector('.sticky-back-header');
+        if (_existingBackHdr) {
+          _existingBackHdr.outerHTML = _newBackHtml;
+        }
+      } catch(e) {}
+    }
     // Resolve the viewer identity — prefer the live AppStore.currentUser, but
     // fall back to the cached auth payload. On Safari/iOS the live currentUser
     // can briefly go null between transient onAuthStateChanged events; without
@@ -7687,7 +7754,8 @@ window._renderCasualJoin = function(container, roomCode) {
           '</div>';
         }
         html += '</div>' +
-          '<button class="btn btn-ghost" onclick="try{sessionStorage.removeItem(\'_pendingCasualRoom\');}catch(e){} window._casualEvacuateToDashboard && window._casualEvacuateToDashboard();" style="margin-top:1rem;width:100%;">← ' + _t('casual.backDashboard') + '</button>' +
+          // v0.17.49: removido botão "Voltar ao Dashboard" do final — o
+          // "Voltar" do topo já navega pro dashboard.
         '</div>';
         _setBody(html);
         return;
@@ -7797,9 +7865,9 @@ window._renderCasualJoin = function(container, roomCode) {
       '</div>' +
       '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
 
-      // "Voltar ao Dashboard" now also releases the slot so the user isn't
-      // silently kept in the match after navigating away.
-      html += '<button class="btn btn-outline" onclick="window._casualLeaveMatch && window._casualLeaveMatch();" style="margin-top:0.5rem;">← ' + _t('casual.backDashboard') + '</button>';
+      // v0.17.49: removido botão "Voltar ao Dashboard" do final — a partir
+      // dessa versão o "Voltar" do topo já faz cancel (organizador) ou
+      // leave (participante) automaticamente. Botão extra duplicava função.
       html += '</div>';
 
       _setBody(html);
