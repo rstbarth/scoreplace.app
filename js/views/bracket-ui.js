@@ -7761,16 +7761,21 @@ window._renderCasualJoin = function(container, roomCode) {
         return;
       }
 
+      // v0.17.51: padding/margens reduzidos pra caber melhor em mobile.
+      // padding 1.5rem → 0.5rem top + 1rem horizontal; ⚡ font 2.5→1.8rem;
+      // h2 1.3→1.15rem; title margin-bottom 0.2→0.15rem; sub margin
+      // 0.3→0.2rem; "Criada por" margin-bottom 1.5→0.8rem; participants
+      // list margin-bottom 1.5→0.8rem. Hierarquia preservada.
       html =
-        '<div style="text-align:center;padding:1.5rem 1rem;max-width:500px;margin:0 auto;">' +
-          '<div style="font-size:2.5rem;margin-bottom:0.5rem;">⚡</div>' +
-          '<div style="font-size:1.3rem;font-weight:800;color:#38bdf8;margin-bottom:0.2rem;">' + _t('casual.title') + '</div>' +
-          '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0.3rem;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>';
+        '<div style="text-align:center;padding:0.5rem 1rem 1rem;max-width:500px;margin:0 auto;">' +
+          '<div style="font-size:1.8rem;margin-bottom:0.25rem;line-height:1;">⚡</div>' +
+          '<div style="font-size:1.15rem;font-weight:800;color:#38bdf8;margin-bottom:0.15rem;">' + _t('casual.title') + '</div>' +
+          '<div style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.2rem;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
+          '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:0.8rem;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>';
 
       // Participants list
-      html += '<div style="margin-bottom:1.5rem;">' +
-        '<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">' + _t('casual.playersInRoom', {count: participants.length, total: totalNeeded}) + '</div>';
+      html += '<div style="margin-bottom:0.8rem;">' +
+        '<div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">' + _t('casual.playersInRoom', {count: participants.length, total: totalNeeded}) + '</div>';
 
       for (var i = 0; i < participants.length; i++) {
         var pp = participants[i];
@@ -7845,19 +7850,19 @@ window._renderCasualJoin = function(container, roomCode) {
         '</div>';
       }
 
-      // Status messages
+      // Status messages — v0.17.51: padding 14→10px, margin 1rem→0.6rem
       if (alreadyJoined) {
-        html += '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">' +
-          '<div style="font-size:1.3rem;">✅</div>' +
+        html += '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:10px 12px;margin-bottom:0.6rem;display:flex;align-items:center;gap:10px;text-align:left;">' +
+          '<div style="font-size:1.2rem;flex-shrink:0;">✅</div>' +
           '<div>' +
-            '<div style="font-size:0.85rem;color:#22c55e;font-weight:700;">' + _t('casual.youreIn') + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + _t('casual.waitOrganizerStart') + (participants.length < totalNeeded ? ' (' + _t(totalNeeded - participants.length > 1 ? 'casual.slotsLeft' : 'casual.slotLeft', {n: totalNeeded - participants.length}) + ')' : '') + '</div>' +
+            '<div style="font-size:0.82rem;color:#22c55e;font-weight:700;">' + _t('casual.youreIn') + '</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _t('casual.waitOrganizerStart') + (participants.length < totalNeeded ? ' (' + _t(totalNeeded - participants.length > 1 ? 'casual.slotsLeft' : 'casual.slotLeft', {n: totalNeeded - participants.length}) + ')' : '') + '</div>' +
           '</div>' +
         '</div>';
       }
 
-      // Animated waiting indicator
-      html += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;margin-bottom:1rem;">' +
+      // Animated waiting indicator — v0.17.51: padding 12→6px, margin 1rem→0
+      html += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:6px;margin-bottom:0;">' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out infinite;"></div>' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.3s infinite;"></div>' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:casualPulse 1.5s ease-in-out 0.6s infinite;"></div>' +
