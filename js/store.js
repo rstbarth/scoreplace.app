@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.17-alpha';
+window.SCOREPLACE_VERSION = '0.17.18-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -694,12 +694,14 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
-// v0.17.17: _PICKLEBALL_ICON e _PADEL_ICON removidos — pedido do usuário
-// trocou pra emojis. Pickleball = 🟡 (círculo amarelo sólido, sem furos).
-// Padel = 🏓 com CSS scaleX(-1) (flip lateral, paddle aponta esquerda) +
-// hue-rotate(200deg) (vermelho→azul) — paddle vira azul mantendo cabo
-// preto e bolinha clara. Caveat: aparência depende do emoji do OS,
-// mas mantém native rendering e elimina ~700 chars de SVG.
+// v0.17.18: _PADEL_ICON re-adicionado em SVG simples — pedido do usuário
+// pra "fazer a bolinha amarela". Filter CSS no emoji 🏓 (v0.17.17) tinta
+// tudo uniformemente; impossível colorir só a bolinha. SVG dá controle
+// por elemento. Design: ellipse paddle azul (#0284c7) rotacionado -25°
+// + rect cabo dark slate + circle bolinha amarela (#facc15) ao lado.
+// Sem furos, sem teardrop complexo da v0.17.13. Pickleball segue como
+// 🟡 emoji (não tem ball detail).
+window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(-25 10 11)"><ellipse cx="10" cy="11" rx="7" ry="8.5" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="8.5" y="19.5" width="3" height="2.5" rx="0.4" fill="#1e293b"/></g><circle cx="20" cy="20" r="2.7" fill="#facc15" stroke="#854d0e" stroke-width="0.3"/></svg>';
 
 // v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
 // resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
@@ -715,21 +717,20 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // Ordem de matching crítica:
 // 1. futevôlei ANTES de qualquer "vôlei" (substring trap — "futevôlei"
 //    contém "vôlei", então a ordem inversa pega o ícone errado)
-// 2. tênis de mesa / mesa / ping pong ANTES de "tênis" genérico
+// 2. tênis de mesa (nome completo) / ping pong ANTES de "tênis" genérico
 // 3. beach ANTES de tennis (Beach Tennis ≠ Tênis comum)
 window._sportIcon = function(sport) {
   if (!sport) return '';
   var s = String(sport).toLowerCase();
-  // v0.17.17: Squash e Badminton removidos — não suportados no app por
-  // enquanto, voltam quando tiver demanda. Modalidades ativas: Beach
-  // Tennis, Pickleball, Tênis, Tênis de Mesa, Padel, Vôlei de Praia,
-  // Futevôlei.
+  // v0.17.18: Padel volta pra SVG (precisa de bolinha amarela, não dá com
+  // CSS no emoji). Match "mesa" sozinho removido — era broad demais
+  // (matchava "mesa de jogos", etc.). Só nomes completos da modalidade.
   if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
   if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
   if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
   if (s.indexOf('pickleball') !== -1) return '🟡';
-  if (s.indexOf('padel') !== -1) return '<span style="display:inline-block;transform:scaleX(-1);filter:hue-rotate(200deg);">🏓</span>';
-  if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1 || s.indexOf('mesa') !== -1) return '🏓';
+  if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
+  if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
   if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
   return '🏆';
 };
