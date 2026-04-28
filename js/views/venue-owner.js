@@ -38,7 +38,8 @@
   // futebol e handebol ficaram de fora enquanto o app não suporta times >2.
   // Courts multi-sport permitem indicar que uma quadra atende várias
   // modalidades compartilhadas.
-  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Squash', 'Badminton', 'Vôlei de Praia', 'Futevôlei'];
+  // v0.17.17: Squash e Badminton removidos — não suportados no app por enquanto.
+  var SPORTS = ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
 
   function _safe(s) { return window._safeHtml ? window._safeHtml(s) : String(s || ''); }
 

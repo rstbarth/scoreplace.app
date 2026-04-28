@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.16-alpha';
+window.SCOREPLACE_VERSION = '0.17.17-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -694,17 +694,12 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
-window._PICKLEBALL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Pickleball"><circle cx="12" cy="12" r="11" fill="#facc15"/><circle cx="12" cy="4" r="1.1" fill="#a16207"/><circle cx="7" cy="7.5" r="1.1" fill="#a16207"/><circle cx="12" cy="7.5" r="1.1" fill="#a16207"/><circle cx="17" cy="7.5" r="1.1" fill="#a16207"/><circle cx="4.5" cy="12" r="1.1" fill="#a16207"/><circle cx="9" cy="12" r="1.1" fill="#a16207"/><circle cx="15" cy="12" r="1.1" fill="#a16207"/><circle cx="19.5" cy="12" r="1.1" fill="#a16207"/><circle cx="7" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="16.5" r="1.1" fill="#a16207"/><circle cx="17" cy="16.5" r="1.1" fill="#a16207"/><circle cx="12" cy="20" r="1.1" fill="#a16207"/></svg>';
-
-// v0.17.14: ícone Padel aumentado pra ficar do tamanho dos outros (Beach
-// Tennis, Pickleball ocupam ~92% da viewBox; v0.17.13 ocupava só ~58%).
-// Pedido do usuário: "aumente o icone do padel que ficou muito menor do
-// que os outros." Solução: paddle face W=17 H=15 (de 12×15.5 antes) +
-// rotação reduzida pra -20° (de -30°) pra que a bbox rotacionada continue
-// dentro de 24×24. Trade-off: ângulo um pouco menos pronunciado, mas
-// silhueta significativamente maior. Cores e formato preservados — só
-// raquete (sem bola, sem furos), azul Drop Shot (#0284c7) + cabo escuro.
-window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(-20 12 12)"><path d="M 12 2 C 17.5 2, 20.5 5.5, 20.5 10 C 20.5 13.5, 17.5 16, 14 17 L 10 17 C 6.5 16, 3.5 13.5, 3.5 10 C 3.5 5.5, 6.5 2, 12 2 Z" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="10.5" y="17" width="3" height="3" rx="0.5" fill="#1e293b"/></g></svg>';
+// v0.17.17: _PICKLEBALL_ICON e _PADEL_ICON removidos — pedido do usuário
+// trocou pra emojis. Pickleball = 🟡 (círculo amarelo sólido, sem furos).
+// Padel = 🏓 com CSS scaleX(-1) (flip lateral, paddle aponta esquerda) +
+// hue-rotate(200deg) (vermelho→azul) — paddle vira azul mantendo cabo
+// preto e bolinha clara. Caveat: aparência depende do emoji do OS,
+// mas mantém native rendering e elimina ~700 chars de SVG.
 
 // v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
 // resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
@@ -725,14 +720,16 @@ window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="v
 window._sportIcon = function(sport) {
   if (!sport) return '';
   var s = String(sport).toLowerCase();
+  // v0.17.17: Squash e Badminton removidos — não suportados no app por
+  // enquanto, voltam quando tiver demanda. Modalidades ativas: Beach
+  // Tennis, Pickleball, Tênis, Tênis de Mesa, Padel, Vôlei de Praia,
+  // Futevôlei.
   if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
   if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
   if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-  if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
-  if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
+  if (s.indexOf('pickleball') !== -1) return '🟡';
+  if (s.indexOf('padel') !== -1) return '<span style="display:inline-block;transform:scaleX(-1);filter:hue-rotate(200deg);">🏓</span>';
   if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1 || s.indexOf('mesa') !== -1) return '🏓';
-  if (s.indexOf('squash') !== -1) return '🟡';
-  if (s.indexOf('badminton') !== -1) return '🏸';
   if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
   return '🏆';
 };

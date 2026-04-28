@@ -1921,8 +1921,6 @@
         'vôlei de praia',
         'futevôlei',
         'tênis de mesa',
-        'badminton',
-        'squash',
         'academia de tênis',
         'escola de tênis',
         'arena esportiva',

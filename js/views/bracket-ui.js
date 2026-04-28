@@ -6012,10 +6012,10 @@ window._openCasualMatch = function() {
   // Available sports
   var sports = [
     { key: 'Beach Tennis', icon: (typeof window !== 'undefined' && window._BEACH_TENNIS_ICON) || '🟠', label: 'Beach Tennis', defaultDoubles: true },
-    { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._PICKLEBALL_ICON) || '🥒', label: 'Pickleball', defaultDoubles: false },
+    { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._sportIcon && window._sportIcon('Pickleball')) || '🟡', label: 'Pickleball', defaultDoubles: false },
     { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
     { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
-    { key: 'Padel', icon: (typeof window !== 'undefined' && window._PADEL_ICON) || '🏸', label: 'Padel', defaultDoubles: true },
+    { key: 'Padel', icon: (typeof window !== 'undefined' && window._sportIcon && window._sportIcon('Padel')) || '🏓', label: 'Padel', defaultDoubles: true },
     // Vôlei de Praia e Futevôlei são sempre disputados em dupla vs dupla
     // (regra oficial) — sem opção de individual.
     { key: 'Vôlei de Praia', icon: '🏐', label: 'Vôlei de Praia', defaultDoubles: true },
