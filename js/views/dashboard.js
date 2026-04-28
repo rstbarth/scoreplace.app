@@ -1435,10 +1435,12 @@ function renderDashboard(container) {
   const _fStyle = (key, emoji, count, label) => {
     const active = curFilter === key;
     // v0.17.31: pills usam --hero-pill-* tokens — adaptam ao tema (light/dark).
-    return `<div style="background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px var(--hero-pill-glow)' : 'none'}'">
-      <div style="font-size:2rem;margin-bottom:0.25rem;">${emoji}</div>
-      <span style="font-size:2.5rem;font-weight:700;line-height:1;">${count}</span>
-      <h3 style="margin:0.5rem 0 0 0;font-size:1rem;font-weight:600;opacity:0.9;">${label}</h3>
+    // v0.17.45: tamanhos reduzidos pra dar mais respiro pros CTAs acima —
+    // padding 1.5→0.9rem, emoji 2→1.4rem, count 2.5→1.7rem, h3 1→0.78rem.
+    return `<div style="background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.9rem 0.75rem;border-radius:12px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 16px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 16px var(--hero-pill-glow)' : 'none'}'">
+      <div style="font-size:1.4rem;margin-bottom:0.15rem;line-height:1;">${emoji}</div>
+      <span style="font-size:1.7rem;font-weight:800;line-height:1;">${count}</span>
+      <h3 style="margin:0.3rem 0 0 0;font-size:0.78rem;font-weight:600;opacity:0.9;line-height:1.1;">${label}</h3>
     </div>`;
   };
 
@@ -1462,33 +1464,34 @@ function renderDashboard(container) {
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:nowrap;width:100%;max-width:580px;">
-          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
-            <span style="font-size:1.4rem;line-height:1;">⚡</span>
+          <!-- v0.17.45: Row 1 mais alta — min-height 64→80px, ícone 1.4→1.7rem,
+               font 0.9→0.95rem, gap 2→4px. Mais presença visual pros CTAs principais. -->
+          <button class="btn btn-cta hover-lift" id="btn-casual-match" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #ffffff; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="if(typeof window._openCasualMatch==='function')window._openCasualMatch();">
+            <span style="font-size:1.7rem;line-height:1;">⚡</span>
             <span>${_t('dashboard.casualMatch')}</span>
           </button>
-          <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
-            <span style="font-size:1.4rem;line-height:1;">🏆</span>
+          <button class="btn btn-cta hover-lift" id="btn-create-tournament-in-box" style="background: #1e40af; color: #ffffff; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 700; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;" onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#1e40af'" onclick="if(typeof openModal==='function')openModal('modal-quick-create');">
+            <span style="font-size:1.7rem;line-height:1;">🏆</span>
             <span>${_t('dashboard.newTournament')}</span>
           </button>
-          <button class="btn btn-cta hover-lift" id="btn-place" title="Procure lugares para seus jogos e marque presença" style="background:linear-gradient(135deg,#FFD700,#DAA520); color: #1a0f00; flex:1;min-width:0; min-height: 64px; font-size: 0.9rem; font-weight: 800; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="window.location.hash='#place'">
-            <span style="font-size:1.4rem;line-height:1;">📍</span>
+          <button class="btn btn-cta hover-lift" id="btn-place" title="Procure lugares para seus jogos e marque presença" style="background:linear-gradient(135deg,#FFD700,#DAA520); color: #1a0f00; flex:1;min-width:0; min-height: 80px; font-size: 0.95rem; font-weight: 800; border-radius: 14px; border: 1px solid rgba(255,255,255,0.35); letter-spacing: 0.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''" onclick="window.location.hash='#place'">
+            <span style="font-size:1.7rem;line-height:1;">📍</span>
             <span>Place</span>
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <!-- v0.17.44: botão "Pessoas" (antes "Explorar" no topbar) — primeiro
-               da row de secundários por ser feature mais frequente que Pro/Apoie.
-               Ícone de pessoas (👥) substitui o de busca pra refletir o
-               propósito real da view: conectar com jogadores da comunidade.
-               Altura bumpada de 38px → 46px pra dar mais presença visual. -->
-          <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
-          <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
-          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
-          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
+          <!-- v0.17.45: Row 2 também mais alta — height 46→54px,
+               font 0.88→0.92rem, padding 18→20px, radius 11→12px. -->
+          <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
+          <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
+          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
+          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
+      <!-- v0.17.45: minmax 140→110px e gap 1rem→0.6rem — pills menores
+           podem ficar mais juntas, mostrando mais filtros sem wrap. -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem;">
         ${_fStyle('todos', '📋', allUnique.length, _t('dashboard.filterAll'))}
         ${_fStyle('organizados', '🏆', organizadosCount, _t('dashboard.filterOrganized'))}
         ${_fStyle('participando', '👤', participacoesCount, _t('dashboard.filterParticipating'))}
