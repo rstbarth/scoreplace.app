@@ -1425,7 +1425,8 @@ function renderDashboard(container) {
   // Main filter card styles
   const _fStyle = (key, emoji, count, label) => {
     const active = curFilter === key;
-    return `<div style="background:${active ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.08)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px rgba(255,255,255,0.1);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px rgba(255,255,255,0.1)' : 'none'}'">
+    // v0.17.31: pills usam --hero-pill-* tokens — adaptam ao tema (light/dark).
+    return `<div style="background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1.5rem 1rem;border-radius:16px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 20px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 20px var(--hero-pill-glow)' : 'none'}'">
       <div style="font-size:2rem;margin-bottom:0.25rem;">${emoji}</div>
       <span style="font-size:2.5rem;font-weight:700;line-height:1;">${count}</span>
       <h3 style="margin:0.5rem 0 0 0;font-size:1rem;font-weight:600;opacity:0.9;">${label}</h3>
@@ -1434,21 +1435,21 @@ function renderDashboard(container) {
 
   const html = `
     <!-- Header Hero Box -->
+    <!-- v0.17.31: cores do hero-box agora vêm de --hero-* tokens (style.css)
+         que adaptam ao tema. Light themes ganham gradient suave + texto
+         escuro; dark themes mantêm gradient escuro + texto branco. -->
     <div class="mb-4 hero-box" style="
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         border-radius: 24px;
         padding: 2.5rem 2rem;
-        color: white;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        filter: saturate(0.9) brightness(0.95);
         position: relative;
     ">
 
       <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; text-align: left;">
-        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700; flex:1;">${_t('dashboard.welcome', {name: userName})}${_proBadge}</h2>
-        ${window.AppStore.currentUser ? '<button onclick="if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + window._safeHtml((window.AppStore.currentUser.displayName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + '\')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#fff;font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.25)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><span style="font-size:1rem;">📊</span> ' + _t('dashboard.statistics') + '</button>' : ''}
+        <h2 style="margin:0; font-size: 2.2rem; font-weight: 700; flex:1; color:var(--hero-text);">${_t('dashboard.welcome', {name: userName})}${_proBadge}</h2>
+        ${window.AppStore.currentUser ? '<button onclick="if(typeof window._showPlayerStats===\'function\')window._showPlayerStats(\'' + window._safeHtml((window.AppStore.currentUser.displayName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + '\')" style="background:var(--hero-glass-bg);border:1px solid var(--hero-glass-border);border-radius:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--hero-text);font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;" onmouseover="this.style.background=\'var(--hero-glass-bg-hover)\'" onmouseout="this.style.background=\'var(--hero-glass-bg)\'"><span style="font-size:1rem;">📊</span> ' + _t('dashboard.statistics') + '</button>' : ''}
       </div>
-      <div style="text-align:center;margin-bottom:8px;font-size:0.75rem;color:rgba(255,255,255,1);font-weight:600;letter-spacing:0.5px;">v${window.SCOREPLACE_VERSION || ''}</div>
+      <div style="text-align:center;margin-bottom:8px;font-size:0.75rem;color:var(--hero-text-soft);font-weight:600;letter-spacing:0.5px;">v${window.SCOREPLACE_VERSION || ''}</div>
 
       <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:nowrap;width:100%;max-width:580px;">

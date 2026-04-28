@@ -84,6 +84,20 @@
   --stat-box-bg: rgba(255,255,255,0.05);
   --card-org-border: rgba(10,132,255,0.3);
   --card-part-border: rgba(191,90,242,0.3);
+
+  /* v0.17.31: hero-box tokens — acompanham o tema (dark→dark, light→light),
+     ligeiramente mais escuros que cards comuns pra dar destaque. */
+  --hero-bg: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%);
+  --hero-text: #ffffff;
+  --hero-text-soft: rgba(255,255,255,0.85);
+  --hero-glass-bg: rgba(255,255,255,0.15);
+  --hero-glass-bg-hover: rgba(255,255,255,0.25);
+  --hero-glass-border: rgba(255,255,255,0.25);
+  --hero-pill-active-bg: rgba(255,255,255,0.18);
+  --hero-pill-active-border: rgba(255,255,255,0.35);
+  --hero-pill-inactive-bg: rgba(0,0,0,0.12);
+  --hero-pill-inactive-border: rgba(255,255,255,0.08);
+  --hero-pill-glow: rgba(255,255,255,0.1);
 }
 
 [data-theme="light"] {
@@ -121,6 +135,20 @@
   --stat-box-bg: rgba(0,0,0,0.04);
   --card-org-border: rgba(0,122,255,0.25);
   --card-part-border: rgba(175,82,222,0.25);
+
+  /* v0.17.31: hero-box light — soft blue tint, dark text, slightly darker
+     than white cards (#fff) to keep visual hierarchy. */
+  --hero-bg: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);
+  --hero-text: #1c1c1e;
+  --hero-text-soft: rgba(28,28,30,0.7);
+  --hero-glass-bg: rgba(0,0,0,0.06);
+  --hero-glass-bg-hover: rgba(0,0,0,0.12);
+  --hero-glass-border: rgba(0,0,0,0.18);
+  --hero-pill-active-bg: rgba(0,0,0,0.12);
+  --hero-pill-active-border: rgba(0,0,0,0.28);
+  --hero-pill-inactive-bg: rgba(0,0,0,0.04);
+  --hero-pill-inactive-border: rgba(0,0,0,0.10);
+  --hero-pill-glow: rgba(0,0,0,0.08);
 }
 
 [data-theme="sunset"] {
@@ -158,6 +186,19 @@
   --stat-box-bg: rgba(120,80,40,0.06);
   --card-org-border: rgba(180,83,9,0.3);
   --card-part-border: rgba(194,65,12,0.3);
+
+  /* v0.17.31: hero-box light cream — warm amber tint, dark text. */
+  --hero-bg: linear-gradient(135deg, #fed7aa 0%, #fcd34d 100%);
+  --hero-text: #1c1917;
+  --hero-text-soft: rgba(28,25,23,0.7);
+  --hero-glass-bg: rgba(0,0,0,0.06);
+  --hero-glass-bg-hover: rgba(0,0,0,0.12);
+  --hero-glass-border: rgba(0,0,0,0.18);
+  --hero-pill-active-bg: rgba(0,0,0,0.12);
+  --hero-pill-active-border: rgba(0,0,0,0.28);
+  --hero-pill-inactive-bg: rgba(0,0,0,0.04);
+  --hero-pill-inactive-border: rgba(0,0,0,0.10);
+  --hero-pill-glow: rgba(0,0,0,0.08);
 }
 
 [data-theme="ocean"] {
@@ -195,6 +236,19 @@
   --stat-box-bg: rgba(10,40,70,0.40);
   --card-org-border: rgba(34,211,238,0.35);
   --card-part-border: rgba(56,189,248,0.35);
+
+  /* v0.17.31: hero-box ocean — deep navy/teal, white text. */
+  --hero-bg: linear-gradient(135deg, #0e4d6b 0%, #1e3a5f 100%);
+  --hero-text: #ffffff;
+  --hero-text-soft: rgba(255,255,255,0.85);
+  --hero-glass-bg: rgba(255,255,255,0.15);
+  --hero-glass-bg-hover: rgba(255,255,255,0.25);
+  --hero-glass-border: rgba(255,255,255,0.25);
+  --hero-pill-active-bg: rgba(255,255,255,0.18);
+  --hero-pill-active-border: rgba(255,255,255,0.35);
+  --hero-pill-inactive-bg: rgba(0,0,0,0.20);
+  --hero-pill-inactive-border: rgba(255,255,255,0.08);
+  --hero-pill-glow: rgba(255,255,255,0.1);
 }
 
 :root {
@@ -299,19 +353,13 @@ a:hover {
   color: var(--text-bright) !important;
 }
 
-[data-theme="light"] .hero-box {
-  filter: saturate(0.85) brightness(1.05) !important;
-}
-
-/* Dark themes: hero box must be DARK (not bright Apple HIG primary/secondary) */
-[data-theme="dark"] .hero-box,
-:root .hero-box {
-  background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%) !important;
-  filter: none !important;
-}
-
-[data-theme="ocean"] .hero-box {
-  background: linear-gradient(135deg, #0e4d6b 0%, #1e3a5f 100%) !important;
+/* v0.17.31: hero-box agora usa --hero-* tokens definidos por tema (linhas
+   58-99). Light themes têm gradient soft (claro) com texto escuro; dark
+   themes mantêm gradient escuro com texto branco. Slightly darker que
+   cards comuns pra preservar hierarquia visual. */
+.hero-box {
+  background: var(--hero-bg) !important;
+  color: var(--hero-text) !important;
   filter: none !important;
 }
 
