@@ -778,7 +778,13 @@ function renderParticipants(container, tournamentId) {
       }
     });
 
-    // Sort: alphabetical
+    // v0.17.38: lista regular = alfabético total (regulares + waitlist + W.O.
+    // orphans intermixados). Pedido do usuário: "os da lista de espera deve
+    // estar na lista de espera na ordem de chegada, mas devem aparecer
+    // também na lista regular (para facilitar o registro da presença)."
+    // O painel "Lista de Espera" em bracket.js continua em ordem de chegada
+    // (timestamp de check-in ascendente). Aqui na lista regular, alfabético
+    // facilita encontrar pelo nome ao marcar Presente.
     _dedupedIndividuals.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
     cardsStr = _dedupedIndividuals.map((ind) => {
