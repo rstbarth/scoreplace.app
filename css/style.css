@@ -368,21 +368,32 @@ a:hover {
   filter: none !important;
 }
 
-/* v0.17.47: overlays imersivos com bg dark hardcoded (Partida Casual /
-   Live Scoring / TV Mode) precisam de variáveis de texto override pra
-   funcionar em qualquer tema. O bg é sempre #0a0e1a (navy escuro), mas
-   themes light (Claro/Pôr do Sol) tem --text-main escuro = invisível.
-   Scope as vars dentro do overlay pra forçar tokens dark — todo filho
-   herda automaticamente. */
+/* v0.17.52: removido o override de v0.17.47 que forçava tokens dark
+   nesses overlays. Pedido do usuário: "na partida casual o fundo está
+   sempre escuro. deveria respeitar o tema escolhido pelo usuário."
+   O bg dos overlays agora usa var(--bg-darker) (theme-aware) em vez
+   de #0a0e1a hardcoded. Como bg respeita tema, os tokens de texto
+   (--text-main, --text-bright) também devem respeitar — voltam a ser
+   herdados naturalmente do tema ativo. Light themes ficam com bg cream
+   + texto warm-gray; dark themes ficam com bg navy + texto branco. */
 #casual-match-overlay,
 #live-scoring-overlay {
-  --text-main: #e5e7eb;
-  --text-bright: #ffffff;
-  --text-muted: #94a3b8;
-  --bg-card: #1e293b;
-  --bg-card-hover: #2a3a52;
-  --border-color: rgba(255,255,255,0.1);
-  color: #e5e7eb;
+  /* Em light themes (Claro/Pôr do Sol), os tints rgba(255,255,255,...)
+     usados nos cards/elementos internos ficam invisíveis sobre bg cream.
+     Override com tints dark equivalentes via attribute selector. Cobre
+     os 4 valores mais comuns usados no overlay. */
+}
+[data-theme="light"] #casual-match-overlay [style*="rgba(255,255,255,0.04)"],
+[data-theme="light"] #live-scoring-overlay [style*="rgba(255,255,255,0.04)"],
+[data-theme="sunset"] #casual-match-overlay [style*="rgba(255,255,255,0.04)"],
+[data-theme="sunset"] #live-scoring-overlay [style*="rgba(255,255,255,0.04)"] {
+  background: rgba(0,0,0,0.05) !important;
+}
+[data-theme="light"] #casual-match-overlay [style*="rgba(255,255,255,0.02)"],
+[data-theme="light"] #live-scoring-overlay [style*="rgba(255,255,255,0.02)"],
+[data-theme="sunset"] #casual-match-overlay [style*="rgba(255,255,255,0.02)"],
+[data-theme="sunset"] #live-scoring-overlay [style*="rgba(255,255,255,0.02)"] {
+  background: rgba(0,0,0,0.03) !important;
 }
 
 [data-theme="light"] .topbar {

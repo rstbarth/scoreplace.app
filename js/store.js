@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.51-alpha';
+window.SCOREPLACE_VERSION = '0.17.52-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -677,15 +677,15 @@ window._whatsappShareUrl = function(text) {
 // SVG dá consistência visual entre plataformas. Tamanho via 1em escala
 // com font-size do pai. vertical-align:-0.15em alinha com baseline de
 // texto adjacente.
-// v0.17.12: laranja DOMINANTE. Bug em v0.17.11: invertir BOTH fills E
-// arc sweep cancelou o efeito (yellow ainda cobria região grande). Fix:
-// manter swap dos fills (circle=orange base, path=yellow gomo) MAS
-// reverter sweep pra 0 — assim yellow path enclose a região PEQUENA
-// (~30%) e orange domina (~70%) como o usuário pediu. Pedido literal:
-// "inverta as cores do icone na bola de beach tennis para que tenha mais
-// laranja do que amarelo. a bola de beach tennis tem parte laranja como
-// já falamos a pouco."
-window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Beach Tennis"><circle cx="12" cy="12" r="11" fill="#f97316"/><path d="M 6 3 C 7 10, 17 11, 22 15 A 11 11 0 0 0 6 3 Z" fill="#cde54a"/><path d="M 6 3 C 7 10, 17 11, 22 15" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+// v0.17.52: trocado SVG bicolor pelo emoji 🎾 com filter CSS hue-rotate
+// + saturate. Pedido do usuário: usar o mesmo ícone do tênis (🎾) mas
+// "com o hue puxado para o laranja". Após preview comparativo, escolhido
+// hue-rotate(-50deg) saturate(1.8) — branco da seam line continua branco
+// (saturação 0 não rotaciona) enquanto a base verde-amarelada vira laranja
+// vibrante. Renderização consistente em iOS/Android/Windows.
+// Versões anteriores (mantidas no histórico de commits): SVG bicolor com
+// gomo amarelo + linha curva (v0.17.11-v0.17.51).
+window._BEACH_TENNIS_ICON = '<span style="filter:hue-rotate(-50deg) saturate(1.8);display:inline-block;vertical-align:-0.15em;" aria-label="Beach Tennis">🎾</span>';
 
 // v0.17.11: ícone Pickleball — SVG inline com bola amarela e furos visíveis
 // (bola real tem 40 furos; reduzido pra 13 num grid distribuído pra que

@@ -5676,7 +5676,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // bar never crops the pinned bottom action buttons.
   var overlay = document.createElement('div');
   overlay.id = 'live-scoring-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
+  // v0.17.52: bg respeita tema (var(--bg-darker)) em vez de hardcoded.
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:var(--bg-darker);z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   // Header — 3-column: [AO VIVO + info] [Sets display center] [Reset + Close]
   var headerBg = 'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)';
@@ -7284,7 +7285,8 @@ window._openCasualMatch = function() {
   // Build overlay
   var overlay = document.createElement('div');
   overlay.id = 'casual-match-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
+  // v0.17.52: bg respeita tema (var(--bg-darker)) em vez de hardcoded #0a0e1a.
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--bg-darker);z-index:100002;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation;';
 
   var _chdr = typeof window._renderBackHeader === 'function'
     ? window._renderBackHeader({
