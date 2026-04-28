@@ -376,25 +376,32 @@ function renderDashboard(container) {
     }
 
     // Card gradients adaptam ao tema via CSS variables
+    // v0.17.32: dark themes (Noturno/Oceano) precisam de gradients DARK pros
+    // 3 estados (default/participating/organizer) — antes participating/org
+    // usavam tons médios saturados (teal-500, indigo-500, cyan-600) que
+    // pareciam claros contra bg escuro. Agora usa deep tints (teal-950,
+    // indigo-950, cyan-950, sky-900) que mantêm a identidade hue mas ficam
+    // dark de verdade. Sunset agora é light cream desde v0.17.25 — gradients
+    // antigos (brown-950) ficaram quebrados; corrigidos pra cream warm.
     var _theme = (document.documentElement.getAttribute('data-theme') || 'dark');
-    var _isLight = (_theme === 'light');
+    var _isLight = (_theme === 'light' || _theme === 'sunset');
     let bgGradient;
-    if (_isLight) {
+    if (_theme === 'light') {
       bgGradient = 'linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)';
       if (isParticipating) bgGradient = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
       else if (isOrg) bgGradient = 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)';
     } else if (_theme === 'sunset') {
-      bgGradient = 'linear-gradient(135deg, #2d1f1b 0%, #1a1210 100%)';
-      if (isParticipating) bgGradient = 'linear-gradient(135deg, #713f12 0%, #a16207 100%)';
-      else if (isOrg) bgGradient = 'linear-gradient(135deg, #92400e 0%, #d97706 100%)';
+      bgGradient = 'linear-gradient(135deg, #fdf6e3 0%, #f7e5cb 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)';
     } else if (_theme === 'ocean') {
       bgGradient = 'linear-gradient(135deg, #1c3d5e 0%, #173352 100%)';
-      if (isParticipating) bgGradient = 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)';
-      else if (isOrg) bgGradient = 'linear-gradient(135deg, #245478 0%, #0e7490 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #0c4a6e 0%, #0e3a52 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e3a5f 0%, #1a2f4d 100%)';
     } else {
       bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
-      if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
-      else if (isOrg) bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)';
+      if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f3a36 0%, #0d2826 100%)';
+      else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e1b4b 0%, #161339 100%)';
     }
 
     // Card text color adapts to theme

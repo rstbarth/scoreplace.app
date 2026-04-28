@@ -589,25 +589,28 @@ function renderTournaments(container, tournamentId = null) {
         }
 
         // Card gradients adaptam ao tema — consistentes com dashboard.js
+        // v0.17.32: paleta sincronizada com dashboard.js — dark themes
+        // (Noturno/Oceano) usam deep tints pros 3 estados; Sunset agora é
+        // light cream (corrigido pós v0.17.25 redesign).
         var _theme = (document.documentElement.getAttribute('data-theme') || 'dark');
-        var _isLight = (_theme === 'light');
+        var _isLight = (_theme === 'light' || _theme === 'sunset');
         let bgGradient;
-        if (_isLight) {
+        if (_theme === 'light') {
             bgGradient = 'linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)';
             if (isParticipating) bgGradient = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
             else if (isOrg) bgGradient = 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)';
         } else if (_theme === 'sunset') {
-            bgGradient = 'linear-gradient(135deg, #2d1f1b 0%, #1a1210 100%)';
-            if (isParticipating) bgGradient = 'linear-gradient(135deg, #713f12 0%, #a16207 100%)';
-            else if (isOrg) bgGradient = 'linear-gradient(135deg, #92400e 0%, #d97706 100%)';
+            bgGradient = 'linear-gradient(135deg, #fdf6e3 0%, #f7e5cb 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)';
         } else if (_theme === 'ocean') {
             bgGradient = 'linear-gradient(135deg, #1c3d5e 0%, #173352 100%)';
-            if (isParticipating) bgGradient = 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)';
-            else if (isOrg) bgGradient = 'linear-gradient(135deg, #245478 0%, #0e7490 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #0c4a6e 0%, #0e3a52 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e3a5f 0%, #1a2f4d 100%)';
         } else {
             bgGradient = 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
-            if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)';
-            else if (isOrg) bgGradient = 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)';
+            if (isParticipating) bgGradient = 'linear-gradient(135deg, #0f3a36 0%, #0d2826 100%)';
+            else if (isOrg) bgGradient = 'linear-gradient(135deg, #1e1b4b 0%, #161339 100%)';
         }
 
         // Venue photo background — overlay gradient on top of photo
