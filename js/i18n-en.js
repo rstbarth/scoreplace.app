@@ -46,6 +46,7 @@ window._translations['en'] = {
   'dashboard.clearFilters': '✕ Clear filters',
   'dashboard.statistics': 'Statistics',
   'dashboard.casualMatch': 'Casual Match',
+  'dashboard.people': 'People',
 
   // Analytics
   'analytics.title': 'My Statistics',

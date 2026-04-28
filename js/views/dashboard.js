@@ -1476,9 +1476,15 @@ function renderDashboard(container) {
           </button>
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
-          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
-          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.82rem; padding: 0 16px; height: 38px; border-radius: 10px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
+          <!-- v0.17.44: botão "Pessoas" (antes "Explorar" no topbar) — primeiro
+               da row de secundários por ser feature mais frequente que Pro/Apoie.
+               Ícone de pessoas (👥) substitui o de busca pra refletir o
+               propósito real da view: conectar com jogadores da comunidade.
+               Altura bumpada de 38px → 46px pra dar mais presença visual. -->
+          <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
+          <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
+          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
+          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.88rem; font-weight: 600; padding: 0 18px; height: 46px; border-radius: 11px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
         </div>
       </div>
 
@@ -1876,7 +1882,7 @@ function _hydrateFriendsPresenceWidget() {
         : '👥 Veja seus amigos jogando';
       var msgSub = hasFriends
         ? 'Quando você ou um amigo marcar "Estou aqui" ou planejar ida, aparece aqui.'
-        : 'Adicione amigos na Explorar pra acompanhar presenças nos locais que vocês frequentam.';
+        : 'Adicione amigos em Pessoas pra acompanhar presenças nos locais que vocês frequentam.';
       var ctaText = hasFriends ? 'Minha presença →' : 'Encontrar amigos →';
       var ctaHref = hasFriends ? '#place' : '#explore';
       var bg = hasFriends ? 'var(--bg-card)' : 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(59,130,246,0.08))';
