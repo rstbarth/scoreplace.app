@@ -4292,36 +4292,148 @@ window._deleteTemplateInCreate = async function(templateId) {
   window._refreshTemplateBtn();
 };
 
-// v0.17.40: explicação detalhada dos critérios de desempate
-// Buchholz e Sonneborn-Berger — pedido do usuário pra entender melhor
-// o que são e de onde vieram. Vem do mundo do xadrez (FIDE 1932 / 1873).
+// v0.17.41: explicação detalhada dos critérios de desempate em layout rico
+// — overlay próprio (não usa showAlertDialog estreito) com cabeçalho padrão
+// (título + X), 5 seções em cards distribuídos verticalmente, max-width
+// 640px. Pedido do usuário: "melhore a apresentação dos tooltip (distribua
+// melhor na pagina e mantenha os cabecalhos padrao)".
 window._showTiebreakInfo = function(criterion) {
-  const _t = window._t || function(k) { return k; };
-  let title, body;
-  if (criterion === 'buchholz') {
-    title = '📚 ' + _t('create.tbBuchholz') + ' (Buchholz)';
-    body =
-      '<div style="line-height:1.6;font-size:0.9rem;color:var(--text-main);">' +
-      '<p><b>O que é:</b> soma dos pontos de TODOS os adversários que você enfrentou no torneio.</p>' +
-      '<p><b>Pra que serve:</b> recompensa quem teve adversários FORTES. Se você empata em pontos com outro jogador, mas seus adversários somaram mais pontos no torneio (ou seja, foram melhores), você fica à frente — porque seu caminho foi mais difícil.</p>' +
-      '<p><b>Exemplo:</b> Você (8 pts) e João (8 pts) empataram. Seus 5 adversários somaram 30 pts no torneio. Os adversários do João somaram 22 pts. <b>Buchholz seu = 30, do João = 22</b> → você fica à frente.</p>' +
-      '<p><b>De onde veio:</b> criado por <b>Bruno Buchholz</b> em <b>1932</b> pra torneios de xadrez no sistema Suíço, onde jogadores não enfrentam todos os outros. Hoje é o critério #1 da FIDE pra desempate em Suíço.</p>' +
-      '<p><b>Quando aplicar:</b> principalmente em <b>Sistema Suíço</b> (cada jogador enfrenta sub-conjuntos diferentes de adversários). Em Liga round-robin todos enfrentam todos, então o Buchholz tende a ser parecido pra todos os empatados — menos discriminante.</p>' +
-      '</div>';
-  } else if (criterion === 'sonneborn_berger') {
-    title = '🏅 ' + _t('create.tbSonneborn') + ' (Sonneborn-Berger)';
-    body =
-      '<div style="line-height:1.6;font-size:0.9rem;color:var(--text-main);">' +
-      '<p><b>O que é:</b> soma dos pontos dos adversários que você <b>venceu</b>, mais metade dos pontos dos adversários com quem você <b>empatou</b>. Adversários que você perdeu não contam.</p>' +
-      '<p><b>Pra que serve:</b> recompensa quem venceu adversários FORTES (não só a quantidade de vitórias, mas a qualidade delas). Se você bateu jogadores que terminaram em alto, vale mais que bater jogadores fracos.</p>' +
-      '<p><b>Exemplo:</b> Você venceu 3 jogadores que somaram 20 pts no torneio + empatou com 1 que fez 6 pts. <b>SB = 20 + (6/2) = 23</b>. Já o João venceu 3 jogadores fracos que somaram 9 pts. <b>SB do João = 9</b> → você fica à frente.</p>' +
-      '<p><b>De onde veio:</b> criado por <b>William Sonneborn</b> e <b>Johann Berger</b> em <b>1873-1886</b> pra torneios de xadrez round-robin. Originalmente chamado "Neustadtl score". É o critério #2 da FIDE pra desempate em Suíço e round-robin.</p>' +
-      '<p><b>Quando aplicar:</b> útil quando Buchholz ainda empata (o que é raro). Mais relevante em torneios longos onde a diferença entre vencer um forte e vencer um fraco é significativa.</p>' +
-      '</div>';
-  } else {
-    return;
-  }
-  if (typeof window.showAlertDialog === 'function') {
-    window.showAlertDialog(title, body, null, { type: 'info' });
-  }
+  // Conteúdo estruturado em 5 seções: cada seção tem icon, title, body.
+  const sections = (function() {
+    if (criterion === 'buchholz') {
+      return {
+        icon: '📚',
+        title: 'Força dos Adversários',
+        subtitle: 'Buchholz',
+        accent: '#3b82f6', // blue
+        sections: [
+          {
+            icon: '📖',
+            title: 'O que é',
+            body: 'Soma dos pontos de <b>TODOS</b> os adversários que você enfrentou no torneio.'
+          },
+          {
+            icon: '🎯',
+            title: 'Pra que serve',
+            body: 'Recompensa quem teve adversários <b>fortes</b>. Se você empata em pontos com outro jogador mas seus adversários somaram mais pontos no torneio (ou seja, foram melhores), você fica à frente — porque seu caminho foi mais difícil.'
+          },
+          {
+            icon: '🔢',
+            title: 'Exemplo numérico',
+            body: 'Você (8 pts) e João (8 pts) empataram.<br>Seus 5 adversários somaram <b>30 pts</b> no torneio.<br>Os adversários do João somaram <b>22 pts</b>.<br><br><b style="color:#10b981;">Buchholz seu = 30 → fica à frente.</b>'
+          },
+          {
+            icon: '📜',
+            title: 'De onde veio',
+            body: 'Criado por <b>Bruno Buchholz</b> em <b>1932</b> pra torneios de xadrez no Sistema Suíço, onde jogadores não enfrentam todos os outros. Hoje é o critério <b>#1 da FIDE</b> pra desempate em Suíço.'
+          },
+          {
+            icon: '🎲',
+            title: 'Quando aplicar',
+            body: 'Principalmente em <b>Sistema Suíço</b> (cada jogador enfrenta sub-conjuntos diferentes de adversários).<br><br>Em <b>Liga round-robin</b> todos enfrentam todos, então o Buchholz tende a ser parecido pra todos os empatados — menos discriminante.'
+          }
+        ]
+      };
+    } else if (criterion === 'sonneborn_berger') {
+      return {
+        icon: '🏅',
+        title: 'Qualidade das Vitórias',
+        subtitle: 'Sonneborn-Berger',
+        accent: '#a855f7', // purple
+        sections: [
+          {
+            icon: '📖',
+            title: 'O que é',
+            body: 'Soma dos pontos dos adversários que você <b>venceu</b>, mais <b>metade</b> dos pontos dos adversários com quem você <b>empatou</b>.<br><br>Adversários que você <b>perdeu não contam</b>.'
+          },
+          {
+            icon: '🎯',
+            title: 'Pra que serve',
+            body: 'Recompensa quem venceu adversários <b>fortes</b> — não só a quantidade de vitórias, mas a <b>qualidade</b> delas. Se você bateu jogadores que terminaram com alto pontos, vale mais que bater jogadores fracos.'
+          },
+          {
+            icon: '🔢',
+            title: 'Exemplo numérico',
+            body: 'Você venceu 3 jogadores que somaram <b>20 pts</b> no torneio + empatou com 1 que fez <b>6 pts</b>.<br><b style="color:#10b981;">SB seu = 20 + (6 ÷ 2) = 23</b><br><br>João venceu 3 jogadores fracos que somaram <b>9 pts</b>.<br><b style="color:#f87171;">SB do João = 9</b><br><br>→ <b>Você fica à frente.</b>'
+          },
+          {
+            icon: '📜',
+            title: 'De onde veio',
+            body: 'Criado por <b>William Sonneborn</b> e <b>Johann Berger</b> entre <b>1873-1886</b> pra torneios de xadrez round-robin. Originalmente chamado <i>"Neustadtl score"</i>.<br><br>É o critério <b>#2 da FIDE</b> pra desempate em Suíço e round-robin.'
+          },
+          {
+            icon: '🎲',
+            title: 'Quando aplicar',
+            body: 'Útil quando <b>Buchholz</b> ainda empata (o que é raro).<br><br>Mais relevante em <b>torneios longos</b> onde a diferença entre vencer um adversário forte e vencer um fraco é significativa.'
+          }
+        ]
+      };
+    }
+    return null;
+  })();
+
+  if (!sections) return;
+
+  // Remove overlay anterior se existir
+  const prev = document.getElementById('tiebreak-info-overlay');
+  if (prev) prev.remove();
+
+  // Build sections HTML
+  const sectionsHtml = sections.sections.map(s =>
+    '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:1.1rem;">' + s.icon + '</span>' +
+        '<h4 style="margin:0;font-size:0.85rem;font-weight:700;color:' + sections.accent + ';text-transform:uppercase;letter-spacing:0.5px;">' + s.title + '</h4>' +
+      '</div>' +
+      '<div style="font-size:0.9rem;line-height:1.55;color:var(--text-main);">' + s.body + '</div>' +
+    '</div>'
+  ).join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tiebreak-info-overlay';
+  overlay.style.cssText =
+    'position:fixed;top:0;left:0;width:100vw;height:100vh;' +
+    'background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);' +
+    'display:flex;align-items:flex-start;justify-content:center;' +
+    'z-index:100020;padding:5vh 1rem;overflow-y:auto;';
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg-card,#1c1c1e);border:1px solid var(--border-color,rgba(255,255,255,0.1));border-radius:18px;max-width:640px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">' +
+      // Standard header: title left, X close right
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color,rgba(255,255,255,0.08));background:linear-gradient(135deg,rgba(' + (criterion === 'buchholz' ? '59,130,246' : '168,85,247') + ',0.12),rgba(255,255,255,0.02));">' +
+        '<div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">' +
+          '<span style="font-size:2rem;flex-shrink:0;">' + sections.icon + '</span>' +
+          '<div style="min-width:0;">' +
+            '<h3 style="margin:0;font-size:1.1rem;font-weight:700;color:var(--text-bright,#fff);line-height:1.2;">' + sections.title + '</h3>' +
+            '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;font-weight:500;">' + sections.subtitle + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'tiebreak-info-overlay\').remove()" aria-label="Fechar" ' +
+          'style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:var(--text-bright,#fff);' +
+          'width:36px;height:36px;border-radius:50%;font-size:1.2rem;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          'display:flex;align-items:center;justify-content:center;transition:background 0.2s;" ' +
+          'onmouseover="this.style.background=\'rgba(255,255,255,0.16)\'" ' +
+          'onmouseout="this.style.background=\'rgba(255,255,255,0.08)\'">×</button>' +
+      '</div>' +
+      // Body — sections distribuídas verticalmente
+      '<div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:12px;max-height:calc(90vh - 120px);overflow-y:auto;">' +
+        sectionsHtml +
+      '</div>' +
+    '</div>';
+
+  // Click backdrop to close
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  // ESC to close
+  const escHandler = function(e) {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  document.body.appendChild(overlay);
 };
