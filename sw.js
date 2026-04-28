@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.17.59';
+var CACHE_NAME = 'scoreplace-v0.17.60';
 // NOTE: js/release-notes.js NÃO entra aqui de propósito — é lazy-loaded só
 // quando o usuário abre "Notas de versões" no Help. Adicioná-lo ao precache
 // faria cache.addAll baixar 1MB durante o SW install, anulando o ganho do
@@ -68,6 +68,7 @@ var STATIC_ASSETS = [
   '/css/bracket.css',
   '/css/responsive.css',
   '/js/theme.js',
+  '/js/sentry-init.js',
   '/js/notification-catalog.js',
   '/js/store.js',
   '/js/firebase-db.js',
