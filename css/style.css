@@ -181,9 +181,14 @@
   --btn-danger-ghost-text: #b91c1c;
   --btn-danger-ghost-bg: rgba(185,28,28,0.08);
   --btn-danger-ghost-border: rgba(185,28,28,0.25);
-  --info-pill-bg: rgba(120,80,40,0.08);
-  --info-box-bg: rgba(120,80,40,0.05);
-  --stat-box-bg: rgba(120,80,40,0.06);
+  /* v0.17.43: opacidade alta pra info/stat boxes em Sunset — antes
+     rgba 0.05/0.06 ficavam quase invisíveis quando o card pai tinha
+     overlay escuro de venue photo (dark teal sobre foto), e o texto
+     warm-gray-700 sumia. Cream opaco com 88% garante que o box é
+     lido tanto sobre bg cream da página quanto sobre overlay escuro. */
+  --info-pill-bg: rgba(255,253,248,0.88);
+  --info-box-bg: rgba(255,253,248,0.88);
+  --stat-box-bg: rgba(255,253,248,0.88);
   --card-org-border: rgba(180,83,9,0.3);
   --card-part-border: rgba(194,65,12,0.3);
 
