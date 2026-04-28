@@ -27,6 +27,42 @@ service cloud.firestore {
         .hasOnly(['participants', 'memberEmails', 'status', 'teamOrigins']);
     }
 
+    // Participant of the tournament (uses denormalized memberEmails[]).
+    // Required pra que participantes possam lançar/aprovar resultados,
+    // marcar check-in, etc., sem precisar virar admin.
+    function isTournamentParticipant(data) {
+      return authEmail() != ''
+        && data.memberEmails is list
+        && authEmail() in data.memberEmails;
+    }
+
+    // v0.17.23: Diff que participantes podem fazer (lançar placar pendente
+    // de aprovação, aprovar/rejeitar placar do adversário, auto check-in
+    // ao registrar resultado, etc.). Lista positiva — campos de metadata
+    // do torneio (nome, datas, formato, scoring, regras, organizador)
+    // continuam bloqueados pra não-admins. Pedido após bug em v0.17.1+
+    // onde participantes recebiam permission-denied ao lançar placar.
+    function isParticipantBracketDiff() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly([
+          // Bracket / scoring / aprovação de resultado
+          'matches', 'rounds', 'groups', 'rodadas', 'thirdPlaceMatch',
+          'currentStage', 'classification', 'standings',
+          // Check-in / presença em torneio
+          'checkedIn', 'absent', 'tournamentStarted',
+          // Timestamps / activity log
+          'updatedAt', 'lastModified', 'actions',
+          // Liga: ativado/desativado pra próximo sorteio
+          'ligaActive', 'ligaInactive',
+          // Polls: votação de decisão (cada participante vota uma vez)
+          'pollNotifications', 'polls', 'activePollId',
+          // Categorias notificadas (auto-assign comunica ao participante)
+          'categoryNotifications',
+          // Inscrição também — overlap com isEnrollmentOnlyDiff
+          'participants', 'memberEmails', 'status', 'teamOrigins'
+        ]);
+    }
+
     // ─── Tournaments ─────────────────────────────────────────────────────────
     match /tournaments/{tournamentId} {
       // Anonymous users: only public tournaments. Authenticated users may
@@ -41,12 +77,19 @@ service cloud.firestore {
         && request.resource.data.creatorEmail is string
         && request.resource.data.creatorEmail.lower() == authEmail();
 
-      // Update: full update if admin, otherwise only the enrollment-shaped
-      // diff. Keeps any authed user able to join/leave while blocking them
-      // from modifying organizer-controlled fields (name, dates, format,
-      // adminEmails, etc.).
+      // Update permitido em 3 caminhos:
+      //   1. Admin (creator/organizer/co-host) — qualquer mudança
+      //   2. Qualquer authed pode fazer enrollment-only diff (entrar/sair)
+      //   3. Participante pode atualizar campos do bracket (placar, check-in,
+      //      aprovação de resultado, voto em poll, etc.) — lista positiva
+      //      em isParticipantBracketDiff. Bloqueia mudanças em nome/datas/
+      //      formato/regras/organizador/etc. mesmo pra participantes.
       allow update: if request.auth != null
-        && (isTournamentAdmin(resource.data) || isEnrollmentOnlyDiff());
+        && (
+          isTournamentAdmin(resource.data)
+          || isEnrollmentOnlyDiff()
+          || (isTournamentParticipant(resource.data) && isParticipantBracketDiff())
+        );
 
       // Delete: admins only.
       allow delete: if request.auth != null && isTournamentAdmin(resource.data);
