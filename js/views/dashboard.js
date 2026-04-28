@@ -519,7 +519,9 @@ function renderDashboard(container) {
                  // com startDate futura ou hoje. Reusa as i18n keys
                  // tournament.startsToday / startsTomorrow / startsIn que
                  // estavam órfãs desde alguma refatoração passada.
-                 if (isFinished || !t.startDate) return '';
+                 // v0.17.39: também pula quando torneio já está "Em andamento"
+                 // (sorteioRealizado=true) — info redundante e contraditória.
+                 if (isFinished || !t.startDate || sorteioRealizado) return '';
                  try {
                    var _s = new Date(t.startDate);
                    if (isNaN(_s.getTime())) return '';
