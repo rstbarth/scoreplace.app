@@ -36,30 +36,42 @@ service cloud.firestore {
         && authEmail() in data.memberEmails;
     }
 
-    // v0.17.23: Diff que participantes podem fazer (lançar placar pendente
-    // de aprovação, aprovar/rejeitar placar do adversário, auto check-in
-    // ao registrar resultado, etc.). Lista positiva — campos de metadata
-    // do torneio (nome, datas, formato, scoring, regras, organizador)
-    // continuam bloqueados pra não-admins. Pedido após bug em v0.17.1+
-    // onde participantes recebiam permission-denied ao lançar placar.
+    // v0.17.24: Diff que participantes podem fazer. Lista positiva expandida
+    // após investigação de todos os campos tocados por _advanceWinner,
+    // _maybeFinishElimination, _closeRound (Suíço/Liga), auto check-in,
+    // logAction, sitOutHistory, etc. — paths que podem rodar como side
+    // effect quando participante aprova ou lança placar.
     function isParticipantBracketDiff() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly([
           // Bracket / scoring / aprovação de resultado
           'matches', 'rounds', 'groups', 'rodadas', 'thirdPlaceMatch',
           'currentStage', 'classification', 'standings',
-          // Check-in / presença em torneio
+          // Suíço (transição de stage quando última rodada fecha)
+          'swissStandings', 'swissRoundsData', 'swissEliminated',
+          // Liga / Rei-Rainha
+          'sitOutHistory', 'lastAutoDrawAt',
+          // Visibilidade do sorteio (set quando rodada fecha)
+          'drawVisibility',
+          // Check-in / presença / lista de espera em torneio
           'checkedIn', 'absent', 'tournamentStarted',
-          // Timestamps / activity log
-          'updatedAt', 'lastModified', 'actions',
-          // Liga: ativado/desativado pra próximo sorteio
+          'standbyParticipants', 'waitlist',
+          // Activity log (logAction escreve em t.history)
+          'history',
+          // Timestamps
+          'updatedAt', 'lastModified',
+          // Liga: toggle ativado/desativado pra próximo sorteio
           'ligaActive', 'ligaInactive',
           // Polls: votação de decisão (cada participante vota uma vez)
           'pollNotifications', 'polls', 'activePollId',
           // Categorias notificadas (auto-assign comunica ao participante)
           'categoryNotifications',
-          // Inscrição também — overlap com isEnrollmentOnlyDiff
-          'participants', 'memberEmails', 'status', 'teamOrigins'
+          // Flags internas setadas em fim de torneio / transições
+          '_finishNotified', '_roundCloseAt',
+          // Status — pode mudar pra 'finished' quando última partida aprovada
+          'status',
+          // Inscrição — overlap com isEnrollmentOnlyDiff
+          'participants', 'memberEmails', 'teamOrigins'
         ]);
     }
 
