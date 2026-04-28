@@ -74,6 +74,16 @@ window._markAbsent = function (tId, playerName) {
   if (t.absent[playerName]) {
     // Desmarcar ausência → volta ao estado "sem confirmação"
     delete t.absent[playerName];
+    // v0.17.35: se não houve substituição (replacedBy ausente), limpa
+    // woHistory também — o jogador volta ao time normal. Se substituição
+    // já rolou (replacedBy preenchido), woHistory permanece — não há como
+    // desfazer a substituição automaticamente, organizador precisa ajustar.
+    if (t.woHistory && t.woHistory[playerName]) {
+      const _meta = t.woHistory[playerName];
+      if (!_meta.replacedBy) {
+        delete t.woHistory[playerName];
+      }
+    }
   } else {
     // Marcar ausente → limpa presença se existia
     t.absent[playerName] = Date.now();
@@ -340,6 +350,23 @@ window._declareAbsent = function (tId, playerName) {
     delete t.checkedIn[playerName];
     t.absent[playerName] = Date.now();
 
+    // v0.17.35: rastreia woHistory IMEDIATAMENTE quando W.O. é decretado
+    // (mesmo sem substituto). Pedido do usuário: card do W.O.'d aparece com
+    // "Estava no Jogo N com [parceiro]" desde o momento da decretação, não
+    // só após substituição. replacedBy é populado depois quando/se rolar sub.
+    if (isIndividualWO && matchEntry) {
+      const _sepEarly = teamName.includes(' / ') ? ' / ' : '/';
+      const _membersEarly = teamName.split(_sepEarly).map(n => n.trim());
+      const _partnerEarly = _membersEarly.find(n => n !== playerName) || '';
+      if (!t.woHistory) t.woHistory = {};
+      t.woHistory[playerName] = {
+        originalTeam: teamName,
+        partner: _partnerEarly,
+        matchNum: friendlyNum,
+        timestamp: Date.now()
+      };
+    }
+
     if (isIndividualWO && matchEntry) {
       // Individual W.O. in teams — try to replace only the absent member, partner stays
       if (!t.checkedIn) t.checkedIn = {};
@@ -351,6 +378,7 @@ window._declareAbsent = function (tId, playerName) {
       }
       if (!nextStandby) {
         // Sem substituto presente — apenas marca ausente e aguarda organizador
+        // (woHistory já foi populado acima — orphan card aparece desde já)
         window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
         window.AppStore.sync();
         if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
@@ -631,6 +659,9 @@ function renderParticipants(container, tournamentId) {
     });
 
     const allIndividuals = [];
+    // v0.17.35: jogadores em t.woHistory são pulados aqui — eles aparecem
+    // só via card solo de orphan (loop abaixo). Evita aparecer 2x.
+    const _woHist = (t.woHistory && typeof t.woHistory === 'object') ? t.woHistory : {};
     parts.forEach((p, idx) => {
       const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || _t('participants.participant', {n: idx + 1}));
       if (pName.includes('/')) {
@@ -638,9 +669,11 @@ function renderParticipants(container, tournamentId) {
         const matchDecided = !!nameToMatchDecided[pName];
         const opponent = nameToOpponent[pName] || null;
         pName.split('/').map(n => n.trim()).filter(n => n).forEach(n => {
+          if (_woHist[n]) return; // skip W.O.'d member — solo card via woHistory loop
           allIndividuals.push({ name: n, teamName: pName, teamIdx: idx, matchNum, matchDecided, opponent });
         });
       } else {
+        if (_woHist[pName]) return; // skip solo W.O.'d player
         const matchNum = nameToMatch[pName] || null;
         const matchDecided = !!nameToMatchDecided[pName];
         const opponent = nameToOpponent[pName] || null;
@@ -736,16 +769,19 @@ function renderParticipants(container, tournamentId) {
       const isStandbyPure = !!ind.isStandby && !ind.matchNum;
 
       // Team members line (with dots) — ocultar para standby puro
+      // v0.17.35: oculta membros W.O.'d do team line (se algum) — eles
+      // aparecem como cards solo separados, não devem poluir time do parceiro.
       let teamLine = '';
       if (ind.teamName && !isStandbyPure) {
-        const members = ind.teamName.split('/').map(n => n.trim()).filter(n => n);
+        const members = ind.teamName.split('/').map(n => n.trim()).filter(n => n).filter(n => !_woHist[n]);
         teamLine = members.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
       }
 
       // Opponent line (with dots) — ocultar para standby puro
       let opponentLine = '';
       if (ind.opponent && !isStandbyPure) {
-        const oppMembers = ind.opponent.includes('/') ? ind.opponent.split('/').map(n => n.trim()).filter(n => n) : [ind.opponent];
+        const oppMembersRaw = ind.opponent.includes('/') ? ind.opponent.split('/').map(n => n.trim()).filter(n => n) : [ind.opponent];
+        const oppMembers = oppMembersRaw.filter(n => !_woHist[n]);
         opponentLine = oppMembers.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
       }
 
@@ -850,12 +886,14 @@ function renderParticipants(container, tournamentId) {
       const _isNarrow = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
       let infoBlock;
       if (isWOOrphan && ind.woMeta) {
-        // v0.17.34: W.O. orphan card — solo, com nota "Estava no Jogo N com [parceiro]"
-        // (substituído por [substituto])". Sem matchup, sem time atual — só metadata.
+        // v0.17.35: W.O. orphan card — só "Estava no Jogo N com [parceiro]".
+        // Pedido do usuário: "deveria aparecer o número do jogo que ele
+        // estava antes do W.O. e seu parceiro antes do W.O. SÓ ISSO."
+        // Removido "substituído por [substituto]" — info redundante (o
+        // substituto aparece no próprio time agora).
         const _woNameSafe = (ind.woMeta.partner || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const _woReplacedBySafe = (ind.woMeta.replacedBy || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const _woMatchNum = ind.woMeta.matchNum || '?';
-        const _woNote = `<div style="font-size:0.7rem;color:#f87171;margin-top:3px;font-weight:600;">❌ W.O. — Estava no Jogo ${_woMatchNum}${_woNameSafe ? ` com <span style="color:#94a3b8;font-weight:500;">${_woNameSafe}</span>` : ''}${_woReplacedBySafe ? `<span style="color:var(--text-muted);font-weight:400;"> · substituído por <span style="color:#4ade80;font-weight:600;">${_woReplacedBySafe}</span></span>` : ''}</div>`;
+        const _woNote = `<div style="font-size:0.7rem;color:#f87171;margin-top:3px;font-weight:600;">❌ W.O. — Estava no Jogo ${_woMatchNum}${_woNameSafe ? ` com <span style="color:#94a3b8;font-weight:500;">${_woNameSafe}</span>` : ''}</div>`;
         infoBlock = nameCell + _woNote;
       } else if (hasMatchup && !_isNarrow) {
         infoBlock = `<div style="display:grid;grid-template-columns:auto 1fr auto;column-gap:10px;align-items:start;min-width:0;">${nameCell}${teamsCell || '<span></span>'}${vsCell || '<span></span>'}</div>`;
