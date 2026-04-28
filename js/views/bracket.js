@@ -1361,10 +1361,26 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.15)'">✓ ${_t('bracket.confirm')}</button>`
     : '';
 
-  // v0.17.1: Approve / Reject / Cancel buttons when there's a pending result.
-  // Visibility:
-  //  - Approve: opposing team OR organizer (NOT the proposer himself)
-  //  - Reject: opposing team OR organizer OR proposer (proposer cancels his own)
+  // Edit button: for decided matches — opens inline inputs for editing
+  const headerEditBtn = isDecided && !isByeMatch && canEnterResult
+    ? `<button onclick="window._editResultInline('${_esc(tId)}','${_esc(m.id)}')"
+          style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
+          onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
+          title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
+    : '';
+
+  const matchLabel = matchNum ? _t('bracket.matchNum', {n: matchNum}) : (m.label || _t('bracket.matchLabel'));
+
+  // Detect if current user participates in this match
+  const _cu = window.AppStore && window.AppStore.currentUser;
+  const _cuName = _cu ? (_cu.displayName || '') : '';
+  const _cuEmail = _cu ? (_cu.email || '') : '';
+
+  // v0.17.26: bloco de Approve/Reject/Cancel MOVIDO pra depois das const
+  // _cu/_cuEmail. Antes ficava entre headerConfirmBtn e headerEditBtn —
+  // mas usava _cu e _cuEmail que ainda não tinham sido declarados.
+  // Quando hasPending=true, JavaScript dava ReferenceError de TDZ em const
+  // antes de inicializar. Fix: mover bloco inteiro pra cá, sem mudar lógica.
   let pendingActionBtns = '';
   if (hasPending) {
     var _isProposerSelf = !!(_cu && (
@@ -1398,25 +1414,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
           onmouseover="this.style.background='rgba(239,68,68,0.24)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'"
           title="${_isProposerSelf ? 'Cancelar proposta' : 'Rejeitar resultado'}">${_isProposerSelf ? '🚫 Cancelar' : '❌ Rejeitar'}</button>`;
     }
-    if (!_canApprove && !_canReject && _isProposerSelf) {
-      // Already covered above (proposer always gets _canReject), but keep for clarity
-    }
   }
-
-  // Edit button: for decided matches — opens inline inputs for editing
-  const headerEditBtn = isDecided && !isByeMatch && canEnterResult
-    ? `<button onclick="window._editResultInline('${_esc(tId)}','${_esc(m.id)}')"
-          style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:3px;"
-          onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'"
-          title="${_t('bracket.editResult')}">✏️ ${_t('bracket.editResult')}</button>`
-    : '';
-
-  const matchLabel = matchNum ? _t('bracket.matchNum', {n: matchNum}) : (m.label || _t('bracket.matchLabel'));
-
-  // Detect if current user participates in this match
-  const _cu = window.AppStore && window.AppStore.currentUser;
-  const _cuName = _cu ? (_cu.displayName || '') : '';
-  const _cuEmail = _cu ? (_cu.email || '') : '';
   const _isMyMatch = !!(_cu && !isByeMatch && (function() {
     var sides = [m.p1 || '', m.p2 || ''];
     for (var si = 0; si < sides.length; si++) {
