@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.47-alpha';
+window.SCOREPLACE_VERSION = '0.17.48-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1320,25 +1320,35 @@ window.AppStore = {
         // ou reload na própria página), deixamos quieto.
         if (isFirst) {
           isFirst = false;
-          if (doc.exists) {
-            var firstRoom = doc.data().activeCasualRoom || null;
-            lastCasualRoom = firstRoom;
-            if (firstRoom) {
-              var hash = window.location.hash || '';
-              var expected = '#casual/' + firstRoom;
-              var alreadyInMatch = hash === expected ||
-                                   hash.indexOf('#casual/' + firstRoom) === 0;
-              // ALSO check for the DOM overlays — without this, clicking
-              // "Iniciar" (which removes #casual-match-overlay and opens
-              // #live-scoring-overlay) triggers a redirect back to the
-              // setup overlay mid-transition, and clicking "Fechar"
-              // reopens the match because the profile clear is async
-              // and this branch fires before activeCasualRoom=null lands.
-              var hasOverlay = !!document.getElementById('casual-match-overlay') ||
-                               !!document.getElementById('live-scoring-overlay');
-              if (!alreadyInMatch && !hasOverlay) {
-                window.location.hash = expected;
-              }
+          // v0.17.48: fallback pra sessionStorage quando o Firestore profile
+          // não tem activeCasualRoom (pode ser race com auto-update reload —
+          // saveUserProfile falhou em concluir antes do reload). Se a
+          // sessionStorage tem a sala salva, prioriza ela como fonte de
+          // verdade pro resume. Limpa sessionStorage se Firestore explicitamente
+          // tem null (organizador fechou a partida).
+          var firstRoom = (doc.exists ? doc.data().activeCasualRoom : null) || null;
+          if (!firstRoom) {
+            try {
+              var ssRoom = sessionStorage.getItem('_activeCasualRoom');
+              if (ssRoom) firstRoom = ssRoom;
+            } catch(e) {}
+          }
+          lastCasualRoom = firstRoom;
+          if (firstRoom) {
+            var hash = window.location.hash || '';
+            var expected = '#casual/' + firstRoom;
+            var alreadyInMatch = hash === expected ||
+                                 hash.indexOf('#casual/' + firstRoom) === 0;
+            // ALSO check for the DOM overlays — without this, clicking
+            // "Iniciar" (which removes #casual-match-overlay and opens
+            // #live-scoring-overlay) triggers a redirect back to the
+            // setup overlay mid-transition, and clicking "Fechar"
+            // reopens the match because the profile clear is async
+            // and this branch fires before activeCasualRoom=null lands.
+            var hasOverlay = !!document.getElementById('casual-match-overlay') ||
+                             !!document.getElementById('live-scoring-overlay');
+            if (!alreadyInMatch && !hasOverlay) {
+              window.location.hash = expected;
             }
           }
           return;

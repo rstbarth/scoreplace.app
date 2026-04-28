@@ -5805,6 +5805,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
               window.FirestoreDB.saveUserProfile(_cuC.uid, { activeCasualRoom: null }).catch(function(){});
             }
           } catch(e) {}
+          // v0.17.48: limpa sessionStorage também — sem isto, o boot
+          // check da v0.17.48 reabriria a sala fechada.
+          try { sessionStorage.removeItem('_activeCasualRoom'); } catch(e) {}
         }
         _cleanup();
         // Navigate the user back to the dashboard so they're not stuck
@@ -7317,6 +7320,8 @@ window._openCasualMatch = function() {
           window._suppressCasualResumeUntil = Date.now() + 6000;
           window.FirestoreDB.saveUserProfile(_uid, { activeCasualRoom: null }).catch(function() {});
         }
+        // v0.17.48: limpa sessionStorage backup também
+        try { sessionStorage.removeItem('_activeCasualRoom'); } catch(e) {}
       } catch (e) {}
     }
   });
@@ -7347,6 +7352,11 @@ window._openCasualMatch = function() {
     }).catch(function(e) { console.error('[Casual] Auto-save failed:', e); });
     // Save active room to user profile so other devices can join
     window.FirestoreDB.saveUserProfile(cu.uid, { activeCasualRoom: _sessionRoomCode }).catch(function() {});
+    // v0.17.48: backup síncrono em sessionStorage — sobrevive ao reload
+    // do auto-update mesmo se o saveUserProfile acima estiver em flight.
+    // Profile listener (store.js) prioriza activeCasualRoom do Firestore;
+    // mas se ele vier null por race, fallback no boot check pega aqui.
+    try { sessionStorage.setItem('_activeCasualRoom', _sessionRoomCode); } catch(e) {}
   }
 
   // Start polling for new participants joining the room
@@ -7444,6 +7454,8 @@ window._openCasualMatch = function() {
         window._suppressCasualResumeUntil = Date.now() + 6000;
         window.FirestoreDB.saveUserProfile(_uid2, { activeCasualRoom: null }).catch(function() {});
       }
+      // v0.17.48: limpa sessionStorage backup também
+      sessionStorage.removeItem('_activeCasualRoom');
     } catch(e) {}
     var ov = document.getElementById('casual-match-overlay');
     if (ov) ov.remove();
@@ -7806,6 +7818,10 @@ window._renderCasualJoin = function(container, roomCode) {
         participants.push({ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() });
         _renderLobby();
         if (typeof showNotification === 'function') showNotification(_t('casual.joinedMatch'), _t('casual.waitOrganizer'), 'success');
+        // v0.17.48: backup síncrono em sessionStorage pra guests também —
+        // se o auto-update fizer reload no meio da partida, o boot check
+        // do app reabre a sala. Sem isto o guest dependia só da URL.
+        try { sessionStorage.setItem('_activeCasualRoom', roomCode); } catch(e) {}
       }
     }
 
@@ -7813,18 +7829,33 @@ window._renderCasualJoin = function(container, roomCode) {
     // `window.location.hash = '#dashboard'` is fragile in in-app browsers
     // (iOS QR scanner, WhatsApp webview) where hashchange sometimes doesn't
     // fire — so we also clear the container and render the dashboard directly.
+    // v0.17.48: limpeza adicional + força re-route quando hash já é #dashboard.
     function _evacuateToDashboard() {
+      // Limpa marca de "estou em partida" — sem isto, o boot check do app
+      // reabriria a sala no próximo load.
+      try { sessionStorage.removeItem('_activeCasualRoom'); } catch(e) {}
+      try { sessionStorage.removeItem('_pendingCasualRoom'); } catch(e) {}
+      // Render dashboard imediatamente no container atual — visualmente
+      // tira o usuário da página de partida sem esperar o router.
       try {
-        if (container && typeof renderDashboard === 'function') {
-          container.innerHTML = '';
-          renderDashboard(container);
+        var _vc = container || document.getElementById('view-container');
+        if (_vc && typeof renderDashboard === 'function') {
+          _vc.innerHTML = '';
+          renderDashboard(_vc);
         }
       } catch(e) {}
+      // Em paralelo, atualiza o hash. Se já estiver em #dashboard (caso
+      // raro mas observado em alguns reloads), força re-route via initRouter
+      // pra garantir que o estado interno do app reflita a navegação.
       try {
         if (window.location.hash !== '#dashboard') {
-          window.location.hash = '#dashboard';
+          window.location.replace('#dashboard');
+        } else if (typeof window.initRouter === 'function') {
+          window.initRouter();
         }
-      } catch(e) {}
+      } catch(e) {
+        try { window.location.hash = '#dashboard'; } catch(e2) {}
+      }
     }
     // Expose so inline onclick handlers (non-logged-in button) can reach it
     window._casualEvacuateToDashboard = _evacuateToDashboard;
