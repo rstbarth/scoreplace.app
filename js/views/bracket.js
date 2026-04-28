@@ -1712,13 +1712,15 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     const classified = t.gruposClassified || 2;
 
     const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
+    // v0.17.30: omite coluna E quando o sistema de pontuação não permite empate.
+    const _drawsAllowedGS = !(t.scoring && t.scoring.type === 'sets');
     const rows = sorted.map((s, i) => `
       <tr style="border-bottom:1px solid var(--border-color);${i < classified ? 'background:rgba(34,197,94,0.08);' : ''}">
         <td style="padding:8px 12px;font-weight:700;color:${i < classified ? '#4ade80' : 'var(--text-muted)'};">${medal(i)}</td>
         <td style="padding:8px 12px;font-weight:600;color:var(--text-bright);">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)} ${i < classified ? '<span style="font-size:0.65rem;color:#4ade80;font-weight:800;">CLASSIF.</span>' : ''}</td>
         <td style="padding:8px 12px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
         <td style="padding:8px 12px;text-align:center;color:#4ade80;">${s.wins}</td>
-        <td style="padding:8px 12px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
+        ${_drawsAllowedGS ? `<td style="padding:8px 12px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>` : ''}
         <td style="padding:8px 12px;text-align:center;color:#f87171;">${s.losses}</td>
         <td style="padding:8px 12px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>
       </tr>`).join('');
@@ -1759,10 +1761,10 @@ function renderGroupStage(t, isOrg, canEnterResult) {
                 <th style="padding:6px 12px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">#</th>
                 <th style="padding:6px 12px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Participante</th>
                 <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:var(--primary-color);text-transform:uppercase;">Pts</th>
-                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#4ade80;text-transform:uppercase;">V</th>
-                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#94a3b8;text-transform:uppercase;">E</th>
-                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#f87171;text-transform:uppercase;">D</th>
-                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Saldo</th>
+                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#4ade80;text-transform:uppercase;" title="Vitórias">V</th>
+                ${_drawsAllowedGS ? '<th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#94a3b8;text-transform:uppercase;" title="Empates">E</th>' : ''}
+                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:#f87171;text-transform:uppercase;" title="Derrotas">D</th>
+                <th style="padding:6px 12px;text-align:center;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;" title="Saldo de pontos (pró − contra)">Saldo</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -1906,6 +1908,11 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
 
   const _useSetsStandings = t.scoring && t.scoring.type === 'sets';
   const _useAdvStandings = !!(t.advancedScoring && t.advancedScoring.enabled);
+  // v0.17.30: oculta coluna E (Empates) quando o sistema de pontuação não
+  // permite empate (sets/GSM com tiebreak garantem vencedor). Heurística:
+  // type === 'sets' (GSM) → sem empate possível. Para placar simples, empate
+  // continua possível (regra de Liga/Suíço/Grupos quando user marca "Empate").
+  const _drawsAllowed = !(t.scoring && t.scoring.type === 'sets');
   const _buildStandingsRows = function(computed) {
     return computed.map((s, i) => {
       var _setsDiff = (s.setsWon || 0) - (s.setsLost || 0);
@@ -1915,13 +1922,16 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
       var _advCell = _useAdvStandings
         ? `<td style="padding:11px 14px;text-align:center;color:#fbbf24;font-weight:700;cursor:pointer;" onclick="window._showAdvancedPointsBreakdown('${_safeTid}','${_safeName}','${String(s.category || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" title="Ver detalhamento">${s.advancedPoints || 0}</td>`
         : '';
+      var _drawCell = _drawsAllowed
+        ? `<td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>`
+        : '';
       return `
     <tr style="border-bottom:1px solid var(--border-color);${i < 3 ? 'background:rgba(251,191,36,0.03)' : ''}">
       <td style="padding:11px 14px;font-weight:800;color:${posColor(i)};">${medal(i)}</td>
       <td style="padding:11px 14px;font-weight:600;color:var(--text-bright);display:flex;align-items:center;gap:6px;"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:inline-flex;align-items:center;gap:2px;" onclick="window._showPlayerHistory('${_safeTid}','${_safeName}')" title="Ver confrontos">${typeof window._nameWithCrown === 'function' ? window._nameWithCrown(s.name, t) : window._safeHtml(s.name)}</span><span style="cursor:pointer;font-size:0.7rem;opacity:0.5;transition:opacity 0.2s;" onclick="event.stopPropagation();if(typeof window._showPlayerStats==='function')window._showPlayerStats('${_safeName}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'" title="Estatísticas globais">📊</span></td>
       <td style="padding:11px 14px;font-weight:800;color:var(--primary-color);text-align:center;">${s.points}</td>
       <td style="padding:11px 14px;text-align:center;color:#4ade80;">${s.wins}</td>
-      <td style="padding:11px 14px;text-align:center;color:#94a3b8;">${s.draws || 0}</td>
+      ${_drawCell}
       <td style="padding:11px 14px;text-align:center;color:#f87171;">${s.losses}</td>
       <td style="padding:11px 14px;text-align:center;color:${s.pointsDiff >= 0 ? '#4ade80' : '#f87171'};">${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}</td>` +
       _advCell +
@@ -2288,26 +2298,33 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     </div>`;
 
   const _thStyle = 'padding:9px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap;transition:color 0.15s;';
-  var _advColIdx = 7; // PA column (when adv enabled) sits after Saldo
-  var _gsmStartIdx = _useAdvStandings ? 8 : 7;
+  // v0.17.30: índices de coluna shiftam quando E é omitido. D/Saldo/PA/GSM/J
+  // recalculam pra continuar válidos no _sortStandingsTable.
+  var _drawShift = _drawsAllowed ? 0 : 1;
+  var _dColIdx = 5 - _drawShift;
+  var _saldoColIdx = 6 - _drawShift;
+  var _advColIdx = 7 - _drawShift; // PA column (when adv enabled) sits after Saldo
+  var _gsmStartIdx = _advColIdx + (_useAdvStandings ? 1 : 0);
+  const _drawHeader = _drawsAllowed ? `
+              <th style="${_thStyle}text-align:center;color:#94a3b8;" data-sort-col="4" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Empates">E <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
   const _advHeader = _useAdvStandings ? `
               <th style="${_thStyle}text-align:center;color:#fbbf24;" data-sort-col="${_advColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Pontos Avançados">⚡ PA <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
   const _gsmHeaders = _useSetsStandings ? `
-              <th style="${_thStyle}text-align:center;color:#06b6d4;" data-sort-col="${_gsmStartIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)">±S <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:#8b5cf6;" data-sort-col="${_gsmStartIdx + 1}" data-sort-type="num" onclick="window._sortStandingsTable(this)">±G <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
-  var _jColIdx = 7 + (_useAdvStandings ? 1 : 0) + (_useSetsStandings ? 2 : 0);
+              <th style="${_thStyle}text-align:center;color:#06b6d4;" data-sort-col="${_gsmStartIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Saldo de sets (vencidos − perdidos)">±S <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#8b5cf6;" data-sort-col="${_gsmStartIdx + 1}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Saldo de games (vencidos − perdidos)">±G <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>` : '';
+  var _jColIdx = _gsmStartIdx + (_useSetsStandings ? 2 : 0);
   const _tableHeader = `<thead>
             <tr style="border-bottom:2px solid var(--border-color);">
               <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="0" data-sort-type="num" onclick="window._sortStandingsTable(this)"># <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">▼</span></th>
               <th style="${_thStyle}text-align:left;color:var(--text-muted);" data-sort-col="1" data-sort-type="text" onclick="window._sortStandingsTable(this)">Participante <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:var(--primary-color);" data-sort-col="2" data-sort-type="num" onclick="window._sortStandingsTable(this)">Pts <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:#4ade80;" data-sort-col="3" data-sort-type="num" onclick="window._sortStandingsTable(this)">V <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:#94a3b8;" data-sort-col="4" data-sort-type="num" onclick="window._sortStandingsTable(this)">E <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:#f87171;" data-sort-col="5" data-sort-type="num" onclick="window._sortStandingsTable(this)">D <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
-              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="6" data-sort-type="num" onclick="window._sortStandingsTable(this)">Saldo <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--primary-color);" data-sort-col="2" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Pontos">Pts <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:#4ade80;" data-sort-col="3" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Vitórias">V <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              ${_drawHeader}
+              <th style="${_thStyle}text-align:center;color:#f87171;" data-sort-col="${_dColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Derrotas">D <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="${_saldoColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Saldo de pontos (pró − contra)">Saldo <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
               ${_advHeader}
               ${_gsmHeaders}
-              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="${_jColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
+              <th style="${_thStyle}text-align:center;color:var(--text-muted);" data-sort-col="${_jColIdx}" data-sort-type="num" onclick="window._sortStandingsTable(this)" title="Jogos disputados">J <span class="sort-arrow" style="font-size:0.6rem;opacity:0.4;">⇅</span></th>
             </tr>
           </thead>`;
 
