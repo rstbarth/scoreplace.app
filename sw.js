@@ -53,7 +53,12 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v0.17.56';
+var CACHE_NAME = 'scoreplace-v0.17.57';
+// NOTE: js/release-notes.js NÃO entra aqui de propósito — é lazy-loaded só
+// quando o usuário abre "Notas de versões" no Help. Adicioná-lo ao precache
+// faria cache.addAll baixar 1MB durante o SW install, anulando o ganho do
+// lazy-load. O fetch handler runtime (network-first p/ same-origin) cacheia
+// na primeira solicitação de quem realmente abre o changelog.
 var STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -70,7 +75,6 @@ var STATIC_ASSETS = [
   '/js/ui.js',
   '/js/router.js',
   '/js/main.js',
-  '/js/release-notes.js',
   '/js/views/dashboard.js',
   '/js/views/tournaments-utils.js',
   '/js/views/tournaments-sharing.js',
