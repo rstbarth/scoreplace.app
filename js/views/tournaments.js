@@ -1579,6 +1579,18 @@ function renderTournaments(container, tournamentId = null) {
                         allIndividuals.push({ name: pName, teamName: null, teamIdx: idx });
                     }
                 });
+                // v0.17.34: W.O.'d orphans (out of team, displayed solo with note)
+                if (t.woHistory && typeof t.woHistory === 'object') {
+                    Object.keys(t.woHistory).forEach(woName => {
+                        if (!woName) return;
+                        const meta = t.woHistory[woName];
+                        if (!meta || typeof meta !== 'object') return;
+                        // Skip se o nome já existe na lista (foi re-adicionado de algum jeito)
+                        const _exists = allIndividuals.some(ai => ai.name === woName);
+                        if (_exists) return;
+                        allIndividuals.push({ name: woName, teamName: null, teamIdx: -1, isWOOrphan: true, woMeta: meta });
+                    });
+                }
 
                 // Sort: apply user preference, then unchecked first
                 allIndividuals.sort((a, b) => {
@@ -1598,6 +1610,8 @@ function renderTournaments(container, tournamentId = null) {
                     if (currentFilter === 'present' && !mc) return '';
                     if (currentFilter === 'absent' && mc) return '';
 
+                    // v0.17.34: W.O. orphan branch
+                    const _isWOOrphanCI = !!ind.isWOOrphan;
                     const teamLabel = ind.teamName ? ind.teamName.replace(/\//g, ' / ') : '';
                     const isVipCI = !!_vipMapCI[ind.name] || (ind.teamName && !!_vipMapCI[ind.teamName]);
                     const vipTagCI = isVipCI ? ' <span style="background:linear-gradient(135deg,#eab308,#fbbf24);color:#1a1a2e;font-size:0.55rem;font-weight:900;padding:1px 5px;border-radius:3px;letter-spacing:0.5px;">⭐ VIP</span>' : '';
@@ -1610,7 +1624,22 @@ function renderTournaments(container, tournamentId = null) {
                     const _ciSafeNameHtml = window._safeHtml(_ciSafeName);
                     const _ciIsOrg = typeof window._isOrgName === 'function' && window._isOrgName(ind.name, t);
                     const _ciCrownInline = _ciIsOrg ? ' <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(251,191,36,0.9)" style="flex-shrink:0;vertical-align:middle;margin-left:2px;"><path d="M2 20h20v2H2zM4 17l2-9 4 4 2-6 2 6 4-4 2 9z"/></svg>' : '';
-                    var _ciMergeDrag = isOrg ? 'draggable="true" ondragstart="window._mergeDragStart(event, \'' + _ciSafeName + '\', \'' + t.id + '\')" ondragend="window._mergeDragEnd(event)" ondragover="event.preventDefault();event.dataTransfer.dropEffect=\'move\';" ondragenter="window._mergeDragEnter(event)" ondragleave="window._mergeDragLeave(event)" ondrop="event.stopPropagation();window._mergeDrop(event, \'' + _ciSafeName + '\', \'' + t.id + '\')"' : '';
+                    var _ciMergeDrag = (isOrg && !_isWOOrphanCI) ? 'draggable="true" ondragstart="window._mergeDragStart(event, \'' + _ciSafeName + '\', \'' + t.id + '\')" ondragend="window._mergeDragEnd(event)" ondragover="event.preventDefault();event.dataTransfer.dropEffect=\'move\';" ondragenter="window._mergeDragEnter(event)" ondragleave="window._mergeDragLeave(event)" ondrop="event.stopPropagation();window._mergeDrop(event, \'' + _ciSafeName + '\', \'' + t.id + '\')"' : '';
+
+                    if (_isWOOrphanCI && ind.woMeta) {
+                      const _woPartner = window._safeHtml(ind.woMeta.partner || '');
+                      const _woReplacedBy = window._safeHtml(ind.woMeta.replacedBy || '');
+                      const _woMatchN = ind.woMeta.matchNum || '?';
+                      return `
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);opacity:0.75;transition:all 0.2s;">
+                            <img src="${_ciAvatar}" onerror="this.onerror=null;this.src='${_ciFallback}'" data-player-name="${window._safeHtml(ind.name)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(239,68,68,0.3);filter:grayscale(0.5);" />
+                            <div style="flex:1;overflow:hidden;">
+                                <div style="font-weight:600;font-size:0.92rem;color:#f87171;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:line-through;text-decoration-color:rgba(248,113,113,0.4);">${window._safeHtml(ind.name)}${_ciCrownInline}${vipTagCI}</div>
+                                <div style="font-size:0.7rem;color:#f87171;margin-top:2px;font-weight:600;">❌ W.O. — Estava no Jogo ${_woMatchN}${_woPartner ? ` com <span style="color:#94a3b8;font-weight:500;">${_woPartner}</span>` : ''}${_woReplacedBy ? `<span style="color:var(--text-muted);font-weight:400;"> · substituído por <span style="color:#4ade80;font-weight:600;">${_woReplacedBy}</span></span>` : ''}</div>
+                            </div>
+                            <div style="font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);">W.O.</div>
+                        </div>`;
+                    }
                     return `
                       <div data-merge-name="${window._safeHtml(ind.name)}" ${_ciMergeDrag} style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${mc ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${mc ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'};${isVipCI ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;cursor:pointer;" onclick="window._toggleCheckIn('${t.id}', '${_ciSafeName}')">
                           <label class="toggle-switch toggle-sm" style="--toggle-on-bg:#10b981;--toggle-on-glow:rgba(16,185,129,0.3);--toggle-on-border:#10b981;" onclick="event.stopPropagation();"><input type="checkbox" ${mc ? 'checked' : ''} onclick="event.stopPropagation(); window._toggleCheckIn('${t.id}', '${_ciSafeName}');"><span class="toggle-slider"></span></label>

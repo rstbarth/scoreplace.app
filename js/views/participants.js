@@ -424,6 +424,20 @@ window._declareAbsent = function (tId, playerName) {
       _removeFromWaitlists(nextName);
       t.checkedIn[nextName] = true;
 
+      // v0.17.34: track W.O. history pra mostrar o jogador W.O.'d como
+      // entrada solo nos inscritos com nota "Estava no Jogo N com X".
+      // Pedido do usuário: "ele não tem a dupla formada no sorteio ao
+      // ser decretado W.O. (apenas menciona no card dele que estava no
+      // jogo n com o parceiro x)."
+      if (!t.woHistory) t.woHistory = {};
+      t.woHistory[playerName] = {
+        originalTeam: teamName,
+        partner: partnerName,
+        matchNum: friendlyNum,
+        replacedBy: nextName,
+        timestamp: Date.now()
+      };
+
       window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
       window.AppStore.sync();
       if (typeof showNotification === 'function') showNotification(_t('sub.done'), _t('sub.donePartnerMsg', { name: nextName, absent: playerName, partner: partnerName }), 'success');
@@ -646,6 +660,28 @@ function renderParticipants(container, tournamentId) {
       }
     });
 
+    // v0.17.34: Add W.O.'d orphan players (out of team, displayed solo with
+    // note "Estava no Jogo N com [partner]"). Pedido do usuário: o jogador
+    // que teve W.O. decretado deve sair do time e ter card solo mencionando
+    // o jogo e parceiro original.
+    if (t.woHistory && typeof t.woHistory === 'object') {
+      Object.keys(t.woHistory).forEach(woName => {
+        if (!woName) return;
+        const meta = t.woHistory[woName];
+        if (!meta || typeof meta !== 'object') return;
+        allIndividuals.push({
+          name: woName,
+          teamName: null,
+          teamIdx: -1,
+          matchNum: null,
+          matchDecided: false,
+          opponent: null,
+          isWOOrphan: true,
+          woMeta: meta
+        });
+      });
+    }
+
     // ── Deduplicate by name: if same person appears as individual AND in a team, keep team version ──
     const _seenNames = {};
     const _dedupedIndividuals = [];
@@ -676,7 +712,10 @@ function renderParticipants(container, tournamentId) {
 
     cardsStr = _dedupedIndividuals.map((ind) => {
       const mc = !!checkedIn[ind.name];
-      const isAbsent = !!absent[ind.name];
+      // v0.17.34: W.O. orphan = jogador que teve W.O. decretado e foi
+      // substituído. Foi removido do time, agora é solo com nota.
+      const isWOOrphan = !!ind.isWOOrphan;
+      const isAbsent = isWOOrphan ? true : !!absent[ind.name];
       const isPending = !mc && !isAbsent;
       if (currentFilter === 'present' && !mc) return '';
       if (currentFilter === 'absent' && !isAbsent) return '';
@@ -810,7 +849,15 @@ function renderParticipants(container, tournamentId) {
       // Mobile (< 768px) falls back to name on top, matchup block below.
       const _isNarrow = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
       let infoBlock;
-      if (hasMatchup && !_isNarrow) {
+      if (isWOOrphan && ind.woMeta) {
+        // v0.17.34: W.O. orphan card — solo, com nota "Estava no Jogo N com [parceiro]"
+        // (substituído por [substituto])". Sem matchup, sem time atual — só metadata.
+        const _woNameSafe = (ind.woMeta.partner || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const _woReplacedBySafe = (ind.woMeta.replacedBy || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const _woMatchNum = ind.woMeta.matchNum || '?';
+        const _woNote = `<div style="font-size:0.7rem;color:#f87171;margin-top:3px;font-weight:600;">❌ W.O. — Estava no Jogo ${_woMatchNum}${_woNameSafe ? ` com <span style="color:#94a3b8;font-weight:500;">${_woNameSafe}</span>` : ''}${_woReplacedBySafe ? `<span style="color:var(--text-muted);font-weight:400;"> · substituído por <span style="color:#4ade80;font-weight:600;">${_woReplacedBySafe}</span></span>` : ''}</div>`;
+        infoBlock = nameCell + _woNote;
+      } else if (hasMatchup && !_isNarrow) {
         infoBlock = `<div style="display:grid;grid-template-columns:auto 1fr auto;column-gap:10px;align-items:start;min-width:0;">${nameCell}${teamsCell || '<span></span>'}${vsCell || '<span></span>'}</div>`;
       } else if (hasMatchup) {
         const matchupRow = `<div style="display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:start;margin-top:3px;">${teamsCell || '<span></span>'}${vsCell || '<span></span>'}</div>`;
@@ -818,17 +865,21 @@ function renderParticipants(container, tournamentId) {
       } else {
         infoBlock = nameCell;
       }
+      // v0.17.34: W.O. orphans não mostram toggle Presente nem botão W.O.
+      // Só badge + nota explicativa. Não há ação possível — eles foram
+      // substituídos e fora da chave.
+      const _showActions = !isWOOrphan;
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}transition:all 0.2s;">
-            <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};" />
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}${isWOOrphan ? 'opacity:0.75;' : ''}transition:all 0.2s;">
+            <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};${isWOOrphan ? 'filter:grayscale(0.5);' : ''}" />
             <div style="flex:1;overflow:hidden;">
                 ${standbyHeader}
                 ${infoBlock}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                ${woBadge}
-                ${presentToggle}
-                ${woBtn}
+                ${isWOOrphan ? '<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>' : woBadge}
+                ${_showActions ? presentToggle : ''}
+                ${_showActions ? woBtn : ''}
             </div>
         </div>`;
     }).join('');

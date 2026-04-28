@@ -862,6 +862,21 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
         ci[replacementName] = true;
         t.checkedIn = ci;
 
+        // v0.17.34: track W.O. history pra mostrar o jogador W.O.'d como
+        // entrada solo nos inscritos com nota "Estava no Jogo N com X".
+        var _friendlyNumWO = (function() {
+          var idx = allMatches.indexOf(woMatch);
+          return idx >= 0 ? (idx + 1) : '?';
+        })();
+        if (!t.woHistory) t.woHistory = {};
+        t.woHistory[absentMemberName] = {
+          originalTeam: oldEntry,
+          partner: partnerName,
+          matchNum: _friendlyNumWO,
+          replacedBy: replacementName,
+          timestamp: Date.now()
+        };
+
         window.AppStore.logAction(tId, 'Substituição W.O.: ' + absentMemberName + ' → ' + replacementName + ' (parceiro: ' + partnerName + ')');
         window.AppStore.syncImmediate(tId);
         showNotification(_t('sub.done'), _t('sub.donePartnerMsg', {name: replacementName, absent: absentMemberName, partner: partnerName}), 'success');
