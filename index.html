@@ -87,16 +87,11 @@
              </button>
            </div>
 
-           <!-- Grupo 2: Ações — Visão -->
-           <div class="topbar-action-group" style="display: flex; align-items: center; gap: 9px;">
-             <div id="view-mode-container" style="display: none; align-items: center;">
-               <button id="view-mode-selector" class="btn hover-lift" style="background: #2563eb; color: #fff; font-size: 0.82rem; padding: 0 16px; height: 38px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.3); white-space: nowrap;" onclick="window.AppStore.toggleViewMode()">
-                  👁️ <span style="font-weight:600;">Organizador</span>
-               </button>
-             </div>
-           </div>
-
            <!-- Grupo 3: Perfil/Login (reordena via JS quando topbar quebra em 2 linhas) -->
+           <!-- v0.17.42: removido o botão "Visão Organizador/Participante" —
+                permissões agora são sempre por torneio (organizerEmail/coHosts
+                contra currentUser), o toggle confundia mais do que ajudava. -->
+
            <div class="topbar-profile-group" style="display: flex; align-items: center; gap: 4px;">
              <button class="btn btn-outline" id="btn-login" onclick="if(typeof window._closeHamburger==='function')window._closeHamburger(); if(typeof openModal==='function')openModal('modal-login');" style="font-size: 0.82rem; padding: 0 16px; height: 38px;" aria-label="Fazer login">Login</button>
            </div>
@@ -126,7 +121,7 @@
   <script src="js/i18n-en.js?v=0.17.40"></script>
 
   <script src="js/notification-catalog.js?v=0.17.1"></script>
-  <script src="js/store.js?v=0.17.41"></script>
+  <script src="js/store.js?v=0.17.42"></script>
   <script src="js/firebase-db.js?v=0.16.62"></script>
   <script src="js/presence-db.js?v=0.17.4"></script>
   <script src="js/presence-geo.js?v=0.15.44"></script>
@@ -159,11 +154,11 @@
   <script src="js/views/explore.js?v=0.15.19"></script>
   <script src="js/views/notifications-view.js?v=0.15.21"></script>
   <script src="js/views/venue-owner.js?v=0.17.17"></script>
-  <script src="js/views/auth.js?v=0.17.7"></script>
+  <script src="js/views/auth.js?v=0.17.42"></script>
 
   <script src="js/hints.js?v=0.15.90"></script>
   <script src="js/router.js?v=0.16.3"></script>
-  <script src="js/main.js?v=0.17.41"></script>
+  <script src="js/main.js?v=0.17.42"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

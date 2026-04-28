@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.41-alpha';
+window.SCOREPLACE_VERSION = '0.17.42-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1834,20 +1834,14 @@ window.AppStore = {
     }
   },
 
-  toggleViewMode() {
-    this.viewMode = this.viewMode === 'organizer' ? 'participant' : 'organizer';
-    var btn = document.getElementById('view-mode-selector');
-    if (btn) {
-      var _mob = window.innerWidth <= 767;
-      btn.innerHTML = this.viewMode === 'organizer'
-        ? '👁️ <span style="font-weight:600;">' + (_mob ? 'Org.' : 'Organizador') + '</span>'
-        : '👤 <span style="font-weight:600;">' + (_mob ? 'Part.' : 'Participante') + '</span>';
-    }
-    if (typeof initRouter === 'function') initRouter();
-  },
+  // v0.17.42: toggleViewMode removido — visão é sempre baseada na permissão
+  // real do usuário no torneio específico (organizerEmail/coHosts), não num
+  // toggle global. O botão "Visão Organizador/Participante" foi eliminado
+  // do topbar porque adicionava ruído sem entregar valor — todas as views
+  // já mostravam o mesmo conteúdo, só os botões de admin variavam, e isso
+  // já era checado por isOrganizer(t) per-torneio.
 
   isOrganizer(tournament) {
-    if (this.viewMode === 'participant') return false;
     if (!this.currentUser) return false;
     var email = this.currentUser.email;
     if (tournament.organizerEmail === email) return true;
@@ -1880,7 +1874,7 @@ window.AppStore = {
   },
 
   getMyOrganized() {
-    if (!this.currentUser || this.viewMode === 'participant') return [];
+    if (!this.currentUser) return [];
     var email = this.currentUser.email;
     return this.tournaments.filter(function(t) { return t.organizerEmail === email; });
   },
@@ -2131,17 +2125,11 @@ window._getCompetitors = function(t) {
   });
 };
 
-// Global Helper para controle do botão ViewMode na Topbar
-window.updateViewModeVisibility = function() {
-  var viewModeContainer = document.getElementById('view-mode-container');
-  if (!viewModeContainer) return;
-
-  if (window.AppStore.currentUser && window.AppStore.hasOrganizedTournaments()) {
-    viewModeContainer.style.setProperty('display', 'flex', 'important');
-  } else {
-    viewModeContainer.style.setProperty('display', 'none', 'important');
-  }
-};
+// v0.17.42: updateViewModeVisibility removido junto com o botão Visão.
+// Stub mantido como no-op pra compat com chamadas residuais — qualquer
+// caller que ainda invoque não quebra. Pode ser removido na próxima
+// limpeza geral.
+window.updateViewModeVisibility = function() {};
 
 // ─── Auto-scroll during drag (HTML5 + touch) ───────────────────────────────
 // Scrolls the nearest scrollable container (or window) when the pointer

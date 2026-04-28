@@ -1354,15 +1354,8 @@ async function simulateLoginSuccess(user) {
   // Recheck topbar wrap after profile button changed size
   if (typeof window._checkTopbarWrap === 'function') setTimeout(window._checkTopbarWrap, 100);
 
-  // Set view mode to organizer
-  window.AppStore.viewMode = 'organizer';
-  var viewModeBtn = document.getElementById('view-mode-selector');
-  if (viewModeBtn) viewModeBtn.innerHTML = '👁️ <span style="font-weight:600;">' + (window.innerWidth <= 767 ? _t('auth.orgShort') : _t('nav.organizer')) + '</span>';
-
-  // Update visibility of view mode selector
-  if (typeof window.updateViewModeVisibility === 'function') {
-    window.updateViewModeVisibility();
-  }
+  // v0.17.42: viewMode/botão Visão removidos — permissões agora são per-torneio.
+  window.AppStore.viewMode = 'organizer'; // legacy field, kept always 'organizer'
 
   // Close login modal
   var modal = document.getElementById('modal-login');
