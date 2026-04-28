@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.18-alpha';
+window.SCOREPLACE_VERSION = '0.17.19-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -694,14 +694,15 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
-// v0.17.18: _PADEL_ICON re-adicionado em SVG simples — pedido do usuário
-// pra "fazer a bolinha amarela". Filter CSS no emoji 🏓 (v0.17.17) tinta
-// tudo uniformemente; impossível colorir só a bolinha. SVG dá controle
-// por elemento. Design: ellipse paddle azul (#0284c7) rotacionado -25°
-// + rect cabo dark slate + circle bolinha amarela (#facc15) ao lado.
-// Sem furos, sem teardrop complexo da v0.17.13. Pickleball segue como
-// 🟡 emoji (não tem ball detail).
-window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(-25 10 11)"><ellipse cx="10" cy="11" rx="7" ry="8.5" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="8.5" y="19.5" width="3" height="2.5" rx="0.4" fill="#1e293b"/></g><circle cx="20" cy="20" r="2.7" fill="#facc15" stroke="#854d0e" stroke-width="0.3"/></svg>';
+// v0.17.19: ajuste do Padel — usuário reportou que o cabo "sumiu" e a
+// bola ficou no lugar do cabo. Causas: (a) cabo com height=2.5 era
+// minúsculo e invisível em 1em; (b) rotação -25° jogou cabo pra
+// lower-right onde a bola estava → confusão visual. Fix: rotação
+// invertida pra +25° (paddle aponta upper-right, cabo vai pra
+// lower-LEFT, bola fica isolada na lower-right) + cabo bem maior
+// (height 5.5 em vez de 2.5) + paddle ligeiramente menor (rx 6,
+// ry 7) pra dar espaço ao cabo crescido sem estourar 24×24.
+window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(25 10 10)"><ellipse cx="10" cy="10" rx="6" ry="7" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="8.5" y="17" width="3.5" height="5.5" rx="0.5" fill="#1e293b"/></g><circle cx="20" cy="20" r="2.5" fill="#facc15" stroke="#854d0e" stroke-width="0.3"/></svg>';
 
 // v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
 // resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
