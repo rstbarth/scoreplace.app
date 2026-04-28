@@ -634,28 +634,42 @@ function renderParticipants(container, tournamentId) {
     // ── Check-in mode: individual list with checkboxes ──
     gridStyle = 'display:flex;flex-direction:column;gap:6px;';
 
-    // Build map: participant/team name → { friendly match number, decided, opponent }
-    // Use canonical collector so Liga/Suíço/Grupos also populate the map
-    // (antes: silently empty para formatos não-elim).
-    const nameToMatch = {};
-    const nameToMatchDecided = {};
-    const nameToOpponent = {};
+    // v0.17.36: lookup é POR NOME DE MEMBRO, não por team string. Quando
+    // substituição W.O. acontece, o match é atualizado pra novo team
+    // ("Bot 04 / [sub]") mas t.participants pode ficar fora de sincronia
+    // por race condition ou string mismatch — o lookup por team name falha
+    // e o card do parceiro perde matchNum/opponent. Indexando por member
+    // direto, encontramos sempre o match atual independente do team string.
+    // Bonus: memberToTeam dá o team string da MATCH (source of truth pra
+    // composição atual), não do t.participants (pode ser stale).
+    const memberToMatch = {};
+    const memberToMatchDecided = {};
+    const memberToOpponent = {};
+    const memberToTeam = {};
     const _allForCheckin = (typeof window._collectAllMatches === 'function')
       ? window._collectAllMatches(t)
       : (Array.isArray(t.matches) ? t.matches.slice() : []);
     _allForCheckin.forEach((m, mi) => {
       if (!m) return;
       const num = mi + 1;
-      if (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') {
-        nameToMatch[m.p1] = num;
-        nameToMatchDecided[m.p1] = !!m.winner;
-        nameToOpponent[m.p1] = (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') ? m.p2 : null;
-      }
-      if (m.p2 && m.p2 !== 'TBD' && m.p2 !== 'BYE') {
-        nameToMatch[m.p2] = num;
-        nameToMatchDecided[m.p2] = !!m.winner;
-        nameToOpponent[m.p2] = (m.p1 && m.p1 !== 'TBD' && m.p1 !== 'BYE') ? m.p1 : null;
-      }
+      ['p1', 'p2'].forEach(slot => {
+        const teamStr = m[slot];
+        if (!teamStr || teamStr === 'TBD' || teamStr === 'BYE') return;
+        const oppSlot = slot === 'p1' ? 'p2' : 'p1';
+        const opp = m[oppSlot];
+        const oppValid = opp && opp !== 'TBD' && opp !== 'BYE' ? opp : null;
+        const members = teamStr.includes('/') ? teamStr.split('/').map(n => n.trim()).filter(n => n) : [teamStr];
+        members.forEach(memberName => {
+          // Não sobrescrever — primeiro match em que o membro aparece vence.
+          // (Caso edge: jogador em múltiplos matches no mesmo bracket — raro
+          // mas possível em Liga/Rei-Rainha.)
+          if (memberToMatch[memberName] != null) return;
+          memberToMatch[memberName] = num;
+          memberToMatchDecided[memberName] = !!m.winner;
+          memberToOpponent[memberName] = oppValid;
+          memberToTeam[memberName] = teamStr;
+        });
+      });
     });
 
     const allIndividuals = [];
@@ -664,21 +678,19 @@ function renderParticipants(container, tournamentId) {
     const _woHist = (t.woHistory && typeof t.woHistory === 'object') ? t.woHistory : {};
     parts.forEach((p, idx) => {
       const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || _t('participants.participant', {n: idx + 1}));
-      if (pName.includes('/')) {
-        const matchNum = nameToMatch[pName] || null;
-        const matchDecided = !!nameToMatchDecided[pName];
-        const opponent = nameToOpponent[pName] || null;
-        pName.split('/').map(n => n.trim()).filter(n => n).forEach(n => {
-          if (_woHist[n]) return; // skip W.O.'d member — solo card via woHistory loop
-          allIndividuals.push({ name: n, teamName: pName, teamIdx: idx, matchNum, matchDecided, opponent });
-        });
-      } else {
-        if (_woHist[pName]) return; // skip solo W.O.'d player
-        const matchNum = nameToMatch[pName] || null;
-        const matchDecided = !!nameToMatchDecided[pName];
-        const opponent = nameToOpponent[pName] || null;
-        allIndividuals.push({ name: pName, teamName: null, teamIdx: idx, matchNum, matchDecided, opponent });
-      }
+      const isTeam = pName.includes('/');
+      const namesToProcess = isTeam ? pName.split('/').map(n => n.trim()).filter(n => n) : [pName];
+      namesToProcess.forEach(n => {
+        if (_woHist[n]) return; // skip W.O.'d member — solo card via woHistory loop
+        // v0.17.36: lookup por nome do membro (source of truth: match atual).
+        // memberToTeam dá o team string da match — pode diferir de pName se
+        // t.participants estiver stale após substituição.
+        const matchNum = memberToMatch[n] || null;
+        const matchDecided = !!memberToMatchDecided[n];
+        const opponent = memberToOpponent[n] || null;
+        const currentTeam = memberToTeam[n] || (isTeam ? pName : null);
+        allIndividuals.push({ name: n, teamName: currentTeam, teamIdx: idx, matchNum, matchDecided, opponent });
+      });
     });
 
     // Add standby participants
