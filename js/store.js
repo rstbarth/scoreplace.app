@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.20-alpha';
+window.SCOREPLACE_VERSION = '0.17.21-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -694,17 +694,13 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
-// v0.17.20: redesign mimetizando o emoji 🏓 — usuário pediu pra que o
-// ícone "seja o mesmo emoji do tenis de mesa, espalhado lateralmente
-// com o vermelho da raquete trocado para o azul e a bola branca em
-// amarelo tambem espelhada (em outra posição em relação a raquete)."
-// Estrutura visual do 🏓 Apple: paddle face upper-LEFT, cabo brown
-// extending lower-RIGHT, bola white na direita do paddle. Mirrored:
-// paddle face upper-RIGHT, cabo lower-LEFT, bola yellow na ESQUERDA
-// (oposto ao original). Cabo agora marrom (#5d4037) imitando madeira
-// do emoji, mais largo (4×5.5). Paddle face maior (rx=6, ry=7.5)
-// posicionado à direita (cx=15) pra deixar espaço pra bola na esquerda.
-window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(20 15 10)"><ellipse cx="15" cy="10" rx="6" ry="7.5" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="13" y="17" width="4" height="5.5" rx="0.5" fill="#5d4037"/></g><circle cx="4" cy="11" r="2.7" fill="#facc15" stroke="#854d0e" stroke-width="0.3"/></svg>';
+// v0.17.21: Padel volta pro emoji 🏓 com CSS — pedido literal do usuário:
+// "o padel deve ser um emoji apenas com ajustes na cor e espelhamento do
+// emoji do tenis de mesa." SVG da v0.17.20 removido. Caveat: hue-rotate
+// não consegue colorir só a bolinha — afeta uniformemente todo o glifo.
+// Paddle vermelho vira azul ✓, bola branca permanece branca (white não
+// tem hue). Trade-off aceito pela escolha do usuário por emoji.
+// _PADEL_ICON removido da store.js — resolver retorna o span direto.
 
 // v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
 // resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
@@ -732,7 +728,7 @@ window._sportIcon = function(sport) {
   if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
   if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
   if (s.indexOf('pickleball') !== -1) return '🟡';
-  if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
+  if (s.indexOf('padel') !== -1) return '<span style="display:inline-block;transform:scaleX(-1);filter:hue-rotate(220deg);">🏓</span>';
   if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
   if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
   return '🏆';
