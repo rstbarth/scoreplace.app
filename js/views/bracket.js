@@ -1985,6 +1985,43 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
   // matches into a separate card that gets interposed AFTER the standings table.
   let ligaOtherMatchesHtml = '';
 
+  // v0.17.29: detecta se o usuário logado ficou de fora desta rodada (sit-out
+  // por estar Desativado OU por sobrar do agrupamento "Sem grupo"). Quando
+  // isso acontece, a informação mais relevante pra ele é a CLASSIFICAÇÃO
+  // GERAL — afinal ele não joga nessa rodada. A detecção é feita aqui (uma
+  // vez) e usada em 3 pontos: (a) destaque do pill dele em "Ficaram de
+  // fora"; (b) IIFE de Rei/Rainha não renderiza grupos no currentRoundHtml
+  // — joga tudo pra ligaOtherMatchesHtml; (c) IIFE de Liga normal idem.
+  // Resultado: standings aparecem logo após o cabeçalho de sit-outs.
+  var _curUser = window.AppStore && window.AppStore.currentUser;
+  var _curUserName = _curUser ? (_curUser.displayName || '') : '';
+  var _curUserEmail = _curUser ? (_curUser.email || '') : '';
+  var _nameMatchesCurUser = function(n) {
+    if (!_curUser || !n) return false;
+    if (_curUserName && (n === _curUserName || n.indexOf(_curUserName) !== -1)) return true;
+    if (_curUserEmail && n === _curUserEmail) return true;
+    if (n.indexOf('/') !== -1) {
+      var parts = n.split('/').map(function(s){return s.trim();});
+      return parts.some(function(p) {
+        return (_curUserName && p === _curUserName) || (_curUserEmail && p === _curUserEmail);
+      });
+    }
+    return false;
+  };
+  var _userIsOutOfRound = false;
+  var _userSitOutReason = null;
+  if (isLigaFmt && _curUser) {
+    var _curRoundSitOuts = (currentRoundData.matches || []).filter(function(m) { return m && m.isSitOut; });
+    for (var _soi = 0; _soi < _curRoundSitOuts.length; _soi++) {
+      var _so = _curRoundSitOuts[_soi];
+      if (_nameMatchesCurUser(_so.p1)) {
+        _userIsOutOfRound = true;
+        _userSitOutReason = _so.sitOutReason || 'remainder';
+        break;
+      }
+    }
+  }
+
   const currentRoundHtml = `
     <div class="card" style="margin-top:1.5rem;">
       ${rankingCountdownHtml}
@@ -2020,7 +2057,14 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           var _names = items.map(function(m) {
             var _pts = m.sitOutPoints != null ? m.sitOutPoints : 0;
             var _ptsLbl = '<span style="font-size:0.7rem;font-weight:700;opacity:0.85;margin-left:4px;">+' + _pts + ' pt' + (_pts !== 1 ? 's' : '') + '</span>';
-            return '<span style="background:rgba(255,255,255,0.06);border:1px solid ' + border + ';color:' + color + ';font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;" onclick="if(window._showPlayerStats)window._showPlayerStats(\'' + window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + '\',\'' + String(t.id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">' + window._safeHtml(m.p1) + _ptsLbl + '</span>';
+            // v0.17.29: destaque ciano + badge "VOCÊ" no pill do usuário
+            // logado — leitura imediata de "estou de fora porque…"
+            var _isMe = _nameMatchesCurUser(m.p1);
+            var _bgPill = _isMe ? 'rgba(34,211,238,0.12)' : 'rgba(255,255,255,0.06)';
+            var _borderPill = _isMe ? 'rgba(34,211,238,0.55)' : border;
+            var _colorPill = _isMe ? '#22d3ee' : color;
+            var _meBadge = _isMe ? '<span style="font-size:0.6rem;font-weight:800;letter-spacing:0.5px;background:rgba(34,211,238,0.22);color:#a5f3fc;padding:1px 5px;border-radius:5px;margin-left:6px;">VOCÊ</span>' : '';
+            return '<span style="background:' + _bgPill + ';border:1px solid ' + _borderPill + ';color:' + _colorPill + ';font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;" onclick="if(window._showPlayerStats)window._showPlayerStats(\'' + window._safeHtml(String(m.p1).replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + '\',\'' + String(t.id).replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">' + window._safeHtml(m.p1) + _ptsLbl + _meBadge + '</span>';
           }).join('');
           return '<div style="margin-bottom:8px;">' +
             '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:' + color + ';margin-bottom:4px;">' +
@@ -2142,6 +2186,21 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             '<div style="overflow-x:auto;">' + gTable + '</div>' +
           '</div>';
         };
+        // v0.17.29: usuário fora da rodada (desativado/sem grupo) → todos
+        // os grupos vão pra ligaOtherMatchesHtml (collapsed). Standings ficam
+        // logo após o cabeçalho de sit-outs, sem grupo nenhum atravessando.
+        if (isLigaFmt && _userIsOutOfRound) {
+          var _allCount = sortedGroups.reduce(function(acc, g) { return acc + (g.matches ? g.matches.length : 0); }, 0);
+          ligaOtherMatchesHtml = '<div class="card" style="margin-bottom:1rem;">' +
+            '<details>' +
+              '<summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:0.9rem;font-weight:600;color:var(--text-muted);">' +
+                '<span>▸ Jogos da rodada (' + _allCount + ')</span>' +
+              '</summary>' +
+              '<div style="margin-top:1rem;">' + sortedGroups.map(_renderGroup).join('') + '</div>' +
+            '</details>' +
+          '</div>';
+          return '';
+        }
         // v0.16.88: se há split user-vs-others, stash os outros grupos em
         // ligaOtherMatchesHtml como collapsible (mesmo padrão do não-monarch
         // Liga). Senão, renderiza tudo junto.
@@ -2185,6 +2244,21 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           }
           return false;
         };
+        // v0.17.29: usuário fora da rodada (desativado/sem grupo) → todos
+        // os jogos vão pra ligaOtherMatchesHtml (collapsed). Standings ficam
+        // logo após o cabeçalho de sit-outs.
+        if (isLigaFmt && _userIsOutOfRound) {
+          const allHtml = allMatches.map((m, i) => buildCard(m, i)).join('');
+          ligaOtherMatchesHtml = `<div class="card" style="margin-bottom:1rem;">
+            <details>
+              <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:0.9rem;font-weight:600;color:var(--text-muted);">
+                <span>▸ Jogos da rodada (${allMatches.length})</span>
+              </summary>
+              <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:1rem;">${allHtml}</div>
+            </details>
+          </div>`;
+          return '';
+        }
         if (isLigaFmt && _cu) {
           const myIdx = [];
           const otherIdx = [];
