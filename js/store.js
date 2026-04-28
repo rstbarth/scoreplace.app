@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.21-alpha';
+window.SCOREPLACE_VERSION = '0.17.22-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -694,13 +694,11 @@ window._BEACH_TENNIS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" s
 // 🥒 (pepino) que era visualmente errado — ficou pelo nome "pickle"-ball
 // mas não comunica o esporte. Cor base #facc15 (amarelo pickleball) e
 // furos #a16207 (amber escuro pra dar profundidade).
-// v0.17.21: Padel volta pro emoji 🏓 com CSS — pedido literal do usuário:
-// "o padel deve ser um emoji apenas com ajustes na cor e espelhamento do
-// emoji do tenis de mesa." SVG da v0.17.20 removido. Caveat: hue-rotate
-// não consegue colorir só a bolinha — afeta uniformemente todo o glifo.
-// Paddle vermelho vira azul ✓, bola branca permanece branca (white não
-// tem hue). Trade-off aceito pela escolha do usuário por emoji.
-// _PADEL_ICON removido da store.js — resolver retorna o span direto.
+// v0.17.22: Padel = 🥎 (softball emoji). Pedido do usuário: "vamos usar
+// a bola de softball para o padel então." Após várias iterações tentando
+// recolorir o 🏓 com CSS sem conseguir bola amarela, simplificamos: usa
+// 🥎 que já é um ball emoji visualmente distinto de 🎾 (Tênis). Sem CSS,
+// sem SVG — apenas emoji nativo. Render fica consistente em todos os OS.
 
 // v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
 // resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
@@ -728,7 +726,7 @@ window._sportIcon = function(sport) {
   if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
   if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
   if (s.indexOf('pickleball') !== -1) return '🟡';
-  if (s.indexOf('padel') !== -1) return '<span style="display:inline-block;transform:scaleX(-1);filter:hue-rotate(220deg);">🏓</span>';
+  if (s.indexOf('padel') !== -1) return '🥎';
   if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
   if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
   return '🏆';
