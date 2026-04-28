@@ -1479,13 +1479,18 @@ function renderDashboard(container) {
             <span>Place</span>
           </button>
         </div>
+        <!-- v0.17.46: Row 2 (interativos: Pessoas + Convidar) e Row 3
+             (utilitários: Pro + Apoie, mais discretos) separados em linhas
+             próprias. Apoie/Pro ficam em uma linha menor — não competem
+             visualmente com Pessoas/Convidar que são uso mais frequente. -->
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <!-- v0.17.45: Row 2 também mais alta — height 46→54px,
-               font 0.88→0.92rem, padding 18→20px, radius 11→12px. -->
           <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
-          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
-          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
+        </div>
+        <!-- Row 3: Pro + Apoie (utilitários menores, mais discretos) -->
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: -2px;">
+          <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.78rem; font-weight: 600; padding: 0 14px; height: 34px; border-radius: 9px; opacity: 0.9;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
+          <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.78rem; font-weight: 600; padding: 0 14px; height: 34px; border-radius: 9px; opacity: 0.9;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
         </div>
       </div>
 
