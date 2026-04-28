@@ -2,6 +2,10 @@
 var _t = window._t || function(k) { return k; };
 
 // ── Funções globais de check-in (disponíveis para qualquer view) ──
+// v0.17.33: adicionado suporte a #bracket/ — Lista de Espera vive em
+// bracket.js e o toggle Presente daí precisa re-renderizar a view de
+// bracket pra atualizar o label "Ausente"/"Presente" (CSS reactive já
+// flipa o toggle visual via :checked, mas o texto vem do render).
 function _reRenderParticipants() {
   const hash = window.location.hash;
   const container = document.getElementById('view-container');
@@ -12,6 +16,9 @@ function _reRenderParticipants() {
   } else if (hash.startsWith('#tournaments/')) {
     const id = hash.split('/')[1];
     if (typeof renderTournaments === 'function') renderTournaments(container, id);
+  } else if (hash.startsWith('#bracket/')) {
+    const id = hash.split('/')[1];
+    if (typeof renderBracket === 'function') renderBracket(container, id);
   }
 }
 

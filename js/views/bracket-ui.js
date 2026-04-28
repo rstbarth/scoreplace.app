@@ -740,7 +740,11 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
   var standby = _sp.slice();
   _wl.forEach(function(w) { var wn = getName(w); if (wn && !_spNames.has(wn)) standby.push(w); });
 
-  // Pick replacement: specific override (manual pick) or first present in queue
+  // Pick replacement: specific override (manual pick) or first to check in
+  // (FIFO por timestamp de check-in — "primeiro que chega, primeiro que joga")
+  // v0.17.33: ordering por ci[name] timestamp em vez de ordem do array
+  // garante que quem marcou Presente PRIMEIRO seja substituído primeiro,
+  // independente de onde está no array de standby.
   var nextPresent = null;
   if (overrideReplacementName) {
     nextPresent = standby.find(function(p) { return getName(p) === overrideReplacementName; });
@@ -749,7 +753,13 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
       return;
     }
   }
-  if (!nextPresent) nextPresent = standby.find(function(p) { return !!ci[getName(p)]; });
+  if (!nextPresent) {
+    var presentInStandby = standby.filter(function(p) { return !!ci[getName(p)]; });
+    presentInStandby.sort(function(a, b) {
+      return (ci[getName(a)] || 0) - (ci[getName(b)] || 0);
+    });
+    nextPresent = presentInStandby[0];
+  }
   if (!nextPresent) {
     if (typeof showNotification === 'function') showNotification(_t('sub.noSubPresent'), _t('sub.noSubPresentMsg'), 'warning');
     return;
