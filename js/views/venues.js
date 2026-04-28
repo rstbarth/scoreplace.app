@@ -267,21 +267,8 @@
   // Sport icon helper (local copy — venue-owner.js has another in its closure).
   // Somente modalidades com times de até 2 jogadores (esportes com times >2
   // como vôlei indoor, basquete, futsal, futebol e handebol ficaram de fora).
-  function _sportIcon(sport) {
-    var s = String(sport || '').toLowerCase();
-    // v0.17.9: Beach Tennis = SVG inline (bola laranja com seam branco
-    // estilo tênis). Pedido do usuário: bola como tênis mas laranja.
-    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
-    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
-    if (s.indexOf('mesa') !== -1) return '🏓';
-    if (s.indexOf('squash') !== -1) return '🟡';
-    if (s.indexOf('badminton') !== -1) return '🏸';
-    // Futevôlei ANTES de qualquer match contendo "volei".
-    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
-    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
-    return '🎾';
-  }
+  // v0.17.16: delega ao resolver global em store.js (centralização).
+  function _sportIcon(sport) { return window._sportIcon ? window._sportIcon(sport) : '🎾'; }
 
   // v0.16.27: helpers portados de presence.js pras seções "Agora no local"
   // e "Próximas horas" do card focado.
@@ -2412,19 +2399,8 @@
     // Async: courts agregados por modalidade — mostra "4 quadras de Beach
     // Tennis (compartilhadas) · 2 de Tênis (saibro) · ..." antes do resto
     // pra dar contexto imediato das opções. Read público via rules.
-    var _sportIcon = function(s) {
-      // Somente modalidades com times de até 2 jogadores (regra atual do app
-      // — esportes com times >2 como vôlei indoor, basquete, futsal, futebol e
-      // handebol ficaram de fora por enquanto).
-      var icons = {
-        'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': (window._PICKLEBALL_ICON || '🥒'), 'Tênis': '🎾', 'Tennis': '🎾',
-        'Padel': (window._PADEL_ICON || '🏸'), 'Tênis de Mesa': '🏓',
-        'Vôlei de Praia': '🏐',
-        'Futevôlei': '⚽', 'Futvôlei': '⚽',
-        'Squash': '🟡', 'Badminton': '🏸'
-      };
-      return icons[s] || '🏅';
-    };
+    // v0.17.16: delega ao resolver global em store.js (centralização).
+    var _sportIcon = function(s) { return window._sportIcon ? window._sportIcon(s) : '🏅'; };
     if (window.VenueDB && typeof window.VenueDB.aggregateVenueCourts === 'function') {
       window.VenueDB.aggregateVenueCourts(v.placeId).then(function(agg) {
         var slot = document.getElementById('venue-courts-agg-slot');

@@ -3034,22 +3034,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
   }
 
   // Sport emoji for serve picker
-  var _sportBall = '🎾'; // default
-  (function() {
+  // v0.17.16: delega ao resolver global em store.js (centralização).
+  var _sportBall = (function() {
     var sn = isCasual ? (opts.sportName || '') : (t && t.sport ? t.sport : '');
-    var lower = sn.toLowerCase();
-    if (lower.indexOf('pickleball') !== -1) _sportBall = window._PICKLEBALL_ICON || '🥒';
-    else if (lower.indexOf('mesa') !== -1 || lower.indexOf('ping') !== -1) _sportBall = '🏓';
-    else if (lower.indexOf('padel') !== -1) _sportBall = window._PADEL_ICON || '🏸';
-    else if (lower.indexOf('badminton') !== -1) _sportBall = '🏸';
-    // Futevôlei ANTES de vôlei-de-praia (futevôlei contém "vôlei" como substring)
-    else if (lower.indexOf('futvôlei') !== -1 || lower.indexOf('futvolei') !== -1 || lower.indexOf('futevôlei') !== -1 || lower.indexOf('futevolei') !== -1) _sportBall = '⚽';
-    // Só Vôlei de Praia é modalidade suportada — vôlei indoor (times de 6) fica de fora.
-    else if (lower.indexOf('vôlei de praia') !== -1 || lower.indexOf('volei de praia') !== -1) _sportBall = '🏐';
-    // v0.17.9: Beach Tennis ANTES de tennis genérico — SVG bicolor.
-    else if (lower.indexOf('beach') !== -1) _sportBall = window._BEACH_TENNIS_ICON || '🟠';
-    else if (lower.indexOf('tênis') !== -1 || lower.indexOf('tenis') !== -1) _sportBall = '🎾';
-    else if (lower.indexOf('simples') !== -1 || lower.indexOf('simple') !== -1) _sportBall = '🏅';
+    return window._sportIcon ? window._sportIcon(sn) : '🎾';
   })();
 
   // ── State ──

@@ -274,21 +274,8 @@ function renderDashboard(container) {
   const abertosParaVoce = [...myOpenTournaments, ...discoveryOpen].sort(sortByDate);
 
   const cleanSportName = (sport) => sport ? sport.replace(/^[^\w\u00C0-\u024F]+/u, '').trim() : '';
-  const getSportIcon = (sport) => {
-    if (!sport) return '🏆';
-    const s = sport.toLowerCase();
-    if (s.includes('tênis de mesa') || s.includes('tenis de mesa') || s.includes('ping pong')) return '🏓';
-    if (s.includes('padel')) return window._PADEL_ICON || '🏸';
-    if (s.includes('pickleball')) return window._PICKLEBALL_ICON || '🥒';
-    // Futevôlei ANTES de vôlei-de-praia (contém "vôlei" como substring).
-    if (s.includes('futvôlei') || s.includes('futvolei') || s.includes('futevôlei') || s.includes('futevolei')) return '⚽';
-    // Só Vôlei de Praia é modalidade suportada — vôlei indoor (times de 6) fica de fora.
-    if (s.includes('vôlei de praia') || s.includes('volei de praia')) return '🏐';
-    // v0.17.9: Beach Tennis ANTES de tennis genérico — SVG bicolor.
-    if (s.includes('beach')) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.includes('tênis') || s.includes('tennis')) return '🎾';
-    return '🏆';
-  };
+  // v0.17.16: delega ao resolver global em store.js (centralização).
+  const getSportIcon = (sport) => window._sportIcon ? window._sportIcon(sport) : '🏆';
 
   const renderTournamentCard = (t, type) => {
     var _t = window._t || function(k) { return k; };

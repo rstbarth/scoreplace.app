@@ -835,23 +835,8 @@
     }
   };
 
-  function _sportIconFor(sport) {
-    // Somente modalidades com times de até 2 jogadores — vôlei indoor,
-    // basquete, futsal, futebol e handebol ficaram de fora por enquanto.
-    var s = String(sport || '').toLowerCase();
-    // v0.17.9: Beach Tennis = SVG bola laranja com seam (defined em store.js)
-    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
-    if (s.indexOf('mesa') !== -1 || s.indexOf('ping') !== -1) return '🏓';
-    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
-    if (s.indexOf('squash') !== -1) return '🎯';
-    if (s.indexOf('badminton') !== -1) return '🏸';
-    // Futevôlei ANTES de qualquer match contendo "volei".
-    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
-    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
-    if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1) return '🎾';
-    return '🎾';
-  }
+  // v0.17.16: delega ao resolver global em store.js (centralização).
+  function _sportIconFor(sport) { return window._sportIcon ? window._sportIcon(sport) : '🎾'; }
 
   // ─── Courts screen (new UX spec v0.15.43) ─────────────────────────────────
   // Full-screen overlay with venue name at top, "+" button to expand an

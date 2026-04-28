@@ -2,11 +2,9 @@
 (function() {
   'use strict';
 
-  var _sportIcons = {
-    'Beach Tennis': (window._BEACH_TENNIS_ICON || '🟠'), 'Pickleball': (window._PICKLEBALL_ICON || '🥒'), 'Tenis': '🎾',
-    'Tenis de Mesa': '🏓', 'Padel': (window._PADEL_ICON || '🏸'),
-    'Vôlei de Praia': '🏐', 'Volei de Praia': '🏐', 'Futevôlei': '⚽', 'Futevolei': '⚽'
-  };
+  // v0.17.16: lista de modalidades — ícones resolvidos via window._sportIcon
+  // (resolver centralizado em store.js). Mantém só os labels.
+  var _SPORTS_LANDING = ['Beach Tennis', 'Pickleball', 'Tenis', 'Tenis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'];
 
   window.renderLanding = function(container) {
     var t = window._t || function(k) { return k; };
@@ -46,8 +44,9 @@
           t('landing.cta') +
         '</button>' +
         '<div class="landing-sports-row">' +
-          Object.keys(_sportIcons).map(function(s) {
-            return '<span class="landing-sport-pill">' + _sportIcons[s] + ' ' + s + '</span>';
+          _SPORTS_LANDING.map(function(s) {
+            var icon = window._sportIcon ? window._sportIcon(s) : '';
+            return '<span class="landing-sport-pill">' + icon + ' ' + s + '</span>';
           }).join('') +
         '</div>' +
       '</div>' +

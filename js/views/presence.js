@@ -23,22 +23,8 @@
 
   // Sport → emoji map (shared with the rest of the app — mirrors dashboard.js
   // getSportIcon). Keeps icons in the chips consistent everywhere.
-  function _sportIcon(sport) {
-    if (!sport) return '';
-    var s = String(sport).toLowerCase();
-    if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1) return '🏓';
-    if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
-    if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
-    // Futevôlei ANTES de qualquer match de "vôlei" (contém "volei" como substring).
-    if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
-    // Vôlei de Praia (dupla) — SEM match genérico de "vôlei" porque indoor tem 6 jogadores
-    // por time e esportes com times >2 estão fora do app por enquanto.
-    if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
-    // v0.17.9: Beach Tennis ANTES de tennis genérico — usa SVG bicolor laranja+amarelo.
-    if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
-    if (s.indexOf('tênis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
-    return '🏆';
-  }
+  // v0.17.16: delega ao resolver global em store.js (centralização).
+  function _sportIcon(sport) { return window._sportIcon ? window._sportIcon(sport) : '🏆'; }
 
   // Concatenate dedup'd icons for a list of sports.
   function _sportsIcons(sports) {

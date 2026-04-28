@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.15-alpha';
+window.SCOREPLACE_VERSION = '0.17.16-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -705,6 +705,37 @@ window._PICKLEBALL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" sty
 // silhueta significativamente maior. Cores e formato preservados — só
 // raquete (sem bola, sem furos), azul Drop Shot (#0284c7) + cabo escuro.
 window._PADEL_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;" aria-label="Padel"><g transform="rotate(-20 12 12)"><path d="M 12 2 C 17.5 2, 20.5 5.5, 20.5 10 C 20.5 13.5, 17.5 16, 14 17 L 10 17 C 6.5 16, 3.5 13.5, 3.5 10 C 3.5 5.5, 6.5 2, 12 2 Z" fill="#0284c7" stroke="#0c4a6e" stroke-width="0.5"/><rect x="10.5" y="17" width="3" height="3" rx="0.5" fill="#1e293b"/></g></svg>';
+
+// v0.17.16: SPORT ICON RESOLVER CENTRALIZADO. Substituto único pros ~10
+// resolvers `_sportIcon` espalhados pelo app (venues×2, landing,
+// venue-owner, presence, dashboard, tournaments, bracket-ui×2). Pedido
+// do usuário após detectar regressão visual nos pills do modal-quick-create:
+// "vamos centralizar no programa os icones das modalidades. veja que
+// tivemos uma nova regressão."
+//
+// Regra cristalizada: TODA renderização de ícone de modalidade no app
+// deve passar por window._sportIcon(sport). Hardcodes em template literal
+// são proibidos — sempre interpolar ${window._sportIcon('Beach Tennis')}.
+//
+// Ordem de matching crítica:
+// 1. futevôlei ANTES de qualquer "vôlei" (substring trap — "futevôlei"
+//    contém "vôlei", então a ordem inversa pega o ícone errado)
+// 2. tênis de mesa / mesa / ping pong ANTES de "tênis" genérico
+// 3. beach ANTES de tennis (Beach Tennis ≠ Tênis comum)
+window._sportIcon = function(sport) {
+  if (!sport) return '';
+  var s = String(sport).toLowerCase();
+  if (s.indexOf('futvôlei') !== -1 || s.indexOf('futvolei') !== -1 || s.indexOf('futevôlei') !== -1 || s.indexOf('futevolei') !== -1) return '⚽';
+  if (s.indexOf('vôlei de praia') !== -1 || s.indexOf('volei de praia') !== -1) return '🏐';
+  if (s.indexOf('beach') !== -1) return window._BEACH_TENNIS_ICON || '🟠';
+  if (s.indexOf('pickleball') !== -1) return window._PICKLEBALL_ICON || '🥒';
+  if (s.indexOf('padel') !== -1) return window._PADEL_ICON || '🏸';
+  if (s.indexOf('tênis de mesa') !== -1 || s.indexOf('tenis de mesa') !== -1 || s.indexOf('ping pong') !== -1 || s.indexOf('mesa') !== -1) return '🏓';
+  if (s.indexOf('squash') !== -1) return '🟡';
+  if (s.indexOf('badminton') !== -1) return '🏸';
+  if (s.indexOf('tênis') !== -1 || s.indexOf('tenis') !== -1 || s.indexOf('tennis') !== -1) return '🎾';
+  return '🏆';
+};
 
 // v0.17.5: dedup de cu.friends antes de disparar notificações pra evitar
 // "várias notificações em cada evento". cu.friends pode conter o mesmo
