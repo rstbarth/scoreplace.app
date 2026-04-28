@@ -1067,8 +1067,8 @@
     var s = document.createElement('script');
     s.src = 'js/release-notes.js?v=' + (window.SCOREPLACE_VERSION || '');
     s.onload = function () {
-      window._releaseNotesLoaded = true;
-      window._releaseNotesLoading = false;
+      // DOM update PRIMEIRO, flag DEPOIS — garante que observadores externos
+      // (Playwright, hint system) que esperam pelo flag vejam DOM já atualizado.
       var ph = document.getElementById('release-notes-placeholder');
       if (ph && typeof window._RELEASE_NOTES_HTML === 'string') {
         ph.outerHTML = window._RELEASE_NOTES_HTML;
@@ -1082,6 +1082,8 @@
           }
         }
       }
+      window._releaseNotesLoaded = true;
+      window._releaseNotesLoading = false;
     };
     s.onerror = function () {
       window._releaseNotesLoading = false;

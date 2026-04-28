@@ -5,3 +5,9 @@
 outputs/
 functions/node_modules/
 extensions/
+
+# E2E / dev tooling
+node_modules/
+playwright-report/
+test-results/
+.lighthouseci/

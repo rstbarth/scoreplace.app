@@ -1,0 +1,20 @@
+{
+  "name": "scoreplace-app",
+  "version": "0.17.58-alpha",
+  "private": true,
+  "description": "scoreplace.app — vanilla JS SPA. Package.json existe apenas para devDependencies de tooling (Playwright, Lighthouse). NÃO há build step nem bundler — index.html serve js/ e css/ direto.",
+  "scripts": {
+    "test": "node tests/test-utils.js",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "lighthouse": "lighthouse https://scoreplace.app/ --quiet --chrome-flags=\"--headless=new --no-sandbox --incognito\" --output=json --output=html --form-factor=mobile --screenEmulation.mobile=true --only-categories=performance,accessibility,best-practices,seo --max-wait-for-load=60000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
