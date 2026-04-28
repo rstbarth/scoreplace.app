@@ -659,11 +659,11 @@ function setupCreateTournamentModal() {
                 <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #58a6ff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${_t('create.tiebreakerSection')}</p>
                 <small class="text-muted" style="display:block;margin-bottom:0.75rem;">${_t('create.tiebreakerDesc')}</small>
                 <ul id="tiebreaker-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-                  <li draggable="true" data-tb="confronto_direto" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbHeadToHead')}</li>
-                  <li draggable="true" data-tb="saldo_pontos" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbPointDiff')}</li>
-                  <li draggable="true" data-tb="vitorias" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbWins')}</li>
-                  <li draggable="true" data-tb="buchholz" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbBuchholz')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbBuchholzAbbr')})</small></li>
-                  <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbSonneborn')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbSonnebornAbbr')})</small></li>
+                  <li draggable="true" data-tb="confronto_direto" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" title="${_t('create.tbHeadToHeadTip')}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbHeadToHead')}</li>
+                  <li draggable="true" data-tb="saldo_pontos" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" title="${_t('create.tbPointDiffTip')}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbPointDiff')}</li>
+                  <li draggable="true" data-tb="vitorias" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" title="${_t('create.tbWinsTip')}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbWins')}</li>
+                  <li draggable="true" data-tb="buchholz" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" title="${_t('create.tbBuchholzTip')}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbBuchholz')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbBuchholzAbbr')})</small> <span onclick="event.stopPropagation();event.preventDefault();window._showTiebreakInfo('buchholz')" style="margin-left:auto;cursor:pointer;font-size:0.95rem;opacity:0.6;padding:0 4px;" title="${_t('create.tbInfoBtn')}">ℹ️</span></li>
+                  <li draggable="true" data-tb="sonneborn_berger" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" title="${_t('create.tbSonnebornTip')}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbSonneborn')} <small style="opacity:0.5; font-size:0.75rem;">(${_t('create.tbSonnebornAbbr')})</small> <span onclick="event.stopPropagation();event.preventDefault();window._showTiebreakInfo('sonneborn_berger')" style="margin-left:auto;cursor:pointer;font-size:0.95rem;opacity:0.6;padding:0 4px;" title="${_t('create.tbInfoBtn')}">ℹ️</span></li>
                   <li draggable="true" data-tb="pontos_avancados" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ⚡ ${_t('create.tbAdvancedPoints')} <small style="opacity:0.5; font-size:0.75rem;">${_t('create.tbAdvancedPointsNote')}</small></li>
                   <li draggable="true" data-tb="sorteio" ontouchstart="window._onTiebreakerTouchStart(event)" ontouchmove="window._onTiebreakerTouchMove(event)" ontouchend="window._onTiebreakerTouchEnd(event)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;cursor:grab;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-bright);user-select:none;"><span style="opacity:0.4;">⠿</span> ${_t('create.tbRandom')}</li>
                 </ul>
@@ -4290,4 +4290,38 @@ window._deleteTemplateInCreate = async function(templateId) {
   if (overlay) overlay.remove();
   window._showTemplatePickerInCreate();
   window._refreshTemplateBtn();
+};
+
+// v0.17.40: explicação detalhada dos critérios de desempate
+// Buchholz e Sonneborn-Berger — pedido do usuário pra entender melhor
+// o que são e de onde vieram. Vem do mundo do xadrez (FIDE 1932 / 1873).
+window._showTiebreakInfo = function(criterion) {
+  const _t = window._t || function(k) { return k; };
+  let title, body;
+  if (criterion === 'buchholz') {
+    title = '📚 ' + _t('create.tbBuchholz') + ' (Buchholz)';
+    body =
+      '<div style="line-height:1.6;font-size:0.9rem;color:var(--text-main);">' +
+      '<p><b>O que é:</b> soma dos pontos de TODOS os adversários que você enfrentou no torneio.</p>' +
+      '<p><b>Pra que serve:</b> recompensa quem teve adversários FORTES. Se você empata em pontos com outro jogador, mas seus adversários somaram mais pontos no torneio (ou seja, foram melhores), você fica à frente — porque seu caminho foi mais difícil.</p>' +
+      '<p><b>Exemplo:</b> Você (8 pts) e João (8 pts) empataram. Seus 5 adversários somaram 30 pts no torneio. Os adversários do João somaram 22 pts. <b>Buchholz seu = 30, do João = 22</b> → você fica à frente.</p>' +
+      '<p><b>De onde veio:</b> criado por <b>Bruno Buchholz</b> em <b>1932</b> pra torneios de xadrez no sistema Suíço, onde jogadores não enfrentam todos os outros. Hoje é o critério #1 da FIDE pra desempate em Suíço.</p>' +
+      '<p><b>Quando aplicar:</b> principalmente em <b>Sistema Suíço</b> (cada jogador enfrenta sub-conjuntos diferentes de adversários). Em Liga round-robin todos enfrentam todos, então o Buchholz tende a ser parecido pra todos os empatados — menos discriminante.</p>' +
+      '</div>';
+  } else if (criterion === 'sonneborn_berger') {
+    title = '🏅 ' + _t('create.tbSonneborn') + ' (Sonneborn-Berger)';
+    body =
+      '<div style="line-height:1.6;font-size:0.9rem;color:var(--text-main);">' +
+      '<p><b>O que é:</b> soma dos pontos dos adversários que você <b>venceu</b>, mais metade dos pontos dos adversários com quem você <b>empatou</b>. Adversários que você perdeu não contam.</p>' +
+      '<p><b>Pra que serve:</b> recompensa quem venceu adversários FORTES (não só a quantidade de vitórias, mas a qualidade delas). Se você bateu jogadores que terminaram em alto, vale mais que bater jogadores fracos.</p>' +
+      '<p><b>Exemplo:</b> Você venceu 3 jogadores que somaram 20 pts no torneio + empatou com 1 que fez 6 pts. <b>SB = 20 + (6/2) = 23</b>. Já o João venceu 3 jogadores fracos que somaram 9 pts. <b>SB do João = 9</b> → você fica à frente.</p>' +
+      '<p><b>De onde veio:</b> criado por <b>William Sonneborn</b> e <b>Johann Berger</b> em <b>1873-1886</b> pra torneios de xadrez round-robin. Originalmente chamado "Neustadtl score". É o critério #2 da FIDE pra desempate em Suíço e round-robin.</p>' +
+      '<p><b>Quando aplicar:</b> útil quando Buchholz ainda empata (o que é raro). Mais relevante em torneios longos onde a diferença entre vencer um forte e vencer um fraco é significativa.</p>' +
+      '</div>';
+  } else {
+    return;
+  }
+  if (typeof window.showAlertDialog === 'function') {
+    window.showAlertDialog(title, body, null, { type: 'info' });
+  }
 };

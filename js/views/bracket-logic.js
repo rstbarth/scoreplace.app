@@ -409,15 +409,22 @@ function _computeStandings(t, category) {
     });
   }
 
-  // Apply configured tiebreaker order — auto-add GSM criteria when tournament uses sets
-  var defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz'];
+  // v0.17.40: ordem padrão recomendada (alinhada com a UI em
+  // create-tournament.js): Confronto Direto → Saldo → Vitórias → Buchholz
+  // → Sonneborn-Berger → Sorteio. Baseada em padrões ITF (tênis), FIDE
+  // (xadrez) e FIBA (basquete). Em GSM, critérios de sets/games entram
+  // entre Saldo e Vitórias pra dar granularidade ao desempate. Quando
+  // Pontos Avançados está ativo, vai pro topo (já era assim).
+  // Empty array fallback: se t.tiebreakers existe mas está vazio,
+  // usar default em vez de [] (que pulava todos os tiebreakers).
+  var defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
   if (t.scoring && t.scoring.type === 'sets') {
-    defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'tiebreaks_vencidos', 'vitorias', 'buchholz'];
+    defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'tiebreaks_vencidos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
   }
   if (t.advancedScoring && t.advancedScoring.enabled) {
     defaultTb = ['pontos_avancados'].concat(defaultTb);
   }
-  const tiebreakers = t.tiebreakers || defaultTb;
+  const tiebreakers = (Array.isArray(t.tiebreakers) && t.tiebreakers.length > 0) ? t.tiebreakers : defaultTb;
 
   // Build head-to-head map for confronto_direto
   const h2h = {};
@@ -720,12 +727,14 @@ function _rankByTiebreakers(t, playerNames) {
     else if (m.winner === m.p2) h2h[key].w2++;
   });
 
-  // Get configured tiebreakers or default for elimination
-  var defaultTb = ['saldo_pontos', 'vitorias'];
+  // v0.17.40: alinhado com default principal — confronto direto + Buchholz
+  // + Sonneborn fazem sentido em repechage também (rank de jogadores que
+  // jogaram entre si). Empty array fallback aplicado.
+  var defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
   if (t.scoring && t.scoring.type === 'gsm') {
-    defaultTb = ['saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'vitorias'];
+    defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
   }
-  var tiebreakers = t.tiebreakers || defaultTb;
+  var tiebreakers = (Array.isArray(t.tiebreakers) && t.tiebreakers.length > 0) ? t.tiebreakers : defaultTb;
 
   players.sort(function(a, b) {
     // Primary: last match score diff (closer game = better = higher diff)
