@@ -279,6 +279,9 @@ function handleGoogleLogin() {
     })
     .catch(function(error) {
       console.error('[scoreplace-auth] Firebase auth error:', error);
+      if (typeof window._captureException === 'function') {
+        window._captureException(error, { area: 'googleLogin', code: error && error.code });
+      }
       // Popup blocked / failed — fall back to redirect flow so the user can still log in.
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment' || error.code === 'auth/web-storage-unsupported') {
         // v0.16.39: garante prompt=select_account também no fallback de redirect

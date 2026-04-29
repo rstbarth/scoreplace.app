@@ -155,6 +155,9 @@ window.PresenceDB = {
       return true;
     } catch (e) {
       console.error('Erro ao cancelar presença:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'cancelPresence', code: e && e.code });
+      }
       return false;
     }
   },
@@ -262,6 +265,9 @@ window.PresenceDB = {
       return list;
     } catch (e) {
       console.error('[loadMyActive v0.16.79] erro:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'loadMyActive', code: e && e.code });
+      }
       return [];
     }
   },

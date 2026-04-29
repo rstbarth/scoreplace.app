@@ -278,6 +278,9 @@ window.FirestoreDB = {
       await this.db.collection('tournaments').doc(String(tournamentId)).delete();
     } catch (e) {
       console.error('Erro ao deletar torneio:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'deleteTournament', tournamentId: tournamentId, code: e && e.code });
+      }
     }
   },
 
@@ -294,6 +297,9 @@ window.FirestoreDB = {
       return tournaments;
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'loadAllTournaments', code: e && e.code });
+      }
       return [];
     }
   },

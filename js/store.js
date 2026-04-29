@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.60-alpha';
+window.SCOREPLACE_VERSION = '0.17.61-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -893,6 +893,9 @@ window._startProCheckout = async function() {
     }
   } catch (err) {
     console.error('Checkout error:', err);
+    if (typeof window._captureException === 'function') {
+      window._captureException(err, { area: 'stripeCheckout', code: err && err.code });
+    }
     if (typeof showNotification === 'function') showNotification(window._t('auth.error'), window._t('store.paymentError'), 'error');
     var btn2 = document.querySelector('#modal-upgrade button');
     if (btn2) { btn2.textContent = window._t('store.subscribePro'); btn2.disabled = false; }
@@ -1164,6 +1167,10 @@ window.AppStore = {
       return true;
     } catch (err) {
       console.error('syncImmediate: FAILED to save tournament ' + tournamentId, err);
+      // Sentry observability (no-op se DSN não configurada — ver js/sentry-init.js)
+      if (typeof window._captureException === 'function') {
+        window._captureException(err, { area: 'syncImmediate', tournamentId: tournamentId, code: err && err.code });
+      }
       // v0.16.54: expor mensagem real do erro no toast (antes era genérico
       // "Não foi possível salvar no servidor. Tente novamente." que escondia
       // a causa). Inclui código Firestore (permission-denied, resource-
@@ -1484,6 +1491,9 @@ window.AppStore = {
       // Tournaments loaded from Firestore
     } catch (e) {
       console.error('Erro ao carregar torneios:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'loadTournaments', code: e && e.code });
+      }
       this.tournaments = [];
     }
     this._loading = false;
@@ -1591,6 +1601,9 @@ window.AppStore = {
       return profile;
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);
+      if (typeof window._captureException === 'function') {
+        window._captureException(e, { area: 'loadUserProfile', uid: uid, code: e && e.code });
+      }
       // v0.17.3: mesmo em erro, marca como "tentativa concluída" pra views
       // não ficarem esperando indefinidamente. Erro real continua logado.
       if (this.currentUser) this.currentUser._profileLoaded = true;
@@ -1928,6 +1941,9 @@ window.AppStore = {
     if (window.FirestoreDB && window.FirestoreDB.db) {
       window.FirestoreDB.saveTournament(tourData).catch(function(err) {
         console.error('Erro ao salvar novo torneio:', err);
+        if (typeof window._captureException === 'function') {
+          window._captureException(err, { area: 'addTournament', tournamentId: id, code: err && err.code });
+        }
       });
     }
     return id;
