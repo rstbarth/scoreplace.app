@@ -15,6 +15,31 @@
 | v0.17.56 | lazy release notes | 56 | 9.0s | 9.5s | 9.0s |
 | v0.17.57 | tira release-notes do precache do SW | 57 | 8.8s | 9.4s | 8.8s |
 | **v0.17.58** | **defer em 45 scripts** | **64 ↑** | **4.5s ↓49%** | 9.8s | **4.5s ↓49%** |
+| v0.17.62 | skeleton estático (3 runs media) | 63 | 4.7s | 9.8s | 4.7s |
+
+### v0.17.62 (skeleton) — conclusão da medição
+
+3 runs do Lighthouse mobile slow-4G (v0.17.62):
+- run 1: perf=62 fcp=5.1s lcp=9.9s si=5.1s
+- run 2: perf=64 fcp=4.3s lcp=9.7s si=4.3s
+- run 3: perf=63 fcp=4.8s lcp=9.7s si=4.8s
+- **média: perf=63 fcp=4.7s lcp=9.8s si=4.7s**
+
+Comparado a v0.17.58 (perf=64 fcp=4.5s lcp=9.8s si=4.5s), o skeleton ficou
+**neutro em métricas** (variance dentro do ruído de ±0.5s da slow-4G simulada).
+
+**Por que LCP não caiu?** Lighthouse elege como LCP o conteúdo *real* que
+renderiza depois — texto/imagem da landing page, não o skeleton. O skeleton
+está marcado `aria-hidden=true` e tem dimensões padrão; LCP ignora.
+
+**Por que mantenho então?** UX-positivo: usuários veem visual feedback no
+FCP em vez de tela branca + spinner. Lighthouse mede pixels; UX percebida
+é diferente. Custo é ~600 bytes (~150 gzipped). Sem regressão real.
+
+**Próximas alavancas pra LCP <4s** (real, não cosmético):
+- Static prerender da landing via GitHub Action + Puppeteer (gera HTML
+  pré-renderizado da rota `/` com conteúdo real). Estimativa: LCP < 2.5s.
+  Esforço: ~1 dia. Esta É a próxima mudança real pra LCP.
 
 ## Scores atuais (v0.17.58)
 
