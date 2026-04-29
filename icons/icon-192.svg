@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!--
+    v0.17.73: full-bleed (sem rx) — antes tinha rx=32 que criava cantos
+    transparentes no SVG. Quando macOS/iOS/Android aplicava SEU próprio
+    mask (circular/squircle), os 4 cantos transparentes ficavam visíveis
+    como pontos brancos/claros entre os dois recortes (relatado em screenshot
+    do dock macOS, 29-Abr-2026). Conteúdo está na safe zone interna
+    (80% = padding de ~19px), então mascarar agressivo não corta o pódio.
+  -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1a3e"/>
       <stop offset="100%" stop-color="#0f0f23"/>
     </linearGradient>
   </defs>
-  <rect width="192" height="192" rx="32" fill="url(#bg)"/>
+  <rect width="192" height="192" fill="url(#bg)"/>
   <!-- Pódio: prata (2º), ouro (1º), bronze (3º) — cores universais de medalha -->
   <rect x="44" y="100" width="32" height="52" rx="5" fill="#CBD5E1"/>
   <rect x="80" y="68" width="32" height="84" rx="5" fill="#F59E0B"/>
