@@ -97,7 +97,7 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="tourn-public" value="true">
                 <div style="display:flex;align-items:center;gap:10px;">
                   <label class="toggle-switch" style="flex-shrink:0;">
-                    <input type="checkbox" id="toggle-public" checked onchange="window._setVisibility(this.checked ? 'public' : 'private')">
+                    <input type="checkbox" id="toggle-public" aria-label="Tornar torneio público" checked onchange="window._setVisibility(this.checked ? 'public' : 'private')">
                     <span class="toggle-slider"></span>
                   </label>
                   <span style="font-weight:600;font-size:0.9rem;color:var(--text-bright);">🌐 ${_t('create.publicLabel')}</span>
@@ -291,22 +291,22 @@ function setupCreateTournamentModal() {
                 <div id="reg-date-container" style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.enrollDeadline')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-reg-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-reg-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="date" class="form-control" id="tourn-reg-date" aria-label="Data limite das inscrições" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-reg-time" aria-label="Hora limite das inscrições" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.tournamentStart')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-start-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
-                    <input type="time" class="form-control" id="tourn-start-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="date" class="form-control" id="tourn-start-date" aria-label="Data de início do torneio" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration(); window._checkWeather()">
+                    <input type="time" class="form-control" id="tourn-start-time" aria-label="Hora de início do torneio" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
                 <div style="flex:1; min-width:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 10px;">
                   <div style="font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.tournamentEnd')}</div>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" id="tourn-end-date" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
-                    <input type="time" class="form-control" id="tourn-end-time" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
+                    <input type="date" class="form-control" id="tourn-end-date" aria-label="Data de término do torneio" style="padding:4px 6px; font-size:0.82rem; flex:1; min-width:0;" required oninput="window._recalcDuration()">
+                    <input type="time" class="form-control" id="tourn-end-time" aria-label="Hora de término do torneio" style="padding:4px 6px; font-size:0.82rem; width:100px; flex-shrink:0;" oninput="window._recalcDuration()">
                   </div>
                 </div>
               </div>
@@ -356,7 +356,7 @@ function setupCreateTournamentModal() {
                     <div style="margin-top:8px;">
                       <div style="display:flex; align-items:center; gap:10px;">
                         <label class="toggle-switch" style="margin:0;">
-                          <input type="checkbox" id="toggle-venue-public" checked onchange="window._onVenueAccessToggle()">
+                          <input type="checkbox" id="toggle-venue-public" aria-label="Local público" checked onchange="window._onVenueAccessToggle()">
                           <span class="toggle-slider"></span>
                         </label>
                         <span id="venue-access-label" style="font-size:0.82rem; font-weight:600; color:var(--text-bright);">${_t('create.accessOpen')}</span>
@@ -374,7 +374,7 @@ function setupCreateTournamentModal() {
                 <div class="courts-row" style="display:flex; gap:10px; align-items:flex-start; margin-bottom:0.5rem;">
                   <div class="form-group courts-count-field" style="flex:0 0 100px;">
                     <label class="form-label">${_t('create.courtsLabel')}</label>
-                    <input type="number" class="form-control" id="tourn-court-count" min="1" max="50" value="1" style="text-align:center;" oninput="window._onCourtCountChange()">
+                    <input type="number" class="form-control" id="tourn-court-count" aria-label="Número de quadras" min="1" max="50" value="1" style="text-align:center;" oninput="window._onCourtCountChange()">
                   </div>
                   <div class="form-group" style="flex:1; min-width:0;">
                     <label class="form-label">${_t('create.courtNamesLabel')} <small style="opacity:0.6;">${_t('create.courtNamesSep')}</small></label>
@@ -527,11 +527,11 @@ function setupCreateTournamentModal() {
                   <div id="game-type-buttons" style="display:flex;flex-direction:column;gap:8px;">
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                       <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏸</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameSimples')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.simplesSideDesc')}</div></div></div>
-                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-simples" aria-label="Modo simples" onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                     <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                       <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.gameDuplas')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.duplasSideDesc')}</div></div></div>
-                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
+                      <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="game-toggle-duplas" aria-label="Modo duplas" checked onchange="window._syncGameTypeToggles()"><span class="toggle-slider"></span></label>
                     </div>
                   </div>
                   <small class="text-muted" style="display:block;margin-top:6px;" id="game-type-desc">${_t('create.gameTypeHint')}</small>
@@ -545,11 +545,11 @@ function setupCreateTournamentModal() {
                 <div id="enroll-mode-buttons" style="display:flex;flex-direction:column;gap:8px;">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.enrollIndividualDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-individual" checked onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-individual" aria-label="Inscrição individual" checked onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👥</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollTeam')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.enrollTeamDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-team" onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#a78bfa;--toggle-on-glow:rgba(167,139,250,0.3);--toggle-on-border:#a78bfa;"><input type="checkbox" id="enroll-toggle-team" aria-label="Inscrição em times" onchange="window._syncEnrollToggles()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
                 <small class="text-muted" style="display:block;margin-top:6px;" id="enroll-mode-desc">${_t('create.enrollModeIndividualDesc')}</small>
@@ -570,7 +570,7 @@ function setupCreateTournamentModal() {
                 <div style="display:flex;flex-direction:column;gap:8px;" id="wo-scope-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" id="wo-indiv-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualOnDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" aria-label="W.O. individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
               </div>
@@ -582,11 +582,11 @@ function setupCreateTournamentModal() {
                 <div style="display:flex;flex-direction:column;gap:8px;" id="late-enrollment-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" id="late-closed-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedOnDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" aria-label="Inscrições fora do prazo fechadas" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" id="late-expand-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDisabledDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" aria-label="Inscrições fora do prazo expandem lista" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
               </div>
@@ -622,15 +622,15 @@ function setupCreateTournamentModal() {
                 <div id="result-entry-buttons" style="display:flex;flex-direction:column;gap:8px;">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">📋</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultOrg')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultOrgDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-organizer" checked onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-organizer" aria-label="Resultados via organizador" checked onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🏓</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultPlayersLabel')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultPlayersDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-players" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-players" aria-label="Resultados via jogadores" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🧑‍⚖️</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.resultRefereeLabel')}</span><div class="toggle-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.resultRefereeDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-referee" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#3b82f6;--toggle-on-glow:rgba(59,130,246,0.3);--toggle-on-border:#3b82f6;"><input type="checkbox" id="re-toggle-referee" aria-label="Resultados via árbitro" onchange="window._syncResultEntryToggles()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
                 <div id="result-entry-desc" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">${_t('create.resultOnlyOrgDesc')}</div>
