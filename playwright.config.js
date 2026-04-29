@@ -12,7 +12,9 @@ module.exports = defineConfig({
   testMatch: '**/*.spec.js',
   // Beta-readiness: erro se um describe ficar sem assertion (pega test bug)
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // 1 retry local pra absorver flakes ocasionais do SW auto-update reload
+  // que pode disparar quando uma deploy nova chega no meio de uma run.
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 2 : undefined,
   reporter: [
     ['list'],
