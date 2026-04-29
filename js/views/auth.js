@@ -68,6 +68,39 @@ try {
   console.warn("Firebase initialization error:", e);
 }
 
+// ─── Helper: force-close the login modal ────────────────────────────────────
+// v0.17.83: belt+suspenders modal close. simulateLoginSuccess closes it but can
+// early-bail on the inProgress guard, or fail before reaching the close call.
+// This helper is called from every auth success entry point (popup, redirect,
+// onAuthStateChanged) BEFORE simulateLoginSuccess, so the modal disappears the
+// moment the auth provider returns success — independently of downstream code.
+function _forceCloseLoginModal() {
+  try {
+    var modal = document.getElementById('modal-login');
+    if (modal) {
+      modal.classList.remove('active');
+      // Defensive: also hide via inline style in case CSS gets overridden
+      modal.style.display = 'none';
+      // Re-enable display in next tick so subsequent opens work
+      setTimeout(function() { try { modal.style.display = ''; } catch(_e) {} }, 50);
+    }
+    // Clear any HTML5 validation popups by resetting form state
+    var loginForm = document.getElementById('form-login');
+    if (loginForm && typeof loginForm.reset === 'function') {
+      try { loginForm.reset(); } catch(_e) {}
+    }
+    if (typeof window._captureMessage === 'function') {
+      window._captureMessage('login modal force-closed', 'info');
+    }
+  } catch (e) {
+    console.warn('[scoreplace-auth] _forceCloseLoginModal error:', e);
+    if (typeof window._captureException === 'function') {
+      window._captureException(e, { area: 'forceCloseLoginModal' });
+    }
+  }
+}
+window._forceCloseLoginModal = _forceCloseLoginModal;
+
 // ─── Handle redirect result on page load ────────────────────────────────────
 // When a user returns from Google's OAuth redirect (Safari/iOS flow), we need
 // to capture the credential + access token here (onAuthStateChanged won't give
@@ -80,6 +113,11 @@ if (firebase && firebase.auth) {
       console.log('[scoreplace-auth] getRedirectResult:', result && result.user ? { uid: result.user.uid, email: result.user.email } : 'no user');
       if (!result || !result.user) return;
       var user = result.user;
+
+      // v0.17.83: belt+suspenders — fecha modal-login imediatamente quando o
+      // redirect retorna sucesso (Safari/iOS flow). Mesma rationale do popup.
+      if (typeof _forceCloseLoginModal === 'function') _forceCloseLoginModal();
+
       try {
         if (typeof showNotification === 'function') {
           showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName || user.email}), 'success');
@@ -176,6 +214,12 @@ if (firebase && firebase.auth) {
           displayName: user.displayName, photoURL: user.photoURL
         }));
       } catch(e) {}
+
+      // v0.17.83: belt+suspenders — close login modal here too, in case popup
+      // and redirect handlers didn't fire (e.g. tab visibility changes,
+      // restored session). Idempotent.
+      if (typeof _forceCloseLoginModal === 'function') _forceCloseLoginModal();
+
       // User is signed in — load data from Firestore and update UI
       await simulateLoginSuccess({
         uid: user.uid,
@@ -248,6 +292,13 @@ function handleGoogleLogin() {
     .then(function(result) {
       var user = result.user;
       console.log('[scoreplace-auth] Popup success:', { uid: user && user.uid, email: user && user.email });
+
+      // v0.17.83: belt+suspenders — close login modal IMMEDIATELY upon popup
+      // success, before any other logic. simulateLoginSuccess also closes it
+      // but can fail/early-bail; this guarantees the user sees the modal go
+      // away the moment Google auth returns.
+      _forceCloseLoginModal();
+
       showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName}), 'success');
 
       // Save auth provider to Firestore
@@ -1632,7 +1683,7 @@ function setupLoginModal() {
           '<div style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">🔑 E-mail e Senha</div>' +
             '<div id="email-login-mode" style="display:block;">' +
-              '<form id="form-login" onsubmit="event.preventDefault(); handleEmailLogin();">' +
+              '<form id="form-login" novalidate onsubmit="event.preventDefault(); handleEmailLogin();">' +
                 '<div style="margin-bottom:6px;">' +
                   '<input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required style="font-size:0.85rem;">' +
                 '</div>' +
@@ -1650,7 +1701,7 @@ function setupLoginModal() {
               '</div>' +
             '</div>' +
             '<div id="email-register-mode" style="display:none;">' +
-              '<form id="form-register" onsubmit="event.preventDefault(); handleEmailRegister();">' +
+              '<form id="form-register" novalidate onsubmit="event.preventDefault(); handleEmailRegister();">' +
                 '<div style="margin-bottom:6px;">' +
                   '<input type="text" id="register-name" class="form-control" placeholder="Seu nome" required style="font-size:0.85rem;">' +
                 '</div>' +
