@@ -1675,6 +1675,14 @@ function setupLoginModal() {
           '<div id="login-panel-social" style="display:none;"></div>' +
           '<div id="login-tabs" style="display:none;"></div>' +
 
+          // v0.17.72: aceite implícito de Termos+Privacy (LGPD-ready alpha→beta).
+          // Texto pequeno embaixo do bloco de login: ao escolher qualquer
+          // método (link mágico, SMS, email, Google), usuário implicitamente
+          // aceita os termos. Conformidade legal mínima sem modal extra.
+          '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);font-size:0.7rem;color:var(--text-muted);text-align:center;line-height:1.5;">' +
+            'Ao continuar, você concorda com os <a href="#terms" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')" style="color:var(--primary-color);">Termos de Uso</a> e a <a href="#privacy" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')" style="color:var(--primary-color);">Política de Privacidade</a>.' +
+          '</div>' +
+
         '</div>' +
       '</div>' +
     '</div>';
