@@ -97,3 +97,81 @@ exports.cleanupOldCasualMatches = onSchedule(
     console.log(`[cleanupOldCasualMatches] deleted ${deleted} docs (threshold: ${threshold})`);
   }
 );
+
+// ─── Scheduled backup: full Firestore export to Cloud Storage ───────────────
+// Roda diariamente às 04:00 BRT (depois dos cleanups) e dispara um export
+// nativo do Firestore pra um bucket Cloud Storage. Bucket tem lifecycle rule
+// que auto-deleta exports com mais de 30 dias.
+//
+// ⚠️ PRÉ-REQUISITOS pra ativar (one-time, fora do código):
+//
+// 1. Criar bucket dedicado pra backups (Cloud Console ou gcloud):
+//      gcloud storage buckets create gs://scoreplace-firestore-backup \
+//        --project=scoreplace-app \
+//        --location=southamerica-east1 \
+//        --uniform-bucket-level-access
+//
+// 2. Configurar lifecycle pra auto-delete após 30 dias:
+//      cat > /tmp/lifecycle.json << 'JSON'
+//      {"lifecycle":{"rule":[{"action":{"type":"Delete"},"condition":{"age":30}}]}}
+//      JSON
+//      gcloud storage buckets update gs://scoreplace-firestore-backup \
+//        --lifecycle-file=/tmp/lifecycle.json
+//
+// 3. Conceder à service account das Functions a role
+//    `Cloud Datastore Import Export Admin` E `Storage Admin` no bucket:
+//      SA="$(gcloud projects describe scoreplace-app --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
+//      gcloud projects add-iam-policy-binding scoreplace-app \
+//        --member="serviceAccount:$SA" \
+//        --role="roles/datastore.importExportAdmin"
+//      gcloud storage buckets add-iam-policy-binding \
+//        gs://scoreplace-firestore-backup \
+//        --member="serviceAccount:$SA" \
+//        --role="roles/storage.admin"
+//
+// 4. Deploy:  firebase deploy --only functions:backupFirestore
+//
+// Depois do primeiro run, conferir no Cloud Console > Storage > o bucket
+// que tem subpastas tipo `2026-04-29T04-00-00/` com `metadata` e `output-N`.
+// Restore (manual em desastre):
+//      gcloud firestore import gs://scoreplace-firestore-backup/<DATA>
+//
+// Doc completa: docs/backup.md
+exports.backupFirestore = onSchedule(
+  {
+    schedule: "every day 04:00",
+    timeZone: "America/Sao_Paulo",
+    region: "southamerica-east1", // mesma region do bucket pra evitar egress
+    timeoutSeconds: 540, // 9 min — export é assíncrono, só dispara o job
+    memory: "256MiB",
+    retryConfig: { retryCount: 1 },
+  },
+  async () => {
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "scoreplace-app";
+    const bucketName = "scoreplace-firestore-backup";
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const outputUriPrefix = `gs://${bucketName}/${ts}`;
+
+    // Usa @google-cloud/firestore-admin via Admin SDK ou direct REST.
+    // SDK mais limpo:
+    const { FirestoreAdminClient } = require("@google-cloud/firestore").v1;
+    const client = new FirestoreAdminClient();
+    const databaseName = client.databasePath(projectId, "(default)");
+
+    console.log(`[backupFirestore] disparando export pra ${outputUriPrefix}`);
+
+    try {
+      const [operation] = await client.exportDocuments({
+        name: databaseName,
+        outputUriPrefix: outputUriPrefix,
+        collectionIds: [], // vazio = export tudo (alpha tem ~9 collections)
+      });
+      console.log(`[backupFirestore] operation iniciada:`, operation.name);
+      // Não bloqueia esperando — export pode levar minutos. O Cloud Operations
+      // log mostra progresso. Retorna sucesso assim que o job foi disparado.
+    } catch (err) {
+      console.error(`[backupFirestore] falha ao disparar export:`, err);
+      throw err; // marca a função como falha pro retry kick in
+    }
+  }
+);
