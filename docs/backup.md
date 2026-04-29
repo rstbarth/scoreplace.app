@@ -18,11 +18,19 @@ Roda comandos `gcloud` no terminal do dono do projeto.
 ```bash
 gcloud storage buckets create gs://scoreplace-firestore-backup \
   --project=scoreplace-app \
-  --location=southamerica-east1 \
+  --location=us-central1 \
   --uniform-bucket-level-access
 ```
 
-Mesma region do Firestore evita custos de egress entre regiões.
+⚠️ **Region matters:** o Firestore desse projeto está em **`nam5` (multi-region US)**.
+Firestore export exige bucket numa region COMPATÍVEL com a database. Pra `nam5`,
+opções válidas são `us` (multi) ou `us-centralN`. Escolhemos `us-central1`
+porque é region única (mais barato que multi) e idempotent ao Firestore.
+
+Tentar `southamerica-east1` (mais próximo do tráfego BR) **falha** com
+`INVALID_ARGUMENT: Bucket ... is in location southamerica-east1. This database
+can only operate on buckets spanning location us or us-central1...`. Aprendido
+em deploy 2026-04-29.
 
 ### 1.2. Lifecycle: auto-delete após 30 dias
 
