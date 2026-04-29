@@ -506,23 +506,29 @@ window._phoneRecaptchaWidgetId = null;
 
 function handlePhoneLogin() {
   var phoneEl = document.getElementById('login-phone');
+  var countryEl = document.getElementById('login-phone-country');
   var rawPhone = phoneEl ? phoneEl.value.trim() : '';
+  // v0.17.84: lê DDI do dropdown (default '55' se ausente). Persiste
+  // escolha em localStorage pra reabrir já com o último país selecionado.
+  var countryCode = (countryEl && countryEl.value) || '55';
+  try { localStorage.setItem('scoreplace_loginPhoneCountry', countryCode); } catch(_e) {}
+
   if (!rawPhone) {
     showNotification(_t('auth.enterPhone'), _t('auth.enterPhoneMsg'), 'warning');
     if (phoneEl) phoneEl.focus();
     return;
   }
 
-  // Format phone number: add +55 if no country code
+  // Format phone number: add country code if user didn't provide one
   var phone = rawPhone.replace(/[\s\-\(\)]/g, '');
   if (!phone.startsWith('+')) {
-    // Remove leading zero if present
+    // Remove leading zero if present (Brasil/Argentina convention)
     if (phone.startsWith('0')) phone = phone.substring(1);
-    phone = '+55' + phone;
+    phone = '+' + countryCode + phone;
   }
 
   // Validate basic format
-  if (phone.length < 12 || phone.length > 15) {
+  if (phone.length < 8 || phone.length > 16) {
     showNotification(_t('auth.invalidPhone'), _t('auth.invalidPhoneMsg'), 'warning');
     return;
   }
@@ -1643,13 +1649,21 @@ function setupLoginModal() {
           '</div>' +
 
           // --- 2. SMS para Celular ---
+          // v0.17.84: dropdown de países substitui +55 fixo. Default Brasil,
+          // mas usuário pode escolher entre 10 países populares (BR, US, PT,
+          // AR, UY, PY, CL, CO, ES, UK). Última escolha persistida em
+          // localStorage(scoreplace_loginPhoneCountry).
           '<div style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">📱 SMS para Celular</div>' +
             '<div id="phone-step-number" style="display:block;">' +
-              '<form onsubmit="event.preventDefault(); handlePhoneLogin();">' +
+              '<form novalidate onsubmit="event.preventDefault(); handlePhoneLogin();">' +
                 '<div style="display:flex;gap:8px;align-items:center;">' +
-                  '<span style="color:var(--text-muted);font-size:0.82rem;white-space:nowrap;">+55</span>' +
-                  '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" required style="flex:1;font-size:0.85rem;">' +
+                  '<select id="login-phone-country" aria-label="DDI do telefone" class="form-control" style="width:108px;flex-shrink:0;font-size:0.85rem;padding:8px 4px;">' +
+                    (typeof _phoneCountries !== 'undefined' ? _phoneCountries.map(function(c) {
+                      return '<option value="' + c.code + '"' + (c.code === '55' ? ' selected' : '') + '>' + c.flag + ' +' + c.code + '</option>';
+                    }).join('') : '<option value="55">🇧🇷 +55</option>') +
+                  '</select>' +
+                  '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" style="flex:1;min-width:0;font-size:0.85rem;">' +
                   '<button type="submit" class="btn btn-success" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Enviar</button>' +
                 '</div>' +
               '</form>' +
@@ -1760,6 +1774,13 @@ function setupLoginModal() {
   if (btnLogin) {
     btnLogin.addEventListener('click', function() {
       openModal('modal-login');
+      // v0.17.84: restaura último DDI escolhido (se houver) pra reabrir o
+      // modal já com o país correto selecionado.
+      try {
+        var saved = localStorage.getItem('scoreplace_loginPhoneCountry');
+        var sel = document.getElementById('login-phone-country');
+        if (sel && saved) sel.value = saved;
+      } catch(_e) {}
     });
   }
 }
