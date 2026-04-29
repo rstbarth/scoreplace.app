@@ -16,8 +16,8 @@ test.describe('Smoke — landing/dashboard sem login', () => {
     // Topbar visível
     await expect(page.locator('#view-title')).toContainText('scoreplace');
 
-    // Botão Login presente (estado deslogado)
-    await expect(page.locator('#btn-login')).toBeVisible();
+    // Botão Login presente no DOM (em mobile pode estar collapsed dentro do hamburger)
+    await expect(page.locator('#btn-login')).toBeAttached();
 
     // App container renderizado
     await expect(page.locator('#view-container')).toBeAttached();
