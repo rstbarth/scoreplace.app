@@ -2889,6 +2889,19 @@ function setupProfileModal() {
       try { localStorage.setItem('scoreplace_theme', theme); } catch(e) {}
       if (typeof window._applyThemeIcon === 'function') window._applyThemeIcon(theme);
       window._applyProfileThemeUI(theme);
+      // v0.17.89: persist theme to Firestore (mesma lógica de _toggleTheme).
+      // Sem isso, mudar tema dentro do perfil só afetava localStorage —
+      // próximo loadUserProfile (token refresh, abrir em outro device,
+      // reload limpando cache) re-aplicava o `profile.theme` salvo
+      // anteriormente no Firestore, sobrescrevendo a escolha do usuário.
+      try {
+        var cu = window.AppStore && window.AppStore.currentUser;
+        var uid = cu && (cu.uid || cu.email);
+        if (cu) cu.theme = theme;
+        if (uid && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+          window.FirestoreDB.saveUserProfile(uid, { theme: theme }).catch(function() {});
+        }
+      } catch (e) {}
     };
 
     window._applyProfileThemeUI = function(theme) {
