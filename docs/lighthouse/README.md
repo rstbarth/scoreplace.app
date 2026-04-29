@@ -21,6 +21,45 @@
 | v0.17.65 | a11y batch 20 aria-label | 63 | 96 | — | — | — |
 | **v0.17.66** | **a11y color-contrast** | **65** | **100** 🎯 | — | — | — |
 | v0.17.68 | lazy i18n EN (-30KB gzipped) | 64 (média) | 100 | 4.5s | 9.5s | 4.5s |
+| v0.17.69 | static prerender da landing | 64 (média 3 runs) | 100 | 4.5s | 9.4s | 4.5s |
+
+### v0.17.69 — Static prerender (LCP **NÃO** moveu)
+
+3 runs Lighthouse mobile slow-4G:
+- run 1: perf=64 fcp=4.5s lcp=9.4s si=4.5s
+- run 2: perf=65 fcp=4.3s lcp=9.3s si=4.3s
+- run 3: perf=63 fcp=4.8s lcp=9.5s si=4.8s
+- **média: perf=64 fcp=4.5s lcp=9.4s si=4.5s**
+
+Esperava-se LCP cair de ~9.5s pra ≤4s. **Não aconteceu.** Investigação:
+
+- LCP element identificado: `<img src="icons/logo-podium.svg" w=96 h=72>`
+- Logo loada em **580ms** (request started 207ms, ended 577ms)
+- LCP timing reportado: **9440ms**
+- Gap: **8.8 segundos** entre image-loaded e LCP-fired
+
+**Hipótese:** Lighthouse mede LCP como "largest contentful paint *estável*",
+não primeiro paint. Layout shifts decorrentes de JS hidratando topbar +
+auth init + outros 40+ scripts deferidos resetam o LCP candidate. A
+"estabilidade" só ocorre após todos os defers + hydration completar — daí
+o gap.
+
+**Conclusão:** o gargalo real do LCP nessa arquitetura SPA vanilla é a
+quantidade de scripts deferidos (40+) que precisam executar antes do
+layout estabilizar. Static prerender melhora **percepção visual** (real
+users em 4G real veem o landing imediato), mas não move o número
+sintético do Lighthouse.
+
+**O que moveria LCP de verdade nesta arquitetura:**
+1. Firebase init lazy — Firebase compat SDKs (4 scripts, ~150KB) são o
+   maior bloco de execução pós-defer. Ainda em [DEFER] por risco em
+   auth flow.
+2. Critical CSS inlined + rest async — corta CSS render-blocking
+3. Route-based code splitting — deixa de carregar 40 scripts no boot
+
+Decisão: **manter o prerender deployado**. Custo é desprezível (~7KB),
+ganho percebido é real, e a infra (script + template workflow) fica
+pronta pra uso futuro.
 
 ### v0.17.68 — Lazy i18n EN
 
