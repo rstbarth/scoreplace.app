@@ -20,6 +20,30 @@
 | v0.17.64 | a11y _toggleSwitch helper | 63 | 93 | — | — | — |
 | v0.17.65 | a11y batch 20 aria-label | 63 | 96 | — | — | — |
 | **v0.17.66** | **a11y color-contrast** | **65** | **100** 🎯 | — | — | — |
+| v0.17.68 | lazy i18n EN (-30KB gzipped) | 64 (média) | 100 | 4.5s | 9.5s | 4.5s |
+
+### v0.17.68 — Lazy i18n EN
+
+Mudança: `i18n-en.js` (107KB raw / ~30KB gzipped) só carrega quando user está
+em EN ou toggle pra EN. PT (default + maioria) economiza esse peso no boot.
+
+**2 runs do Lighthouse mobile slow-4G:**
+- run 1: perf=65 fcp=4.2s lcp=9.4s si=4.2s
+- run 2: perf=63 fcp=4.8s lcp=9.6s si=4.8s
+- **média: perf=64 fcp=4.5s lcp=9.5s si=4.5s**
+
+**Vs baseline (v0.17.62-66):** dentro do ruído. Lighthouse mobile slow-4G
+tem variance de ±10% em FCP/SI por run. Bundle delta de 30KB gzipped não
+move significativamente as métricas synthetic.
+
+**Mas em real-world** (4G real, não simulado), 30KB = 1-2 round trips de TCP
+slow-start menos. Mensurável quando tivermos RUM (real user monitoring) via
+Sentry pós-beta.
+
+**Validação manual antes do deploy:**
+- Local server (python3 -m http.server)
+- PT user: só `i18n-pt.js` carregado, EN dict ausente, `_t` retorna PT
+- Toggle PT→EN via `_setLang('en')`: dynamic load funciona, ambos dicts disponíveis
 
 ### v0.17.62 (skeleton) — conclusão da medição
 
