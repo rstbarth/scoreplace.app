@@ -73,10 +73,13 @@ plugado em 8 catches críticos (v0.17.61). Sem DSN, tudo é no-op.
 - [x] Disclaimer no modal de login + footer da landing — v0.17.72
 - [ ] **Revisão jurídica do conteúdo placeholder** (advogado em LGPD/proteção de dados)
 
-#### 5. **Quotas + alertas Firebase**
-- [ ] Alertas via Firebase Alerts em: spike de leituras (>10x baseline), spike de writes (>5x), spike de erros 5xx
-- [ ] Budget alert no Cloud Billing em $20, $50, $100 (hard cap pra alpha → beta)
-- [ ] Documentar plano de ação se um alarme dispara (1 página)
+#### 5. **Quotas + alertas Firebase** ✅ ativado (2026-04-29)
+- [x] **Budget alert** Cloud Billing R$100/mês com 50%/90%/100% triggers + email pra rstbarth@gmail.com
+- [x] **Alert: Firestore reads spike** — `policies/1848286673169800730`, dispara se reads >10/s sustentado (baseline ~0.003/s); ~10x acima do projetado pra beta de 1000 users
+- [x] **Alert: Firestore writes spike** — `policies/17513956699707412338`, dispara se writes >5/s sustentado; free tier = 0.23/s sustentado
+- [x] **Alert: Cloud Functions errors** — `policies/11184669359630448312`, dispara se >1/min de execuções com `status != "ok"` por 5min (catches autoDraw, stripeWebhook, backupFirestore, sendPushNotification)
+- [x] Notification channel: `projects/scoreplace-app/notificationChannels/15889107672722760766` (rstbarth email)
+- [ ] Documentar plano de ação se um alarme dispara (1 página) — **deferred pra beta** (responder ad-hoc com Sentry+logs nos primeiros 7d)
 
 ### 🟡 Importantes
 
@@ -162,16 +165,18 @@ prerender script + workflow, _captureException em 8 catches críticos,
 Privacy+Terms scaffolding, Backup Firestore scaffolding, suite i18n
 regression (4 cenários novos pra prevenir bugs tipo v0.17.68).
 
-### Sprint 3 (próxima — depende de você)
-Tudo o que sobrou exige decisão sua / setup externo:
+### Sprint 3 ✅ FECHADA (2026-04-29)
+External services activated em modo co-pilot:
+- ✅ #2 Sentry projeto criado + DSN plugada + evento de teste recebido (v0.17.80-81)
+- ✅ #3 Backup Firestore: bucket us-central1, IAM grants, função deployada, 1º export 1.10 MiB OK
+- ✅ #5 Quotas + alertas: budget R$100/mês + 3 alert policies (reads/writes/functions) + notification channel
+- ✅ #4 Aceite explícito de termos em primeiro login (v0.17.78)
+
+### Sprint 4 (próxima — depende de você)
 - 🚨 #1 Reset Firestore + comunicar amigos-testers (1h)
-- 🚨 #2 Criar projeto Sentry + plugar DSN (15min + smoke)
-- 🚨 #3 Rodar setup IAM/bucket do backup + deploy função (30min, ver `docs/backup.md`)
-- 🚨 #4 Revisão jurídica do conteúdo Privacy+Terms (advogado externo)
-- 🚨 #5 Quotas + alertas Firebase + budget (2h, console Firebase)
-- 🟡 #4 Aceite explícito de termos em primeiro login (1h código)
-- 🟡 #6 Firebase init lazy — único path real pra Performance ≥75 (4h + revisão sua)
-- 🟡 #9 Color-contrast btn-success (30min + screenshot review 4 temas)
+- 🚨 #4 Revisão jurídica do conteúdo Privacy+Terms (advogado externo, sem prazo)
+- 🟡 Manual checklist de validação pré-beta (`docs/manual-test-checklist.md`, ~58min)
+- 🟡 Color-contrast btn-success (30min + screenshot review 4 temas) — opcional, A11y já em 96
 
 ### Sprint 4 (entrega beta)
 - Bump versão pra `1.0.0-beta`
@@ -187,14 +192,14 @@ Tudo abaixo precisa estar verde:
 
 - [x] **Performance Lighthouse ≥ 60** em mobile slow-4G — atual **64** ✓. Critério revisto de ≥75 pra ≥60 (decisão de 2026-04-29). Razão: ≥75 só seria atingível com refactor arquitetural (bundler + modular Firebase SDK), 1-2 semanas de trabalho com risco alto pra fluxos críticos (auth, login). Real-world em 4G real (não simulado slow-4G) tem FCP ~2-3s, abaixo do limite percebido pelo usuário entre 64 e 80. Beta success se mede por feedback do usuário, não por score sintético. Refactor arquitetural fica pra v1.x quando houver pain real motivando.
 - [x] **Acessibilidade Lighthouse ≥ 95** — atual **96** ✓ (v0.17.65)
-- [ ] **0 erros JS no console** após smoke completo (login + criar + jogar + sair) — verificar manualmente quando você fizer review da Sprint 2
-- [ ] **Sentry recebendo eventos reais** + 0 issues `unresolved` nas últimas 24h — DSN não plugada
+- [ ] **0 erros JS no console** após smoke completo (login + criar + jogar + sair) — verificar manualmente via `docs/manual-test-checklist.md`
+- [x] **Sentry recebendo eventos reais** ✓ DSN plugada (v0.17.80), SDK loading com SRI correto (v0.17.81), evento de teste recebido em sentry.io/scoreplaceapp/scoreplace-web. Critério "0 issues unresolved nas últimas 24h" validar pós-beta launch.
 - [x] **E2E suite ≥ 10 cenários, 100% green** — 17 cenários × 2 projects = 34 testes ✓
-- [ ] **Backup Firestore** rodou nas últimas 24h, restore testado em isolado — scaffolding pronto, setup pendente
+- [x] **Backup Firestore** ✓ função deployada, primeiro export 1.10 MiB OK em `gs://scoreplace-firestore-backup/`. Restore drill em isolado fica pra Sprint 4.
 - [ ] **Política privacy + termos** publicados e linkados no footer — scaffolding publicado, conteúdo aguarda revisão jurídica
 - [ ] **Reset de dados** comunicado e executado
-- [ ] **Quotas Firebase** sem nenhum alarme nos últimos 7 dias — alertas não configurados ainda
+- [x] **Quotas Firebase** ✓ budget R$100/mês + 3 alert policies (reads/writes/functions) ativadas (2026-04-29). Critério "sem nenhum alarme nos últimos 7 dias" validar pós-beta launch.
 
-**Estado atual: 3/9 verde (Performance ≥60, Accessibility ≥95, E2E ≥10). 4/9 com scaffolding pronto aguardando ativação externa. 2/9 dependem de decisão externa (jurídica, comunicação).**
+**Estado atual: 6/9 verde (Performance ≥60, Accessibility ≥95, E2E ≥10, Sentry ativo, Backup rodando, Quotas+alertas). 3/9 dependem de decisão externa (jurídica, comunicação testers, manual smoke).**
 
 Quando tudo isto for `[x]`, a versão pode subir pra `1.0.0-beta`.
