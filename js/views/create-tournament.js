@@ -582,11 +582,11 @@ function setupCreateTournamentModal() {
                 <div style="display:flex;flex-direction:column;gap:8px;" id="late-enrollment-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">🚫</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollClosed')}</span><div class="toggle-desc" id="late-closed-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollClosedOnDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" aria-label="Inscrições fora do prazo fechadas" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-closed" aria-label="Inscrições fora do prazo fechadas" checked onchange="window._syncLateEnrollment('closed')"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.08);">
                     <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">➕</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.lateEnrollExpand')}</span><div class="toggle-desc" id="late-expand-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.lateEnrollExpandDisabledDesc')}</div></div></div>
-                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" aria-label="Inscrições fora do prazo expandem lista" checked onchange="window._syncLateEnrollment()"><span class="toggle-slider"></span></label>
+                    <label class="toggle-switch" style="--toggle-on-bg:#fbbf24;--toggle-on-glow:rgba(251,191,36,0.3);--toggle-on-border:#fbbf24;"><input type="checkbox" id="late-toggle-expand" aria-label="Inscrições fora do prazo expandem lista" onchange="window._syncLateEnrollment('expand')"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
               </div>
@@ -1063,14 +1063,29 @@ function setupCreateTournamentModal() {
     if (desc) desc.textContent = _t(indiv.checked ? 'create.woIndividualOnDesc' : 'create.woIndividualOffDesc');
   };
 
-  // ── Late Enrollment sync (two independent toggles) ──
+  // ── Late Enrollment sync (mutually exclusive toggles) ──
   // Fechadas ON  → 'closed' (no one can enroll after deadline)
-  // Fechadas OFF → 'standby' (new enrollments go to waitlist)
-  // Novos Confrontos (independent) → when ON AND Fechadas OFF, waitlist auto-expands into new matchups → 'expand'
-  window._syncLateEnrollment = function() {
+  // Fechadas OFF + Expand OFF → 'standby' (new enrollments go to waitlist, no auto-matchups)
+  // Fechadas OFF + Expand ON  → 'expand' (waitlist auto-expands into new matchups)
+  //
+  // v0.17.76: tornados mutuamente exclusivos. Antes ambos podiam estar ON
+  // simultaneamente, criando estado inconsistente — "Fechadas" (sem
+  // inscrições) com "Novos Confrontos" (auto-expand) ativos juntos não fazia
+  // sentido. Agora: ligar um desliga o outro automaticamente. Defaults pra
+  // estado inicial: closed=ON, expand=OFF.
+  window._syncLateEnrollment = function(source) {
     var closed = document.getElementById('late-toggle-closed');
     var expand = document.getElementById('late-toggle-expand');
     if (!closed || !expand) return;
+
+    // Mutual exclusion: ligar um desliga o outro. Se source não foi passado
+    // (re-render programático), preserva estado atual sem alterar.
+    if (source === 'closed' && closed.checked) {
+      expand.checked = false;
+    } else if (source === 'expand' && expand.checked) {
+      closed.checked = false;
+    }
+
     var value;
     if (closed.checked) value = 'closed';
     else value = expand.checked ? 'expand' : 'standby';
