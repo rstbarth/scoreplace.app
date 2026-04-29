@@ -138,7 +138,11 @@
     '.landing-title { font-size: 2.2rem; font-weight: 800; color: var(--text-bright); margin: 0; }' +
     '.landing-dot { color: var(--primary-color); }' +
     '.landing-tagline { font-size: 1.1rem; color: var(--text-muted); margin: 12px 0 28px; max-width: 500px; margin-left: auto; margin-right: auto; }' +
-    '.landing-cta-btn { font-size: 1.05rem; padding: 14px 36px; border-radius: 12px; cursor: pointer; }' +
+    /* a11y v0.17.66: override do .btn-success default (#10b981, contrast 2.53:1
+       em texto branco) pra emerald-700 (#047857, ~5:1, passa WCAG AA). Só nos
+       CTAs da landing — outros .btn-success do app continuam #10b981. */
+    '.landing-cta-btn { font-size: 1.05rem; padding: 14px 36px; border-radius: 12px; cursor: pointer; background: #047857; }' +
+    '.landing-cta-btn:hover { background: #065f46; }' +
     '.landing-sports-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 28px; }' +
     '.landing-sport-pill { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; color: var(--text-main); }' +
 
