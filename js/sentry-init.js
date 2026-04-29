@@ -67,8 +67,12 @@
 
   // ── 4. Carregar o SDK CDN async ────────────────────────────────────────────
   // Sentry browser bundle (compatível com vanilla JS, sem ES Modules)
+  // v0.17.81: hash SRI corrigido (computado via openssl dgst -sha384 do
+  // arquivo CDN). O hash anterior era inventado e bloqueava silenciosamente
+  // o load do SDK no browser, deixando observability inativa apesar da DSN
+  // estar configurada. Validar hash sempre que bumpar a versão do SDK.
   var SDK_URL = 'https://browser.sentry-cdn.com/8.45.0/bundle.tracing.min.js';
-  var SDK_INTEGRITY = 'sha384-fNPqFnT8L0Gfeop5NB58btQXAbBGUcjjAemYkXm1kg4G3qF1zbLMb5Y8XiAB8BIp';
+  var SDK_INTEGRITY = 'sha384-2v8OMaiLyo5IQ6yjyGhZ8db0RBrxRo/GmWZE2FR+b1H7WCLNM8rUbYEX7G2g7n7+';
 
   var s = document.createElement('script');
   s.src = SDK_URL;
