@@ -140,11 +140,33 @@ window._showGroupsConfigPanel = function(tId) {
     function renderPanel(classPerGroup) {
         var configs = generateConfigs(N, classPerGroup);
 
-        // Sort: power-of-2 first, then by evenness (remainder=0 first), then by group count
+        // v0.17.75: ranking refinado — antes era "pow2 → mais even → menos grupos"
+        // o que recomendava N=2 com grupos lopsided (11+10 com 21 times: cada
+        // jogador joga 10 jogos só na fase de grupos). Agora considera também
+        // o TAMANHO dos grupos: 4-5 times é o sweet-spot (round-robin razoável).
+        // 2-3 times = jogos muito poucos. 7+ = round-robin gigante. Resultado:
+        // recomendação prioriza balance entre pow2 + tamanho razoável.
+        function configScore(c) {
+            var score = 0;
+            // Pow2 advancing: bônus dominante (cobre o caso ≠ pot.2 sempre perder)
+            if (c.isPow2) score += 1000;
+            // Grupos balanceados (sem sobra): bônus
+            if (c.remainder === 0) score += 80;
+            // Tamanho médio do grupo: 4-5 ideal (round-robin de 6-10 jogos),
+            // 3 ou 6 OK, 2 ruim (poucos jogos), 7+ ruim (round-robin gigante)
+            var avgSize = c.remainder === 0 ? c.base : (c.base + 0.5);
+            if (avgSize >= 4 && avgSize <= 5) score += 60;
+            else if (avgSize === 3 || avgSize === 6) score += 30;
+            else if (avgSize <= 2) score -= 30;
+            else if (avgSize >= 7) score -= 10 * (avgSize - 6);
+            // Penalizar muito poucos grupos (N=2 com grupos enormes)
+            if (c.groups <= 2 && avgSize >= 7) score -= 40;
+            // Tie-breaker: menor número de grupos é mais simples logística
+            score -= c.groups * 0.1;
+            return score;
+        }
         configs.sort(function(a, b) {
-            if (a.isPow2 !== b.isPow2) return a.isPow2 ? -1 : 1;
-            if (a.remainder !== b.remainder) return a.remainder === 0 ? -1 : (b.remainder === 0 ? 1 : 0);
-            return a.groups - b.groups;
+            return configScore(b) - configScore(a);
         });
 
         // Header

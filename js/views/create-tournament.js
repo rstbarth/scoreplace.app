@@ -3081,9 +3081,21 @@ function setupCreateTournamentModal() {
           elim_dupla: 'Dupla Eliminatória',
           grupos_mata: 'Fase de Grupos + Eliminatórias'
         };
-        // When draw mode is Rei/Rainha and format is NOT Liga, save as standalone Rei/Rainha format
+        // When draw mode is Rei/Rainha and format is compatible (eliminatórias
+        // simples/dupla ou suíço), save as standalone Rei/Rainha format.
+        // EXCLUSÕES (v0.17.75 — bug reportado pelo usuário 29-Abr-2026):
+        //   - Liga: drawMode controla ligaRoundFormat (rei_rainha vs standard),
+        //     mas o format permanece 'Liga'.
+        //   - grupos_mata (Grupos + Eliminatórias): incompatível com Rei/Rainha
+        //     conceitualmente — grupos têm round-robin, não rotação de parceiros.
+        //     Antes, se o user mudasse format de Rei/Rainha pra Grupos+Elim
+        //     SEM antes desabilitar drawMode='rei_rainha', o form auto-corrigia
+        //     visualmente mas o save handler ainda gravava format='Rei/Rainha
+        //     da Praia', criando torneio Grupos+Elim com matches Rei/Rainha
+        //     (rotação de parceiros). Agora a save-handler é defensiva.
         var format;
-        if (drawModeValue === 'rei_rainha' && formatValue !== 'liga') {
+        var monarchIncompatible = formatValue === 'liga' || formatValue === 'grupos_mata';
+        if (drawModeValue === 'rei_rainha' && !monarchIncompatible) {
           format = 'Rei/Rainha da Praia';
         } else {
           format = formatMap[formatValue] || 'Eliminatórias Simples';
