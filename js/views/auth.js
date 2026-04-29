@@ -256,6 +256,10 @@ if (firebase && firebase.auth) {
 function handleGoogleLogin() {
   var isLocalFile = window.location.protocol === 'file:';
 
+  // v0.17.85: reset defensivo do guard a cada nova tentativa de login.
+  // Previne caso degenerado onde guard ficou preso de tentativa anterior.
+  if (typeof window._resetLoginGuard === 'function') window._resetLoginGuard();
+
   if (isLocalFile) {
     // Offline/Local development mode - simulate login
     showNotification(_t('auth.simLogin'), _t('auth.simLoginMsg'), 'info');
@@ -306,8 +310,14 @@ function handleGoogleLogin() {
         window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
       }
 
-      // Try linking pending credential from another provider
-      _tryLinkPendingCredential(result);
+      // Try linking pending credential from another provider.
+      // v0.17.85: try/catch — sem ele, exception aqui pulava simulateLoginSuccess.
+      try { _tryLinkPendingCredential(result); } catch(_lkErr) {
+        console.warn('[scoreplace-auth] _tryLinkPendingCredential error (non-fatal):', _lkErr);
+        if (typeof window._captureException === 'function') {
+          window._captureException(_lkErr, { area: 'tryLinkPendingCredential' });
+        }
+      }
 
       // Explicitly drive the login flow from the popup success callback
       // instead of relying solely on onAuthStateChanged. Chrome's 3rd-party
@@ -997,13 +1007,30 @@ function _autoFriendOnInvite(inviterUid, currentUser) {
 }
 
 async function simulateLoginSuccess(user) {
-  console.log('[scoreplace-auth] simulateLoginSuccess called for', user && user.email, 'inProgress:', !!window._simulateLoginInProgress);
-  // Guard against double execution (e.g. onAuthStateChanged + explicit call)
-  if (window._simulateLoginInProgress) {
-    console.log('[scoreplace-auth] simulateLoginSuccess: skipping — already in progress');
+  // v0.17.85: timestamp-based guard substituiu boolean. Antes era flag bool
+  // _simulateLoginInProgress que só era resetado no FINAL bem-sucedido da
+  // função — qualquer throw em await intermediário (loadUserProfile,
+  // showTermsAcceptanceModal, fetch, etc.) deixava a flag stuck=true. Próxima
+  // tentativa de login (mesma sessão) era silent no-op: modal fechava (graças
+  // ao _forceCloseLoginModal v0.17.83), toast aparecia, mas AppStore.currentUser
+  // nunca era setado. Sintoma: "logou mas não está logado".
+  // Agora flag carrega timestamp da entrada. >10s = stale (deixa passar).
+  var now = Date.now();
+  var inProgressAt = window._simulateLoginInProgressAt || 0;
+  var STALE_MS = 10000; // 10s
+  console.log('[scoreplace-auth] simulateLoginSuccess called for', user && user.email,
+    'inProgressAt:', inProgressAt, 'staleAfter:', STALE_MS + 'ms', 'isStale:', (now - inProgressAt) > STALE_MS);
+  if (inProgressAt && (now - inProgressAt) <= STALE_MS) {
+    console.log('[scoreplace-auth] simulateLoginSuccess: skipping — fresh in-progress (' + (now - inProgressAt) + 'ms ago)');
     return;
   }
-  window._simulateLoginInProgress = true;
+  if (inProgressAt) {
+    console.warn('[scoreplace-auth] simulateLoginSuccess: previous attempt stale (' + (now - inProgressAt) + 'ms), proceeding');
+  }
+  window._simulateLoginInProgressAt = now;
+  window._simulateLoginInProgress = true; // mantido pra compat com callers antigos
+
+  try {
 
   // Set AppStore.currentUser with the user object
   window.AppStore.currentUser = user;
@@ -1616,8 +1643,26 @@ async function simulateLoginSuccess(user) {
 
   // Initialize router to load appropriate views
   if (typeof initRouter === 'function') initRouter();
-  window._simulateLoginInProgress = false;
+
+  } catch (loginErr) {
+    // v0.17.85: catch + finally garantem que o guard nunca fica stuck.
+    // Captura no Sentry mas não rethrow — login parcial é melhor que login zero.
+    console.error('[scoreplace-auth] simulateLoginSuccess body error:', loginErr);
+    if (typeof window._captureException === 'function') {
+      window._captureException(loginErr, { area: 'simulateLoginSuccess', uid: user && user.uid });
+    }
+  } finally {
+    window._simulateLoginInProgress = false;
+    window._simulateLoginInProgressAt = 0;
+  }
 }
+
+// v0.17.85: helper público pra resetar o guard manualmente. Chamar antes de
+// disparar nova tentativa de login se desconfia que o guard ficou preso.
+window._resetLoginGuard = function() {
+  window._simulateLoginInProgress = false;
+  window._simulateLoginInProgressAt = 0;
+};
 
 function setupLoginModal() {
   if (!document.getElementById('modal-login')) {
