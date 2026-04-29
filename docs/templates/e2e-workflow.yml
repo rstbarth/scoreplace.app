@@ -1,0 +1,67 @@
+name: E2E Tests
+
+# Roda os smoke tests Playwright contra o site em produção (https://scoreplace.app)
+# após cada push pra main. NÃO bloqueia o deploy (GitHub Pages é separado), mas
+# falhas viram artifact + visible badge — marker de qualidade contínua.
+#
+# Pra rodar contra um deploy preview no futuro: parametrizar SCOREPLACE_URL.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Roda manualmente pelo GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright Smoke (production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Aguardar deploy do GitHub Pages propagar (push em main)
+        if: github.event_name == 'push'
+        run: |
+          # Espera até 90s pra o GitHub Pages servir a versão nova.
+          # Se já estiver no ar, sai imediato. Senão, polling de 10s.
+          for i in $(seq 1 9); do
+            sleep 10
+            CURRENT=$(curl -s "https://scoreplace.app/js/store.js" | grep -oE "'[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)'" | head -1)
+            echo "Tentativa $i — versão atual no ar: $CURRENT"
+          done
+
+      - name: Run Playwright smoke tests
+        env:
+          CI: 'true'
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results (only on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
