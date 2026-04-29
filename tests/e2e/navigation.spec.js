@@ -73,6 +73,39 @@ test.describe('Observability + version', () => {
     expect(version).toMatch(/^\d+\.\d+\.\d+(-(alpha|beta|rc)(\.\d+)?)?$/);
   });
 
+  test('logger wrapper expõe _log/_warn/_error/_debug e detecta modo prod', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('load');
+
+    const fns = await page.evaluate(() => ({
+      log: typeof window._log,
+      warn: typeof window._warn,
+      error: typeof window._error,
+      debug: typeof window._debug,
+      mode: window._loggerMode
+    }));
+    expect(fns.log).toBe('function');
+    expect(fns.warn).toBe('function');
+    expect(fns.error).toBe('function');
+    expect(fns.debug).toBe('function');
+    // Em produção (scoreplace.app) deve ser prod-quiet (DSN inativa)
+    expect(['prod-quiet', 'prod-debug']).toContain(fns.mode);
+
+    // Chamar wrappers não throwa
+    const errMsg = await page.evaluate(() => {
+      try {
+        window._log('test log');
+        window._warn('test warn');
+        window._error('test error');
+        window._debug('test debug');
+        return null;
+      } catch (e) {
+        return String(e);
+      }
+    });
+    expect(errMsg).toBeNull();
+  });
+
   test('sentry-init.js carregado mas Sentry NÃO ativo (DSN inativa)', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('load');
