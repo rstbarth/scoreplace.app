@@ -1364,6 +1364,22 @@ async function simulateLoginSuccess(user) {
   var modal = document.getElementById('modal-login');
   if (modal) modal.classList.remove('active');
 
+  // v0.17.78: gate de aceite de Termos + Privacy. Bloqueia o flow pós-login
+  // (auto-enroll, casual rejoin, invite redirect) até que o usuário marque o
+  // checkbox no modal de aceite. Sem aceite, dispara logout e aborta.
+  // Compliance LGPD pra entrada na fase beta.
+  if (typeof window._needsTermsAcceptance === 'function' &&
+      window._needsTermsAcceptance(window.AppStore.currentUser)) {
+    var accepted = await window._showTermsAcceptanceModal();
+    if (!accepted) {
+      console.log('[scoreplace-auth] Terms not accepted — logging out');
+      window._simulateLoginInProgress = false;
+      if (typeof handleLogout === 'function') handleLogout();
+      return;
+    }
+    console.log('[scoreplace-auth] Terms accepted, version=' + window._CURRENT_TERMS_VERSION);
+  }
+
   // Auto-enroll if there was a pending enrollment
   var pendingEnrollId = window._pendingEnrollTournamentId || null;
   try {

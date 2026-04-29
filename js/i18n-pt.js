@@ -463,6 +463,18 @@ window._translations['pt'] = {
   'terms.contactTitle': 'Contato',
   'terms.contactBody': 'Dúvidas sobre estes termos? Escreva para',
 
+  // v0.17.78: aceite explícito no primeiro login
+  'terms.acceptTitle': 'Antes de continuar…',
+  'terms.acceptIntro': 'Pra usar o scoreplace.app você precisa concordar com os Termos de Uso e a Política de Privacidade. Leia ambos antes de marcar a caixa abaixo.',
+  'terms.openTerms': 'Abrir Termos de Uso',
+  'terms.openPrivacy': 'Abrir Política de Privacidade',
+  'terms.acceptCheckbox': 'Li e concordo com os Termos de Uso e a Política de Privacidade.',
+  'terms.acceptCancel': 'Sair',
+  'terms.acceptConfirm': 'Confirmar',
+  'terms.acceptSaving': 'Salvando…',
+  'terms.acceptFailed': 'Falha ao salvar',
+  'terms.acceptFailedMsg': 'Tente novamente em instantes. Sem aceite, o app não pode continuar.',
+
   // Help
   'help.title': 'Ajuda',
   'help.search': 'Buscar na ajuda...',

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.77-alpha';
+window.SCOREPLACE_VERSION = '0.17.78-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1573,6 +1573,10 @@ window.AppStore = {
         if (profile.planExpiresAt) this.currentUser.planExpiresAt = profile.planExpiresAt;
         if (profile.stripeCustomerId) this.currentUser.stripeCustomerId = profile.stripeCustomerId;
         if (profile.stripeSubscriptionId) this.currentUser.stripeSubscriptionId = profile.stripeSubscriptionId;
+        // v0.17.78: aceite de Termos+Privacy (compliance LGPD beta)
+        if (profile.acceptedTerms !== undefined) this.currentUser.acceptedTerms = profile.acceptedTerms;
+        if (profile.acceptedTermsAt) this.currentUser.acceptedTermsAt = profile.acceptedTermsAt;
+        if (profile.acceptedTermsVersion) this.currentUser.acceptedTermsVersion = profile.acceptedTermsVersion;
       }
       // v0.17.6: self-heal de cu.friends — roda em background após profile
       // load. Resolve emails legados pra uid, dropa órfãos e dedup. Persiste
