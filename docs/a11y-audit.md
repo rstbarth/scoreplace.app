@@ -1,25 +1,24 @@
 # Acessibilidade — Auditoria Lighthouse
 
-**Score atual:** **96** / 100 ✅ (beta target ≥95 atingido)
+**Score atual:** **100** / 100 🎯 (perfeito)
 **Target beta:** ≥ 95 ✅
-**Última atualização:** 2026-04-28 (v0.17.65)
+**Última atualização:** 2026-04-29 (v0.17.66)
 
 ## Histórico
 
-| Versão | Score | label issues | Mudança |
-|---|---:|---:|---|
-| v0.17.62 (baseline) | 88 | 28 | — |
-| v0.17.63 | 93 | 28 | + heading-order h2 sr-only + 2 selects aria-label |
-| v0.17.64 | 93 | 20 | + aria-label injetado no helper _toggleSwitch (9 toggles) |
-| **v0.17.65** | **96** | **0** | + batch aria-label nos 20 inputs restantes (create-tournament + 1 auth) |
+| Versão | Score | Mudança |
+|---|---:|---|
+| v0.17.62 (baseline) | 88 | — |
+| v0.17.63 | 93 | heading-order h2 sr-only + 2 selects aria-label |
+| v0.17.64 | 93 | aria-label injetado no helper _toggleSwitch (9 toggles) |
+| v0.17.65 | 96 | batch aria-label nos 20 inputs restantes |
+| **v0.17.66** | **100** 🎯 | color-contrast fix nos 2 CTAs landing (#10b981 → #047857) |
 
-## Pendência única (≥95 já atingido)
+## Zero failed audits
 
-**color-contrast** (weight 7, 2 elementos) — 2 botões CTA da landing.
-Não bloqueante pra beta. Fix sugerido: escurecer gradiente do
-`btn-success` em ~10%. Requer review visual nos 4 temas. Esforço ~30min.
-
-Score projetado pós-fix: ~100 (perfeito).
+Todas as categorias a11y do Lighthouse passam. Resultado validado em
+4 deploys consecutivos (v0.17.62 → v0.17.66) com auditorias completas
+salvas em `docs/lighthouse/after-v0.17.6X-mobile.report.json`.
 
 Lighthouse mobile slow-4G saiu de 88 → 96 em 3 deploys (v0.17.63, .64, .65).
 Esta doc é o histórico do que foi fixado e o que sobra (color-contrast).

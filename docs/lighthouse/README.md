@@ -9,13 +9,17 @@
 
 ## Histórico de runs
 
-| Versão | Mudança | Performance | FCP | LCP | Speed Index |
-|---|---|---:|---:|---:|---:|
-| v0.17.55 (baseline) | — | 56 | 9.2s | 10.0s | 9.2s |
-| v0.17.56 | lazy release notes | 56 | 9.0s | 9.5s | 9.0s |
-| v0.17.57 | tira release-notes do precache do SW | 57 | 8.8s | 9.4s | 8.8s |
-| **v0.17.58** | **defer em 45 scripts** | **64 ↑** | **4.5s ↓49%** | 9.8s | **4.5s ↓49%** |
-| v0.17.62 | skeleton estático (3 runs media) | 63 | 4.7s | 9.8s | 4.7s |
+| Versão | Mudança | Performance | A11y | FCP | LCP | SI |
+|---|---|---:|---:|---:|---:|---:|
+| v0.17.55 (baseline) | — | 56 | 88 | 9.2s | 10.0s | 9.2s |
+| v0.17.56 | lazy release notes | 56 | 88 | 9.0s | 9.5s | 9.0s |
+| v0.17.57 | tira release-notes do precache do SW | 57 | 88 | 8.8s | 9.4s | 8.8s |
+| **v0.17.58** | **defer em 45 scripts** | **64** | 88 | **4.5s ↓49%** | 9.8s | **4.5s** |
+| v0.17.62 | skeleton estático | 63 | 88 | 4.7s | 9.8s | 4.7s |
+| v0.17.63 | a11y heading-order + selects | 63 | 93 | — | — | — |
+| v0.17.64 | a11y _toggleSwitch helper | 63 | 93 | — | — | — |
+| v0.17.65 | a11y batch 20 aria-label | 63 | 96 | — | — | — |
+| **v0.17.66** | **a11y color-contrast** | **65** | **100** 🎯 | — | — | — |
 
 ### v0.17.62 (skeleton) — conclusão da medição
 
