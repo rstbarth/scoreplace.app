@@ -92,11 +92,43 @@ Sentry free tier: 5K errors/mês + 10K transactions/mês. Suficiente pra alpha
 e início de beta. Se o volume estourar, desativar `tracesSampleRate` (vai
 pra zero) ou pegar paid plan.
 
+## Logger centralizado (v0.17.67)
+
+`js/logger.js` define wrappers compatíveis com `console`:
+
+```js
+window._log('debug info');      // dev: console.log; prod: silenciado
+window._debug('verbose');       // dev: console.debug; prod: silenciado
+window._warn('alguma coisa');   // sempre console.warn + Sentry breadcrumb
+window._error('falhou', err);   // sempre console.error + Sentry breadcrumb
+```
+
+**Detecção dev vs prod:**
+- `location.hostname === 'scoreplace.app'` → modo prod
+- Qualquer outro → modo dev (localhost, preview, deploy alternativo)
+
+**Forçar verbose em prod:**
+```js
+localStorage.setItem('scoreplace_debug', '1');
+location.reload();
+```
+
+`window._loggerMode` expõe o modo atual (`'dev'`, `'prod-quiet'`, `'prod-debug'`).
+
+**Sentry breadcrumbs:** quando DSN estiver plugada, todos os `_log/_debug/_warn/_error`
+populam breadcrumbs automaticamente — quando um erro acontecer, o Sentry mostra
+o trail completo do que aconteceu antes. Sem DSN, breadcrumbs são no-op
+(`window.Sentry` não existe).
+
+**Migração progressiva (não-bloqueante):** call-sites antigos com `console.log`
+direto continuam funcionando. Novos código pode usar o wrapper. Refactor
+massivo dos 200+ `console.*` existentes pode ser feito em sprint dedicada
+quando fizer sentido.
+
 ## Próximos passos (não-bloqueantes pra beta)
 
 - [ ] Plugar DSN real quando usuários reais começarem a testar (beta).
 - [ ] Adicionar Sentry Releases via GitHub Action no deploy (`sentry-cli releases`).
 - [ ] Source maps upload se algum dia vier minificação/build step.
-- [ ] Migrar console.log/warn/error pra wrapper centralizado (`window._log`)
-  que roteia pra Sentry breadcrumbs em produção. Hoje 81 console.log em
-  auth.js, 40 em firebase-db.js etc. — ver `code-debt-audit.md`.
+- [ ] Migrar `console.log/warn/error` em arquivos críticos pra `window._log/_warn/_error`
+      progressivamente — começar por `auth.js` (81 calls) e `firebase-db.js` (40 calls).
