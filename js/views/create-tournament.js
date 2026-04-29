@@ -569,7 +569,7 @@ function setupCreateTournamentModal() {
                 <input type="hidden" id="wo-scope" value="individual">
                 <div style="display:flex;flex-direction:column;gap:8px;" id="wo-scope-buttons">
                   <div class="toggle-row" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);">
-                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;">${_t('create.enrollIndividual')}</span><div class="toggle-desc" id="wo-indiv-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualOnDesc')}</div></div></div>
+                    <div class="toggle-row-label" style="gap:8px;"><span class="toggle-icon" id="wo-icon">👤</span><div><span style="font-weight:600;color:var(--text-color);font-size:0.88rem;" id="wo-label">${_t('create.enrollIndividual')}</span><div class="toggle-desc" id="wo-indiv-desc" style="font-size:0.72rem;margin-top:2px;">${_t('create.woIndividualOnDesc')}</div></div></div>
                     <label class="toggle-switch" style="--toggle-on-bg:#f87171;--toggle-on-glow:rgba(248,113,113,0.3);--toggle-on-border:#f87171;"><input type="checkbox" id="wo-toggle-individual" aria-label="W.O. individual" checked onchange="window._syncWoScope()"><span class="toggle-slider"></span></label>
                   </div>
                 </div>
@@ -1048,6 +1048,10 @@ function setupCreateTournamentModal() {
   // ── W.O. Scope sync (single toggle) ──
   // ON  → 'individual' (only absent player eliminated; partner continues)
   // OFF → 'team'       (whole team eliminated on W.O.)
+  // v0.17.77: label + ícone + aria-label dinâmicos. Antes só a description
+  // (texto pequeno) mudava; o título "Individual" ficava hardcoded mesmo
+  // quando o toggle estava OFF (semanticamente "Time"). Agora o label
+  // alterna entre "Individual" 👤 e "Time Inteiro" 👥 conforme o estado.
   window._syncWoScope = function() {
     var indiv = document.getElementById('wo-toggle-individual');
     if (!indiv) return;
@@ -1061,6 +1065,12 @@ function setupCreateTournamentModal() {
     }
     var desc = document.getElementById('wo-indiv-desc');
     if (desc) desc.textContent = _t(indiv.checked ? 'create.woIndividualOnDesc' : 'create.woIndividualOffDesc');
+    var label = document.getElementById('wo-label');
+    if (label) label.textContent = _t(indiv.checked ? 'create.enrollIndividual' : 'create.woTeam');
+    var icon = document.getElementById('wo-icon');
+    if (icon) icon.textContent = indiv.checked ? '👤' : '👥';
+    // aria-label do input acompanha o estado pra screen readers
+    indiv.setAttribute('aria-label', indiv.checked ? 'W.O. individual' : 'W.O. de time inteiro');
   };
 
   // ── Late Enrollment sync (mutually exclusive toggles) ──
