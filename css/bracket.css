@@ -191,3 +191,51 @@ summary::-webkit-details-marker { display: none; }
     font-size: 0.85rem;
   }
 }
+
+/* ==== STANDINGS SCROLLER ====
+   v0.17.74: scrollbar visível + scroll suave em mobile/macOS pra tabela
+   de classificação. Antes era `<div style="overflow-x:auto;">` inline,
+   mas o scrollbar default fica escondido em iOS Safari + macOS Safari +
+   Chrome no macOS (a menos que usuário tenha "Always show scrollbars" no
+   System Preferences) — usuário não percebe que tabela rola horizontalmente.
+   Esta classe garante scrollbar fina sempre visível. */
+.standings-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 150, 150, 0.4) rgba(150, 150, 150, 0.08);
+}
+.standings-scroll::-webkit-scrollbar {
+  height: 8px;
+  -webkit-appearance: none;
+}
+.standings-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.4);
+  border-radius: 4px;
+}
+.standings-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.6);
+}
+.standings-scroll::-webkit-scrollbar-track {
+  background: rgba(150, 150, 150, 0.08);
+  border-radius: 4px;
+}
+
+/* Gradient fade na borda direita pra hint de scroll. Só aparece quando
+   o conteúdo de fato overflow (table mais larga que viewport).
+   `background-attachment: local` faz o gradiente "vazar" só nas bordas
+   internas do scroller — não acompanha o scroll. */
+.standings-scroll {
+  background:
+    linear-gradient(to right, var(--bg-card, #1e293b), rgba(30, 41, 59, 0)) left center,
+    linear-gradient(to left, var(--bg-card, #1e293b), rgba(30, 41, 59, 0)) right center,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0)) left center,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0)) right center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  background-size: 24px 100%, 24px 100%, 8px 100%, 8px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+/* Tema light/sunset: gradient fade usa background do card (cream/branco),
+   não dark. CSS variable --bg-card já cobre isso automaticamente. */

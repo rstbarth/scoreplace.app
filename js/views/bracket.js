@@ -1593,7 +1593,7 @@ function _renderMonarchStage(t, isOrg, canEnterResult) {
       '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.75rem;">Jogadores: ' + (sg.players || []).map(function(n) { return window._safeHtml(n); }).join(', ') + '</div>' +
       '<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">' + _t('bracket.monarchMatchRotation') + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:8px;">' + matchCards + '</div>' +
-      '<div style="overflow-x:auto;">' + standingsTable + '</div>' +
+      '<div class="standings-scroll">' + standingsTable + '</div>' +
     '</div>';
   });
 
@@ -1712,8 +1712,13 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     const classified = t.gruposClassified || 2;
 
     const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
-    // v0.17.30: omite coluna E quando o sistema de pontuação não permite empate.
-    const _drawsAllowedGS = !(t.scoring && t.scoring.type === 'sets');
+    // v0.17.74: omite coluna E quando: (a) scoring sets/gsm com tiebreak
+    // garante vencedor, OU (b) nenhum jogador no grupo teve empate ainda.
+    const _scoringTypeGS = (t.scoring && t.scoring.type) || '';
+    const _isSetsBasedGS = _scoringTypeGS === 'sets' || _scoringTypeGS === 'gsm';
+    const _explicitlyDisallowedGS = t.scoring && t.scoring.allowDraw === false;
+    const _hasAnyDrawsGS = sorted.some(function(s) { return (s.draws || 0) > 0; });
+    const _drawsAllowedGS = !_isSetsBasedGS && !_explicitlyDisallowedGS && _hasAnyDrawsGS;
     const rows = sorted.map((s, i) => `
       <tr style="border-bottom:1px solid var(--border-color);${i < classified ? 'background:rgba(34,197,94,0.08);' : ''}">
         <td style="padding:8px 12px;font-weight:700;color:${i < classified ? '#4ade80' : 'var(--text-muted)'};">${medal(i)}</td>
@@ -1754,8 +1759,8 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     return `
       <div class="card" id="group-section-${gi}" style="border-left:4px solid ${isMyGroupGS ? '#22d3ee' : groupColor};scroll-margin-top:120px;">
         <h3 style="margin:0 0 1rem;color:${isMyGroupGS ? '#22d3ee' : groupColor};font-size:1rem;font-weight:800;">${window._safeHtml(sg.name)}${myGroupBadge}</h3>
-        <div style="overflow-x:auto;margin-bottom:1rem;">
-          <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <div class="standings-scroll" style="margin-bottom:1rem;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:480px;">
             <thead>
               <tr style="border-bottom:2px solid var(--border-color);">
                 <th style="padding:6px 12px;text-align:left;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">#</th>
@@ -1908,11 +1913,35 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
 
   const _useSetsStandings = t.scoring && t.scoring.type === 'sets';
   const _useAdvStandings = !!(t.advancedScoring && t.advancedScoring.enabled);
-  // v0.17.30: oculta coluna E (Empates) quando o sistema de pontuação não
-  // permite empate (sets/GSM com tiebreak garantem vencedor). Heurística:
-  // type === 'sets' (GSM) → sem empate possível. Para placar simples, empate
-  // continua possível (regra de Liga/Suíço/Grupos quando user marca "Empate").
-  const _drawsAllowed = !(t.scoring && t.scoring.type === 'sets');
+  // v0.17.74: oculta coluna E (Empates) em 2 casos cumulativos:
+  // (a) scoring sets/gsm com tiebreak (impossível matematicamente); OU
+  // (b) nenhum jogador teve empate ainda (coluna seria só zeros).
+  // Antes só checava (a), e mesmo assim só pra type='sets' — 'gsm' (alias)
+  // não era coberto. Agora considera dados reais via `_hasAnyDraws`.
+  const _scoringType = (t.scoring && t.scoring.type) || '';
+  const _isSetsBased = _scoringType === 'sets' || _scoringType === 'gsm';
+  const _explicitlyDisallowed = t.scoring && t.scoring.allowDraw === false;
+
+  // Compute standings UP FRONT pra que possamos olhar os dados antes de
+  // decidir se a coluna E aparece (data-driven hide).
+  var __standingsCache = [];
+  if (hasCats) {
+    categories.forEach(function(cat) {
+      var catComputed = _computeStandings(t, cat);
+      if (catComputed.length === 0) return;
+      __standingsCache.push({ label: cat, computed: catComputed });
+    });
+  }
+  if (__standingsCache.length === 0) {
+    __standingsCache.push({ label: null, computed: _computeStandings(t) });
+  }
+  var _allStandingsRows = [];
+  __standingsCache.forEach(function(sec) { _allStandingsRows = _allStandingsRows.concat(sec.computed); });
+  var _hasAnyDraws = _allStandingsRows.some(function(s) { return (s.draws || 0) > 0; });
+
+  // E aparece SOMENTE quando: scoring permite (não-sets/gsm) E há ao menos
+  // 1 empate computado. Caso contrário, oculta — ou impossível ou ruído.
+  const _drawsAllowed = !_isSetsBased && !_explicitlyDisallowed && _hasAnyDraws;
   const _buildStandingsRows = function(computed) {
     return computed.map((s, i) => {
       var _setsDiff = (s.setsWon || 0) - (s.setsLost || 0);
@@ -1943,19 +1972,12 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
     }).join('');
   };
 
-  // If tournament has categories, compute per-category; otherwise single table
-  var standingsSections = [];
-  if (hasCats) {
-    categories.forEach(function(cat) {
-      var catComputed = _computeStandings(t, cat);
-      if (catComputed.length === 0) return; // skip empty categories
-      standingsSections.push({ label: cat, rows: _buildStandingsRows(catComputed) });
-    });
-  }
-  if (standingsSections.length === 0) {
-    // Fallback: single standings table (no categories or all empty)
-    standingsSections.push({ label: null, rows: _buildStandingsRows(_computeStandings(t)) });
-  }
+  // v0.17.74: reusa __standingsCache (computado no topo pra _hasAnyDraws).
+  // Evita re-rodar _computeStandings — antes era chamado 2x (uma pra cache,
+  // outra aqui).
+  var standingsSections = __standingsCache.map(function(sec) {
+    return { label: sec.label, rows: _buildStandingsRows(sec.computed) };
+  });
 
   const currentRoundData = rounds[currentRound - 1];
   const allComplete = (currentRoundData.matches || []).every(m => m.winner);
@@ -2193,7 +2215,7 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;"><strong style="font-size:0.9rem;color:var(--text-bright);">' + window._safeHtml(g.name) + '</strong>' + statusBadge + (isMyGroup ? '<span style="font-size:0.6rem;padding:2px 8px;border-radius:5px;background:rgba(34,211,238,0.15);color:#22d3ee;font-weight:700;">SEU GRUPO</span>' : '') + '</div>' +
             '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.5rem;">Jogadores: ' + g.players.map(function(n){return window._safeHtml(n);}).join(', ') + '</div>' +
             '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:0.75rem;">' + gCards + '</div>' +
-            '<div style="overflow-x:auto;">' + gTable + '</div>' +
+            '<div class="standings-scroll">' + gTable + '</div>' +
           '</div>';
         };
         // v0.17.29: usuário fora da rodada (desativado/sem grupo) → todos
@@ -2349,8 +2371,8 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
             <span class="standings-toggle-hide" style="display:none;">▾ ${_t('bracket.hideStandings')}</span>
           </span>
         </summary>
-        <div style="margin-top:1rem;overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;">
+        <div class="standings-scroll" style="margin-top:1rem;">
+          <table style="width:100%;border-collapse:collapse;min-width:520px;">
             ${_tableHeader}
             <tbody>${sec.rows}</tbody>
           </table>
