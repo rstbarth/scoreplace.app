@@ -1,15 +1,32 @@
-# Acessibilidade — Auditoria Lighthouse v0.17.62
+# Acessibilidade — Auditoria Lighthouse
 
-**Score atual:** 88 / 100
-**Target beta:** ≥ 95
-**Data:** 2026-04-28
+**Score atual:** **96** / 100 ✅ (beta target ≥95 atingido)
+**Target beta:** ≥ 95 ✅
+**Última atualização:** 2026-04-28 (v0.17.65)
 
-Lighthouse mobile slow-4G aponta 4 categorias de issues a11y. Esta doc lista
-o estado atual e o caminho até `≥95`.
+## Histórico
+
+| Versão | Score | label issues | Mudança |
+|---|---:|---:|---|
+| v0.17.62 (baseline) | 88 | 28 | — |
+| v0.17.63 | 93 | 28 | + heading-order h2 sr-only + 2 selects aria-label |
+| v0.17.64 | 93 | 20 | + aria-label injetado no helper _toggleSwitch (9 toggles) |
+| **v0.17.65** | **96** | **0** | + batch aria-label nos 20 inputs restantes (create-tournament + 1 auth) |
+
+## Pendência única (≥95 já atingido)
+
+**color-contrast** (weight 7, 2 elementos) — 2 botões CTA da landing.
+Não bloqueante pra beta. Fix sugerido: escurecer gradiente do
+`btn-success` em ~10%. Requer review visual nos 4 temas. Esforço ~30min.
+
+Score projetado pós-fix: ~100 (perfeito).
+
+Lighthouse mobile slow-4G saiu de 88 → 96 em 3 deploys (v0.17.63, .64, .65).
+Esta doc é o histórico do que foi fixado e o que sobra (color-contrast).
 
 ---
 
-## ✅ Fixes aplicados (v0.17.63)
+## ✅ Fixes aplicados (v0.17.63 → v0.17.65)
 
 ### 1. Selects sem labels associados (audit `select-name`, weight 7)
 **Era:** 2 elementos sem `aria-label` nem `<label for>` apontando.
@@ -35,9 +52,19 @@ Classe `.sr-only` adicionada em `css/style.css` (padrão WAI-ARIA).
 
 ---
 
-## 🟡 Pendências (não-bloqueantes pra beta, mas pra ≥95)
+### 3. Form labels (audit `label`, weight 7) — **28 inputs → 0** ✅ resolvido em v0.17.64+v0.17.65
 
-### 3. Form labels (audit `label`, weight 7) — **28 inputs sem label associado**
+**Estratégia em 2 etapas:**
+- **v0.17.64**: 9 toggles do modal de perfil (todos via `_toggleSwitch` em `js/ui.js`).
+  Single fix no helper que extrai `opts.label`, strip de tags, injeta como
+  `aria-label` no `<input>`. Zero call-site change.
+- **v0.17.65**: 20 inputs restantes (19 em `create-tournament.js` + 1 em `auth.js`).
+  Batch script Python aplicou `aria-label` em cada `id=...` que ainda não tinha.
+  Mecânico, validado com Playwright (12/12 verde) antes do deploy.
+
+#### Lista cobertos (referência histórica)
+
+##### Modal Criar Torneio (`js/views/create-tournament.js`) — 19 inputs cobertos
 
 Todos são `<input>` cujo `<label>` adjacente não tem `for=` apontando ao
 `id` do input. Em alguns casos não há label visível — a UX usa só
@@ -75,25 +102,9 @@ contexto visual (ex: pills toggleáveis).
 | `re-toggle-players` | checkbox | Sim | `for=` no label |
 | `re-toggle-referee` | checkbox | Sim | `for=` no label |
 
-##### Modal Perfil (`js/views/auth.js`) — 10 inputs
+##### Modal Perfil (`js/views/auth.js`) — 10 inputs cobertos
 
-| ID | Tipo | Label visível? | Fix sugerido |
-|---|---|---|---|
-| `profile-edit-name` | text | Sim ("Nome") | `for=` no label |
-| `profile-accept-friends` | checkbox | Sim | `for=` no label |
-| `profile-filter-todas` | checkbox | Sim ("Todas") | `for=` no label |
-| `profile-filter-importantes` | checkbox | Sim ("Importantes") | `for=` no label |
-| `profile-filter-fundamentais` | checkbox | Sim ("Fundamentais") | `for=` no label |
-| `profile-notify-platform` | checkbox | Sim ("Plataforma") | `for=` no label |
-| `profile-notify-email` | checkbox | Sim ("Email") | `for=` no label |
-| `profile-presence-auto-checkin` | checkbox | Sim ("Auto check-in GPS") | `for=` no label |
-| `profile-hints-enabled` | checkbox | Sim ("Mostrar dicas") | `for=` no label |
-
-**Esforço estimado:** ~2h pra cobrir todos (mecânico, mas precisa testar
-visualmente cada modal pra não quebrar layout).
-
-**Score impact:** weight 7 → ganho de ~7 pontos (88 → ~95) quando todos
-forem corrigidos. Mais que suficiente pra atingir target beta.
+9 via `_toggleSwitch` helper (v0.17.64) + `profile-edit-name` direto (v0.17.65).
 
 ---
 
@@ -115,17 +126,15 @@ de todos os botões `btn-success` no app — testar antes.
 
 ---
 
-## Score breakdown projetado
+## Score breakdown realizado
 
-| Estado | Score |
-|---|---:|
-| Antes da v0.17.63 | 88 |
-| Após v0.17.63 (selects + heading-order) | ~91 |
-| Após fix dos 28 form labels | ~94 |
-| Após fix do contrast | ~98 |
-
-**Pra beta basta chegar em ~95** — corrigir os 28 labels (mecânico) já
-basta. O contrast fix entra como nice-to-have antes de v1.
+| Estado | Score | Status |
+|---|---:|---|
+| v0.17.62 baseline | 88 | — |
+| v0.17.63 (selects + heading-order) | 93 | aplicado |
+| v0.17.64 (helper aria-label, 9 toggles) | 93 | aplicado (binário não moveu até resolver tudo) |
+| v0.17.65 (20 inputs restantes) | **96** | ✅ **target beta atingido** |
+| Próximo: fix de contrast | ~100 | nice-to-have antes de v1 |
 
 ---
 
