@@ -973,7 +973,8 @@ Deploy automatico via `git push` para o repositorio `rstbarth/scoreplace.app` (b
 ### Fluxo de deploy padrao
 1. Validar sintaxe de todos os JS modificados: `for f in $(find js/ -name '*.js' ! -name '*.backup'); do node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f"; done`
 2. Atualizar cache-busters em `index.html` para arquivos modificados
-3. `git add` dos arquivos alterados (evitar `git add .` — adicionar arquivos especificos)
-4. `git commit` com mensagem descritiva
-5. `git push origin main`
-6. Verificar no site ao vivo que as alteracoes estao deployadas
+3. **OBRIGATÓRIO em todo bump de versão**: rodar `npm run prerender` pra atualizar o snapshot estático da landing em `index.html`. O prerender baked-in inclui `window.SCOREPLACE_VERSION` — se você não rodar, a landing mostra a versão antiga até o JS hidratar (e pra usuário sem JS habilitado fica eternamente errada). Bug reportado: v0.17.87 deployado mas landing mostrava v0.17.72 (prerender não foi regenerado desde a v0.17.72 introduzido em v0.17.69).
+4. `git add` dos arquivos alterados (evitar `git add .` — adicionar arquivos especificos)
+5. `git commit` com mensagem descritiva
+6. `git push origin main`
+7. Verificar no site ao vivo que as alteracoes estao deployadas
