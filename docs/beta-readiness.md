@@ -22,14 +22,17 @@ Este documento consolida o que falta entre o alpha atual e um beta confiável. C
 
 ## Performance — onde queremos estar
 
-| Métrica | Atual (v0.17.60) | Target beta | Target v1 |
-|---|---:|---:|---:|
-| Performance Lighthouse | 64 | ≥ 75 | ≥ 90 |
-| First Contentful Paint | 4.5s | ≤ 3.0s | ≤ 1.8s |
-| Largest Contentful Paint | 9.8s | ≤ 4.0s | ≤ 2.5s |
-| Speed Index | 4.5s | ≤ 3.5s | ≤ 3.4s |
-| TTI | 9.8s | ≤ 5.0s | ≤ 3.8s |
-| Bundle inicial (script transfer) | ~700KB gzipped | ≤ 500KB | ≤ 300KB |
+| Métrica | Atual (v0.17.71) | Target beta | Target v1 | Status |
+|---|---:|---:|---:|---|
+| Performance Lighthouse | 64 | ≥ 75 | ≥ 90 | 🟡 |
+| **Accessibility Lighthouse** | **100** 🎯 | ≥ 95 | ≥ 95 | ✅ |
+| Best Practices | 96 | ≥ 95 | ≥ 95 | ✅ |
+| SEO | 100 | ≥ 95 | ≥ 95 | ✅ |
+| First Contentful Paint | 4.5s | ≤ 3.0s | ≤ 1.8s | 🟡 |
+| Largest Contentful Paint | 9.4s | ≤ 4.0s | ≤ 2.5s | 🟡 |
+| Speed Index | 4.5s | ≤ 3.5s | ≤ 3.4s | 🟡 |
+| TTI | 9.4s | ≤ 5.0s | ≤ 3.8s | 🟡 |
+| Bundle inicial (script transfer) | ~700KB gzipped | ≤ 500KB | ≤ 300KB | 🟡 |
 
 ## Itens pra fechar antes do beta
 

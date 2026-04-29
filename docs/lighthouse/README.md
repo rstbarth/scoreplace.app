@@ -22,6 +22,19 @@
 | **v0.17.66** | **a11y color-contrast** | **65** | **100** 🎯 | — | — | — |
 | v0.17.68 | lazy i18n EN (-30KB gzipped) | 64 (média) | 100 | 4.5s | 9.5s | 4.5s |
 | v0.17.69 | static prerender da landing | 64 (média 3 runs) | 100 | 4.5s | 9.4s | 4.5s |
+| v0.17.71 | privacy/terms + backup scaffolding + i18n hotfix | 64 | **100 ✓** | 4.5s | 9.4s | 4.5s |
+
+### v0.17.71 confirmado (2026-04-29)
+
+Lighthouse pós-deploy v0.17.71:
+- Performance: 64 (estável)
+- **Accessibility: 100** 🎯 (zero failed audits — beta target ≥95 atingido com folga)
+- Best Practices: 96
+- SEO: 100
+
+A11y atingiu o máximo. Gargalos remanescentes pra performance estão
+listados em `docs/beta-readiness.md` §6 — único caminho real é Firebase
+init lazy (em DEFER por alto risco em auth flow).
 
 ### v0.17.69 — Static prerender (LCP **NÃO** moveu)
 
