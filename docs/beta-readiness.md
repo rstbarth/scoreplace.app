@@ -69,8 +69,9 @@ plugado em 8 catches críticos (v0.17.61). Sem DSN, tudo é no-op.
 - [x] Página `#terms` com termos típicos + banner alpha disclaimer
 - [x] Footer da landing com links · separados
 - [x] Modelo de "como apagar minha conta" — já existe (auth.js: excluir conta, v0.2.42)
+- [x] **Aceite explícito em primeiro login (modal/checkbox)** — v0.17.78. `_CURRENT_TERMS_VERSION='1.0'`. Bumpar força re-aceite.
+- [x] Disclaimer no modal de login + footer da landing — v0.17.72
 - [ ] **Revisão jurídica do conteúdo placeholder** (advogado em LGPD/proteção de dados)
-- [ ] Aceite explícito em primeiro login (modal/checkbox)
 
 #### 5. **Quotas + alertas Firebase**
 - [ ] Alertas via Firebase Alerts em: spike de leituras (>10x baseline), spike de writes (>5x), spike de erros 5xx
