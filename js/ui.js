@@ -67,8 +67,15 @@ window._toggleSwitch = function(opts) {
     colorStyle = ' style="--toggle-on-bg:' + opts.color + ';--toggle-on-glow:' + opts.color + '33;--toggle-on-border:' + opts.color + ';"';
   }
   var onchange = opts.onchange ? ' onchange="' + opts.onchange + '"' : '';
+  // a11y: aria-label inferido do opts.label (ou opts.ariaLabel explícito).
+  // O <label class="toggle-switch"> wrappa o input mas o Lighthouse ainda
+  // exige um label "discoverable" no próprio input quando ele tem id.
+  var ariaLabel = opts.ariaLabel || opts.label || '';
+  // Strip HTML tags do label visual antes de usar como aria
+  ariaLabel = String(ariaLabel).replace(/<[^>]+>/g, '').trim();
+  var ariaAttr = ariaLabel ? ' aria-label="' + ariaLabel.replace(/"/g, '&quot;') + '"' : '';
   var switchHtml = '<label class="toggle-switch' + size + '"' + colorStyle + '>' +
-    '<input type="checkbox" id="' + id + '"' + checked + onchange + '>' +
+    '<input type="checkbox" id="' + id + '"' + ariaAttr + checked + onchange + '>' +
     '<span class="toggle-slider"></span>' +
   '</label>';
 
