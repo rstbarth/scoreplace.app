@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=0.17.52">
+  <link rel="stylesheet" href="css/style.css?v=0.17.62">
   <link rel="stylesheet" href="css/components.css?v=0.16.1">
   <link rel="stylesheet" href="css/layout.css?v=0.15.98">
   <link rel="stylesheet" href="css/bracket.css?v=0.12.55">
@@ -108,7 +108,20 @@
       <div id="hamburger-dropdown" class="hamburger-dropdown"></div>
 
       <div class="view-container" id="view-container" role="region" aria-label="Conteúdo principal" tabindex="-1">
-        <!-- Views will be injected here by JS -->
+        <!-- Boot skeleton — pintado no FCP estático (sem JS). Vira o
+             LCP element até o JS rodar e substituir via innerHTML. Reduz
+             "blank period" de 4-5s pra <1s no first paint mobile slow-4G.
+             Removido automaticamente pelo router quando uma view renderiza
+             (router.js:55 — viewContainer.innerHTML = '';).
+             Ver docs/lighthouse/README.md / item #6 do beta-readiness. -->
+        <div id="boot-skeleton" aria-hidden="true" style="padding:1rem 0;">
+          <div class="skeleton-block skeleton-shimmer" style="height:180px;border-radius:14px;margin-bottom:1rem;"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+            <div class="skeleton-block skeleton-shimmer" style="height:120px;border-radius:14px;"></div>
+            <div class="skeleton-block skeleton-shimmer" style="height:120px;border-radius:14px;"></div>
+            <div class="skeleton-block skeleton-shimmer" style="height:120px;border-radius:14px;"></div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -125,7 +138,7 @@
   <script src="js/i18n-en.js?v=0.17.49" defer></script>
 
   <script src="js/notification-catalog.js?v=0.17.1" defer></script>
-  <script src="js/store.js?v=0.17.61" defer></script>
+  <script src="js/store.js?v=0.17.62" defer></script>
   <script src="js/firebase-db.js?v=0.17.61" defer></script>
   <script src="js/presence-db.js?v=0.17.61" defer></script>
   <script src="js/presence-geo.js?v=0.15.44" defer></script>

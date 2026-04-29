@@ -446,3 +446,66 @@ body, .topbar, .card {
     font-size: 16px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Boot skeleton — pintado no FCP, removido quando o router monta a view.
+   Adicionado em v0.17.62 pra reduzir LCP no mobile slow-4G (era 9.8s,
+   alvo <4s). Ver docs/beta-readiness.md item #6 e docs/lighthouse/README.md.
+   ═══════════════════════════════════════════════════════════════════ */
+.skeleton-block {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] .skeleton-block,
+[data-theme="sunset"] .skeleton-block {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+[data-theme="light"] .skeleton-shimmer::after,
+[data-theme="sunset"] .skeleton-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Respeita reduced-motion: usuários com prefers-reduced-motion não veem
+   a animação shimmer, só o background sólido — comunica loading sem irritar. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}
