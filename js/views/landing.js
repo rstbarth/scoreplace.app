@@ -122,9 +122,16 @@
 
   function _footer() {
     var ver = window.SCOREPLACE_VERSION || '';
+    var t = (window._t || function (k) { return k; });
     return '<footer class="landing-footer">' +
       '<p>scoreplace.app v' + ver + '</p>' +
       '<p><a href="mailto:scoreplace.app@gmail.com">scoreplace.app@gmail.com</a></p>' +
+      // v0.17.71: links pra privacy + termos (LGPD-ready pra beta)
+      '<p style="margin-top:12px;font-size:0.75rem;">' +
+        '<a href="#privacy">' + t('privacy.title') + '</a>' +
+        ' · ' +
+        '<a href="#terms">' + t('terms.title') + '</a>' +
+      '</p>' +
     '</footer>';
   }
 

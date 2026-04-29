@@ -230,6 +230,22 @@ function initRouter() {
           return;
         }
         break;
+      case 'privacy':
+        if (typeof window.renderPrivacy === 'function') {
+          window.renderPrivacy(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
+      case 'terms':
+        if (typeof window.renderTerms === 'function') {
+          window.renderTerms(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');

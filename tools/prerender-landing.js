@@ -80,8 +80,24 @@ function serve(rootDir, port) {
         }
         const ext = path.extname(filePath).toLowerCase();
         const mime = MIME[ext] || 'application/octet-stream';
+
+        // CRITICAL: ao servir index.html, strippa o conteúdo entre as
+        // sentinelas. Caso contrário o Chromium carrega o index com
+        // prerender existente, e o router (que detecta sentinela) PULA
+        // o renderLanding pra preservar o prerender. O resultado é que
+        // o snapshot capturaria a versão anterior em vez de fresh render.
+        let body = data;
+        if (urlPath === '/index.html') {
+          let html = data.toString('utf8');
+          html = html.replace(
+            /<!--\s*prerender:start\s*-->[\s\S]*?<!--\s*prerender:end\s*-->/g,
+            '<!-- prerender removed during regen -->'
+          );
+          body = Buffer.from(html, 'utf8');
+        }
+
         res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-store' });
-        res.end(data);
+        res.end(body);
       });
     });
     server.listen(port, () => resolve(server));
@@ -149,13 +165,24 @@ async function main() {
     await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
 
     // Extrai HTML renderizado do view-container
-    const renderedHtml = await page.evaluate(() => {
+    let renderedHtml = await page.evaluate(() => {
       const vc = document.getElementById('view-container');
       if (!vc) return null;
       // Limpa elementos dinâmicos que não fazem sentido em pre-render
       vc.querySelectorAll('[data-no-prerender]').forEach((el) => el.remove());
       return vc.innerHTML;
     });
+
+    // CRITICAL: re-rodar prerender carrega o index.html que já contém as
+    // sentinelas dentro de #view-container. vc.innerHTML traz esses comments
+    // junto com o conteúdo real. Se não strippar aqui, cada re-run aninha
+    // sentinelas (bug observado em v0.17.69 → v0.17.71).
+    if (renderedHtml) {
+      renderedHtml = renderedHtml
+        .replace(/<!--\s*prerender:start\s*-->/g, '')
+        .replace(/<!--\s*prerender:end\s*-->/g, '')
+        .trim();
+    }
 
     if (!renderedHtml || renderedHtml.length < 500) {
       throw new Error(`[prerender] HTML renderizado vazio ou muito pequeno (${renderedHtml ? renderedHtml.length : 0} bytes) — landing não renderizou?`);
@@ -172,13 +199,18 @@ async function main() {
     // Lê index.html atual
     const indexHtml = fs.readFileSync(INDEX_PATH, 'utf8');
 
-    // Procura sentinelas; se não existirem, substitui o boot-skeleton
+    // Procura sentinelas; se existirem (mesmo múltiplas, por bug histórico),
+    // remove TUDO entre primeiro START e último END e substitui por 1 pair.
     let newIndex;
     if (indexHtml.includes(SENTINEL_START) && indexHtml.includes(SENTINEL_END)) {
-      // Re-render: substitui apenas o conteúdo entre sentinelas
-      const before = indexHtml.split(SENTINEL_START)[0];
-      const after = indexHtml.split(SENTINEL_END)[1];
-      newIndex = before + SENTINEL_START + '\n' + renderedHtml + '\n' + SENTINEL_END + after;
+      const startIdx = indexHtml.indexOf(SENTINEL_START);
+      const endIdx = indexHtml.lastIndexOf(SENTINEL_END);
+      if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+        throw new Error('[prerender] sentinelas presentes mas em ordem inválida');
+      }
+      const before = indexHtml.slice(0, startIdx);
+      const after = indexHtml.slice(endIdx + SENTINEL_END.length);
+      newIndex = before + SENTINEL_START + '\n' + renderedHtml + '\n        ' + SENTINEL_END + after;
       console.log('[prerender] sentinelas detectadas — atualizando snapshot existente');
     } else {
       // Primeira vez: substitui o div#boot-skeleton inteiro pelo prerendered.
