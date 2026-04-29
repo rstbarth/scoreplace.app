@@ -79,8 +79,33 @@
       window._lang = lang;
       try { localStorage.setItem('scoreplace_lang', lang); } catch (e) {}
       document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : lang);
+
+      // v0.17.87: detecta se o modal de perfil está aberto ANTES do initRouter,
+      // pra reabrir depois. Sem isso, clicar nas bandeiras de idioma DENTRO do
+      // perfil fechava o perfil — initRouter chama _dismissAllOverlays que faz
+      // `classList.remove('active')` em todos os .modal-overlay.active. As
+      // labels do modal são baked-in via _t() em setupProfileModal, então temos
+      // que rebuildar pra aplicar as novas traduções.
+      var profileModal = document.getElementById('modal-profile');
+      var profileWasOpen = profileModal && profileModal.classList.contains('active');
+
       if (typeof window.initRouter === 'function') {
         window.initRouter();
+      }
+
+      if (profileWasOpen) {
+        // Remove o modal antigo (com strings na lang antiga) e re-cria com
+        // a nova lang. setupProfileModal só rebuilda se o elemento não existe.
+        var oldModal = document.getElementById('modal-profile');
+        if (oldModal && oldModal.parentNode) oldModal.parentNode.removeChild(oldModal);
+        if (typeof window.setupProfileModal === 'function') {
+          window.setupProfileModal();
+        }
+        // Reabre via _openMyProfileModal pra refazer setup + populate.
+        if (typeof window._openMyProfileModal === 'function') {
+          // setTimeout 0 pra deixar o DOM settle antes de re-abrir
+          setTimeout(function() { window._openMyProfileModal(); }, 0);
+        }
       }
     };
     if (window._translations[lang]) {

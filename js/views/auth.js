@@ -2593,6 +2593,9 @@ window._propagateNameChange = function _propagateNameChange(oldName, newName, ta
   }
 };
 
+// v0.17.87: exposto explicitamente em window pra _setLang poder rebuildar
+// o modal de perfil quando o usuário muda idioma com o perfil aberto.
+window.setupProfileModal = setupProfileModal;
 function setupProfileModal() {
   var _t = window._t || function(k) { return k; };
   if (!document.getElementById('modal-profile')) {
