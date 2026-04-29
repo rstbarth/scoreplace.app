@@ -139,12 +139,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js" defer></script>
 
   <!-- i18n (must load before all views) -->
-  <script src="js/i18n.js?v=0.5.0" defer></script>
-  <script src="js/i18n-pt.js?v=0.17.63" defer></script>
-  <script src="js/i18n-en.js?v=0.17.63" defer></script>
+  <script src="js/i18n.js?v=0.17.68" defer></script>
+  <!-- i18n-pt.js / i18n-en.js NÃO ficam aqui — só o dict da lang ativa é
+       carregado, via injeção dinâmica em theme.js (sync, no head, async=false).
+       Outras langs viram disponíveis sob demanda via window._loadLang(). -->
+  <!-- <script src="js/i18n-pt.js" defer></script> -->
+  <!-- <script src="js/i18n-en.js" defer></script> -->
 
   <script src="js/notification-catalog.js?v=0.17.1" defer></script>
-  <script src="js/store.js?v=0.17.67" defer></script>
+  <script src="js/store.js?v=0.17.68" defer></script>
   <script src="js/firebase-db.js?v=0.17.61" defer></script>
   <script src="js/presence-db.js?v=0.17.61" defer></script>
   <script src="js/presence-geo.js?v=0.15.44" defer></script>

@@ -88,8 +88,9 @@ test.describe('Observability + version', () => {
     expect(fns.warn).toBe('function');
     expect(fns.error).toBe('function');
     expect(fns.debug).toBe('function');
-    // Em produção (scoreplace.app) deve ser prod-quiet (DSN inativa)
-    expect(['prod-quiet', 'prod-debug']).toContain(fns.mode);
+    // Modo válido: 'dev' (localhost), 'prod-quiet' (default em prod), 'prod-debug'
+    // (debug forçado via localStorage). Test passa em qualquer ambiente.
+    expect(['dev', 'prod-quiet', 'prod-debug']).toContain(fns.mode);
 
     // Chamar wrappers não throwa
     const errMsg = await page.evaluate(() => {
