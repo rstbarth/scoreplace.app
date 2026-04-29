@@ -70,6 +70,10 @@
       '</div>';
     }).join('');
     return '<section class="landing-features">' +
+      // h2 adicionado pra fix de heading-order na auditoria a11y v0.17.62
+      // (h1 do hero → h3 dos cards pulava o h2). visualmente .sr-only
+      // pra não bagunçar o layout original — só o screen reader percebe.
+      '<h2 class="sr-only">' + t('landing.featuresTitle') + '</h2>' +
       '<div class="landing-grid">' + cards + '</div>' +
     '</section>';
   }

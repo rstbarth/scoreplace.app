@@ -2489,8 +2489,8 @@ function setupProfileModal() {
             // Row: Sexo + Nascimento (2 colunas)
             '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
               '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSex') + '</label>' +
-                '<select id="profile-edit-gender" class="form-control" style="width: 100%; box-sizing: border-box;">' +
+                '<label for="profile-edit-gender" class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSex') + '</label>' +
+                '<select id="profile-edit-gender" aria-label="' + _t('profile.labelSex') + '" class="form-control" style="width: 100%; box-sizing: border-box;">' +
                   '<option value="">' + _t('profile.sexNotInform') + '</option>' +
                   '<option value="masculino">' + _t('profile.sexMasc') + '</option>' +
                   '<option value="feminino">' + _t('profile.sexFem') + '</option>' +
@@ -2542,7 +2542,7 @@ function setupProfileModal() {
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelWhatsApp') + '</label>' +
               '<div style="display: flex; gap: 6px;">' +
-                '<select id="profile-phone-country" class="form-control" style="width: 120px; flex-shrink: 0; box-sizing: border-box; font-size: 0.85rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
+                '<select id="profile-phone-country" aria-label="DDI do telefone" class="form-control" style="width: 120px; flex-shrink: 0; box-sizing: border-box; font-size: 0.85rem;" onchange="var inp=document.getElementById(\'profile-edit-phone\'); var d=inp.getAttribute(\'data-digits\')||\'\'; inp.value=_formatPhoneDisplay(d,this.value);">' +
                   countryOpts +
                 '</select>' +
                 '<input type="tel" id="profile-edit-phone" class="form-control" style="flex: 1; min-width: 0; box-sizing: border-box;" placeholder="(11) 99723-7733" data-digits="">' +

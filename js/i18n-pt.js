@@ -169,6 +169,7 @@ window._translations['pt'] = {
   'landing.tagline': 'Jogue em outro nível — torneios, partidas casuais, presença e locais esportivos.',
   'landing.cta': 'Crie seu torneio grátis',
   'landing.ctaBottom': 'Comece agora — é grátis!',
+  'landing.featuresTitle': 'Recursos da plataforma',
   'landing.howTitle': 'Como funciona',
   'landing.step1Title': 'Crie um torneio',
   'landing.step1Desc': 'Escolha o esporte, formato e configure as regras em segundos.',

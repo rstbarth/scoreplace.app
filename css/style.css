@@ -509,3 +509,18 @@ body, .topbar, .card {
     animation: none;
   }
 }
+
+/* Screen-reader only: visualmente escondido mas lido por leitores de tela.
+   Útil pra headings que existem por estrutura semântica mas não fazem parte
+   do design visual. Padrão recomendado pelo WAI (https://www.w3.org/TR/wai-aria-practices-1.2/). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

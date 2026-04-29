@@ -169,6 +169,7 @@ window._translations['en'] = {
   'landing.tagline': 'Play at another level — tournaments, casual matches, presence and sports venues.',
   'landing.cta': 'Create your tournament for free',
   'landing.ctaBottom': 'Get started — it\'s free!',
+  'landing.featuresTitle': 'Platform features',
   'landing.howTitle': 'How it works',
   'landing.step1Title': 'Create a tournament',
   'landing.step1Desc': 'Choose the sport, format, and set up rules in seconds.',
