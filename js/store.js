@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.85-alpha';
+window.SCOREPLACE_VERSION = '0.17.86-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -1557,6 +1557,23 @@ window.AppStore = {
         if (profile.presenceMuteDays !== undefined) this.currentUser.presenceMuteDays = profile.presenceMuteDays;
         if (profile.presenceMuteUntil !== undefined) this.currentUser.presenceMuteUntil = profile.presenceMuteUntil;
         if (profile.presenceAutoCheckin !== undefined) this.currentUser.presenceAutoCheckin = profile.presenceAutoCheckin;
+        // v0.17.86: bug crítico — acceptedTerms* não estavam na lista de merge.
+        // Toda vez que simulateLoginSuccess re-rodava (ex: onAuthStateChanged
+        // por token refresh), currentUser = user (4 campos) wipeava o
+        // acceptedTerms local. loadUserProfile NÃO restaurava → próximo
+        // _needsTermsAcceptance retornava true mesmo com Firestore tendo
+        // acceptedTerms=true → modal de termos reaparecia → user cancelava →
+        // handleLogout → login modal abria do nada. Sintoma reportado:
+        // "ao salvar perfil vai pra tela de login de novo".
+        if (profile.acceptedTerms !== undefined) this.currentUser.acceptedTerms = profile.acceptedTerms;
+        if (profile.acceptedTermsAt) this.currentUser.acceptedTermsAt = profile.acceptedTermsAt;
+        if (profile.acceptedTermsVersion) this.currentUser.acceptedTermsVersion = profile.acceptedTermsVersion;
+        // Plan info (Pro vs Free) também escapava — efeito colateral
+        // similar: usuário Pro virava Free temporariamente após token refresh.
+        if (profile.plan) this.currentUser.plan = profile.plan;
+        if (profile.planExpiresAt) this.currentUser.planExpiresAt = profile.planExpiresAt;
+        // previousDisplayNames pra auto-fix de orfãos (v0.17.x)
+        if (Array.isArray(profile.previousDisplayNames)) this.currentUser.previousDisplayNames = profile.previousDisplayNames;
         // Theme sync across devices
         if (profile.theme && window._themeOrder.indexOf(profile.theme) !== -1) {
           this.currentUser.theme = profile.theme;

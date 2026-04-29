@@ -1032,9 +1032,19 @@ async function simulateLoginSuccess(user) {
 
   try {
 
-  // Set AppStore.currentUser with the user object
-  window.AppStore.currentUser = user;
-  console.log('[scoreplace-auth] currentUser set, running early router refresh');
+  // Set AppStore.currentUser with the user object.
+  // v0.17.86: NON-DESTRUCTIVE merge SE o uid bate (mesma conta) — preserva
+  // campos como acceptedTerms, plan, presenceVisibility que já estavam em
+  // currentUser. Antes era assign direto (`= user`), wipeava esses campos e
+  // forçava re-load via loadUserProfile a cada onAuthStateChanged. Se o
+  // load não restaurasse algum campo crítico, modal de termos voltava.
+  // Se o uid mudou (account switch), substituição completa.
+  var existingUser = window.AppStore.currentUser || {};
+  var sameUser = existingUser.uid && user.uid && existingUser.uid === user.uid;
+  window.AppStore.currentUser = sameUser
+    ? Object.assign({}, existingUser, user)
+    : Object.assign({}, user);
+  console.log('[scoreplace-auth] currentUser set (' + (sameUser ? 'merged' : 'replaced') + '), running early router refresh');
 
   // Close any open login modal + hamburger, and immediately refresh the route
   // so the landing page gives way to the dashboard BEFORE any async Firestore
