@@ -37,6 +37,25 @@ deploy do GitHub Pages propagar antes de testar. Upload do report HTML
 quality gate informativo: se o smoke falha, vira issue na UI do GitHub
 com link pro artifact.
 
+### `prerender-workflow.yml` → `.github/workflows/prerender.yml`
+
+Roda `npm run prerender` (script em `tools/prerender-landing.js`) que:
+1. Sobe servidor local
+2. Headless Chromium renderiza landing
+3. Extrai HTML pronto e substitui o boot-skeleton no `index.html`
+4. Commita automaticamente se houve mudança (com `[skip ci]` pra evitar loop)
+
+Trigger: paths que afetam a landing (`landing.js`, `i18n*.js`, `style.css`,
+`components.css`, `index.html`). Plus `workflow_dispatch` manual.
+
+**Pré-requisitos antes de ativar:**
+1. Modificar `router.js` pra detectar se há prerender ativo (sentinela
+   `<!-- prerender:start -->` no DOM) e pular re-render quando user está
+   deslogado E a rota é dashboard/landing. Caso contrário tem flicker.
+2. Testar localmente com `npm run prerender:dry` (gera mas não escreve)
+3. Quando aprovado: `npm run prerender` → commit manual pela primeira vez
+4. Daí ativa o workflow pra automatizar regen futuro
+
 ## Roadmap
 
 - `lighthouse.yml` — rodar Lighthouse CI a cada push, falha se

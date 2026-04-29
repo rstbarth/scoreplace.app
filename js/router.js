@@ -20,6 +20,18 @@ function initRouter() {
     }
   } catch(e) {}
 
+  // Detecta prerender estático no DOM (gerado por tools/prerender-landing.js).
+  // Se presente E primeira rota for landing-eligible (logged-out, dashboard),
+  // pulamos o re-render pra evitar flicker prerendered → blank → re-render.
+  // Marcado como "consumido" após a primeira rota — qualquer navegação
+  // subsequente segue o flow normal (innerHTML limpo + render).
+  var _hasPrerender = false;
+  try {
+    var vcInit = document.getElementById('view-container');
+    _hasPrerender = !!(vcInit && vcInit.innerHTML.indexOf('prerender:start') !== -1);
+  } catch (e) {}
+  var _firstRoute = true;
+
   const handleRoute = () => {
     const hash = window.location.hash || '#dashboard';
     const hashPath = hash.substring(1);
@@ -52,7 +64,19 @@ function initRouter() {
       if (l.getAttribute('href') === hash) l.classList.add('active');
     });
 
-    viewContainer.innerHTML = '';
+    // Prerender preservation: se primeira rota E HTML estático presente E
+    // landing-eligible (logged-out, dashboard), NÃO limpa o innerHTML.
+    // Detectado abaixo no landing gate; aqui só pula o clear.
+    var _isLoggedInForPrerenderCheck = !!(window.AppStore && window.AppStore.currentUser);
+    var _hasAuthCacheForPrerenderCheck = false;
+    try { _hasAuthCacheForPrerenderCheck = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
+    var _shouldPreservePrerender = _firstRoute && _hasPrerender &&
+      !_isLoggedInForPrerenderCheck && !_hasAuthCacheForPrerenderCheck &&
+      (view === '' || view === 'dashboard');
+
+    if (!_shouldPreservePrerender) {
+      viewContainer.innerHTML = '';
+    }
     const fixedBar = document.getElementById('bracket-fixed-scrollbar');
     if (fixedBar) fixedBar.remove();
 
@@ -67,8 +91,11 @@ function initRouter() {
     }
 
     // On soft refresh (remote data update), skip scroll reset and fade animation
-    // to preserve user's current position and avoid visual disruption
-    if (!window._isSoftRefresh) {
+    // to preserve user's current position and avoid visual disruption.
+    // Também pulamos a animação se preservando prerender — caso contrário o
+    // opacity:0 inicial faria o prerender "piscar" antes da animação de fade,
+    // empurrando o LCP da paint estática (~200ms) pra fim da animação (~700ms+).
+    if (!window._isSoftRefresh && !_shouldPreservePrerender) {
       // Jump to top (instant, not smooth — smooth gets cancelled by late layout
       // shifts from the new view's render, leaving the user parked mid-page
       // and making Voltar look broken). Repeat across rAF + setTimeouts so the
@@ -101,10 +128,20 @@ function initRouter() {
     try { _hasAuthCacheNow = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
     console.log('[scoreplace-router] route', hash, 'loggedIn:', _isLoggedInNow, 'authCache:', _hasAuthCacheNow);
     if (!_isLoggedInNow && !_hasAuthCacheNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+      // Prerender: se primeira rota E HTML estático já está visível, NÃO
+      // limpa nem re-renderiza — evita flicker. Próxima navegação volta
+      // ao flow normal.
+      if (_firstRoute && _hasPrerender) {
+        console.log('[scoreplace-router] → preserving prerendered LANDING (skip re-render)');
+        _firstRoute = false;
+        return;
+      }
       console.log('[scoreplace-router] → rendering LANDING (not logged in, no cache)');
       renderLanding(viewContainer);
+      _firstRoute = false;
       return;
     }
+    _firstRoute = false;
     // If auth hasn't resolved yet but we have cache, show a loading state briefly
     if (!_isLoggedInNow && _hasAuthCacheNow && (view === '' || view === 'dashboard')) {
       viewContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;"><div style="text-align:center;"><div style="font-size:2rem;margin-bottom:1rem;">⏳</div><p style="color:var(--text-muted);font-size:0.9rem;">Carregando...</p></div></div>';

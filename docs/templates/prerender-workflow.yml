@@ -1,0 +1,54 @@
+name: Prerender Landing
+
+# Roda o prerender da landing antes de cada deploy automático em produção.
+# Substitui o boot-skeleton no index.html por HTML real renderizado da landing.
+# Resultado: LCP cai de ~9.5s pra <3s no first paint mobile slow-4G.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Só re-roda quando algo que afeta a landing muda
+      - 'js/views/landing.js'
+      - 'js/i18n*.js'
+      - 'css/style.css'
+      - 'css/components.css'
+      - 'index.html'
+  workflow_dispatch:
+
+jobs:
+  prerender:
+    name: Generate prerendered landing
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Run prerender
+        run: npm run prerender
+
+      - name: Commit prerendered index.html if changed
+        run: |
+          if [ -n "$(git status --porcelain index.html)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "ci: prerender landing [skip ci]"
+            git push
+          else
+            echo "Nenhuma mudança no index.html — prerender idempotente."
+          fi
