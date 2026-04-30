@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.89-alpha';
+window.SCOREPLACE_VERSION = '0.17.90-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -413,6 +413,19 @@ if (document.body) {
 window._dismissAllOverlays = function(opts) {
   opts = opts || {};
   var keep = opts.keep || [];
+
+  // v0.17.90: ALWAYS-KEEP list — modais críticos com lifecycle próprio que
+  // NUNCA devem ser dismissed pelo sweep, mesmo sem aparecer no `keep` arg.
+  // Adicione aqui qualquer modal que: (a) bloqueia fluxo crítico (terms,
+  // confirm de logout, etc.), (b) tem botões "Cancelar"/"Confirmar" próprios
+  // que controlam o ciclo de vida.
+  var ALWAYS_KEEP = [
+    'modal-terms-acceptance' // LGPD compliance — bug v0.17.90: aparecia e
+                             // sumia rápido pq sweep removia .active
+  ];
+  ALWAYS_KEEP.forEach(function(id) {
+    if (keep.indexOf(id) === -1) keep.push(id);
+  });
 
   // 1. Named overlays (fast path — always remove unless kept).
   var overlayIds = [

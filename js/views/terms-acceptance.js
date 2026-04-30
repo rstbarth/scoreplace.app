@@ -44,8 +44,18 @@
       var existing = document.getElementById('modal-terms-acceptance');
       if (existing) existing.remove();
 
+      // v0.17.90: usa inline styles em vez de só class .modal-overlay.active.
+      // Antes, qualquer chamada a _dismissAllOverlays() removia .active e o
+      // modal sumia visualmente (CSS .modal-overlay sem .active = opacity 0).
+      // Inline display:flex + opacity:1 sobrevivem a classList.remove().
+      // Bug reportado: usuário deletou conta → relogou → modal aparecia e
+      // sumia em milissegundos antes de qualquer clique.
       var html =
-        '<div class="modal-overlay active" id="modal-terms-acceptance" style="z-index:10050;">' +
+        '<div class="modal-overlay active" id="modal-terms-acceptance" ' +
+        'style="z-index:10050;display:flex !important;opacity:1 !important;' +
+        'visibility:visible !important;pointer-events:auto !important;' +
+        'position:fixed;inset:0;align-items:center;justify-content:center;' +
+        'background:rgba(0,0,0,0.7);">' +
           '<div class="modal" style="max-width:520px;padding:0;">' +
             '<div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border-color);">' +
               '<div style="font-size:1.6rem;margin-bottom:0.5rem;">⚠️</div>' +
