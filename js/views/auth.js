@@ -2106,7 +2106,37 @@ window._executeDeleteAccount = async function() {
     window.AppStore.currentUser = null;
     window.AppStore.tournaments = [];
     window.AppStore.viewMode = 'participant';
-    try { localStorage.removeItem('scoreplace_fcm_dismissed'); } catch (e) {}
+    // v1.0.6-beta: limpar localStorage de auth/cache pra evitar loop "Carregando..."
+    // Bug reportado: após excluir conta, router via `currentUser=null` (loggedIn=false)
+    // mas `scoreplace_authCache` ainda presente (loggedIn=false + hasCache=true) →
+    // router caía no branch da tennis ball "Carregando..." esperando auth resolver
+    // que nunca vai resolver porque a conta foi excluída. Limpando o cache, router
+    // vê (loggedIn=false + hasCache=false) → renderLanding() → usuário volta pra
+    // landing page, comportamento correto.
+    var _toCleanup = [
+      'scoreplace_authCache',
+      'scoreplace_fcm_dismissed',
+      'scoreplace_deleted_ids',
+      'scoreplace_casual_history',
+      'scoreplace_casual_history_v2',
+      'scoreplace_casual_last',
+      'scoreplace_casual_prefs',
+      'scoreplace_analytics_open'
+    ];
+    _toCleanup.forEach(function(k) { try { localStorage.removeItem(k); } catch (_e) {} });
+    // Apagar IndexedDB do Firebase Auth também (evita auto-restore da sessão Google
+    // antiga; sem isso, Firebase Auth lembra da conta apesar do delete).
+    try {
+      if (typeof indexedDB !== 'undefined' && indexedDB.databases) {
+        indexedDB.databases().then(function (dbs) {
+          (dbs || []).forEach(function (db) {
+            if (db.name && /firebase|firestore|firebaseauth/i.test(db.name)) {
+              try { indexedDB.deleteDatabase(db.name); } catch (_e) {}
+            }
+          });
+        }).catch(function () {});
+      }
+    } catch (_e) {}
 
     // 5. Close modals and update UI
     var modal = document.getElementById('modal-delete-account');

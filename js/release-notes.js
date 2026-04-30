@@ -8,6 +8,10 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #06b6d4;border-radius:12px;padding:14px 16px;background:rgba(6,182,212,0.08);">' +
+      '<div style="font-weight:800; color:#06b6d4; font-size:1rem; margin-bottom:8px;">v1.0.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Excluir conta volta pra landing page.</b> Antes ficava preso no loader 🎾 "Carregando..." indefinidamente — o router via <code>currentUser=null</code> mas <code>localStorage.scoreplace_authCache</code> continuava presente, caindo no branch que espera auth resolver (que nunca vai resolver, porque a conta foi excluída). Fix: limpar cache de auth + IndexedDB do Firebase logo depois do delete success, antes do <code>initRouter()</code>. Router agora vê <code>loggedIn=false + hasCache=false</code> → renderiza a landing.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.08);">' +
       '<div style="font-weight:800; color:#ef4444; font-size:1rem; margin-bottom:8px;">🔒 v1.0.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Correção de privacidade — telefone, data de nascimento, sexo e endereço dos usuários não vazam mais por busca de amigos.</b> A função <code>searchUsers</code> em #explore retornava o documento inteiro do perfil de cada usuário (incluindo phone, birthDate, gender, preferredCeps, preferredLocations) — qualquer um podia abrir DevTools e dumpar dados pessoais via console. Agora a busca retorna só campos públicos: nome, e-mail, foto, modalidades, timestamps. Fix client-side imediato; fix definitivo nas Firestore Security Rules vai num round dedicado com testes.</p>' +
