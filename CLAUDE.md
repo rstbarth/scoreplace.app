@@ -9,7 +9,7 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
 - **Auth:** Firebase Auth com Google Sign-In (popup)
-- **localStorage:** `boratime_state` (chave legada mantida por compatibilidade)
+- **localStorage:** prefixo `scoreplace_*` (preferências, cache)
 - **Email de suporte:** scoreplace.app@gmail.com
 
 ## 🚀 Fase de Desenvolvimento — BETA
@@ -43,7 +43,7 @@ A partir desse reset, **base de dados é considerada produção** e qualquer alt
 
 ## Historico do Projeto
 
-O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado definitivamente para **scoreplace.app**.
+Projeto criado em Março 2026 como **scoreplace.app**. Lançado em beta soft em 29 de Abril de 2026 (v1.0.0-beta), após ~400 versões alpha consolidando os 5 pilares: torneios, partidas casuais, presença, locais e stats.
 
 ### Changelog
 
@@ -719,7 +719,6 @@ O projeto comecou como "torneio_facil", passou por "Boratime", e foi renomeado d
 - Modal "Sobre" com informacoes de versao (substituido por Help em v0.1.6)
 - Criacao rapida de torneio
 - Auto-geracao de nome: "Torneio [modo] de [modalidade] de [usuario]"
-- Renomeado de Boratime para scoreplace.app
 - Cloud Firestore como banco de dados (substituiu localStorage)
 - Fluxo de convite: link direto para detalhes do torneio sem exigir login
 - Auto-inscricao apos login quando usuario vem de convite

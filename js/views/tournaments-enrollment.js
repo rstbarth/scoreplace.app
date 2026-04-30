@@ -571,7 +571,6 @@ window.deleteTournamentFunction = function (tId) {
                 // ── Optimistic: remove from memory, navigate immediately ──
                 window.AppStore.tournaments.splice(idx, 1);
                 window.AppStore._saveToCache();
-                try { localStorage.removeItem('boratime_state'); } catch(e) {}
 
                 showNotification(_t('enroll.deletedTitle'), _t('enroll.deletedMsg'), 'success');
                 window.location.hash = '#dashboard';

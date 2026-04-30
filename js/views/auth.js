@@ -2105,7 +2105,6 @@ window._executeDeleteAccount = async function() {
     window.AppStore.currentUser = null;
     window.AppStore.tournaments = [];
     window.AppStore.viewMode = 'participant';
-    try { localStorage.removeItem('boratime_state'); } catch (e) {}
     try { localStorage.removeItem('scoreplace_fcm_dismissed'); } catch (e) {}
 
     // 5. Close modals and update UI

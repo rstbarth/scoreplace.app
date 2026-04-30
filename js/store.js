@@ -11,7 +11,6 @@ window.SCOREPLACE_VERSION = '1.0.0-beta';
   try {
     if (localStorage.getItem('scoreplace_beta_cleanup_v1') === '1') return;
     var dataKeys = [
-      'boratime_state',           // legacy state cache
       'scoreplace_authCache',     // auth cache (força re-login)
       'scoreplace_casual_history',// stats casuais legacy v1
       'scoreplace_casual_history_v2', // stats casuais v2 (era esse o culpado)
