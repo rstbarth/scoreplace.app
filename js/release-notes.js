@@ -8,6 +8,10 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📬 v1.0.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Magic link: painel persistente "verifique seu spam".</b> Bug reportado: usuário recebeu o link mas foi pra spam, e a toast efêmera com "(e spam)" sumiu rápido demais. Agora, após enviar o link, o modal-login é substituído por um painel persistente com ícone 📬, mensagem "Link enviado!", o e-mail do destinatário em destaque, um aviso âmbar grande "<b>⚠️ Não chegou? Cheque o spam</b>" + indicação do remetente <code>noreply@scoreplace-app.firebaseapp.com</code> pra adicionar aos contatos. Painel fica até o usuário fechar manualmente. Botões: Fechar / Reenviar.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #f97316;border-radius:12px;padding:14px 16px;background:rgba(249,115,22,0.10);">' +
       '<div style="font-weight:800; color:#fb923c; font-size:1rem; margin-bottom:8px;">🌍 v1.0.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Erro do login Google agora mostra código + sugestão específica de workaround.</b> Antes era sempre "Não foi possível realizar o login com Google" sem indicar o problema. Bug reportado: usuária em Paris recebeu erro genérico, sem direção do que tentar. Mensagens novas:</p>' +

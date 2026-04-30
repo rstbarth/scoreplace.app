@@ -558,9 +558,36 @@ function handleEmailLinkLogin() {
     .then(function() {
       // Save the email locally so we can complete sign-in when user clicks the link
       window.localStorage.setItem('scoreplace_emailForSignIn', email);
-      showNotification(_t('auth.linkSent'), _t('auth.linkSentMsg', {email: email}), 'success');
-      var modal = document.getElementById('modal-login');
-      if (modal) modal.classList.remove('active');
+      // v1.0.14-beta: substituir o conteúdo do modal-login por um painel
+      // persistente "verifique seu e-mail" em vez de toast efêmero. Bug
+      // reportado: usuária recebeu link mas foi pra spam, e a toast com a
+      // dica "(e spam)" sumiu rápido demais. Painel persistente fica visível
+      // até o usuário fechar manualmente, com info do remetente pra
+      // whitelistear pra próximas vezes.
+      var modalBody = document.querySelector('#modal-login .modal-body');
+      var safeEmail = (window._safeHtml || function(s){return s;})(email);
+      if (modalBody) {
+        modalBody.innerHTML =
+          '<div style="text-align:center;padding:1rem 0;">' +
+            '<div style="font-size:3rem;margin-bottom:0.5rem;">📬</div>' +
+            '<div style="font-size:1.05rem;font-weight:800;color:var(--text-bright);margin-bottom:0.5rem;">Link enviado!</div>' +
+            '<p style="font-size:0.88rem;color:var(--text-color);margin:0 0 1rem 0;">Enviamos um link de acesso pra <b>' + safeEmail + '</b>. Clique no link do e-mail pra entrar.</p>' +
+            '<div style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:10px 12px;margin-bottom:0.75rem;text-align:left;">' +
+              '<div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:4px;">⚠️ Não chegou? Cheque o spam.</div>' +
+              '<div style="font-size:0.76rem;color:var(--text-muted);line-height:1.45;">' +
+                'Primeira vez geralmente cai lá. O remetente é <code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:0.72rem;">noreply@scoreplace-app.firebaseapp.com</code>. ' +
+                'Adicione aos contatos pra próximas vezes não cair no spam.' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+              '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')" style="font-size:0.82rem;">Fechar</button>' +
+              '<button class="btn btn-primary btn-sm" onclick="window.location.reload()" style="font-size:0.82rem;">Reenviar</button>' +
+            '</div>' +
+          '</div>';
+      } else {
+        // Fallback se modal não existe — toast normal.
+        showNotification(_t('auth.linkSent'), _t('auth.linkSentMsg', {email: email}), 'success');
+      }
     })
     .catch(function(error) {
       console.error('Email link send error:', error);
