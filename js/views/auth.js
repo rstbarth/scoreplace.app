@@ -3801,10 +3801,19 @@ function setupProfileModal() {
       // v0.16.7: toast genérico "Perfil atualizado" removido — substituído
       // pelo toast de diagnóstico acima que mostra campos + versão.
 
-      // Trigger a re-render if we're on the dashboard
-      var container = document.getElementById('view-container');
-      if (container && window.location.hash.includes('dashboard') && typeof renderDashboard === 'function') {
-        renderDashboard(container);
+      // v1.0.0-beta-3: re-render a view ATUAL (qualquer que seja) usando
+      // _softRefreshView. Cobre #place (preferredLocations + preferredSports),
+      // #dashboard (welcome card), #tournaments etc. Antes só dashboard era
+      // tratado — bug reportado: adicionar local preferido no perfil exigia
+      // sair de #place e voltar pra ver o card aparecer.
+      if (typeof window._softRefreshView === 'function') {
+        window._softRefreshView();
+      } else {
+        // Fallback pre-_softRefreshView
+        var container = document.getElementById('view-container');
+        if (container && window.location.hash.includes('dashboard') && typeof renderDashboard === 'function') {
+          renderDashboard(container);
+        }
       }
     };
   }
