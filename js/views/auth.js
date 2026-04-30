@@ -128,16 +128,29 @@ window._updateTopbarForUser = function(user) {
     btnLogin.style.flexDirection = 'row';
     btnLogin.style.alignItems = 'center';
 
+    // v1.0.16-beta: prefere AppStore.currentUser (merged do Firestore via
+    // loadUserProfile) sobre o `user` recebido como parâmetro (que pode ser
+    // firebase.auth().currentUser com displayName STALE da Google OAuth).
+    // Bug: usuário muda nome no perfil, Firestore atualiza, AppStore.
+    // currentUser.displayName fica novo, mas onAuthStateChanged re-dispara
+    // simulateLoginSuccess(fbUser) que chama _updateTopbarForUser(fbUser)
+    // com o nome velho — topbar reverte. Solução: ler de AppStore quando
+    // disponível e o uid bate.
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var preferCU = cu && user.uid && cu.uid === user.uid;
+    var effectiveName = preferCU && cu.displayName ? cu.displayName : user.displayName;
+    var effectivePhoto = preferCU && cu.photoURL ? cu.photoURL : user.photoURL;
+
     // Fallback chain: displayName → email local-part → defaultUser
     var displayFirstName;
-    if (user.displayName) {
-      displayFirstName = user.displayName.split(' ')[0];
+    if (effectiveName) {
+      displayFirstName = effectiveName.split(' ')[0];
     } else if (user.email) {
       displayFirstName = user.email.split('@')[0];
     } else {
       displayFirstName = _t('auth.defaultUser');
     }
-    var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+    var photoUrl = effectivePhoto || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
 
     btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
     btnLogin.innerHTML =
@@ -3882,6 +3895,27 @@ function setupProfileModal() {
       }
 
       var name = finalName; // compat com código abaixo
+
+      // v1.0.16-beta: sincronizar displayName + photoURL com Firebase Auth.
+      // Bug reportado: usuário muda nome no perfil, welcome card mostra
+      // "Bem-vindo, Toninho!" (vem de AppStore.currentUser.displayName que
+      // foi merged do Firestore) MAS topbar continua mostrando "topi3838"
+      // (vem de firebase.auth().currentUser.displayName, do Google OAuth).
+      // Quando simulateLoginSuccess re-roda (onAuthStateChanged por token
+      // refresh), ele chama _updateTopbarForUser(user) com o user do
+      // Firebase Auth que tem o nome STALE — topbar reverte pra topi3838.
+      // Fix: chamar firebase.auth().currentUser.updateProfile() pra
+      // sincronizar Firebase Auth com Firestore. Best effort — falha é
+      // silenciosa (catch) pra não bloquear o save.
+      try {
+        var fbUser = firebase.auth().currentUser;
+        if (fbUser && (fbUser.displayName !== name || fbUser.photoURL !== (window.AppStore.currentUser.photoURL || null))) {
+          fbUser.updateProfile({
+            displayName: name,
+            photoURL: window.AppStore.currentUser.photoURL || null
+          }).catch(function(e) { console.warn('[Profile] Firebase Auth updateProfile failed:', e); });
+        }
+      } catch (e) { console.warn('[Profile] Firebase Auth sync error:', e); }
 
       // Propagate name change to all tournaments if displayName changed
       if (name && _oldDisplayName && name !== _oldDisplayName) {
