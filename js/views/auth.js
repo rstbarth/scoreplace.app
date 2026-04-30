@@ -446,7 +446,31 @@ function handleGoogleLogin() {
       } else if (_handleAccountLinking(error, 'Google')) {
         // handled
       } else {
-        showNotification(_t('auth.googleError'), _t('auth.googleErrorMsg'), 'error');
+        // v1.0.13-beta: mensagem específica por error.code com sugestão de
+        // workaround. Antes era sempre "Não foi possível realizar o login
+        // com Google" — usuário ficava sem direção. Bug reportado: esposa
+        // em Paris recebeu erro genérico, sem saber que poderia tentar
+        // SMS ou Link Mágico, ou que Safari Private Browsing pode estar
+        // bloqueando Firebase Auth IndexedDB.
+        var code = (error && error.code) || 'unknown';
+        var msg = _t('auth.googleErrorMsg');
+        if (code === 'auth/network-request-failed') {
+          msg = 'Sem conexão estável com Google. Tente Wi-Fi ou outra rede. Ou use SMS / Link Mágico abaixo.';
+        } else if (code === 'auth/too-many-requests') {
+          msg = 'Muitas tentativas. Aguarde alguns minutos e tente de novo. Ou use SMS / Link Mágico.';
+        } else if (code === 'auth/internal-error') {
+          msg = 'Erro interno do Firebase. Tente novamente em instantes. Se persistir, use SMS / Link Mágico abaixo.';
+        } else if (code === 'auth/unauthorized-domain') {
+          msg = 'Domínio não autorizado no Firebase Auth. Reporte: scoreplace.app@gmail.com';
+        } else if (code === 'auth/user-disabled') {
+          msg = 'Sua conta Google está desativada. Entre em contato: scoreplace.app@gmail.com';
+        } else if (code === 'auth/operation-not-allowed') {
+          msg = 'Login Google indisponível no momento. Use SMS ou Link Mágico abaixo.';
+        } else {
+          // Genérica + código pra debug/suporte
+          msg = 'Não foi possível realizar o login com Google. Tente SMS ou Link Mágico abaixo.\n\n(código: ' + code + ')';
+        }
+        showNotification(_t('auth.googleError'), msg, 'error');
       }
     });
 }

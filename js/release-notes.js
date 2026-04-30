@@ -8,6 +8,20 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f97316;border-radius:12px;padding:14px 16px;background:rgba(249,115,22,0.10);">' +
+      '<div style="font-weight:800; color:#fb923c; font-size:1rem; margin-bottom:8px;">🌍 v1.0.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Erro do login Google agora mostra código + sugestão específica de workaround.</b> Antes era sempre "Não foi possível realizar o login com Google" sem indicar o problema. Bug reportado: usuária em Paris recebeu erro genérico, sem direção do que tentar. Mensagens novas:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>auth/network-request-failed</code> → "Sem conexão estável com Google. Tente Wi-Fi ou outra rede."</li>' +
+        '<li><code>auth/too-many-requests</code> → "Muitas tentativas. Aguarde alguns minutos."</li>' +
+        '<li><code>auth/internal-error</code> → "Erro interno do Firebase. Tente novamente em instantes."</li>' +
+        '<li><code>auth/unauthorized-domain</code> → "Reporte: scoreplace.app@gmail.com"</li>' +
+        '<li><code>auth/user-disabled</code> → "Conta desativada. Contate suporte."</li>' +
+        '<li><code>auth/operation-not-allowed</code> → "Login Google indisponível no momento."</li>' +
+        '<li>outro → mensagem genérica + código pra debug</li>' +
+      '</ul>' +
+      '<p>Todas as mensagens incluem fallback "Use SMS ou Link Mágico abaixo" — usuário com Google bloqueado não fica sem caminho. Sentry continua capturando o erro com contexto pra investigação retroativa.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
       '<div style="font-weight:800; color:#ef4444; font-size:1rem; margin-bottom:8px;">🔐 v1.0.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>3 bugs de login conectados, 1 fix consolidado</b>:</p>' +
