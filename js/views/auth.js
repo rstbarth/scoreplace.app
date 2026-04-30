@@ -101,6 +101,58 @@ function _forceCloseLoginModal() {
 }
 window._forceCloseLoginModal = _forceCloseLoginModal;
 
+// ─── Helper: update topbar avatar + name + logoff button ─────────────────
+// v0.17.93: extraído de simulateLoginSuccess para ser chamável tanto early
+// (logo após currentUser ser setado) quanto no fim. Idempotente.
+// Bug reportado: nome do usuário não aparecia no topbar após login Google
+// quando algum await intermediário (loadUserProfile, terms gate) demorava
+// ou falhava — topbar update só rodava no fim da função.
+window._updateTopbarForUser = function(user) {
+  if (!user) return;
+  var btnLogin = document.getElementById('btn-login');
+  if (!btnLogin) return;
+  try {
+    var _t = (typeof window._t === 'function') ? window._t : function(k){return k;};
+    var _sh = (typeof window._safeHtml === 'function')
+      ? window._safeHtml
+      : function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+    btnLogin.className = 'd-flex align-center';
+    btnLogin.style.background = 'transparent';
+    btnLogin.style.border = 'none';
+    btnLogin.style.padding = '0';
+    btnLogin.style.color = 'var(--text-main)';
+    btnLogin.style.cursor = 'pointer';
+    btnLogin.style.flexWrap = 'nowrap';
+    btnLogin.style.flexDirection = 'row';
+    btnLogin.style.alignItems = 'center';
+
+    // Fallback chain: displayName → email local-part → defaultUser
+    var displayFirstName;
+    if (user.displayName) {
+      displayFirstName = user.displayName.split(' ')[0];
+    } else if (user.email) {
+      displayFirstName = user.email.split('@')[0];
+    } else {
+      displayFirstName = _t('auth.defaultUser');
+    }
+    var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+
+    btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
+    btnLogin.innerHTML =
+      '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
+        '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+        '<div style="display:none;width:32px;height:32px;border-radius:50%;background:var(--primary-color);color:white;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;">👤</div>' +
+        '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + _sh(displayFirstName) + '</span>' +
+      '</div>' +
+      '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>' +
+      '</div>';
+  } catch (e) {
+    console.warn('[scoreplace-auth] _updateTopbarForUser error:', e);
+  }
+};
+
 // ─── Handle redirect result on page load ────────────────────────────────────
 // When a user returns from Google's OAuth redirect (Safari/iOS flow), we need
 // to capture the credential + access token here (onAuthStateChanged won't give
@@ -1079,6 +1131,19 @@ async function simulateLoginSuccess(user) {
     : Object.assign({}, user);
   console.log('[scoreplace-auth] currentUser set (' + (sameUser ? 'merged' : 'replaced') + '), running early router refresh');
 
+  // v0.17.93: atualizar topbar IMEDIATAMENTE com o user do Google.
+  // Antes, topbar só era atualizado no fim da função (linha 1274+) DEPOIS
+  // de loadUserProfile, terms gate, auto-enroll, casual rejoin etc. Se
+  // qualquer await dessas etapas demorasse ou falhasse, o nome nunca
+  // aparecia. Bug reportado: "fiz login com Google e não veio o nome".
+  // Agora atualiza early; ainda re-atualiza no fim com photoURL/name
+  // potencialmente novos do Firestore.
+  try {
+    if (typeof window._updateTopbarForUser === 'function') {
+      window._updateTopbarForUser(user);
+    }
+  } catch (e) { console.warn('Early topbar update failed:', e); }
+
   // Close any open login modal + hamburger, and immediately refresh the route
   // so the landing page gives way to the dashboard BEFORE any async Firestore
   // call has a chance to throw and skip the initRouter at the end of the function.
@@ -1271,34 +1336,10 @@ async function simulateLoginSuccess(user) {
     }
   }, 3000);
 
-  // Update the topbar button with user avatar and name
-  var btnLogin = document.getElementById('btn-login');
-  if (btnLogin) {
-    btnLogin.className = 'd-flex align-center';
-    btnLogin.style.background = 'transparent';
-    btnLogin.style.border = 'none';
-    btnLogin.style.padding = '0';
-    btnLogin.style.color = 'var(--text-main)';
-    btnLogin.style.cursor = 'pointer';
-    btnLogin.style.flexWrap = 'nowrap';
-    btnLogin.style.flexDirection = 'row';
-    btnLogin.style.alignItems = 'center';
-
-    var displayFirstName = user.displayName ? user.displayName.split(' ')[0] : _t('auth.defaultUser');
-    var photoUrl = user.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
-    var _sh = typeof window._safeHtml === 'function' ? window._safeHtml : function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-
-    // Use inline onclick so the handler survives cloneNode(true) into the hamburger dropdown
-    btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
-    btnLogin.innerHTML =
-      '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
-        '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-        '<div style="display:none;width:32px;height:32px;border-radius:50%;background:var(--primary-color);color:white;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;">👤</div>' +
-        '<span class="user-name-label" style="font-weight:600; font-size:1rem;">' + _sh(displayFirstName) + '</span>' +
-      '</div>' +
-      '<div title="Sair da Conta" class="logoff-btn" style="color: var(--danger-color); margin-left: 8px; display:flex; align-items:center; cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.8\'">' +
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>' +
-      '</div>';
+  // v0.17.93: helper extraído pra ser chamável early na função (vide
+  // chamada acima após currentUser-set) E aqui no flow normal. Idempotente.
+  if (typeof window._updateTopbarForUser === 'function') {
+    window._updateTopbarForUser(user);
   }
 
   // Expose profile-open + logout dispatch as a global so the inline onclick attribute
