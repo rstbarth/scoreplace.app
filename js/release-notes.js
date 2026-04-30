@@ -8,6 +8,13 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
+      '<div style="font-weight:800; color:#ef4444; font-size:1rem; margin-bottom:8px;">🔐 v1.0.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>3 bugs de login conectados, 1 fix consolidado</b>:</p>' +
+      '<p>(1) <b>Termos pedidos a cada novo login mesmo de usuário cadastrado</b>: terms-gate em simulateLoginSuccess agora usa <code>existingProfile</code> (retorno raw do <code>firebase-db.loadUserProfile</code>) PRIMEIRO em vez de <code>currentUser</code>. Causa-raiz: race entre o merge em <code>store.js.loadUserProfile</code> e a checagem — se o merge não tinha completado, <code>currentUser.acceptedTerms</code> ficava undefined apesar do Firestore ter <code>true</code>. Fallback pra currentUser caso existingProfile seja null. Diagnóstico completo via <code>console.log</code> com versão pra cada checagem (<code>existingProfile_*</code>, <code>currentUser_*</code>, <code>needsAcceptance</code>).</p>' +
+      '<p>(2) <b>Modal de login não some após Google login (Safari)</b>: simulateLoginSuccess agora usa <code>_forceCloseLoginModal()</code> (mais agressivo: classList.remove + style.display=none por 50ms + revert) em vez de só <code>classList.remove(\'active\')</code> no fim do flow.</p>' +
+      '<p>(3) <b>Tela de login volta toda vez que salva o perfil</b>: provável consequência do (2) — modal-login fica com <code>.active</code> escondido atrás do modal-profile, fica visível quando profile fecha. Adicionada chamada defensiva <code>_forceCloseLoginModal()</code> em <code>saveUserProfile</code> logo depois do close do profile, pra garantir que mesmo se (2) regredir, (3) não recorre.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.12);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📡 v1.0.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Raio de busca em #place agora default 25km</b> (era 10km) — cobre cidades metropolitanas brasileiras tipicas. Bug reportado: usuário cadastrou venue novo, voltou pro #place, não viu o card aparecer. Causa: filtro de distância 10km excluía o venue (provavelmente noutra parte da cidade). Ajuste manual do raio é preservado em <code>localStorage.scoreplace_venues_filters</code>.</p>' +

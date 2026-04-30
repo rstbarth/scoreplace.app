@@ -1529,16 +1529,46 @@ async function simulateLoginSuccess(user) {
   // v0.17.42: viewMode/botão Visão removidos — permissões agora são per-torneio.
   window.AppStore.viewMode = 'organizer'; // legacy field, kept always 'organizer'
 
-  // Close login modal
-  var modal = document.getElementById('modal-login');
-  if (modal) modal.classList.remove('active');
+  // Close login modal — usar _forceCloseLoginModal (mais agressivo: classList
+  // .remove + style.display='none' temporário) em vez de só classList.remove.
+  // v1.0.12-beta: cobre relato "modal de login não some" — algum CSS ou
+  // sobrecarga de styles pode estar mantendo o modal visível mesmo sem
+  // .active. _forceCloseLoginModal força display:none por 50ms e depois
+  // limpa, garantindo um "tick" de invisibilidade.
+  if (typeof _forceCloseLoginModal === 'function') {
+    _forceCloseLoginModal();
+  } else {
+    var modal = document.getElementById('modal-login');
+    if (modal) modal.classList.remove('active');
+  }
 
   // v0.17.78: gate de aceite de Termos + Privacy. Bloqueia o flow pós-login
   // (auto-enroll, casual rejoin, invite redirect) até que o usuário marque o
   // checkbox no modal de aceite. Sem aceite, dispara logout e aborta.
   // Compliance LGPD pra entrada na fase beta.
+  //
+  // v1.0.12-beta: usa existingProfile (retorno raw do firebase-db.loadUser
+  // Profile) PRIMEIRO em vez de currentUser. Bug reportado: "termos
+  // aparecem a cada novo login mesmo de usuários já cadastrados". Causa
+  // mais provável: race entre store.js.loadUserProfile (que faz merge em
+  // currentUser) e essa checagem — se o merge não completou, currentUser.
+  // acceptedTerms ficava undefined mesmo com Firestore tendo true. Usar
+  // existingProfile direto evita a etapa de merge.
+  // Fallback pra currentUser caso existingProfile seja null (login pós-
+  // migração legacy doc, race em load, etc.). Diagnóstico via console.
+  var _termsCheckProfile = existingProfile || window.AppStore.currentUser;
+  console.log('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] terms-gate check:', {
+    existingProfile_exists: !!existingProfile,
+    existingProfile_acceptedTerms: existingProfile && existingProfile.acceptedTerms,
+    existingProfile_version: existingProfile && existingProfile.acceptedTermsVersion,
+    currentUser_acceptedTerms: window.AppStore.currentUser && window.AppStore.currentUser.acceptedTerms,
+    currentUser_version: window.AppStore.currentUser && window.AppStore.currentUser.acceptedTermsVersion,
+    needsAcceptance: typeof window._needsTermsAcceptance === 'function'
+      ? window._needsTermsAcceptance(_termsCheckProfile)
+      : '_needsTermsAcceptance-undefined'
+  });
   if (typeof window._needsTermsAcceptance === 'function' &&
-      window._needsTermsAcceptance(window.AppStore.currentUser)) {
+      window._needsTermsAcceptance(_termsCheckProfile)) {
     var accepted = await window._showTermsAcceptanceModal();
     if (!accepted) {
       console.log('[scoreplace-auth] Terms not accepted — logging out');
@@ -3840,6 +3870,13 @@ function setupProfileModal() {
       }
 
       document.getElementById('modal-profile').classList.remove('active');
+      // v1.0.12-beta: defensivo — se modal-login ficou com .active escondido
+      // atrás do modal-profile (bug do close não disparar pós-Google login),
+      // fecha aqui pra evitar que ele apareça quando o profile fecha. Bug
+      // reportado: "toda vez que salva o perfil a tela de login volta".
+      if (typeof _forceCloseLoginModal === 'function') {
+        _forceCloseLoginModal();
+      }
       // v0.16.7: toast genérico "Perfil atualizado" removido — substituído
       // pelo toast de diagnóstico acima que mostra campos + versão.
 
