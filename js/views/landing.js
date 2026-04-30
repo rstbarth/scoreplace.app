@@ -19,17 +19,14 @@
       _footer() +
     '</div>';
 
-    // Attach CTA click handlers — open full login modal (all sign-in options)
-    var btns = container.querySelectorAll('[data-landing-cta]');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener('click', function() {
-        if (typeof window.openModal === 'function') {
-          window.openModal('modal-login');
-        } else if (typeof window.handleGoogleLogin === 'function') {
-          window.handleGoogleLogin();
-        }
-      });
-    }
+    // v0.17.91: handlers do CTA agora são INLINE no atributo onclick do
+    // <button> (em _hero e _ctaBottom). Antes eram attached via
+    // addEventListener aqui — funcionava no fluxo normal mas QUEBRAVA com
+    // prerender estático: o router pulava renderLanding() pra preservar o
+    // snapshot baked-in, então addEventListener nunca rodava e o botão
+    // ficava morto. Inline onclick é serializado no HTML, então sobrevive
+    // ao prerender. Bug reportado pelo usuário: "esse botão não faz nada".
+    // No-op aqui — handlers já no HTML.
   };
 
   function _hero(t) {
@@ -40,7 +37,7 @@
         '<h1 class="landing-title">scoreplace<span class="landing-dot">.app</span></h1>' +
         (ver ? '<div class="landing-version" style="font-size:0.78rem;color:var(--text-muted,#9ca3af);margin-top:-4px;margin-bottom:14px;letter-spacing:0.3px;">v' + ver + '</div>' : '') +
         '<p class="landing-tagline">' + t('landing.tagline') + '</p>' +
-        '<button class="btn btn-cta btn-success landing-cta-btn" data-landing-cta>' +
+        '<button class="btn btn-cta btn-success landing-cta-btn" data-landing-cta onclick="if(window.openModal)window.openModal(\'modal-login\');else if(window.handleGoogleLogin)window.handleGoogleLogin();">' +
           t('landing.cta') +
         '</button>' +
         '<div class="landing-sports-row">' +
@@ -114,7 +111,7 @@
 
   function _ctaBottom(t) {
     return '<section class="landing-cta-section">' +
-      '<button class="btn btn-cta btn-success landing-cta-btn" data-landing-cta>' +
+      '<button class="btn btn-cta btn-success landing-cta-btn" data-landing-cta onclick="if(window.openModal)window.openModal(\'modal-login\');else if(window.handleGoogleLogin)window.handleGoogleLogin();">' +
         t('landing.ctaBottom') +
       '</button>' +
     '</section>';
