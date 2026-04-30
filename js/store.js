@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '0.17.93-alpha';
+window.SCOREPLACE_VERSION = '0.17.94-alpha';
 
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
@@ -402,6 +402,60 @@ if (document.body) {
 
 // ─── DISMISS ALL OVERLAYS ───────────────────────────────────────────────────
 // .sticky-back-header lives at z-index 101, but the app creates 40+ ad-hoc
+// ─── Global loading spinner — 🎾 girando fixed no topo da viewport ────────
+// v0.17.94: helper reutilizável pra qualquer operação async que demora.
+// Stack-based — múltiplas chamadas .show() exigem mesmo número de .hide()
+// pra sumir. Usar `window._loadingSpinner.show('Carregando perfil…')`
+// ou simplesmente `window._loadingSpinner.show()`.
+window._loadingSpinner = (function() {
+  var _refCount = 0;
+  var _id = 'scoreplace-global-loader';
+  var _styleId = 'scoreplace-global-loader-style';
+
+  function _ensureStyle() {
+    if (document.getElementById(_styleId)) return;
+    var style = document.createElement('style');
+    style.id = _styleId;
+    style.textContent =
+      '@keyframes sp-loader-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
+      '@keyframes sp-loader-pulse { 0%,100% { filter: drop-shadow(0 0 0 transparent); } 50% { filter: drop-shadow(0 0 10px rgba(212,244,60,0.7)); } }' +
+      '#' + _id + ' { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:99999; display:flex; align-items:center; gap:8px; padding:6px 14px; background:rgba(15,23,42,0.92); border:1px solid rgba(212,244,60,0.3); border-radius:999px; backdrop-filter:blur(8px); pointer-events:none; box-shadow:0 4px 20px rgba(0,0,0,0.4); }' +
+      '#' + _id + ' .ball { font-size:1.1rem; display:inline-block; animation: sp-loader-spin 1.2s linear infinite, sp-loader-pulse 1.6s ease-in-out infinite; }' +
+      '#' + _id + ' .label { color:#e2e8f0; font-size:0.78rem; font-weight:600; white-space:nowrap; }';
+    document.head.appendChild(style);
+  }
+
+  return {
+    show: function(label) {
+      _refCount++;
+      _ensureStyle();
+      var el = document.getElementById(_id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = _id;
+        el.setAttribute('aria-live', 'polite');
+        el.setAttribute('role', 'status');
+        document.body.appendChild(el);
+      }
+      el.innerHTML = '<span class="ball">🎾</span><span class="label">' +
+        (label ? String(label).replace(/[<>]/g, '') : 'Carregando…') + '</span>';
+    },
+    hide: function() {
+      _refCount = Math.max(0, _refCount - 1);
+      if (_refCount === 0) {
+        var el = document.getElementById(_id);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }
+    },
+    // Reset force — usado em casos extremos (erro grave, logout).
+    reset: function() {
+      _refCount = 0;
+      var el = document.getElementById(_id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+  };
+})();
+
 // overlays at z 9999–999999 (TV mode, set scoring, draw prep, categories,
 // host transfer, re-auth, etc). If ANY of them survives a hashchange, it
 // masks the Voltar button invisibly. This function rips them ALL down,
@@ -464,6 +518,7 @@ window._dismissAllOverlays = function(opts) {
       )) return;
       if (el.id === 'hamburger-dropdown' || el.id === 'view-container' ||
           el.id === 'skip-link' || el.id === 'aria-live-region' ||
+          el.id === 'scoreplace-global-loader' ||
           /^notification/i.test(el.id || '') || /^toast/i.test(el.id || '')) return;
       if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
       var cs;

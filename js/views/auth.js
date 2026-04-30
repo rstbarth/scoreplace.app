@@ -1929,6 +1929,14 @@ function handleLogout() {
     });
   }
 
+  // v0.17.94: limpar authCache do localStorage IMEDIATAMENTE.
+  // Antes só era removido em _commitSignOut do listener Firebase, criando
+  // janela onde currentUser=null + scoreplace_authCache ainda presente.
+  // Router lia esse estado e mostrava "⏳ Carregando..." sem nunca sair —
+  // condition em router.js:147 era `!loggedIn && hasCache`. Bug reportado:
+  // "ao logoff, fica preso na tela de Carregando, era pra mostrar landing."
+  try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
+
   // Stop real-time listener and clear AppStore state
   if (window.AppStore.stopRealtimeListener) window.AppStore.stopRealtimeListener();
   window.AppStore.currentUser = null;
