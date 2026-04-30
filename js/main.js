@@ -14,13 +14,13 @@
       content: '<div style="text-align:center; margin-bottom:1rem;">' +
         '<div style="font-size:2.2rem; margin-bottom:0.3rem;">🏆</div>' +
         '<div style="font-size:1.3rem; font-weight:800; color:var(--text-bright);">scoreplace.app</div>' +
-        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '0.2.3-alpha') + '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Versão ' + (window.SCOREPLACE_VERSION || '1.0.0-beta') + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-main); margin-top:8px; line-height:1.6;">Jogue em outro nível — torneios, partidas casuais, presença e locais esportivos.</div>' +
-        '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Alpha — funcionalidades em desenvolvimento.</div>' +
+        '<div style="font-size:0.7rem; color:var(--text-muted); opacity:0.6; margin-top:4px;">Fase Beta — funcionalidades estáveis, dados persistem.</div>' +
         '</div>' +
-        '<div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); border-radius:10px; padding:12px 14px; margin-bottom:1rem;">' +
-        '<div style="font-weight:700; font-size:0.85rem; color:#f59e0b; margin-bottom:6px;">⚠️ App em Desenvolvimento</div>' +
-        '<p style="font-size:0.78rem; color:var(--text-main); line-height:1.6; margin:0;">Este aplicativo está em fase <b>Alpha</b> e pode apresentar bugs, erros e falhas inesperadas. Estamos trabalhando continuamente para melhorar a experiência. Sua paciência e feedback são fundamentais!</p>' +
+        '<div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:12px 14px; margin-bottom:1rem;">' +
+        '<div style="font-weight:700; font-size:0.85rem; color:#10b981; margin-bottom:6px;">🚀 App em Beta</div>' +
+        '<p style="font-size:0.78rem; color:var(--text-main); line-height:1.6; margin:0;">Saímos do alpha em 29 de Abril, 2026. Funcionalidades estáveis, dados persistem. Bugs ainda podem aparecer — seu feedback nos ajuda a melhorar.</p>' +
         '</div>' +
         '<div style="text-align:center; margin-bottom:1rem;">' +
         '<button class="btn btn-indigo hover-lift" onclick="(function(){' +
@@ -50,14 +50,15 @@
       id: 'primeiros-passos',
       title: _t('help.firstSteps'),
       icon: '🚀',
-      content: '<p><b>Bem-vindo ao scoreplace.app!</b> O app cobre 4 áreas complementares:</p>' +
+      content: '<p><b>Bem-vindo ao scoreplace.app!</b> O app cobre 5 pilares complementares:</p>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Os 4 pilares</div>' +
-          '<p>🏆 <b>Torneios</b> — Crie, organize, participe. Eliminatórias, Dupla Elim., Grupos + Elim., Suíço, Liga, Rei/Rainha. Check-in, sorteio, resultados ao vivo.</p>' +
-          '<p>📡 <b>Partida Casual</b> — Partidas avulsas sem criar torneio. Placar ao vivo em tela cheia, sincronizado entre jogadores via código de sala/QR. Estatísticas detalhadas no perfil.</p>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Os 5 pilares</div>' +
+          '<p>🏆 <b>Torneios</b> — Crie, organize, participe. Eliminatórias, Dupla Elim., Grupos + Elim., Liga, Rei/Rainha. Check-in, sorteio, resultados ao vivo.</p>' +
+          '<p>⚡ <b>Partida Casual</b> — Partidas avulsas sem criar torneio. Placar ao vivo em tela cheia, sincronizado entre jogadores via código de sala/QR. Estatísticas detalhadas no perfil.</p>' +
           '<p>📍 <b>Presença</b> — "Status online" pra quadras e clubes. Check-in imediato ou ida planejada; amigos veem no dashboard e podem se juntar.</p>' +
-          '<p>🏢 <b>Locais</b> — Descubra clubes e arenas na sua cidade ou em viagens. Mapa com pins, filtros, reviews, integração com torneios e presença.</p>' +
-          '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">As 4 áreas se conectam: criar torneio num local visto em Locais prefilla o venue; ver presenças lista torneios agendados no mesmo lugar; etc.</p>' +
+          '<p>🏢 <b>Locais</b> — Descubra clubes e arenas na sua cidade ou em viagens. Mapa com pins, filtros, reviews, integração com torneios e presença. <i>(Presença + Locais ficam unificados na tela "📍 Place".)</i></p>' +
+          '<p>📊 <b>Stats/Perfil</b> — Estatísticas detalhadas: vitórias, derrotas, sets, games, pontos, tiebreaks. Confrontos diretos (H2H), top adversários, top parceiros. Sobrevive à exclusão de torneio/partida casual.</p>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">Os 5 pilares se conectam: criar torneio num local visto em Place prefilla o venue; ver presenças lista torneios agendados no mesmo lugar; stats acumulam de qualquer fonte (casual ou torneio).</p>' +
         '</div>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 1: Fazer Login</div>' +
@@ -148,8 +149,8 @@
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Formulário Completo</div>' +
           '<p>Na criação rápida, clique em "Detalhes Avançados" ou use "Editar" em um torneio existente.</p>' +
-          '<p><b>Esporte</b> — Beach Tennis, Tênis, Padel, Pickleball, Tênis de Mesa. Cada um tem padrões de pontuação próprios.</p>' +
-          '<p><b>Formato</b> — Eliminatórias, Dupla Eliminatória, Grupos + Elim., Suíço, Liga. Cada formato tem configurações específicas.</p>' +
+          '<p><b>Esporte</b> — Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel, Vôlei de Praia, Futevôlei. Cada um tem padrões de pontuação próprios.</p>' +
+          '<p><b>Formato</b> — Eliminatórias, Dupla Eliminatória, Grupos + Elim., Liga. Cada formato tem configurações específicas.</p>' +
           '<p><b>Modo de Sorteio</b> — Sorteio (aleatório) ou Rei/Rainha da Praia (grupos de 4 com parceiros rotativos).</p>' +
           '<p><b>Modo de Inscrição</b> — Individual, Apenas Times ou Misto (aceita ambos).</p>' +
           '<p><b>Tipo de Jogo</b> — Simples (1v1) ou Duplas (2v2). Ambos ligados = chaves paralelas.</p>' +
@@ -174,24 +175,21 @@
       id: 'formatos',
       title: _t('help.formats'),
       icon: '🎯',
-      content: '<p>O scoreplace.app suporta <b>5 formatos</b> de torneio + modo Rei/Rainha:</p>' +
+      content: '<p>O scoreplace.app suporta <b>4 formatos</b> de torneio + modo de sorteio Rei/Rainha:</p>' +
         '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>🏆 Eliminatórias Simples</b> — Perdeu, está fora. Opcional: disputa de 3º lugar, repescagem (melhores perdedores da R1 disputam vagas extra). Quando inscritos não são potência de 2, painel inteligente sugere: BYE, Play-in, Suíço, reabrir ou enquete.</p>' +
+          '<p style="margin:0;"><b>🏆 Eliminatórias Simples</b> — Perdeu, está fora. Opcional: disputa de 3º lugar, repescagem (melhores perdedores da R1 disputam vagas extra). Quando inscritos não são potência de 2, painel inteligente sugere: BYE, Play-in, reabrir, Lista de Espera ou enquete entre participantes.</p>' +
         '</div>' +
         '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
           '<p style="margin:0;"><b>🔄 Dupla Eliminatória</b> — Precisa perder 2x para sair. Chave de vencedores (Winners) e perdedores (Losers). Grande final entre o campeão de cada chave.</p>' +
         '</div>' +
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>⚽ Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Participantes divididos em grupos, todos jogam entre si. Os N melhores de cada grupo avançam para mata-mata. Configurável: número de grupos e classificados por grupo.</p>' +
-        '</div>' +
-        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>♟️ Suíço</b> — Todos jogam todas as rodadas. Emparelhamentos por pontuação (adversários de nível similar). Ótimo para muitos participantes em poucas rodadas. Rodadas configuráveis. Classificação com Buchholz e Sonneborn-Berger.</p>' +
+          '<p style="margin:0;"><b>⚽ Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Participantes divididos em grupos, todos jogam entre si. Os N melhores de cada grupo avançam para mata-mata. Configurável: número de grupos e classificados por grupo. Recomendação automática (ex: 21 inscritos → 1 grupo de 6 + 3 grupos de 5).</p>' +
         '</div>' +
         '<div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável. Inscrições sempre abertas (opcional). Sorteios automáticos ou manuais. Cada jogador tem um toggle "Ativo" no seu card: desativado = folga com 0 pontos; quem fica de fora por número ímpar recebe a média dos seus pontos. Rodadas podem usar formato Rei/Rainha. Ideal para comunidades regulares.</p>' +
+          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável (3, 6, 12 meses ou custom). Inscrições sempre abertas (opcional). Sorteios automáticos (agendados) ou manuais. Cada jogador tem um toggle "Ativo" no seu card: desativado = folga com 0 pontos; quem fica de fora por número ímpar recebe a média dos seus pontos. Rodadas podem usar formato padrão (1v1) ou Rei/Rainha (grupos de 4 rotativos). Ideal para comunidades regulares.</p>' +
         '</div>' +
         '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;">' +
-          '<p style="margin:0;"><b>👑 Rei/Rainha da Praia</b> — Modo de sorteio especial: grupos de 4 jogadores com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual. Top 1 ou 2 de cada grupo avançam para eliminatória até coroar o Rei/Rainha. Pode ser usado na Liga também.</p>' +
+          '<p style="margin:0;"><b>👑 Rei/Rainha da Praia</b> — Modo de sorteio especial: grupos de 4 jogadores com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual. Top 1 ou 2 de cada grupo avançam para eliminatória até coroar o Rei/Rainha. Pode ser usado na Liga também (toggle "Formato da rodada").</p>' +
         '</div>'
     },
     {
@@ -221,7 +219,7 @@
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">O Sorteio</div>' +
           '<p><b>Eliminatórias</b> — Confrontos aleatórios respeitando VIPs. BYEs distribuídos intercalados.</p>' +
           '<p><b>Grupos</b> — Painel mostra todas as distribuições possíveis (grupos iguais e mistos). Classificados por grupo configurável.</p>' +
-          '<p><b>Liga/Suíço</b> — Gera rodada por pontuação. Sorteios podem ser automáticos (agendados) ou manuais.</p>' +
+          '<p><b>Liga</b> — Gera rodada por pontuação. Sorteios podem ser automáticos (agendados) ou manuais. Inscrições continuam abertas durante a temporada.</p>' +
           '<p><b>Rei/Rainha</b> — Grupos de 4 com rotação de parceiros (3 partidas por grupo).</p>' +
           '<p><b>Divulgação imediata</b> — Todos recebem notificação quando o sorteio é realizado.</p>' +
         '</div>' +
@@ -258,7 +256,7 @@
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Progressão Automática</div>' +
           '<p><b>Eliminatórias</b> — Vencedor avança automaticamente. Ao completar todas as partidas, o torneio encerra e exibe o pódio.</p>' +
           '<p><b>Grupos</b> — Ao completar todos os jogos do grupo, os classificados avançam para eliminatória automaticamente.</p>' +
-          '<p><b>Liga/Suíço</b> — Classificação atualizada em tempo real. "Fechar Rodada" gera a próxima. Na Liga, jogadores inativos (toggle desativado) ficam de folga com 0 pontos; quem fica de fora por número insuficiente de jogadores recebe a média dos seus pontos.</p>' +
+          '<p><b>Liga</b> — Classificação atualizada em tempo real. "Fechar Rodada" gera a próxima. Jogadores inativos (toggle desativado) ficam de folga com 0 pontos; quem fica de fora por número insuficiente de jogadores recebe a média dos seus pontos.</p>' +
           '<p><b>Rei/Rainha</b> — Standings individuais por grupo. Top jogadores avançam para eliminatória.</p>' +
         '</div>' +
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;">' +
@@ -369,7 +367,7 @@
             '<li>Sorteie o chaveamento</li>' +
             '<li>Inicie o torneio + check-in</li>' +
             '<li>Lance resultados ou aguarde os jogadores</li>' +
-            '<li>Feche rodadas (Liga/Suíço) ou aguarde encerramento automático</li>' +
+            '<li>Feche rodadas (Liga) ou aguarde encerramento automático</li>' +
             '<li>Encerre e veja o pódio!</li>' +
           '</ol>' +
         '</div>' +
@@ -390,7 +388,7 @@
         '<p><b>Categorias combinadas</b> — O sistema combina automaticamente gênero × habilidade. Exemplo: ativando Fem + Masc e digitando A, B gera: Fem A, Fem B, Masc A, Masc B.</p>' +
         '<p><b>Inscrição com categoria</b> — Ao se inscrever em um torneio com categorias, o participante escolhe a categoria desejada. Se o perfil já tiver gênero preenchido, as opções são filtradas automaticamente.</p>' +
         '<p><b>Sorteio e chaves por categoria</b> — O sorteio gera confrontos separados por categoria. Participantes só enfrentam adversários da mesma categoria.</p>' +
-        '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria em formatos Liga e Suíço.</p>' +
+        '<p><b>Classificação por categoria</b> — A tabela de classificação mostra resultados separados por categoria no formato Liga.</p>' +
         '<p><b>Misto Obrigatório</b> — Times devem ter 50% homens e 50% mulheres.</p>' +
         '<p><b>Misto Aleatório</b> — Aceita homens e mulheres sem restrição de proporção. A composição é definida pelo sorteio.</p>' +
         '<p><b>Gerenciar categorias</b> — O botão "Categorias" permite ao organizador: ver quantos inscritos há em cada categoria (agrupados por gênero), mesclar categorias por arrastar e soltar (ex: Fem A + Fem B → Fem A/B), e atribuir categoria a participantes sem categoria. Clique em uma categoria para ver os inscritos. Categorias mescladas exibem um ícone de desmesclagem no canto superior direito, permitindo desfazer a mesclagem e reatribuir participantes às categorias originais.</p>' +
@@ -424,7 +422,7 @@
           '<p><b>Só meus jogos</b> — Toggle filtra para mostrar apenas suas partidas.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Classificação (Liga/Suíço)</div>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Classificação (Liga)</div>' +
           '<p><b>Tabela de standings</b> — Colunas: Posição, Nome, Pts, V, E, D, PF, PC, Saldo. GSM adiciona ±S e ±G.</p>' +
           '<p><b>Ordenação</b> — Clique nos cabeçalhos (▲/▼) para ordenar por qualquer coluna.</p>' +
           '<p><b>Clique no nome</b> — Abre estatísticas globais do jogador ou histórico de partidas no torneio.</p>' +
@@ -624,7 +622,7 @@
         '<p><b>5. Qualidade das Vitórias (Sonneborn-Berger)</b> — <b>Soma dos pontos dos adversários que você venceu, mais metade dos pontos dos adversários com quem você empatou</b>. Adversários que você perdeu não contam. Recompensa quem venceu adversários FORTES (não só quantidade, mas qualidade das vitórias). <i>Exemplo:</i> você venceu 3 jogadores que somaram 20 pts + empatou com 1 que fez 6 → SB = 20 + 3 = 23. Já o João venceu 3 jogadores fracos que somaram 9 → SB = 9, você fica à frente. <i>De onde veio:</i> criado por <b>William Sonneborn e Johann Berger entre 1873-1886</b> pra torneios de xadrez round-robin (originalmente "Neustadtl score"). É o critério #2 da FIDE em Suíço e round-robin. <i>Quando aplicar:</i> útil quando Buchholz ainda empata (raro); mais relevante em torneios longos.</p>' +
         '<p><b>6. Sorteio</b> — Desempate aleatório como último recurso quando todos os critérios anteriores empatam.</p>' +
         '<p><b>GSM extras</b> — Torneios com sets entram automaticamente com critérios extras na ordem: saldo de sets (±S), saldo de games (±G), sets vencidos, games vencidos, tiebreaks vencidos. Inseridos entre Saldo de Pontos e Número de Vitórias.</p>' +
-        '<p><b>⚡ Pontos Avançados</b> — Quando o Sistema de Pontos Avançado está ativo (Liga/Suíço), entra como o PRIMEIRO critério (antes de Confronto Direto), porque é uma medida ponderada de dominância configurada pelo organizador.</p>' +
+        '<p><b>⚡ Pontos Avançados</b> — Quando o Sistema de Pontos Avançado está ativo (Liga), entra como o PRIMEIRO critério (antes de Confronto Direto), porque é uma medida ponderada de dominância configurada pelo organizador.</p>' +
         '<p style="margin-top:1rem;padding:10px;background:rgba(88,166,255,0.08);border-left:3px solid #58a6ff;border-radius:6px;"><b>💡 Dica:</b> no modal de criação do torneio, passe o mouse sobre cada critério pra ver tooltip resumida. Em Buchholz e Sonneborn, clique no ícone <b>ℹ️</b> ao lado pra abrir explicação completa com exemplo numérico e contexto histórico.</p>'
     },
     {
@@ -647,6 +645,47 @@
           '<p><b>Locais</b> — Venues extraídos dos torneios no cache (via <code>venuePlaceId</code>). Match por nome e endereço. Clique abre a modal de detalhe do venue em <code>#venues/&lt;placeId&gt;</code>.</p>' +
           '<p><b>Jogadores</b> — Nomes de participantes em qualquer torneio (scoped + discovery), com contexto dos torneios em que aparecem.</p>' +
           '<p><b>Ações rápidas</b> — Quando o campo tá vazio, lista atalhos: Novo Torneio, Dashboard, Explorar, Notificações, Ajuda.</p>' +
+        '</div>'
+    },
+    {
+      id: 'apoio-suporte',
+      title: 'Apoio e Suporte',
+      icon: '💚',
+      content: '<p>O scoreplace.app é <b>gratuito</b>. Todo o desenvolvimento, infra (Firebase, Sentry, Cloud Functions, hospedagem) e manutenção é mantido pelo criador do app.</p>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#10b981;margin-bottom:8px;">💚 Apoie via PIX</div>' +
+          '<p>Página: <b>Apoie</b> (botão verde no dashboard ou rota <code>#support</code>).</p>' +
+          '<p>Lá tem o QR Code PIX e a chave copia-e-cola (CNPJ). Qualquer valor ajuda — estimulou a evolução do app, conta como contribuição voluntária.</p>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);">Não tem assinatura recorrente nem cobrança automática. Você decide quando e quanto contribuir.</p>' +
+        '</div>' +
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#a78bfa;margin-bottom:8px;">⭐ Plano Pro (R$ 19,90/mês)</div>' +
+          '<p>Pra quem organiza muitos torneios ou dirige um clube cadastrado:</p>' +
+          '<p>• Torneios ilimitados (free tem limite de 3 ativos simultâneos)<br>' +
+            '• Até 64 participantes por torneio (free: 32)<br>' +
+            '• Upload de logo personalizada<br>' +
+            '• Modo TV sem marca scoreplace<br>' +
+            '• Local cadastrado destacado em índigo no mapa</p>' +
+          '<p>Botão "🚀 Pro" no dashboard abre checkout Stripe seguro. Cancela a qualquer momento.</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,146,60,0.06);border:1px solid rgba(251,146,60,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#fb923c;margin-bottom:8px;">📩 Reportar Bugs ou Sugestões</div>' +
+          '<p>Botão <b>"Reportar Problema ou Sugestão"</b> na seção Sobre deste manual. Abre seu app de e-mail com:</p>' +
+          '<p>• Versão atual do app<br>' +
+            '• Seu nome/email<br>' +
+            '• User-agent (browser + OS)</p>' +
+          '<p>Tudo já preenchido. Você só descreve o problema/sugestão e envia. E-mail direto pra <code>scoreplace.app@gmail.com</code>.</p>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);">Bugs com screenshot resolvem 10x mais rápido. Print do problema + descrição do que esperava acontecer = ouro.</p>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">📲 Convidar amigos</div>' +
+          '<p>Botão <b>"Convidar"</b> no dashboard ou rota <code>#invite</code>. QR Code do app + link curto pra compartilhar via WhatsApp, Instagram, SMS.</p>' +
+          '<p>Quando alguém entra pelo link e cria uma conta, você ganha amizade automática (combinada com torneios e presenças).</p>' +
+        '</div>' +
+        '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px;margin-top:10px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#60a5fa;margin-bottom:8px;">📜 Privacidade e Termos</div>' +
+          '<p>Páginas <code>#privacy</code> e <code>#terms</code> (links no rodapé da landing).</p>' +
+          '<p>Em <b>fase Beta</b> os dados persistem — torneios, partidas, presenças, perfis ficam salvos. No primeiro login você precisa marcar checkbox aceitando os termos. Conformidade LGPD em andamento (revisão jurídica formal pendente pra v1.0 estável).</p>' +
         '</div>'
     },
     {
@@ -698,7 +737,7 @@
             '• <b>Estrela ⭐</b> — Favoritar torneio<br>' +
             '• <b>Filtro por esporte</b> — Beach Tennis, Tênis, Padel...<br>' +
             '• <b>Filtro por local</b> — Torneios perto de você<br>' +
-            '• <b>Filtro por formato</b> — Eliminatórias, Liga, Suíço...<br>' +
+            '• <b>Filtro por formato</b> — Eliminatórias, Dupla, Grupos+Elim, Liga<br>' +
             '• <b>Carregar mais</b> — Próximos torneios (paginação)' +
           '</p>' +
         '</div>' +
@@ -745,7 +784,7 @@
           '<div style="font-weight:700;font-size:0.85rem;color:#f59e0b;margin-bottom:8px;">➕ Criar/Editar Torneio (32)</div>' +
           '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
             '• <b>Esporte</b> — Padrões de pontuação por modalidade<br>' +
-            '• <b>Formato</b> — Eliminatória, Dupla, Grupos, Suíço, Liga<br>' +
+            '• <b>Formato</b> — Eliminatória, Dupla, Grupos+Elim, Liga<br>' +
             '• <b>Modo de sorteio</b> — Sorteio ou Rei/Rainha<br>' +
             '• <b>Modo de inscrição</b> — Individual, Times, Misto<br>' +
             '• <b>Tipo de jogo</b> — Simples (1v1) ou Duplas (2v2)<br>' +
@@ -764,7 +803,7 @@
             '• <b>Duração da partida</b> — Para estimativa total<br>' +
             '• <b>Classificados Rei/Rainha</b> — 1 ou 2 por grupo<br>' +
             '• <b>Grupos</b> — Número e classificados por grupo<br>' +
-            '• <b>Rodadas Suíço</b> — Recomendado: log₂ participantes<br>' +
+            '• <b>Rodadas Suíço</b> — Recomendado: log₂ participantes (aparece se Suíço foi escolhido como solução em torneio Eliminatórias)<br>' +
             '• <b>W.O.</b> — Individual ou Time Inteiro<br>' +
             '• <b>Inscrições tardias</b> — Fechado, Standby, Expansão<br>' +
             '• <b>Desempate</b> — Arrastar para reordenar critérios<br>' +

@@ -62,7 +62,7 @@
     { id: 'dashboard-card-fav', selector: '[data-fav-id]', text: 'Clique na estrela para favoritar um torneio e encontrá-lo mais rápido!', context: 'dashboard', priority: 4, position: 'top' },
     { id: 'dashboard-sport-filter', selector: '[onclick*="_applyDashSport"]', text: 'Filtre por esporte: veja apenas torneios de Beach Tennis, Tênis, Padel ou outra modalidade.', context: 'dashboard', priority: 3, position: 'top' },
     { id: 'dashboard-location-filter', selector: '[onclick*="_applyDashLocation"]', text: 'Filtre por local para ver torneios perto de você ou em um local específico.', context: 'dashboard', priority: 3, position: 'top' },
-    { id: 'dashboard-format-filter', selector: '[onclick*="_applyDashFormat"]', text: 'Filtre por formato: Eliminatórias, Liga, Suíço, Grupos + Eliminatória e mais.', context: 'dashboard', priority: 3, position: 'top' },
+    { id: 'dashboard-format-filter', selector: '[onclick*="_applyDashFormat"]', text: 'Filtre por formato: Eliminatórias, Dupla Eliminatória, Grupos + Eliminatórias e Liga.', context: 'dashboard', priority: 3, position: 'top' },
     { id: 'dashboard-load-more', selector: '[onclick*="_dashPage"]', text: 'Você tem mais torneios! Clique para carregar os próximos.', context: 'dashboard', priority: 2, position: 'top' },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -100,7 +100,7 @@
     // CREATE / EDIT TOURNAMENT — Form Fields
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'ct-sport', selector: '.sport-btn, #select-sport', text: 'Escolha o esporte: cada modalidade tem padrões de pontuação próprios (sets, games, pontos).', context: 'create-tournament', priority: 8, position: 'bottom' },
-    { id: 'ct-format', selector: '.formato-btn, #select-formato', text: 'Formato do torneio: Eliminatória (mata-mata), Dupla Eliminatória, Grupos + Elim., Suíço ou Liga.', context: 'create-tournament', priority: 8, position: 'bottom' },
+    { id: 'ct-format', selector: '.formato-btn, #select-formato', text: 'Formato do torneio: Eliminatória (mata-mata), Dupla Eliminatória, Grupos + Elim. ou Liga. Suíço aparece como solução automática no painel de potência de 2.', context: 'create-tournament', priority: 8, position: 'bottom' },
     { id: 'ct-draw-mode', selector: '.draw-mode-btn', text: 'Modo de sorteio: "Sorteio" distribui aleatoriamente, "Rei/Rainha" forma grupos de 4 com parceiros rotativos.', context: 'create-tournament', priority: 7, position: 'bottom' },
     { id: 'ct-enroll-mode', selector: '.enroll-mode-btn', text: 'Modo de inscrição: Individual (cada um por si), Apenas Times (duplas/equipes) ou Misto (ambos).', context: 'create-tournament', priority: 6, position: 'bottom' },
     { id: 'ct-game-type', selector: '[onclick*="_selectGameType"]', text: 'Tipo de jogo: Simples (1 vs 1) ou Duplas (2 vs 2). Define como os times são formados.', context: 'create-tournament', priority: 6, position: 'bottom' },
@@ -327,8 +327,7 @@
     { id: 'dash-my-active', selector: '#dashboard-myactive-widget', text: 'Sua presença ativa aparece aqui. Dot verde = check-in em andamento. ⚡ = partida casual em andamento (botão "Voltar"). Clique "Cancelar" pra remover presença.', context: 'dashboard', priority: 7, position: 'bottom', requiresLogin: true },
     { id: 'dash-friends-presence', selector: '#dashboard-presences-widget', text: 'Amigos com check-in ativo ou presença planejada hoje. Clique num card pra ver o local e se juntar.', context: 'dashboard', priority: 5, position: 'top', requiresLogin: true },
     { id: 'dash-profile-nudge', selector: '#dash-profile-nudge', text: 'Complete seu perfil pra ativar torneios perto de você, sugestões de parceiros e presença rápida.', context: 'dashboard', priority: 6, position: 'top', requiresLogin: true },
-    { id: 'dash-presence-btn', selector: '#btn-presence', text: 'Registre presença no local onde está jogando. Amigos veem em tempo real e podem se juntar.', context: 'dashboard', priority: 5, position: 'bottom', requiresLogin: true },
-    { id: 'dash-venues-btn', selector: '#btn-venues', text: 'Descubra quadras e clubes abertos ao público. Útil em viagens ou pra explorar a cidade.', context: 'dashboard', priority: 5, position: 'bottom' },
+    { id: 'dash-place-btn', selector: 'a[href="#place"], button[onclick*="#place"]', text: '📍 Place — descubra quadras/clubes próximos no mapa, marque presença no local, veja amigos jogando. Tudo unificado numa tela só.', context: 'dashboard', priority: 6, position: 'bottom' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // TOURNAMENT DETAIL — Calendário (v0.15.16)
@@ -352,6 +351,23 @@
     { id: 'notif-mark-read', selector: '#notif-list .card', text: 'Clique num card pra marcar como lida. Também abre o link associado (torneio, venue, partida).', context: 'notifications', priority: 4, position: 'top' },
     { id: 'notif-casual-invite', selector: '[onclick*="#casual/"]', text: 'Convite pra partida casual. Um tap leva direto pro lobby — sem precisar do QR Code.', context: 'notifications', priority: 6, position: 'top' },
     { id: 'notif-presence-checkin', selector: 'button[style*="presence"]', text: 'Amigo chegou num local. Botão leva pra modal do venue onde você marca sua própria presença.', context: 'notifications', priority: 5, position: 'top' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INVITE PAGE (#invite) — v0.15.72
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'invite-page-qr', selector: '#invite-qr-img', text: 'QR Code do app — projete numa TV ou mostre no celular pra outros baixarem com 1 scan.', context: 'invite', priority: 8, position: 'bottom' },
+    { id: 'invite-page-share', selector: 'button[onclick*="navigator.share"], a[href*="wa.me"]', text: 'Compartilhe via WhatsApp/Telegram/SMS — link curto que abre o app direto.', context: 'invite', priority: 7, position: 'bottom' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SUPPORT PAGE (#support) — v0.15.72
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'support-pix', selector: '#support-pix-qr, [data-pix-key]', text: 'PIX voluntário — ajuda a manter o scoreplace.app gratuito. Chave CNPJ ou QR Code copia-e-cola.', context: 'support', priority: 8, position: 'bottom' },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TERMS ACCEPTANCE MODAL — v0.17.78
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: 'terms-checkbox', selector: '#terms-accept-checkbox', text: 'Marque pra confirmar que leu Termos + Privacy. Sem isso o botão Confirmar fica desabilitado.', context: 'global', priority: 9, position: 'top' },
+    { id: 'terms-links', selector: '#terms-accept-link-terms, #terms-accept-link-privacy', text: 'Abre Termos/Privacy em nova aba — leia antes de aceitar. O modal fica esperando.', context: 'global', priority: 8, position: 'bottom' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // META
