@@ -174,6 +174,22 @@ if (firebase && firebase.auth) {
   var _pendingSignoutTimer = null;
 
   function _commitSignOut() {
+    // v0.17.92: skip se não havia sessão pra deslogar — usuário visitante
+    // que ABRE a página e clica login durante a janela de 2.5s do grace
+    // timer estava tendo o modal-login fechado pelo initRouter abaixo
+    // (chamado dentro de _commitSignOut → _dismissAllOverlays strippa
+    // .active de TODOS .modal-overlay.active, incluindo o que ele acabou
+    // de abrir). Bug reportado: "ao clicar no login na primeira vez,
+    // abre rapidamente e fecha. Segunda clicada fica."
+    var hadSession = !!(window.AppStore && window.AppStore.currentUser);
+    var loginModalActive = !!document.querySelector('#modal-login.active');
+
+    if (!hadSession) {
+      console.log('[scoreplace-auth] _commitSignOut: skipping — no prior session');
+      try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
+      return;
+    }
+
     console.log('[scoreplace-auth] onAuthStateChanged: committing sign-out after grace period');
     try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
     if (window.AppStore) {
@@ -188,9 +204,26 @@ if (firebase && firebase.auth) {
       // so a blanket feed buys nothing. Kick the router once and stop.
       window.AppStore.tournaments = [];
       window.AppStore._saveToCache();
-      if (typeof initRouter === 'function') initRouter();
+      // v0.17.92: skip initRouter se user está com modal-login aberto —
+      // ele tá ativamente tentando logar, dismissAllOverlays mataria o modal.
+      if (loginModalActive) {
+        console.log('[scoreplace-auth] _commitSignOut: skipping initRouter — login modal active');
+      } else {
+        if (typeof initRouter === 'function') initRouter();
+      }
     }
   }
+
+  // v0.17.92: helper público pra cancelar o timer de signout deferred.
+  // Chamado por openModal('modal-login') — user clicando em Login expressa
+  // intenção de logar; signout pendente de 2.5s é irrelevante e prejudicial.
+  window._cancelPendingSignout = function() {
+    if (_pendingSignoutTimer) {
+      console.log('[scoreplace-auth] cancelling pending signout — user is logging in');
+      clearTimeout(_pendingSignoutTimer);
+      _pendingSignoutTimer = null;
+    }
+  };
 
   firebase.auth().onAuthStateChanged(async function(user) {
     console.log('[scoreplace-auth] onAuthStateChanged fired:', user ? { uid: user.uid, email: user.email } : 'null');

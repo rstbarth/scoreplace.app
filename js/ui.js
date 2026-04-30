@@ -22,6 +22,11 @@ function setupUI() {
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
+    // v0.17.92: ao abrir modal-login, cancela timer de signout pendente
+    // (deferred 2.5s do auth.js) que mataria o modal antes do user clicar.
+    if (modalId === 'modal-login' && typeof window._cancelPendingSignout === 'function') {
+      window._cancelPendingSignout();
+    }
     modal.classList.add('active');
     // Scroll para o topo do conteúdo do modal
     const inner = modal.querySelector('.modal') || modal.querySelector('[style*="overflow"]');
