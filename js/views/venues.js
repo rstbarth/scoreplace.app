@@ -680,13 +680,24 @@
       }
     });
 
-    // v0.16.49: escala muda dependendo de ter capacidade do venue ou não.
+    // v0.16.49 / v1.0.8-beta: escala muda dependendo de ter capacidade do venue.
     //   - Com capacidade (courts cadastrados): denominador = capacidade fixa.
     //     1 pessoa em venue de 36 vagas = barra ~3% (visualmente "vazio").
-    //   - Sem capacidade: fallback antigo de max-bucket relativo.
+    //   - Sem capacidade: fallback agora usa baseline mínimo (16 = 4 quadras × 4
+    //     jogadores) em vez de max-bucket-relative. Antes, 1 pessoa em venue
+    //     sem courts cadastrados → max-bucket=1 → barra 100% ("lotado!"
+    //     visualmente quando deveria parecer "vazio"). Bug reportado: 1 pessoa
+    //     em Paineiras (9 quadras, mas sem `courts[]` no doc OU placeId
+    //     synthetic `pref_lat_lng` que não casa com loadVenue) enchia barra
+    //     inteira. Baseline 16 garante 1 pessoa ≈ 6% bar — visualmente "vazio"
+    //     mesmo quando não temos dado real de capacidade.
+    var DEFAULT_FALLBACK_CAPACITY = 16; // 4 courts × 4 players — pequeno venue baseline
     var hasCapacity = venueCapacity && venueCapacity > 0;
-    var maxPerBucket = hasCapacity ? venueCapacity : 1;
+    var maxPerBucket = hasCapacity ? venueCapacity : DEFAULT_FALLBACK_CAPACITY;
     if (!hasCapacity) {
+      // Quando observamos pico maior que o baseline (raro, venue de fato
+      // movimentado mas sem courts cadastrados), expande pra acomodar — o
+      // pico fica em 100% e os demais escalonam proporcionalmente.
       win.hours.forEach(function(slot) {
         if (slot < 0 || slot > 23) return;
         var b = buckets[slot];
@@ -705,7 +716,9 @@
       var totalPct = total > 0 ? Math.min(100, Math.round((total / maxPerBucket) * 100)) : 0;
       var isNow = slot === win.nowH;
       var labelColor = isNow ? 'var(--primary-color)' : (inDay ? 'var(--text-muted)' : 'rgba(107,114,128,0.5)');
-      var tooltipExtra = hasCapacity ? ' / ' + venueCapacity + ' (' + totalPct + '%)' : '';
+      var tooltipExtra = hasCapacity
+        ? ' / ' + venueCapacity + ' (' + totalPct + '%)'
+        : ' (escala estimada — local sem quadras cadastradas)';
       bars += '<div title="' + labelH + 'h: ' + total + ' pessoa(s)' + tooltipExtra + '" style="flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:2px;' + (isNow ? 'transform:scale(1.05);' : '') + '">' +
         '<div style="position:relative;height:90px;width:20px;display:flex;flex-direction:column-reverse;border-radius:4px;background:' + (isNow ? 'rgba(99,102,241,0.1)' : 'rgba(150,150,150,0.08)') + ';overflow:hidden;' + (isNow ? 'outline:2px solid rgba(99,102,241,0.4);' : '') + '">' +
           (total > 0
