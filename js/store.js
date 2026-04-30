@@ -1,5 +1,58 @@
 window.SCOREPLACE_VERSION = '1.0.0-beta';
 
+// ─── One-time beta cleanup ─────────────────────────────────────────────────
+// v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
+// locais (localStorage) sobrevivem ao reset server-side. Stats casuais por
+// exemplo moram em scoreplace_casual_history_v2 e o player-stats modal
+// MERGE local + Firestore — então mesmo com Firestore vazio, stats antigas
+// apareciam. Cleanup roda 1 vez por browser via flag scoreplace_beta_cleanup_v1
+// e apaga só caches de DADOS (não preferências de UI/idioma/tema).
+(function () {
+  try {
+    if (localStorage.getItem('scoreplace_beta_cleanup_v1') === '1') return;
+    var dataKeys = [
+      'boratime_state',           // legacy state cache
+      'scoreplace_authCache',     // auth cache (força re-login)
+      'scoreplace_casual_history',// stats casuais legacy v1
+      'scoreplace_casual_history_v2', // stats casuais v2 (era esse o culpado)
+      'scoreplace_casual_last',   // último casual restored
+      'scoreplace_casual_prefs',  // prefs casual
+      'scoreplace_deleted_ids',   // tombstones de ids deletados
+      'scoreplace_analytics_open' // estado de details aberto
+    ];
+    dataKeys.forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (_e) {}
+    });
+    // v1.0.0-beta: também apagar IndexedDB do Firebase Auth — assim o user
+    // PRECISA escolher como logar (Google / SMS / Email / Link mágico) em vez
+    // do app auto-restaurar sessão antiga. Sem isso, mesmo com Firestore
+    // zerado o Firebase Auth lembra da conta Google e re-loga sem prompt.
+    try {
+      if (typeof indexedDB !== 'undefined' && indexedDB.databases) {
+        indexedDB.databases().then(function (dbs) {
+          (dbs || []).forEach(function (db) {
+            if (db.name && /firebase|firestore|firebaseauth/i.test(db.name)) {
+              try { indexedDB.deleteDatabase(db.name); } catch (_e) {}
+            }
+          });
+        }).catch(function () {});
+      }
+      // Fallback pra browsers que não suportam .databases() (Safari < 14)
+      ['firebaseLocalStorageDb', 'firebase-installations-database',
+       'firebaseHeartbeatDatabase', 'firestore/[DEFAULT]/scoreplace-app/main']
+        .forEach(function (n) { try { indexedDB.deleteDatabase(n); } catch (_e) {} });
+    } catch (_e) {}
+    // Preferências preservadas: theme, lang, dashView, debug, emailForSignIn,
+    // fcm_dismissed, gsm_prefs, loginPhoneCountry, sentry_dsn.
+    localStorage.setItem('scoreplace_beta_cleanup_v1', '1');
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[scoreplace-beta] one-time cleanup done — ' + dataKeys.length + ' data keys + Firebase IndexedDB cleared');
+    }
+  } catch (e) {
+    // localStorage pode estar indisponível em modo private; não bloqueia o boot
+  }
+})();
+
 // ─── Auto-update: check if a newer version is deployed and force reload ────
 // Runs on EVERY page load (1s delay). Fetches store.js bypassing all caches.
 // If remote version differs, nukes SW caches, unregisters old SW, and reloads.
