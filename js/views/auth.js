@@ -2768,7 +2768,10 @@ function setupProfileModal() {
               '<div id="profile-sports-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
                 ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'].map(function(s) {
                   var safeS = String(s).replace(/'/g, "\\'");
-                  return '<button type="button" data-sport="' + window._safeHtml(s) + '" onclick="window._toggleProfileSport(\'' + safeS + '\')" class="btn btn-sm" style="font-size:0.72rem;padding:6px 12px;border-radius:999px;white-space:nowrap;">' + window._safeHtml(s) + '</button>';
+                  // v1.0.5-beta: pills nascem com style "desativado" inline para evitar
+                  // flash do default .btn (color:#fff sem bg) que parecia "ativado".
+                  // _applyProfileSportsUI sobrescreve quando há esporte selecionado.
+                  return '<button type="button" data-sport="' + window._safeHtml(s) + '" onclick="window._toggleProfileSport(\'' + safeS + '\')" class="btn btn-sm" style="font-size:0.72rem;padding:6px 12px;border-radius:999px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + window._safeHtml(s) + '</button>';
                 }).join('') +
               '</div>' +
               '<input type="hidden" id="profile-edit-sports" value="">' +
@@ -2792,9 +2795,14 @@ function setupProfileModal() {
               (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-accept-friends', label: _t('profile.acceptFriends'), icon: '🤝', checked: true, color: '#3b82f6' }) : '') +
               '<div style="margin-top:6px;">' +
                 '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">' + _t('profile.receiveComms') + '</div>' +
+                // v1.0.5-beta: defaults dos 3 toggles agora são ON (era todas=ON,
+                // importantes=OFF, fundamentais=OFF; user via brevemente esse
+                // estado antes de _applyNotifyFilterUI('todas') corrigir via
+                // cascata). Como o default canônico é "todas" → 3 ativos por
+                // cascata → faz mais sentido o HTML inicial já refletir isso.
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-todas', label: _t('profile.notifAll'), icon: '🟢', checked: true, color: '#22c55e', onchange: 'window._onNotifyToggle(\'todas\')' }) : '') +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: _t('profile.notifImportant'), icon: '🟡', checked: false, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
-                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: _t('profile.notifFundamental'), icon: '🔴', checked: false, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-importantes', label: _t('profile.notifImportant'), icon: '🟡', checked: true, color: '#f59e0b', onchange: 'window._onNotifyToggle(\'importantes\')' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-filter-fundamentais', label: _t('profile.notifFundamental'), icon: '🔴', checked: true, color: '#ef4444', onchange: 'window._onNotifyToggle(\'fundamentais\')' }) : '') +
               '</div>' +
               // Notification channel toggles (between comm filters and locations)
               '<div style="margin-top:10px;">' +
@@ -2809,9 +2817,11 @@ function setupProfileModal() {
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">📍 Presença no local</label>' +
               '<p style="font-size: 0.7rem; color: var(--text-muted); margin: 0 0 8px 0;">Quem pode ver quando você registra que está num local jogando.</p>' +
               '<div id="presence-visibility-group" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:10px;">' +
-                '<button type="button" data-pv="friends" onclick="window._setPresenceVisibility(\'friends\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">👥 Amigos</button>' +
-                '<button type="button" data-pv="public" onclick="window._setPresenceVisibility(\'public\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🌐 Todos</button>' +
-                '<button type="button" data-pv="off" onclick="window._setPresenceVisibility(\'off\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;">🚫 Ninguém</button>' +
+                // v1.0.5-beta: pills nascem com style "desativado" inline (idem #2 fix).
+                // _applyPresenceVisibilityUI sobrescreve o ativo com bg/cor preenchida.
+                '<button type="button" data-pv="friends" onclick="window._setPresenceVisibility(\'friends\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">👥 Amigos</button>' +
+                '<button type="button" data-pv="public" onclick="window._setPresenceVisibility(\'public\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">🌐 Todos</button>' +
+                '<button type="button" data-pv="off" onclick="window._setPresenceVisibility(\'off\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">🚫 Ninguém</button>' +
               '</div>' +
               '<div style="margin-top:4px;margin-bottom:6px;">' +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-presence-auto-checkin', label: 'Auto check-in ao chegar no local (usa GPS)', icon: '📡', checked: false, color: '#10b981', desc: 'Se você estiver em um local preferido, registra presença automaticamente. Senão, o app sugere.' }) : '') +
@@ -2849,10 +2859,11 @@ function setupProfileModal() {
             '<div class="form-group" style="margin-bottom: 1rem;">' +
               '<label class="form-label" style="font-size: 0.8rem; font-weight: 600;">' + _t('profile.labelAppearance') + '</label>' +
               '<div id="theme-btn-group" style="display:flex;gap:6px;flex-wrap:nowrap;">' +
-                '<button type="button" data-theme-val="dark" onclick="window._setProfileTheme(\'dark\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeNight') + '</button>' +
-                '<button type="button" data-theme-val="light" onclick="window._setProfileTheme(\'light\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeLight') + '</button>' +
-                '<button type="button" data-theme-val="sunset" onclick="window._setProfileTheme(\'sunset\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeSunset') + '</button>' +
-                '<button type="button" data-theme-val="ocean" onclick="window._setProfileTheme(\'ocean\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;">' + _t('profile.themeOcean') + '</button>' +
+                // v1.0.5-beta: idem fix #2 — pills nascem desativadas, _applyProfileThemeUI ativa o atual.
+                '<button type="button" data-theme-val="dark" onclick="window._setProfileTheme(\'dark\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + _t('profile.themeNight') + '</button>' +
+                '<button type="button" data-theme-val="light" onclick="window._setProfileTheme(\'light\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + _t('profile.themeLight') + '</button>' +
+                '<button type="button" data-theme-val="sunset" onclick="window._setProfileTheme(\'sunset\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + _t('profile.themeSunset') + '</button>' +
+                '<button type="button" data-theme-val="ocean" onclick="window._setProfileTheme(\'ocean\')" class="btn btn-sm" style="flex:1;font-size:0.72rem;padding:7px 4px;border-radius:10px;transition:all 0.2s;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + _t('profile.themeOcean') + '</button>' +
               '</div>' +
             '</div>' +
             // Visual Hints toggle

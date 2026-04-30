@@ -596,7 +596,7 @@ window._translations['en'] = {
   'profile.labelBirth': 'Birth Date',
   'profile.labelCity': 'City',
   'profile.labelCategory': 'Category',
-  'profile.labelSports': 'Preferred Sports',
+  'profile.labelSports': 'Sports',
   'profile.sportsSeparator': 'Separate sports with a comma',
   'profile.labelWhatsApp': 'WhatsApp',
   'profile.socialCommsTitle': 'Social & Notifications',

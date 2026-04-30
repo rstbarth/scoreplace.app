@@ -596,7 +596,7 @@ window._translations['pt'] = {
   'profile.labelBirth': 'Nascimento',
   'profile.labelCity': 'Cidade',
   'profile.labelCategory': 'Categoria',
-  'profile.labelSports': 'Esportes Preferidos',
+  'profile.labelSports': 'Modalidades',
   'profile.sportsSeparator': 'Separe os esportes por vírgula',
   'profile.labelWhatsApp': 'WhatsApp',
   'profile.socialCommsTitle': 'Social & Comunicações',

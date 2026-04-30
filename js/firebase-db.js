@@ -584,6 +584,29 @@ window.FirestoreDB = {
     opts = opts || {};
     var perQueryLimit = Math.max(1, Math.min(50, opts.limit || 20));
     var results = {};
+    // v1.0.5-beta: PRIVACY — sanitizar resultado de searchUsers pra retornar só
+    // campos públicos. Antes retornava o doc inteiro de users/{uid}, expondo
+    // phone/phoneCountry/birthDate/gender/preferredCeps/preferredLocations
+    // pra qualquer um que rodasse FirestoreDB.searchUsers no console (#explore
+    // chama isso pra busca de amigos). Fix em 1 camada client-side; security
+    // rules ainda permitem leitura do doc inteiro — fix definitivo em rules
+    // fica pra round dedicado com testes.
+    var PUBLIC_FIELDS = [
+      'displayName', 'displayName_lower',
+      'email', 'email_lower',
+      'photoURL',
+      'acceptFriendRequests',
+      'preferredSports',  // útil pra sugestão de parceiros
+      'createdAt', 'updatedAt', 'lastSeenAt'
+    ];
+    var sanitize = function(raw) {
+      var out = { _docId: raw._docId };
+      for (var i = 0; i < PUBLIC_FIELDS.length; i++) {
+        var k = PUBLIC_FIELDS[i];
+        if (raw[k] !== undefined) out[k] = raw[k];
+      }
+      return out;
+    };
     var addFromSnap = function(snap) {
       snap.forEach(function(doc) {
         if (results[doc.id]) return;
@@ -591,7 +614,7 @@ window.FirestoreDB = {
         data._docId = doc.id;
         // Default acceptFriendRequests to true (undefined means not set yet)
         if (data.acceptFriendRequests !== false) {
-          results[doc.id] = data;
+          results[doc.id] = sanitize(data);
         }
       });
     };
