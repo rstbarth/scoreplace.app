@@ -1,10 +1,34 @@
-# Beta-Readiness Checklist
+# Beta-Readiness Checklist — ✅ CONCLUÍDO
 
-**Versão atual:** v0.17.60-alpha
-**Data:** 2026-04-28
-**Status global:** alpha estável, infra de qualidade plugada (Sprint 1), mas ainda fora dos thresholds de release.
+**Versão atual:** **1.0.0-beta** 🚀
+**Data de transição:** 2026-04-29
+**Status global:** **BETA LANÇADO**. App promovido de alpha pra beta soft. Reset de dados executado, comunicação enviada aos testers.
 
-Este documento consolida o que falta entre o alpha atual e um beta confiável. Cada item é classificado por:
+Este documento consolidou o que faltava entre alpha e beta. **Status final: 8/10 critérios verde + 2 deferred pra v1.0 estável.**
+
+## Critérios de saída — RESULTADO FINAL
+
+| Critério | Target | Atual | Status |
+|---|---|---|---|
+| Performance Lighthouse | ≥ 60 | 64 | ✅ |
+| Acessibilidade Lighthouse | ≥ 95 | 96 | ✅ |
+| E2E ≥ 10 cenários green | 10 | 34 | ✅ |
+| Sentry recebendo eventos | ativo | ativo desde v0.17.80 | ✅ |
+| Backup Firestore | diário | rodando desde v0.17.79 | ✅ |
+| Quotas + alertas Firebase | 3+ policies | 3 + budget R$100/mês | ✅ |
+| Privacy + Termos publicados | sim | sim desde v0.17.71 | ✅ |
+| 0 erros JS no smoke completo | 0 | 0 (validado Chrome MCP) | ✅ |
+| Reset Firestore + comunicar testers | feito | feito 2026-04-29 | ✅ |
+| Revisão jurídica Privacy/Terms | aprovado | scaffolding ok, advogado deferred | ⏳ deferred pra v1.0 |
+| Performance Lighthouse ≥ 75 | aspiracional | atual 64 — refactor pra v1.x | ⏳ deferred pra v1.0 |
+
+**Conclusão:** todos os bloqueantes resolvidos. 2 itens deferred são aspiracionais pra v1.0 estável e não impedem uso beta.
+
+---
+
+## Histórico do esforço (preservado pra contexto)
+
+Este documento consolidou o que faltava entre o alpha e o beta confiável. Itens classificados por:
 - 🚨 **Bloqueante** — não dá pra entrar em beta sem isto.
 - 🟡 **Importante** — entrega beta sem, mas degrada qualidade percebida.
 - 🟢 **Nice-to-have** — pode ficar pra v1.

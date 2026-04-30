@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `0.16.63-alpha` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `1.0.0-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -12,20 +12,34 @@ Plataforma web de gestao de torneios esportivos e board games. App SPA (Single P
 - **localStorage:** `boratime_state` (chave legada mantida por compatibilidade)
 - **Email de suporte:** scoreplace.app@gmail.com
 
-## ⚠️ Fase de Desenvolvimento — ALPHA
+## 🚀 Fase de Desenvolvimento — BETA
 
-**O projeto está em fase ALPHA.** Regra importante para qualquer mudança de código:
+**O projeto está em fase BETA desde 2026-04-29.** Regras a partir daqui:
 
-- **Torneios, locais e quadras** no Firestore podem ser ignorados ou apagados sem problema. Não há produção real em cima deles.
-- **Usuários** já existem (amigos chegados testando), mas também podem ser recriados sem dor.
-- **NÃO escreva código defensivo de backward compatibility** ao mudar schemas/modelos. Não adicione campos duplicados, branches `if (legacy_shape) ...`, fallbacks pra shapes antigos. Simplesmente escreva o schema novo limpo.
-- **NÃO implemente código de migração** automática entre versões. Se um cadastro antigo quebrar depois da mudança, o usuário apaga e refaz — é comportamento esperado.
-- **NÃO preserve** campos no Firestore só "por segurança". Pode dropar livremente.
-- **Exceção**: preservar compat só vale a pena se for trivial (1 linha) E genuinamente útil além de compat.
+- **Dados são REAIS.** Torneios, partidas casuais, presenças, locais, perfis — tudo que o usuário cria PERSISTE. Não apagar nada sem comunicação prévia.
+- **Schemas estáveis.** Mudanças de schema agora exigem código de migração ou backward-compat. Não pode quebrar dados existentes silenciosamente.
+- **Reset de coleções proibido** sem aviso explícito aos usuários afetados. Em alpha era livre — em beta é compromisso.
+- **Defensive code OK** quando lidar com docs antigos: branches `if (legacy_shape)`, fallbacks pra campos opcionais, normalização de payload no read são aceitáveis e recomendados.
+- **Comunicação obrigatória** antes de qualquer mudança que afete dados do usuário.
 
-**Quando essa regra muda:** na migração para **beta**, quando usuários reais testarão por período longo. O Rodrigo avisa quando for a hora — até lá, priorize simplicidade sobre compat.
+### Reset histórico (transição alpha → beta) — 2026-04-29
+Na transição do alpha pra beta foi feito o reset final das coleções:
+- ❌ Apagadas: `tournaments`, `venues`, `presences`, `casualMatches`, `mail`
+- ✅ Preservadas: `users` (perfis dos amigos com aceite de termos), notificações já lidas
 
-Isso **não** se aplica à estabilidade de código entre versões do app rodando no navegador dos usuários (cache-busters, service worker updates continuam importando — o app não pode crashar em runtime). Só se aplica a dados persistidos no Firestore.
+A partir desse reset, **base de dados é considerada produção** e qualquer alteração destrutiva exige fluxo formal.
+
+### Critérios de saída pra v1.0.0 estável
+- ✅ Performance Lighthouse ≥ 60 (atual 64)
+- ✅ Acessibilidade ≥ 95 (atual 96)
+- ✅ E2E ≥ 10 cenários green (34 testes)
+- ✅ Sentry recebendo eventos
+- ✅ Backup Firestore diário
+- ✅ Quotas + alertas Firebase (3 policies + budget)
+- ✅ Privacy + Termos publicados
+- ⏳ Revisão jurídica completa (deferred — Privacy/Terms cobre uso beta)
+- ⏳ 30 dias de uso real sem bug crítico
+- ⏳ Performance Lighthouse ≥ 75 (refactor arquitetural — bundler, modular Firebase)
 
 ## Historico do Projeto
 
