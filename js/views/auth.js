@@ -89,9 +89,10 @@ function _forceCloseLoginModal() {
     if (loginForm && typeof loginForm.reset === 'function') {
       try { loginForm.reset(); } catch(_e) {}
     }
-    if (typeof window._captureMessage === 'function') {
-      window._captureMessage('login modal force-closed', 'info');
-    }
+    // v1.0.4-beta: probe `_captureMessage('login modal force-closed', 'info')`
+    // removido. Foi adicionado em v0.17.83 pra diagnosticar bug do modal não
+    // fechar; cumpriu o papel — agora só polui Sentry com 36 events em 2d
+    // (issue #1, level info, sem valor diagnóstico atual).
   } catch (e) {
     console.warn('[scoreplace-auth] _forceCloseLoginModal error:', e);
     if (typeof window._captureException === 'function') {

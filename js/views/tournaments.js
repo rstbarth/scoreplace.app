@@ -1325,7 +1325,6 @@ function renderTournaments(container, tournamentId = null) {
                 ${t.status !== 'closed' ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window.openEditModal('${t.id}')">✏️ ${_t('btn.edit')}</button>` : ''}
                 ${t.status !== 'closed' ? `<button class="btn btn-purple hover-lift" onclick="event.stopPropagation(); window._sendOrgCommunication('${t.id}')">📢 ${_t('org.communicate')}</button>` : ''}
                 ${addParticipantBtns}
-                ${t.status !== 'closed' ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 ${_t('org.addBot')}</button>` : ''}
                 ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 ${_t('btn.export')}</button>` : ''}
                 ${isOrg ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window._saveAsTemplate('${t.id}')">💾 ${window._t ? window._t('btn.saveTemplate') : 'Salvar como Template'}</button>` : ''}
                 ${categoriasBtn}
@@ -1333,7 +1332,6 @@ function renderTournaments(container, tournamentId = null) {
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
-                ${window.AppStore.isCreator(t) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ ${_t('btn.delete')}</button>` : ''}
               </div>
             </div>` : ''}
 

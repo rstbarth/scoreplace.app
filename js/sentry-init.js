@@ -23,6 +23,18 @@
     try { DSN = localStorage.getItem('scoreplace_sentry_dsn') || ''; } catch (e) {}
   }
 
+  // v1.0.4-beta: Skip init em qualquer ambiente que NÃO seja produção real
+  // (scoreplace.app). Antes mandava `environment: preview` pra Sentry quando
+  // hostname diferia, mas isso polui a inbox com erros do Karma test runner
+  // (HeadlessChrome em http://localhost:9876/) — issue #2 com 13 events em
+  // 14d. Localhost dev e CI ficam mudos por padrão; se precisar testar
+  // observability em dev, setar `localStorage.scoreplace_force_sentry='1'`.
+  var FORCE = false;
+  try { FORCE = localStorage.getItem('scoreplace_force_sentry') === '1'; } catch (e) {}
+  if (location.hostname !== 'scoreplace.app' && !FORCE) {
+    DSN = ''; // forçar caminho no-op abaixo
+  }
+
   // ── 2. Helpers no-op (sempre exportados, mesmo sem DSN) ────────────────────
   // Buffer de events que acontecem antes do SDK carregar
   var _preInitBuffer = [];
@@ -84,8 +96,11 @@
     try {
       window.Sentry.init({
         dsn: DSN,
-        release: 'scoreplace@' + (window.SCOREPLACE_VERSION || 'unknown'),
-        environment: (location.hostname === 'scoreplace.app' ? 'production' : 'preview'),
+        // release agora é definido lazy via beforeSend abaixo — antes ficava
+        // travado no init com `SCOREPLACE_VERSION` que ainda era undefined
+        // por race entre Sentry CDN async e store.js defer (issue v1.0.3-beta:
+        // 14 events com release=scoreplace@unknown).
+        environment: 'production',
         // Beta-readiness: 100% errors mas baixa amostragem de transações (custo).
         sampleRate: 1.0,
         tracesSampleRate: 0.05,
@@ -97,13 +112,23 @@
           /Network request failed/i,            // Firestore offline transitório
           /Failed to fetch/i,                   // browser extensions, ad blockers
           /chrome-extension:\/\//i,
-          /moz-extension:\/\//i
+          /moz-extension:\/\//i,
+          // v1.0.4-beta: 4 padrões novos baseados em audit de issues unresolved:
+          /Script .* load failed/i,             // iOS Safari SW update transient (issue #3)
+          /popup has been closed by the user/i, // user fechou popup OAuth (#5/#6)
+          /popup_closed_by_user/i,              // mesma intenção, mensagem variante
+          /Test event from beta-readiness/i     // eventos de teste manual (#7)
         ],
         beforeSend: function (event) {
           // Tag útil pra agrupar issues por área do app
           var hash = (location.hash || '').replace('#', '').split('/')[0] || 'dashboard';
           event.tags = event.tags || {};
           event.tags.route = hash;
+          // v1.0.4-beta: release lazy. Lê SCOREPLACE_VERSION na hora do envio,
+          // não no init. Isso garante que mesmo se Sentry init rodar antes do
+          // store.js defer carregar, todo evento sai com release correto assim
+          // que store.js termina de parsear (~ms depois).
+          event.release = 'scoreplace@' + (window.SCOREPLACE_VERSION || 'unknown');
           // Anonimização: jamais enviar email/displayName ao Sentry
           if (event.user) {
             delete event.user.email;

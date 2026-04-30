@@ -80,8 +80,17 @@ function initRouter() {
     const fixedBar = document.getElementById('bracket-fixed-scrollbar');
     if (fixedBar) fixedBar.remove();
 
-    // Close hamburger dropdown on every navigation
-    if (typeof window._closeHamburger === 'function') window._closeHamburger();
+    // v1.0.4-beta: NÃO fechar hamburger em soft-refresh.
+    // Bug reproduzido via Chrome MCP: usuário abre menu → Firestore listener
+    // dispara onSnapshot → _softRefreshView() → initRouter() → fechava menu.
+    // Stack trace: handleRoute (router.js:84) ← initRouter ← _softRefreshView.
+    // Sintoma reportado: "menu abre e fecha rapidamente na 1ª vez" (snapshots
+    // iniciais chegam ~0.5-2s pós-load — janela do clique do usuário).
+    // Soft-refresh re-renderiza a MESMA view; usuário não navegou; menu deve
+    // permanecer aberto.
+    if (typeof window._closeHamburger === 'function' && !window._isSoftRefresh) {
+      window._closeHamburger();
+    }
 
     // Dismiss any overlay that could survive navigation and mask the new view
     // (including Voltar) — TV mode, set-scoring, QR, player-stats and any
