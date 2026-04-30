@@ -974,7 +974,9 @@ Deploy automatico via `git push` para o repositorio `rstbarth/scoreplace.app` (b
 1. Validar sintaxe de todos os JS modificados: `for f in $(find js/ -name '*.js' ! -name '*.backup'); do node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f"; done`
 2. Atualizar cache-busters em `index.html` para arquivos modificados
 3. **OBRIGATÓRIO em todo bump de versão**: rodar `npm run prerender` pra atualizar o snapshot estático da landing em `index.html`. O prerender baked-in inclui `window.SCOREPLACE_VERSION` — se você não rodar, a landing mostra a versão antiga até o JS hidratar (e pra usuário sem JS habilitado fica eternamente errada). Bug reportado: v0.17.87 deployado mas landing mostrava v0.17.72 (prerender não foi regenerado desde a v0.17.72 introduzido em v0.17.69).
-4. `git add` dos arquivos alterados (evitar `git add .` — adicionar arquivos especificos)
-5. `git commit` com mensagem descritiva
-6. `git push origin main`
-7. Verificar no site ao vivo que as alteracoes estao deployadas
+4. **OBRIGATÓRIO antes de declarar "fixed" e pedir validação ao usuário**: validar o fix via Chrome MCP no site deployado. Mínimo: navigate + fetch HTML + DOM inspection (botões existem, handlers attached, modais render OK). Se o fluxo exige login real / GPS / múltiplas contas e não consigo simular, **avisar explicitamente "não testei, pode quebrar"** antes de pedir teste manual. Pattern proibido: empilhar hotfix em cima de hotfix sem auditar relacionados — quando bug X aparece, listar TODOS os call paths do fluxo afetado, ler arquivos relevantes por completo, identificar bugs latentes do mesmo tipo, fazer UM fix consolidado. Bug reportado: 9 hotfixes em sequência (v0.17.83-91) onde cada fix expunha outro bug latente. Causa: declarar "fixed" sem validação prévia.
+5. `git add` dos arquivos alterados (evitar `git add .` — adicionar arquivos especificos)
+6. `git commit` com mensagem descritiva
+7. `git push origin main`
+8. Verificar no site ao vivo que as alteracoes estao deployadas
+9. **Indicar versão deployada na confirmação ao usuário** (terminar com "v0.X.Y-alpha deployada")
