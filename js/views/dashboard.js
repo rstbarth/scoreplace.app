@@ -851,60 +851,76 @@ function renderDashboard(container) {
   }
 
   // Build upcoming matches widget for current user
-  // Profile completion nudge: quando usuário tem torneios (não é fresh user
-  // — esse já tem welcome card) mas faltam campos chave que destravariam
-  // features. Ignorado se:
-  //  - usuário nunca logou (sem cu)
-  //  - já dismissou nesta sessão (sessionStorage)
-  //  - allUnique vazio (fresh user já tem o welcome card — não empilha dois banners)
-  //  - todos os campos importantes estão preenchidos
-  // Só aparece por sessão — dismissar não some pra sempre, mas não incomoda
-  // em cada navegação interna via hash.
+  // Profile completion nudge (v1.0.7-beta enhanced):
+  //   Aparece pra QUALQUER user logado (não só quem já tem torneios) que
+  //   tenha campos críticos faltando. Antes ficava restrito a allUnique>0
+  //   pra não empilhar com o welcome card de fresh user — mas o welcome
+  //   card foi reavaliado e os 2 banners conviveriam mal. Solução: nudge
+  //   substitui o welcome quando há campos faltando; se perfil completo,
+  //   welcome card volta a aparecer (caminho separado).
+  //
+  //   Campos críticos checados (5 no total):
+  //     1. gender              — usado pra auto-categorização em torneios
+  //     2. birthDate           — usado pra categorias por idade
+  //     3. city                — notificações de torneios na região
+  //     4. preferredSports     — sugestões de torneios/parceiros
+  //     5. preferredLocations  — opcional (alternativa a city)
+  //
+  //   Pula o nudge se:
+  //     - usuário nunca logou (sem cu)
+  //     - já dismissou nesta sessão (sessionStorage)
+  //     - todos os 5 campos críticos preenchidos (perfil 100%)
   function _buildProfileNudgeHtml() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) return '';
-    if (allUnique.length === 0) return '';
     try {
       if (sessionStorage.getItem('scoreplace_profile_nudge_dismissed') === '1') return '';
     } catch (e) {}
-    var missing = [];
+
+    // Avaliação por campo — ordem importa pro display "qual falta"
+    var hasGender = cu.gender && String(cu.gender).trim().length > 0 && cu.gender !== 'nao_informar';
+    var hasBirth = cu.birthDate && String(cu.birthDate).trim().length > 0;
     var hasCity = cu.city && String(cu.city).trim().length > 0;
-    // v0.17.2: removido compat string-CSV pra preferredSports (auditoria
-    // L3.1 — mesmo padrão de tournaments-organizer.js). auth.js sempre
-    // grava como array; doc legado com string vira hasSports=false (nudge
-    // reaparece, comportamento aceitável).
     var hasSports = Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0;
-    // Locais preferidos é OPCIONAL quando o usuário já tem city — city
-    // sozinho já permite a maioria das features (torneios perto, sugestões
-    // de parceiros). preferredLocations é um plus pra check-in rápido,
-    // não um bloqueio. Só reclama quando user não tem nem city nem pins.
     var prefLocs = Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [];
     var hasLocation = hasCity || prefLocs.length > 0;
 
-    if (!hasCity && prefLocs.length === 0) missing.push('cidade');
-    if (!hasSports) missing.push('modalidades preferidas');
-    // Só pede "locais preferidos" quando já tem cidade mas nenhum pin
-    // (refinamento, não requisito).  Fica de fora do nudge principal —
-    // se city preenchido, a mensagem só pede sports (se faltar).
-    if (missing.length === 0) return '';
-    // Frase natural: "cidade, modalidades preferidas e locais preferidos"
+    var checks = [
+      { key: 'gender',   label: 'sexo',                  ok: hasGender },
+      { key: 'birth',    label: 'data de nascimento',    ok: hasBirth },
+      { key: 'location', label: 'cidade',                ok: hasLocation },
+      { key: 'sports',   label: 'modalidades',           ok: hasSports }
+    ];
+    var filled = checks.filter(function(c){ return c.ok; }).length;
+    var total = checks.length;
+    if (filled === total) return ''; // perfil completo, sem nudge
+
+    var missing = checks.filter(function(c){ return !c.ok; }).map(function(c){ return c.label; });
     var missStr = missing.length === 1
       ? missing[0]
       : missing.length === 2
         ? missing[0] + ' e ' + missing[1]
         : missing.slice(0, -1).join(', ') + ' e ' + missing[missing.length - 1];
-    var benefits = [];
-    if (missing.indexOf('cidade') !== -1) benefits.push('notificar torneios na sua região');
-    if (missing.indexOf('modalidades preferidas') !== -1) benefits.push('sugerir torneios e parceiros do seu esporte');
-    var benefitsStr = benefits.slice(0, 2).join(' · '); // cap pra não ficar longo
-    return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px 14px;margin-bottom:1rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-        '<span style="font-size:1.4rem;flex-shrink:0;">👤</span>' +
-        '<div style="flex:1;min-width:200px;">' +
-          '<div style="font-weight:700;color:var(--text-bright);font-size:0.88rem;">Complete seu perfil pra aproveitar melhor</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Faltam: <b>' + missStr + '</b>. Isso permite ' + (benefitsStr || 'recursos adicionais do app') + '.</div>' +
+
+    // Tempo estimado proporcional aos campos faltantes (~7s cada).
+    var secsEstimate = Math.max(15, Math.min(60, missing.length * 8));
+    var timeLabel = secsEstimate <= 30 ? 'em ~' + secsEstimate + 's' : 'em ~1min';
+
+    // Progress bar visual (0-100%)
+    var pct = Math.round((filled / total) * 100);
+
+    return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.35);border-radius:14px;padding:14px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
+        '<span style="font-size:1.6rem;flex-shrink:0;line-height:1;">🎯</span>' +
+        '<div style="flex:1;min-width:220px;">' +
+          '<div style="font-weight:800;color:var(--text-bright);font-size:0.92rem;line-height:1.2;">Complete seu perfil ' + timeLabel + '</div>' +
+          '<div style="font-size:0.76rem;color:var(--text-muted);margin-top:3px;line-height:1.35;">' + filled + ' de ' + total + ' campos preenchidos · faltam <b style="color:#fbbf24;">' + window._safeHtml(missStr) + '</b></div>' +
+          // Progress bar
+          '<div style="margin-top:7px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">' +
+            '<div style="height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);width:' + pct + '%;transition:width 0.4s ease;border-radius:3px;"></div>' +
+          '</div>' +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-          '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal(); else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;">Completar perfil</button>' +
+          '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal(); else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;">Completar →</button>' +
           '<button class="btn btn-sm" onclick="window._dismissProfileNudge()" style="background:transparent;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.78rem;" title="Descartar nesta sessão">✕</button>' +
         '</div>' +
       '</div>';
