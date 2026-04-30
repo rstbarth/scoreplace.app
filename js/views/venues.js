@@ -626,7 +626,10 @@
   }
   window._venuesCalcCapacity = _calcVenueCapacity;
 
-  function _renderPreferredChart(boxId, presences, tournaments, dayKeyStr, venueCapacity) {
+  // v1.0.9-beta: opts.venueName/opts.realPid permitem renderizar CTA "Cadastrar
+  // quadras" inline quando o venue não tem capacidade real cadastrada. Sem opts
+  // (legacy callers), só não renderiza a CTA — comportamento anterior preservado.
+  function _renderPreferredChart(boxId, presences, tournaments, dayKeyStr, venueCapacity, opts) {
     var box = document.getElementById(boxId);
     if (!box) return;
     var win = _currentWindow();
@@ -751,6 +754,33 @@
     // v0.16.35: legenda volta a "você e amigos" — o gráfico conta ambos de novo.
     // v0.16.50: label "escala: N (X quadras × 4)" removida do header — info
     // continua disponível no tooltip ao passar mouse na barra ("Nh: P / N (X%)").
+    // v1.0.9-beta: CTA inline pra "Cadastrar quadras" quando venue não tem
+    // capacidade cadastrada. Direciona pra #my-venues com o nome/coords
+    // pré-preenchidos via sessionStorage (mesmo padrão do _venuesRegisterPlace).
+    var registerCta = '';
+    if (!hasCapacity) {
+      var ctxName = (opts && opts.venueName) || '';
+      var ctxPid  = (opts && opts.realPid) || '';
+      var ctxLat  = (opts && opts.lat != null) ? opts.lat : null;
+      var ctxLon  = (opts && opts.lon != null) ? opts.lon : null;
+      // Stash via onclick — sessionStorage só pode ser setado em event handler;
+      // não dá pra fazer no momento da render.
+      var stashJson = JSON.stringify({
+        placeId: ctxPid,
+        name: ctxName,
+        lat: ctxLat,
+        lon: ctxLon
+      }).replace(/"/g, '&quot;');
+      var clickHandler = "try{sessionStorage.setItem('scoreplace_pending_venue_registration','" +
+        stashJson.replace(/'/g, "\\'") + "');}catch(e){}window.location.hash='#my-venues';return false;";
+      registerCta =
+        '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(251,191,36,0.2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '<span style="font-size:0.7rem;color:var(--text-muted);flex:1;min-width:180px;">' +
+            '⚠️ Escala estimada — local sem quadras cadastradas.' +
+          '</span>' +
+          '<a href="#my-venues" onclick="' + clickHandler + '" style="font-size:0.72rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);padding:4px 10px;border-radius:8px;text-decoration:none;white-space:nowrap;">🎾 Cadastrar quadras →</a>' +
+        '</div>';
+    }
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
@@ -758,6 +788,7 @@
           '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
+        registerCta +
       '</div>';
   }
 
@@ -1024,7 +1055,26 @@
             var tKey = window.PresenceDB.venueKey(t.venuePlaceId || '', t.venue || '');
             return tKey && tKey === pKey;
           });
-          _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr, capacity);
+          // v1.0.9-beta: passa contexto pra render da CTA "Cadastrar quadras"
+          // quando capacity=0 (venue sem courts ou loadVenue null).
+          // Tenta extrair lat/lon do venue (se loadVenue retornou) ou do
+          // synthetic pid `pref_<lat4>_<lng4>` como fallback pra deep-link
+          // pré-preencher localização ao cadastrar.
+          var ctxLat = venue && venue.lat != null ? Number(venue.lat) : null;
+          var ctxLon = venue && venue.lon != null ? Number(venue.lon) : null;
+          if ((ctxLat == null || ctxLon == null) && typeof realPid === 'string' && realPid.indexOf('pref_') === 0) {
+            var m = realPid.match(/^pref_(-?\d+\.\d+)_(-?\d+\.\d+)$/);
+            if (m) {
+              ctxLat = parseFloat(m[1]);
+              ctxLon = parseFloat(m[2]);
+            }
+          }
+          _renderPreferredChart('pref-chart-' + safePid, presences, matchTournaments, dayKeyStr, capacity, {
+            venueName: venueName,
+            realPid: realPid,
+            lat: ctxLat,
+            lon: ctxLon
+          });
           _renderNowAtVenueBox('pref-now-' + safePid, presences, realPid);
           _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr, realPid);
         }).catch(function(e) {
