@@ -4,7 +4,8 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `1.0.0-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `1.0.3-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Convenção de versão (a partir de 30 Abr 2026):** `MAJOR.MINOR.PATCH-channel` no padrão semver. Em fase **beta**, incremento PATCH a cada deploy (`1.0.0-beta` → `1.0.1-beta` → `1.0.2-beta` → ...). MINOR sobe quando há feature significativa nova; MAJOR reservado pra v2.0 (mudanças incompatíveis). Estável: dropar o `-beta` (`1.0.0`).
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
 - **Banco de dados:** Cloud Firestore (projeto Firebase: `scoreplace-app`)
@@ -984,6 +985,9 @@ Deploy automatico via `git push` para o repositorio `rstbarth/scoreplace.app` (b
 - `.gitignore` configurado (`.DS_Store`, `.claude/`, `*.backup`, `*.bak`, `outputs/`, `extensions/`, `functions/node_modules/`)
 
 ### Fluxo de deploy padrao
+
+**Versionamento (a partir de 30 Abr 2026):** semver `MAJOR.MINOR.PATCH-channel`. Em beta, PATCH incrementa a cada release (`1.0.3-beta` → `1.0.4-beta`). MINOR sobe em feature significativa. MAJOR só em v2 (incompat). Estável dropa `-beta`.
+
 1. Validar sintaxe de todos os JS modificados: `for f in $(find js/ -name '*.js' ! -name '*.backup'); do node --check "$f" 2>&1 || echo "SYNTAX ERROR in $f"; done`
 2. Atualizar cache-busters em `index.html` para arquivos modificados
 3. **OBRIGATÓRIO em todo bump de versão**: rodar `npm run prerender` pra atualizar o snapshot estático da landing em `index.html`. O prerender baked-in inclui `window.SCOREPLACE_VERSION` — se você não rodar, a landing mostra a versão antiga até o JS hidratar (e pra usuário sem JS habilitado fica eternamente errada). Bug reportado: v0.17.87 deployado mas landing mostrava v0.17.72 (prerender não foi regenerado desde a v0.17.72 introduzido em v0.17.69).
