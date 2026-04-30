@@ -56,7 +56,11 @@
     sports: _initialSports,
     priceRange: _saved.priceRange || '',
     minCourts: _saved.minCourts || 1,
-    distanceKm: _saved.distanceKm || 10,
+    // v1.0.11-beta: default bump 10 → 25 km. 10km mascarava venues que o
+    // usuário acabou de cadastrar fora do bairro imediato (ex: Paineiras +
+    // outro venue na cidade). 25 km cobre metropolitanas brasileiras
+    // tipicas. _saved.distanceKm preserva ajuste manual do usuário.
+    distanceKm: _saved.distanceKm || 25,
     center: (_saved.center && _saved.center.lat != null) ? _saved.center : null,
     centerFromGps: !!_saved.centerFromGps,
     loading: false,
@@ -1291,6 +1295,21 @@
 
     // Section 2: Scoreplace registered venues sorted by distance (excluindo preferidos)
     var spResults = state.results.filter(function(v) { return !preferredMatchIds[v._id]; });
+    // v1.0.11-beta: conta venues que existem no DB mas foram filtrados por
+    // distância (state.results já tem filtro aplicado em refresh()). Usa
+    // state.allVenuesRaw que tem a lista pré-filtro pra surfaceiar "X venues
+    // fora do raio atual" no empty state — usuário entende que o app TEM
+    // venues cadastrados, só que distantes, e pode expandir o raio.
+    var venuesOutsideRadius = 0;
+    if (Array.isArray(state.allVenuesRaw)) {
+      var rawIds = {};
+      state.results.forEach(function(v) { rawIds[v._id] = true; });
+      state.allVenuesRaw.forEach(function(v) {
+        if (rawIds[v._id]) return; // já está no resultado filtrado
+        if (preferredMatchIds[v._id]) return; // ou é preferido
+        venuesOutsideRadius++;
+      });
+    }
     if (state.center) {
       spResults.sort(function(a, b) {
         var da = (a.lat != null && a.lon != null) ? _haversineKm(state.center, { lat: Number(a.lat), lng: Number(a.lon) }) : Infinity;
@@ -1394,13 +1413,26 @@
         html += '<button onclick="window._venuesShowAllSP()" style="margin-top:8px;background:none;border:none;color:#a5b4fc;font-size:0.82rem;cursor:pointer;padding:2px 0;">Mostrar mais (' + (spResults.length - SHOW_LIMIT) + ' locais) →</button>';
       }
     } else {
-      // Empty state — explica + linka cadastro direto.
-      html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-        '<div style="flex:1;min-width:180px;font-size:0.78rem;color:var(--text-muted);line-height:1.4;">' +
-          'Nenhum local cadastrado nessa região ainda. Sabe um? Cadastre pra que apareça aqui pra todos os usuários.' +
-        '</div>' +
-        '<a href="#my-venues" class="btn btn-sm btn-primary hover-lift" style="white-space:nowrap;font-size:0.78rem;">+ Cadastrar local</a>' +
-      '</div>';
+      // Empty state — diferencia 2 casos: (a) DB vazio na região e (b) tem
+      // venues mas estão fora do raio. (b) é o caso típico do "cadastrei mas
+      // não aparece" — usuário em SP cadastrou venue em outro lugar OU
+      // distance default (25km) pequeno demais.
+      if (venuesOutsideRadius > 0) {
+        var newRadius = Math.max(50, state.distanceKm * 2);
+        html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:180px;font-size:0.78rem;color:var(--text-muted);line-height:1.4;">' +
+            '<b style="color:#a5b4fc;">' + venuesOutsideRadius + ' local(is)</b> cadastrado(s) fora do raio atual de <b>' + state.distanceKm + 'km</b>. Expandir busca?' +
+          '</div>' +
+          '<button type="button" onclick="window._venuesExpandRadius(' + newRadius + ')" class="btn btn-sm btn-primary hover-lift" style="white-space:nowrap;font-size:0.78rem;">📡 Expandir pra ' + newRadius + 'km</button>' +
+        '</div>';
+      } else {
+        html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:180px;font-size:0.78rem;color:var(--text-muted);line-height:1.4;">' +
+            'Nenhum local cadastrado por aqui ainda. Sabe um? Cadastre pra que apareça aqui pra todos os usuários.' +
+          '</div>' +
+          '<a href="#my-venues" class="btn btn-sm btn-primary hover-lift" style="white-space:nowrap;font-size:0.78rem;">+ Cadastrar local</a>' +
+        '</div>';
+      }
     }
     html += '</div>';
 
@@ -1474,6 +1506,18 @@
 
   window._venuesShowAllSP = function() { state.showAllSP = true; renderResults(); };
 
+  // v1.0.11-beta: chamado pelo empty state da seção "Outros locais" quando há
+  // venues fora do raio atual. Expande pra newKm e re-fetch — _saveFilters
+  // persiste pro próximo carregamento; `refresh()` re-aplica filtro com novo
+  // raio sem precisar reload.
+  window._venuesExpandRadius = function(newKm) {
+    var n = parseInt(newKm, 10);
+    if (!n || n <= 0) return;
+    state.distanceKm = n;
+    _saveFilters();
+    refresh();
+  };
+
   // Deep-link from a selected-but-unregistered Google Place into the #my-venues
   // cadastro form. We stash what we already have (placeId/name/address/lat/lon)
   // so the user doesn't need to re-search; venue-owner.js picks it up on entry.
@@ -1526,6 +1570,8 @@
     // Paulo". Se o geocoder falhar e não resolver um centro, não filtramos
     // nada de localidade (mostra todos os venues). Campo `city` ainda é
     // aceito pelo VenueDB para compat mas passamos vazio aqui.
+    // v1.0.11-beta: state.allVenuesRaw (era var local) pra renderResults
+    // poder mostrar "X venues fora do raio atual" no empty state.
     var _allVenuesRaw = [];
     try {
       // Não passamos sport pro VenueDB — filtro multi-sport é aplicado aqui
@@ -1540,6 +1586,7 @@
       // placeId a distance-filter exclui o venue de state.results e ele
       // cairia como "não cadastrado" mesmo existindo no Firestore.
       _allVenuesRaw = list.slice();
+      state.allVenuesRaw = _allVenuesRaw; // expose pra renderResults
       // Filtro multi-esporte (pills): venue passa se oferece qualquer uma das
       // modalidades selecionadas, OU se não declarou sports[] (wildcard —
       // cadastro novo, ainda sem quadras). Sem pill ativa = sem filtro.

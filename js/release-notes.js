@@ -8,6 +8,11 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.12);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📡 v1.0.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Raio de busca em #place agora default 25km</b> (era 10km) — cobre cidades metropolitanas brasileiras tipicas. Bug reportado: usuário cadastrou venue novo, voltou pro #place, não viu o card aparecer. Causa: filtro de distância 10km excluía o venue (provavelmente noutra parte da cidade). Ajuste manual do raio é preservado em <code>localStorage.scoreplace_venues_filters</code>.</p>' +
+      '<p><b>Empty state da seção "Outros locais" com diagnóstico inteligente</b>. Quando a seção fica vazia, agora diferencia 2 casos: (a) <i>tem N venues cadastrados fora do raio atual</i> → mostra contador + botão "📡 Expandir pra 50km" que dobra o raio e re-filtra (sem reload); (b) <i>nenhum venue na região</i> → mantém CTA "+ Cadastrar local". Resolve a confusão "cadastrei mas não aparece".</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #a5b4fc;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🏢 v1.0.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Seção "🏢 Outros locais no scoreplace" sempre visível em #place.</b> Antes a seção tinha early-exit quando <code>spResults.length === 0</code> — usuário com PLANO ATIVO ativo via gap direto pra "📍 Sugestões do Google", sem entender se o app tinha banco próprio de venues. Agora o header sempre aparece. Quando vazio, mostra empty state explicando + CTA "+ Cadastrar local" linkando direto pra <code>#my-venues</code>. Resolve a fricção reportada: "deveria aparecer os locais cadastrados entre o plano ativo e os locais do google".</p>' +
