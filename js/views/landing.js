@@ -14,7 +14,9 @@
       _hero(t) +
       _features(t) +
       _howItWorks(t) +
-      _stats(t) +
+      // v0.17.92: _stats() removido — números (500+ torneios, 2.000+
+      // participantes, 5 modalidades) eram fictícios. Voltam quando
+      // tivermos dados reais relevantes.
       _ctaBottom(t) +
       _footer() +
     '</div>';
@@ -94,20 +96,9 @@
     '</section>';
   }
 
-  function _stats(t) {
-    var items = [
-      { value: '500+', label: t('landing.statsT') },
-      { value: '2.000+', label: t('landing.statsP') },
-      { value: '5', label: t('landing.statsS') }
-    ];
-    var html = items.map(function(s) {
-      return '<div class="landing-stat">' +
-        '<div class="landing-stat-value">' + s.value + '</div>' +
-        '<div class="landing-stat-label">' + s.label + '</div>' +
-      '</div>';
-    }).join('');
-    return '<section class="landing-stats">' + html + '</section>';
-  }
+  // v0.17.92: _stats() removido — números fictícios (500+/2.000+/5)
+  // suprimidos até termos dados reais. Quando voltarem, restaurar:
+  // git show HEAD~N:js/views/landing.js (consultar histórico).
 
   function _ctaBottom(t) {
     return '<section class="landing-cta-section">' +
