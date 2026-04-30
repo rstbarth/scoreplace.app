@@ -561,8 +561,15 @@ function handleEmailLinkLogin() {
     return;
   }
 
+  // v1.0.17-beta: incluir email no URL do link mágico pra que
+  // _completeEmailLinkSignIn possa usá-lo direto sem precisar localStorage
+  // (que falha quando user abre o link em device/browser diferente do qual
+  // pediu o link). Bug reportado: "magic link pede digitar email de novo
+  // após clicar no link". O Firebase tem que receber o email mesmo (security
+  // — confirma que quem clica é quem pediu) — mas podemos pegar do URL em
+  // vez de prompt.
   var actionCodeSettings = {
-    url: 'https://scoreplace.app/#dashboard',
+    url: 'https://scoreplace.app/?eml=' + encodeURIComponent(email) + '#dashboard',
     handleCodeInApp: true
   };
 
@@ -619,8 +626,21 @@ function _completeEmailLinkSignIn() {
   if (!firebase.auth().isSignInWithEmailLink(window.location.href)) return;
 
   var email = window.localStorage.getItem('scoreplace_emailForSignIn');
+  // v1.0.17-beta: fallback chain pro email, em ordem de confiança:
+  //   1. localStorage (mesmo browser que pediu o link) — preferred
+  //   2. URL param `?eml=` (incluído pelo handleEmailLinkLogin v1.0.17)
+  //      pra cobrir cross-device (clicou no link no celular, pediu no
+  //      desktop)
+  //   3. window.prompt() — último recurso, só pra users muito antigos
+  //      (links pré-v1.0.17 não têm `eml` no URL).
   if (!email) {
-    // User opened link on a different device — ask for email
+    try {
+      var urlSearch = window.location.search || '';
+      var emlMatch = urlSearch.match(/[?&]eml=([^&]+)/);
+      if (emlMatch) email = decodeURIComponent(emlMatch[1]);
+    } catch (e) {}
+  }
+  if (!email) {
     email = window.prompt('Por favor, confirme seu e-mail para completar o login:');
     if (!email) return;
   }
@@ -726,18 +746,32 @@ function handlePhoneLogin() {
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
-      _resetPhoneRecaptcha();
-      if (error.code === 'auth/invalid-phone-number') {
-        showNotification(_t('auth.invalidPhone'), _t('auth.invalidPhoneNumber'), 'error');
-      } else if (error.code === 'auth/too-many-requests') {
-        showNotification(_t('auth.tooManyAttempts'), _t('auth.tooManySms'), 'warning');
-      } else if (error.code === 'auth/operation-not-allowed') {
-        showNotification(_t('auth.notAvailable'), _t('auth.phoneUnavailable'), 'warning');
-      } else if (error.code === 'auth/captcha-check-failed') {
-        showNotification(_t('auth.verifyFailed'), _t('auth.verifyFailedMsg'), 'error');
-      } else {
-        showNotification(_t('auth.error'), error.message || _t('auth.loginErrorMsg'), 'error');
+      if (typeof window._captureException === 'function') {
+        window._captureException(error, { area: 'phoneLogin', code: error && error.code });
       }
+      _resetPhoneRecaptcha();
+      // v1.0.17-beta: mensagens específicas + surface error.code pra debug.
+      // Bug reportado: "SMS não mandou pra ninguém". Sem error.code visível,
+      // impossível diagnosticar (provider não habilitado, quota, formato,
+      // reCAPTCHA, etc). Sugere fallback (Link Mágico) em todos os casos.
+      var code = (error && error.code) || 'unknown';
+      var msg = error.message || 'Erro desconhecido';
+      if (code === 'auth/invalid-phone-number') {
+        msg = 'Número inválido. Confira o DDI + DDD + número (ex: +55 11 99999-8888).';
+      } else if (code === 'auth/too-many-requests') {
+        msg = 'Muitas tentativas. Aguarde 30 minutos. Ou use Link Mágico por E-mail.';
+      } else if (code === 'auth/operation-not-allowed') {
+        msg = 'Login por SMS não está habilitado nesta conta Firebase. Reporte: scoreplace.app@gmail.com\n\nUse Link Mágico por E-mail enquanto isso.';
+      } else if (code === 'auth/captcha-check-failed') {
+        msg = 'Verificação reCAPTCHA falhou. Recarregue a página e tente de novo. Ou use Link Mágico.';
+      } else if (code === 'auth/quota-exceeded') {
+        msg = 'Cota diária de SMS Firebase esgotada (limite free tier). Use Link Mágico por E-mail.';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Sem conexão estável com Firebase. Tente Wi-Fi ou outra rede. Ou use Link Mágico.';
+      } else {
+        msg = 'Não foi possível enviar SMS. Use Link Mágico por E-mail.\n\n(código: ' + code + ')';
+      }
+      showNotification('SMS — falha', msg, 'error');
     });
 }
 

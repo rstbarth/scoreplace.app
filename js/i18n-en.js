@@ -167,7 +167,7 @@ window._translations['en'] = {
 
   // Landing page
   'landing.tagline': 'Play at another level — tournaments, casual matches, presence and sports venues.',
-  'landing.cta': 'Create your tournament for free',
+  'landing.cta': 'Sign in to scoreplace.app',
   'landing.ctaBottom': 'Get started — it\'s free!',
   'landing.featuresTitle': 'Platform features',
   'landing.howTitle': 'How it works',
