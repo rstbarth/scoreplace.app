@@ -610,21 +610,57 @@ function _renderSentRequests(myUid, sentIds) {
     profiles = profiles.filter(function(p) { return p; });
     if (profiles.length === 0) { div.innerHTML = ''; return; }
 
+    // v1.0.15-beta: dedup por email. Bug reportado: convidei amigo, aparece
+    // duplicado em "Convites Pendentes". Causa: destinatário tem 2 user docs
+    // no Firestore — um keyed por email (legacy, pré-uid migration) e um
+    // keyed por uid (atual). friendRequestsSent fica com ambos os ids; cada
+    // um carrega um profile separado mas com mesmo email. Render mostra 2
+    // cards.
+    //
+    // Fix: agrupa por email-lower. Pra cada email, escolhe o doc cujo
+    // _docId NÃO parece email (preferindo o uid real). cancelBtn cancela
+    // TODOS os uids do grupo de uma vez.
+    var byEmail = {};
+    profiles.forEach(function(p) {
+      var email = (p.email || '').toLowerCase();
+      if (!email) {
+        // sem email — usa o _docId como chave única (não dedup)
+        byEmail['_no_email_' + p._docId] = { profile: p, uids: [p._docId] };
+        return;
+      }
+      if (!byEmail[email]) {
+        byEmail[email] = { profile: p, uids: [p._docId] };
+      } else {
+        byEmail[email].uids.push(p._docId);
+        // Prefere doc cujo _docId NÃO parece email (uid real é mais robusto)
+        var existingLooksLikeEmail = (byEmail[email].profile._docId || '').indexOf('@') !== -1;
+        var newLooksLikeEmail = (p._docId || '').indexOf('@') !== -1;
+        if (existingLooksLikeEmail && !newLooksLikeEmail) {
+          byEmail[email].profile = p;
+        }
+      }
+    });
+    var dedupedGroups = Object.keys(byEmail).map(function(k) { return byEmail[k]; });
+
     var titleLabel = _t('explore.sentPending');
     if (titleLabel === 'explore.sentPending') titleLabel = 'Convites Pendentes';
 
     var html = '<div style="margin-bottom: 1.5rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px;">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">' +
         '<span style="font-size:1rem;">✉️</span>' +
-        '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + profiles.length + ')</div>' +
+        '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + dedupedGroups.length + ')</div>' +
       '</div>' +
       '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Aguardando resposta. Clique em ✕ no card para cancelar.</div>' +
       '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
 
-    profiles.forEach(function(u) {
+    dedupedGroups.forEach(function(group) {
+      var u = group.profile;
       var uid = u._docId;
       var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      // Cancel passa todos os uids do grupo (legacy + atual) pra cancelar
+      // ambos de uma vez. Evita user clicar ✕ e ainda aparecer outro card.
+      var allUidsArg = group.uids.map(function(u){ return "'" + u.replace(/'/g, "\\'").replace(/\\/g, "\\\\") + "'"; }).join(',');
+      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequestMulti([' + allUidsArg + '])" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
       html += _userCardHtml(u, uid, cancelBtn, false);
     });
 
@@ -1044,6 +1080,35 @@ window._cancelFriendRequest = function(toUid) {
   });
 };
 
+// v1.0.15-beta: cancela múltiplos uids do mesmo grupo (legacy email-keyed +
+// atual uid-keyed pra mesma pessoa). Chama cancelFriendRequest pra cada
+// uid em paralelo. Atualiza estado local removendo todos. Notif única.
+window._cancelFriendRequestMulti = function(toUids) {
+  var cu = window.AppStore.currentUser;
+  if (!cu || !Array.isArray(toUids) || toUids.length === 0) return;
+  var myUid = cu.uid || cu.email;
+
+  // Update local state — remove all uids in the group
+  cu.friendRequestsSent = (cu.friendRequestsSent || []).filter(function(id) {
+    return toUids.indexOf(id) === -1;
+  });
+
+  // Cancel all in parallel — Firestore arrayRemove é idempotente, sem risco
+  var promises = toUids.map(function(toUid) {
+    return window.FirestoreDB.cancelFriendRequest(myUid, toUid).catch(function(e) {
+      console.warn('[cancelFriendRequest] failed for', toUid, e);
+    });
+  });
+
+  Promise.all(promises).then(function() {
+    if (typeof showNotification !== 'undefined') {
+      showNotification((window._t||function(k){return k;})('explore.notifInviteCancelled'), (window._t||function(k){return k;})('explore.notifInviteCancelledMsg'), 'info');
+    }
+    var container = document.getElementById('view-container');
+    if (container) renderExplore(container);
+  });
+};
+
 window._sendFriendRequest = function(toUid) {
   var cu = window.AppStore.currentUser;
   if (!cu) return;
@@ -1066,7 +1131,12 @@ window._sendFriendRequest = function(toUid) {
     } else {
       // Normal request sent
       if (!cu.friendRequestsSent) cu.friendRequestsSent = [];
-      cu.friendRequestsSent.push(toUid);
+      // v1.0.15-beta: dedup defensivo — antes push direto, possibilitando
+      // double-tap rápido criar entrada duplicada no array local. Firestore
+      // já é idempotente via arrayUnion, mas o estado local pode divergir.
+      if (cu.friendRequestsSent.indexOf(toUid) === -1) {
+        cu.friendRequestsSent.push(toUid);
+      }
       if (typeof showNotification !== 'undefined') {
         showNotification((window._t||function(k){return k;})('explore.notifInviteSent'), (window._t||function(k){return k;})('explore.notifInviteSentMsg'), 'success');
       }

@@ -2060,20 +2060,31 @@
         ? sportsArr.concat(['arena esportiva', 'clube esportivo', 'academia de tênis', 'escola de tênis'])
         : baseTerms;
 
-      var biasRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
-      var biasCenter = new google.maps.LatLng(center.lat, center.lng);
+      // v1.0.15-beta: trocado locationBias → locationRestriction (estrito) +
+      // removido `region: 'br'` e `language: 'pt-BR'` hardcoded. Bug
+      // reportado: usuária em Paris recebia quadras de Brasília/Belém/etc.
+      // a 7000km+ de distância. Causa-raiz tripla:
+      //   (a) `region: 'br'` biaseia TODOS os results pro Brasil mesmo
+      //       quando user está em Paris;
+      //   (b) `locationBias` é SOFT — Google retorna venues fora se forem
+      //       muito populares globalmente;
+      //   (c) `language: 'pt-BR'` favorece resultados em PT.
+      // Agora usa locationRestriction (Circle) que é HARD — nada fora do
+      // raio retorna. Removidos hardcoded region/language pra Google
+      // detectar pelo center. Defesa adicional client-side: haversine
+      // filter abaixo dropa qualquer leak >radiusKm.
+      var restrictRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
+      var restrictCenter = new google.maps.LatLng(center.lat, center.lng);
 
       var promises = terms.map(function(term) {
         return placesLib.Place.searchByText({
           textQuery: term,
           fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
-          locationBias: {
-            center: biasCenter,
-            radius: biasRadiusM
+          locationRestriction: {
+            center: restrictCenter,
+            radius: restrictRadiusM
           },
-          maxResultCount: 10,
-          language: 'pt-BR',
-          region: 'br'
+          maxResultCount: 10
         }).catch(function(e) {
           console.warn('[Places] term failed:', term, e && e.message);
           return null;
@@ -2096,7 +2107,7 @@
       });
 
       var merged = Object.keys(byId).map(function(id) { return byId[id]; });
-      return merged.map(function(p) {
+      var mapped = merged.map(function(p) {
         var loc = p.location;
         return {
           placeId: p.id,
@@ -2107,6 +2118,20 @@
           types: p.types || []
         };
       });
+      // Defense-in-depth client-side: mesmo com locationRestriction, dropa
+      // qualquer venue que escape do raio (rare bug do Google API). O
+      // usuário não deve ver resultados a 7000km do GPS atual.
+      var maxKm = Math.min(50, Math.max(1, radiusKm));
+      var filtered = mapped.filter(function(v) {
+        if (v.lat == null || v.lng == null) return true;
+        var d = _haversineKm(center, { lat: Number(v.lat), lng: Number(v.lng) });
+        return d <= maxKm;
+      });
+      var droppedFar = mapped.length - filtered.length;
+      if (droppedFar > 0) {
+        console.warn('[Places] dropped ' + droppedFar + ' results outside ' + maxKm + 'km radius');
+      }
+      return filtered;
     } catch (e) {
       console.warn('Places nearby err:', e && e.message);
       return [];
