@@ -8,6 +8,10 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #a5b4fc;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🏢 v1.0.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Seção "🏢 Outros locais no scoreplace" sempre visível em #place.</b> Antes a seção tinha early-exit quando <code>spResults.length === 0</code> — usuário com PLANO ATIVO ativo via gap direto pra "📍 Sugestões do Google", sem entender se o app tinha banco próprio de venues. Agora o header sempre aparece. Quando vazio, mostra empty state explicando + CTA "+ Cadastrar local" linkando direto pra <code>#my-venues</code>. Resolve a fricção reportada: "deveria aparecer os locais cadastrados entre o plano ativo e os locais do google".</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.12);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎾 v1.0.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>CTA "Cadastrar quadras" inline no gráfico de movimento.</b> Quando o gráfico está em escala estimada (local sem <code>courts[]</code> cadastrados), agora aparece um aviso âmbar abaixo das barras: <i>"⚠️ Escala estimada — local sem quadras cadastradas. [🎾 Cadastrar quadras →]"</i>. Clique direciona pra <code>#my-venues</code> com nome/lat/lon do venue pré-stashed via <code>sessionStorage</code> (mesmo padrão do <code>_venuesRegisterPlace</code>). Resolve a fricção reportada: usuário via dado errado mas não tinha caminho visível pra cadastrar — só via "+ Cadastrar local" lá embaixo de #place ou hash direto. Pra preferreds com synthetic pid (<code>pref_lat_lng</code>), extrai lat/lon do próprio pid pra pré-popular.</p>' +

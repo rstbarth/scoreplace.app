@@ -1380,17 +1380,29 @@
     }
 
     // 2) Locais registrados na plataforma (próximos do centro atual)
+    // v1.0.10-beta: header SEMPRE visível mesmo com 0 resultados — antes a
+    // seção sumia inteira quando spResults.length === 0, criando um gap entre
+    // PLANO ATIVO e SUGESTÕES DO GOOGLE que confundia o usuário ("cadê os
+    // locais cadastrados?"). Empty state agora explica + dá CTA pra cadastrar.
+    html += '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.22);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
+    html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Outros locais no scoreplace</div>';
     if (spResults.length > 0) {
-      html += '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.22);border-radius:14px;padding:10px 12px;margin-bottom:14px;">';
-      html += '<div style="font-size:0.7rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🏢 Outros locais no scoreplace</div>';
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
       displaySP.forEach(function(v) { html += _venueCard(v); });
       html += '</div>';
       if (spResults.length > SHOW_LIMIT && !state.showAllSP) {
         html += '<button onclick="window._venuesShowAllSP()" style="margin-top:8px;background:none;border:none;color:#a5b4fc;font-size:0.82rem;cursor:pointer;padding:2px 0;">Mostrar mais (' + (spResults.length - SHOW_LIMIT) + ' locais) →</button>';
       }
-      html += '</div>';
+    } else {
+      // Empty state — explica + linka cadastro direto.
+      html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:180px;font-size:0.78rem;color:var(--text-muted);line-height:1.4;">' +
+          'Nenhum local cadastrado nessa região ainda. Sabe um? Cadastre pra que apareça aqui pra todos os usuários.' +
+        '</div>' +
+        '<a href="#my-venues" class="btn btn-sm btn-primary hover-lift" style="white-space:nowrap;font-size:0.78rem;">+ Cadastrar local</a>' +
+      '</div>';
     }
+    html += '</div>';
 
     // 3) Sugestões do Google
     if (gResults.length > 0) {
