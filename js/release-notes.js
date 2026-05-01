@@ -9,8 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Pill Partidas — ordem final.</b> User: <i>"numero total depois do icone e partidas em seguida e depois v/d/%"</i>. Ordem: ⚔️ → <b>3</b> (big) → "Partidas" → "2V · 1D · 67%". Tamanhos preservados, só reordem.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
-      '<p><b>Correção do v1.0.54: pill Partidas agora só REORDENA, sem mudar tamanhos.</b> User reportou que o fix anterior tinha mudado a fonte de "Partidas" pra big (0.95rem) e suprimido o count numérico. Pedido literal: <i>"não era para mexer no tamanho da fonte de partidas e nem suprimir o numero total de partidas que aparecia antes"</i>. Agora ordem de elementos é: emoji → "Partidas" (mantido em 0.66rem font-weight 600 — IGUAL antes) → count "3" big (1.3rem font-weight 800 — IGUAL antes, visível) → V/D/% (0.62rem — IGUAL antes). Só reordenei pra label vir antes do count, sem tocar em tamanho/peso.</p>' +
+      '<p><b>Pill Partidas — tentativa #2 de reordenar.</b> Restaurados tamanhos originais que a v1.0.54 tinha quebrado. Ordem definitiva foi pra v1.0.56.</p>' +
     '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +

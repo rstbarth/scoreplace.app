@@ -1504,20 +1504,20 @@ function renderDashboard(container) {
     var countAttr = opts.countDataAttr ? (' ' + opts.countDataAttr) : '';
     var subAttr = opts.subtitleDataAttr ? (' ' + opts.subtitleDataAttr) : '';
     if (opts.labelOnTop) {
-      // v1.0.55-beta: ordem de elementos invertida pra label vir ANTES do
-      // count, mas SEM mudar tamanhos — label fica no MESMO tamanho de
-      // antes (0.66rem) e count continua big (1.3rem) e visível. Pedido
-      // do user: "não era para mexer no tamanho da fonte de partidas e
-      // nem suprimir o numero total de partidas que aparecia antes".
+      // v1.0.56-beta: ordem final pedida pelo user — emoji → count (big)
+      // → label → subtitle (V/D/%). "numero total depois do icone e
+      // partidas em seguida e depois v/d/%". Tamanhos IGUAIS aos do
+      // pill padrão, só ordem de elementos diferente do default
+      // (default: emoji → count → subtitle → label).
       var subtitleHtmlTop = opts.subtitle
-        ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
+        ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
         : (opts.subtitleDataAttr
-            ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;"></div>'
+            ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;"></div>'
             : '');
       return `<div${titleAttr}${pillDataAttrs ? ' ' + pillDataAttrs : ''} style="flex:0 1 ${flexBasis}px;min-width:${minWidth}px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-        <div style="font-size:1.1rem;margin-bottom:0.35rem;line-height:1;">${emoji}</div>
-        <h3 style="margin:0 0 0.35rem 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
+        <div style="font-size:1.1rem;margin-bottom:0.55rem;line-height:1;">${emoji}</div>
         <span${countAttr} style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
+        <h3 style="margin:0.35rem 0 0 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
         ${subtitleHtmlTop}
       </div>`;
     }
