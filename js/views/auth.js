@@ -578,25 +578,22 @@ function _detectInputModeRaw(value) {
 }
 
 window._detectLoginInputMode = function() {
+  // v1.0.28-beta: DDI dropdown sempre visível agora — não precisa mais
+  // alternar grid template ou esconder/mostrar. Helper text continua
+  // dinâmico pra dar feedback do que vai acontecer.
   var unifiedEl = document.getElementById('login-unified');
   var countryEl = document.getElementById('login-unified-country');
   var helperEl = document.getElementById('login-unified-helper');
-  var rowEl = document.getElementById('login-unified-row');
   if (!unifiedEl) return;
   var mode = _detectInputModeRaw(unifiedEl.value);
-  if (countryEl) countryEl.style.display = (mode === 'phone') ? '' : 'none';
-  // v1.0.27-beta: ajusta grid template — DDI ocupa primeira coluna só
-  // quando phone detectado, senão input + botão ficam em 2 colunas.
-  if (rowEl) rowEl.style.gridTemplateColumns = (mode === 'phone') ? 'auto 1fr auto' : '1fr auto';
   if (helperEl) {
     if (mode === 'email') {
       helperEl.innerHTML = '✉️ Vamos enviar um <b>link de acesso</b> pro seu e-mail. Clique no link e entra direto.';
     } else if (mode === 'phone') {
-      // Mostra DDI selecionado pra usuário confirmar visualmente
       var ddi = (countryEl && countryEl.value) || '55';
-      helperEl.innerHTML = '📱 Vamos enviar <b>SMS com código</b> pro <b>+' + ddi + '</b> + DDD + número (ex: <code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:0.72rem;">+' + ddi + ' 11 99999-8888</code>). Confira o DDI ao lado se for outro país.';
+      helperEl.innerHTML = '📱 Vamos enviar <b>SMS com código</b> pro <b>+' + ddi + '</b> + o número que você digitou. Pra trocar país, use o seletor à esquerda.';
     } else {
-      helperEl.innerHTML = '<b>E-mail</b>: receberá link mágico pra entrar.<br><b>Celular</b>: receberá SMS com código — formato <code style="background:rgba(255,255,255,0.06);padding:1px 3px;border-radius:3px;font-size:0.7rem;">DDD + número</code> (ex: <code style="background:rgba(255,255,255,0.06);padding:1px 3px;border-radius:3px;font-size:0.7rem;">11 99999-8888</code>). 🇧🇷 +55 é o padrão.';
+      helperEl.innerHTML = '<b>E-mail</b>: link mágico pra entrar com 1 clique.<br><b>Celular</b>: SMS com código — só DDD + número (o +DDI vem do seletor à esquerda, padrão 🇧🇷 +55).';
     }
   }
 };
@@ -2019,24 +2016,26 @@ function setupLoginModal() {
           '<div id="login-unified-step" style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️📱 Entrar com 1 clique</div>' +
             '<form novalidate onsubmit="event.preventDefault(); handleUnifiedLogin();">' +
-              // v1.0.27-beta: layout migrado de flex pra CSS Grid pra resolver
-              // de vez o bug do "Enviar" largo demais. Causa-raiz: .form-control
-              // class no input força width:100%, que em flex container colide
-              // com flex:1 1 0 (basis 0) e em alguns browsers bagunça a
-              // distribuição final. Grid com columns 1fr auto é determinístico:
-              // input pega TODO o espaço restante, botão só seu conteúdo.
-              // Quando DDI fica visível (modo phone), JS troca pra auto 1fr auto.
-              '<div id="login-unified-row" style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;">' +
-                '<select id="login-unified-country" aria-label="DDI do telefone" class="form-control" style="display:none;width:auto;min-width:0;font-size:0.82rem;padding:8px 4px;">' +
+              // v1.0.28-beta: DDI dropdown agora SEMPRE visível. User
+              // perguntou "telefone sem ddi?" vendo só o placeholder "(11)
+              // 99999-8888" — perfeitamente razoável a confusão. Mesmo o
+              // sistema aplicando +55 default por trás, sem feedback visual
+              // o usuário não sabe se precisa digitar +55 manualmente.
+              // Solução: 3 colunas sempre (DDI compacto + input + botão).
+              // Pra digitar email, o DDI fica lá quietinho mas presente —
+              // não atrapalha. Pra digitar telefone, fica claro que +55 é
+              // o padrão e dá pra trocar pra outro país.
+              '<div id="login-unified-row" style="display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;">' +
+                '<select id="login-unified-country" aria-label="DDI do telefone" class="form-control" style="width:auto;min-width:0;font-size:0.82rem;padding:8px 6px;">' +
                   (typeof _phoneCountries !== 'undefined' ? _phoneCountries.map(function(c) {
                     return '<option value="' + c.code + '"' + (c.code === '55' ? ' selected' : '') + '>' + c.flag + ' +' + c.code + '</option>';
                   }).join('') : '<option value="55">🇧🇷 +55</option>') +
                 '</select>' +
-                '<input type="text" id="login-unified" class="form-control" placeholder="seu@email.com  ou  (11) 99999-8888" required autocomplete="off" oninput="window._detectLoginInputMode && window._detectLoginInputMode()" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.92rem;padding:11px 12px;">' +
+                '<input type="text" id="login-unified" class="form-control" placeholder="seu@email.com  ou  11 99999-8888" required autocomplete="off" oninput="window._detectLoginInputMode && window._detectLoginInputMode()" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.92rem;padding:11px 12px;">' +
                 '<button type="submit" class="btn btn-primary" style="font-size:0.78rem;white-space:nowrap;padding:9px 14px;font-weight:700;width:auto;justify-self:end;">Enviar</button>' +
               '</div>' +
               '<div id="login-unified-helper" style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;line-height:1.4;">' +
-                'Receba um link por e-mail ou código por SMS. Pra outro país, comece com +DDI.' +
+                '<b>E-mail</b>: link mágico pra entrar com 1 clique. <b>Celular</b>: SMS com código — só DDD + número (o +DDI vem do seletor à esquerda).' +
               '</div>' +
             '</form>' +
             // Hidden inputs — handlers existentes leem destes IDs.
