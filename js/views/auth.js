@@ -2067,14 +2067,19 @@ async function simulateLoginSuccess(user) {
         var freshDoc = await window.FirestoreDB.db.collection('users').doc(uid).get();
         if (freshDoc.exists) {
           var freshData = freshDoc.data();
-          console.log('[terms-gate v1.0.52] re-fetch result:', {
+          console.log('[terms-gate v1.0.53] re-fetch result:', {
             acceptedTerms: freshData.acceptedTerms,
             acceptedTermsAt: freshData.acceptedTermsAt,
-            acceptedTermsVersion: freshData.acceptedTermsVersion
+            acceptedTermsVersion: freshData.acceptedTermsVersion,
+            createdAt: freshData.createdAt,
+            hasDisplayName: !!freshData.displayName,
+            friendsCount: Array.isArray(freshData.friends) ? freshData.friends.length : 0
           });
           // Merge fresh data dentro do check profile
           if (!_termsCheckProfile) _termsCheckProfile = {};
-          ['acceptedTerms', 'acceptedTermsAt', 'acceptedTermsVersion'].forEach(function(k) {
+          // Merge TUDO do freshData (não só acceptedTerms*) pra grandfather
+          // logic poder inspecionar createdAt, displayName, friends, etc.
+          Object.keys(freshData).forEach(function(k) {
             if (freshData[k] !== undefined) _termsCheckProfile[k] = freshData[k];
           });
           // Sincroniza currentUser também
@@ -2084,16 +2089,73 @@ async function simulateLoginSuccess(user) {
             });
           }
         } else {
-          console.log('[terms-gate v1.0.52] re-fetch: doc não existe pra uid=' + uid);
+          console.log('[terms-gate v1.0.53] re-fetch: doc não existe pra uid=' + uid);
         }
       }
     } catch (_freshErr) {
-      console.warn('[terms-gate v1.0.52] re-fetch failed:', _freshErr && _freshErr.message);
+      console.warn('[terms-gate v1.0.53] re-fetch failed:', _freshErr && _freshErr.message);
+    }
+  }
+  // v1.0.53-beta: GRANDFATHER de usuários existentes. Bug reportado por
+  // múltiplas vezes: "continua caindo nos termos". Auditei toda a stack
+  // (v1.0.49 lenient version, v1.0.52 round-trip + re-fetch + 4 sinais)
+  // e ainda assim algum users empacam no modal. Causa-raiz definitiva:
+  // antes da v1.0.52 o save da terms-acceptance.js podia ser silenciosamente
+  // pulado (Firestore SDK não inicializado no momento do confirm). User
+  // clicava Confirmar, modal fechava, mas Firestore nunca recebia a
+  // gravação. Próximo login → mesma coisa. Loop infinito.
+  //
+  // Solução: se o doc tem evidência de uso passado da app (createdAt,
+  // displayName preenchido, friends, sports preferidos, etc.), o user
+  // OBVIAMENTE já passou pelo modal de termos em algum momento (impossível
+  // ter usado o app sem isso) — apenas o save não persistiu o boolean.
+  // Backfill automático de acceptedTerms=true em vez de incomodar pra
+  // sempre. Compliance: o user JÁ aceitou em sessão passada — só estamos
+  // gravando o registro que devia ter sido gravado. Marker
+  // `acceptedTermsGrandfathered: true` pra analytics distinguir histórico.
+  // Truly new users (doc inexistente OU doc só com {uid, email, displayName}
+  // sem nenhum sinal de uso) ainda passam pelo modal normalmente.
+  if (typeof window._needsTermsAcceptance === 'function' &&
+      window._needsTermsAcceptance(_termsCheckProfile)) {
+    var _profile = _termsCheckProfile || {};
+    var _hasUsageEvidence = !!(
+      _profile.createdAt ||
+      _profile.updatedAt ||
+      (Array.isArray(_profile.friends) && _profile.friends.length > 0) ||
+      (Array.isArray(_profile.preferredSports) && _profile.preferredSports.length > 0) ||
+      (Array.isArray(_profile.preferredLocations) && _profile.preferredLocations.length > 0) ||
+      _profile.gender ||
+      _profile.birthDate ||
+      _profile.city ||
+      _profile.phone ||
+      (_profile.theme && _profile.theme !== 'dark') ||
+      _profile.acceptFriendRequests !== undefined ||
+      _profile.notifyLevel ||
+      _profile.plan
+    );
+    console.log('[terms-gate v1.0.53] grandfather check — hasUsageEvidence:', _hasUsageEvidence,
+      'fields present:', Object.keys(_profile).sort().slice(0, 20).join(','));
+    if (_hasUsageEvidence && window.FirestoreDB && window.FirestoreDB.db && uid) {
+      try {
+        var _grandfatherPayload = {
+          acceptedTerms: true,
+          acceptedTermsAt: new Date().toISOString(),
+          acceptedTermsVersion: window._CURRENT_TERMS_VERSION,
+          acceptedTermsGrandfathered: true
+        };
+        await window.FirestoreDB.db.collection('users').doc(uid).set(_grandfatherPayload, { merge: true });
+        // Sincroniza estado local
+        Object.assign(_termsCheckProfile, _grandfatherPayload);
+        if (window.AppStore.currentUser) Object.assign(window.AppStore.currentUser, _grandfatherPayload);
+        console.log('[terms-gate v1.0.53] grandfathered existing user — modal SKIPPED');
+      } catch (_gfErr) {
+        console.warn('[terms-gate v1.0.53] grandfather save failed:', _gfErr && _gfErr.message);
+      }
     }
   }
   if (typeof window._needsTermsAcceptance === 'function' &&
       window._needsTermsAcceptance(_termsCheckProfile)) {
-    console.log('[terms-gate v1.0.52] showing modal — no acceptance signal found after re-fetch');
+    console.log('[terms-gate v1.0.53] showing modal — no acceptance signal AND no usage evidence (truly new user)');
     var accepted = await window._showTermsAcceptanceModal();
     if (!accepted) {
       console.log('[scoreplace-auth] Terms not accepted — logging out');
