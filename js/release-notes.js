@@ -8,6 +8,12 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📨 v1.0.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Magic link agora segue o padrão dos emails de notificação</b> — sender scoreplace.app + botão grande âmbar estilizado + branding completo. Bug reportado: "magic link continua indo pra spam e sem destaque num botão de link". Insight do user: emails de notificação do app já são bem estilizados, magic link era o único usando sender feio do Firebase default.</p>' +
+      '<p>Implementação em 3 partes: (1) Cloud Function <code>sendMagicLink</code> que gera o link assinado via Admin SDK <code>generateSignInWithEmailLink()</code>; (2) HTML rico enfileirado em <code>mail/</code> collection — extension <code>firestore-send-email</code> envia via SMTP custom; (3) frontend troca <code>firebase.auth().sendSignInLinkToEmail()</code> por <code>httpsCallable(\'sendMagicLink\')()</code>. Email final: header com pódio âmbar + título "Entrar com 1 clique" + botão grande "🎾 Entrar no scoreplace.app" com gradient âmbar e drop shadow + fallback link em texto pra clientes que não renderizam botão.</p>' +
+      '<p><b>Deploy adicional necessário:</b> <code>firebase deploy --only functions:sendMagicLink</code> (a função vive em <code>functions/index.js</code>; sem deploy ela ainda não responde, e o frontend cai no erro). Frontend pode ser deployado normalmente via git push, mas o magic link só funciona depois do deploy da função.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
       '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🔌 v1.0.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Erro de criar conta / login email-senha agora explica o que tentar.</b> Bug reportado: beta tester travada com <code>auth/network-request-failed</code> ao criar conta — mensagem genérica do Firebase sem indicação de fallback. Mesma falta de UX do Google login (v1.0.13) e SMS (v1.0.17), agora cobre email-senha:</p>' +

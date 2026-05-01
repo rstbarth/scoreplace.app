@@ -561,20 +561,15 @@ function handleEmailLinkLogin() {
     return;
   }
 
-  // v1.0.17-beta: incluir email no URL do link mágico pra que
-  // _completeEmailLinkSignIn possa usá-lo direto sem precisar localStorage
-  // (que falha quando user abre o link em device/browser diferente do qual
-  // pediu o link). Bug reportado: "magic link pede digitar email de novo
-  // após clicar no link". O Firebase tem que receber o email mesmo (security
-  // — confirma que quem clica é quem pediu) — mas podemos pegar do URL em
-  // vez de prompt.
-  var actionCodeSettings = {
-    url: 'https://scoreplace.app/?eml=' + encodeURIComponent(email) + '#dashboard',
-    handleCodeInApp: true
-  };
-
+  // v1.0.20-beta: troca firebase.auth().sendSignInLinkToEmail() (envia email
+  // feio via firebaseapp.com sem botão estilizado, parando no spam) por
+  // Cloud Function `sendMagicLink` que gera o link via Admin SDK e enfileira
+  // email rico HTML com botão grande na collection `mail/` (extension
+  // firestore-send-email envia). Mesmo padrão dos emails de notificação que
+  // já têm boa renderização.
   showNotification(_t('auth.sending'), _t('auth.sendingLinkMsg', {email: email}), 'info');
-  firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+  var sendMagicLinkFn = firebase.functions().httpsCallable('sendMagicLink');
+  sendMagicLinkFn({ email: email })
     .then(function() {
       // Save the email locally so we can complete sign-in when user clicks the link
       window.localStorage.setItem('scoreplace_emailForSignIn', email);

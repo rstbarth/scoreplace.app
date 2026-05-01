@@ -24,6 +24,7 @@
  */
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -172,6 +173,118 @@ exports.backupFirestore = onSchedule(
     } catch (err) {
       console.error(`[backupFirestore] falha ao disparar export:`, err);
       throw err; // marca a função como falha pro retry kick in
+    }
+  }
+);
+
+// ─── Magic Link via Custom Email (firestore-send-email extension) ────────────
+// v1.0.20-beta: substituí firebase.auth().sendSignInLinkToEmail() (que envia
+// email feio do firebaseapp.com sem botão estilizado, parando no spam) por
+// fluxo custom — gera o link via Admin SDK e enfileira email rico HTML com
+// botão grande na collection `mail/` (a extension firestore-send-email envia).
+//
+// Bug reportado: "magic link continua indo pra spam e sem destaque num botão
+// pra clicar". Os emails de notificação do app (criados pelo client via
+// FirestoreDB.queueEmail → extension) já têm botões CTA estilizados —
+// agora magic link segue o mesmo padrão.
+//
+// Deploy:  firebase deploy --only functions:sendMagicLink
+exports.sendMagicLink = onCall(
+  {
+    region: "us-central1",
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    cors: ["https://scoreplace.app", "http://localhost:9876"],
+  },
+  async (request) => {
+    const email = (request.data && request.data.email || "").trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpsError("invalid-argument", "email inválido");
+    }
+
+    // Gera o link assinado oficial do Firebase. O frontend depois usará
+    // `signInWithEmailLink(email, link)` pra completar — mesmo flow do
+    // legacy.
+    const actionCodeSettings = {
+      url: `https://scoreplace.app/?eml=${encodeURIComponent(email)}#dashboard`,
+      handleCodeInApp: true,
+    };
+
+    let link;
+    try {
+      link = await admin.auth().generateSignInWithEmailLink(email, actionCodeSettings);
+    } catch (err) {
+      console.error("[sendMagicLink] generateSignInWithEmailLink falhou:", err);
+      throw new HttpsError("internal", "não foi possível gerar o link: " + (err.code || err.message));
+    }
+
+    // HTML do email — botão grande âmbar, sem padrão "promocional" pra
+    // reduzir spam classification. Header escuro + branding scoreplace.app +
+    // CTA dominante + texto explicativo em copy direto.
+    const html =
+      '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1.0">' +
+      '<title>Entrar no scoreplace.app</title></head>' +
+      '<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">' +
+        '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#0f172a;padding:40px 16px;">' +
+          '<tr><td align="center">' +
+            '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:520px;background:#111827;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);">' +
+              // Header com pódio + branding
+              '<tr><td style="padding:28px 32px;text-align:center;background:linear-gradient(135deg,#fbbf24,#f59e0b);">' +
+                '<div style="font-size:2.4rem;line-height:1;margin-bottom:8px;">🎾</div>' +
+                '<h1 style="margin:0;font-size:1.4rem;font-weight:800;color:#1e3a5f;letter-spacing:0.3px;">scoreplace.app</h1>' +
+                '<p style="margin:4px 0 0;font-size:0.82rem;color:#1e3a5f;opacity:0.85;">Jogue em outro nível</p>' +
+              '</td></tr>' +
+              // Body — copy direta sem floreio
+              '<tr><td style="padding:32px;color:#e5e7eb;">' +
+                '<h2 style="margin:0 0 16px;font-size:1.1rem;font-weight:700;color:#fff;">Entrar com 1 clique</h2>' +
+                '<p style="margin:0 0 24px;font-size:0.94rem;line-height:1.55;color:#cbd5e1;">' +
+                  'Clique no botão abaixo pra entrar no scoreplace.app sem precisar de senha. ' +
+                  'O link expira em 1 hora e só funciona uma vez.' +
+                '</p>' +
+                // Botão grande — table-based pra render consistente em Gmail/Outlook/Apple
+                '<table cellspacing="0" cellpadding="0" border="0" align="center" style="margin:8px auto 24px;">' +
+                  '<tr><td style="border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 12px rgba(251,191,36,0.3);">' +
+                    '<a href="' + link.replace(/"/g, '&quot;') + '" style="display:inline-block;padding:18px 48px;color:#1e3a5f;text-decoration:none;font-weight:800;font-size:1.05rem;letter-spacing:0.3px;">' +
+                      '🎾 Entrar no scoreplace.app' +
+                    '</a>' +
+                  '</td></tr>' +
+                '</table>' +
+                // Fallback link em texto (alguns clientes não renderizam o botão)
+                '<p style="margin:24px 0 0;font-size:0.78rem;color:#94a3b8;line-height:1.5;border-top:1px solid #374151;padding-top:20px;">' +
+                  'Não consegue clicar no botão? Copie e cole este endereço no navegador:<br>' +
+                  '<span style="color:#cbd5e1;word-break:break-all;font-family:monospace;font-size:0.72rem;">' + link.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+                '</p>' +
+                '<p style="margin:20px 0 0;font-size:0.76rem;color:#94a3b8;line-height:1.5;">' +
+                  'Não foi você? Pode ignorar — o link expira sozinho. ' +
+                  'Se receber muitos desses sem ter pedido, contate <a href="mailto:scoreplace.app@gmail.com" style="color:#fbbf24;">scoreplace.app@gmail.com</a>.' +
+                '</p>' +
+              '</td></tr>' +
+              // Footer minimalista
+              '<tr><td style="padding:18px 32px;text-align:center;background:#0f172a;border-top:1px solid #1e293b;">' +
+                '<p style="margin:0;font-size:0.72rem;color:#64748b;">scoreplace.app · ' + new Date().getFullYear() + '</p>' +
+              '</td></tr>' +
+            '</table>' +
+          '</td></tr>' +
+        '</table>' +
+      '</body></html>';
+
+    // Enfileira na mail/ collection — extension firestore-send-email pega
+    // e envia via SMTP configurado (scoreplace.app@gmail.com nesse momento).
+    try {
+      await admin.firestore().collection("mail").add({
+        to: [email],
+        message: {
+          subject: "🎾 Entrar no scoreplace.app",
+          html: html,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log("[sendMagicLink] queued for", email);
+      return { ok: true };
+    } catch (err) {
+      console.error("[sendMagicLink] falha ao enfileirar email:", err);
+      throw new HttpsError("internal", "não foi possível enfileirar o email: " + (err.code || err.message));
     }
   }
 );
