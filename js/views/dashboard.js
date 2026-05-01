@@ -1486,64 +1486,82 @@ function renderDashboard(container) {
   };
 
   // v1.0.44-beta: stat pill (não-filtro) — mesmo visual que _fStyle pero
-  // com onclick navegacional em vez de aplicar filtro. Usado pra Usuários,
-  // Amigos e Partidas. Aceita string como count.
-  // v1.0.45-beta: opts.subtitle pra mostrar info extra (ex: "5V·3D·62%")
-  // abaixo do count. opts.wider pra flex base maior, comportando essa info
-  // extra sem comprimir.
+  // com onclick navegacional em vez de aplicar filtro.
+  // v1.0.45/46-beta: opts.{wider, subtitle, dataAttrs, countDataAttr,
+  // subtitleDataAttr} pra suportar refresh async (Usuários e Partidas).
   const _statPill = (emoji, count, label, onclickJs, title, opts) => {
     opts = opts || {};
     var titleAttr = title ? ' title="' + String(title).replace(/"/g, '&quot;') + '"' : '';
     var flexBasis = opts.wider ? '140' : '92';
     var minWidth = opts.wider ? '130' : '80';
+    var pillDataAttrs = opts.dataAttrs || '';
+    var countAttr = opts.countDataAttr ? (' ' + opts.countDataAttr) : '';
+    var subAttr = opts.subtitleDataAttr ? (' ' + opts.subtitleDataAttr) : '';
     var subtitleHtml = opts.subtitle
-      ? '<div style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
-      : '';
-    return `<div${titleAttr} style="flex:0 1 ${flexBasis}px;min-width:${minWidth}px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+      ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
+      : (opts.subtitleDataAttr
+          ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;"></div>'
+          : '');
+    return `<div${titleAttr}${pillDataAttrs ? ' ' + pillDataAttrs : ''} style="flex:0 1 ${flexBasis}px;min-width:${minWidth}px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
       <div style="font-size:1.1rem;margin-bottom:0.1rem;line-height:1;">${emoji}</div>
-      <span style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
+      <span${countAttr} style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
       ${subtitleHtml}
       <h3 style="margin:0.2rem 0 0 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
     </div>`;
   };
 
-  // v1.0.44-beta + v1.0.45-beta: Social stats — usuários, amigos, partidas V/D.
+  // v1.0.44/45/47-beta: Social stats — usuários, amigos, partidas V/D.
   var _cuRef = window.AppStore && window.AppStore.currentUser;
   var _myEmail = (_cuRef && _cuRef.email || '').toLowerCase();
   var _myUid = _cuRef && _cuRef.uid;
 
-  // v1.0.45-beta: Usuários = total cadastrados no banco de dados.
-  // Pedido do user: "aqui deveria aparecer o numero de usuários cadastrados
-  // no banco de dados". Antes (v1.0.44) era só uniques nos torneios visíveis
-  // — pouco representativo (Rodrigo viu 0 em conta nova).
-  // Estratégia: aggregate count() do Firestore. Cache de 5min em localStorage
-  // pra não puxar a cada render. Fire-and-forget — render imediato com
-  // valor cached (ou "..." se sem cache); update assíncrono atualiza o pill.
-  var _socialUsersCount = '...';
+  // v1.0.45-beta + v1.0.46-beta: Usuários = total cadastrados no banco.
+  // Estratégia robusta com 2 caminhos:
+  //   1. Tenta aggregate count() (Firestore SDK 9.6+) — barato (1 read)
+  //   2. Fallback: get() + .size (lê todos os docs — caro mas garantido)
+  // Cache de 5min em localStorage. Render imediato com cached, update
+  // assíncrono substitui o número via data-stat-users-count.
+  var _socialUsersCount = '0';
   try {
     var _uCacheRaw = localStorage.getItem('scoreplace_total_users_cache');
     if (_uCacheRaw) {
       var _uCache = JSON.parse(_uCacheRaw);
-      if (_uCache && _uCache.count != null && _uCache.at) {
-        var _ageMs = Date.now() - new Date(_uCache.at).getTime();
-        if (_ageMs < 5 * 60 * 1000) _socialUsersCount = String(_uCache.count);
-        else _socialUsersCount = String(_uCache.count); // mostra mas refresca async
+      if (_uCache && _uCache.count != null) {
+        _socialUsersCount = String(_uCache.count);
       }
     }
   } catch (_e) {}
-  // Refresh assíncrono (count aggregate é leve — Firestore cobra 1 read).
   if (window.FirestoreDB && window.FirestoreDB.db) {
     (async function() {
+      var n = null;
+      // Path 1: aggregate count (preferred)
       try {
-        var snap = await window.FirestoreDB.db.collection('users').count().get();
-        var n = snap.data().count;
+        var ref = window.FirestoreDB.db.collection('users');
+        if (typeof ref.count === 'function') {
+          var snap = await ref.count().get();
+          if (snap && snap.data) {
+            var data = snap.data();
+            if (data && typeof data.count === 'number') n = data.count;
+          }
+        }
+      } catch (e1) {
+        console.warn('[users count] aggregate failed, falling back to .get():', e1 && e1.message);
+      }
+      // Path 2: fallback — get() todos os docs e count via .size
+      if (n == null) {
+        try {
+          var fullSnap = await window.FirestoreDB.db.collection('users').get();
+          if (fullSnap && typeof fullSnap.size === 'number') n = fullSnap.size;
+        } catch (e2) {
+          console.warn('[users count] .get() fallback also failed:', e2 && e2.message);
+        }
+      }
+      if (n != null) {
         try {
           localStorage.setItem('scoreplace_total_users_cache', JSON.stringify({ count: n, at: new Date().toISOString() }));
         } catch (_e) {}
         var pillNumEl = document.querySelector('[data-stat-users-count]');
         if (pillNumEl) pillNumEl.textContent = String(n);
-      } catch (e) {
-        console.warn('[users count] failed:', e);
       }
     })();
   }
@@ -1554,37 +1572,88 @@ function renderDashboard(container) {
     ? _cuRef.friends.filter(function(u) { return u && u !== _myUid; }).length
     : 0;
 
-  // Partidas V/D: agrega match history local (scoreplace_casual_history_v2)
-  // — mesma fonte que o modal "Estatísticas Detalhadas". Pill mais largo
-  // (opts.wider) pra caber count + subtitle "5V·3D·62%". Pedido do user:
-  // "tambem aparece apenas o numero de partidas, mas sem V/D/%".
+  // Partidas V/D: agrega match history.
+  // v1.0.46-beta: render imediato com cache local (scoreplace_casual_history_v2 +
+  // scoreplace_match_stats_cache) e refresh async do Firestore
+  // users/{uid}/matchHistory. Cobre partidas jogadas em outros browsers/
+  // devices. Pill mais largo (opts.wider) com subtitle "5V·3D·62%".
+  // Pedido do user: "inves de aparecer o numero de partidas disputadas pelo
+  // usuário com V/D/%, está aparecendo 0".
   var _socialMatchesDisplay = '0';
   var _socialMatchesSubtitle = '';
   var _socialMatchesTitle = 'Suas partidas casuais e em torneios — clique pra ver detalhes';
   var _socialMatchesClick = "if(typeof window._showPlayerStats==='function' && window.AppStore.currentUser){window._showPlayerStats(window.AppStore.currentUser.displayName||'')}";
-  try {
-    if (_myUid) {
-      var _v2raw = localStorage.getItem('scoreplace_casual_history_v2') || '[]';
-      var _v2 = JSON.parse(_v2raw);
-      if (Array.isArray(_v2) && _v2.length > 0) {
-        var _w = 0, _l = 0;
-        _v2.forEach(function(r) {
-          if (!r || !Array.isArray(r.players)) return;
-          var mySlot = r.players.find(function(p) { return p && p.uid === _myUid; });
-          if (!mySlot) return;
-          if (r.winnerTeam === mySlot.team) _w++;
-          else if (r.winnerTeam && r.winnerTeam !== 0) _l++;
+
+  // Helper compartilhado: agrega W/L de uma lista de records.
+  function _aggregateWL(records, myUid, myDn) {
+    var _w = 0, _l = 0;
+    records.forEach(function(r) {
+      if (!r) return;
+      var team = null;
+      if (Array.isArray(r.players)) {
+        var mySlot = r.players.find(function(p) {
+          if (!p) return false;
+          if (myUid && p.uid === myUid) return true;
+          if (myDn && p.name && String(p.name).toLowerCase().trim() === myDn) return true;
+          return false;
         });
-        var _total = _w + _l;
-        if (_total > 0) {
-          _socialMatchesDisplay = String(_total);
-          var _pct = Math.round(_w / _total * 100);
-          _socialMatchesSubtitle = '<span style="color:#22c55e;">' + _w + 'V</span> · <span style="color:#ef4444;">' + _l + 'D</span> · ' + _pct + '%';
-          _socialMatchesTitle = _w + 'V · ' + _l + 'D · ' + _pct + '% aproveitamento — clique pra ver detalhes';
-        }
+        if (mySlot) team = mySlot.team;
+      }
+      if (!team) return;
+      if (r.winnerTeam === team) _w++;
+      else if (r.winnerTeam && r.winnerTeam !== 0) _l++;
+    });
+    return { w: _w, l: _l };
+  }
+  function _formatMatchesPill(w, l) {
+    var total = w + l;
+    if (total === 0) return null;
+    var pct = Math.round(w / total * 100);
+    return {
+      display: String(total),
+      subtitle: '<span style="color:#22c55e;">' + w + 'V</span> · <span style="color:#ef4444;">' + l + 'D</span> · ' + pct + '%',
+      title: w + 'V · ' + l + 'D · ' + pct + '% aproveitamento — clique pra ver detalhes'
+    };
+  }
+
+  // Render inicial com cache local (v2 — mesma fonte do modal).
+  var _myDn = ((_cuRef && _cuRef.displayName) || '').toLowerCase().trim();
+  try {
+    var _v2raw = localStorage.getItem('scoreplace_casual_history_v2') || '[]';
+    var _v2 = JSON.parse(_v2raw);
+    if (Array.isArray(_v2) && _v2.length > 0) {
+      var agg = _aggregateWL(_v2, _myUid, _myDn);
+      var fmt = _formatMatchesPill(agg.w, agg.l);
+      if (fmt) {
+        _socialMatchesDisplay = fmt.display;
+        _socialMatchesSubtitle = fmt.subtitle;
+        _socialMatchesTitle = fmt.title;
       }
     }
   } catch (_e) {}
+
+  // Refresh async do Firestore matchHistory. Cobre partidas em outros
+  // devices que não estão no cache local v2. Substitui via data attrs.
+  if (_myUid && window.FirestoreDB && typeof window.FirestoreDB.loadUserMatchHistory === 'function') {
+    (async function() {
+      try {
+        var records = await window.FirestoreDB.loadUserMatchHistory(_myUid, { limit: 500 });
+        if (!Array.isArray(records) || records.length === 0) return;
+        var agg = _aggregateWL(records, _myUid, _myDn);
+        var fmt = _formatMatchesPill(agg.w, agg.l);
+        if (!fmt) return;
+        var pill = document.querySelector('[data-stat-matches-pill]');
+        if (!pill) return;
+        var numEl = pill.querySelector('[data-stat-matches-count]');
+        var subEl = pill.querySelector('[data-stat-matches-subtitle]');
+        if (numEl) numEl.textContent = fmt.display;
+        if (subEl) subEl.innerHTML = fmt.subtitle;
+        pill.setAttribute('title', fmt.title);
+      } catch (e) {
+        console.warn('[matches stats] async refresh failed:', e);
+      }
+    })();
+  }
 
   const html = `
     <!-- Header Hero Box -->
@@ -1662,12 +1731,12 @@ function renderDashboard(container) {
            Amigos = cu.friends.length. Partidas = total V/D do match history
            local (scoreplace_casual_history_v2 + uid match em records). -->
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
-        <!-- v1.0.45-beta: Usuários ganhou data-stat-users-count pra async
-             refresh substituir o número quando o aggregate count chegar.
-             Partidas ficou wider:true + subtitle V/D/% inline. -->
-        ${_statPill('👥', '<span data-stat-users-count>' + _socialUsersCount + '</span>', 'Usuários', "window.location.hash='#explore'", 'Total de usuários cadastrados no scoreplace')}
+        <!-- v1.0.46-beta: Usuários e Partidas usam countDataAttr/subtitleDataAttr
+             pra que o refresh assíncrono possa achar e atualizar os elementos
+             via querySelector quando o Firestore responder. -->
+        ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Total de usuários cadastrados no scoreplace', { countDataAttr: 'data-stat-users-count' })}
         ${_statPill('🤝', _socialFriendsCount, 'Amigos', "window.location.hash='#explore'", 'Seus amigos no scoreplace')}
-        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, subtitle: _socialMatchesSubtitle })}
+        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, subtitle: _socialMatchesSubtitle, dataAttrs: 'data-stat-matches-pill', countDataAttr: 'data-stat-matches-count', subtitleDataAttr: 'data-stat-matches-subtitle' })}
       </div>
     </div>
 
