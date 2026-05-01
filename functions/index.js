@@ -210,13 +210,42 @@ exports.sendMagicLink = onCall(
       handleCodeInApp: true,
     };
 
-    let link;
+    let firebaseLink;
     try {
-      link = await admin.auth().generateSignInWithEmailLink(email, actionCodeSettings);
+      firebaseLink = await admin.auth().generateSignInWithEmailLink(email, actionCodeSettings);
     } catch (err) {
       console.error("[sendMagicLink] generateSignInWithEmailLink falhou:", err);
       throw new HttpsError("internal", "não foi possível gerar o link: " + (err.code || err.message));
     }
+
+    // v1.0.30-beta: WRAPPER URL pra evitar prefetch consumindo o oobCode.
+    // Bug reportado: usuários recebendo o email e clicando, mas vendo "link
+    // expirado" porque algum scanner anti-phishing (Gmail/Outlook/corp
+    // security) prefetcha o link pra checar e consume o oobCode antes do
+    // humano clicar. Firebase oobCode é one-time-use → quem chega antes
+    // ganha. Solução: o email aponta pra https://scoreplace.app/?ml=TOKEN
+    // (URL nossa, prefetch não consome nada server-side); só quando o
+    // browser real do humano carrega a página, o JS busca o firebaseLink
+    // do Firestore e redireciona. Scanners fazem GET/HEAD da nossa URL,
+    // não executam JS, então nunca alcançam o oobCode.
+    const crypto = require("crypto");
+    const token = crypto.randomBytes(18).toString("base64url");
+    try {
+      await admin.firestore().collection("magicLinks").doc(token).set({
+        firebaseLink: firebaseLink,
+        email: email,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        // expiresAt é só pra cleanup eventual — o oobCode em si tem expiry
+        // próprio do Firebase (1h).
+        expiresAt: new Date(Date.now() + 90 * 60 * 1000),
+      });
+    } catch (err) {
+      console.error("[sendMagicLink] falha ao salvar magicLinks/" + token, err);
+      throw new HttpsError("internal", "não foi possível registrar o link: " + (err.code || err.message));
+    }
+    const wrapperUrl = "https://scoreplace.app/?ml=" + encodeURIComponent(token);
+    // Nome `link` mantido nas referências do HTML pra não mexer no template.
+    const link = wrapperUrl;
 
     // HTML do email — botão grande âmbar, sem padrão "promocional" pra
     // reduzir spam classification. Header escuro + branding scoreplace.app +

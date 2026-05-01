@@ -3,6 +3,76 @@
 // ========================================
 // Project: scoreplace-app (Firebase Console)
 
+// v1.0.30-beta: Magic Link Wrapper Resolver — corre antes de qualquer outra
+// coisa pra interceptar URLs no formato /?ml=TOKEN. Bug reportado por múltiplos
+// beta testers: "entrou mas deu link expirado pelo magic link". Causa: email
+// scanners (Gmail, Outlook, corporate security) prefetcham os links pra
+// análise anti-phishing — Firebase oobCode é one-time-use, então quem chega
+// antes do usuário humano consume. Solução: o email aponta pra wrapper URL
+// nossa que SÓ executa o redirect via JS no browser real do humano. Scanners
+// fazem GET/HEAD e param antes do JS rodar, então não tocam no oobCode.
+(function _handleMagicLinkWrapper() {
+  try {
+    var qs = (typeof URLSearchParams === 'function') ? new URLSearchParams(window.location.search) : null;
+    var token = qs && qs.get('ml');
+    if (!token) return;
+
+    // Loading screen — usuário sabe que tá entrando, não acha que travou.
+    var bg = '#0f172a';
+    var fg = '#fbbf24';
+    document.documentElement.style.background = bg;
+    var showStatus = function(emoji, title, subtitle, isError) {
+      document.body.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:' + bg + ';color:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;flex-direction:column;gap:14px;padding:24px;text-align:center;">' +
+        '<div style="font-size:2.4rem;line-height:1;">' + emoji + '</div>' +
+        '<div style="font-size:1.05rem;font-weight:700;color:' + (isError ? '#ef4444' : fg) + ';">' + title + '</div>' +
+        (subtitle ? '<div style="font-size:0.85rem;color:#94a3b8;max-width:340px;line-height:1.5;">' + subtitle + '</div>' : '') +
+        (isError ? '<a href="/" style="margin-top:8px;color:' + fg + ';font-size:0.85rem;text-decoration:none;border:1px solid ' + fg + ';padding:8px 18px;border-radius:8px;">Voltar e pedir novo link</a>' : '') +
+        '</div>';
+    };
+    showStatus('🎾', 'Entrando no scoreplace.app...', 'Carregando seu acesso seguro');
+
+    // Aguarda Firestore estar pronto (firebase-db.js carrega antes deste).
+    var tries = 0;
+    var resolve = function() {
+      var db = window.FirestoreDB && window.FirestoreDB.db;
+      if (!db) {
+        if (tries++ < 60) return setTimeout(resolve, 100); // até 6s
+        showStatus('⚠️', 'Não foi possível carregar', 'Verifique sua conexão e tente abrir o link de novo, ou peça um novo link.', true);
+        return;
+      }
+      db.collection('magicLinks').doc(token).get().then(function(doc) {
+        if (!doc.exists) {
+          showStatus('🔗', 'Link inválido ou expirado', 'Esse link não existe mais. Volte e peça um novo no campo de login.', true);
+          return;
+        }
+        var data = doc.data() || {};
+        if (!data.firebaseLink) {
+          showStatus('🔗', 'Link inválido', 'Esse link está corrompido. Peça um novo.', true);
+          return;
+        }
+        // Salva email no localStorage pra signInWithEmailLink completar
+        // sem perguntar. Cross-device também: o Firebase auth handler
+        // anexa ?eml=email ao continueUrl (já no actionCodeSettings).
+        if (data.email) {
+          try { window.localStorage.setItem('scoreplace_emailForSignIn', data.email); } catch(_){}
+        }
+        // Redireciona o BROWSER pro firebaseLink real — só agora o oobCode
+        // será efetivamente consumido. Scanners não chegam aqui.
+        window.location.replace(data.firebaseLink);
+      }).catch(function(err) {
+        console.error('[magicLink] erro ao buscar token:', err);
+        if (typeof window._captureException === 'function') {
+          window._captureException(err, { area: 'magicLinkWrapper', token: token.substring(0, 6) + '...' });
+        }
+        showStatus('⚠️', 'Erro ao validar o link', 'Tente abrir de novo. Se persistir, peça um novo link.', true);
+      });
+    };
+    resolve();
+  } catch (e) {
+    console.error('[magicLink] handler crashed:', e);
+  }
+})();
+
 const firebaseConfig = {
   apiKey: "AIzaSyB7AyOojV_Pm50Kr7bovVY4jVTTNbKOK0A",
   authDomain: "scoreplace-app.firebaseapp.com",

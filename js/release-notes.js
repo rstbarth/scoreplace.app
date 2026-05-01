@@ -8,6 +8,18 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
+      '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.30-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Magic link "expirado" antes do clique foi resolvido — wrapper URL impede prefetch consumir oobCode.</b> Bug crítico reportado por múltiplos beta testers: "entrou mas deu link expirado pelo magic link". Causa: email scanners anti-phishing (Gmail/Outlook/corporate security) prefetcham TODOS os links de email pra checar conteúdo. O Firebase oobCode é <b>one-time-use</b> — quem chega antes consome, e o humano vê "expirado".</p>' +
+      '<p><b>Solução em 3 camadas:</b></p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Cloud Function <code>sendMagicLink</code> agora gera token random de 24 chars (base64url) e salva o firebaseLink real em <code>magicLinks/{token}</code> no Firestore. Email aponta pra <code>https://scoreplace.app/?ml=TOKEN</code> em vez do firebaseLink direto.</li>' +
+        '<li>Quando usuário clica no email, abre nossa wrapper URL — JS detecta <code>?ml=TOKEN</code>, busca o doc no Firestore, redireciona browser pro firebaseLink real. Loading screen "🎾 Entrando no scoreplace.app..." enquanto resolve.</li>' +
+        '<li>Scanners fazem GET/HEAD na wrapper URL — não executam JS, então NUNCA alcançam o oobCode. Só o browser real do humano dispara o redirect e consome o oobCode na hora certa.</li>' +
+      '</ol>' +
+      '<p>Estados de erro tratados: token não existe (clique muito antigo), firebaseLink corrompido, sem conexão. Cada um mostra mensagem clara + botão "Voltar e pedir novo link". Email armazenado no localStorage automaticamente pra <code>signInWithEmailLink</code> não pedir confirmação.</p>' +
+      '<p style="font-size:0.78rem;color:var(--text-muted);"><b>Firestore rules</b>: nova regra <code>match /magicLinks/{token}</code> permite leitura pública (token de 24 chars já é o segredo) e bloqueia escrita (só Admin SDK escreve via Cloud Function).</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📨 v1.0.29-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Email do magic link reorganizado: CTA acima de tudo.</b> Pedido do user: "no email do magic link coloque o botao de entrar acima de tudo só com a frase clico no botao para entrar acima dele". Antes o botão tava embaixo de uma chamada e um parágrafo explicativo — usuário tinha que ler antes de clicar. Agora estrutura nova:</p>' +
