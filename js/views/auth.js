@@ -861,7 +861,11 @@ function _completeEmailLinkSignIn() {
               if (best.acceptedTerms === true) {
                 profileData.acceptedTerms = true;
                 if (best.acceptedTermsAt) profileData.acceptedTermsAt = best.acceptedTermsAt;
+                if (best.acceptedTermsVersion) profileData.acceptedTermsVersion = best.acceptedTermsVersion;
               }
+              // v1.0.49-beta: stash cross-ref data pra simulateLoginSuccess mergear
+              // antes do terms gate (evita race com Firestore save assíncrono).
+              window._pendingCrossRef = Object.assign({}, profileData, { uid: user.uid });
               console.log('[email-link] cross-ref por email encontrado, herdando:',
                 Object.keys(profileData).filter(function(k){ return k !== 'authProvider' && k !== 'updatedAt' && k !== 'email'; }));
             }
@@ -1081,7 +1085,14 @@ function handlePhoneVerifyCode() {
               if (best.acceptedTerms === true) {
                 profileData.acceptedTerms = true;
                 if (best.acceptedTermsAt) profileData.acceptedTermsAt = best.acceptedTermsAt;
+                if (best.acceptedTermsVersion) profileData.acceptedTermsVersion = best.acceptedTermsVersion;
               }
+              // v1.0.49-beta: stash cross-ref data em window pra simulateLoginSuccess
+              // mergear no existingProfile/currentUser ANTES do terms gate. Sem isso
+              // existe race entre saveUserProfile (assíncrono) e a leitura do
+              // existingProfile em simulateLoginSuccess — terms eram pedidos de
+              // novo mesmo o human já tendo aceitado em outra conta.
+              window._pendingCrossRef = Object.assign({}, profileData, { uid: user.uid });
               console.log('[phone-login] cross-ref encontrado, herdando:',
                 Object.keys(profileData).filter(function(k){ return k !== 'authProvider' && k !== 'updatedAt' && k !== 'phone'; }));
             }
@@ -1582,6 +1593,38 @@ async function simulateLoginSuccess(user) {
   var existingProfile = null;
   if (window.AppStore.loadUserProfile) {
     existingProfile = await window.AppStore.loadUserProfile(uid);
+  }
+
+  // v1.0.49-beta: consome cross-ref pendente (handlePhoneVerifyCode/email-link
+  // setam window._pendingCrossRef quando descobrem que esse uid é o mesmo
+  // human de outra conta — herdam displayName/photoURL/acceptedTerms/etc).
+  // Sem isso, race entre saveUserProfile (async) e essa leitura do Firestore
+  // fazia terms gate disparar mesmo o human já tendo aceitado em outra conta.
+  // Aplica o cross-ref no existingProfile E no currentUser pra ambos os
+  // caminhos do gate (`existingProfile || currentUser`) refletirem o estado.
+  if (window._pendingCrossRef && window._pendingCrossRef.uid === user.uid) {
+    var _xref = window._pendingCrossRef;
+    window._pendingCrossRef = null;
+    console.log('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] consuming pendingCrossRef:', Object.keys(_xref).filter(function(k){return k!=='uid';}));
+    if (!existingProfile) existingProfile = {};
+    Object.keys(_xref).forEach(function(k) {
+      if (k === 'uid') return;
+      if (_xref[k] === undefined || _xref[k] === null) return;
+      // Não sobrescreve fields que existingProfile JÁ TEM (Firestore wins
+      // quando o save async já landou — evita reverter pra cross-ref stale).
+      if (existingProfile[k] === undefined || existingProfile[k] === null || existingProfile[k] === '') {
+        existingProfile[k] = _xref[k];
+      }
+    });
+    if (window.AppStore.currentUser) {
+      Object.keys(_xref).forEach(function(k) {
+        if (k === 'uid') return;
+        if (_xref[k] === undefined || _xref[k] === null) return;
+        if (window.AppStore.currentUser[k] === undefined || window.AppStore.currentUser[k] === null || window.AppStore.currentUser[k] === '') {
+          window.AppStore.currentUser[k] = _xref[k];
+        }
+      });
+    }
   }
 
   // Migrate legacy doc: if user has a doc keyed by email, merge it into the UID doc

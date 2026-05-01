@@ -27,7 +27,18 @@
   window._needsTermsAcceptance = function (profile) {
     if (!profile) return true;
     if (profile.acceptedTerms !== true) return true;
-    if (profile.acceptedTermsVersion !== window._CURRENT_TERMS_VERSION) return true;
+    // v1.0.49-beta: leniente com version. Só pede re-aceite se a version
+    // SALVA é EXPLICITAMENTE diferente da atual (string não-vazia que não
+    // bate). Users legados que aceitaram antes do campo acceptedTermsVersion
+    // existir (ou que tiveram o campo perdido em algum save com merge não
+    // sincronizado) eram forçados a re-aceitar a cada login. Bug reportado:
+    // "toda vez que fazemos um novo login com um usuário já cadastrado
+    // anteriormente ele pede confirmação dos termos novamente".
+    var savedVersion = profile.acceptedTermsVersion;
+    if (savedVersion && String(savedVersion).trim() !== '' &&
+        savedVersion !== window._CURRENT_TERMS_VERSION) {
+      return true;
+    }
     return false;
   };
 
