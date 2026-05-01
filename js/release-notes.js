@@ -9,6 +9,18 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📨 v1.0.29-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Email do magic link reorganizado: CTA acima de tudo.</b> Pedido do user: "no email do magic link coloque o botao de entrar acima de tudo só com a frase clico no botao para entrar acima dele". Antes o botão tava embaixo de uma chamada e um parágrafo explicativo — usuário tinha que ler antes de clicar. Agora estrutura nova:</p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Header compacto (🎾 + scoreplace.app)</li>' +
+        '<li><b>"Clique no botão para entrar:"</b> (frase única, centrada)</li>' +
+        '<li><b>BOTÃO GRANDE âmbar</b> — primeira coisa visível depois do header</li>' +
+        '<li>Detalhes secundários (expira em 1h, link de fallback, "não foi você?") — embaixo, em cinza claro</li>' +
+        '<li>Footer minimal</li>' +
+      '</ol>' +
+      '<p>Quem só quer entrar não precisa ler nada — vê o botão e clica. Quem tem dúvida ou problema técnico encontra a explicação abaixo.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🇧🇷 v1.0.28-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>DDI 🇧🇷 +55 sempre visível no login — fim da ambiguidade "telefone sem DDI?".</b> User perguntou olhando o input vazio: "é isso mesmo? telefone sem ddi?". Pergunta legítima — mesmo o sistema aplicando +55 default por trás, sem feedback visual o usuário não sabe se precisa digitar +55 manualmente. Antes da v1.0.28, o seletor de DDI só aparecia depois que o usuário começava a digitar dígitos.</p>' +
       '<p>Agora: layout sempre 3 colunas (DDI compacto + input + botão Enviar). Pra digitar email, o DDI fica lá quietinho mas presente — não atrapalha. Pra digitar telefone, fica óbvio que +55 é o padrão e dá pra trocar pra outro país no seletor. Helper text também atualizado: "Celular: SMS com código — só DDD + número (o +DDI vem do seletor à esquerda)". Placeholder do input mudou de <code>(11) 99999-8888</code> pra <code>11 99999-8888</code> — sem parênteses (mais limpo, e DDD 11 já é hint suficiente).</p>' +

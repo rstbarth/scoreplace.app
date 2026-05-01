@@ -231,39 +231,42 @@ exports.sendMagicLink = onCall(
             '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:520px;background:#111827;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);">' +
               // Header discreto — branding sem cor de destaque (só o botão
               // CTA recebe o âmbar pra não competir visualmente)
-              '<tr><td style="padding:24px 32px 4px;text-align:center;">' +
-                '<div style="font-size:1.6rem;line-height:1;margin-bottom:4px;">🎾</div>' +
-                '<div style="font-size:1rem;font-weight:700;color:#fbbf24;letter-spacing:0.2px;">scoreplace.app</div>' +
-                '<div style="margin:2px 0 0;font-size:0.72rem;color:#64748b;">Jogue em outro nível</div>' +
+              '<tr><td style="padding:20px 32px 4px;text-align:center;">' +
+                '<div style="font-size:1.4rem;line-height:1;margin-bottom:2px;">🎾</div>' +
+                '<div style="font-size:0.92rem;font-weight:700;color:#fbbf24;letter-spacing:0.2px;">scoreplace.app</div>' +
               '</td></tr>' +
-              // Body — copy direta sem floreio
-              '<tr><td style="padding:32px;color:#e5e7eb;">' +
-                '<h2 style="margin:0 0 16px;font-size:1.1rem;font-weight:700;color:#fff;">Entrar com 1 clique</h2>' +
-                '<p style="margin:0 0 24px;font-size:0.94rem;line-height:1.55;color:#cbd5e1;">' +
-                  'Clique no botão abaixo pra entrar no scoreplace.app sem precisar de senha. ' +
-                  'O link expira em 1 hora e só funciona uma vez.' +
-                '</p>' +
+              // CTA primeiro — frase curta + botão grande, antes de qualquer
+              // outra coisa. Pedido do user: "coloque o botao de entrar acima
+              // de tudo só com a frase clico no botao para entrar acima dele".
+              '<tr><td style="padding:24px 32px 8px;text-align:center;color:#e5e7eb;">' +
+                '<p style="margin:0 0 16px;font-size:1rem;font-weight:600;color:#fff;">Clique no botão para entrar:</p>' +
                 // Botão grande — table-based pra render consistente em Gmail/Outlook/Apple
-                '<table cellspacing="0" cellpadding="0" border="0" align="center" style="margin:8px auto 24px;">' +
+                '<table cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">' +
                   '<tr><td style="border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 12px rgba(251,191,36,0.3);">' +
                     '<a href="' + link.replace(/"/g, '&quot;') + '" style="display:inline-block;padding:18px 48px;color:#1e3a5f;text-decoration:none;font-weight:800;font-size:1.05rem;letter-spacing:0.3px;">' +
                       '🎾 Entrar no scoreplace.app' +
                     '</a>' +
                   '</td></tr>' +
                 '</table>' +
-                // Fallback link em texto (alguns clientes não renderizam o botão)
-                '<p style="margin:24px 0 0;font-size:0.78rem;color:#94a3b8;line-height:1.5;border-top:1px solid #374151;padding-top:20px;">' +
-                  'Não consegue clicar no botão? Copie e cole este endereço no navegador:<br>' +
-                  '<span style="color:#cbd5e1;word-break:break-all;font-family:monospace;font-size:0.72rem;">' + link.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+              '</td></tr>' +
+              // Detalhes secundários — só depois do CTA principal
+              '<tr><td style="padding:20px 32px 28px;color:#cbd5e1;">' +
+                '<p style="margin:0 0 16px;font-size:0.84rem;line-height:1.55;color:#94a3b8;text-align:center;">' +
+                  'O link expira em 1 hora e só funciona uma vez.' +
                 '</p>' +
-                '<p style="margin:20px 0 0;font-size:0.76rem;color:#94a3b8;line-height:1.5;">' +
+                // Fallback link em texto (alguns clientes não renderizam o botão)
+                '<p style="margin:16px 0 0;font-size:0.76rem;color:#94a3b8;line-height:1.5;border-top:1px solid #374151;padding-top:16px;">' +
+                  'Não consegue clicar no botão? Copie e cole este endereço no navegador:<br>' +
+                  '<span style="color:#cbd5e1;word-break:break-all;font-family:monospace;font-size:0.7rem;">' + link.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+                '</p>' +
+                '<p style="margin:16px 0 0;font-size:0.74rem;color:#94a3b8;line-height:1.5;">' +
                   'Não foi você? Pode ignorar — o link expira sozinho. ' +
                   'Se receber muitos desses sem ter pedido, contate <a href="mailto:scoreplace.app@gmail.com" style="color:#fbbf24;">scoreplace.app@gmail.com</a>.' +
                 '</p>' +
               '</td></tr>' +
               // Footer minimalista
-              '<tr><td style="padding:18px 32px;text-align:center;background:#0f172a;border-top:1px solid #1e293b;">' +
-                '<p style="margin:0;font-size:0.72rem;color:#64748b;">scoreplace.app · ' + new Date().getFullYear() + '</p>' +
+              '<tr><td style="padding:14px 32px;text-align:center;background:#0f172a;border-top:1px solid #1e293b;">' +
+                '<p style="margin:0;font-size:0.7rem;color:#64748b;">scoreplace.app · Jogue em outro nível · ' + new Date().getFullYear() + '</p>' +
               '</td></tr>' +
             '</table>' +
           '</td></tr>' +
