@@ -8,6 +8,15 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
+      '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🔌 v1.0.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Erro de criar conta / login email-senha agora explica o que tentar.</b> Bug reportado: beta tester travada com <code>auth/network-request-failed</code> ao criar conta — mensagem genérica do Firebase sem indicação de fallback. Mesma falta de UX do Google login (v1.0.13) e SMS (v1.0.17), agora cobre email-senha:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>auth/network-request-failed</code> → "Trocar Wi-Fi ↔ 4G/5G, desabilitar VPN/ad-blocker, ou usar Link Mágico (não precisa senha)"</li>' +
+        '<li>outros códigos → mensagem específica + sugestão Link Mágico no rodapé</li>' +
+      '</ul>' +
+      '<p>Sentry continua capturando via <code>_captureException(area=\'emailLogin\'/\'emailRegister\', code)</code> pra investigação retroativa.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📊 v1.0.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Gráfico "Movimento" agora segue o dia do plano focado.</b> Bug reportado: ao planejar ida pra amanhã, o gráfico de barras por hora não aparecia. Causa: <code>_hydrateAllPreferredMovement</code> usava sempre <code>dayKey(today)</code>, então plano-de-amanhã não tinha presenças hoje → <code>hasActivity=false</code> → bail silencioso. Agora o card focado (<code>state.focusedPreferred</code>) usa o <code>dayKey</code> da data de <code>startsAt</code> do plano. Cards não-focados continuam usando today (mais relevante pra browse). Header passa a "Movimento amanhã" / "Movimento em N dias" baseado em dia do plano vs hoje.</p>' +

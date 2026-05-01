@@ -871,16 +871,31 @@ function handleEmailLogin() {
     })
     .catch(function(error) {
       console.error('Email login error:', error);
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+      if (typeof window._captureException === 'function') {
+        window._captureException(error, { area: 'emailLogin', code: error && error.code });
+      }
+      // v1.0.19-beta: msgs específicas + sugere fallback. Bug reportado:
+      // beta tester travada em auth/network-request-failed sem indicação
+      // de o que tentar (rede móvel, ITP iOS, ad blocker).
+      var code = (error && error.code) || 'unknown';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
         showNotification(_t('auth.invalidCreds'), _t('auth.invalidCredsMsg'), 'error');
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (code === 'auth/wrong-password') {
         showNotification(_t('auth.wrongPassword'), _t('auth.wrongPasswordMsg'), 'error');
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (code === 'auth/too-many-requests') {
         showNotification(_t('auth.tooManyAttempts'), _t('auth.tooManyLogin'), 'warning');
-      } else if (error.code === 'auth/operation-not-allowed') {
+      } else if (code === 'auth/operation-not-allowed') {
         showNotification(_t('auth.notAvailable'), _t('auth.emailPasswordUnavailable'), 'warning');
+      } else if (code === 'auth/network-request-failed') {
+        showNotification('Sem conexão com Firebase',
+          'Network blip ou bloqueio. Tente:\n' +
+          '1. Trocar Wi-Fi ↔ 4G/5G\n' +
+          '2. Desabilitar VPN/ad-blocker\n' +
+          '3. Usar Link Mágico por E-mail (acima)', 'error');
       } else {
-        showNotification(_t('auth.loginError'), error.message || _t('auth.loginErrorMsg'), 'error');
+        showNotification('Erro no Login',
+          (error.message || 'Não foi possível entrar') +
+          '\n\n(código: ' + code + ')\n\nUse Link Mágico por E-mail acima.', 'error');
       }
     });
 }
@@ -939,16 +954,31 @@ function handleEmailRegister() {
     .catch(function(error) {
       window._pendingProfileUpdate = false;
       console.error('Email register error:', error);
-      if (error.code === 'auth/email-already-in-use') {
+      if (typeof window._captureException === 'function') {
+        window._captureException(error, { area: 'emailRegister', code: error && error.code });
+      }
+      // v1.0.19-beta: msgs específicas + sugere fallback. Bug reportado por
+      // beta tester (Cátia) com auth/network-request-failed travando criação
+      // de conta sem indicar o que tentar.
+      var code = (error && error.code) || 'unknown';
+      if (code === 'auth/email-already-in-use') {
         showNotification(_t('auth.emailInUse'), _t('auth.emailInUseMsg'), 'error');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (code === 'auth/invalid-email') {
         showNotification(_t('auth.invalidEmail'), _t('auth.invalidEmailMsg'), 'error');
-      } else if (error.code === 'auth/weak-password') {
+      } else if (code === 'auth/weak-password') {
         showNotification(_t('auth.weakPassword'), _t('auth.weakPasswordMsg'), 'warning');
-      } else if (error.code === 'auth/operation-not-allowed') {
+      } else if (code === 'auth/operation-not-allowed') {
         showNotification(_t('auth.notAvailable'), _t('auth.registerUnavailable'), 'warning');
+      } else if (code === 'auth/network-request-failed') {
+        showNotification('Sem conexão com Firebase',
+          'Network blip ou bloqueio. Tente:\n' +
+          '1. Trocar Wi-Fi ↔ 4G/5G\n' +
+          '2. Desabilitar VPN/ad-blocker\n' +
+          '3. Usar Link Mágico por E-mail (acima) — não precisa criar senha', 'error');
       } else {
-        showNotification(_t('auth.registerError'), error.message || _t('auth.registerErrorMsg'), 'error');
+        showNotification('Erro no Registro',
+          (error.message || 'Não foi possível criar conta') +
+          '\n\n(código: ' + code + ')\n\nUse Link Mágico por E-mail acima — entrada rápida sem precisar de senha.', 'error');
       }
     });
 }
