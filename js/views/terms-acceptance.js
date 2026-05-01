@@ -26,14 +26,30 @@
    */
   window._needsTermsAcceptance = function (profile) {
     if (!profile) return true;
-    if (profile.acceptedTerms !== true) return true;
+    // v1.0.52-beta: aceita QUALQUER sinal de aceitação prévia (não só
+    // `acceptedTerms === true`). Bug reportado: "continua caindo nos termos
+    // quando relogamos usuários cadastrados (via google)" — mesmo após o
+    // fix de version da v1.0.49. Causas possíveis: save com merge race que
+    // perdeu o boolean canônico mas preservou timestamp, payload incompleto
+    // de alguma migração legada, ou strict `=== true` falhando contra
+    // valores tipo string 'true'. Aceita 3 sinais alternativos:
+    //   1. acceptedTerms === true (canônico)
+    //   2. acceptedTerms truthy (string 'true', ou true coerced)
+    //   3. acceptedTermsAt presente (timestamp do aceite — evidência forte)
+    //   4. acceptedTermsVersion presente (versão aceita — evidência também)
+    // Basta UM dos 4 pra considerar aceito.
+    var hasAcceptanceSignal = (
+      profile.acceptedTerms === true ||
+      !!profile.acceptedTerms ||
+      (profile.acceptedTermsAt && String(profile.acceptedTermsAt).trim() !== '') ||
+      (profile.acceptedTermsVersion && String(profile.acceptedTermsVersion).trim() !== '')
+    );
+    if (!hasAcceptanceSignal) return true;
     // v1.0.49-beta: leniente com version. Só pede re-aceite se a version
     // SALVA é EXPLICITAMENTE diferente da atual (string não-vazia que não
     // bate). Users legados que aceitaram antes do campo acceptedTermsVersion
     // existir (ou que tiveram o campo perdido em algum save com merge não
-    // sincronizado) eram forçados a re-aceitar a cada login. Bug reportado:
-    // "toda vez que fazemos um novo login com um usuário já cadastrado
-    // anteriormente ele pede confirmação dos termos novamente".
+    // sincronizado) eram forçados a re-aceitar a cada login.
     var savedVersion = profile.acceptedTermsVersion;
     if (savedVersion && String(savedVersion).trim() !== '' &&
         savedVersion !== window._CURRENT_TERMS_VERSION) {
@@ -149,27 +165,60 @@
           acceptedTermsVersion: window._CURRENT_TERMS_VERSION
         };
 
-        try {
-          if (window.FirestoreDB && window.FirestoreDB.db) {
-            await window.FirestoreDB.db.collection('users').doc(cu.uid).set(payload, { merge: true });
+        // v1.0.52-beta: NUNCA fingir sucesso sem persistir. Antes a
+        // condição `if (FirestoreDB && db)` SEM else fazia o save ser
+        // pulado silenciosamente quando o SDK não estava pronto (race
+        // raro de init), e ainda assim o modal fechava com resolve(true).
+        // Próximo login, doc no Firestore não tinha acceptedTerms → gate
+        // disparava de novo — sintoma reportado: "continua caindo nos
+        // termos quando relogamos". Agora exige Firestore disponível e
+        // verifica round-trip antes de resolver true.
+        if (!window.FirestoreDB || !window.FirestoreDB.db) {
+          console.error('[TermsAccept v1.0.52] Firestore não inicializado — não pode persistir');
+          if (typeof window._captureException === 'function') {
+            window._captureException(new Error('Terms accept: Firestore not initialized'), { area: 'termsAccept', uid: cu.uid });
           }
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('⚠️ Sem conexão',
+              'Não foi possível salvar — tente novamente em instantes.',
+              'error');
+          }
+          btnConfirm.disabled = false;
+          btnConfirm.textContent = _t('terms.acceptConfirm');
+          return; // não resolve — modal continua aberto pra retry
+        }
+        try {
+          await window.FirestoreDB.db.collection('users').doc(cu.uid).set(payload, { merge: true });
+          // Round-trip verification: lê de volta e confirma que persistiu.
+          // Sem isso, save aparentemente OK (sem throw) mas Firestore podia
+          // ter rejeitado silenciosamente em rules → próximo login gate
+          // disparava de novo. Lê o doc, valida acceptedTerms === true.
+          var verifyDoc = await window.FirestoreDB.db.collection('users').doc(cu.uid).get();
+          var verifyData = verifyDoc.exists ? verifyDoc.data() : null;
+          if (!verifyData || verifyData.acceptedTerms !== true) {
+            throw new Error('round-trip falhou: ' + (verifyData ? 'doc existe mas acceptedTerms=' + verifyData.acceptedTerms : 'doc não encontrado'));
+          }
+          console.log('[TermsAccept v1.0.52] saved + verified, acceptedTermsVersion=' + verifyData.acceptedTermsVersion);
           // Atualiza estado local
           Object.assign(cu, payload);
           cleanup();
           resolve(true);
         } catch (err) {
-          console.error('[TermsAccept] save failed:', err);
+          console.error('[TermsAccept v1.0.52] save failed:', err);
           if (typeof window._captureException === 'function') {
             window._captureException(err, { area: 'termsAccept', uid: cu.uid });
           }
           if (typeof window.showNotification === 'function') {
             window.showNotification('⚠️ ' + (_t('terms.acceptFailed') || 'Falha ao salvar'),
-              (_t('terms.acceptFailedMsg') || 'Tente novamente em instantes.'),
+              (err && err.message) ? String(err.message).slice(0, 200) : (_t('terms.acceptFailedMsg') || 'Tente novamente em instantes.'),
               'error');
           }
           btnConfirm.disabled = false;
           btnConfirm.textContent = _t('terms.acceptConfirm');
-          resolve(false);
+          // NÃO resolve(false) aqui — deixa o modal aberto pro user retry.
+          // Antes, qualquer erro fechava o modal (resolve false → logout),
+          // o que fazia o user perder o estado e ter que relogar pra ver
+          // o modal de novo. Melhor permitir retry inline.
         }
       });
 

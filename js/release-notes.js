@@ -9,6 +9,23 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.52-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Modal de Termos não pede mais re-aceite pra usuários cadastrados (fix definitivo).</b> Bug reportado: <i>"continua caindo nos termos quando relogamos usuários cadastrados (via google)"</i> — mesmo após o fix lenient da v1.0.49. Auditei o flow completo e achei <b>3 causas independentes</b> que podiam disparar o modal indevidamente:</p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Save silenciosamente pulado:</b> <code>terms-acceptance.js</code> tinha <code>if (FirestoreDB && db) { await save() }</code> SEM else. Quando o SDK do Firestore não estava pronto (race raro de init), o save era pulado mas o modal fechava com <code>resolve(true)</code>. Próximo login, doc no Firestore não tinha <code>acceptedTerms</code> → gate disparava de novo. <b>Fix:</b> exige Firestore disponível, erro explícito com toast se não estiver. Modal fica aberto pra retry em vez de fingir sucesso.</li>' +
+        '<li><b>Sem round-trip verification:</b> save aparentemente OK (sem throw) mas Firestore podia ter rejeitado silenciosamente em rules ou perdido pra timeout. <b>Fix:</b> após o <code>set()</code>, lê o doc de volta e valida que <code>acceptedTerms === true</code> realmente persistiu. Se não, throw → toast com mensagem real do Firestore.</li>' +
+        '<li><b>Race do <code>loadUserProfile</code>:</b> quando <code>existingProfile</code> volta null (network blip, cache stale), o gate cai pra <code>currentUser</code> que tem só os 4 campos do Firebase Auth (uid/email/displayName/photoURL) — sem <code>acceptedTerms</code>. <b>Fix:</b> defensive re-fetch direto do Firestore ANTES de mostrar modal. Lê o doc uma última vez; se aparecer qualquer sinal de aceitação, atualiza <code>currentUser</code> e pula modal.</li>' +
+      '</ol>' +
+      '<p><b>Função <code>_needsTermsAcceptance</code> mais leniente:</b> aceita 4 sinais de aceitação prévia em vez de só <code>acceptedTerms === true</code>:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>acceptedTerms === true</code> (canônico)</li>' +
+        '<li><code>acceptedTerms</code> truthy (string \'true\', boolean coerced)</li>' +
+        '<li><code>acceptedTermsAt</code> presente (timestamp do aceite — evidência forte)</li>' +
+        '<li><code>acceptedTermsVersion</code> presente (versão aceita — evidência também)</li>' +
+      '</ul>' +
+      '<p>Basta 1 dos 4 pra considerar aceito. Se versão salva é explicitamente diferente da atual, ainda re-pede (compliance). Bug do botão Cancelar do modal antigo: erro de save fazia <code>resolve(false)</code> → logout → user perdia estado e tinha que relogar pra ver modal de novo. Agora erro mantém modal aberto pra retry inline. Diagnóstico completo no console: <code>[terms-gate v1.0.52]</code> + <code>[TermsAccept v1.0.52]</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.0.51-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>Revertido o "n-1" da v1.0.50.</b> Pill <code>👥 Usuários</code> volta a mostrar o total absoluto de docs em <code>users</code> (inclui você). A discrepância com a página <i>Pessoas</i> (#explore) é esperada e está explicada — Pessoas filtra o próprio usuário porque você não pode mandar friend request pra si mesmo. Tooltip volta pra "Total de usuários cadastrados no scoreplace".</p>' +
     '</div>' +

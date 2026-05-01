@@ -2044,15 +2044,56 @@ async function simulateLoginSuccess(user) {
   console.log('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] terms-gate check:', {
     existingProfile_exists: !!existingProfile,
     existingProfile_acceptedTerms: existingProfile && existingProfile.acceptedTerms,
+    existingProfile_acceptedAt: existingProfile && existingProfile.acceptedTermsAt,
     existingProfile_version: existingProfile && existingProfile.acceptedTermsVersion,
     currentUser_acceptedTerms: window.AppStore.currentUser && window.AppStore.currentUser.acceptedTerms,
+    currentUser_acceptedAt: window.AppStore.currentUser && window.AppStore.currentUser.acceptedTermsAt,
     currentUser_version: window.AppStore.currentUser && window.AppStore.currentUser.acceptedTermsVersion,
     needsAcceptance: typeof window._needsTermsAcceptance === 'function'
       ? window._needsTermsAcceptance(_termsCheckProfile)
       : '_needsTermsAcceptance-undefined'
   });
+  // v1.0.52-beta: defensive re-fetch direto do Firestore antes de mostrar
+  // modal. Bug reportado: "continua caindo nos termos quando relogamos
+  // usuários cadastrados". Race possível: loadUserProfile retornou null
+  // (network blip, cache stale) ou o doc carregado tinha campos faltando
+  // por alguma migração legada. Antes de incomodar o user com modal,
+  // tenta UMA leitura direta — se aparecer sinal de aceitação, pula o
+  // modal e atualiza currentUser.
   if (typeof window._needsTermsAcceptance === 'function' &&
       window._needsTermsAcceptance(_termsCheckProfile)) {
+    try {
+      if (window.FirestoreDB && window.FirestoreDB.db && uid) {
+        var freshDoc = await window.FirestoreDB.db.collection('users').doc(uid).get();
+        if (freshDoc.exists) {
+          var freshData = freshDoc.data();
+          console.log('[terms-gate v1.0.52] re-fetch result:', {
+            acceptedTerms: freshData.acceptedTerms,
+            acceptedTermsAt: freshData.acceptedTermsAt,
+            acceptedTermsVersion: freshData.acceptedTermsVersion
+          });
+          // Merge fresh data dentro do check profile
+          if (!_termsCheckProfile) _termsCheckProfile = {};
+          ['acceptedTerms', 'acceptedTermsAt', 'acceptedTermsVersion'].forEach(function(k) {
+            if (freshData[k] !== undefined) _termsCheckProfile[k] = freshData[k];
+          });
+          // Sincroniza currentUser também
+          if (window.AppStore.currentUser) {
+            ['acceptedTerms', 'acceptedTermsAt', 'acceptedTermsVersion'].forEach(function(k) {
+              if (freshData[k] !== undefined) window.AppStore.currentUser[k] = freshData[k];
+            });
+          }
+        } else {
+          console.log('[terms-gate v1.0.52] re-fetch: doc não existe pra uid=' + uid);
+        }
+      }
+    } catch (_freshErr) {
+      console.warn('[terms-gate v1.0.52] re-fetch failed:', _freshErr && _freshErr.message);
+    }
+  }
+  if (typeof window._needsTermsAcceptance === 'function' &&
+      window._needsTermsAcceptance(_termsCheckProfile)) {
+    console.log('[terms-gate v1.0.52] showing modal — no acceptance signal found after re-fetch');
     var accepted = await window._showTermsAcceptanceModal();
     if (!accepted) {
       console.log('[scoreplace-auth] Terms not accepted — logging out');
