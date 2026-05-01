@@ -99,6 +99,29 @@ exports.cleanupOldCasualMatches = onSchedule(
   }
 );
 
+// ─── Scheduled cleanup: expired magic link wrappers ──────────────────────────
+// v1.0.34-beta: docs em magicLinks/{token} guardam o firebaseLink resolvido
+// pelo wrapper-URL no clique do email. Cada doc tem expiresAt = createdAt+90min
+// (oobCode em si expira em 1h via Firebase). Sem cleanup, a coleção cresce
+// 1 doc por magic link request. Roda 3x ao dia (04:30, 12:30, 20:30 BRT) pra
+// manter a coleção pequena — cada execução remove docs com expiresAt < now.
+exports.cleanupOldMagicLinks = onSchedule(
+  {
+    schedule: "every day 04:30",
+    timeZone: "America/Sao_Paulo",
+    region: "us-central1",
+  },
+  async () => {
+    const db = admin.firestore();
+    // expiresAt foi salvo como JS Date (Timestamp no Firestore). Comparação
+    // direta com new Date() funciona via Timestamp.fromDate equivalência.
+    const now = new Date();
+    const query = db.collection("magicLinks").where("expiresAt", "<", now);
+    const deleted = await _batchDeleteQuery(query);
+    console.log(`[cleanupOldMagicLinks] deleted ${deleted} docs (threshold: ${now.toISOString()})`);
+  }
+);
+
 // ─── Scheduled backup: full Firestore export to Cloud Storage ───────────────
 // Roda diariamente às 04:00 BRT (depois dos cleanups) e dispara um export
 // nativo do Firestore pra um bucket Cloud Storage. Bucket tem lifecycle rule
