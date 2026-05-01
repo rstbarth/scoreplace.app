@@ -8,6 +8,12 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎯 v1.0.31-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Volta o comportamento da v1.0.27: DDI 🇧🇷 +55 só aparece quando o usuário começa a digitar telefone.</b> User clarificou: "ja aparecer direto a bandeira e o +55 induz o usuário a achar que apenas um telefone pode ser colocado ali no campo (quando um email tambem é permitido)". Razão totalmente válida — sinalização visual de bandeira/DDI sugere "telefone-only", quando na real o campo é dual (email OU telefone).</p>' +
+      '<p>Estado inicial agora é neutro: input + botão Enviar (2 colunas grid). Helper text default: <i>"Aceita e-mail (recebe link mágico) ou celular com DDD (recebe SMS com código). Pra celular, o seletor de país aparece automaticamente — padrão 🇧🇷 +55"</i>. Quando usuário começa a digitar dígitos (≥8), <code>_detectLoginInputMode</code> dispara: DDI aparece à esquerda, grid vira <code>auto 1fr auto</code>, e helper text atualiza pra mostrar o número que vai ser enviado.</p>' +
+      '<p>Combinação dos dois feedbacks resolvida: (a) <b>"telefone sem ddi?"</b> da v1.0.28 — DDI aparece assim que phone é detectado, e helper text neutro inicial menciona explicitamente que +55 é o padrão; (b) <b>"induz a achar que é só pra telefone"</b> da v1.0.31 — campo neutro inicial deixa claro que email é igualmente válido.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
       '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.30-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Magic link "expirado" antes do clique foi resolvido — wrapper URL impede prefetch consumir oobCode.</b> Bug crítico reportado por múltiplos beta testers: "entrou mas deu link expirado pelo magic link". Causa: email scanners anti-phishing (Gmail/Outlook/corporate security) prefetcham TODOS os links de email pra checar conteúdo. O Firebase oobCode é <b>one-time-use</b> — quem chega antes consome, e o humano vê "expirado".</p>' +
