@@ -1516,18 +1516,26 @@ function renderDashboard(container) {
   var _myUid = _cuRef && _cuRef.uid;
 
   // v1.0.45-beta + v1.0.46-beta: Usuários = total cadastrados no banco.
+  // v1.0.50-beta: pill clica pra #explore, e a página Pessoas filtra o próprio
+  // usuário (`uid === myUid` em explore._dedupeAgainstRelationships). Bug
+  // reportado: "Usuários=8 mas Pessoas=7 — o que está errado?". Resposta:
+  // 1 desses 8 sou eu. Pra o número bater com o que aparece em Pessoas,
+  // exibimos `n - 1` (subtrai self). Cache continua guardando o raw count
+  // pra qualquer consumidor futuro que queira o total absoluto.
   // Estratégia robusta com 2 caminhos:
   //   1. Tenta aggregate count() (Firestore SDK 9.6+) — barato (1 read)
   //   2. Fallback: get() + .size (lê todos os docs — caro mas garantido)
-  // Cache de 5min em localStorage. Render imediato com cached, update
-  // assíncrono substitui o número via data-stat-users-count.
+  // Render imediato com cached, update assíncrono substitui via
+  // data-stat-users-count.
   var _socialUsersCount = '0';
   try {
     var _uCacheRaw = localStorage.getItem('scoreplace_total_users_cache');
     if (_uCacheRaw) {
       var _uCache = JSON.parse(_uCacheRaw);
       if (_uCache && _uCache.count != null) {
-        _socialUsersCount = String(_uCache.count);
+        // Display = raw - 1 (exclui self) pra bater com Pessoas
+        var _cachedDisplay = Math.max(0, Number(_uCache.count) - 1);
+        _socialUsersCount = String(_cachedDisplay);
       }
     }
   } catch (_e) {}
@@ -1558,10 +1566,14 @@ function renderDashboard(container) {
       }
       if (n != null) {
         try {
+          // Cache guarda raw count (total absoluto). Display subtrai self.
           localStorage.setItem('scoreplace_total_users_cache', JSON.stringify({ count: n, at: new Date().toISOString() }));
         } catch (_e) {}
         var pillNumEl = document.querySelector('[data-stat-users-count]');
-        if (pillNumEl) pillNumEl.textContent = String(n);
+        if (pillNumEl) {
+          var _displayN = Math.max(0, n - 1);
+          pillNumEl.textContent = String(_displayN);
+        }
       }
     })();
   }
@@ -1734,7 +1746,7 @@ function renderDashboard(container) {
         <!-- v1.0.46-beta: Usuários e Partidas usam countDataAttr/subtitleDataAttr
              pra que o refresh assíncrono possa achar e atualizar os elementos
              via querySelector quando o Firestore responder. -->
-        ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Total de usuários cadastrados no scoreplace', { countDataAttr: 'data-stat-users-count' })}
+        ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Outros usuários no scoreplace (clique para ver Pessoas)', { countDataAttr: 'data-stat-users-count' })}
         ${_statPill('🤝', _socialFriendsCount, 'Amigos', "window.location.hash='#explore'", 'Seus amigos no scoreplace')}
         ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, subtitle: _socialMatchesSubtitle, dataAttrs: 'data-stat-matches-pill', countDataAttr: 'data-stat-matches-count', subtitleDataAttr: 'data-stat-matches-subtitle' })}
       </div>
