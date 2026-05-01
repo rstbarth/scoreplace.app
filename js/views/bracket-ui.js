@@ -3384,11 +3384,39 @@ window._openLiveScoring = function(tId, matchId, opts) {
     return 0;
   }
 
+  // v1.0.36-beta: snapshot pra global undo (ver window._liveScoreUndoLastPoint).
+  // Captura o estado COMPLETO antes de qualquer mutação. Permite desfazer
+  // ponto-a-ponto através de transições de game/set/finish — diferente do
+  // _liveScoreMinus que só decrementa o game corrente. Cenário reportado:
+  // "num jogo 40-40 o ponto vitorioso ser marcado por acidente para o lado
+  // errado e atualmente não temos como corrigir". Agora tem.
+  // Limita a 30 snapshots (~150KB max em memória) — rolling window.
+  function _makeUndoSnapshot() {
+    var stateCopy = {};
+    for (var k in state) {
+      if (Object.prototype.hasOwnProperty.call(state, k) && k !== '_undoSnapshots') {
+        stateCopy[k] = state[k];
+      }
+    }
+    return JSON.stringify({
+      state: stateCopy,
+      matchStartTime: _matchStartTime,
+      matchEndTime: _matchEndTime
+    });
+  }
+
   // Add point to player
   function _addPoint(player) {
     if (state.isFinished) return;
     if (state.tieRulePending) return; // Waiting for tie resolution dialog
     if (_needsServePick()) return; // Waiting for serve selection
+
+    // v1.0.36-beta: snapshot ANTES de qualquer mutação — primeira coisa após
+    // os early returns. Garante que undo restaura exatamente pra antes do
+    // tap acidental, mesmo que o ponto tenha disparado fim de game/set/match.
+    if (!state._undoSnapshots) state._undoSnapshots = [];
+    state._undoSnapshots.push(_makeUndoSnapshot());
+    if (state._undoSnapshots.length > 30) state._undoSnapshots.shift();
 
     // Haptic feedback — pulso curto a cada ponto. Confirma tap sem precisar
     // olhar a tela (útil com celular na trave). Android + iOS 18+ suportam.
@@ -5630,6 +5658,54 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _render();
   };
 
+  // v1.0.36-beta: Global undo do último ponto via snapshot de estado.
+  // Diferente do _liveScoreMinus (que só decrementa o game corrente), esse
+  // undo desfaz a ÚLTIMA mutação de _addPoint completa — atravessa
+  // transições de game/set/finish. Cenário-alvo reportado: "num jogo 40-40
+  // o ponto vitorioso ser marcado por acidente para o lado errado e
+  // atualmente não temos como corrigir". Agora basta clicar ↶ Desfazer no
+  // header da tela de placar e o estado volta exatamente pra antes do tap.
+  window._liveScoreUndoLastPoint = function() {
+    if (state.tieRulePending) {
+      showNotification('Aguarde', 'Termine a transição de set antes de desfazer.', 'warning');
+      return;
+    }
+    if (!Array.isArray(state._undoSnapshots) || state._undoSnapshots.length === 0) {
+      showNotification('↶ Nada pra desfazer', 'Não há pontos registrados nesta partida ainda.', 'info');
+      return;
+    }
+    var snapJson = state._undoSnapshots.pop();
+    var snap;
+    try {
+      snap = JSON.parse(snapJson);
+    } catch (e) {
+      console.error('[liveScoreUndo] snapshot parse failed', e);
+      showNotification('Erro', 'Não foi possível desfazer (snapshot corrompido).', 'error');
+      return;
+    }
+    // Restaura todas as keys do snapshot. Apaga keys novas que não existiam
+    // no snapshot pra evitar lixo (ex: state._tempFlag temporário).
+    var keysInSnap = Object.keys(snap.state);
+    for (var k in state) {
+      if (Object.prototype.hasOwnProperty.call(state, k)
+          && k !== '_undoSnapshots'
+          && keysInSnap.indexOf(k) === -1) {
+        delete state[k];
+      }
+    }
+    keysInSnap.forEach(function(kk) { state[kk] = snap.state[kk]; });
+    _matchStartTime = snap.matchStartTime;
+    _matchEndTime = snap.matchEndTime;
+    // Haptic distintivo — 3 pulsos curtos pra "voltei no tempo".
+    try { if (navigator.vibrate) navigator.vibrate([10, 30, 10, 30, 10]); } catch (e) {}
+    // Re-render. Se o último ponto tinha encerrado o match (state.isFinished
+    // true), agora volta pra false e _render renderiza a UI de live scoring
+    // de novo no lugar do finish screen.
+    _render();
+    var remaining = state._undoSnapshots.length;
+    showNotification('↶ Ponto desfeito', remaining > 0 ? ('Pode desfazer mais ' + remaining + ' ponto(s) se precisar.') : 'Estado anterior restaurado.', 'success');
+  };
+
   // Rebuild _proposedOrder from current player arrays and re-fill serveOrder.
   // Used by reset/restart so the serve ball re-appears on a fresh match.
   function _reinitServeOrderForNewMatch() {
@@ -5665,6 +5741,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.pointLog = [];
         // Reset tieRule to original value from scoring config
         state.tieRule = sc.tieRule || null;
+        // v1.0.36-beta: limpa snapshots de undo + recovery stack — após reset
+        // não faz sentido voltar pra estado antes do reset.
+        state._undoSnapshots = [];
+        state._recentUndoStack = [];
         _matchStartTime = null;
         _matchEndTime = null;
         _reinitServeOrderForNewMatch();
@@ -5718,6 +5798,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
         state.gameLog = [];
         state.pointLog = [];
         state.tieRule = sc.tieRule || null;
+        // v1.0.36-beta: limpa snapshots — nova partida não deve poder
+        // desfazer pra antes do recomeço.
+        state._undoSnapshots = [];
+        state._recentUndoStack = [];
         _matchStartTime = null;
         _matchEndTime = null;
         _courtLeft = 1;
@@ -5812,8 +5896,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
     '</div>' +
     // Spacer
     '<div style="flex:1;"></div>' +
-    // Right: Reset + Close (hidden on finish screen in tournament mode)
+    // Right: Undo + Reset + Close (Reset hidden on finish screen in
+    // tournament mode; Undo permanece visível em todos os contextos)
     '<div id="live-score-header-actions" style="display:flex;gap:6px;align-items:center;flex:0 0 auto;">' +
+      // v1.0.36-beta: Undo global do último ponto. Funciona até depois que
+      // o match foi finalizado (volta pra UI live se desfizer o ponto que
+      // fechou). Útil quando o ponto vitorioso de um 40-40 é marcado pro
+      // lado errado.
+      '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" aria-label="Desfazer último ponto" style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;">↶ Desfazer</button>' +
       '<button onclick="window._liveScoreReset()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">↺ Resetar</button>' +
       '<button onclick="window._closeLiveScoring()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);border-radius:8px;padding:6px 10px;font-size:0.7rem;font-weight:600;cursor:pointer;">✕ Fechar</button>' +
     '</div>' +

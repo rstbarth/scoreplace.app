@@ -9,6 +9,19 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↶ v1.0.36-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "↶ Desfazer" no header do placar ao vivo — undo global ponto-a-ponto.</b> Cenário reportado: "num jogo 40-40 o ponto vitorioso ser marcado por acidente para o lado errado e atualmente não temos como corrigir". O botão ▼ existente só decrementa o game corrente, não atravessa transições (game/set/match end). O novo undo global resolve isso.</p>' +
+      '<p>Implementação via <b>snapshot de estado</b>: cada chamada a <code>_addPoint</code> empilha um snapshot completo (state + matchStartTime + matchEndTime) ANTES de qualquer mutação. Botão "↶ Desfazer" no header pop\'a o último snapshot e restaura tudo — incluindo:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Ponto restaurado no game corrente</li>' +
+        '<li>Game restaurado se o ponto fechou um game (ex: 40-40 → game point errado)</li>' +
+        '<li>Set restaurado se o ponto fechou um set</li>' +
+        '<li>Match restaurado se o ponto fechou a partida (volta da finish screen pra UI live)</li>' +
+        '<li>pointLog, gameLog, totalGamesPlayed, serveOrder, tiebreak, tieRule — tudo</li>' +
+      '</ul>' +
+      '<p>Limit: 30 snapshots em memória (~150KB), rolling window. Limpa em reset/restart pra não permitir voltar pra antes do recomeço. Botão visível em todos os contextos (live + finish screen). Sincroniza via Firestore pra casuais multiplayer (device A desfaz → device B vê o estado correto).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏱ v1.0.35-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>Timing de pontos no placar ao vivo agora resiste a correções (undo + redo) + filtro de outliers nas stats finais.</b> Cenário reportado: usuário marca 2 pontos pro time errado (15+30), descobre, desfaz os 2, marca 2 pra time certo (15+30). Score corrige perfeitamente, MAS o tempo registrado pra os pontos corretos era o do clique de correção (rápidos consecutivos) → estatística "ponto mais rápido = 0 segundos" no fim. Absurdo.</p>' +
       '<p><b>Fix em 2 camadas:</b></p>' +
