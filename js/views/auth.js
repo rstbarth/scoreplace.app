@@ -590,7 +590,7 @@ function handleEmailLinkLogin() {
             '<div style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:10px 12px;margin-bottom:0.75rem;text-align:left;">' +
               '<div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:4px;">⚠️ Não chegou? Cheque o spam.</div>' +
               '<div style="font-size:0.76rem;color:var(--text-muted);line-height:1.45;">' +
-                'Primeira vez geralmente cai lá. O remetente é <code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:0.72rem;">noreply@scoreplace-app.firebaseapp.com</code>. ' +
+                'Primeira vez geralmente cai lá. O remetente é <code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:0.72rem;">scoreplace.app@gmail.com</code>. ' +
                 'Adicione aos contatos pra próximas vezes não cair no spam.' +
               '</div>' +
             '</div>' +

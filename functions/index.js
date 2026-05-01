@@ -229,11 +229,12 @@ exports.sendMagicLink = onCall(
         '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#0f172a;padding:40px 16px;">' +
           '<tr><td align="center">' +
             '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:520px;background:#111827;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);">' +
-              // Header com pódio + branding
-              '<tr><td style="padding:28px 32px;text-align:center;background:linear-gradient(135deg,#fbbf24,#f59e0b);">' +
-                '<div style="font-size:2.4rem;line-height:1;margin-bottom:8px;">🎾</div>' +
-                '<h1 style="margin:0;font-size:1.4rem;font-weight:800;color:#1e3a5f;letter-spacing:0.3px;">scoreplace.app</h1>' +
-                '<p style="margin:4px 0 0;font-size:0.82rem;color:#1e3a5f;opacity:0.85;">Jogue em outro nível</p>' +
+              // Header discreto — branding sem cor de destaque (só o botão
+              // CTA recebe o âmbar pra não competir visualmente)
+              '<tr><td style="padding:24px 32px 4px;text-align:center;">' +
+                '<div style="font-size:1.6rem;line-height:1;margin-bottom:4px;">🎾</div>' +
+                '<div style="font-size:1rem;font-weight:700;color:#fbbf24;letter-spacing:0.2px;">scoreplace.app</div>' +
+                '<div style="margin:2px 0 0;font-size:0.72rem;color:#64748b;">Jogue em outro nível</div>' +
               '</td></tr>' +
               // Body — copy direta sem floreio
               '<tr><td style="padding:32px;color:#e5e7eb;">' +
