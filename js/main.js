@@ -1121,20 +1121,31 @@
     '</div>';
   }
 
+  // v1.0.46-beta: cabeçalho usa _renderBackHeader pra padronizar com o resto
+  // do app. Pedido: "aqui o cabeçalho está inconstistente. deve ser no
+  // padrao de todo o app". Antes era custom (Voltar pill + título + ✕),
+  // agora segue o pattern: back button (esq) + título (centro) + hamburger
+  // (dir). Search input fica no belowHtml do header.
+  var _helpHdr = (typeof window._renderBackHeader === 'function')
+    ? window._renderBackHeader({
+        label: 'Voltar',
+        middleHtml: '<h2 style="margin:0;font-size:1rem;font-weight:800;color:var(--text-bright);text-align:center;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Central de Ajuda</h2>',
+        onClickOverride: function() {
+          if (typeof closeModal === 'function') closeModal('modal-help');
+        },
+        belowHtml: '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%;box-sizing:border-box;margin-top:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-color);font-size:0.85rem;outline:none;" oninput="window._filterHelpSections(this.value)">',
+        extraStyle: 'position:sticky;top:0;z-index:2;background:var(--bg-card,var(--bg-darker));padding:12px 1.25rem 12px;border-bottom:1px solid rgba(255,255,255,0.06);'
+      })
+    : // Fallback se _renderBackHeader ainda não tiver carregado (defesa).
+      ('<div style="position:sticky;top:0;z-index:2;background:var(--bg-card,var(--bg-darker));padding:12px 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);">' +
+        '<button class="btn btn-outline btn-sm" onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');">← Voltar</button>' +
+        '<h2 style="display:inline-block;margin:0 1rem;">Central de Ajuda</h2>' +
+        '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%;margin-top:10px;padding:10px 14px;" oninput="window._filterHelpSections(this.value)">' +
+      '</div>');
+
   var html = '<div class="modal-overlay" id="modal-help">' +
     '<div class="modal" style="max-width:560px; padding:0; max-height:85vh; display:flex; flex-direction:column;">' +
-      // Sticky header — Voltar pill (tournament-details style) stays pinned while body scrolls.
-      '<div style="position:sticky; top:0; z-index:2; background:var(--bg-card, var(--bg-darker)); padding:12px 1.5rem 10px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.06);">' +
-        '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">' +
-          '<button class="btn btn-outline btn-sm hover-lift" onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" style="display:inline-flex; align-items:center; gap:6px; padding:6px 16px; border-radius:20px;">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>' +
-            ' Voltar' +
-          '</button>' +
-          '<h2 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-bright);">Central de Ajuda</h2>' +
-          '<button onclick="if(typeof closeModal===\'function\')closeModal(\'modal-help\');" aria-label="Fechar" style="background:none;border:none;color:var(--text-muted,#94a3b8);font-size:1.5rem;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
-        '</div>' +
-        '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%; box-sizing:border-box; padding:10px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-darker); color:var(--text-color); font-size:0.85rem; outline:none;" oninput="window._filterHelpSections(this.value)">' +
-      '</div>' +
+      _helpHdr +
       '<div id="help-sections-container" style="padding:1.25rem 1.5rem 1.5rem; overflow-y:auto; flex:1;">' +
         sectionsHtml +
         '<div id="help-no-results" style="display:none; text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.85rem;">Nenhum resultado encontrado. Tente outras palavras.</div>' +
