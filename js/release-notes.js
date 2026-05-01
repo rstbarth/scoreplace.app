@@ -9,6 +9,18 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📊 v1.0.44-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Hero box do dashboard ganhou 3 stat pills sociais.</b> Pedido do user: "aqui tudo se refere a torneio. vamos reduzir o tamanho disso para colocar outros boxes aqui com Usuários, Amigos, Partidas V/D/%". Antes: 4-6 pills clicáveis de filtro de torneio (Todos, Organizados, Participando, Inscrições Abertas, ⭐ Favoritos, 🏆 Encerrados). Agora: 2 linhas — primeira com os filtros de torneio (mais compactos), segunda com 3 pills sociais.</p>' +
+      '<p><b>Pills compactados</b>: flex base 130→92px, padding 0.9rem→0.55rem, count 1.7rem→1.3rem, label 0.78rem→0.66rem. Cabe 3-4 por linha em mobile e 6-7 em desktop.</p>' +
+      '<p><b>3 pills novos:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>👥 Usuários</b>: contagem única de participantes (excl. self) nos torneios visíveis. Proxy de "rede no scoreplace" sem precisar query Firestore aggregate. Click → #explore</li>' +
+        '<li><b>🤝 Amigos</b>: <code>cu.friends.length</code>. Click → #explore</li>' +
+        '<li><b>⚔️ Partidas</b>: total de partidas casuais com vencedor definido (do localStorage <code>scoreplace_casual_history_v2</code>). Tooltip mostra <i>"5V · 3D · 62% aproveitamento"</i>. Click → modal "Estatísticas Detalhadas"</li>' +
+      '</ul>' +
+      '<p>Ambos os grupos compartilham o mesmo visual base (<code>_fStyle</code> pra filtros, <code>_statPill</code> pra stats sociais — mesma altura/largura/styling, só onclick diferente).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📞 v1.0.43-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>SMS login: cross-reference por telefone + persiste phone/phoneCountry no perfil + filtro defensivo na saudação.</b> Bug reportado: usuário entrou via SMS e viu saudação "Bem-vindo, +5511997237733!" — o sistema setava <code>displayName</code> = phoneNumber porque Firebase Auth não preenche displayName pra phone users por default. Pior: pedia aceite de termos de novo mesmo o human já tendo aceitado em outra conta (Google).</p>' +
       '<p><b>Fix em 3 camadas:</b></p>' +

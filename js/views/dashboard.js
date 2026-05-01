@@ -1466,21 +1466,101 @@ function renderDashboard(container) {
   };
 
   // Main filter card styles
+  // v1.0.44-beta: pill mais compacto pra dar lugar a 3 novos stat pills
+  // (Usuários, Amigos, Partidas). Reduções:
+  //   flex base 130 → 92px, min-width 110 → 80px
+  //   padding 0.9rem 0.75rem → 0.55rem 0.45rem
+  //   emoji 1.4 → 1.1rem
+  //   count 1.7 → 1.3rem
+  //   label 0.78 → 0.66rem
+  // Cabe agora 3-4 pills por linha em mobile e 6-7 em desktop, dando
+  // espaço pra grupo de torneios + grupo de stats sociais sem precisar
+  // de scroll horizontal.
   const _fStyle = (key, emoji, count, label) => {
     const active = curFilter === key;
-    // v0.17.31: pills usam --hero-pill-* tokens — adaptam ao tema (light/dark).
-    // v0.17.45: tamanhos reduzidos pra dar mais respiro pros CTAs acima —
-    // padding 1.5→0.9rem, emoji 2→1.4rem, count 2.5→1.7rem, h3 1→0.78rem.
-    // v0.17.50: container pai virou flex — adicionado flex:0 1 130px
-    // pra cada pill. Cresce até caber, encolhe se necessário, base 130px
-    // (≥minmax do grid antigo). flex-grow 0 evita que 1 pill sozinho na
-    // última linha vire um banner gigante.
-    return `<div style="flex:0 1 130px;min-width:110px;background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.9rem 0.75rem;border-radius:12px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 16px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 16px var(--hero-pill-glow)' : 'none'}'">
-      <div style="font-size:1.4rem;margin-bottom:0.15rem;line-height:1;">${emoji}</div>
-      <span style="font-size:1.7rem;font-weight:800;line-height:1;">${count}</span>
-      <h3 style="margin:0.3rem 0 0 0;font-size:0.78rem;font-weight:600;opacity:0.9;line-height:1.1;">${label}</h3>
+    return `<div style="flex:0 1 92px;min-width:80px;background:${active ? 'var(--hero-pill-active-bg)' : 'var(--hero-pill-inactive-bg)'};backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:${active ? '2px solid var(--hero-pill-active-border)' : '1px solid var(--hero-pill-inactive-border)'};cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;${active ? 'box-shadow:0 0 14px var(--hero-pill-glow);transform:translateY(-2px);' : ''}" onclick="window._applyDashFilter('${key}')" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='${active ? 'translateY(-2px)' : 'none'}';this.style.boxShadow='${active ? '0 0 14px var(--hero-pill-glow)' : 'none'}'">
+      <div style="font-size:1.1rem;margin-bottom:0.1rem;line-height:1;">${emoji}</div>
+      <span style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
+      <h3 style="margin:0.2rem 0 0 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
     </div>`;
   };
+
+  // v1.0.44-beta: stat pill (não-filtro) — mesmo visual que _fStyle pero
+  // com onclick navegacional em vez de aplicar filtro. Usado pra Usuários,
+  // Amigos e Partidas. Aceita string como count (ex: "5V 3D" ou "62%").
+  const _statPill = (emoji, count, label, onclickJs, title) => {
+    var titleAttr = title ? ' title="' + String(title).replace(/"/g, '&quot;') + '"' : '';
+    return `<div${titleAttr} style="flex:0 1 92px;min-width:80px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+      <div style="font-size:1.1rem;margin-bottom:0.1rem;line-height:1;">${emoji}</div>
+      <span style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
+      <h3 style="margin:0.2rem 0 0 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
+    </div>`;
+  };
+
+  // v1.0.44-beta: Social stats — usuários, amigos, partidas V/D.
+  // Usuários: contagem única de participantes (excl. self) nos torneios
+  // visíveis. Proxy razoável de "rede no scoreplace" sem precisar query
+  // pesada. Itera memberEmails+participants pra capturar tanto torneios
+  // antigos (que tinham só email) quanto novos (que tem displayName).
+  var _cuRef = window.AppStore && window.AppStore.currentUser;
+  var _myEmail = (_cuRef && _cuRef.email || '').toLowerCase();
+  var _myUid = _cuRef && _cuRef.uid;
+  var _myName = (_cuRef && _cuRef.displayName || '').toLowerCase().trim();
+  var _peopleSet = new Set();
+  allUnique.forEach(function(t) {
+    var emails = Array.isArray(t.memberEmails) ? t.memberEmails : [];
+    emails.forEach(function(e) {
+      if (!e) return;
+      var lower = String(e).toLowerCase();
+      if (lower === _myEmail) return; // skip self
+      _peopleSet.add('email:' + lower);
+    });
+    var parts = Array.isArray(t.participants) ? t.participants : [];
+    parts.forEach(function(p) {
+      if (!p) return;
+      var pn = (typeof p === 'string' ? p : (p.name || p.displayName || '')).toLowerCase().trim();
+      if (!pn || pn === _myName) return;
+      _peopleSet.add('name:' + pn);
+    });
+  });
+  var _socialUsersCount = _peopleSet.size;
+
+  // Amigos: cu.friends pode estar vazio se profile não carregou ainda;
+  // mostra 0 e o pill atualiza naturalmente quando re-render acontece.
+  var _socialFriendsCount = (_cuRef && Array.isArray(_cuRef.friends))
+    ? _cuRef.friends.filter(function(u) { return u && u !== _myUid; }).length
+    : 0;
+
+  // Partidas V/D: agrega match history local (scoreplace_casual_history_v2)
+  // — mesma fonte que o modal "Estatísticas Detalhadas". Heurística: se
+  // record tem winnerTeam e my uid no players[], conta como V se meu time
+  // venceu, D se perdeu. Pill mostra total como número grande + V/D/% no
+  // tooltip. Click abre o modal detalhado.
+  var _socialMatchesDisplay = '0';
+  var _socialMatchesTitle = 'Vitórias / Derrotas em partidas casuais e torneios';
+  var _socialMatchesClick = "if(typeof window._showPlayerStats==='function' && window.AppStore.currentUser){window._showPlayerStats(window.AppStore.currentUser.displayName||'')}";
+  try {
+    if (_myUid) {
+      var _v2raw = localStorage.getItem('scoreplace_casual_history_v2') || '[]';
+      var _v2 = JSON.parse(_v2raw);
+      if (Array.isArray(_v2) && _v2.length > 0) {
+        var _w = 0, _l = 0;
+        _v2.forEach(function(r) {
+          if (!r || !Array.isArray(r.players)) return;
+          var mySlot = r.players.find(function(p) { return p && p.uid === _myUid; });
+          if (!mySlot) return;
+          if (r.winnerTeam === mySlot.team) _w++;
+          else if (r.winnerTeam && r.winnerTeam !== 0) _l++;
+        });
+        var _total = _w + _l;
+        if (_total > 0) {
+          _socialMatchesDisplay = String(_total);
+          var _pct = Math.round(_w / _total * 100);
+          _socialMatchesTitle = _w + 'V · ' + _l + 'D · ' + _pct + '% aproveitamento — clique pra ver detalhes';
+        }
+      }
+    }
+  } catch (_e) {}
 
   const html = `
     <!-- Header Hero Box -->
@@ -1543,13 +1623,24 @@ function renderDashboard(container) {
            cheia quando cabe, e quando wraps (2+2 ou 3+1), os itens
            da última linha ficam centralizados. min-width 110px em cada
            pill mantém leitura consistente. -->
-      <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center;">
+      <!-- Tournament filter pills (clickable — apply filter to list) -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
         ${_fStyle('todos', '📋', allUnique.length, _t('dashboard.filterAll'))}
         ${_fStyle('organizados', '🏆', organizadosCount, _t('dashboard.filterOrganized'))}
         ${_fStyle('participando', '👤', participacoesCount, _t('dashboard.filterParticipating'))}
         ${_fStyle('abertos', '🗓️', abertosParaVoce.length, _t('dashboard.filterOpen'))}
         ${favoritosCount > 0 ? _fStyle('favoritos', '⭐', favoritosCount, _t('dashboard.filterFavorites')) : ''}
         ${encerradosCount > 0 ? _fStyle('encerrados', '🏆', encerradosCount, _t('dashboard.filterFinished')) : ''}
+      </div>
+      <!-- v1.0.44-beta: Social/personal stats pills (separadas das de torneio
+           pra não misturar contextos). Usuários = unique participantes
+           encontrados nos torneios visíveis (proxy de "rede no scoreplace").
+           Amigos = cu.friends.length. Partidas = total V/D do match history
+           local (scoreplace_casual_history_v2 + uid match em records). -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+        ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Pessoas que encontrou em torneios visíveis no scoreplace')}
+        ${_statPill('🤝', _socialFriendsCount, 'Amigos', "window.location.hash='#explore'", 'Seus amigos no scoreplace')}
+        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle)}
       </div>
     </div>
 
