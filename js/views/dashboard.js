@@ -873,6 +873,18 @@ function renderDashboard(container) {
   function _buildProfileNudgeHtml() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu || !cu.uid) return '';
+    // v1.0.41-beta: aguarda profile load real do Firestore antes de avaliar
+    // completude. Bug reportado: ao logar via magic link, dashboard renderiza
+    // antes do loadUserProfile terminar — currentUser tem só os campos do
+    // Google login (uid, email, displayName, photoURL), e os campos extras
+    // (gender, birthDate, city, preferredSports) chegam depois async.
+    // Resultado: nudge "Complete seu perfil" aparecia mesmo pra users com
+    // perfil 100% completo. Pior: clicar Completar → abria o modal com
+    // campos vazios → usuário podia preencher e SOBRESCREVER os dados
+    // reais ao salvar. Agora só avalia depois que _profileLoaded vira true
+    // (setado em store.js após loadUserProfile resolver/falhar). O event
+    // listener `scoreplace:profile-loaded` re-injeta o nudge no slot abaixo.
+    if (!cu._profileLoaded) return '';
     try {
       if (sessionStorage.getItem('scoreplace_profile_nudge_dismissed') === '1') return '';
     } catch (e) {}
@@ -1538,8 +1550,11 @@ function renderDashboard(container) {
     <!-- Filter Bar (organizer analytics moved into hero 📊 Estatísticas modal in v0.14.32) -->
     ${filterBarHtml}
 
-    <!-- Profile Completion Nudge (dismissible, smart — only when key fields missing) -->
-    ${_buildProfileNudgeHtml()}
+    <!-- Profile Completion Nudge (dismissible, smart — only when key fields missing).
+         v1.0.41-beta: wrapper #dash-profile-nudge-slot pra event listener
+         scoreplace:profile-loaded re-injetar o nudge quando profile chega
+         async (evita race condition de mostrar nudge com dados vazios). -->
+    <div id="dash-profile-nudge-slot">${_buildProfileNudgeHtml()}</div>
 
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
@@ -1663,9 +1678,17 @@ function renderDashboard(container) {
   // v0.17.4: também escuta profile-loaded pra cobrir a race onde o user
   // chega no dashboard antes do profile carregar (cu.friends undefined).
   // Quando profile chega, re-setup garante listeners com friends list correto.
+  // v1.0.41-beta: também re-injeta o profile-completion nudge (que era
+  // suprimido enquanto _profileLoaded !== true pra evitar race com dados
+  // vazios).
   if (!window._dashProfileLoadedHandlerInstalled) {
     window._dashProfileLoadedHandlerInstalled = true;
     document.addEventListener('scoreplace:profile-loaded', function() {
+      // Re-injeta o profile nudge agora que _profileLoaded === true.
+      var nudgeSlot = document.getElementById('dash-profile-nudge-slot');
+      if (nudgeSlot) {
+        try { nudgeSlot.innerHTML = _buildProfileNudgeHtml(); } catch (e) {}
+      }
       var box = document.getElementById('dashboard-presences-widget');
       if (!box) return;
       _setupPresenceListeners(true); // force re-setup with new friends list
