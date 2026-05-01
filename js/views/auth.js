@@ -821,15 +821,59 @@ function _completeEmailLinkSignIn() {
   }
 
   firebase.auth().signInWithEmailLink(email, window.location.href)
-    .then(function(result) {
+    .then(async function(result) {
       // Clear stored email
       window.localStorage.removeItem('scoreplace_emailForSignIn');
       var user = result.user;
-      // Save auth provider to Firestore
+      // Save auth provider to Firestore.
+      // v1.0.43-beta: cross-reference por email (mesma lógica que phone) —
+      // se já existe outro doc users com este email, herda displayName,
+      // photoURL, phone, phoneCountry e acceptedTerms. Pra emails idênticos
+      // o Firebase Auth normalmente já retorna o mesmo uid (setting "One
+      // account per email" default), mas em edge cases (migração, conta
+      // criada por bug) podem existir 2 docs distintos.
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
         var profileData = { authProvider: 'emailLink', updatedAt: new Date().toISOString() };
         if (user.email) profileData.email = user.email;
-        if (!user.displayName && email) profileData.displayName = email.split('@')[0];
+        try {
+          if (user.email) {
+            var snap = await window.FirestoreDB.db.collection('users')
+              .where('email_lower', '==', String(user.email).toLowerCase())
+              .limit(5).get();
+            var matches = [];
+            snap.forEach(function(doc) {
+              if (doc.id !== user.uid) matches.push(doc.data());
+            });
+            if (matches.length > 0) {
+              var best = matches.find(function(m) {
+                return m.displayName && !/^\+?\d{6,}$/.test(String(m.displayName).trim());
+              }) || matches[0];
+              if (best.displayName && !user.displayName) {
+                profileData.displayName = best.displayName;
+                try { await user.updateProfile({ displayName: best.displayName }); } catch(_e) {}
+              }
+              if (best.photoURL && !user.photoURL) {
+                profileData.photoURL = best.photoURL;
+                try { await user.updateProfile({ photoURL: best.photoURL }); } catch(_e) {}
+              }
+              if (best.phone) profileData.phone = best.phone;
+              if (best.phoneCountry) profileData.phoneCountry = best.phoneCountry;
+              if (best.acceptedTerms === true) {
+                profileData.acceptedTerms = true;
+                if (best.acceptedTermsAt) profileData.acceptedTermsAt = best.acceptedTermsAt;
+              }
+              console.log('[email-link] cross-ref por email encontrado, herdando:',
+                Object.keys(profileData).filter(function(k){ return k !== 'authProvider' && k !== 'updatedAt' && k !== 'email'; }));
+            }
+          }
+        } catch (e) {
+          console.warn('[email-link] cross-ref por email falhou:', e);
+        }
+        // Fallback: se não temos displayName herdado nem do Firebase, usa
+        // local-part do email (ex: "joao.silva" pra joao.silva@gmail.com).
+        if (!profileData.displayName && !user.displayName && email) {
+          profileData.displayName = email.split('@')[0];
+        }
         window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
       }
       showNotification(_t('auth.loginDone'), user.displayName ? _t('auth.welcomeName', {name: user.displayName}) : _t('auth.welcome'), 'success');
@@ -981,13 +1025,76 @@ function handlePhoneVerifyCode() {
 
   showNotification(_t('auth.verifying'), _t('auth.confirmingCode'), 'info');
   window._phoneConfirmationResult.confirm(code)
-    .then(function(result) {
+    .then(async function(result) {
       var user = result.user;
-      // Save auth provider to Firestore
+      // Save auth provider to Firestore.
+      // v1.0.43-beta: cross-reference por telefone — quando user SMS faz
+      // login pela primeira vez, procura outro doc users com o mesmo
+      // phone (ex: ele já tem conta Google que registrou esse telefone
+      // no perfil). Se achar, herda displayName, photoURL E acceptedTerms
+      // pro novo doc — assim a saudação não vira "Bem-vindo,
+      // +5511997237733!" (bug reportado) e os termos não são pedidos de
+      // novo se ele já aceitou na outra conta. Limitação: não funde os
+      // dois Firebase Auth uids — stats/torneios continuam separados,
+      // mas pelo menos a UX inicial fica coerente.
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
         var profileData = { authProvider: 'phone', updatedAt: new Date().toISOString() };
         if (user.phoneNumber) profileData.phone = user.phoneNumber;
-        if (!user.displayName && user.phoneNumber) profileData.displayName = user.phoneNumber;
+        // v1.0.43-beta: persiste também o phoneCountry (DDI) lido do localStorage
+        // que handlePhoneLogin salvou quando o usuário enviou SMS. Pedido do user:
+        // "quando a pessoa entra com o telefone, já registra o telefone dela no
+        // perfil (assim se trocar o nome depois o telefone já fica no perfil)".
+        // Já gravávamos `phone` (E.164 completo), agora também `phoneCountry` pra
+        // o editor de perfil pré-popular o seletor de DDI corretamente.
+        try {
+          var savedCountry = localStorage.getItem('scoreplace_loginPhoneCountry');
+          if (savedCountry) profileData.phoneCountry = savedCountry;
+        } catch (_e) {}
+
+        // Lookup cross-reference por telefone. Tenta achar um user EXISTENTE
+        // (uid diferente) com este phone — pode ser conta Google/email do
+        // mesmo human que já cadastrou o telefone no perfil.
+        try {
+          if (user.phoneNumber) {
+            var snap = await window.FirestoreDB.db.collection('users')
+              .where('phone', '==', user.phoneNumber)
+              .limit(5).get();
+            var matches = [];
+            snap.forEach(function(doc) {
+              if (doc.id !== user.uid) matches.push(doc.data());
+            });
+            if (matches.length > 0) {
+              // Pega o match com mais info (preferência: tem displayName não-vazio
+              // e não-numérico, e tem photoURL real).
+              var best = matches.find(function(m) {
+                return m.displayName && !/^\+?\d{6,}$/.test(String(m.displayName).trim());
+              }) || matches[0];
+              if (best.displayName && !user.displayName) {
+                profileData.displayName = best.displayName;
+                // Sincroniza Firebase Auth displayName também — saudação puxa daí.
+                try { await user.updateProfile({ displayName: best.displayName }); } catch(_e) {}
+              }
+              if (best.photoURL && !user.photoURL) {
+                profileData.photoURL = best.photoURL;
+                try { await user.updateProfile({ photoURL: best.photoURL }); } catch(_e) {}
+              }
+              if (best.acceptedTerms === true) {
+                profileData.acceptedTerms = true;
+                if (best.acceptedTermsAt) profileData.acceptedTermsAt = best.acceptedTermsAt;
+              }
+              console.log('[phone-login] cross-ref encontrado, herdando:',
+                Object.keys(profileData).filter(function(k){ return k !== 'authProvider' && k !== 'updatedAt' && k !== 'phone'; }));
+            }
+          }
+        } catch (e) {
+          console.warn('[phone-login] cross-ref por phone falhou:', e);
+        }
+
+        // Fallback: se ainda não temos displayName e não achamos cross-ref,
+        // deixa null pra que o nudge "Complete seu perfil" peça depois —
+        // melhor que mostrar o telefone na saudação.
+        // (Antes da v1.0.43, setávamos profileData.displayName = phoneNumber.)
+
         window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
       }
       window._phoneConfirmationResult = null;
@@ -1720,11 +1827,27 @@ async function simulateLoginSuccess(user) {
     var avatar = document.getElementById('profile-avatar');
     if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
     var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
-    var _fallbackName = cu.displayName
-                     || (cu.firstName && cu.lastName ? (cu.firstName + ' ' + cu.lastName) : '')
+    // v1.0.43-beta: descarta displayName que parece telefone (regression de
+    // SMS login antigo que setava displayName=phoneNumber) — pega fallback
+    // do email ou deixa vazio pra user preencher.
+    var _dn = cu.displayName || '';
+    var _dnLooksLikePhone = /^\+?\d[\d\s().-]{5,}$/.test(String(_dn).trim());
+    var _fallbackName = (_dn && !_dnLooksLikePhone) ? _dn
+                     : (cu.firstName && cu.lastName ? (cu.firstName + ' ' + cu.lastName) : '')
                      || (cu.email ? cu.email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();}) : '')
                      || '';
     _setVal('profile-edit-name', _fallbackName);
+    // v1.0.43-beta: read-only display do email autenticado.
+    var emailDisplay = document.getElementById('profile-email-display');
+    var emailText = document.getElementById('profile-email-text');
+    if (emailDisplay && emailText) {
+      if (cu.email) {
+        emailText.textContent = cu.email;
+        emailDisplay.style.display = '';
+      } else {
+        emailDisplay.style.display = 'none';
+      }
+    }
     _setVal('profile-edit-gender', cu.gender || '');
     _setVal('profile-edit-birthdate', (typeof window._isoToDisplayDate === 'function') ? window._isoToDisplayDate(cu.birthDate) : (cu.birthDate || ''));
     _setVal('profile-edit-city', cu.city || '');
@@ -3093,7 +3216,7 @@ function setupProfileModal() {
           // avatar agora é sempre derivado do displayName (iniciais geradas
           // automaticamente via dicebear /initials). Foto real do Google/
           // Apple é preservada quando existe.
-          '<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem;">' +
+          '<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 0.75rem;">' +
             '<div style="flex-shrink: 0;" title="Foto gerada das iniciais do nome">' +
               '<img id="profile-avatar" src="" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
             '</div>' +
@@ -3101,6 +3224,15 @@ function setupProfileModal() {
               '<label for="profile-edit-name" class="form-label" style="font-size: 0.75rem; margin-bottom: 2px;">' + _t('profile.labelName') + '</label>' +
               '<input type="text" id="profile-edit-name" aria-label="' + _t('profile.labelName') + '" class="form-control" style="width: 100%; box-sizing: border-box;" required oninput="window._refreshProfileAvatarFromName && window._refreshProfileAvatarFromName()">' +
             '</div>' +
+          '</div>' +
+          // v1.0.43-beta: read-only display do email autenticado. Pedido do user:
+          // "não vejo o email na pagina de perfil do usuário. seria legal ter".
+          // Read-only porque mudar o email é operação de Firebase Auth (com
+          // re-verificação), fora de escopo. Quando phone-only login (sem email),
+          // o slot fica oculto.
+          '<div id="profile-email-display" style="display:none;margin:0 0 1rem 0;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:0.82rem;color:var(--text-muted);">' +
+            '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;opacity:0.7;margin-right:8px;">📧</span>' +
+            '<span id="profile-email-text" style="font-family:var(--font-body);color:var(--text-bright);"></span>' +
           '</div>' +
           '<form id="form-edit-profile" onsubmit="event.preventDefault(); saveUserProfile()" style="overflow: hidden;">' +
             // Row: Sexo + Nascimento (2 colunas)

@@ -9,6 +9,24 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📞 v1.0.43-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>SMS login: cross-reference por telefone + persiste phone/phoneCountry no perfil + filtro defensivo na saudação.</b> Bug reportado: usuário entrou via SMS e viu saudação "Bem-vindo, +5511997237733!" — o sistema setava <code>displayName</code> = phoneNumber porque Firebase Auth não preenche displayName pra phone users por default. Pior: pedia aceite de termos de novo mesmo o human já tendo aceitado em outra conta (Google).</p>' +
+      '<p><b>Fix em 3 camadas:</b></p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Cross-reference por phone</b> em <code>handlePhoneVerifyCode</code>: após confirmação do SMS, query <code>users</code> where <code>phone == user.phoneNumber</code> com limit 5. Se achar match com uid diferente (= conta Google/email do mesmo human que já tinha cadastrado o telefone no perfil), herda <code>displayName</code>, <code>photoURL</code> e <code>acceptedTerms</code> pra nova conta SMS. Não funde os Firebase Auth uids (limitação SDK), mas a UX inicial fica coerente.</li>' +
+        '<li><b>Persiste phone + phoneCountry no perfil</b> automaticamente. Pedido do user: "quando a pessoa entra com o telefone, já registra o telefone dela no perfil (assim se trocar o nome depois o telefone já fica no perfil)". <code>phone</code> grava o E.164 completo (<code>+5511...</code>); <code>phoneCountry</code> grava o DDI ("55") lido do <code>localStorage.scoreplace_loginPhoneCountry</code> que <code>handlePhoneLogin</code> salva no momento de enviar o SMS.</li>' +
+        '<li><b>Filtro defensivo na saudação do dashboard</b>: detecta se <code>displayName</code> parece telefone (regex <code>^\\+?\\d[\\d\\s().-]{5,}$</code>) e cai no fallback <code>guest</code>. Cobre users legados que já tinham phoneNumber salvo como displayName antes desse fix — sem precisar migração de dados.</li>' +
+      '</ol>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.42-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Fix Sentry: defensive null-check pro viewContainer no router.</b> "TypeError: null is not an object (evaluating viewContainer.innerHTML = \'\')" em iOS Chrome Mobile 147 (1 user, 2 ocorrências). Race rara onde #view-container não existia no momento do initRouter. Mudou const → var + re-fetch defensivo no início do handleRoute. Bail silencioso se ainda null.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔇 v1.0.40-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p>v1.0.40 entry — ver acima.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏳ v1.0.41-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>Nudge "Complete seu perfil" agora aguarda o profile carregar de verdade antes de aparecer.</b> Bug reportado: ao logar via magic link, dashboard renderiza antes do <code>loadUserProfile</code> async terminar — <code>currentUser</code> tem só os campos do Google login (uid, email, displayName, photoURL), e os campos extras (gender, birthDate, city, preferredSports) chegam depois. Resultado: nudge "Complete seu perfil" aparecia mesmo pra usuários com perfil 100% completo. Pior: clicar Completar → abria o modal com campos vazios → usuário podia preencher e SOBRESCREVER os dados reais ao salvar.</p>' +
       '<p>Fix: <code>_buildProfileNudgeHtml</code> agora suprime o nudge enquanto <code>cu._profileLoaded !== true</code> (flag setada em store.js após <code>loadUserProfile</code> resolver/falhar). O nudge é envolvido num slot <code>#dash-profile-nudge-slot</code> que é re-injetado pelo event listener <code>scoreplace:profile-loaded</code> assim que os dados chegam — então usuários COM campos faltando ainda veem o nudge, só que com 1-2s de delay. Usuários completos não veem nada.</p>' +
