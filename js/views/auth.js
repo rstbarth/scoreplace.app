@@ -150,7 +150,12 @@ window._updateTopbarForUser = function(user) {
     } else {
       displayFirstName = _t('auth.defaultUser');
     }
-    var photoUrl = effectivePhoto || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+    // v1.0.23-beta: cartoons dicebear/notionists (que o user reclamou) trocados
+    // por iniciais geradas do nome do usuário. Foto real (Google/Apple) tem
+    // prioridade.
+    var photoUrl = (typeof window._profileAvatarUrl === 'function')
+      ? window._profileAvatarUrl(effectiveName || displayFirstName, effectivePhoto, 64)
+      : (effectivePhoto || ('https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(displayFirstName || '?') + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=64'));
 
     btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
     btnLogin.innerHTML =
@@ -366,7 +371,7 @@ function handleGoogleLogin() {
       uid: 'local_user',
       displayName: 'Organizador Teste',
       email: 'organizador@scoreplace.app',
-      photoURL: 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix'
+      photoURL: '' // v1.0.23-beta: vazio → fallback gera iniciais do displayName
     });
     return;
   }
@@ -1599,7 +1604,13 @@ async function simulateLoginSuccess(user) {
       } catch (e) {}
     }
 
-    var photoUrl = cu.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+    // v1.0.23-beta: avatar agora é sempre iniciais (a menos que tenha foto
+    // real do Google/Apple). Helper detecta dicebear.com URLs antigas como
+    // "sem foto" e re-deriva iniciais do nome atual.
+    var avatarName = cu.displayName || (cu.firstName && cu.lastName ? (cu.firstName + ' ' + cu.lastName) : '') || (cu.email ? cu.email.split('@')[0] : '?');
+    var photoUrl = (typeof window._profileAvatarUrl === 'function')
+      ? window._profileAvatarUrl(avatarName, cu.photoURL, 60)
+      : (cu.photoURL || ('https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(avatarName) + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=60'));
     var avatar = document.getElementById('profile-avatar');
     if (avatar) { avatar.src = photoUrl; avatar.style.display = 'block'; }
     var _setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
@@ -2960,29 +2971,20 @@ function setupProfileModal() {
         '</div>' +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
           // Avatar row
+          // v1.0.23-beta: feedback do user — "esses ícones são ridículos.
+          // vamos usar as iniciais dos nomes invés dessa porcaria". Removido
+          // o picker de cartoons (notionists) e o overlay de pencil/edit. O
+          // avatar agora é sempre derivado do displayName (iniciais geradas
+          // automaticamente via dicebear /initials). Foto real do Google/
+          // Apple é preservada quando existe.
           '<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem;">' +
-            '<div style="position: relative; cursor: pointer; flex-shrink: 0;" onclick="document.getElementById(\'avatar-picker\').style.display = document.getElementById(\'avatar-picker\').style.display === \'none\' ? \'grid\' : \'none\'" title="Trocar avatar">' +
+            '<div style="flex-shrink: 0;" title="Foto gerada das iniciais do nome">' +
               '<img id="profile-avatar" src="" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; display: none;">' +
-              '<div style="position: absolute; bottom: -2px; right: -2px; background: var(--primary-color); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">' +
-                '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>' +
-              '</div>' +
             '</div>' +
             '<div style="flex: 1; min-width: 0;">' +
               '<label for="profile-edit-name" class="form-label" style="font-size: 0.75rem; margin-bottom: 2px;">' + _t('profile.labelName') + '</label>' +
-              '<input type="text" id="profile-edit-name" aria-label="' + _t('profile.labelName') + '" class="form-control" style="width: 100%; box-sizing: border-box;" required>' +
+              '<input type="text" id="profile-edit-name" aria-label="' + _t('profile.labelName') + '" class="form-control" style="width: 100%; box-sizing: border-box;" required oninput="window._refreshProfileAvatarFromName && window._refreshProfileAvatarFromName()">' +
             '</div>' +
-          '</div>' +
-          '<div id="avatar-picker" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px; background: var(--bg-darker); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 1rem; max-width: 100%; box-sizing: border-box;">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Luna" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Mia" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Max" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Zoe" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Nova" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Kai" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Rio" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
-            '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Ace" style="width:40px;height:40px;border-radius:50%;cursor:pointer;border:2px solid transparent;" onclick="window._selectAvatar(this.src)">' +
           '</div>' +
           '<form id="form-edit-profile" onsubmit="event.preventDefault(); saveUserProfile()" style="overflow: hidden;">' +
             // Row: Sexo + Nascimento (2 colunas)
@@ -3708,12 +3710,24 @@ function setupProfileModal() {
     };
     // ─── End Profile Map ──────────────────────────────────────────────────────
 
-    window._selectAvatar = function(src) {
-      document.getElementById('profile-avatar').src = src;
-      document.getElementById('avatar-picker').style.display = 'none';
-      if (window.AppStore.currentUser) {
-        window.AppStore.currentUser.photoURL = src;
-      }
+    // v1.0.23-beta: avatar picker removido (cartoons "ridículos"). Iniciais
+    // são auto-geradas do nome. Função mantida como no-op pra compat com
+    // qualquer caller externo (tests, deep-link, etc.).
+    window._selectAvatar = function(_src) { /* no-op desde v1.0.23-beta */ };
+
+    // Re-renderiza o avatar do perfil enquanto o usuário digita o nome —
+    // pra que iniciais reflitam imediatamente o que ele tá editando.
+    window._refreshProfileAvatarFromName = function() {
+      var nameEl = document.getElementById('profile-edit-name');
+      var avatarEl = document.getElementById('profile-avatar');
+      if (!nameEl || !avatarEl) return;
+      var cu = window.AppStore && window.AppStore.currentUser;
+      var hasRealPhoto = cu && cu.photoURL && typeof cu.photoURL === 'string' && cu.photoURL.indexOf('dicebear.com') === -1;
+      if (hasRealPhoto) return; // foto Google/Apple não muda com nome
+      var nm = (nameEl.value || '').trim() || '?';
+      avatarEl.src = (typeof window._profileAvatarUrl === 'function')
+        ? window._profileAvatarUrl(nm, '', 60)
+        : ('https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(nm) + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=60');
     };
 
     // v0.16.9: reescrita do save de perfil, do zero.
@@ -4083,7 +4097,10 @@ function setupProfileModal() {
       }
 
       // Update header UI with new name and photo
-      var photoUrl = window.AppStore.currentUser.photoURL || 'https://api.dicebear.com/7.x/notionists/svg?seed=Generico';
+      // v1.0.23-beta: iniciais geradas do nome substituem cartoon padrão.
+      var photoUrl = (typeof window._profileAvatarUrl === 'function')
+        ? window._profileAvatarUrl(name, window.AppStore.currentUser.photoURL, 32)
+        : (window.AppStore.currentUser.photoURL || ('https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(name || '?') + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=32'));
       var firstName = name ? name.split(' ')[0] : _t('auth.defaultUser');
       var btnLogin = document.getElementById('btn-login');
       if (btnLogin) {

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.0.22-beta';
+window.SCOREPLACE_VERSION = '1.0.23-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -775,6 +775,19 @@ window._avatarUrl = function(name, size) {
     var seed = encodeURIComponent(name || '?');
     var s = size || 40;
     return 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=' + s;
+};
+// v1.0.23-beta: helper canônico pra avatar de perfil. Preserva fotos reais
+// (Google/Apple/etc) e cai em iniciais quando não tem foto OU quando o
+// photoURL salvo é uma URL antiga de dicebear cartoon (notionists) — feedback
+// do user: "esses ícones são ridículos. vamos usar as iniciais dos nomes
+// invés dessa porcaria". Detecta qualquer URL dicebear.com como fallback,
+// porque mesmo as variações de iniciais antigas precisam re-derivar do nome
+// atual (caso usuário tenha mudado nome desde o save).
+window._profileAvatarUrl = function(name, photoURL, size) {
+    if (photoURL && typeof photoURL === 'string' && photoURL.indexOf('dicebear.com') === -1) {
+        return photoURL;
+    }
+    return window._avatarUrl(name, size);
 };
 window._qrCodeUrl = function(data, size, darkMode) {
     var s = size || 280;

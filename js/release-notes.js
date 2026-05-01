@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🅰️ v1.0.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Avatares cartoon foram pra rua — agora são iniciais do nome.</b> Feedback direto do user: "esses ícones são ridículos. vamos usar as iniciais dos nomes invés dessa porcaria". O picker de 10 cartoons (notionists do dicebear) sumiu. O avatar do perfil agora é gerado automaticamente das iniciais do <code>displayName</code> via dicebear /initials, num círculo índigo limpo. Foto real do Google/Apple é preservada quando existe (login social).</p>' +
+      '<p>Dois bonus: (1) avatar atualiza em tempo real enquanto o usuário digita o nome no input — feedback visual imediato; (2) o pencil/edit overlay também sumiu (não há nada pra editar). Helper canônico <code>window._profileAvatarUrl(name, photoURL, size)</code> centraliza a lógica em store.js: foto real wins, fallback gera iniciais. URLs antigas de cartoons que possam estar gravadas em Firestore são detectadas e re-derivadas pra iniciais.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔀 v1.0.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Login com 1 clique unificado: 1 campo, 1 botão pra email-mágico OU SMS.</b> Bug reportado: beta testers confundiam os 2 campos separados (email + SMS), cada um com seu "Enviar". Pior: botão verde do SMS ficava mais destacado que o transparente do magic link, induzindo a escolha errada. Agora um único input com detecção automática:</p>' +
       '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
