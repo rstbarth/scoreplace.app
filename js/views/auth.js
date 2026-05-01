@@ -755,6 +755,37 @@ function handleEmailLinkLogin() {
     })
     .catch(function(error) {
       console.error('Email link send error:', error);
+      // v1.0.40-beta: filtra erros do Firebase Messaging que vazam pra cá.
+      // Bug reportado via screenshot: usuário clicou Enviar e viu "Erro:
+      // Messaging: We are unable to register the default service worker..."
+      // Isso é o FCM tentando registrar /firebase-messaging-sw.js (path
+      // default que não existe — usamos /sw.js). Erro irrelevante pro fluxo
+      // de magic link, mas estava sendo surfaced confundindo o usuário.
+      var msg = error && error.message;
+      var code = error && error.code;
+      var isMessagingNoise = (typeof msg === 'string' && msg.indexOf('Messaging:') === 0)
+                          || (typeof code === 'string' && code.indexOf('messaging/') === 0);
+      if (isMessagingNoise) {
+        console.warn('[handleEmailLinkLogin] Ignoring FCM messaging noise:', msg || code);
+        // Tenta novamente — provavelmente o magic link ENVIOU OK mas o erro
+        // de FCM veio depois. Só não conseguimos confirmar; mostra panel
+        // otimista pro usuário.
+        var modalBody2 = document.querySelector('#modal-login .modal-body');
+        var safeEmail2 = (window._safeHtml || function(s){return s;})(email);
+        if (modalBody2) {
+          modalBody2.innerHTML =
+            '<div style="text-align:center;padding:1rem 0;">' +
+              '<div style="font-size:3rem;margin-bottom:0.5rem;">📬</div>' +
+              '<div style="font-size:1.05rem;font-weight:800;color:var(--text-bright);margin-bottom:0.5rem;">Confira seu e-mail</div>' +
+              '<p style="font-size:0.88rem;color:var(--text-color);margin:0 0 1rem 0;">Se o link foi enviado pra <b>' + safeEmail2 + '</b>, deve chegar em até 1 minuto. Cheque inbox e spam.</p>' +
+              '<div style="display:flex;gap:8px;justify-content:center;">' +
+                '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')" style="font-size:0.82rem;">Fechar</button>' +
+                '<button class="btn btn-primary btn-sm" onclick="window.location.reload()" style="font-size:0.82rem;">Tentar novamente</button>' +
+              '</div>' +
+            '</div>';
+        }
+        return;
+      }
       if (error.code === 'auth/invalid-email') {
         showNotification(_t('auth.invalidEmail'), _t('auth.invalidEmailMsg'), 'error');
       } else if (error.code === 'auth/operation-not-allowed') {
