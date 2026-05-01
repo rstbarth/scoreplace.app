@@ -551,6 +551,75 @@ function _tryLinkPendingCredential(result) {
   });
 }
 
+// ─── Unified Login Input (email magic link OR SMS) ──────────────────────────
+// v1.0.22-beta: feedback do user — ter dois campos (Link Mágico e SMS) com
+// dois "Enviar" estava confundindo. Botão verde do SMS parecia mais
+// destacado que o transparente do magic link, induzindo escolha errada.
+// Agora um único campo detecta automaticamente:
+//   - input contém '@' → email magic link (Cloud Function sendMagicLink)
+//   - 8-15 dígitos → SMS (handlePhoneLogin com DDI do dropdown que aparece)
+//   - ambíguo → erro com instrução clara
+// Notação SMS comunicada de forma explícita via placeholder + helper text
+// dinâmico — usuário vê 🇧🇷 +55 (DDI) ao lado do que digitou (DDD + número).
+function _detectInputModeRaw(value) {
+  if (!value) return null;
+  var v = String(value).trim();
+  if (v.indexOf('@') !== -1) return 'email';
+  // Conta dígitos pra distinguir telefone (8-15 dígitos = E.164 válido) de
+  // string ambígua. Aceita pontuação comum: parênteses, espaços, traços, +.
+  var digits = v.replace(/\D/g, '');
+  if (digits.length >= 8 && digits.length <= 15) return 'phone';
+  return null;
+}
+
+window._detectLoginInputMode = function() {
+  var unifiedEl = document.getElementById('login-unified');
+  var countryEl = document.getElementById('login-unified-country');
+  var helperEl = document.getElementById('login-unified-helper');
+  if (!unifiedEl) return;
+  var mode = _detectInputModeRaw(unifiedEl.value);
+  if (countryEl) countryEl.style.display = (mode === 'phone') ? '' : 'none';
+  if (helperEl) {
+    if (mode === 'email') {
+      helperEl.innerHTML = '✉️ Vamos enviar um <b>link de acesso</b> pro seu e-mail. Clique no link e entra direto.';
+    } else if (mode === 'phone') {
+      // Mostra DDI selecionado pra usuário confirmar visualmente
+      var ddi = (countryEl && countryEl.value) || '55';
+      helperEl.innerHTML = '📱 Vamos enviar <b>SMS com código</b> pro <b>+' + ddi + '</b> + DDD + número (ex: <code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:0.72rem;">+' + ddi + ' 11 99999-8888</code>). Confira o DDI ao lado se for outro país.';
+    } else {
+      helperEl.innerHTML = '<b>E-mail</b>: receberá link mágico pra entrar.<br><b>Celular</b>: receberá SMS com código — formato <code style="background:rgba(255,255,255,0.06);padding:1px 3px;border-radius:3px;font-size:0.7rem;">DDD + número</code> (ex: <code style="background:rgba(255,255,255,0.06);padding:1px 3px;border-radius:3px;font-size:0.7rem;">11 99999-8888</code>). 🇧🇷 +55 é o padrão.';
+    }
+  }
+};
+
+window.handleUnifiedLogin = function() {
+  var unifiedEl = document.getElementById('login-unified');
+  var raw = unifiedEl ? unifiedEl.value.trim() : '';
+  if (!raw) {
+    showNotification('Digite e-mail ou celular', 'Informe um e-mail ou número de celular pra continuar.', 'warning');
+    if (unifiedEl) unifiedEl.focus();
+    return;
+  }
+  var mode = _detectInputModeRaw(raw);
+  if (mode === 'email') {
+    var emailEl = document.getElementById('login-email-link');
+    if (emailEl) emailEl.value = raw;
+    handleEmailLinkLogin();
+  } else if (mode === 'phone') {
+    var phoneEl = document.getElementById('login-phone');
+    var unifiedCountry = document.getElementById('login-unified-country');
+    var hiddenCountry = document.getElementById('login-phone-country');
+    if (phoneEl) phoneEl.value = raw;
+    // Sincroniza country code do dropdown visível pro hidden input
+    // (handlePhoneLogin lê de login-phone-country).
+    if (unifiedCountry && hiddenCountry) hiddenCountry.value = unifiedCountry.value;
+    handlePhoneLogin();
+  } else {
+    showNotification('Formato não reconhecido', 'Digite um e-mail (com @) ou celular com DDD (ex: 11 99999-8888).', 'warning');
+    if (unifiedEl) unifiedEl.focus();
+  }
+};
+
 // ─── Email Link (Passwordless) Login ────────────────────────────────────────
 function handleEmailLinkLogin() {
   var emailEl = document.getElementById('login-email-link');
@@ -771,9 +840,14 @@ function handlePhoneLogin() {
 }
 
 function _showPhoneVerificationStep() {
-  var phoneStep = document.getElementById('phone-step-number');
+  // v1.0.22-beta: campo unificado substituiu phone-step-number — agora
+  // escondemos o login-unified-step (campo único email/celular) e mostramos
+  // o phone-step-code (input do código de 6 dígitos).
+  var unifiedStep = document.getElementById('login-unified-step');
+  var phoneStepLegacy = document.getElementById('phone-step-number'); // pré-v1.0.22 (defensivo)
   var codeStep = document.getElementById('phone-step-code');
-  if (phoneStep) phoneStep.style.display = 'none';
+  if (unifiedStep) unifiedStep.style.display = 'none';
+  if (phoneStepLegacy) phoneStepLegacy.style.display = 'none';
   if (codeStep) codeStep.style.display = 'block';
   var codeInput = document.getElementById('login-phone-code');
   if (codeInput) { codeInput.value = ''; codeInput.focus(); }
@@ -835,9 +909,13 @@ function _resetPhoneRecaptcha() {
 }
 
 function _resetPhoneLoginUI() {
-  var phoneStep = document.getElementById('phone-step-number');
+  // v1.0.22-beta: campo unificado — restaura login-unified-step e esconde
+  // o passo de verificação de código.
+  var unifiedStep = document.getElementById('login-unified-step');
+  var phoneStepLegacy = document.getElementById('phone-step-number'); // pré-v1.0.22 (defensivo)
   var codeStep = document.getElementById('phone-step-code');
-  if (phoneStep) phoneStep.style.display = 'block';
+  if (unifiedStep) unifiedStep.style.display = 'block';
+  if (phoneStepLegacy) phoneStepLegacy.style.display = 'block';
   if (codeStep) codeStep.style.display = 'none';
   window._phoneConfirmationResult = null;
 }
@@ -1912,61 +1990,57 @@ function setupLoginModal() {
         '</div>' +
         '<div class="modal-body">' +
 
-          // --- 1. Link Mágico por E-mail ---
-          '<div style="margin-bottom:4px;">' +
-            '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️ Link Magico por E-mail</div>' +
-            '<form onsubmit="event.preventDefault(); handleEmailLinkLogin();">' +
+          // --- 1. Entrar com 1 clique (email mágico OU SMS — campo único) ---
+          // v1.0.22-beta: feedback do user — ter 2 campos (Link Mágico e SMS)
+          // com 2 botões "Enviar" estava confundindo. Botão verde do SMS
+          // parecia mais destacado que o transparente do magic link, induzindo
+          // escolha errada. Agora um único input detecta automaticamente:
+          //   - tem '@' → email magic link
+          //   - 8-15 dígitos → SMS
+          //   - ambíguo → erro
+          // O DDI dropdown só aparece quando phone detectado. Hidden inputs
+          // delegam pros handlers existentes (handleEmailLinkLogin /
+          // handlePhoneLogin) sem duplicar lógica.
+          '<div id="login-unified-step" style="margin-bottom:4px;">' +
+            '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️📱 Entrar com 1 clique</div>' +
+            '<form novalidate onsubmit="event.preventDefault(); handleUnifiedLogin();">' +
               '<div style="display:flex;gap:6px;align-items:center;">' +
-                '<input type="email" id="login-email-link" class="form-control" placeholder="ex: joao.silva@gmail.com" required style="flex:1;font-size:1rem;padding:12px 14px;">' +
-                '<button type="submit" class="btn" style="font-size:0.72rem;white-space:nowrap;padding:6px 10px;background:transparent;border:1px solid var(--primary-color,#3b82f6);color:var(--primary-color,#3b82f6);font-weight:600;border-radius:8px;">Enviar</button>' +
+                '<select id="login-unified-country" aria-label="DDI do telefone" class="form-control" style="display:none;width:96px;flex-shrink:0;font-size:0.85rem;padding:8px 4px;">' +
+                  (typeof _phoneCountries !== 'undefined' ? _phoneCountries.map(function(c) {
+                    return '<option value="' + c.code + '"' + (c.code === '55' ? ' selected' : '') + '>' + c.flag + ' +' + c.code + '</option>';
+                  }).join('') : '<option value="55">🇧🇷 +55</option>') +
+                '</select>' +
+                '<input type="text" id="login-unified" class="form-control" placeholder="seu@email.com  ou  (11) 99999-8888" required autocomplete="off" oninput="window._detectLoginInputMode && window._detectLoginInputMode()" style="flex:1;min-width:0;font-size:0.95rem;padding:12px 14px;">' +
+                '<button type="submit" class="btn btn-primary" style="font-size:0.85rem;white-space:nowrap;padding:10px 16px;font-weight:700;">Enviar</button>' +
+              '</div>' +
+              '<div id="login-unified-helper" style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;line-height:1.4;">' +
+                'Receba um link por e-mail ou código por SMS. Pra outro país, comece com +DDI.' +
               '</div>' +
             '</form>' +
-          '</div>' +
-          '<div id="login-panel-emaillink" style="display:none;"></div>' +
-
-          // --- Divider ---
-          '<div style="display:flex;align-items:center;gap:12px;margin:12px 0;">' +
-            '<div style="flex:1;height:1px;background:var(--border-color);"></div>' +
-            '<span style="color:var(--text-muted);font-size:0.7rem;">ou</span>' +
-            '<div style="flex:1;height:1px;background:var(--border-color);"></div>' +
+            // Hidden inputs — handlers existentes leem destes IDs.
+            '<input type="hidden" id="login-email-link">' +
+            '<input type="hidden" id="login-phone">' +
+            '<input type="hidden" id="login-phone-country" value="55">' +
           '</div>' +
 
-          // --- 2. SMS para Celular ---
-          // v0.17.84: dropdown de países substitui +55 fixo. Default Brasil,
-          // mas usuário pode escolher entre 10 países populares (BR, US, PT,
-          // AR, UY, PY, CL, CO, ES, UK). Última escolha persistida em
-          // localStorage(scoreplace_loginPhoneCountry).
-          '<div style="margin-bottom:4px;">' +
-            '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">📱 SMS para Celular</div>' +
-            '<div id="phone-step-number" style="display:block;">' +
-              '<form novalidate onsubmit="event.preventDefault(); handlePhoneLogin();">' +
-                '<div style="display:flex;gap:8px;align-items:center;">' +
-                  '<select id="login-phone-country" aria-label="DDI do telefone" class="form-control" style="width:108px;flex-shrink:0;font-size:0.85rem;padding:8px 4px;">' +
-                    (typeof _phoneCountries !== 'undefined' ? _phoneCountries.map(function(c) {
-                      return '<option value="' + c.code + '"' + (c.code === '55' ? ' selected' : '') + '>' + c.flag + ' +' + c.code + '</option>';
-                    }).join('') : '<option value="55">🇧🇷 +55</option>') +
-                  '</select>' +
-                  '<input type="tel" id="login-phone" class="form-control" placeholder="(11) 99999-8888" style="flex:1;min-width:0;font-size:0.85rem;">' +
-                  '<button type="submit" class="btn btn-success" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Enviar</button>' +
-                '</div>' +
-              '</form>' +
-            '</div>' +
-            '<div id="phone-step-code" style="display:none;">' +
-              '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:6px;">Digite o codigo de 6 digitos recebido por SMS:</p>' +
-              '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
-                '<div style="display:flex;gap:8px;align-items:center;">' +
-                  '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="flex:1;text-align:center;font-size:1.1rem;letter-spacing:6px;font-weight:700;">' +
-                  '<button type="submit" class="btn btn-success" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Verificar</button>' +
-                '</div>' +
-              '</form>' +
-              '<div style="text-align:center;margin-top:6px;">' +
-                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.72rem;">Reenviar</a>' +
-                '<span style="color:var(--text-muted);font-size:0.72rem;margin:0 6px;">|</span>' +
-                '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.72rem;">Voltar</a>' +
+          // SMS code verification step (mostrado só após handlePhoneLogin enviar SMS)
+          '<div id="phone-step-code" style="display:none;margin-bottom:4px;">' +
+            '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">📱 Confirme o código</div>' +
+            '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:6px;">Digite o código de 6 dígitos recebido por SMS:</p>' +
+            '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
+              '<div style="display:flex;gap:8px;align-items:center;">' +
+                '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="flex:1;text-align:center;font-size:1.1rem;letter-spacing:6px;font-weight:700;">' +
+                '<button type="submit" class="btn btn-success" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Verificar</button>' +
               '</div>' +
+            '</form>' +
+            '<div style="text-align:center;margin-top:6px;">' +
+              '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.72rem;">Reenviar</a>' +
+              '<span style="color:var(--text-muted);font-size:0.72rem;margin:0 6px;">|</span>' +
+              '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.72rem;">Voltar</a>' +
             '</div>' +
-            '<div id="recaptcha-container"></div>' +
           '</div>' +
+          '<div id="recaptcha-container"></div>' +
+          '<div id="login-panel-emaillink" style="display:none;"></div>' +
           '<div id="login-panel-phone" style="display:none;"></div>' +
 
           // --- Divider ---
@@ -2057,12 +2131,18 @@ function setupLoginModal() {
   if (btnLogin) {
     btnLogin.addEventListener('click', function() {
       openModal('modal-login');
-      // v0.17.84: restaura último DDI escolhido (se houver) pra reabrir o
-      // modal já com o país correto selecionado.
+      // v0.17.84/v1.0.22-beta: restaura último DDI escolhido pra reabrir o
+      // modal já com o país correto selecionado. Aplica em ambos os selects
+      // (visível login-unified-country + hidden login-phone-country que o
+      // handler real lê).
       try {
         var saved = localStorage.getItem('scoreplace_loginPhoneCountry');
-        var sel = document.getElementById('login-phone-country');
-        if (sel && saved) sel.value = saved;
+        var selVisible = document.getElementById('login-unified-country');
+        var selHidden = document.getElementById('login-phone-country');
+        if (saved) {
+          if (selVisible) selVisible.value = saved;
+          if (selHidden) selHidden.value = saved;
+        }
       } catch(_e) {}
     });
   }

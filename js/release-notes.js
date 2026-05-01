@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔀 v1.0.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Login com 1 clique unificado: 1 campo, 1 botão pra email-mágico OU SMS.</b> Bug reportado: beta testers confundiam os 2 campos separados (email + SMS), cada um com seu "Enviar". Pior: botão verde do SMS ficava mais destacado que o transparente do magic link, induzindo a escolha errada. Agora um único input com detecção automática:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Tem <code>@</code> → enviamos <b>link mágico por email</b></li>' +
+        '<li>8-15 dígitos → enviamos <b>código por SMS</b> (DDI dropdown 🇧🇷+55 aparece automaticamente; pra outro país escolha no select)</li>' +
+        '<li>Helper text dinâmico explica formato esperado: <code>+DDI DDD número</code> (ex: <code>+55 11 99999-8888</code>)</li>' +
+      '</ul>' +
+      '<p>Implementação delega pros handlers existentes (<code>handleEmailLinkLogin</code>, <code>handlePhoneLogin</code>) via hidden inputs — zero refator de lógica de auth, só refator de UX.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">✉️ v1.0.21-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Email do magic link mais limpo + painel "verifique seu email" com sender correto.</b> Feedback do user: o header do email da v1.0.20-beta com gradient âmbar (pódio + scoreplace.app + tagline) parecia outro botão competindo com o CTA real. Agora só o botão tem destaque colorido — header passa a ser sutil (texto âmbar pequeno em fundo escuro, sem gradient), branding inalterado mas visualmente subordinado.</p>' +
       '<p>Bonus fix: o painel "📬 Link enviado!" do modal de login dizia que o sender era <code>noreply@scoreplace-app.firebaseapp.com</code> (correto pra v1.0.14-beta antes do switch pra Cloud Function). Como v1.0.20-beta passou a enviar via <code>firestore-send-email</code> extension com SMTP do Gmail, o sender real é <code>scoreplace.app@gmail.com</code> — corrigido pro user fazer whitelist no endereço certo.</p>' +
