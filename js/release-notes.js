@@ -9,9 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Correção do v1.0.54: pill Partidas agora só REORDENA, sem mudar tamanhos.</b> User reportou que o fix anterior tinha mudado a fonte de "Partidas" pra big (0.95rem) e suprimido o count numérico. Pedido literal: <i>"não era para mexer no tamanho da fonte de partidas e nem suprimir o numero total de partidas que aparecia antes"</i>. Agora ordem de elementos é: emoji → "Partidas" (mantido em 0.66rem font-weight 600 — IGUAL antes) → count "3" big (1.3rem font-weight 800 — IGUAL antes, visível) → V/D/% (0.62rem — IGUAL antes). Só reordenei pra label vir antes do count, sem tocar em tamanho/peso.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
-      '<p><b>Pill "Partidas" reorganizado: label em cima, V/D/% embaixo.</b> Pedido do user: <i>"coloque partidas na linha de cima e as outras infos abaixo (acho que ficará mais bonito)"</i>. Antes: emoji → count "3" (big) → V/D/% (small) → "Partidas" (small). O count numérico era redundante (V + D = total). Agora: emoji → <b>"Partidas"</b> (prominent, 0.95rem font-weight 800) → "2V · 1D · 67%" (info, 0.72rem). Visual mais limpo, hierarquia faz sentido — leitor vê "Partidas" primeiro, depois detalha o desempenho.</p>' +
-      '<p>Nova opção <code>labelOnTop: true</code> em <code>_statPill</code> reutilizável caso outros pills queiram a mesma inversão. Count fica escondido (display:none) mas mantido pra refresh async não quebrar.</p>' +
+      '<p><b>Pill "Partidas" reorganizado: label em cima, V/D/% embaixo.</b> Pedido do user: <i>"coloque partidas na linha de cima e as outras infos abaixo (acho que ficará mais bonito)"</i>. Tentativa #1 — corrigida na v1.0.55 (overshooted no tamanho).</p>' +
     '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">👴 v1.0.53-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
