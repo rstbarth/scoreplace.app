@@ -9,6 +9,23 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏱ v1.0.35-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Timing de pontos no placar ao vivo agora resiste a correções (undo + redo) + filtro de outliers nas stats finais.</b> Cenário reportado: usuário marca 2 pontos pro time errado (15+30), descobre, desfaz os 2, marca 2 pra time certo (15+30). Score corrige perfeitamente, MAS o tempo registrado pra os pontos corretos era o do clique de correção (rápidos consecutivos) → estatística "ponto mais rápido = 0 segundos" no fim. Absurdo.</p>' +
+      '<p><b>Fix em 2 camadas:</b></p>' +
+      '<p><b>1) Undo agora empilha timestamps (LIFO stack) em vez de single-shot.</b> Antes, só o ÚLTIMO undo guardava o timestamp pro próximo add reaproveitar. Com 2 undos consecutivos, o primeiro era perdido. Agora <code>state._recentUndoStack</code> empilha cada undo com seu timestamp original; cada novo <code>_addPoint</code> pop\'a o mais recente. Funciona pra N undos consecutivos. Janela: stack inteiro descarta se >15s sem novo undo, item individual descarta se >30s desde o ponto original. Cobre o uso típico (correção em ~5-10s) sem contaminar pontos não-relacionados.</p>' +
+      '<p><b>2) Filtro de outliers nas estatísticas de tempo.</b> Mesmo que a recuperação de timestamp do undo falhe (correção lenta >15s ou edge case raro), as stats finais não devem mostrar "0 segundos" como ponto mais rápido. Implementado em DUAS calculações de timeStats (inline pós-partida + persistido em Firestore/localStorage):</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>avgMs</code> agora usa <b>mediana</b> em vez de média — 1 outlier não puxa a estatística inteira</li>' +
+        '<li><code>minMs</code> filtra intervalos absurdamente curtos. Threshold dinâmico: <code>max(2000ms, 30% da mediana)</code>. Pontos legítimos curtos (ace direto = ~3s) passam; cliques de correção (<2s) saem</li>' +
+        '<li>Fallback se TODOS os intervalos são suspeitos: cai pro min puro pra não mostrar null. Campo <code>outlierFilteredCount</code> indica quantos foram filtrados (pra debug)</li>' +
+      '</ul>' +
+      '<p>Resultado: cenário de "ponto mais rápido = 0s" eliminado. Mediana sobrevive a outliers melhor que média. Modal "Estatísticas Detalhadas" do hero box e box de tempo pós-partida ambos protegidos.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🧹 v1.0.34-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Housekeeping:</b> scheduled function <code>cleanupOldMagicLinks</code> rodando 04:30 BRT — deleta docs em <code>magicLinks/{token}</code> com <code>expiresAt &lt; now</code>. Sem isso a coleção crescia 1 doc por magic link request. CLAUDE.md atualizado com 13 entries do changelog v1.0.20→v1.0.33-beta. Sentry check pós-deploys: 3 issues novas em 24h, todas low-impact (1 user/issue), nenhuma regressão crítica das releases anteriores.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📊 v1.0.33-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>Estatísticas de partida casual + modal de stats reformuladas</b> — 3 bugs/feedbacks endereçados juntos:</p>' +
       '<p><b>1) Bug "soma não dava 100%"</b>: percentuais complementares (ex: derrotas vs vitórias do mesmo total) podiam somar 101% por causa de <code>Math.round</code> independente em cada lado. Quando ambos eram N.5, ambos arredondavam pra cima. Fix: calcula um lado com <code>Math.round</code> e o outro como <code>(100 - lado1)</code>. Garante <b>sempre sum=100</b>, em <code>_diffBarRow</code> (modal) e <code>_compareBar</code> (final de partida).</p>' +

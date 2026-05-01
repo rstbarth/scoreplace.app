@@ -3409,14 +3409,42 @@ window._openLiveScoring = function(tId, matchId, opts) {
     // Log every point scored with rich context for analytics, including the
     // timestamp so we can compute time-per-point analytics (avg/longest/fastest
     // interval, longest rally gap, etc.).
-    // Correção rápida: se acabamos de desfazer um tap errado há <7s e este
-    // novo ponto é a correção, reaproveita o timestamp original. Faz com
-    // que o intervalo "ponto anterior → ponto correto" não inclua os
-    // segundos gastos na correção em si.
+    // v1.0.35-beta: Correção rápida via STACK de timestamps (não mais single-
+    // shot). Bug reportado: usuário marca 2 pontos pro time errado (15+30),
+    // descobre, desfaz os 2, marca 2 pra time certo (15+30). Score corrige,
+    // mas timing dos novos pontos era Date.now() do clique de correção —
+    // intervalos ficavam ~0s. Agora _recentUndoStack guarda timestamps em
+    // ordem cronológica reversa (LIFO); cada novo _addPoint pop'a o mais
+    // antigo que ainda esteja válido (stack-recent < 15s, item original < 30s
+    // pra evitar contaminação inter-rally). Funciona pra N undos consecutivos
+    // de um time, seguidos de N adds pro outro — intervalos preservados.
     var _pointTs = Date.now();
-    if (state._recentUndoTs && (_pointTs - state._recentUndoTs) < 7000) {
-      _pointTs = state._recentUndoTs;
+    if (Array.isArray(state._recentUndoStack) && state._recentUndoStack.length > 0) {
+      // Limpa entradas stale do topo (mais recente) — se o último undo foi
+      // há mais de 15s, considera o stack inteiro stale e descarta.
+      var lastEntry = state._recentUndoStack[state._recentUndoStack.length - 1];
+      if (_pointTs - lastEntry.undoneAt > 15000) {
+        state._recentUndoStack.length = 0;
+      } else {
+        // LIFO: o último undo é o mais "novo" cronologicamente. Mas pra
+        // recuperar timestamps na ordem que o usuário pretendia (15 primeiro,
+        // 30 depois), precisamos pegar o mais ANTIGO (bottom of stack).
+        // Ex: undo 30→push T2; undo 15→push T1. Stack=[T2, T1].
+        // Add 15 (correto)→ shift T2... espera, queremos T1 primeiro!
+        // Cuidado: o usuário desfaz na ORDEM REVERSA (último primeiro), mas
+        // quer recuperar na ORDEM ORIGINAL. Stack após "undo 30, undo 15" é
+        // [T2, T1] (push 30 antes, push 15 depois). Pra recuperar T1 primeiro
+        // (15 correto agora), pop. Pra T2 depois (30 correto), pop de novo.
+        // Confere: pop = retira do topo = último pushed = T1. ✓
+        var recovered = state._recentUndoStack.pop();
+        // Validar que o ponto original não é absurdamente antigo (>30s do
+        // momento atual) — caso contrário o intervalo sairia distorcido.
+        if (recovered && recovered.ts && (_pointTs - recovered.ts) < 30000) {
+          _pointTs = recovered.ts;
+        }
+      }
     }
+    // Compat: limpa o single-shot legado se ainda existir.
     state._recentUndoTs = null;
     state.pointLog.push({
       team: player,
@@ -3652,17 +3680,38 @@ window._openLiveScoring = function(tId, matchId, opts) {
         prevTs = ptsWithT[rti].t;
       }
       if (recIntervals.length > 0) {
-        var sumI = 0, minI = Infinity, maxI = 0;
-        for (var rk = 0; rk < recIntervals.length; rk++) {
-          sumI += recIntervals[rk];
-          if (recIntervals[rk] < minI) minI = recIntervals[rk];
-          if (recIntervals[rk] > maxI) maxI = recIntervals[rk];
+        // v1.0.35-beta: mesmo filtro de outliers que o time-per-point inline
+        // (avgMs via mediana, minMs com threshold). Persistido em Firestore +
+        // localStorage cache, alimentando o modal "Estatísticas Detalhadas"
+        // do hero box. Sem isso, casual antigo com tap-correção quebrava a
+        // estatística "ponto mais rápido" pra sempre.
+        var sortedRecInt = recIntervals.slice().sort(function(a,b){return a-b;});
+        var medianRecMs;
+        if (sortedRecInt.length % 2 === 1) {
+          medianRecMs = sortedRecInt[Math.floor(sortedRecInt.length / 2)];
+        } else {
+          var midR = sortedRecInt.length / 2;
+          medianRecMs = (sortedRecInt[midR - 1] + sortedRecInt[midR]) / 2;
         }
+        var outlierThresholdR = Math.max(2000, Math.floor(medianRecMs * 0.3));
+        var maxI = 0;
+        var filteredMinR = Infinity, filteredCntR = 0;
+        for (var rk = 0; rk < recIntervals.length; rk++) {
+          if (recIntervals[rk] > maxI) maxI = recIntervals[rk];
+          if (recIntervals[rk] >= outlierThresholdR) {
+            if (recIntervals[rk] < filteredMinR) filteredMinR = recIntervals[rk];
+            filteredCntR++;
+          }
+        }
+        var safeMinR;
+        if (filteredCntR > 0) safeMinR = filteredMinR;
+        else safeMinR = sortedRecInt[0];
         timeStatsRec = {
-          avgPointMs: Math.round(sumI / recIntervals.length),
+          avgPointMs: Math.round(medianRecMs),
           longestPointMs: maxI,
-          shortestPointMs: minI === Infinity ? null : minI,
-          pointsWithTime: ptsWithT.length
+          shortestPointMs: safeMinR,
+          pointsWithTime: ptsWithT.length,
+          outlierFilteredCount: recIntervals.length - filteredCntR
         };
       }
     }
@@ -4653,18 +4702,50 @@ window._openLiveScoring = function(tId, matchId, opts) {
           prevT = ti;
         }
         if (intervals.length > 0) {
-          var sumMs = 0, minMs = Infinity, maxMs = 0;
+          // v1.0.35-beta: filtro de outliers pra "ponto mais rápido" não
+          // ser distorcido por taps acidentais ou correções rápidas.
+          // Bug reportado: "ao final do jogo nas estatisticas constava que
+          // o ponto mais rápido se deu em 0 segundos. isso é absurdo".
+          // Causa: 2 cliques rápidos consecutivos (correção) → intervalo <
+          // 1s. Solução em 2 camadas:
+          //   1. avgMs usa MEDIANA em vez de média — menos sensível a
+          //      valores extremos (1 outlier não puxa a estatística inteira)
+          //   2. minMs filtra intervalos absurdamente curtos. Threshold:
+          //      max(2000ms, 30% da mediana). Pontos legítimos curtos
+          //      (ace direto = ~3s) passam; cliques de correção (<2s) saem.
+          var sortedIntervals = intervals.slice().sort(function(a,b){return a-b;});
+          var medianMs;
+          if (sortedIntervals.length % 2 === 1) {
+            medianMs = sortedIntervals[Math.floor(sortedIntervals.length / 2)];
+          } else {
+            var mid = sortedIntervals.length / 2;
+            medianMs = (sortedIntervals[mid - 1] + sortedIntervals[mid]) / 2;
+          }
+          var outlierThreshold = Math.max(2000, Math.floor(medianMs * 0.3));
+          var sumMs = 0, maxMs = 0;
+          var filteredMin = Infinity, filteredCount = 0;
           for (var ii = 0; ii < intervals.length; ii++) {
             sumMs += intervals[ii];
-            if (intervals[ii] < minMs) minMs = intervals[ii];
             if (intervals[ii] > maxMs) maxMs = intervals[ii];
+            // Para "fastest point", só considera intervalos >= threshold —
+            // descarta cliques de correção que sobreviveram à recuperação.
+            if (intervals[ii] >= outlierThreshold) {
+              if (intervals[ii] < filteredMin) filteredMin = intervals[ii];
+              filteredCount++;
+            }
           }
+          // Se TODOS os intervalos são suspeitos (nada sobreviveu ao filtro),
+          // cai pro min puro como fallback — pelo menos não mostra null.
+          var safeMin;
+          if (filteredCount > 0) safeMin = filteredMin;
+          else safeMin = sortedIntervals[0];
           _timeStats = {
             totalMs: _matchStartTime && _matchEndTime ? (_matchEndTime - _matchStartTime) : null,
-            avgMs: Math.round(sumMs / intervals.length),
-            minMs: minMs === Infinity ? null : minMs,
+            avgMs: Math.round(medianMs),  // mediana, mais robusto a outliers
+            minMs: safeMin,
             maxMs: maxMs || null,
-            pointCount: tsPts.length
+            pointCount: tsPts.length,
+            outlierFilteredCount: intervals.length - filteredCount  // p/ debug
           };
         }
       }
@@ -5524,15 +5605,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (state.currentGameP2 > 0) state.currentGameP2--;
     }
     // Remove a última entrada do pointLog correspondente a ESTE jogador
-    // para manter stats de tempo coerentes. Se o tap errado foi há menos
-    // de 7s, memoriza o timestamp para o próximo _addPoint reutilizar —
-    // assim o intervalo "antes → correto" ignora a digitação errônea.
+    // para manter stats de tempo coerentes. Push o timestamp original num
+    // STACK para o próximo _addPoint pop'ar — assim o intervalo "antes →
+    // correto" ignora os segundos gastos na correção, mesmo se houver
+    // múltiplos undos consecutivos. v1.0.35-beta: era single-shot
+    // _recentUndoTs antes (perdia timestamps quando 2+ undos seguidos).
     var log = state.pointLog || [];
     for (var i = log.length - 1; i >= 0; i--) {
       if (log[i].team === player) {
         var popped = log.splice(i, 1)[0];
-        if (popped && popped.t && (Date.now() - popped.t) < 7000) {
-          state._recentUndoTs = popped.t; // reaproveitado no próximo ponto
+        if (popped && popped.t && (Date.now() - popped.t) < 30000) {
+          if (!Array.isArray(state._recentUndoStack)) state._recentUndoStack = [];
+          state._recentUndoStack.push({ ts: popped.t, undoneAt: Date.now() });
         }
         break;
       }
