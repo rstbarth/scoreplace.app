@@ -4533,25 +4533,55 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var loseChipsHtml = '';
       for (var li = 0; li < losePlayers.length; li++) loseChipsHtml += _playerChip(losePlayers[li], false, loseClr);
 
-      // Comparative stats bar builder
+      // Comparative stats bar builder.
+      // v1.0.33-beta: barras agora são SHARE-OF-TOTAL pra raw counts (sum=100%)
+      // ou ABSOLUTE-PCT pra estatísticas que já são percentuais (maxCap=100).
+      // Antes: max-relative (lado maior sempre em 100%) — dava impressão errada
+      // de domínio. Bug reportado: "as barras coloridas de todas as estatisticas
+      // percentuais tivessem o tamanho relativo (barra cheia em 100% e vazia
+      // em 0% e do tamanho proporcional em qualquer valor entre cheia e
+      // vazia)". Animação on-scroll via data-stat-bar + data-stat-count
+      // (IntersectionObserver em window._initStatsAnimation).
       var _compareBar = function(label, icon, winVal, losVal, fmt, maxCap) {
         fmt = fmt || function(v) { return v; };
-        var maxV = maxCap || Math.max(winVal, losVal, 1);
-        var winPctBar = Math.round(winVal / maxV * 100);
-        var losPctBar = Math.round(losVal / maxV * 100);
+        var winPctBar, losPctBar;
+        if (maxCap === 100) {
+          // Stat já é percentual (ex: "% Pontos no Saque") — barra reflete
+          // o valor diretamente, ambas independentes (não somam 100%).
+          winPctBar = Math.max(0, Math.min(100, winVal));
+          losPctBar = Math.max(0, Math.min(100, losVal));
+        } else {
+          // Raw counts complementares (vencedor vs perdedor da mesma partida).
+          // Cada um pega sua fatia do total. Garantimos sum=100% via 100-X.
+          var sum = (winVal || 0) + (losVal || 0);
+          if (sum > 0) {
+            winPctBar = Math.round((winVal || 0) / sum * 100);
+            losPctBar = 100 - winPctBar;
+          } else {
+            winPctBar = 0;
+            losPctBar = 0;
+          }
+        }
+        var isPctFmt = (maxCap === 100);
+        // Counter: número absoluto pra raw counts, percentage pra %-stats.
+        // Usa data-stat-count pra animar 0 → target on-scroll. Suffix '%' só
+        // pra fmt que termina em %.
+        var fmtSample = fmt(winVal);
+        var hasPctSuffix = (typeof fmtSample === 'string' && fmtSample.indexOf('%') !== -1);
+        var dataSuffix = hasPctSuffix ? '%' : '';
         return (
           '<div style="display:flex;flex-direction:column;gap:4px;">' +
             '<div style="text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">' + icon + ' ' + label + '</div>' +
             '<div style="display:flex;align-items:center;gap:6px;">' +
-              '<span style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + loseClr + ';font-variant-numeric:tabular-nums;">' + fmt(losVal) + '</span>' +
+              '<span data-stat-count="' + losVal + '" data-stat-count-suffix="' + dataSuffix + '" style="flex:0 0 auto;min-width:36px;text-align:right;font-size:0.9rem;font-weight:900;color:' + loseClr + ';font-variant-numeric:tabular-nums;">0' + dataSuffix + '</span>' +
               '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;justify-content:flex-end;position:relative;">' +
-                '<div style="width:' + losPctBar + '%;background:linear-gradient(90deg,' + loseClr + '44,' + loseClr + ');border-radius:5px 0 0 5px;transition:width 0.5s ease-out;"></div>' +
+                '<div data-stat-bar="' + losPctBar + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + loseClr + '44,' + loseClr + ');border-radius:5px 0 0 5px;transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
               '</div>' +
               '<div style="width:1px;height:14px;background:rgba(255,255,255,0.2);"></div>' +
               '<div style="flex:1;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;">' +
-                '<div style="width:' + winPctBar + '%;background:linear-gradient(90deg,' + winClr + ',' + winClr + '44);border-radius:0 5px 5px 0;transition:width 0.5s ease-out;"></div>' +
+                '<div data-stat-bar="' + winPctBar + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + winClr + ',' + winClr + '44);border-radius:0 5px 5px 0;transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
               '</div>' +
-              '<span style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + winClr + ';font-variant-numeric:tabular-nums;">' + fmt(winVal) + '</span>' +
+              '<span data-stat-count="' + winVal + '" data-stat-count-suffix="' + dataSuffix + '" style="flex:0 0 auto;min-width:36px;font-size:0.9rem;font-weight:900;color:' + winClr + ';font-variant-numeric:tabular-nums;">0' + dataSuffix + '</span>' +
             '</div>' +
           '</div>'
         );
@@ -4787,6 +4817,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
           timeStatsSection +
           (timeStatsSection ? '' : durationRow) +
         '</div>';
+      // v1.0.33-beta: dispara animação on-scroll de barras + contadores nos
+      // blocos de stats (_compareBar, etc).
+      if (typeof window._initStatsAnimation === 'function') {
+        window._initStatsAnimation(container);
+      }
 
       // Tournament finish screen: hide the Reset button (would undo the
       // finished state) but KEEP the ✕ Fechar button visible — users were

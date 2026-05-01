@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.0.32-beta';
+window.SCOREPLACE_VERSION = '1.0.33-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -788,6 +788,86 @@ window._profileAvatarUrl = function(name, photoURL, size) {
         return photoURL;
     }
     return window._avatarUrl(name, size);
+};
+
+// v1.0.33-beta: animação on-scroll de barras + contadores de stats.
+// Usado nas estatísticas pós-partida casual e no modal "Estatísticas
+// Detalhadas" do hero box. IntersectionObserver é nativo + barato — zero
+// impacto perceptível em performance. Bars CSS-transicionam o width;
+// counters sobem de 0 → target via RAF com easing cubic-out.
+//
+// Uso no HTML:
+//   <div data-stat-bar="75" style="width:0%; transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>
+//   <span data-stat-count="42" data-stat-count-suffix="%">0%</span>
+//
+// Após inserir no DOM:
+//   window._initStatsAnimation(rootEl);
+//
+// Fallback (sem IntersectionObserver): seta valores finais imediatamente.
+window._initStatsAnimation = function(rootEl) {
+    rootEl = rootEl || document;
+    var bars = rootEl.querySelectorAll('[data-stat-bar]');
+    var counts = rootEl.querySelectorAll('[data-stat-count]');
+    if (!bars.length && !counts.length) return;
+
+    // Fallback pra browsers sem IntersectionObserver — só seta o valor final.
+    if (!('IntersectionObserver' in window)) {
+        Array.prototype.forEach.call(bars, function(el) {
+            el.style.width = (parseFloat(el.getAttribute('data-stat-bar')) || 0) + '%';
+        });
+        Array.prototype.forEach.call(counts, function(el) {
+            var suffix = el.getAttribute('data-stat-count-suffix') || '';
+            el.textContent = el.getAttribute('data-stat-count') + suffix;
+        });
+        return;
+    }
+
+    var animateCount = function(el) {
+        var targetN = parseFloat(el.getAttribute('data-stat-count')) || 0;
+        var suffix = el.getAttribute('data-stat-count-suffix') || '';
+        var prefix = el.getAttribute('data-stat-count-prefix') || '';
+        var duration = 700;
+        var start = 0;
+        var startedAt = null;
+        var isInt = (Math.floor(targetN) === targetN);
+        var step = function(now) {
+            if (startedAt === null) startedAt = now;
+            var elapsed = now - startedAt;
+            var t = Math.min(1, elapsed / duration);
+            // Ease-out cubic: rapid start, smooth end
+            var eased = 1 - Math.pow(1 - t, 3);
+            var v = start + (targetN - start) * eased;
+            var display = isInt ? Math.round(v) : (Math.round(v * 10) / 10);
+            el.textContent = prefix + display + suffix;
+            if (t < 1) requestAnimationFrame(step);
+            else el.textContent = prefix + targetN + suffix; // exact final
+        };
+        requestAnimationFrame(step);
+    };
+
+    var animateBar = function(el) {
+        var target = parseFloat(el.getAttribute('data-stat-bar')) || 0;
+        // Já tem transition CSS no inline style — só mudar width dispara animação.
+        // RAF garante que o browser aplica a transição em vez de pular direto.
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                el.style.width = target + '%';
+            });
+        });
+    };
+
+    var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (!entry.isIntersecting) return;
+            var el = entry.target;
+            observer.unobserve(el);
+            if (el.hasAttribute('data-stat-bar')) animateBar(el);
+            if (el.hasAttribute('data-stat-count')) animateCount(el);
+        });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+
+    Array.prototype.forEach.call(bars, function(el) { observer.observe(el); });
+    Array.prototype.forEach.call(counts, function(el) { observer.observe(el); });
 };
 window._qrCodeUrl = function(data, size, darkMode) {
     var s = size || 280;

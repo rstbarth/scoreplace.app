@@ -440,6 +440,13 @@ window._showPlayerStats = function(playerName, currentTournamentId) {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
+    // v1.0.33-beta: dispara animação on-scroll de barras + contadores no
+    // modal de stats. IntersectionObserver detecta quando cada elemento
+    // entra na viewport do modal scrollable e anima 0 → target.
+    if (typeof window._initStatsAnimation === 'function') {
+        window._initStatsAnimation(modal);
+    }
+
     // Helpers to build legacy AppStore-based stats (fallback when uid unknown or matchHistory empty)
     function _buildLegacyStatsHtml(s, sp, wr, tList) {
         // When viewing current user's stats, prefer the local rich cache
@@ -987,34 +994,50 @@ window._renderPersistentMatchStats = function(records, uid) {
         opts = opts || {};
         var totalL = (leftCasual || 0) + (leftTourn || 0);
         var totalR = (rightCasual || 0) + (rightTourn || 0);
-        var maxV = Math.max(totalL, totalR, 1);
-        var lp = Math.round(totalL / maxV * 100);
-        var rp = Math.round(totalR / maxV * 100);
+        // v1.0.33-beta: barras agora são SHARE-OF-TOTAL (sum=100%) em vez de
+        // max-relative (lado maior sempre em 100%). Bug reportado: bars davam
+        // impressão de domínio total quando na verdade era ratio normal.
+        // Combinado com o fix de pct sum=100% abaixo, garante que metade
+        // visual e label numérico contem a mesma história.
+        var sumLR = totalL + totalR;
+        var lp, rp;
+        if (sumLR > 0) {
+            lp = Math.round(totalL / sumLR * 100);
+            rp = 100 - lp; // garante sum=100, evita Math.round artifact
+        } else {
+            lp = 0;
+            rp = 0;
+        }
         var leftClr = opts.leftClr || '#ef4444', rightClr = opts.rightClr || '#22c55e';
         // Percentages per source: left vs right within the same source (tournament
         // or casual). Ex: na linha Derrotas/Vitórias, derrota-tourn% = 0/(0+3)*100
         // e vitória-tourn% = 3/(0+3)*100. Dá "0 (0%) ... 3 (100%)" por fonte.
         // noPct=true desabilita para métricas de média/mín/máx onde o par não é
         // somável (ex: "TB Vencidos mínimo/máximo").
+        // v1.0.33-beta fix: pct{L,R} = (100 - other) em vez de Math.round
+        // independente — bug reportado pelo user "soma do realizado pelo meu
+        // time e o time adversário não somavam 100%". Math.round em ambos pode
+        // dar 50.5+50.5 → 51+51 = 102. Agora garantido sum=100 sempre.
         var tournSum = (leftTourn || 0) + (rightTourn || 0);
         var casualSum = (leftCasual || 0) + (rightCasual || 0);
         var pctLT = !opts.noPct && tournSum > 0 ? Math.round((leftTourn || 0) / tournSum * 100) : null;
+        var pctRT = !opts.noPct && tournSum > 0 ? (100 - pctLT) : null;
         var pctLC = !opts.noPct && casualSum > 0 ? Math.round((leftCasual || 0) / casualSum * 100) : null;
-        var pctRC = !opts.noPct && casualSum > 0 ? Math.round((rightCasual || 0) / casualSum * 100) : null;
-        var pctRT = !opts.noPct && tournSum > 0 ? Math.round((rightTourn || 0) / tournSum * 100) : null;
+        var pctRC = !opts.noPct && casualSum > 0 ? (100 - pctLC) : null;
         // Column layout: icon on top, value row below. When pct exists, pct is the
         // prominent large number and abs is small parenthetical on the right.
         // When pct is null (noPct mode: means/min/max), abs is shown large alone.
+        // v1.0.33-beta: data-stat-count nos spans pra animação count-up 0→target.
         var col = function(icon, val, clr, pct) {
             var absVal = (val == null ? 0 : val);
             var mainRow;
             if (pct !== null && pct !== undefined) {
                 mainRow = '<div style="display:flex;align-items:baseline;gap:3px;">' +
-                    '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + pct + '%</span>' +
-                    '<span style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(' + absVal + ')</span>' +
+                    '<span data-stat-count="' + pct + '" data-stat-count-suffix="%" style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">0%</span>' +
+                    '<span data-stat-count="' + absVal + '" data-stat-count-prefix="(" data-stat-count-suffix=")" style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(0)</span>' +
                 '</div>';
             } else {
-                mainRow = '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">' + absVal + '</span>';
+                mainRow = '<span data-stat-count="' + absVal + '" style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">0</span>';
             }
             return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
                 '<span style="font-size:0.7rem;opacity:0.85;line-height:1;">' + icon + '</span>' +
@@ -1044,13 +1067,13 @@ window._renderPersistentMatchStats = function(records, uid) {
                     col('🏆', rightTourn, rightClr, pctRT) +
                 '</div>' +
             '</div>' +
-            // Bars row: diverge from center
+            // Bars row: diverge from center. Animação on-scroll via data-stat-bar.
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
                 '<div style="height:8px;border-radius:4px 0 0 4px;background:var(--stat-box-bg);display:flex;justify-content:flex-end;overflow:hidden;">' +
-                    '<div style="width:' + lp + '%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');transition:width 0.5s ease-out;"></div>' +
+                    '<div data-stat-bar="' + lp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
                 '</div>' +
                 '<div style="height:8px;border-radius:0 4px 4px 0;background:var(--stat-box-bg);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid var(--border-color);">' +
-                    '<div style="width:' + rp + '%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);transition:width 0.5s ease-out;"></div>' +
+                    '<div data-stat-bar="' + rp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -1076,7 +1099,10 @@ window._renderPersistentMatchStats = function(records, uid) {
                 '<div style="font-size:0.72rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;white-space:nowrap;">' + label + '</div>' +
                 '<div style="font-size:0.58rem;font-weight:700;color:' + tournClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:right;">torneios</div>' +
             '</div>' +
-            // Icons + values pushed to extreme edges (⚡ left, 🏆 right)
+            // Icons + values pushed to extreme edges (⚡ left, 🏆 right).
+            // v1.0.33-beta: spans com data-stat-count quando o display é
+            // numérico simples (animação count-up). Strings de média/min/max
+            // não são animáveis então renderizamos direto.
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
                 '<div style="display:flex;justify-content:flex-start;gap:6px;align-items:baseline;">' +
                     '<span style="font-size:0.72rem;opacity:0.9;line-height:1;">⚡</span>' +
@@ -1087,13 +1113,15 @@ window._renderPersistentMatchStats = function(records, uid) {
                     '<span style="font-size:0.72rem;opacity:0.9;line-height:1;">🏆</span>' +
                 '</div>' +
             '</div>' +
-            // Bars diverge from center
+            // Bars diverge from center — max-relative (valores independentes:
+            // casuais vs torneios não somam 100%, são fontes diferentes).
+            // Animação on-scroll via data-stat-bar.
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
                 '<div style="height:8px;border-radius:4px 0 0 4px;background:var(--stat-box-bg);display:flex;justify-content:flex-end;overflow:hidden;">' +
-                    '<div style="width:' + cp + '%;height:100%;background:linear-gradient(90deg,' + casualClr + '44,' + casualClr + ');transition:width 0.5s ease-out;"></div>' +
+                    '<div data-stat-bar="' + cp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + casualClr + '44,' + casualClr + ');transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
                 '</div>' +
                 '<div style="height:8px;border-radius:0 4px 4px 0;background:var(--stat-box-bg);display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid var(--border-color);">' +
-                    '<div style="width:' + tp + '%;height:100%;background:linear-gradient(90deg,' + tournClr + ',' + tournClr + '44);transition:width 0.5s ease-out;"></div>' +
+                    '<div data-stat-bar="' + tp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + tournClr + ',' + tournClr + '44);transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
                 '</div>' +
             '</div>' +
         '</div>';
