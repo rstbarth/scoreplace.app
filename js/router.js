@@ -282,6 +282,16 @@ function initRouter() {
   window.addEventListener('hashchange', handleRoute);
   handleRoute();
 
+  // v1.0.32-beta: sinaliza pro boot loader esconder. handleRoute renderou a
+  // primeira view; pequeno timeout pra garantir paint, depois fade out. Como
+  // o loader é HTML inline em <body>, ele aparece IMMEDIATAMENTE no parse e
+  // só some quando o app está realmente interativo — cobre a transição
+  // landing-prerender → dashboard pra usuário logado, e disfarça spin de
+  // Firebase initializing.
+  if (typeof window._hideBootLoader === 'function') {
+    setTimeout(window._hideBootLoader, 150);
+  }
+
   // Safety net: never leave a blank screen — if view-container is empty after 5s, go to dashboard
   setTimeout(function() {
     var vc = document.getElementById('view-container');

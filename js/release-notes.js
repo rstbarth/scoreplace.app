@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎾 v1.0.32-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Boot loader com 🎾 quicando — splash screen branded enquanto Firebase + auth resolvem.</b> Item velho da minha TODO interna que ainda não tinha materializado. Especialmente útil pra usuário logado: a landing prerender aparece um instante antes do router redirecionar pra dashboard, gerando flash visual ("piscou landing antes do meu app"). Loader cobre essa transição com identidade visual (pódio âmbar do scoreplace).</p>' +
+      '<p>Implementação: HTML+CSS+JS inline em <code>&lt;body&gt;</code> antes de qualquer outro elemento — renderiza IMEDIATAMENTE no parse, sem esperar nenhum asset externo. Tennis ball quica via <code>@keyframes scoreplace-bounce</code> (translateY -14px, scale 1.06, alternate). Brand "scoreplace.app" em âmbar abaixo. Auto-hide com 3 mecanismos:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Polling rápido</b> (80ms): detecta quando <code>window.AppStore</code> existe E view-container tem conteúdo → fade out</li>' +
+        '<li><b>Router signal</b>: <code>initRouter()</code> chama <code>window._hideBootLoader()</code> 150ms após primeiro <code>handleRoute()</code></li>' +
+        '<li><b>Hard timeout 3s</b>: garantia que loader nunca trava o app mesmo se algo der errado</li>' +
+      '</ul>' +
+      '<p>Respeita <code>prefers-reduced-motion</code> — usuários com motion sensitivity veem 🎾 estático sem animação.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎯 v1.0.31-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Volta o comportamento da v1.0.27: DDI 🇧🇷 +55 só aparece quando o usuário começa a digitar telefone.</b> User clarificou: "ja aparecer direto a bandeira e o +55 induz o usuário a achar que apenas um telefone pode ser colocado ali no campo (quando um email tambem é permitido)". Razão totalmente válida — sinalização visual de bandeira/DDI sugere "telefone-only", quando na real o campo é dual (email OU telefone).</p>' +
       '<p>Estado inicial agora é neutro: input + botão Enviar (2 colunas grid). Helper text default: <i>"Aceita e-mail (recebe link mágico) ou celular com DDD (recebe SMS com código). Pra celular, o seletor de país aparece automaticamente — padrão 🇧🇷 +55"</i>. Quando usuário começa a digitar dígitos (≥8), <code>_detectLoginInputMode</code> dispara: DDI aparece à esquerda, grid vira <code>auto 1fr auto</code>, e helper text atualiza pra mostrar o número que vai ser enviado.</p>' +
