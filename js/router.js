@@ -5,7 +5,10 @@ function initRouter() {
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch(e) {}
 
   const links = document.querySelectorAll('.nav-link');
-  const viewContainer = document.getElementById('view-container');
+  // v1.0.42-beta: var (não const) pra permitir re-fetch defensivo no handleRoute
+  // se elemento #view-container não existe no boot inicial (race rara em
+  // iOS Chrome Mobile reportada via Sentry).
+  var viewContainer = document.getElementById('view-container');
 
   // Restore invited IDs from sessionStorage (survives page reloads)
   try {
@@ -74,6 +77,17 @@ function initRouter() {
       !_isLoggedInForPrerenderCheck && !_hasAuthCacheForPrerenderCheck &&
       (view === '' || view === 'dashboard');
 
+    // v1.0.42-beta: defensive re-fetch pro viewContainer. Reportado via
+    // Sentry: "TypeError: null is not an object (evaluating
+    // 'viewContainer.innerHTML = '')" em iOS Chrome Mobile. Race rara onde
+    // o elemento #view-container não existia no momento de initRouter.
+    // Re-fetch defensivo aqui — se ainda null, bail silencioso pra não
+    // quebrar a app.
+    if (!viewContainer) viewContainer = document.getElementById('view-container');
+    if (!viewContainer) {
+      console.warn('[router] view-container missing on handleRoute — aborting');
+      return;
+    }
     if (!_shouldPreservePrerender) {
       viewContainer.innerHTML = '';
     }
