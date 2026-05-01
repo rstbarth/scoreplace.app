@@ -1489,6 +1489,12 @@ function renderDashboard(container) {
   // com onclick navegacional em vez de aplicar filtro.
   // v1.0.45/46-beta: opts.{wider, subtitle, dataAttrs, countDataAttr,
   // subtitleDataAttr} pra suportar refresh async (Usuários e Partidas).
+  // v1.0.54-beta: opts.labelOnTop=true inverte a hierarquia — label vira
+  // o texto prominente e a count/subtitle ficam embaixo. Pedido do user
+  // pra Partidas: "coloque partidas na linha de cima e as outras infos
+  // abaixo (acho que ficará mais bonito)". Pra Partidas o count numérico
+  // (total = V + D) é redundante com a subtitle (V · D · %), então
+  // labelOnTop também esconde o count e usa só a subtitle como info.
   const _statPill = (emoji, count, label, onclickJs, title, opts) => {
     opts = opts || {};
     var titleAttr = title ? ' title="' + String(title).replace(/"/g, '&quot;') + '"' : '';
@@ -1497,6 +1503,25 @@ function renderDashboard(container) {
     var pillDataAttrs = opts.dataAttrs || '';
     var countAttr = opts.countDataAttr ? (' ' + opts.countDataAttr) : '';
     var subAttr = opts.subtitleDataAttr ? (' ' + opts.subtitleDataAttr) : '';
+    if (opts.labelOnTop) {
+      // Label prominente em cima; subtitle (V·D·%) embaixo. Count escondido
+      // mas mantido com countDataAttr pra refresh async não quebrar — só
+      // não é renderizado visualmente (display:none).
+      var subtitleHtmlTop = opts.subtitle
+        ? '<div' + subAttr + ' style="font-size:0.72rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.15;margin-top:0.35rem;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
+        : (opts.subtitleDataAttr
+            ? '<div' + subAttr + ' style="font-size:0.72rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.15;margin-top:0.35rem;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;"></div>'
+            : '');
+      var hiddenCount = opts.countDataAttr
+        ? '<span' + countAttr + ' style="display:none;">' + count + '</span>'
+        : '';
+      return `<div${titleAttr}${pillDataAttrs ? ' ' + pillDataAttrs : ''} style="flex:0 1 ${flexBasis}px;min-width:${minWidth}px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+        <div style="font-size:1.1rem;margin-bottom:0.4rem;line-height:1;">${emoji}</div>
+        <h3 style="margin:0;font-size:0.95rem;font-weight:800;line-height:1.05;white-space:nowrap;">${label}</h3>
+        ${subtitleHtmlTop}
+        ${hiddenCount}
+      </div>`;
+    }
     var subtitleHtml = opts.subtitle
       ? '<div' + subAttr + ' style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
       : (opts.subtitleDataAttr
@@ -1739,7 +1764,7 @@ function renderDashboard(container) {
              via querySelector quando o Firestore responder. -->
         ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Total de usuários cadastrados no scoreplace', { countDataAttr: 'data-stat-users-count' })}
         ${_statPill('🤝', _socialFriendsCount, 'Amigos', "window.location.hash='#explore'", 'Seus amigos no scoreplace')}
-        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, subtitle: _socialMatchesSubtitle, dataAttrs: 'data-stat-matches-pill', countDataAttr: 'data-stat-matches-count', subtitleDataAttr: 'data-stat-matches-subtitle' })}
+        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, labelOnTop: true, subtitle: _socialMatchesSubtitle, dataAttrs: 'data-stat-matches-pill', countDataAttr: 'data-stat-matches-count', subtitleDataAttr: 'data-stat-matches-subtitle' })}
       </div>
     </div>
 
