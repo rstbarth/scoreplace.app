@@ -2015,14 +2015,20 @@ function setupLoginModal() {
           '<div id="login-unified-step" style="margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">✉️📱 Entrar com 1 clique</div>' +
             '<form novalidate onsubmit="event.preventDefault(); handleUnifiedLogin();">' +
+              // v1.0.26-beta: input domina o flex (1 1 0), botão fica no
+              // mínimo necessário (0 0 auto). Bug reportado via screenshot:
+              // botão "Enviar" tava ocupando ~70% da largura, input tinha
+              // espaço miserável pro placeholder de 35 chars. Causa: botão
+              // sem flex explícito caía em "0 1 auto" + texto curto + flex
+              // gap não dava ao input prioridade real.
               '<div style="display:flex;gap:6px;align-items:center;">' +
-                '<select id="login-unified-country" aria-label="DDI do telefone" class="form-control" style="display:none;width:96px;flex-shrink:0;font-size:0.85rem;padding:8px 4px;">' +
+                '<select id="login-unified-country" aria-label="DDI do telefone" class="form-control" style="display:none;width:88px;flex:0 0 88px;font-size:0.82rem;padding:8px 4px;">' +
                   (typeof _phoneCountries !== 'undefined' ? _phoneCountries.map(function(c) {
                     return '<option value="' + c.code + '"' + (c.code === '55' ? ' selected' : '') + '>' + c.flag + ' +' + c.code + '</option>';
                   }).join('') : '<option value="55">🇧🇷 +55</option>') +
                 '</select>' +
-                '<input type="text" id="login-unified" class="form-control" placeholder="seu@email.com  ou  (11) 99999-8888" required autocomplete="off" oninput="window._detectLoginInputMode && window._detectLoginInputMode()" style="flex:1;min-width:0;font-size:0.95rem;padding:12px 14px;">' +
-                '<button type="submit" class="btn btn-primary" style="font-size:0.85rem;white-space:nowrap;padding:10px 16px;font-weight:700;">Enviar</button>' +
+                '<input type="text" id="login-unified" class="form-control" placeholder="seu@email.com  ou  (11) 99999-8888" required autocomplete="off" oninput="window._detectLoginInputMode && window._detectLoginInputMode()" style="flex:1 1 0;min-width:0;font-size:0.92rem;padding:11px 12px;">' +
+                '<button type="submit" class="btn btn-primary" style="flex:0 0 auto;font-size:0.78rem;white-space:nowrap;padding:9px 14px;font-weight:700;">Enviar</button>' +
               '</div>' +
               '<div id="login-unified-helper" style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;line-height:1.4;">' +
                 'Receba um link por e-mail ou código por SMS. Pra outro país, comece com +DDI.' +
@@ -2038,10 +2044,12 @@ function setupLoginModal() {
           '<div id="phone-step-code" style="display:none;margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">📱 Confirme o código</div>' +
             '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:6px;">Digite o código de 6 dígitos recebido por SMS:</p>' +
+            // v1.0.26-beta: input com flex:1 1 0 + min-width:0 garante que
+            // domina o espaço; botão flex:0 0 auto fica no mínimo necessário.
             '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +
               '<div style="display:flex;gap:8px;align-items:center;">' +
-                '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="flex:1;text-align:center;font-size:1.1rem;letter-spacing:6px;font-weight:700;">' +
-                '<button type="submit" class="btn btn-success" style="font-size:0.8rem;white-space:nowrap;padding:8px 14px;">Verificar</button>' +
+                '<input type="text" id="login-phone-code" class="form-control" placeholder="123456" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" style="flex:1 1 0;min-width:0;text-align:center;font-size:1.1rem;letter-spacing:6px;font-weight:700;">' +
+                '<button type="submit" class="btn btn-success" style="flex:0 0 auto;font-size:0.78rem;white-space:nowrap;padding:9px 14px;">Verificar</button>' +
               '</div>' +
             '</form>' +
             '<div style="text-align:center;margin-top:6px;">' +

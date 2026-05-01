@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚖️ v1.0.26-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Botão "Enviar" do login não rouba mais espaço do input + dicas demoram mais pra aparecer.</b> Dois feedbacks consolidados:</p>' +
+      '<p><b>1) Login modal — flex layout corrigido</b>: screenshot do user mostrava botão "Enviar" ocupando ~70% da largura, deixando o input com espaço miserável pro placeholder de 35 chars (<code>seu@email.com  ou  (11) 99999-8888</code>). Causa: input tinha <code>flex:1</code> mas botão sem flex explícito caía em <code>flex:0 1 auto</code> + texto curto resultando em distribuição esquisita. Fix: <code>input flex:1 1 0</code> (domina), <code>button flex:0 0 auto</code> (mínimo necessário). Padding e font-size do botão também reduzidos pra ele ficar discreto. Mesma correção aplicada ao botão "Verificar" do step de SMS code.</p>' +
+      '<p><b>2) Hints (dicas contextuais) com timing dobrado</b>: feedback do user — "estão aborrecendo as pessoas aparecendo muito cedo". Dobrei: <code>IDLE_TIMEOUT</code> 6s→12s (inatividade antes da dica aparecer), <code>HINT_COOLDOWN</code> 5s→10s (gap entre dicas), e o setTimeout do init 2s→4s (sistema só ativa 4s depois da página carregar). <code>HINT_DISPLAY_TIME</code> mantido em 10s — o que incomodava era a aparição precoce, não a duração visível.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📲 v1.0.25-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>2 ajustes pedidos pelo user em sequência:</b></p>' +
       '<p><b>1) Seção "Instalar o app na tela inicial" agora é a primeira do manual</b> e abre expandida por default. Pedido: "coloque isso bem no começo do manual". Beta testers reclamavam "cadê o ícone? qual o nome do app?" então a primeira coisa que aparece quando alguém abre o Help (?) tem que ser o passo-a-passo de fixar o app. Ordem nova: <b>Instalar (auto-aberta)</b> → Sobre → Primeiros Passos → Dashboard → ...</p>' +

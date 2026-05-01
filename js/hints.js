@@ -6,9 +6,14 @@
   'use strict';
   var _t = window._t || function(k) { return k; };
 
-  var IDLE_TIMEOUT = 6000;          // ms of inactivity before showing a hint
-  var HINT_DISPLAY_TIME = 10000;    // ms a hint stays visible
-  var HINT_COOLDOWN = 5000;         // ms between consecutive hints
+  // v1.0.26-beta: tempos dobrados pra dicas não incomodarem aparecendo
+  // muito cedo. Feedback do user: "estão aborrecendo as pessoas aparecendo
+  // muito cedo". HINT_DISPLAY_TIME (quanto tempo fica visível depois que
+  // apareceu) preservado — só dobrei delay-de-aparição (idle) e gap entre
+  // dicas consecutivas (cooldown).
+  var IDLE_TIMEOUT = 12000;         // ms of inactivity before showing a hint (era 6000)
+  var HINT_DISPLAY_TIME = 10000;    // ms a hint stays visible (sem mudança)
+  var HINT_COOLDOWN = 10000;        // ms between consecutive hints (era 5000)
   var STRATEGIC_BOOST = 0.30;       // probability boost for strategic hints
   var LS_KEY = 'scoreplace_hints';
   var LS_DISABLED_KEY = 'scoreplace_hints_disabled';
@@ -932,11 +937,12 @@
     forceShow: _forceShowHint
   };
 
-  // Auto-init
+  // Auto-init — v1.0.26-beta: delay inicial dobrado de 2s pra 4s pra
+  // sistema de hints só ativar depois do user ter tempo de se ambientar.
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 2000); });
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 4000); });
   } else {
-    setTimeout(_init, 2000);
+    setTimeout(_init, 4000);
   }
 
   // Re-evaluate on hash change
