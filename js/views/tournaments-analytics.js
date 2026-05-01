@@ -1093,15 +1093,31 @@ window._renderPersistentMatchStats = function(records, uid) {
 
     // Dual-value diverging bar row for non-V/P metrics.
     // Left side = casuais (casual button blue #38bdf8), right side = torneios
-    // (novo-torneio button dark blue #1e40af). Bars scale per-row: each side's
-    // width is its value divided by max(casual, tournament), so the bigger side
-    // always reaches 100%.
+    // (novo-torneio button dark blue #1e40af).
+    // v1.0.39-beta: detecção automática de stat percentual via display string
+    // ("67%", "60%"). Pra esses, bar reflete o VALOR DIRETO 0-100 (não
+    // normalizado pelo max). Bug reportado: "essas barras azuis percentuais
+    // estão enchendo visualmente a 100%. seria legal que tivessem o tamanho
+    // proporcional ao percentual efetivo". Aproveitamento 67% agora pinta
+    // 67% da barra, não 100%. Pra stats não-percentuais (Quebras, Maior
+    // Sequência, Tempo Total) mantém max-relative — não há scale natural
+    // 0-100 pra eles.
     function _dualBarRow(label, casualRaw, tournRaw, casualDisplay, tournDisplay) {
         var cVal = Number(casualRaw) || 0;
         var tVal = Number(tournRaw) || 0;
-        var maxV = Math.max(cVal, tVal, 1);
-        var cp = Math.round(cVal / maxV * 100);
-        var tp = Math.round(tVal / maxV * 100);
+        var isPctStat = (typeof casualDisplay === 'string' && /%\s*$/.test(casualDisplay))
+                     || (typeof tournDisplay === 'string' && /%\s*$/.test(tournDisplay));
+        var cp, tp;
+        if (isPctStat) {
+            // Percentual: usa o próprio valor (clamped 0-100). 67 → barra 67%.
+            cp = Math.max(0, Math.min(100, Math.round(cVal)));
+            tp = Math.max(0, Math.min(100, Math.round(tVal)));
+        } else {
+            // Absoluto sem scale natural — max-relative pra mostrar quem é maior.
+            var maxV = Math.max(cVal, tVal, 1);
+            cp = Math.round(cVal / maxV * 100);
+            tp = Math.round(tVal / maxV * 100);
+        }
         var casualClr = '#38bdf8';  // casual button
         var tournClr = '#1e40af';   // tournament button
         return '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +

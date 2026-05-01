@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📐 v1.0.39-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
+      '<p><b>Barras de stats percentuais (Aproveitamento, % Saque, etc) agora refletem o valor proporcional 0-100, não max-relative.</b> Bug reportado via screenshot: "essas barras azuis percentuais estão enchendo visualmente a 100%. seria legal que tivessem o tamanho proporcional ao percentual efetivo".</p>' +
+      '<p>Causa: <code>_dualBarRow</code> aplicava max-relative scaling pra TODOS os stats (casual / max(casual, torneios)). Pros stats que JÁ são percentuais (0-100), isso fazia 67% pintar a barra inteira de casuais (porque torneios=0 → max=67 → 67/67=100%). Visualmente induzia leitura "domínio total".</p>' +
+      '<p>Fix: detecção automática de stat percentual via display string terminando em "%" (Aproveitamento "67%", % Saque "60%", % Recepção "56%", Games Mantidos "67%"). Pra esses, barra usa o próprio valor clamped 0-100 — 67% pinta 67%. Pra stats absolutos sem scale natural (Quebras, Maior Sequência, Tempo Total) mantém max-relative — não há referência 0-100 pra eles.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🌊 v1.0.38-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
       '<p><b>Animação das stats: números agora animam de verdade + cascata row-by-row.</b> Dois ajustes acumulados:</p>' +
       '<p><b>1) Safety net pra contadores que ficavam zerados</b> mesmo após v1.0.37 (alguns elementos não disparavam o IntersectionObserver por edge cases de timing/scroll containment do modal). Adicionado <code>setTimeout(triggerAll, 1500)</code> que força animação em qualquer elemento ainda não disparado, idempotente via flag <code>_statAnimated</code>. Threshold do observer também relaxado pra <code>0</code> + rootMargin <code>-5%</code> em vez de <code>-8%</code>.</p>' +
