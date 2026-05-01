@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📲 v1.0.25-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>2 ajustes pedidos pelo user em sequência:</b></p>' +
+      '<p><b>1) Seção "Instalar o app na tela inicial" agora é a primeira do manual</b> e abre expandida por default. Pedido: "coloque isso bem no começo do manual". Beta testers reclamavam "cadê o ícone? qual o nome do app?" então a primeira coisa que aparece quando alguém abre o Help (?) tem que ser o passo-a-passo de fixar o app. Ordem nova: <b>Instalar (auto-aberta)</b> → Sobre → Primeiros Passos → Dashboard → ...</p>' +
+      '<p><b>2) Botão "Entrar no scoreplace.app" da landing page com 95% de largura centralizado + altura/fonte fluidas via <code>clamp()</code></b>. Pedido em duas etapas: primeiro "faça com que ele tenha a largura total e altura compativel de acordo com a tela", depois "95% da largura centralizado é melhor" (sim — 100% encostava nas bordas no desktop, 95% com <code>margin:auto</code> dá respiro). <code>font-size: clamp(1.05rem, 1.4vw + 0.85rem, 1.55rem)</code> escala 1.05rem em mobile pequeno até 1.55rem em desktop largo; <code>padding</code> também escala (14px→26px vertical, 16px→48px horizontal). <code>max-width: 760px</code> previne que vire faixa em monitor ultrawide. Box-shadow esmeralda adicionado pra reforçar destaque.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📲 v1.0.24-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Manual ganhou seção dedicada "Instalar o app na tela inicial".</b> Feedback: beta testers reclamaram "cadê o ícone? qual o nome do app?" — o scoreplace.app é PWA mas sem caminho explicado, ninguém sabe instalar. Agora o manual tem passo-a-passo pra 3 cenários distintos:</p>' +
       '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +

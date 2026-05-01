@@ -135,9 +135,14 @@
     '.landing-tagline { font-size: 1.1rem; color: var(--text-muted); margin: 12px 0 28px; max-width: 500px; margin-left: auto; margin-right: auto; }' +
     /* a11y v0.17.66: override do .btn-success default (#10b981, contrast 2.53:1
        em texto branco) pra emerald-700 (#047857, ~5:1, passa WCAG AA). Só nos
-       CTAs da landing — outros .btn-success do app continuam #10b981. */
-    '.landing-cta-btn { font-size: 1.05rem; padding: 14px 36px; border-radius: 12px; cursor: pointer; background: #047857; }' +
-    '.landing-cta-btn:hover { background: #065f46; }' +
+       CTAs da landing — outros .btn-success do app continuam #10b981.
+       v1.0.25-beta: largura total + altura/fonte fluidas via clamp() pra
+       escalar com a tela (mobile pequeno → desktop). User explicit: "faça
+       com que ele tenha a largura total e altura compativel de acordo com
+       a tela". Caps inferior/superior previnem que fique pequeno demais ou
+       gigante demais em casos extremos (ex: tablet em landscape). */
+    '.landing-cta-btn { display: block; width: 95%; max-width: 760px; margin-left: auto; margin-right: auto; box-sizing: border-box; font-size: clamp(1.05rem, 1.4vw + 0.85rem, 1.55rem); font-weight: 800; padding: clamp(14px, 2vh + 6px, 26px) clamp(16px, 4vw, 48px); border-radius: 14px; cursor: pointer; background: #047857; letter-spacing: 0.3px; box-shadow: 0 4px 16px rgba(4,120,87,0.25); }' +
+    '.landing-cta-btn:hover { background: #065f46; box-shadow: 0 6px 20px rgba(4,120,87,0.35); }' +
     '.landing-sports-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 28px; }' +
     '.landing-sport-pill { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; color: var(--text-main); }' +
 
@@ -180,7 +185,8 @@
       '.landing-step-arrow { display: none; }' +
       '.landing-steps { flex-direction: column; align-items: center; }' +
       '.landing-stats { gap: 24px; }' +
-      '.landing-cta-btn { width: 100%; max-width: 320px; }' +
+      // v1.0.25-beta: max-width:320px removido — default agora é 100%
+      // já fluido via clamp().
     '}' +
     '</style>';
   }
