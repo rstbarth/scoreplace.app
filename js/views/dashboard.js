@@ -1487,43 +1487,66 @@ function renderDashboard(container) {
 
   // v1.0.44-beta: stat pill (não-filtro) — mesmo visual que _fStyle pero
   // com onclick navegacional em vez de aplicar filtro. Usado pra Usuários,
-  // Amigos e Partidas. Aceita string como count (ex: "5V 3D" ou "62%").
-  const _statPill = (emoji, count, label, onclickJs, title) => {
+  // Amigos e Partidas. Aceita string como count.
+  // v1.0.45-beta: opts.subtitle pra mostrar info extra (ex: "5V·3D·62%")
+  // abaixo do count. opts.wider pra flex base maior, comportando essa info
+  // extra sem comprimir.
+  const _statPill = (emoji, count, label, onclickJs, title, opts) => {
+    opts = opts || {};
     var titleAttr = title ? ' title="' + String(title).replace(/"/g, '&quot;') + '"' : '';
-    return `<div${titleAttr} style="flex:0 1 92px;min-width:80px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+    var flexBasis = opts.wider ? '140' : '92';
+    var minWidth = opts.wider ? '130' : '80';
+    var subtitleHtml = opts.subtitle
+      ? '<div style="font-size:0.62rem;font-weight:700;color:var(--hero-text-soft,#94a3b8);line-height:1.1;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:0.2px;white-space:nowrap;">' + opts.subtitle + '</div>'
+      : '';
+    return `<div${titleAttr} style="flex:0 1 ${flexBasis}px;min-width:${minWidth}px;background:var(--hero-pill-inactive-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.55rem 0.45rem;border-radius:10px;border:1px solid var(--hero-pill-inactive-border);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;" onclick="${onclickJs}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
       <div style="font-size:1.1rem;margin-bottom:0.1rem;line-height:1;">${emoji}</div>
       <span style="font-size:1.3rem;font-weight:800;line-height:1;">${count}</span>
+      ${subtitleHtml}
       <h3 style="margin:0.2rem 0 0 0;font-size:0.66rem;font-weight:600;opacity:0.9;line-height:1.1;white-space:nowrap;">${label}</h3>
     </div>`;
   };
 
-  // v1.0.44-beta: Social stats — usuários, amigos, partidas V/D.
-  // Usuários: contagem única de participantes (excl. self) nos torneios
-  // visíveis. Proxy razoável de "rede no scoreplace" sem precisar query
-  // pesada. Itera memberEmails+participants pra capturar tanto torneios
-  // antigos (que tinham só email) quanto novos (que tem displayName).
+  // v1.0.44-beta + v1.0.45-beta: Social stats — usuários, amigos, partidas V/D.
   var _cuRef = window.AppStore && window.AppStore.currentUser;
   var _myEmail = (_cuRef && _cuRef.email || '').toLowerCase();
   var _myUid = _cuRef && _cuRef.uid;
-  var _myName = (_cuRef && _cuRef.displayName || '').toLowerCase().trim();
-  var _peopleSet = new Set();
-  allUnique.forEach(function(t) {
-    var emails = Array.isArray(t.memberEmails) ? t.memberEmails : [];
-    emails.forEach(function(e) {
-      if (!e) return;
-      var lower = String(e).toLowerCase();
-      if (lower === _myEmail) return; // skip self
-      _peopleSet.add('email:' + lower);
-    });
-    var parts = Array.isArray(t.participants) ? t.participants : [];
-    parts.forEach(function(p) {
-      if (!p) return;
-      var pn = (typeof p === 'string' ? p : (p.name || p.displayName || '')).toLowerCase().trim();
-      if (!pn || pn === _myName) return;
-      _peopleSet.add('name:' + pn);
-    });
-  });
-  var _socialUsersCount = _peopleSet.size;
+
+  // v1.0.45-beta: Usuários = total cadastrados no banco de dados.
+  // Pedido do user: "aqui deveria aparecer o numero de usuários cadastrados
+  // no banco de dados". Antes (v1.0.44) era só uniques nos torneios visíveis
+  // — pouco representativo (Rodrigo viu 0 em conta nova).
+  // Estratégia: aggregate count() do Firestore. Cache de 5min em localStorage
+  // pra não puxar a cada render. Fire-and-forget — render imediato com
+  // valor cached (ou "..." se sem cache); update assíncrono atualiza o pill.
+  var _socialUsersCount = '...';
+  try {
+    var _uCacheRaw = localStorage.getItem('scoreplace_total_users_cache');
+    if (_uCacheRaw) {
+      var _uCache = JSON.parse(_uCacheRaw);
+      if (_uCache && _uCache.count != null && _uCache.at) {
+        var _ageMs = Date.now() - new Date(_uCache.at).getTime();
+        if (_ageMs < 5 * 60 * 1000) _socialUsersCount = String(_uCache.count);
+        else _socialUsersCount = String(_uCache.count); // mostra mas refresca async
+      }
+    }
+  } catch (_e) {}
+  // Refresh assíncrono (count aggregate é leve — Firestore cobra 1 read).
+  if (window.FirestoreDB && window.FirestoreDB.db) {
+    (async function() {
+      try {
+        var snap = await window.FirestoreDB.db.collection('users').count().get();
+        var n = snap.data().count;
+        try {
+          localStorage.setItem('scoreplace_total_users_cache', JSON.stringify({ count: n, at: new Date().toISOString() }));
+        } catch (_e) {}
+        var pillNumEl = document.querySelector('[data-stat-users-count]');
+        if (pillNumEl) pillNumEl.textContent = String(n);
+      } catch (e) {
+        console.warn('[users count] failed:', e);
+      }
+    })();
+  }
 
   // Amigos: cu.friends pode estar vazio se profile não carregou ainda;
   // mostra 0 e o pill atualiza naturalmente quando re-render acontece.
@@ -1532,12 +1555,12 @@ function renderDashboard(container) {
     : 0;
 
   // Partidas V/D: agrega match history local (scoreplace_casual_history_v2)
-  // — mesma fonte que o modal "Estatísticas Detalhadas". Heurística: se
-  // record tem winnerTeam e my uid no players[], conta como V se meu time
-  // venceu, D se perdeu. Pill mostra total como número grande + V/D/% no
-  // tooltip. Click abre o modal detalhado.
+  // — mesma fonte que o modal "Estatísticas Detalhadas". Pill mais largo
+  // (opts.wider) pra caber count + subtitle "5V·3D·62%". Pedido do user:
+  // "tambem aparece apenas o numero de partidas, mas sem V/D/%".
   var _socialMatchesDisplay = '0';
-  var _socialMatchesTitle = 'Vitórias / Derrotas em partidas casuais e torneios';
+  var _socialMatchesSubtitle = '';
+  var _socialMatchesTitle = 'Suas partidas casuais e em torneios — clique pra ver detalhes';
   var _socialMatchesClick = "if(typeof window._showPlayerStats==='function' && window.AppStore.currentUser){window._showPlayerStats(window.AppStore.currentUser.displayName||'')}";
   try {
     if (_myUid) {
@@ -1556,6 +1579,7 @@ function renderDashboard(container) {
         if (_total > 0) {
           _socialMatchesDisplay = String(_total);
           var _pct = Math.round(_w / _total * 100);
+          _socialMatchesSubtitle = '<span style="color:#22c55e;">' + _w + 'V</span> · <span style="color:#ef4444;">' + _l + 'D</span> · ' + _pct + '%';
           _socialMatchesTitle = _w + 'V · ' + _l + 'D · ' + _pct + '% aproveitamento — clique pra ver detalhes';
         }
       }
@@ -1638,9 +1662,12 @@ function renderDashboard(container) {
            Amigos = cu.friends.length. Partidas = total V/D do match history
            local (scoreplace_casual_history_v2 + uid match em records). -->
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
-        ${_statPill('👥', _socialUsersCount, 'Usuários', "window.location.hash='#explore'", 'Pessoas que encontrou em torneios visíveis no scoreplace')}
+        <!-- v1.0.45-beta: Usuários ganhou data-stat-users-count pra async
+             refresh substituir o número quando o aggregate count chegar.
+             Partidas ficou wider:true + subtitle V/D/% inline. -->
+        ${_statPill('👥', '<span data-stat-users-count>' + _socialUsersCount + '</span>', 'Usuários', "window.location.hash='#explore'", 'Total de usuários cadastrados no scoreplace')}
         ${_statPill('🤝', _socialFriendsCount, 'Amigos', "window.location.hash='#explore'", 'Seus amigos no scoreplace')}
-        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle)}
+        ${_statPill('⚔️', _socialMatchesDisplay, 'Partidas', _socialMatchesClick, _socialMatchesTitle, { wider: true, subtitle: _socialMatchesSubtitle })}
       </div>
     </div>
 
