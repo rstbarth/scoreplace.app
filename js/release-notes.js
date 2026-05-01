@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📲 v1.0.24-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
+      '<p><b>Manual ganhou seção dedicada "Instalar o app na tela inicial".</b> Feedback: beta testers reclamaram "cadê o ícone? qual o nome do app?" — o scoreplace.app é PWA mas sem caminho explicado, ninguém sabe instalar. Agora o manual tem passo-a-passo pra 3 cenários distintos:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>iPhone/iPad — Safari</b>: Compartilhar → Adicionar à Tela de Início, com nota explícita "iOS 17+ tem barra compacta, ícone está nos •••". Aviso forte: <b>Chrome no iPhone não consegue instalar PWA</b> (limitação Apple) — usuário precisa usar Safari.</li>' +
+        '<li><b>Android — Chrome</b>: banner automático ou ⋮ → "Instalar app".</li>' +
+        '<li><b>Computador — Chrome/Edge/Brave</b>: ícone ➕ na barra de URL ou ⋮ → "Instalar scoreplace.app". Bonus: Safari Mac (Sonoma+) via Arquivo → "Adicionar ao Dock".</li>' +
+      '</ul>' +
+      '<p>Também explica os 5 benefícios concretos (ícone, tela cheia, push notif mais confiável no iOS, offline, abre rápido) — vence a friction da pergunta "por que vale a pena instalar".</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🅰️ v1.0.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(30 de Abril, 2026)</span></div>' +
       '<p><b>Avatares cartoon foram pra rua — agora são iniciais do nome.</b> Feedback direto do user: "esses ícones são ridículos. vamos usar as iniciais dos nomes invés dessa porcaria". O picker de 10 cartoons (notionists do dicebear) sumiu. O avatar do perfil agora é gerado automaticamente das iniciais do <code>displayName</code> via dicebear /initials, num círculo índigo limpo. Foto real do Google/Apple é preservada quando existe (login social).</p>' +
       '<p>Dois bonus: (1) avatar atualiza em tempo real enquanto o usuário digita o nome no input — feedback visual imediato; (2) o pencil/edit overlay também sumiu (não há nada pra editar). Helper canônico <code>window._profileAvatarUrl(name, photoURL, size)</code> centraliza a lógica em store.js: foto real wins, fallback gera iniciais. URLs antigas de cartoons que possam estar gravadas em Firestore são detectadas e re-derivadas pra iniciais.</p>' +

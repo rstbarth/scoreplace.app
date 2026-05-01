@@ -101,6 +101,60 @@
         '</div>'
     },
     {
+      id: 'instalar-app',
+      title: 'Instalar o app na tela inicial',
+      icon: '📲',
+      content: '<p>O <b>scoreplace.app</b> funciona como um <b>aplicativo</b> no seu celular ou computador — basta adicionar o ícone à tela inicial. Sem App Store, sem download — abre direto no navegador, mas com cara de app: <b>tela cheia, ícone próprio, abre rápido</b> e funciona até offline (cache local).</p>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">📱 iPhone / iPad — Safari</div>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 8px;"><b>⚠️ Tem que ser pelo Safari</b>. No iPhone, o Chrome <b>não consegue</b> instalar PWAs (limitação da Apple) — abra <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">scoreplace.app</code> no Safari pra esse passo-a-passo funcionar.</p>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Abra <b>scoreplace.app</b> no <b>Safari</b> (não em Navegação Privativa)</li>' +
+            '<li>Toque no ícone <b>Compartilhar</b> <span style="display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 5px;margin:0 2px;vertical-align:middle;font-size:0.75rem;">⬆</span> na barra de baixo:' +
+              '<ul style="padding-left:18px;margin:4px 0;font-size:0.78rem;">' +
+                '<li><b>iOS 16 e anterior</b>: ícone aparece direto na barra inferior</li>' +
+                '<li><b>iOS 17+</b>: barra ficou compacta — toque nos <b>•••</b> no canto direito → "Compartilhar". Alternativa: toque em <b>"Aa"</b> ao lado do endereço → "Compartilhar"</li>' +
+              '</ul>' +
+            '</li>' +
+            '<li>Role pra baixo até <b>"Adicionar à Tela de Início"</b>. Se não aparecer, toque em <b>"Editar Ações"</b> no fim da lista e ative a opção</li>' +
+            '<li>Toque em <b>Adicionar</b> no canto superior direito</li>' +
+            '<li>Pronto — o ícone do <b>scoreplace.app</b> aparece na tela inicial junto com seus apps. Toque pra abrir em tela cheia</li>' +
+          '</ol>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">🤖 Android — Chrome (ou Edge / Firefox)</div>' +
+          '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 8px;">Funciona em qualquer navegador moderno no Android. O Chrome geralmente já oferece sozinho — se não, segue o passo manual.</p>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Abra <b>scoreplace.app</b> no <b>Chrome</b></li>' +
+            '<li>Geralmente aparece um <b>banner "Adicionar scoreplace à tela inicial"</b> automaticamente — toque em <b>Instalar</b></li>' +
+            '<li>Se não aparecer banner: toque nos <b>três pontinhos ⋮</b> no canto superior direito → <b>"Instalar app"</b> (ou <b>"Adicionar à tela inicial"</b>)</li>' +
+            '<li>Toque em <b>Instalar</b> na confirmação</li>' +
+            '<li>O ícone aparece na sua tela inicial. Abre como app nativo, fora do navegador</li>' +
+          '</ol>' +
+        '</div>' +
+        '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">💻 Computador — Chrome / Edge / Brave</div>' +
+          '<ol style="padding-left:20px;margin:6px 0;">' +
+            '<li>Abra <b>scoreplace.app</b> no Chrome / Edge / Brave</li>' +
+            '<li>Na barra do endereço, à direita, procure o ícone <b>➕ Instalar</b> (parece um monitor com seta)</li>' +
+            '<li>Se não aparecer: menu <b>⋮</b> no canto superior direito → <b>"Instalar scoreplace.app..."</b></li>' +
+            '<li>Confirme em <b>Instalar</b></li>' +
+            '<li>Vira app independente: aparece na taskbar (Windows) ou Dock/Launchpad (Mac), abre em janela própria sem barra de URL</li>' +
+          '</ol>' +
+          '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">No <b>Safari Mac</b> (macOS Sonoma+) também rola: menu <b>Arquivo</b> → <b>"Adicionar ao Dock"</b>.</p>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">✨ Por que vale a pena instalar</div>' +
+          '<ul style="padding-left:20px;margin:6px 0;">' +
+            '<li><b>Ícone</b> próprio na tela — abre num toque, sem digitar URL</li>' +
+            '<li><b>Tela cheia</b> — sem barra do navegador, mais espaço pra placar e bracket</li>' +
+            '<li><b>Notificações push</b> mais confiáveis (especialmente no iOS, onde só funcionam pra app instalado)</li>' +
+            '<li><b>Funciona offline</b> — cache local guarda telas e dados. Útil em quadra com sinal ruim</li>' +
+            '<li><b>Abre rápido</b> — assets pré-carregados, sem cold start</li>' +
+          '</ul>' +
+        '</div>'
+    },
+    {
       id: 'dashboard',
       title: _t('help.dashboard'),
       icon: '📊',
