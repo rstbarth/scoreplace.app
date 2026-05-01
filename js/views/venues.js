@@ -785,10 +785,15 @@
           '<a href="#my-venues" onclick="' + clickHandler + '" style="font-size:0.72rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);padding:4px 10px;border-radius:8px;text-decoration:none;white-space:nowrap;">🎾 Cadastrar quadras →</a>' +
         '</div>';
     }
+    // v1.0.18-beta: título dinâmico — "Movimento hoje" / "Movimento amanhã"
+    // / "Movimento em N dias" baseado em opts.dayLabel passado pelo caller.
+    var titleLabel = (opts && opts.dayLabel)
+      ? 'Movimento ' + opts.dayLabel
+      : 'Movimento hoje';
     box.innerHTML =
       '<div style="background:var(--bg-darker);border:1px solid rgba(251,191,36,0.18);border-radius:12px;padding:10px 12px;margin-top:8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
-          '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">Movimento hoje</span>' +
+          '<span style="font-weight:700;color:var(--text-bright);font-size:0.9rem;">' + titleLabel + '</span>' +
           '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--text-muted);"><span style="width:10px;height:10px;background:#fbbf24;border-radius:2px;"></span> você e amigos</span>' +
         '</div>' +
         '<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;justify-content:space-between;">' + bars + '</div>' +
@@ -1004,9 +1009,35 @@
   async function _hydrateAllPreferredMovement() {
     var cards = document.querySelectorAll('[data-pref-pid]');
     if (!cards || cards.length === 0) return;
-    var dayKeyStr = window.PresenceDB && window.PresenceDB.dayKey
+    var todayKey = window.PresenceDB && window.PresenceDB.dayKey
       ? window.PresenceDB.dayKey(new Date())
       : '';
+    // v1.0.18-beta: quando há plano ativo (state.focusedPreferred) com
+    // startsAt em outro dia (típico: plano pra amanhã), o gráfico do CARD
+    // FOCADO deve mostrar a movimentação do DIA DO PLANO, não de hoje.
+    // Bug reportado: "ao planejar ida pra amanhã não aparece o gráfico de
+    // barras por hora" — chart usava sempre dayKey(today), pra um plano
+    // de amanhã não havia presenças hoje → hasActivity=false → bail
+    // silencioso. Cards NÃO focados continuam usando today (relevante).
+    var fp = state.focusedPreferred;
+    var fpDayKey = null;
+    var fpDateLabel = '';
+    if (fp && fp.startsAt && window.PresenceDB && window.PresenceDB.dayKey) {
+      try {
+        var fpDate = new Date(fp.startsAt);
+        if (!isNaN(fpDate.getTime())) {
+          fpDayKey = window.PresenceDB.dayKey(fpDate);
+          // Compara com today pra label do header do gráfico
+          var todayDate = new Date();
+          var dayDiff = Math.round((fpDate.setHours(0,0,0,0) - todayDate.setHours(0,0,0,0)) / 86400000);
+          if (dayDiff === 0) fpDateLabel = '';        // hoje (mantém label default)
+          else if (dayDiff === 1) fpDateLabel = 'amanhã';
+          else if (dayDiff > 1) fpDateLabel = 'em ' + dayDiff + ' dias';
+          else fpDateLabel = '';                       // datas no passado: cai pro default
+        }
+      } catch (e) {}
+    }
+    var fpPid = fp ? fp.placeId : null;
     var cu = window.AppStore && window.AppStore.currentUser;
     var myUid = cu && cu.uid;
     var friends = (cu && Array.isArray(cu.friends)) ? cu.friends : [];
@@ -1028,8 +1059,13 @@
       if (seenPlaceIds[realPid]) continue;
       seenPlaceIds[realPid] = true;
 
+      // v1.0.18-beta: este card usa o dayKey do plano focado se ele bate
+      // com o focusedPreferred; caso contrário usa today.
+      var isFocused = (fpPid && realPid === fpPid);
+      var dayKeyStr = (isFocused && fpDayKey) ? fpDayKey : todayKey;
+      var dayLabel = isFocused ? fpDateLabel : '';
       // Fire-and-forget async por card — cada um renderiza independentemente.
-      (function(safePid, realPid, venueName) {
+      (function(safePid, realPid, venueName, dayKeyStr, dayLabel) {
         // v0.16.49: carrega venue em paralelo com presences pra ter capacidade
         // de quadras pro denominador do gráfico. Falha do loadVenue não bloqueia
         // o chart (cai no fallback de max-bucket).
@@ -1077,14 +1113,15 @@
             venueName: venueName,
             realPid: realPid,
             lat: ctxLat,
-            lon: ctxLon
+            lon: ctxLon,
+            dayLabel: dayLabel
           });
           _renderNowAtVenueBox('pref-now-' + safePid, presences, realPid);
           _renderUpcomingBox('pref-upcoming-' + safePid, presences, matchTournaments, dayKeyStr, realPid);
         }).catch(function(e) {
           console.warn('[venues movement] load failed for', realPid, e);
         });
-      })(safePid, realPid, venueName);
+      })(safePid, realPid, venueName, dayKeyStr, dayLabel);
     }
   }
   // Exposto globalmente pra que handlers de mutação em outros módulos
@@ -2060,29 +2097,27 @@
         ? sportsArr.concat(['arena esportiva', 'clube esportivo', 'academia de tênis', 'escola de tênis'])
         : baseTerms;
 
-      // v1.0.15-beta: trocado locationBias → locationRestriction (estrito) +
-      // removido `region: 'br'` e `language: 'pt-BR'` hardcoded. Bug
-      // reportado: usuária em Paris recebia quadras de Brasília/Belém/etc.
-      // a 7000km+ de distância. Causa-raiz tripla:
-      //   (a) `region: 'br'` biaseia TODOS os results pro Brasil mesmo
-      //       quando user está em Paris;
-      //   (b) `locationBias` é SOFT — Google retorna venues fora se forem
-      //       muito populares globalmente;
-      //   (c) `language: 'pt-BR'` favorece resultados em PT.
-      // Agora usa locationRestriction (Circle) que é HARD — nada fora do
-      // raio retorna. Removidos hardcoded region/language pra Google
-      // detectar pelo center. Defesa adicional client-side: haversine
-      // filter abaixo dropa qualquer leak >radiusKm.
-      var restrictRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
-      var restrictCenter = new google.maps.LatLng(center.lat, center.lng);
+      // v1.0.15-beta: locationBias → locationRestriction strict.
+      // v1.0.18-beta: REVERTIDO pra locationBias. JS SDK do
+      // Place.searchByText (Places API New) aceita locationBias com Circle
+      // OU Bounds, mas locationRestriction SÓ aceita Bounds (rectangle).
+      // Passar Circle pra locationRestriction era silenciosamente
+      // ignorado/mal interpretado em alguns casos — alguns user (em São
+      // Paulo com PLANO ATIVO no Paineiras) recebiam ZERO results do
+      // Google. Voltamos pro locationBias (que aceita Circle) e manter o
+      // filtro haversine client-side abaixo como defesa-em-profundidade
+      // contra leaks (que era o objetivo original do v1.0.15: bloquear
+      // Brasil aparecendo pra usuária em Paris).
+      var biasRadiusM = Math.min(50, Math.max(1, radiusKm)) * 1000;
+      var biasCenter = new google.maps.LatLng(center.lat, center.lng);
 
       var promises = terms.map(function(term) {
         return placesLib.Place.searchByText({
           textQuery: term,
           fields: ['displayName', 'formattedAddress', 'location', 'id', 'types'],
-          locationRestriction: {
-            center: restrictCenter,
-            radius: restrictRadiusM
+          locationBias: {
+            center: biasCenter,
+            radius: biasRadiusM
           },
           maxResultCount: 10
         }).catch(function(e) {
