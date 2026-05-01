@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.0.37-beta';
+window.SCOREPLACE_VERSION = '1.0.38-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -804,57 +804,118 @@ window._profileAvatarUrl = function(name, photoURL, size) {
 //   window._initStatsAnimation(rootEl);
 //
 // Fallback (sem IntersectionObserver): seta valores finais imediatamente.
+//
+// v1.0.38-beta: 3 melhorias acumuladas:
+//   1. Safety net via setTimeout 1.5s — força animação em qualquer elemento
+//      que o IntersectionObserver não tenha disparado até lá (resolve
+//      "números ficaram zerados" reportado pós-v1.0.37). Idempotente via
+//      flag el._statAnimated.
+//   2. Stagger row-by-row — feedback do user: "delay entre cada linha de
+//      estatistica para que não carreguem ao mesmo tempo. conforme está
+//      chegando ao final da primeira linha começa a carregar a segunda".
+//      Linhas detectadas via getBoundingClientRect (Y-position grouping,
+//      tolerância 25px). Cada linha começa 180ms depois da anterior — com
+//      duração de 800ms da animação, dá overlap perceptível tipo cascata.
+//   3. threshold: 0 + rootMargin -5% (mais permissivo que -8% antes).
+//
+// Stagger só aplica nos primeiros 1.5s da página. Elementos que entram em
+// view DEPOIS (via scroll do user) animam imediatamente — sem cascata
+// fora do contexto inicial.
 window._initStatsAnimation = function(rootEl) {
     rootEl = rootEl || document;
     var bars = rootEl.querySelectorAll('[data-stat-bar]');
     var counts = rootEl.querySelectorAll('[data-stat-count]');
     if (!bars.length && !counts.length) return;
 
-    // Fallback pra browsers sem IntersectionObserver — só seta o valor final.
-    if (!('IntersectionObserver' in window)) {
-        Array.prototype.forEach.call(bars, function(el) {
-            el.style.width = (parseFloat(el.getAttribute('data-stat-bar')) || 0) + '%';
+    // Computa índice da linha (0-based, top-down) pra cada elemento via Y.
+    var _rowIdxOf = (function() {
+        var allEls = [];
+        Array.prototype.forEach.call(bars, function(el) { allEls.push(el); });
+        Array.prototype.forEach.call(counts, function(el) { allEls.push(el); });
+        if (!allEls.length) return function() { return 0; };
+        var withY = allEls.map(function(el) {
+            return { el: el, y: el.getBoundingClientRect().top };
+        }).sort(function(a, b) { return a.y - b.y; });
+        var rowMap = new WeakMap();
+        var rowIdx = 0;
+        var lastY = -Infinity;
+        withY.forEach(function(item) {
+            if (Math.abs(item.y - lastY) > 25) {
+                if (lastY !== -Infinity) rowIdx++;
+                lastY = item.y;
+            }
+            rowMap.set(item.el, rowIdx);
         });
-        Array.prototype.forEach.call(counts, function(el) {
-            var suffix = el.getAttribute('data-stat-count-suffix') || '';
-            el.textContent = el.getAttribute('data-stat-count') + suffix;
-        });
-        return;
-    }
+        return function(el) {
+            var idx = rowMap.get(el);
+            return (idx == null) ? 0 : idx;
+        };
+    })();
+
+    var initTime = (performance && performance.now) ? performance.now() : Date.now();
+    var staggerWindow = 1500; // ms — após esse tempo, animações disparam imediato (sem stagger)
+    var staggerStep = 180;    // ms entre o início de uma linha e a próxima
+
+    var _delayFor = function(el) {
+        var elapsed = ((performance && performance.now) ? performance.now() : Date.now()) - initTime;
+        if (elapsed > staggerWindow) return 0;
+        return _rowIdxOf(el) * staggerStep;
+    };
 
     var animateCount = function(el) {
-        var targetN = parseFloat(el.getAttribute('data-stat-count')) || 0;
+        if (el._statAnimated) return;
+        el._statAnimated = true;
+        var rawTarget = el.getAttribute('data-stat-count');
+        var targetN = parseFloat(rawTarget);
+        if (isNaN(targetN)) targetN = 0;
         var suffix = el.getAttribute('data-stat-count-suffix') || '';
         var prefix = el.getAttribute('data-stat-count-prefix') || '';
-        var duration = 700;
-        var start = 0;
-        var startedAt = null;
-        var isInt = (Math.floor(targetN) === targetN);
-        var step = function(now) {
-            if (startedAt === null) startedAt = now;
-            var elapsed = now - startedAt;
-            var t = Math.min(1, elapsed / duration);
-            // Ease-out cubic: rapid start, smooth end
-            var eased = 1 - Math.pow(1 - t, 3);
-            var v = start + (targetN - start) * eased;
-            var display = isInt ? Math.round(v) : (Math.round(v * 10) / 10);
-            el.textContent = prefix + display + suffix;
-            if (t < 1) requestAnimationFrame(step);
-            else el.textContent = prefix + targetN + suffix; // exact final
+        var duration = 800;
+        var isInt = (targetN === Math.floor(targetN));
+        var run = function() {
+            var startedAt = null;
+            var step = function(now) {
+                if (startedAt === null) startedAt = now;
+                var elapsed = now - startedAt;
+                var t = Math.min(1, elapsed / duration);
+                var eased = 1 - Math.pow(1 - t, 3);
+                var v = targetN * eased;
+                var display = isInt ? Math.round(v) : (Math.round(v * 10) / 10);
+                el.textContent = prefix + display + suffix;
+                if (t < 1) requestAnimationFrame(step);
+                else el.textContent = prefix + targetN + suffix; // exact final
+            };
+            requestAnimationFrame(step);
         };
-        requestAnimationFrame(step);
+        var d = _delayFor(el);
+        if (d > 0) setTimeout(run, d); else run();
     };
 
     var animateBar = function(el) {
+        if (el._statAnimated) return;
+        el._statAnimated = true;
         var target = parseFloat(el.getAttribute('data-stat-bar')) || 0;
-        // Já tem transition CSS no inline style — só mudar width dispara animação.
-        // RAF garante que o browser aplica a transição em vez de pular direto.
-        requestAnimationFrame(function() {
+        var run = function() {
             requestAnimationFrame(function() {
-                el.style.width = target + '%';
+                requestAnimationFrame(function() {
+                    el.style.width = target + '%';
+                });
             });
-        });
+        };
+        var d = _delayFor(el);
+        if (d > 0) setTimeout(run, d); else run();
     };
+
+    var triggerAll = function() {
+        Array.prototype.forEach.call(bars, animateBar);
+        Array.prototype.forEach.call(counts, animateCount);
+    };
+
+    // Fallback pra browsers sem IntersectionObserver — anima tudo já (com stagger).
+    if (!('IntersectionObserver' in window)) {
+        triggerAll();
+        return;
+    }
 
     var observer = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
@@ -864,10 +925,15 @@ window._initStatsAnimation = function(rootEl) {
             if (el.hasAttribute('data-stat-bar')) animateBar(el);
             if (el.hasAttribute('data-stat-count')) animateCount(el);
         });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    }, { rootMargin: '0px 0px -5% 0px', threshold: 0 });
 
     Array.prototype.forEach.call(bars, function(el) { observer.observe(el); });
     Array.prototype.forEach.call(counts, function(el) { observer.observe(el); });
+
+    // Safety net — depois de 1.5s, força animação em qualquer elemento
+    // que o IntersectionObserver não tenha disparado (scroll containment,
+    // off-screen, edge cases). Idempotente via flag _statAnimated.
+    setTimeout(triggerAll, 1500);
 };
 window._qrCodeUrl = function(data, size, darkMode) {
     var s = size || 280;
