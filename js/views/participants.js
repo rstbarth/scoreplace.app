@@ -878,6 +878,45 @@ function renderParticipants(container, tournamentId) {
       }
     });
 
+    // v1.0.83-beta: SAFETY NET — todo substituto (replacedBy em t.woHistory)
+    // deve aparecer na lista geral em sua posição alfabética, mesmo se algum
+    // path upstream esqueceu de adicioná-lo a t.participants. User: "na lista
+    // geral dos inscritos ele deve se manter em sua posição sempre".
+    // Cobre 4 cenários onde o substituto poderia sumir:
+    //   (a) v1.0.78/v1.0.81 push falhou por race/string mismatch
+    //   (b) entry foi pushed mas dedup descartou por algum bug não previsto
+    //   (c) t.participants foi resetado por save/load do Firestore
+    //   (d) caminho NOVO de substituição que esqueceu de fazer o push
+    // Em qualquer caso, se woHistory.replacedBy diz "Bot 05 substituiu Bot 06",
+    // Bot 05 PRECISA ter um card. Se não tem, criamos aqui.
+    if (t.woHistory && typeof t.woHistory === 'object') {
+      const _seenAfterDedup = new Set(_dedupedIndividuals.map(i => i.name.toLowerCase().trim()));
+      Object.keys(t.woHistory).forEach(woName => {
+        const meta = t.woHistory[woName];
+        if (!meta || typeof meta !== 'object') return;
+        const subName = meta.replacedBy;
+        if (!subName) return;
+        const subKey = subName.toLowerCase().trim();
+        if (_seenAfterDedup.has(subKey)) return; // já tem card ✓
+        // FALTANDO — adicionar card do substituto.
+        const subTeam = memberToTeam[subName] || null;
+        const subMatch = memberToMatch[subName] || null;
+        const subOpp = memberToOpponent[subName] || null;
+        const subDecided = !!memberToMatchDecided[subName];
+        _dedupedIndividuals.push({
+          name: subName,
+          teamName: subTeam,
+          teamIdx: -1,
+          matchNum: subMatch,
+          matchDecided: subDecided,
+          opponent: subOpp,
+          isStandby: false,
+          _safetyAdded: true // marcador pra debug
+        });
+        _seenAfterDedup.add(subKey);
+      });
+    }
+
     // v0.17.38: lista regular = alfabético total (regulares + waitlist + W.O.
     // orphans intermixados). Pedido do usuário: "os da lista de espera deve
     // estar na lista de espera na ordem de chegada, mas devem aparecer
@@ -886,6 +925,30 @@ function renderParticipants(container, tournamentId) {
     // (timestamp de check-in ascendente). Aqui na lista regular, alfabético
     // facilita encontrar pelo nome ao marcar Presente.
     _dedupedIndividuals.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+
+    // v1.0.83-beta: diagnóstico observável — se Bot 05 ainda sumir, podemos
+    // inspecionar window._debugLastParticipantsRender no console pra ver
+    // exatamente o que aconteceu.
+    try {
+      window._debugLastParticipantsRender = {
+        tournamentId: tId,
+        version: window.SCOREPLACE_VERSION,
+        at: new Date().toISOString(),
+        partsCount: parts.length,
+        partsNames: parts.map(p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?')),
+        standbyCount: standbyParts.length,
+        standbyNames: standbyParts.map(p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '?')),
+        woHistory: t.woHistory ? Object.keys(t.woHistory).map(k => ({
+          woName: k,
+          replacedBy: t.woHistory[k] && t.woHistory[k].replacedBy,
+          partner: t.woHistory[k] && t.woHistory[k].partner,
+          matchNum: t.woHistory[k] && t.woHistory[k].matchNum
+        })) : [],
+        dedupedCount: _dedupedIndividuals.length,
+        dedupedNames: _dedupedIndividuals.map(i => i.name + (i._safetyAdded ? ' [safety]' : '') + (i.isWOOrphan ? ' [orphan]' : '') + (i.isStandby ? ' [standby]' : '')),
+        currentFilter
+      };
+    } catch (_e) {}
 
     cardsStr = _dedupedIndividuals.map((ind) => {
       const mc = !!checkedIn[ind.name];

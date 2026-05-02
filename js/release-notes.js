@@ -9,6 +9,18 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.83-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Substituto preserva posição alfabética na lista geral — safety net + diagnóstico.</b> User: <i>"o bot05 estava em sua posicao entre o 04 e 06 (em lista de espera) e sumiu quando decretei WO do bot06... na lista geral dos inscritos ele deve se manter em sua posição sempre"</i>.</p>' +
+      '<p>v1.0.78 + v1.0.81 garantiram que o substituto seja adicionado a <code>t.participants</code> nos 2 caminhos conhecidos (ind W.O. e team scope), mas o card continuou sumindo no teste do user. Como análise teórica dizia que o card DEVERIA aparecer, virei a estratégia: <b>safety net empírica</b> em <code>renderParticipants</code>.</p>' +
+      '<p><b>Implementação em <code>participants.js</code>:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Após dedup, antes do sort alfabético, escaneia <code>t.woHistory</code>: pra cada <code>{woName: {replacedBy}}</code>, verifica se <code>replacedBy</code> tem card em <code>_dedupedIndividuals</code>. Se NÃO tem, cria card com <code>name</code>, <code>teamName</code>, <code>matchNum</code>/<code>opponent</code> e flag <code>_safetyAdded</code>.</li>' +
+        '<li>Cobre 4 cenários onde substituto poderia sumir: race no push v1.0.78/81, dedup com bug não previsto, save/load Firestore resetando t.participants, novo caminho de substituição esquecendo do push.</li>' +
+        '<li><b>Diagnóstico observável</b> via <code>window._debugLastParticipantsRender</code>: snapshot completo (parts, standby, woHistory, deduped names com flags <code>[safety]</code>/<code>[orphan]</code>/<code>[standby]</code>, currentFilter). Se Bot 05 ainda sumir, inspecionar console pra ver exatamente onde quebrou.</li>' +
+      '</ul>' +
+      '<p><b>Regra cristalizada:</b> quando análise teórica diz "X deveria aparecer" mas empiricamente não aparece, parar de iterar no upstream e adicionar safety net no downstream. Diagnóstico observável transforma silent failure em loud failure auditável.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏷️ v1.0.67-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Tag "BYE" no card de partida em todo torneio com BYE.</b> User: <i>"sempre que um time passar de bye para a rodada seguinte deve ter uma tag BYE indicando isso. (apenas na rodada que passou de bye, nas seguintes quando passar por vitória não precisa mais sinalizar)"</i> + <i>"isso deve se aplicar a todo e qualquer bye em qualquer torneio"</i>.</p>' +
       '<p><b>Implementação:</b> flags <code>p1FromBye</code> / <code>p2FromBye</code> setadas em duas camadas:</p>' +
