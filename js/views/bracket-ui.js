@@ -1131,13 +1131,25 @@ window._highlightWinner = function (matchId) {
         }
       }
     } catch(e) {}
-    // Tiebreak trigger: a set won trigger+1 to trigger (e.g. 7-6) implies TB was played
-    var _showTb = _trigger !== null && (
+    // v1.0.76-beta: TB inputs ficam VISÍVEIS uma vez que aparecem.
+    // User: 'quando um placar de tie-break acontecer mantenha ele na tela.
+    // está aceitando e escondendo em seguida'.
+    // Antes: TB hidden quando score saía do trigger (ex: usuário digitava
+    // 7 em vez de 6 e TB sumia + valor era apagado).
+    // Agora: trigger hit OU já visível (e score não totalmente vazio) → fica.
+    // Só esconde quando ambos placares vazios (= reset).
+    var triggerHit = _trigger !== null && (
       (s1 === _trigger + 1 && s2 === _trigger) ||
       (s1 === _trigger && s2 === _trigger + 1)
     );
+    var alreadyShown = tb1El.style.display !== 'none';
+    var s1Raw = s1El.value;
+    var s2Raw = s2El.value;
+    var bothEmpty = (!s1Raw || s1Raw === '') && (!s2Raw || s2Raw === '');
+    var _showTb = triggerHit || (alreadyShown && !bothEmpty);
     tb1El.style.display = _showTb ? 'inline-block' : 'none';
     tb2El.style.display = _showTb ? 'inline-block' : 'none';
+    // Só limpa valores quando esconde de fato (reset completo)
     if (!_showTb) { tb1El.value = ''; tb2El.value = ''; }
   }
 
