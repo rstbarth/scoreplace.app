@@ -1440,8 +1440,15 @@ function renderParticipants(container, tournamentId) {
           ? `window._markAbsent('${tId}', '${safeName}')`
           : `window._declareAbsent('${tId}', '${safeName}')`);
       const woLabel = isAbsent ? 'Reverter' : 'W.O.';
-      // Sempre renderizado para o organizador, independente de o jogo já ter sido decidido ou estar em W.O.
-      const woBtn = isOrg
+      // v1.0.88-beta: omitir botão W.O. quando Presente confirmado.
+      // User: 'na lista de inscritos, da mesma forma que o botão de presença
+      // do jogador é omitido quando damos WO para um participante, vamos
+      // omitir o botao de WO quando a presença for confirmada.'
+      // Pra desfazer: usuário toggla Presença off → botão W.O. reaparece.
+      // Quando isAbsent=true mostra "Reverter" (não some — pois é a única
+      // forma de desfazer W.O.). Quando mc=true E !isAbsent, omite.
+      const _showWoBtn = isOrg && (isAbsent || !mc);
+      const woBtn = _showWoBtn
         ? `<button class="btn btn-micro" onclick="event.stopPropagation(); ${woAction}" style="border:1px solid ${isAbsent ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.2)'};background:${isAbsent ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.08)'};color:${isAbsent ? '#60a5fa' : '#f87171'};font-weight:800;font-size:0.7rem;${isAbsent ? 'opacity:1;' : 'opacity:0.6;'}">${woLabel}</button>`
         : '';
       const woBadge = isWO ? `<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>` : '';

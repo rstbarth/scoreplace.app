@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">👁️ v1.0.88-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Botão W.O. omitido quando Presença confirmada.</b> User: <i>"na lista de inscritos, da mesma forma que o botão de presença do jogador é omitido quando damos WO para um participante, vamos omitir o botao de WO quando a presença for confirmada"</i>.</p>' +
+      '<p>Simétrico ao comportamento da v1.0.80 (toggle Presença escondido pra W.O.\'d players). Lógica em <code>participants.js</code>: <code>_showWoBtn = isOrg && (isAbsent || !mc)</code>. Quando <code>isAbsent=true</code> mantém "Reverter" visível (única forma de desfazer W.O.). Quando <code>mc=true</code> (Presente) e não-absent, esconde W.O. Pra acessar W.O. de novo, usuário toggla Presença off → botão reaparece.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.87-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Substituição W.O. unificada — função idempotente <code>_processWoSubstitutions</code>.</b> User: <i>"continua falhando em algum ponto. tem gente presente na lista de espera, mas ao colocar o WO a pessoa não é substituida no jogo (fica vermelha no jogo). arrume isso nem que seja colocando um loading até que o banco de dados esteja seguro de funcionar como se deve... tem 3 presentes na lista de espera mas o sistema age como se nao houvesse ninguem"</i>.</p>' +
       '<p>Após v1.0.85 (fix _declareAbsent) e v1.0.86 (fix _autoSubstituteWO), o bug persistiu. Sintoma: 3 Presentes na lista, sistema age como 0. Indica que o filtro de Presentes está retornando empty mesmo com checkedIn populado — race condition mais profundo OU corrupção de state. Em vez de mais 1 patch surgical, refator agressivo:</p>' +
