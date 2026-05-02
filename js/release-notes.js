@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏷️ v1.0.67-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Tag "BYE" no card de partida em todo torneio com BYE.</b> User: <i>"sempre que um time passar de bye para a rodada seguinte deve ter uma tag BYE indicando isso. (apenas na rodada que passou de bye, nas seguintes quando passar por vitória não precisa mais sinalizar)"</i> + <i>"isso deve se aplicar a todo e qualquer bye em qualquer torneio"</i>.</p>' +
+      '<p><b>Implementação:</b> flags <code>p1FromBye</code> / <code>p2FromBye</code> setadas em duas camadas:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>tournaments-draw.js</code> Play-in: marca slot R2 quando <code>type === \'bye\'</code> (BYE forçado por ímpar).</li>' +
+        '<li><code>bracket-logic.js _advanceWinner</code>: quando <code>completedMatch.isBye</code> (BYE auto-resolvido em qualquer rodada de qualquer formato), marca o slot da próxima partida.</li>' +
+      '</ul>' +
+      '<p>Tag âmbar <code>BYE</code> renderizada inline ao lado do nome no <code>renderMatchCard</code>. Some na rodada seguinte porque a partida não tem <code>p1FromBye</code> setado quando o avanço é por vitória normal.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔁 v1.0.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Play-in: chaveamento real agora bate com a simulação.</b> Removida a geração de jogos de repescagem. Os melhores derrotados vão direto pro bracket por seleção (menor margem). Ajustes:</p>' +
       '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +

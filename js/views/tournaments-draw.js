@@ -801,6 +801,12 @@ window.generateDrawFunction = function (tId) {
                         // Mark R2 slots that await best-loser assignment
                         if (rp.p2.type === 'bestloser') r2m.awaitsBestLoser = 'p2';
                         if (rp.p1.type === 'bestloser') r2m.awaitsBestLoser = 'p1';
+                        // v1.0.67-beta: mark slots that came from BYE — usado
+                        // pelo renderMatchCard pra exibir tag "BYE" só nesta
+                        // rodada (rodadas seguintes, vitórias normais não
+                        // sinalizam mais).
+                        if (rp.p1.type === 'bye') r2m.p1FromBye = true;
+                        if (rp.p2.type === 'bye') r2m.p2FromBye = true;
                         matches.push(r2m);
                         _matchCounter++;
 

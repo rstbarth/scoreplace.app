@@ -1311,9 +1311,17 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
         : scoreDisplay(_p2Display, p2IsWinner))
     : null;
 
+  // v1.0.67-beta: tag "BYE" indicando que o jogador veio de BYE NESTA rodada.
+  // Aparece só na rodada em que ele recebeu o BYE — rodadas seguintes não.
+  // m.p1FromBye / m.p2FromBye setados em _advanceWinner (bracket-logic.js)
+  // ou direto no draw pra play-in (tournaments-draw.js).
+  var _byeTag = '<span style="display:inline-block;font-size:0.58rem;font-weight:800;color:#fbbf24;background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.45);padding:1px 6px;border-radius:5px;margin-left:6px;letter-spacing:0.5px;text-transform:uppercase;vertical-align:middle;">BYE</span>';
+  var _p1ByeBadge = m.p1FromBye ? _byeTag : '';
+  var _p2ByeBadge = m.p2FromBye ? _byeTag : '';
+
   const p1Row = `
     <div style="${rowStyle(p1IsWinner, 'p1')}">
-      ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}</div>
+      ${ciDot(p1ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p1)}${_p1ByeBadge}</div>
       <div id="score-p1-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
         ${showInputs ? p1Score : (p1ScoreVal || '')}
       </div>
@@ -1321,7 +1329,7 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const p2Row = `
     <div style="${rowStyle(p2IsWinner, 'p2')}">
-      ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}</div>
+      ${ciDot(p2ci)}<div style="flex:1;overflow:hidden;min-width:0;">${_teamAvatarHtml(m.p2)}${_p2ByeBadge}</div>
       <div id="score-p2-${m.id}" style="display:flex;align-items:center;flex-shrink:0;">
         ${showInputs ? p2Score : (p2ScoreVal || '')}
       </div>

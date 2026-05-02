@@ -601,15 +601,27 @@ function _advanceWinner(t, completedMatch) {
   if (completedMatch.nextMatchId) {
     const next = _findMatch(t, completedMatch.nextMatchId);
     if (next) {
+      // v1.0.67-beta: marca slot como "veio de BYE" pra renderMatchCard
+      // exibir tag "BYE" SÓ nesta rodada (rodadas seguintes, vitórias
+      // normais não sinalizam mais). User: "isso deve se aplicar a todo
+      // e qualquer bye em qualquer torneio".
+      var fromBye = !!completedMatch.isBye;
       // Play-in matches specify which slot to fill via nextSlot
       if (completedMatch.nextSlot === 'p1') {
         next.p1 = winner;
+        if (fromBye) next.p1FromBye = true;
       } else if (completedMatch.nextSlot === 'p2') {
         next.p2 = winner;
+        if (fromBye) next.p2FromBye = true;
       } else {
         // Standard advancement: fill first available TBD slot
-        if (!next.p1 || next.p1 === 'TBD') next.p1 = winner;
-        else if (!next.p2 || next.p2 === 'TBD') next.p2 = winner;
+        if (!next.p1 || next.p1 === 'TBD') {
+          next.p1 = winner;
+          if (fromBye) next.p1FromBye = true;
+        } else if (!next.p2 || next.p2 === 'TBD') {
+          next.p2 = winner;
+          if (fromBye) next.p2FromBye = true;
+        }
       }
       // Auto-resolve BYE matches: if one slot is filled and the other is BYE
       _autoResolveBye(t, next);
