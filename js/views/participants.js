@@ -458,6 +458,16 @@ window._declareAbsent = function (tId, playerName) {
           }
         }
       }
+      // v1.0.78-beta: torneios em modo Individual com sorteio em duplas têm
+      // entradas POR INDIVIDUAL. Substituto vindo da waitlist precisa ser
+      // adicionado a t.participants pra aparecer na lista de inscritos.
+      const _hasNextEntry = partsArr.some(function(p) {
+        const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+        return _n === nextName;
+      });
+      if (!_hasNextEntry) {
+        partsArr.push(typeof nextStandby === 'string' ? nextName : nextStandby);
+      }
       t.participants = partsArr;
       _removeFromWaitlists(nextName);
       t.checkedIn[nextName] = true;

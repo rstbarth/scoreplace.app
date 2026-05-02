@@ -852,6 +852,18 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
             }
           }
         }
+        // v1.0.78-beta: torneios em modo Individual com sorteio em duplas têm
+        // entradas POR INDIVIDUAL (não por team string). User: 'bot06 parou de
+        // ser mostrado entre bot05 e bot07' após assumir vaga via W.O.
+        // Causa: substituto vinha da waitlist, nunca tinha entry própria em
+        // t.participants. Findindex por team string não casava (entries são
+        // individuais). Fix: garante que substituto exista em t.participants
+        // como individual quando ele ainda não existe (mode Individual).
+        var _hasIndividualEntry = partsArr.some(function(p) { return getName(p) === replacementName; });
+        if (!_hasIndividualEntry) {
+          // Adiciona substituto como individual (preserva nextPresent object se houver dados)
+          partsArr.push(typeof nextPresent === 'string' ? replacementName : nextPresent);
+        }
         t.participants = partsArr;
         // Remove replacement from standby
         t.standbyParticipants = standby.filter(function(p) { return getName(p) !== replacementName; });
