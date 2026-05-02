@@ -22,6 +22,194 @@ function _reRenderParticipants() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// v1.0.87-beta: REDE DE SEGURANÇA — _processWoSubstitutions
+// User: 'continua falhando em algum ponto. tem gente presente na lista de espera,
+// mas ao colocar o WO a pessoa não é substituida no jogo (fica vermelha no jogo).
+// arrume isso nem que seja colocando um loading até que o banco de dados esteja
+// seguro de funcionar como se deve.'
+//
+// Função IDEMPOTENTE que processa TODAS as substituições pendentes a partir do
+// estado FRESH do AppStore. Lê t.absent + t.checkedIn + t.standbyParticipants +
+// t.waitlist + matches diretamente — sem closure, sem race. Pode ser chamada
+// 1x ou 100x: efeito é o mesmo (só roda sub se ainda há absent sem replacedBy
+// no match correspondente). Usa-se como rede de segurança em todo ponto onde
+// estado pode ter mudado.
+//
+// Algoritmo:
+// 1. Pra cada absent em t.absent
+// 2. Achar o match onde o absent ainda está no team (não foi substituído)
+// 3. Se Presente standby disponível → substituir
+// 4. Atualizar match + partsArr + waitlists + checkedIn + woHistory
+// 5. Sync no fim se houve qualquer mutação
+// ─────────────────────────────────────────────────────────────────────────────
+window._processWoSubstitutions = function(tId) {
+  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  if (!t) return { ok: false, reason: 'no-tournament' };
+  if (!t.absent || Object.keys(t.absent).length === 0) return { ok: false, reason: 'no-absent', subCount: 0 };
+  if (!t.checkedIn) return { ok: false, reason: 'no-checkedIn', subCount: 0 };
+
+  const _getName = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+  const _normTeam = (s) => (s || '').replace(/\s*\/\s*/g, '/').trim();
+
+  // Build fresh standby pool
+  const _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+  const _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
+  const _spNames = new Set(_sp.map(_getName));
+  const standbyPool = _sp.slice();
+  _wl.forEach(w => { const wn = _getName(w); if (wn && !_spNames.has(wn)) standbyPool.push(w); });
+
+  // Build presentList (FIFO by check-in timestamp). Tolerant a TIMESTAMP (number)
+  // OU TRUE (boolean): _toggleCheckIn seta Date.now() (number truthy), handlers
+  // de sub setam true (boolean). Ambos contam.
+  const presentList = standbyPool
+    .map(p => {
+      const name = _getName(p);
+      const ci = t.checkedIn[name];
+      const ts = typeof ci === 'number' ? ci : (ci ? 1 : 0);
+      return { p, name, ts };
+    })
+    .filter(o => o.ts > 0)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (presentList.length === 0) {
+    try {
+      window._lastProcessSubs = {
+        version: window.SCOREPLACE_VERSION, at: new Date().toISOString(),
+        outcome: 'no-presente-in-standby',
+        standbyPoolCount: standbyPool.length,
+        absentNames: Object.keys(t.absent),
+        checkedInKeys: Object.keys(t.checkedIn)
+      };
+    } catch (_e) {}
+    return { ok: false, reason: 'no-presente', subCount: 0, standbyPoolCount: standbyPool.length };
+  }
+
+  const allMatches = (typeof window._collectAllMatches === 'function')
+    ? window._collectAllMatches(t)
+    : (Array.isArray(t.matches) ? t.matches.slice() : []);
+
+  const woScope = t.woScope || 'individual';
+  let subCount = 0;
+  const subDetails = [];
+
+  // Iterate absents — try to substitute each. Pode ter múltiplos absents pendentes.
+  const absentNames = Object.keys(t.absent);
+  for (const absentName of absentNames) {
+    if (presentList.length === 0) break;
+
+    // Find match where absent is still in p1/p2 (not yet substituted)
+    let foundMatch = null, foundSlot = null, foundIdx = -1;
+    for (let i = 0; i < allMatches.length; i++) {
+      const m = allMatches[i];
+      if (!m || m.winner) continue;
+      for (const slot of ['p1', 'p2']) {
+        const entry = m[slot];
+        if (!entry || entry === 'TBD' || entry === 'BYE') continue;
+        const members = entry.includes('/') ? entry.split('/').map(n => n.trim()).filter(n => n) : [entry];
+        if (members.indexOf(absentName) !== -1) {
+          foundMatch = m; foundSlot = slot; foundIdx = i;
+          break;
+        }
+      }
+      if (foundMatch) break;
+    }
+
+    if (!foundMatch) continue; // absent já substituído ou não está em match ativo
+
+    // Pick first Presente from FIFO pool
+    const sub = presentList.shift();
+    const subName = sub.name;
+    const oldEntry = foundMatch[foundSlot];
+    const isTeam = oldEntry.includes('/');
+    let newEntry;
+    if (isTeam && woScope === 'individual') {
+      const sep = oldEntry.includes(' / ') ? ' / ' : '/';
+      const members = oldEntry.split(sep).map(n => n.trim());
+      const newMembers = members.map(n => n === absentName ? subName : n);
+      newEntry = newMembers.join(' / ');
+    } else {
+      newEntry = subName;
+    }
+    const partner = isTeam ? oldEntry.split('/').map(n => n.trim()).find(n => n !== absentName) : null;
+
+    // Update this match slot + propagate across all match refs (Liga/Suíço/Grupos)
+    foundMatch[foundSlot] = newEntry;
+    allMatches.forEach(m => {
+      if (!m) return;
+      if (m.p1 === oldEntry) m.p1 = newEntry;
+      if (m.p2 === oldEntry) m.p2 = newEntry;
+      if (Array.isArray(m.team1)) {
+        const ti = m.team1.indexOf(absentName);
+        if (ti !== -1) m.team1[ti] = subName;
+      }
+      if (Array.isArray(m.team2)) {
+        const ti2 = m.team2.indexOf(absentName);
+        if (ti2 !== -1) m.team2[ti2] = subName;
+      }
+    });
+
+    // Update participants entry (team string)
+    const partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    const pIdx = partsArr.findIndex(p => _getName(p) === oldEntry);
+    if (pIdx !== -1) {
+      if (typeof partsArr[pIdx] === 'string') partsArr[pIdx] = newEntry;
+      else { partsArr[pIdx].displayName = newEntry; partsArr[pIdx].name = newEntry; }
+    }
+
+    // Push sub as solo entry if not already in participants
+    const _hasSubEntry = partsArr.some(p => _getName(p) === subName);
+    if (!_hasSubEntry) {
+      partsArr.push(typeof sub.p === 'string' ? subName : sub.p);
+    }
+    t.participants = partsArr;
+
+    // Remove sub from waitlists
+    if (Array.isArray(t.standbyParticipants)) {
+      t.standbyParticipants = t.standbyParticipants.filter(p => _getName(p) !== subName);
+    }
+    if (Array.isArray(t.waitlist)) {
+      t.waitlist = t.waitlist.filter(p => _getName(p) !== subName);
+    }
+
+    // Mark sub as Presente (use timestamp pra preservar FIFO em subs subsequentes)
+    t.checkedIn[subName] = Date.now();
+
+    // Record woHistory
+    if (!t.woHistory) t.woHistory = {};
+    t.woHistory[absentName] = {
+      originalTeam: oldEntry,
+      partner: partner,
+      matchNum: foundIdx + 1,
+      replacedBy: subName,
+      timestamp: Date.now()
+    };
+
+    subCount++;
+    subDetails.push({ absent: absentName, sub: subName, oldEntry, newEntry, matchNum: foundIdx + 1 });
+    window.AppStore.logAction(tId, `Substituição W.O. (auto): ${absentName} → ${subName}${partner ? ' (parceiro: ' + partner + ')' : ''} — Jogo ${foundIdx + 1}`);
+  }
+
+  if (subCount > 0) {
+    // Sync immediate to Firestore
+    if (typeof window.AppStore.syncImmediate === 'function') {
+      window.AppStore.syncImmediate(tId);
+    } else {
+      window.AppStore.sync();
+    }
+  }
+
+  try {
+    window._lastProcessSubs = {
+      version: window.SCOREPLACE_VERSION, at: new Date().toISOString(),
+      outcome: subCount > 0 ? 'sub-done' : 'no-sub-needed',
+      subCount, subDetails, standbyPoolCount: standbyPool.length, presentCount: presentList.length + subCount
+    };
+  } catch (_e) {}
+
+  return { ok: subCount > 0, subCount, subDetails };
+};
+
 window._toggleCheckIn = function (tId, playerName) {
   const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
@@ -37,33 +225,25 @@ window._toggleCheckIn = function (tId, playerName) {
     delete t.absent[playerName];
   }
   window.FirestoreDB.saveTournament(t);
-  _reRenderParticipants();
 
-  // Auto-substitute: se acabamos de marcar um jogador da lista de espera como Presente
-  // e há um ausente pendente em um jogo ativo (W.O. declarado antes do substituto estar
-  // presente), dispara o fluxo de substituição que já mostra confirmação explicativa.
+  // v1.0.87-beta: substituí o auto-trigger de _autoSubstituteWO (que tinha
+  // dialog + race condition) pela função unificada _processWoSubstitutions.
+  // Idempotente: lê estado fresh, processa todas pendências sem dialog,
+  // atualiza match/participants/waitlists/checkedIn/woHistory atomicamente.
+  // Toast só se houve sub.
   if (!wasCheckedIn) {
-    const standby = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
-    const waitlist = Array.isArray(t.waitlist) ? t.waitlist : [];
-    const _nm = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
-    const inStandby = standby.some(p => _nm(p) === playerName) || waitlist.some(p => _nm(p) === playerName);
-    if (inStandby && t.absent && Object.keys(t.absent).length > 0) {
-      const allMatches = (typeof window._collectAllMatches === 'function')
-        ? window._collectAllMatches(t) : (Array.isArray(t.matches) ? t.matches : []);
-      const hasPendingWO = allMatches.some(m => {
-        if (!m || m.winner || m.isBye) return false;
-        return ['p1', 'p2'].some(slot => {
-          const entry = m[slot];
-          if (!entry || entry === 'TBD' || entry === 'BYE') return false;
-          const members = entry.includes(' / ') ? entry.split(' / ').map(n => n.trim()) : [entry];
-          return members.some(n => t.absent[n]);
-        });
+    const _result = window._processWoSubstitutions(tId);
+    if (_result && _result.ok && _result.subCount > 0) {
+      _result.subDetails.forEach(d => {
+        if (typeof showNotification === 'function') {
+          showNotification('✅ Substituição W.O.',
+            `${d.sub} substituiu ${d.absent} — Jogo ${d.matchNum}`,
+            'success');
+        }
       });
-      if (hasPendingWO && typeof window._autoSubstituteWO === 'function') {
-        setTimeout(function() { window._autoSubstituteWO(tId, playerName); }, 120);
-      }
     }
   }
+  _reRenderParticipants();
 };
 
 window._markAbsent = function (tId, playerName) {
@@ -456,6 +636,97 @@ window._declareAbsent = function (tId, playerName) {
       };
     }
 
+    // v1.0.87-beta: refator agressivo. Antes a confirm callback tinha 3
+    // branches duplicando lógica de substituição (ind W.O., team scope,
+    // escalate W.O.) — cada um com captura de closure + race condition
+    // potencial. Agora: callback só MARCA absent + sync + chama função
+    // unificada _processWoSubstitutions(tId) que faz TUDO usando estado
+    // fresh do AppStore. Idempotente: se já houver Presente standby,
+    // substitui; se não, fica em "aguardando" (com toast claro).
+    // Backup: se _processWoSubstitutions falhar (não existir, throw, etc),
+    // cai no caminho legado abaixo.
+    let _processed = false;
+    if (typeof window._processWoSubstitutions === 'function') {
+      try {
+        // Sync immediate ANTES de chamar — garante que t.absent está no Firestore.
+        // (Mutations locais já feitas; sync persiste.)
+        window.AppStore.sync();
+        const _result = window._processWoSubstitutions(tId);
+        _processed = true;
+        if (_result && _result.ok && _result.subCount > 0) {
+          // Sub aconteceu — toast por cada
+          _result.subDetails.forEach(d => {
+            if (typeof showNotification === 'function') {
+              showNotification('✅ Substituição W.O.',
+                `${d.sub} substituiu ${d.absent} — Jogo ${d.matchNum}`,
+                'success');
+            }
+          });
+        } else {
+          // Sem sub — descobrir por quê e mostrar toast informativo
+          const tF = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+          const _spF = tF && Array.isArray(tF.standbyParticipants) ? tF.standbyParticipants : [];
+          const _wlF = tF && Array.isArray(tF.waitlist) ? tF.waitlist : [];
+          const _stbCount = _spF.length + _wlF.length;
+          const _ciF = tF && tF.checkedIn || {};
+          const _gN = p => typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          const _allStb = _spF.concat(_wlF);
+          const _presCount = _allStb.filter(p => !!_ciF[_gN(p)]).length;
+          if (typeof showNotification === 'function') {
+            if (_stbCount === 0) {
+              // Cenário (b) v1.0.82: lista vazia — escala pra W.O. de time (oponente vence)
+              // Faz isso ANTES do toast: encerra match.
+              const _allM = (typeof window._collectAllMatches === 'function')
+                ? window._collectAllMatches(tF) : (Array.isArray(tF.matches) ? tF.matches : []);
+              let _woMatch = null, _woSlot = null;
+              for (let i = 0; i < _allM.length; i++) {
+                const m = _allM[i]; if (!m || m.winner) continue;
+                ['p1','p2'].forEach(s => {
+                  if (_woMatch) return;
+                  const e = m[s];
+                  if (!e || e === 'TBD' || e === 'BYE') return;
+                  const mb = e.includes('/') ? e.split('/').map(n => n.trim()) : [e];
+                  if (mb.indexOf(playerName) !== -1) { _woMatch = m; _woSlot = s; }
+                });
+                if (_woMatch) break;
+              }
+              if (_woMatch) {
+                const _opp = _woSlot === 'p1' ? 'p2' : 'p1';
+                _woMatch.scoreP1 = _woSlot === 'p1' ? 0 : 'W.O.';
+                _woMatch.scoreP2 = _woSlot === 'p2' ? 0 : 'W.O.';
+                _woMatch.winner = _woMatch[_opp];
+                _woMatch.wo = true;
+                if (typeof window._advanceWinner === 'function') {
+                  try { window._advanceWinner(tF, _woMatch); } catch (_e) {}
+                }
+                window.AppStore.syncImmediate(tId);
+                showNotification('🏆 W.O. — oponente vence',
+                  `${_woMatch.winner} vence por W.O. (lista de espera vazia).`,
+                  'warning');
+              } else {
+                showNotification('⚠️ Sem jogo pendente', `${playerName} marcado ausente.`, 'warning');
+              }
+            } else if (_presCount === 0) {
+              showNotification('⚠️ Aguardando substituto presente',
+                `Lista de espera tem ${_stbCount} pessoa(s), 0 Presente. ${playerName} marcado ausente.`,
+                'warning');
+            } else {
+              // Tem Presente mas não substituiu — algo estranho. Logar pra debug.
+              showNotification('⚠️ Falha na substituição',
+                `Lista tem ${_presCount} Presente(s) mas substituição falhou. ${playerName} marcado ausente. Debug: window._lastProcessSubs`,
+                'error');
+            }
+          }
+        }
+        _reRenderParticipants();
+      } catch (_e) {
+        console.error('[v1.0.87 _processWoSubstitutions] erro:', _e);
+        _processed = false;
+      }
+    }
+    if (_processed) return;
+
+    // Caminho legado (fallback, executa só se _processWoSubstitutions falhou)
     if (isIndividualWO && matchEntry) {
       // Individual W.O. in teams — try to replace only the absent member, partner stays
       if (!t.checkedIn) t.checkedIn = {};
