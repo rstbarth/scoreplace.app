@@ -833,6 +833,8 @@ function _assignRepechageLosers(t) {
   // `awaitsBestLoser` da R2. Os piores são eliminados imediatamente.
   // Backward-compat: se cfg.repMatchIds tem partidas (modelo antigo
   // ainda em torneios criados pré-v1.0.66), mantém o caminho antigo.
+  // v1.0.73-beta: awaitsBestLoser pode ter múltiplos slots ('p1,p2')
+  // quando ambos slots da match são bestloser.
   if (!cfg.repMatchIds || cfg.repMatchIds.length === 0) {
     // Novo modelo: seleção direta pros slots awaitsBestLoser
     var bestLosers = rankedLosers.slice(0, cfg.bestLoserCount || 0);
@@ -841,10 +843,13 @@ function _assignRepechageLosers(t) {
     for (var ai = 0; ai < allM.length && blIdx < bestLosers.length; ai++) {
       var m = allM[ai];
       if (m.awaitsBestLoser && (!t._catFilterForRep || m.category === t._catFilterForRep)) {
-        var slot = m.awaitsBestLoser; // 'p1' or 'p2'
-        m[slot] = bestLosers[blIdx].name;
+        // suporta 'p1', 'p2' ou 'p1,p2' (múltiplos slots)
+        var slots = String(m.awaitsBestLoser).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+        for (var si = 0; si < slots.length && blIdx < bestLosers.length; si++) {
+          m[slots[si]] = bestLosers[blIdx].name;
+          blIdx++;
+        }
         delete m.awaitsBestLoser;
-        blIdx++;
         _autoResolveBye(t, m);
       }
     }

@@ -801,9 +801,14 @@ window.generateDrawFunction = function (tId) {
                             winner: null
                         };
                         if (catName) r2m.category = catName;
-                        // Mark R2 slots that await best-loser assignment
-                        if (rp.p2.type === 'bestloser') r2m.awaitsBestLoser = 'p2';
-                        if (rp.p1.type === 'bestloser') r2m.awaitsBestLoser = 'p1';
+                        // v1.0.73-beta: marca AMBOS os slots quando p1 E p2
+                        // são bestloser (acontece quando há 2+ best losers no
+                        // final da ordem). Antes só um era marcado, deixando
+                        // o outro como "A definir" pra sempre.
+                        var _bestLoserSlots = [];
+                        if (rp.p1.type === 'bestloser') _bestLoserSlots.push('p1');
+                        if (rp.p2.type === 'bestloser') _bestLoserSlots.push('p2');
+                        if (_bestLoserSlots.length > 0) r2m.awaitsBestLoser = _bestLoserSlots.join(',');
                         // v1.0.67-beta: mark slots that came from BYE — usado
                         // pelo renderMatchCard pra exibir tag "BYE" só nesta
                         // rodada (rodadas seguintes, vitórias normais não
