@@ -1217,22 +1217,45 @@ function setupCreateTournamentModal() {
     var venue = venueEl ? venueEl.value.trim() : '';
 
     // ─── Try Pollinations.ai first ──────────────────────────────────────
+    // v1.0.75-beta: prompt esporte-específico + estilo variado pra evitar
+    // confusão (ex: AI desenhava raquete de tênis pra Beach Tennis).
+    // Cada esporte tem descrição visual ICÔNICA e diferenciadora;
+    // estilos rotam pra garantir variedade entre regenerações.
     var sportNameForAI = sport.replace(/^[^\wÀ-ɏ]+/u, '').trim();
-    // Extract meaningful keywords (skip stop words)
+    // Imagery específico por esporte — focado em equipamento + cenário
+    var sportImagery = {
+      'Beach Tennis':   'beach tennis paddle (solid wooden paddle with holes, NOT a tennis racket with strings), sand court, ocean, tropical beach setting',
+      'Pickleball':     'pickleball paddle and yellow whiffle ball with holes, outdoor court',
+      'Tênis':          'tennis racket with strings, fuzzy yellow tennis ball, hard court',
+      'Tênis de Mesa':  'table tennis paddle (red rubber face), white celluloid ball, wooden table',
+      'Padel':          'padel racket (perforated solid face), padel court with glass walls and metal mesh',
+      'Vôlei de Praia': 'beach volleyball ball (white panels), sand court, volleyball net, sun',
+      'Futevôlei':      'soccer ball on sand court, volleyball net, beach sunset, tropical'
+    };
+    var imagery = sportImagery[sportNameForAI] || ('sport theme ' + sportNameForAI.toLowerCase());
+    // Estilos visuais — rotação aleatória pra variar entre regenerações
+    var styleVariants = [
+      'vintage emblem with ribbon banner, retro sports logo style, bold outline',
+      'modern flat geometric badge, bold solid colors, clean shapes',
+      'minimalist line art on circular crest, monoline style, simple shapes',
+      'art deco shield design with gold accents, elegant geometry',
+      'tropical sunset gradient circular emblem, vibrant colors',
+      'hand-drawn style sports crest, organic lines, vibrant palette',
+      'futuristic neon badge, glowing edges, dark background contrast'
+    ];
+    var style = styleVariants[Math.floor(Math.random() * styleVariants.length)];
+    // Extract meaningful keywords from name (skip stopwords)
     var stopWords = ['de','da','do','dos','das','a','o','os','as','e','em','na','no','torneio','copa','campeonato','liga','open'];
     var keywordList = name.toLowerCase().split(/\s+/)
       .filter(function(w) { return w.length > 2 && stopWords.indexOf(w) === -1; })
-      .slice(0, 4);
+      .slice(0, 3);
     var keywordsStr = keywordList.join(' ');
     var promptParts = [
-      'sports tournament emblem badge',
-      sportNameForAI ? sportNameForAI.toLowerCase() + ' theme' : '',
-      keywordsStr,
-      'minimalist flat design',
-      'vibrant colors',
-      'circular crest',
-      'professional sports logo',
-      'no text no letters no words'
+      'sports tournament emblem',
+      imagery,
+      style,
+      keywordsStr ? 'inspired by: ' + keywordsStr : '',
+      'no text, no letters, no words, no typography, iconic visual only'
     ].filter(function(s) { return s; });
     var aiPrompt = promptParts.join(', ');
     var seed = Math.floor(Math.random() * 1000000);
