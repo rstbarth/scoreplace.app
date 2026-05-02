@@ -1,0 +1,21 @@
+"Plano: criar 1 torneio por formato/modo com 40 bots (Add Bot v1.0.60), testar cada opção do painel P2 marcando ☐→✓. Apagar e refazer entre opções (cada uma muda estado do torneio).",,,,,,,,
+,,,,,,,,
+"=== POTÊNCIA DE 2 (40 inscritos → P2=32) ===",,,,,,,,
+Formato,Modo,N inscritos,Reabrir Inscrições,BYE,Play-in,Lista de Espera,Suíço,Enquete
+Eliminatórias Simples,Individual,40,☐,☐,☐,☐,☐,☐
+Eliminatórias Simples,Duplas (20 duplas),40,☐,☐,☐,☐,☐,☐
+Dupla Eliminatória,Individual,40,☐,☐,☐,☐,☐,☐
+Dupla Eliminatória,Duplas (20 duplas),40,☐,☐,☐,☐,☐,☐
+Grupos + Eliminatórias,Individual,40,☐,☐,☐,☐,☐,☐
+Grupos + Eliminatórias,Duplas (20 duplas),40,☐,☐,☐,☐,☐,☐
+,,,,,,,,
+"=== TIMES INCOMPLETOS (41 bots em Duplas → 20 duplas + 1 órfão) ===",,,,,,,,
+Formato,Modo,N inscritos,Reabrir,Add Bot,Lista de Espera,Ajuste Manual,Enquete,
+Eliminatórias Simples,Duplas (20 + 1),41,☐,☐,☐,☐,☐,
+Dupla Eliminatória,Duplas (20 + 1),41,☐,☐,☐,☐,☐,
+Grupos + Eliminatórias,Duplas (20 + 1),41,☐,☐,☐,☐,☐,
+,,,,,,,,
+"=== NOTAS ===",,,,,,,,
+"Liga + Suíço (formato primário) NÃO disparam painel P2 — formatos lidam com BYE naturalmente.",,,,,,,,
+"Bug encontrado: anotar BUG-vX.Y.Z na célula e abrir issue/fix.",,,,,,,,
+"Total: 36 testes P2 + 15 testes Times Incompletos = 51 cenários.",,,,,,,,
