@@ -810,6 +810,56 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
         '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;"><strong>Novo time:</strong> ' + window._safeHtml(newTeamName) + '</div>' +
       '</div>',
       function() {
+        // v1.0.86-beta: RE-FETCH t fresh from AppStore. Mesmo bug que v1.0.85
+        // arrumou em _declareAbsent — entre dialog-open e confirm, onSnapshot
+        // do Firestore pode ter substituído store.tournaments. Closure t
+        // ficaria detached e mutations seriam perdidas no syncImmediate.
+        // User: 'bot 01 tomou o lugar do bot15 mas bot10 também dei WO. bot05
+        // deveria ter tomado lugar mas não aconteceu' — segunda sub falhando.
+        var _tFresh = window.AppStore.tournaments.find(function(tour) {
+          return tour.id.toString() === tId.toString();
+        });
+        if (_tFresh) t = _tFresh;
+        // Re-find woMatch no t fresh — match data pode ter mudado
+        var _allFresh = (typeof window._collectAllMatches === 'function')
+          ? window._collectAllMatches(t)
+          : (Array.isArray(t.matches) ? t.matches.slice() : []);
+        // Tenta achar o match pelo team string oldEntry; se mudou, tenta pelo absentMemberName em ab
+        var _foundMatch = null, _foundSlot = null;
+        for (var _fi = 0; _fi < _allFresh.length; _fi++) {
+          var _fm = _allFresh[_fi];
+          if (!_fm || _fm.winner) continue;
+          if (_fm[woSlot] === oldEntry) { _foundMatch = _fm; _foundSlot = woSlot; break; }
+          // Fallback: scan p1/p2 pelo absent member
+          ['p1','p2'].forEach(function(s) {
+            if (_foundMatch) return;
+            var entry = _fm[s];
+            if (!entry || entry === 'TBD' || entry === 'BYE') return;
+            var members = entry.includes(' / ') ? entry.split(' / ').map(function(n){return n.trim();}) : [entry];
+            if (members.indexOf(absentMemberName) !== -1) { _foundMatch = _fm; _foundSlot = s; }
+          });
+          if (_foundMatch) break;
+        }
+        if (_foundMatch) {
+          woMatch = _foundMatch;
+          woSlot = _foundSlot;
+          oldEntry = woMatch[woSlot];
+          // Recompute newTeamName based on FRESH oldEntry
+          var _freshMembers = oldEntry.includes(' / ')
+            ? oldEntry.split(' / ').map(function(n){return n.trim() === absentMemberName ? replacementName : n.trim();})
+            : [replacementName];
+          newTeamName = _freshMembers.join(' / ');
+        }
+        allMatches = _allFresh;
+        // Re-derive ab/ci/standby/_wl from fresh t
+        ab = t.absent || {};
+        ci = t.checkedIn || {};
+        var _spF = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+        var _wlF = Array.isArray(t.waitlist) ? t.waitlist : [];
+        var _spNamesF = new Set(_spF.map(function(p){return getName(p);}));
+        standby = _spF.slice();
+        _wlF.forEach(function(w){var wn=getName(w);if(wn&&!_spNamesF.has(wn))standby.push(w);});
+        _wl = _wlF;
         // Update this match slot
         woMatch[woSlot] = newTeamName;
         // Update ALL match refs across all structures
@@ -826,6 +876,21 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
             if (ti2 !== -1) match.team2[ti2] = replacementName;
           }
         });
+        // Diagnóstico observável
+        try {
+          window._lastAutoSubstitute = {
+            version: window.SCOREPLACE_VERSION,
+            at: new Date().toISOString(),
+            absentMemberName: absentMemberName,
+            replacementName: replacementName,
+            oldEntry: oldEntry,
+            newTeamName: newTeamName,
+            woSlot: woSlot,
+            outcome: 'team_individual_sub_done',
+            matchAfter_p1: woMatch.p1,
+            matchAfter_p2: woMatch.p2
+          };
+        } catch (_e) {}
         // Update participants list — replace old team entry with new team name
         var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
         var pi = partsArr.findIndex(function(p) { return getName(p) === oldEntry; });
@@ -903,12 +968,50 @@ window._autoSubstituteWO = function(tId, overrideReplacementName) {
         '<div><strong style="color:#4ade80;">Substituto:</strong> ' + window._safeHtml(replacementName) + '</div>' +
       '</div>',
       function() {
+        // v1.0.86-beta: RE-FETCH t fresh (mesmo fix que ind W.O. branch)
+        var _tFresh2 = window.AppStore.tournaments.find(function(tour) {
+          return tour.id.toString() === tId.toString();
+        });
+        if (_tFresh2) t = _tFresh2;
+        // Re-find match by absent player or oldEntry
+        var _allFresh2 = (typeof window._collectAllMatches === 'function')
+          ? window._collectAllMatches(t)
+          : (Array.isArray(t.matches) ? t.matches.slice() : []);
+        var _foundMatch2 = null, _foundSlot2 = null;
+        for (var _fi2 = 0; _fi2 < _allFresh2.length; _fi2++) {
+          var _fm2 = _allFresh2[_fi2];
+          if (!_fm2 || _fm2.winner) continue;
+          if (_fm2[woSlot] === oldEntry) { _foundMatch2 = _fm2; _foundSlot2 = woSlot; break; }
+          if (_fm2.p1 === absentMemberName || _fm2.p2 === absentMemberName) {
+            _foundMatch2 = _fm2;
+            _foundSlot2 = (_fm2.p1 === absentMemberName) ? 'p1' : 'p2';
+            break;
+          }
+        }
+        if (_foundMatch2) { woMatch = _foundMatch2; woSlot = _foundSlot2; oldEntry = woMatch[woSlot]; }
+        allMatches = _allFresh2;
+        ab = t.absent || {};
+        ci = t.checkedIn || {};
+        var _spF2 = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+        var _wlF2 = Array.isArray(t.waitlist) ? t.waitlist : [];
+        var _spNamesF2 = new Set(_spF2.map(function(p){return getName(p);}));
+        standby = _spF2.slice();
+        _wlF2.forEach(function(w){var wn=getName(w);if(wn&&!_spNamesF2.has(wn))standby.push(w);});
+        _wl = _wlF2;
+
         woMatch[woSlot] = replacementName;
         // Update ALL match refs
         allMatches.forEach(function(match) {
           if (match.p1 === oldEntry) match.p1 = replacementName;
           if (match.p2 === oldEntry) match.p2 = replacementName;
         });
+        try {
+          window._lastAutoSubstitute = {
+            version: window.SCOREPLACE_VERSION, at: new Date().toISOString(),
+            outcome: 'individual_solo_sub_done', absentMemberName: absentMemberName,
+            replacementName: replacementName, oldEntry: oldEntry
+          };
+        } catch (_e) {}
         // Update participants
         var partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
         var pi = partsArr.findIndex(function(p) { return getName(p) === oldEntry; });
