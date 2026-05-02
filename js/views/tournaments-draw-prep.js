@@ -3106,6 +3106,43 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // Save selected rounds to window for confirm
         window._swissSelectedRounds = bestRounds;
 
+        // v1.0.63-beta: time estimation pra cada # de rounds. User pediu:
+        // "seria bom na tela de decisão do suiço, termos o tempo estimado
+        // para o torneio todo mostrado dinamicamente conforme clica em
+        // cada opção". Cálculo: Swiss phase (selectedRounds × matchesPerRound
+        // / courts × timePerSlot) + Eliminatória phase (log2(targetTeams)
+        // rodadas com decay de partidas/2 por rodada) + 15min de intervalo
+        // entre fases. Se gameDuration ou courtCount não estiverem setados,
+        // usa defaults (30min, 1 quadra) — banner ainda mostra estimativa.
+        function _swissEstimateTime(rounds) {
+            var gameDur = parseInt(t.gameDuration) || 30;
+            var callTime = parseInt(t.callTime) || 0;
+            var warmupTime = parseInt(t.warmupTime) || 0;
+            var courts = Math.max(parseInt(t.courtCount) || 1, 1);
+            var timePerSlot = gameDur + callTime + warmupTime + 5; // +5 interval entre slots
+            var swissTime = 0;
+            for (var sr = 0; sr < rounds; sr++) {
+                swissTime += Math.ceil(matchesPerRound / courts) * timePerSlot;
+            }
+            var elimRounds = Math.ceil(Math.log2(Math.max(targetTeams, 2)));
+            var elimTime = 0;
+            for (var er = 0; er < elimRounds; er++) {
+                var mInR = Math.ceil(targetTeams / Math.pow(2, er + 1));
+                elimTime += Math.ceil(mInR / courts) * timePerSlot;
+            }
+            return { swiss: swissTime, elim: elimTime, total: swissTime + elimTime + 15 };
+        }
+        function _swissFmtDur(min) {
+            if (!min || min <= 0) return '—';
+            var h = Math.floor(min / 60);
+            var m = Math.round(min % 60);
+            if (h === 0) return m + 'min';
+            if (m === 0) return h + 'h';
+            return h + 'h' + (m < 10 ? '0' : '') + m;
+        }
+        window._swissEstimateTime = _swissEstimateTime;
+        window._swissFmtDur = _swissFmtDur;
+
         // ── Build round option cards ──
         let roundOptionsHtml = '';
         roundOptions.forEach(function(r) {
@@ -3245,6 +3282,16 @@ window.showResolutionSimulationPanel = function (tId, option) {
             // Update simulation preview
             var previewEl = document.getElementById('swiss-sim-preview');
             if (previewEl) previewEl.innerHTML = window._buildSwissSimPreview(r);
+            // v1.0.63-beta: update time estimate banner
+            try {
+                var _est = window._swissEstimateTime(r);
+                var _totalEl = document.getElementById('swiss-time-total');
+                var _swissEl = document.getElementById('swiss-time-swiss');
+                var _elimEl = document.getElementById('swiss-time-elim');
+                if (_totalEl) _totalEl.textContent = window._swissFmtDur(_est.total);
+                if (_swissEl) _swissEl.textContent = window._swissFmtDur(_est.swiss);
+                if (_elimEl) _elimEl.textContent = window._swissFmtDur(_est.elim);
+            } catch (_estErr) {}
             // Update summary stats
             var statsEl = document.getElementById('swiss-stats-summary');
             if (statsEl) {
@@ -3294,6 +3341,21 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <div style="background:rgba(245,158,11,0.1);padding:0.75rem 0.5rem;border-radius:14px;border:1px solid rgba(245,158,11,0.2);">
                     <div style="font-size:1.3rem;font-weight:900;color:#f59e0b;">${matchesPerRound * bestRounds}</div>
                     <div style="font-size:0.6rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${_t('predraw.simSwissMatchesCol')}</div>
+                </div>
+            </div>
+
+            <div id="swiss-time-estimate" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:14px;padding:12px 14px;margin-bottom:1.5rem;display:flex;align-items:center;gap:14px;">
+                <div style="font-size:1.6rem;line-height:1;flex-shrink:0;">⏱️</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.62rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.7px;font-weight:800;">Tempo estimado do torneio</div>
+                    <div style="font-size:1.15rem;color:#e0f2fe;font-weight:900;line-height:1.2;margin-top:3px;font-variant-numeric:tabular-nums;">
+                        <span id="swiss-time-total">${(function(){var e=_swissEstimateTime(bestRounds);return _swissFmtDur(e.total);})()}</span>
+                    </div>
+                    <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;line-height:1.3;">
+                        Suíço: <span id="swiss-time-swiss" style="color:#a78bfa;font-weight:700;">${(function(){var e=_swissEstimateTime(bestRounds);return _swissFmtDur(e.swiss);})()}</span>
+                        · Eliminatória: <span id="swiss-time-elim" style="color:#60a5fa;font-weight:700;">${(function(){var e=_swissEstimateTime(bestRounds);return _swissFmtDur(e.elim);})()}</span>
+                        ${(t.gameDuration || t.courtCount) ? '' : '<br><span style="font-size:0.62rem;color:#64748b;font-style:italic;">(usando defaults: 30min/partida, 1 quadra — edite o torneio pra refinar)</span>'}
+                    </div>
                 </div>
             </div>
 
