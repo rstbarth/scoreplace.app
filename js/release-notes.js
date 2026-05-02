@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📊 v1.0.59-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Analytics (GA4) plugado pra entender uso real do app.</b> Pedido do user: <i>"seria legal monitorarmos o que as pessoas fazem no app, horários de maior uso etc, para podermos pensar depois em quais usos cobraremos e o que deixaremos de graça"</i>. Firebase Analytics inicializado (measurementId já existia no firebaseConfig). Sem PII nos eventos — apenas uid pseudonimizado + metadados de comportamento.</p>' +
+      '<p><b>Eventos canônicos:</b> <code>signup</code>/<code>login</code> (param: method=google/sms/email_link), <code>tournament_created</code> (format/sport/drawMode), <code>casual_match_started</code>/<code>casual_match_finished</code> (sport, durationMin), <code>presence_checkin</code>/<code>presence_planned</code> (source=manual|auto_gps, sports_count), <code>venue_searched</code> (query_len, results_count), <code>friend_added</code>, <code>pro_upgrade_clicked</code> (source: tournaments/participants/logo/tv), <code>pix_support_clicked</code>, <code>free_tier_limit_hit</code> (limit_type).</p>' +
+      '<p><b>User properties:</b> <code>plan</code> (free/pro) e <code>login_method</code> — permite filtrar relatórios por cohort (ex: "free users que tentaram criar 4º torneio" → bom alvo pra paywall).</p>' +
+      '<p><b>Wrapper failsafe</b> em <code>js/analytics.js</code>: try/catch em toda chamada — se SDK não inicializar (ad-blocker, network), eventos viram no-op silencioso. App nunca quebra por causa de analytics.</p>' +
+      '<p><b>Dashboard:</b> Firebase Console → Analytics. Real-time + funnels nativos. Em ~24h os primeiros relatórios começam a popular peak hours, retention e funis (signup → 1º torneio → 1ª partida).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.0.58-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Correção do v1.0.57: só labels com 2+ palavras quebram linha.</b> User: <i>"apenas o inscrições abertas, partida casual e novo torneio tem 2 palavras e devem quebrar a linha. os demais não"</i>. Agora detecta espaço no label — se tem espaço (ex: "Inscrições Abertas"), aplica <code>white-space:normal</code>; senão (ex: "Organizados", "Participando", "Favoritos", "Todos"), mantém <code>nowrap</code>. Single-word labels nunca quebram.</p>' +
     '</div>' +

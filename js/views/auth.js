@@ -115,6 +115,13 @@ try {
   } else if (firebase.auth && firebase.auth.GoogleAuthProvider) {
     authProvider = new firebase.auth.GoogleAuthProvider();
   }
+  // v1.0.59-beta: inicializa Analytics (GA4) logo após initializeApp.
+  // Idempotente — _initAnalytics tem guard interno. measurementId já vem
+  // no firebaseConfig. Failsafe — se SDK não carregou (ad-blocker etc),
+  // todas as chamadas viram no-op, app continua funcionando.
+  try {
+    if (typeof window._initAnalytics === 'function') window._initAnalytics();
+  } catch (_e) {}
   // v0.16.38: força o seletor de conta Google a aparecer SEMPRE no popup.
   // Sem isso, usuários com múltiplas contas Google (ex: pessoal + trabalho)
   // entram automaticamente na última conta usada, sem chance de escolher.
@@ -1594,6 +1601,40 @@ async function simulateLoginSuccess(user) {
   if (window.AppStore.loadUserProfile) {
     existingProfile = await window.AppStore.loadUserProfile(uid);
   }
+
+  // v1.0.59-beta: GA4 — identify + login/signup event. Detecta método de
+  // login pelos providerData; signup vs login pela existência do doc no
+  // Firestore. uid pseudonimizado é OK no GA4 (não é PII pra LGPD —
+  // não tem email atrás dele sem acesso ao Firebase Console).
+  try {
+    var _method = 'unknown';
+    try {
+      var pd = (user && user.providerData) || [];
+      if (pd[0] && pd[0].providerId) {
+        var pid = pd[0].providerId;
+        if (pid === 'google.com') _method = 'google';
+        else if (pid === 'phone') _method = 'sms';
+        else if (pid === 'password') _method = 'email_link';
+        else _method = pid;
+      } else if (user && user.email) {
+        _method = 'email_link';
+      } else if (user && user.phoneNumber) {
+        _method = 'sms';
+      }
+    } catch (_pdErr) {}
+    if (typeof window._identify === 'function') {
+      window._identify(uid, {
+        plan: (existingProfile && existingProfile.plan) || 'free',
+        login_method: _method
+      });
+    }
+    var _isFirstTime = !existingProfile;
+    if (_isFirstTime && typeof window._trackSignup === 'function') {
+      window._trackSignup(_method);
+    } else if (typeof window._trackLogin === 'function') {
+      window._trackLogin(_method);
+    }
+  } catch (_aErr) {}
 
   // v1.0.49-beta: consome cross-ref pendente (handlePhoneVerifyCode/email-link
   // setam window._pendingCrossRef quando descobrem que esse uid é o mesmo

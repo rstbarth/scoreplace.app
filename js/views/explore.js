@@ -1159,6 +1159,10 @@ window._acceptFriend = function(friendUid) {
   cu.friendRequestsReceived = (cu.friendRequestsReceived || []).filter(function(id) { return id !== friendUid; });
 
   window.FirestoreDB.acceptFriendRequest(myUid, friendUid).then(function() {
+    // v1.0.59-beta: GA4 — friend_added (só conta na aceitação, não no envio)
+    try {
+      if (typeof window._trackFriendAdded === 'function') window._trackFriendAdded();
+    } catch (_e) {}
     if (typeof showNotification !== 'undefined') {
       showNotification((window._t||function(k){return k;})('explore.notifFriendAccepted'), (window._t||function(k){return k;})('explore.notifFriendAcceptedMsg'), 'success');
     }

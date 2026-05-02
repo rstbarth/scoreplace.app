@@ -3423,7 +3423,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
     try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
 
     // Track match start time on first point
-    if (!_matchStartTime) _matchStartTime = Date.now();
+    if (!_matchStartTime) {
+      _matchStartTime = Date.now();
+      // v1.0.59-beta: GA4 — só pra partidas casuais (não polui com tournament matches)
+      if (isCasual) {
+        try {
+          if (typeof window._trackCasualMatchStarted === 'function') {
+            window._trackCasualMatchStarted({
+              sport: (opts && opts.sportName) || '',
+              teamSize: isDoubles ? 2 : 1
+            });
+          }
+        } catch (_e) {}
+      }
+    }
 
     // Capture context BEFORE incrementing so pointLog reflects the state at which this point was contested
     var _p1Before = state.currentGameP1;
@@ -3572,6 +3585,20 @@ window._openLiveScoring = function(tId, matchId, opts) {
       state.isFinished = true;
       state.winner = matchWinner;
       _matchEndTime = Date.now();
+      // v1.0.59-beta: GA4 — só pra partidas casuais
+      if (isCasual) {
+        try {
+          if (typeof window._trackCasualMatchFinished === 'function') {
+            var _durMin = (_matchStartTime && _matchEndTime)
+              ? Math.round((_matchEndTime - _matchStartTime) / 60000)
+              : 0;
+            window._trackCasualMatchFinished({
+              sport: (opts && opts.sportName) || '',
+              durationMin: _durMin
+            });
+          }
+        } catch (_e) {}
+      }
     } else {
       // Start new set
       state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.0.58-beta';
+window.SCOREPLACE_VERSION = '1.0.59-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -1103,6 +1103,11 @@ window._canAddParticipant = function(tournament) {
 
 // Abre a página/modal de upgrade Pro
 window._showUpgradeModal = function(reason) {
+  // v1.0.59-beta: GA4 — pro_upgrade_clicked (sinal forte de monetização).
+  // source = reason: tournaments | participants | logo | tv | unknown
+  try {
+    if (typeof window._trackProUpgradeClicked === 'function') window._trackProUpgradeClicked(reason || 'unknown');
+  } catch (_e) {}
   var reasonText = '';
   if (reason === 'tournaments') reasonText = 'Você atingiu o limite de 3 torneios ativos no plano gratuito.';
   else if (reason === 'participants') reasonText = 'Você atingiu o limite de 32 participantes no plano gratuito.';
@@ -1183,6 +1188,10 @@ window._startProCheckout = async function() {
 
 // Página de apoio voluntário via PIX — renderiza no view-container como página normal
 window.renderSupportPage = function(container) {
+  // v1.0.59-beta: GA4 — pix_support_clicked (chega na página = intenção)
+  try {
+    if (typeof window._trackPixSupportClicked === 'function') window._trackPixSupportClicked();
+  } catch (_e) {}
   var pixKey = '51590996000173';
   var hdr = window._renderBackHeader({
     href: '#dashboard',

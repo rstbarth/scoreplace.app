@@ -1709,6 +1709,14 @@
     } else {
       state.googleResults = [];
     }
+    // v1.0.59-beta: GA4 — venue_searched. Útil pra entender padrões de
+    // busca por região (state.location), filtro de raio e modalidades.
+    try {
+      if (typeof window._trackVenueSearched === 'function') {
+        var totalResults = (state.results ? state.results.length : 0) + (state.googleResults ? state.googleResults.length : 0);
+        window._trackVenueSearched(state.location || '', totalResults);
+      }
+    } catch (_e) {}
 
     // 4) Auto-focus preferred se usuário já tem presença ativa num local
     // preferido. Reabrir #place deve trazer de volta o foco+gráfico sem

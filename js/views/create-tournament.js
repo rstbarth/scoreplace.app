@@ -3391,11 +3391,19 @@ function setupCreateTournamentModal() {
         } else {
           // Feature gate: limite de torneios no plano Free
           if (!window._canCreateTournament()) {
+            // v1.0.59-beta: GA4 — sinal forte de monetização
+            try {
+              if (typeof window._trackFreeTierLimitHit === 'function') window._trackFreeTierLimitHit('tournaments_active');
+            } catch (_e) {}
             window._showUpgradeModal('tournaments');
             return;
           }
           window.AppStore.addTournament(tourData);
           showNotification(window._t('create.tournamentCreated'), window._t('create.tournamentCreatedMsg', {name: name}), 'success');
+          // v1.0.59-beta: GA4 — tournament_created
+          try {
+            if (typeof window._trackTournamentCreated === 'function') window._trackTournamentCreated(tourData);
+          } catch (_e) {}
         }
 
         // Persiste no localStorage

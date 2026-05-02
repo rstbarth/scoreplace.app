@@ -137,6 +137,18 @@ window.PresenceDB = {
         }
       }
       var ref = await self.db.collection('presences').add(clean);
+      // v1.0.59-beta: GA4 — presence_checkin event. Source distingue manual
+      // (UI click) de auto_gps (presence-geo.js). type: checkin|planned.
+      try {
+        if (typeof window._trackPresenceCheckin === 'function') {
+          var src = clean.source || (clean.autoGps ? 'auto_gps' : 'manual');
+          var sportsCount = Array.isArray(clean.sports) ? clean.sports.length : (clean.sport ? 1 : 0);
+          window._track && window._track('presence_' + (clean.type === 'planned' ? 'planned' : 'checkin'), {
+            source: src,
+            sports_count: sportsCount
+          });
+        }
+      } catch (_e) {}
       return ref.id;
     })();
 
