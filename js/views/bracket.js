@@ -1264,7 +1264,12 @@ function renderMatchCard(m, canEnterResult, tId, matchNum) {
 
   const _esc = function(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
 
-  const _tbEnabled = !!(useSets && t.scoring && t.scoring.tiebreakEnabled !== false);
+  // v1.0.72-beta: TB enabled em qualquer torneio com tiebreakEnabled !== false
+  // E gamesPerSet definido (não exige type==='sets'). Antes só funcionava em
+  // GSM. Agora qualquer torneio que NÃO permita empate pela regra mostra
+  // inputs de TB ao registrar 6-5/5-6 (default trigger = gamesPerSet - 1).
+  const _tbEnabled = !!(t.scoring && t.scoring.tiebreakEnabled !== false &&
+      (t.scoring.gamesPerSet || useSets));
   const _tbInputStyle = 'width:40px;text-align:center;font-size:0.75rem;font-weight:700;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--text-bright);border-radius:5px;padding:3px 4px;';
   const p1TbInput = showInputs && _tbEnabled
     ? `<input type="number" id="tb1-${m.id}" min="0" placeholder="tb" title="Tie-break"

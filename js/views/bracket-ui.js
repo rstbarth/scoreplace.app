@@ -1116,7 +1116,11 @@ window._highlightWinner = function (matchId) {
           var _matches = (typeof window._collectAllMatches === 'function') ? window._collectAllMatches(_tour) : (_tour.matches || []);
           for (var mi = 0; mi < _matches.length; mi++) {
             if (_matches[mi] && _matches[mi].id === matchId) {
-              if (_tour.scoring && _tour.scoring.type === 'sets' && _tour.scoring.tiebreakEnabled !== false) {
+              // v1.0.72-beta: trigger TB em qualquer torneio com tiebreakEnabled
+              // (não exige type==='sets'). Permite TB inputs em torneios simples
+              // que tenham tiebreak configurado.
+              if (_tour.scoring && _tour.scoring.tiebreakEnabled !== false &&
+                  (_tour.scoring.type === 'sets' || _tour.scoring.gamesPerSet)) {
                 // Tiebreak triggers at (gamesPerSet - 1) — e.g. 5-5 in a 6-game set
                 _trigger = (parseInt(_tour.scoring.gamesPerSet) || 6) - 1;
               }
