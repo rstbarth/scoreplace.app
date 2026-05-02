@@ -9,8 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.0.58-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Correção do v1.0.57: só labels com 2+ palavras quebram linha.</b> User: <i>"apenas o inscrições abertas, partida casual e novo torneio tem 2 palavras e devem quebrar a linha. os demais não"</i>. Agora detecta espaço no label — se tem espaço (ex: "Inscrições Abertas"), aplica <code>white-space:normal</code>; senão (ex: "Organizados", "Participando", "Favoritos", "Todos"), mantém <code>nowrap</code>. Single-word labels nunca quebram.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.0.57-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
-      '<p><b>Pills de filtro do hero box: label quebra em 2 linhas quando o box fica pequeno.</b> Pedido do user: <i>"no box inscrições abertas na hero box quebre a linha em 2 quando o box ficar pequeno demais (exatamente como acontece com Novo Torneio e Partida Casual)"</i>. Antes: <code>white-space:nowrap</code> no <code>&lt;h3&gt;</code> da label do pill forçava 1 linha só, causando overflow ou truncamento. Agora <code>white-space:normal</code> + <code>word-break:keep-all</code> (preserva palavras inteiras, só quebra entre delas) — labels como "Inscrições Abertas", "Organizados", "Participando" quebram em 2 linhas quando o box é estreito; "Todos" / "Favoritos" continuam em 1 linha porque cabem.</p>' +
+      '<p><b>Tentativa #1 de wrap nos pills.</b> Aplicou white-space:normal genérico — corrigido na v1.0.58.</p>' +
     '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⚔️ v1.0.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(1 de Maio, 2026)</span></div>' +
