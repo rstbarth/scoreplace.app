@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏳ v1.0.61-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Race do "perfil não carregou": gate de termos + nudge "Complete seu perfil" ficavam disparando pra returning users.</b> Pedido do user: <i>"voltou a pedir os termos de uso e apresentar o complete seu perfil para um usuário que já estava cadastrado e tinha perfil completo não carregado ainda"</i>.</p>' +
+      '<p><b>Causa-raiz:</b> primeira chamada de <code>loadUserProfile</code> no <code>simulateLoginSuccess</code> retornava null pra returning users porque Firestore SDK ainda tava inicializando IndexedDB cache local. Default <code>get()</code> tenta cache primeiro — se vazio, retorna <code>doc.exists=false</code> antes do servidor responder. Com profile=null, gate caía em <code>currentUser</code> (só uid/email/displayName/photoURL) e disparava modal + nudge.</p>' +
+      '<p><b>Fix em 2 camadas:</b></p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Retry detector via Firebase Auth metadata.</b> Se <code>lastSignInTime &gt; creationTime + 60s</code>, user é returning — tenta loadUserProfile até 4 vezes com delays crescentes (0, 500, 1000, 1500ms = max 3s). Users genuinamente novos (signup recente) só tentam 1x — sem delay extra. Durante retries intermediários, reseta <code>cu._profileLoaded=false</code> pra suprimir nudge prematuro.</li>' +
+        '<li><b>Grandfather usa metadata como evidência.</b> Mesmo se retries esgotaram (network down), Firebase Auth metadata é PROVA de uso passado — independe do Firestore. Backfill <code>acceptedTerms=true</code> automaticamente, modal não dispara.</li>' +
+      '</ol>' +
+      '<p><b>Diagnóstico:</b> <code>[scoreplace-auth v1.0.61] profile load — isReturning=X, maxAttempts=Y</code> + <code>[scoreplace-auth] profile loaded on retry attempt #N</code> mostram exatamente quantas tentativas foram necessárias.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🤖 v1.0.60-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Botões "Add Bot" e "Apagar Torneio" de volta nas Ferramentas do Organizador.</b> User: <i>"vamos devolver os botoes add bot e apagar torneio para eu testar mais o app"</i>. Funções (<code>addBotsFunction</code>, <code>deleteTournamentFunction</code>) sempre existiram — só não tinham botão na UI desde algum cleanup passado.</p>' +
       '<p><b>Add Bot 🤖</b> — visível pra organizador antes do sorteio (depois do sorteio adicionar bot quebra a chave). Prompt pergunta quantos bots, popula com nomes "Bot 01", "Bot 02"… <code>btn-danger-ghost</code> pra sinalizar que é dev tool.</p>' +

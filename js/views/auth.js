@@ -1598,8 +1598,55 @@ async function simulateLoginSuccess(user) {
   // Load user profile from Firestore (merge extra fields like gender, sports)
   var uid = user.uid || user.email;
   var existingProfile = null;
-  if (window.AppStore.loadUserProfile) {
-    existingProfile = await window.AppStore.loadUserProfile(uid);
+  // v1.0.61-beta: retry loop pra resolver race "perfil não carregou".
+  // Bug reportado: "voltou a pedir os termos de uso e apresentar o complete
+  // seu perfil para um usuário que já estava cadastrado e tinha perfil
+  // completo não carregado ainda". Causa: primeira chamada de loadUserProfile
+  // pode voltar null porque Firestore SDK ainda tá inicializando IndexedDB
+  // cache local — race do default `get()` que tenta cache primeiro e às
+  // vezes retorna doc.exists=false antes do servidor responder.
+  //
+  // Estratégia: detecta returning user via Firebase Auth metadata
+  // (lastSignInTime > creationTime + 60s = veterano). Se sim, tenta até
+  // 4 vezes com delays crescentes (0, 500, 1000, 1500ms = max 3s). Se não
+  // (signup novo legítimo), só 1 tentativa — não atrasa o flow do user
+  // que está vendo o modal de termos pela primeira vez.
+  //
+  // Importante: durante retries intermediários, reseta cu._profileLoaded
+  // pra suprimir o nudge "Complete seu perfil" que disparava prematuro.
+  if (window.AppStore.loadUserProfile && uid) {
+    var _isReturning = false;
+    try {
+      var _fbu = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) || user;
+      if (_fbu && _fbu.metadata && _fbu.metadata.creationTime && _fbu.metadata.lastSignInTime) {
+        var _created = new Date(_fbu.metadata.creationTime).getTime();
+        var _signed = new Date(_fbu.metadata.lastSignInTime).getTime();
+        _isReturning = (_signed - _created) > 60000;
+      }
+    } catch (_metaErr) {}
+    var _maxAttempts = _isReturning ? 4 : 1;
+    console.log('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] profile load — isReturning=' + _isReturning + ', maxAttempts=' + _maxAttempts);
+    for (var _attempt = 0; _attempt < _maxAttempts; _attempt++) {
+      if (_attempt > 0) {
+        // Suprime nudge durante retries
+        if (window.AppStore.currentUser) window.AppStore.currentUser._profileLoaded = false;
+        await new Promise(function(r) { setTimeout(r, 500 * _attempt); });
+      }
+      try {
+        existingProfile = await window.AppStore.loadUserProfile(uid);
+        if (existingProfile && Object.keys(existingProfile).length > 0) {
+          if (_attempt > 0) {
+            console.log('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] profile loaded on retry attempt #' + _attempt);
+          }
+          break;
+        }
+      } catch (_loadErr) {
+        console.warn('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] loadUserProfile attempt ' + _attempt + ' threw:', _loadErr && _loadErr.message);
+      }
+    }
+    if (_isReturning && (!existingProfile || Object.keys(existingProfile).length === 0)) {
+      console.warn('[scoreplace-auth v' + window.SCOREPLACE_VERSION + '] returning user but profile load failed after ' + _maxAttempts + ' attempts');
+    }
   }
 
   // v1.0.59-beta: GA4 — identify + login/signup event. Detecta método de
@@ -2174,6 +2221,24 @@ async function simulateLoginSuccess(user) {
       _profile.notifyLevel ||
       _profile.plan
     );
+    // v1.0.61-beta: Firebase Auth metadata também conta como evidência —
+    // se lastSignInTime > creationTime + 60s, o user já logou antes (PROVA
+    // do auth provider, independe de ler o doc no Firestore). Cobre o caso
+    // raro em que retries de loadUserProfile esgotaram mas o user é
+    // demonstravelmente returning.
+    if (!_hasUsageEvidence) {
+      try {
+        var _fbu2 = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) || user;
+        if (_fbu2 && _fbu2.metadata && _fbu2.metadata.creationTime && _fbu2.metadata.lastSignInTime) {
+          var _c2 = new Date(_fbu2.metadata.creationTime).getTime();
+          var _s2 = new Date(_fbu2.metadata.lastSignInTime).getTime();
+          if ((_s2 - _c2) > 60000) {
+            _hasUsageEvidence = true;
+            console.log('[terms-gate v1.0.61] grandfather via Firebase Auth metadata (returning user, lastSignIn-creation=' + Math.round((_s2-_c2)/60000) + 'min)');
+          }
+        }
+      } catch (_fbErr) {}
+    }
     console.log('[terms-gate v1.0.53] grandfather check — hasUsageEvidence:', _hasUsageEvidence,
       'fields present:', Object.keys(_profile).sort().slice(0, 20).join(','));
     if (_hasUsageEvidence && window.FirestoreDB && window.FirestoreDB.db && uid) {
