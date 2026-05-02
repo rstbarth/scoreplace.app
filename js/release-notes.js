@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔁 v1.0.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Play-in: chaveamento real agora bate com a simulação.</b> Removida a geração de jogos de repescagem. Os melhores derrotados vão direto pro bracket por seleção (menor margem). Ajustes:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>tournaments-draw.js</code>: <code>repMatchCount=0</code>, todos os spots viram <code>bestloser</code> awaiting direct fill.</li>' +
+        '<li><code>bracket-logic.js _assignRepechageLosers</code>: novo branch quando <code>repMatchIds=[]</code> — atribui top N losers direto pros slots <code>awaitsBestLoser</code> da R2.</li>' +
+        '<li>Backward-compat: torneios antigos com <code>repMatchIds</code> populadas seguem com lógica antiga.</li>' +
+        '<li>Label corrigido: "13 PASSAM (+BYE)" → "13 AVANÇAM (12V + 1B)" pra clareza.</li>' +
+        '<li>Notice corrigido: "auto-avança pra fase final" → "auto-avança pra próxima rodada".</li>' +
+      '</ul>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔁 v1.0.65-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Play-in reescrito conforme spec do user.</b> Algoritmo:</p>' +
       '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +

@@ -816,7 +816,33 @@ function _assignRepechageLosers(t) {
   // Rank using full tiebreaker criteria
   var rankedLosers = _rankByTiebreakers(t, loserNames);
 
-  // Top repParticipants go to repechage, rest eliminated
+  // v1.0.66-beta: novo modelo (sem jogos de repescagem). Os N melhores
+  // derrotados (N = bestLoserCount = excess) vão DIRETO pros slots
+  // `awaitsBestLoser` da R2. Os piores são eliminados imediatamente.
+  // Backward-compat: se cfg.repMatchIds tem partidas (modelo antigo
+  // ainda em torneios criados pré-v1.0.66), mantém o caminho antigo.
+  if (!cfg.repMatchIds || cfg.repMatchIds.length === 0) {
+    // Novo modelo: seleção direta pros slots awaitsBestLoser
+    var bestLosers = rankedLosers.slice(0, cfg.bestLoserCount || 0);
+    var blIdx = 0;
+    var allM = t.matches || [];
+    for (var ai = 0; ai < allM.length && blIdx < bestLosers.length; ai++) {
+      var m = allM[ai];
+      if (m.awaitsBestLoser && (!t._catFilterForRep || m.category === t._catFilterForRep)) {
+        var slot = m.awaitsBestLoser; // 'p1' or 'p2'
+        m[slot] = bestLosers[blIdx].name;
+        delete m.awaitsBestLoser;
+        blIdx++;
+        _autoResolveBye(t, m);
+      }
+    }
+    cfg._rankedLosers = rankedLosers;
+    cfg._losersAssigned = true;
+    cfg._bestLoserAdvanced = true; // skip _advanceBestLoser (já fizemos)
+    return;
+  }
+
+  // Modelo antigo: top repParticipants vão pra rep matches
   var repLosers = rankedLosers.slice(0, cfg.repParticipants);
   var repMatches = cfg.repMatchIds.map(function(id) { return _findMatch(t, id); }).filter(Boolean);
   var slotIdx = 0;

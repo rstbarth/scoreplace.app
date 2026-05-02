@@ -742,45 +742,15 @@ window.generateDrawFunction = function (tId) {
                         byePlayer = getName(catParticipants[catParticipants.length - 1]);
                     }
 
-                    // ── Step 2: Repescagem — NO BYEs, best-loser system ──
-                    // Calculate repechage structure:
-                    // repMatchCount = ceil(spotsFromRepechage / 2) matches
-                    // repParticipants = 2 * repMatchCount (best R1 losers)
-                    // bestLoserCount = spotsFromRepechage - repMatchCount
-                    // eliminated = r1Losers - repParticipants (worst R1 losers, out immediately)
+                    // ── Step 2: SEM jogos de repescagem (v1.0.66 spec) ──
+                    // Algoritmo simplificado: os `spotsFromRepechage` melhores
+                    // derrotados da R1 vão DIRETO pro bracket por seleção
+                    // (menor margem de derrota). Sem partidas de repescagem.
                     var r1Losers = r1MatchCount; // total losers from R1
-                    var repMatchCount = Math.ceil(spotsFromRepechage / 2);
-                    var repParticipants = 2 * repMatchCount;
-                    // Ensure we don't need more participants than available losers
-                    if (repParticipants > r1Losers) {
-                        repParticipants = r1Losers - (r1Losers % 2); // ensure even
-                        repMatchCount = repParticipants / 2;
-                    }
-                    var bestLoserCount = spotsFromRepechage - repMatchCount;
-                    var eliminatedCount = r1Losers - repParticipants;
-
-                    // Create repechage matches (TBD — filled after ALL R1 completes)
+                    var repMatchCount = 0; // sem jogos de repescagem
                     var repMatchIds = [];
-                    for (var rr1 = 0; rr1 < repMatchCount; rr1++) {
-                        var repM = {
-                            id: 'match-rep-1-' + timestamp + '-' + _matchCounter,
-                            round: -1,
-                            bracket: isDupla ? 'upper' : undefined,
-                            p1: 'TBD',
-                            p2: 'TBD',
-                            winner: null,
-                            isRepechage: true,
-                            repRound: 1
-                        };
-                        if (catName) repM.category = catName;
-                        matches.push(repM);
-                        repMatchIds.push(repM.id);
-                        _matchCounter++;
-                    }
-
-                    // NOTE: R1 matches do NOT have loserMatchId — losers are assigned
-                    // in batch after ALL R1 matches complete, ranked by performance.
-                    // See _assignRepechageLosers() in bracket-logic.js.
+                    var bestLoserCount = spotsFromRepechage; // todos os spots vão direto pra bestloser
+                    var eliminatedCount = r1Losers - bestLoserCount; // worst losers eliminados
 
                     // ── Step 3: Generate R2 matches ──
                     var r2Slots = [];
@@ -790,11 +760,7 @@ window.generateDrawFunction = function (tId) {
                     if (byePlayer) {
                         r2Slots.push({ name: byePlayer, type: 'bye' });
                     }
-                    // Repechage winners → R2
-                    for (var rq = 0; rq < repMatchIds.length; rq++) {
-                        r2Slots.push({ tbd: true, fromMatch: repMatchIds[rq], type: 'repqualifier' });
-                    }
-                    // Best-loser slots → R2 (filled dynamically after repechage completes)
+                    // Best-loser slots → R2 (preenchidos após R1 completar via _assignRepechageLosers)
                     var bestLoserR2Ids = [];
                     for (var bl = 0; bl < bestLoserCount; bl++) {
                         r2Slots.push({ tbd: true, type: 'bestloser' });
@@ -888,10 +854,13 @@ window.generateDrawFunction = function (tId) {
                     }
 
                     // Store repechage config for bracket-logic.js advancement
+                    // v1.0.66-beta: repMatchIds vazio (sem jogos de repescagem),
+                    // todos os spots vão direto via bestLoser. repParticipants
+                    // mantido = 0 pra compat.
                     t.repechageConfig = {
                         r1MatchIds: r1MatchIds,
-                        repMatchIds: repMatchIds,
-                        repParticipants: repParticipants,
+                        repMatchIds: repMatchIds, // []
+                        repParticipants: 0,
                         bestLoserCount: bestLoserCount,
                         bestLoserR2Ids: bestLoserR2Ids,
                         eliminatedCount: eliminatedCount,

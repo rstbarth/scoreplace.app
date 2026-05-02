@@ -2837,7 +2837,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
         var _byeNotice = isOdd
             ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:10px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px;">
                   <span style="font-size:1.1rem;">⚠️</span>
-                  <span style="font-size:0.78rem;color:#fbbf24;font-weight:600;">Número ímpar — 1 BYE forçado (auto-avança pra fase final)</span>
+                  <span style="font-size:0.78rem;color:#fbbf24;font-weight:600;">Número ímpar — 1 BYE forçado (auto-avança pra próxima rodada)</span>
                </div>`
             : '';
         var _excessNotice = excess > 0
@@ -2869,7 +2869,7 @@ window.showResolutionSimulationPanel = function (tId, option) {
                     </div>
                     <div style="background:rgba(34,197,94,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(34,197,94,0.2);">
                         <div style="font-size:1.3rem;font-weight:900;color:#4ade80;">${totalAdvancing}</div>
-                        <div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Passam${isOdd ? ' (+BYE)' : ''}</div>
+                        <div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Avançam${isOdd ? ` (${winnersR1}V + 1B)` : ''}</div>
                     </div>
                     <div style="background:rgba(167,139,250,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(167,139,250,0.2);">
                         <div style="font-size:1.3rem;font-weight:900;color:#a78bfa;">${excess}</div>
