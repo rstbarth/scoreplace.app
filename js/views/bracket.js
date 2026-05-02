@@ -2151,6 +2151,25 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
         // ligaOtherMatchesHtml — acessível via let do escopo externo.
         var _myGroups = isLigaFmt ? sortedGroups.filter(_groupHasMe) : sortedGroups;
         var _otherGroups = isLigaFmt ? sortedGroups.filter(function(g) { return !_groupHasMe(g); }) : [];
+        // v1.0.64-beta: contador global de "Jogo N" pra Rei/Rainha — antes
+        // resetava por grupo (`mi + 1`), gerando "Jogo 1", "Jogo 2", "Jogo 3"
+        // duplicados em cada grupo. User: "lembra que cada jogo em cada
+        // torneio não pode ter numero de jogo repetido? quero que o jogo 1
+        // seja sempre o jogo 1 e não haja outro jogo 1 num determinado
+        // torneio". Offset por rodadas anteriores (count cumulativo) +
+        // ordem dos grupos na rodada atual.
+        var _monarchPrevRoundsMatches = 0;
+        try {
+          for (var _rri = 0; _rri < currentRound - 1; _rri++) {
+            var _prevR = rounds[_rri];
+            if (_prevR && Array.isArray(_prevR.matches)) {
+              _monarchPrevRoundsMatches += _prevR.matches.filter(function(mm) { return mm && !mm.isSitOut; }).length;
+            }
+          }
+        } catch (_e) {}
+        // Renderização das ordens fixas (myGroups primeiro, depois otherGroups)
+        // mantém numeração consistente independente do sort visual.
+        var _monarchGlobalMatchNum = _monarchPrevRoundsMatches;
         var _renderGroup = function(g) {
           var gStandings = typeof window._computeMonarchStandings === 'function' ? window._computeMonarchStandings(g) : [];
           var gDone = g.matches.length > 0 && g.matches.every(function(m) { return !!m.winner; });
@@ -2202,8 +2221,10 @@ function renderStandings(t, isOrg, canEnterResult, readyBannerHtml, progressBarH
           // do mesmo grupo. Grid com `auto-fill, minmax(280px, 1fr)` distribui
           // colunas iguais e o último card mantém a largura da coluna em vez
           // de "comer" o espaço restante da linha.
-          var gCards = g.matches.map(function(m, mi) {
-            return '<div>' + renderMatchCard(m, canEnterResult, t.id, mi + 1) + '</div>';
+          var gCards = g.matches.map(function(m) {
+            // v1.0.64-beta: usa contador global em vez de mi+1 (que resetava por grupo)
+            _monarchGlobalMatchNum++;
+            return '<div>' + renderMatchCard(m, canEnterResult, t.id, _monarchGlobalMatchNum) + '</div>';
           }).join('');
           var statusBadge = gDone ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(16,185,129,0.15);color:#4ade80;font-weight:700;">✓</span>' : '<span style="font-size:0.6rem;padding:2px 6px;border-radius:5px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700;">' + _t('bracket.ongoing') + '</span>';
           // Highlight visual quando o grupo é do usuário logado.

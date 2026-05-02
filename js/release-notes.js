@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔢 v1.0.64-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Regressão corrigida: "Jogo N" duplicado em Rei/Rainha.</b> User: <i>"lembra que cada jogo em cada torneio não pode ter numero de jogo repetido? regredimos? quero que o jogo 1 seja sempre o jogo 1"</i>.</p>' +
+      '<p><b>Causa-raiz:</b> em <code>bracket.js</code> linha 2206, o renderer dos grupos Rei/Rainha (Liga + monarch round) usava <code>renderMatchCard(m, ..., mi + 1)</code> onde <code>mi</code> era o índice do match DENTRO do grupo. Resultado: Grupo A tinha "Jogo 1, 2, 3", Grupo B também "Jogo 1, 2, 3", Grupo C idem — duplicatas em cada grupo.</p>' +
+      '<p><b>Fix:</b> contador global <code>_monarchGlobalMatchNum</code> que persiste entre chamadas de <code>_renderGroup</code> (myGroups + otherGroups) e começa offsetado pelo total de matches das rodadas anteriores. Agora "Jogo 1" é sempre "Jogo 1" no torneio inteiro — independente de qual grupo, qual fase. Outras estruturas (Eliminatórias, Suíço, Liga não-monarch, Grupos+Elim) já tinham contadores globais corretos — só esse caminho específico estava quebrado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏱️ v1.0.63-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Painel de decisão Suíço agora mostra tempo estimado dinâmico.</b> Pedido do user: <i>"seria bom na tela de decisão do suiço, termos o tempo estimado para o torneio todo mostrado dinamicamente conforme clica em cada opção para o suiço"</i>.</p>' +
       '<p>Banner ⏱️ logo abaixo da grid de stats mostra <b>Tempo total</b>, dividido em <b>Suíço: Xh + Eliminatória: Yh</b>. Clica numa opção diferente de # de rodadas → atualiza em tempo real.</p>' +
