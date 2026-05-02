@@ -1131,26 +1131,24 @@ window._highlightWinner = function (matchId) {
         }
       }
     } catch(e) {}
-    // v1.0.76-beta: TB inputs ficam VISÍVEIS uma vez que aparecem.
-    // User: 'quando um placar de tie-break acontecer mantenha ele na tela.
-    // está aceitando e escondendo em seguida'.
-    // Antes: TB hidden quando score saía do trigger (ex: usuário digitava
-    // 7 em vez de 6 e TB sumia + valor era apagado).
-    // Agora: trigger hit OU já visível (e score não totalmente vazio) → fica.
-    // Só esconde quando ambos placares vazios (= reset).
+    // v1.0.77-beta: TB inputs uma vez mostrados NUNCA escondem (até re-render
+    // do card). User: 'continua escondendo'. Abordagem v1.0.76 ainda escondia
+    // em alguns casos por race do dataset.tbShown vs reflow. Agora: simples —
+    // se trigger hit, mostra E marca data-tb-shown. Se data-tb-shown='1', fica.
+    // Reset só quando card re-renderiza (input novo, sem o data attribute).
     var triggerHit = _trigger !== null && (
       (s1 === _trigger + 1 && s2 === _trigger) ||
       (s1 === _trigger && s2 === _trigger + 1)
     );
-    var alreadyShown = tb1El.style.display !== 'none';
-    var s1Raw = s1El.value;
-    var s2Raw = s2El.value;
-    var bothEmpty = (!s1Raw || s1Raw === '') && (!s2Raw || s2Raw === '');
-    var _showTb = triggerHit || (alreadyShown && !bothEmpty);
-    tb1El.style.display = _showTb ? 'inline-block' : 'none';
-    tb2El.style.display = _showTb ? 'inline-block' : 'none';
-    // Só limpa valores quando esconde de fato (reset completo)
-    if (!_showTb) { tb1El.value = ''; tb2El.value = ''; }
+    var alreadyShown = tb1El.getAttribute('data-tb-shown') === '1';
+    if (triggerHit || alreadyShown) {
+      tb1El.style.display = 'inline-block';
+      tb2El.style.display = 'inline-block';
+      tb1El.setAttribute('data-tb-shown', '1');
+      tb2El.setAttribute('data-tb-shown', '1');
+    }
+    // NÃO esconde — uma vez visível, persiste. User pode deixar vazio se
+    // não foi TB de fato. Save logic ignora valores vazios.
   }
 
   if (isNaN(s1) || isNaN(s2)) return;
