@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.0.61-beta';
+window.SCOREPLACE_VERSION = '1.0.62-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -119,6 +119,12 @@ window._softRefreshView = function() {
   if (window._suppressSoftRefresh) return;
 
   // 1. If any modal is open or user is typing, defer — retry in 500ms
+  // v1.0.62-beta: simulation-panel adicionado ao safe-list. Bug reportado:
+  // user clicou Suíço no painel de resolução de potência de 2 (40 inscritos
+  // em torneio Eliminatório), painel de config de rodadas Suíço apareceu
+  // mas sumiu — soft refresh derrubou. Mesma classe de bug da v0.15.89,
+  // só que pra um overlay diferente. Também adicionei incomplete-teams-panel
+  // que aparece em fluxos paralelos.
   var openModal = document.querySelector('.modal-overlay.active') ||
                   document.getElementById('qr-modal-overlay') ||
                   document.getElementById('player-stats-overlay') ||
@@ -126,7 +132,9 @@ window._softRefreshView = function() {
                   document.getElementById('unified-resolution-panel') ||
                   document.getElementById('groups-config-panel') ||
                   document.getElementById('remainder-resolution-panel') ||
-                  document.getElementById('removal-subchoice-panel');
+                  document.getElementById('removal-subchoice-panel') ||
+                  document.getElementById('simulation-panel') ||
+                  document.getElementById('incomplete-teams-panel');
   var active = document.activeElement;
   var isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
   if (openModal || isTyping) {
