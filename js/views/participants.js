@@ -1031,7 +1031,7 @@ function renderParticipants(container, tournamentId) {
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
                 ${isWOOrphan ? '<div style="font-size:0.7rem;font-weight:800;padding:4px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#f87171;flex-shrink:0;border:1px solid rgba(239,68,68,0.3);">W.O.</div>' : woBadge}
-                ${_showActions ? presentToggle : ''}
+                ${(_showActions && !isAbsent) ? presentToggle : ''}
                 ${_showActions ? woBtn : ''}
             </div>
         </div>`;
