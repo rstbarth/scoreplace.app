@@ -2721,21 +2721,37 @@ window.showResolutionSimulationPanel = function (tId, option) {
         const totalTeams = info.count;
         const tLabel = (num) => teamSize > 1 ? (_t('predraw.simTeam') + ' ' + num) : (_t('predraw.simParticipant') + ' ' + num);
 
-        // New repechage model:
-        // R1: all teams play → winners advance directly
-        // Repechage: losers face each other → top Y classified advance to fill bracket to P2
-        const matchesR1 = Math.floor(totalTeams / 2);
-        const winnersR1 = matchesR1;
+        // v1.0.65-beta: Play-in reescrito conforme spec do user.
+        // Algoritmo:
+        // 1. Se # times é ímpar → 1 BYE forçado (auto-win, conta como winner)
+        // 2. R1: (times - byes) / 2 jogos. Quem joga determina o R1.
+        // 3. winners_total = R1 winners + BYE auto = playing/2 + (1 se ímpar else 0)
+        // 4. bracket = próxima P2 ≥ winners_total
+        // 5. excess = bracket - winners_total
+        // 6. excess melhores derrotados completam o bracket (SEM jogos extras —
+        //    seleção direta por critério de score margin / tiebreaker)
+        //
+        // Validação:
+        //   N=14 (7 times, ímpar): 1 BYE + 6 jogam (3 jogos) → 4 winners → bracket=4 → excess=0
+        //   N=20 (10 times, par): 10 jogam (5 jogos) → 5 winners → bracket=8 → excess=3
+        //   N=50 (25 times, ímpar): 1 BYE + 24 jogam (12 jogos) → 13 winners → bracket=16 → excess=3
+        const isOdd = totalTeams % 2 === 1;
+        const numByes = isOdd ? 1 : 0;
+        const playing = totalTeams - numByes;
+        const matchesR1 = playing / 2;
+        const winnersR1 = matchesR1; // R1 jogadores que vencem
+        const totalAdvancing = winnersR1 + numByes; // winners + BYE auto
         const losersR1 = matchesR1;
-        // R2 target = next power of 2 >= winnersR1
-        let r2Target = 1;
-        while (r2Target < winnersR1) r2Target *= 2;
-        const spotsFromRepechage = r2Target - winnersR1;
-        const repechageMatches = Math.floor(losersR1 / 2);
-        const repechageWinners = repechageMatches;
-        // How many need to qualify via tiebreaker (beyond repechage winners)
-        const tiebreakSpots = Math.max(0, spotsFromRepechage - repechageWinners);
-        const matchesR2 = r2Target / 2;
+        let bracketSize = 1;
+        while (bracketSize < totalAdvancing) bracketSize *= 2;
+        const excess = bracketSize - totalAdvancing;
+        const matchesR2 = bracketSize / 2;
+        // Compat com código abaixo (R2 cards builder usa esses nomes)
+        const r2Target = bracketSize;
+        const spotsFromRepechage = excess;
+        const repechageMatches = 0; // sem jogos de repescagem
+        const repechageWinners = excess; // melhores losers selecionados direto
+        const tiebreakSpots = 0; // sem tiebreaker — só seleção
 
         // Match card builder
         const matchCard = (header, headerColor, borderColor, num, t1, t2, t1Color, t2Color) => `
@@ -2758,26 +2774,26 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 'rgba(16,185,129,0.4)', 'rgba(239,68,68,0.4)');
         }
 
-        // Repechage cards — losers face each other (purple accent)
+        // v1.0.65-beta: SEM jogos de repescagem. Os melhores derrotados são
+        // selecionados direto por critério (score margin/tiebreaker).
         let repHtml = '';
-        for (let i = 0; i < repechageMatches; i++) {
-            repHtml += matchCard(_t('predraw.simStatRepechage'), '#a78bfa', 'rgba(139,92,246,0.25)',
-                i + 1, _t('predraw.simRepLoser') + ' ' + ((i * 2) + 1), _t('predraw.simRepLoser') + ' ' + ((i * 2) + 2),
-                'rgba(139,92,246,0.4)', 'rgba(139,92,246,0.4)');
-        }
 
         // R2 cards — CROSS-SEEDING: pair R1 winners vs repechage classified
         // For fairness, each R2 match should pit a direct qualifier (R1 winner)
         // against a repechage qualifier whenever possible.
         let r2Html = '';
         let r2Slots = []; // build slot pairs first
-        let r1Pool = [];  // R1 winners
-        let repPool = []; // repechage classified
+        let r1Pool = [];  // R1 winners (incl BYE auto)
+        let repPool = []; // melhores derrotados (selecionados direto)
         for (let i = 1; i <= winnersR1; i++) {
             r1Pool.push({ name: _t('predraw.simWinnerOfMatch') + ' ' + i, color: 'rgba(16,185,129,0.4)', isRep: false });
         }
+        // v1.0.65-beta: BYE auto entra no pool de winners (avança como winner)
+        if (numByes > 0) {
+            r1Pool.push({ name: 'BYE auto', color: 'rgba(245,158,11,0.4)', isRep: false });
+        }
         for (let i = 1; i <= spotsFromRepechage; i++) {
-            repPool.push({ name: _t('predraw.simRepClassified') + ' ' + i, color: 'rgba(139,92,246,0.4)', isRep: true });
+            repPool.push({ name: 'Melhor derrotado ' + i, color: 'rgba(167,139,250,0.4)', isRep: true });
         }
         // Cross-seed: pair one from each pool as much as possible
         while (r1Pool.length > 0 && repPool.length > 0) {
@@ -2816,57 +2832,61 @@ window.showResolutionSimulationPanel = function (tId, option) {
                 <div style="font-size:0.75rem;color:#86efac;line-height:1.5;">${_t('predraw.simAllRepAdvance', {n: spotsFromRepechage})}</div>
                </div>`;
 
+        // v1.0.65-beta: layout reescrito pra spec do user.
         var _playinUnitStat = teamSize > 1 ? _t('predraw.simStatTeams') : _t('predraw.simStatParticipants');
-        var _playinR1Unit = matchesR1 === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
-        var _playinRepUnit = repechageMatches === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
-        var _playinRepSlot = spotsFromRepechage === 1 ? _t('predraw.simUnitSpot') : _t('predraw.simUnitSpots');
-        var _playinR2Unit = matchesR2 === 1 ? _t('predraw.simUnitGame') : _t('predraw.simUnitGames');
+        var _byeNotice = isOdd
+            ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:10px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:1.1rem;">⚠️</span>
+                  <span style="font-size:0.78rem;color:#fbbf24;font-weight:600;">Número ímpar — 1 BYE forçado (auto-avança pra fase final)</span>
+               </div>`
+            : '';
+        var _excessNotice = excess > 0
+            ? `<div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:10px 14px;margin:1rem 0 1.25rem;">
+                  <div style="font-size:0.72rem;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📊 Repescagem por seleção</div>
+                  <div style="font-size:0.78rem;color:#cbd5e1;line-height:1.5;">Os <b style="color:#a78bfa;">${excess} melhores derrotados</b> da R1 (por menor margem de derrota) completam o bracket — sem jogos extras.</div>
+               </div>`
+            : `<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:10px 14px;margin:1rem 0 1.25rem;">
+                  <div style="font-size:0.78rem;color:#4ade80;font-weight:700;">✓ Bracket P2 perfeito — todos os ${totalAdvancing} avançam direto</div>
+               </div>`;
         simulationHtml = `
-            <div style="text-align:center;margin-bottom:2rem;">
-                <span style="font-size:3rem;display:block;margin-bottom:1rem;">🔁</span>
-                <h3 style="color:white;font-size:1.5rem;font-weight:900;margin:0;">${_t('predraw.simPlayinTitle')}</h3>
-                <p style="color:#94a3b8;margin:8px 0 0;">${_t('predraw.simPlayinSubtitle', {n: r2Target})}</p>
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <span style="font-size:3rem;display:block;margin-bottom:0.75rem;">🔁</span>
+                <h3 style="color:white;font-size:1.4rem;font-weight:900;margin:0;">${_t('predraw.simPlayinTitle')}</h3>
+                <p style="color:#94a3b8;margin:6px 0 0;font-size:0.82rem;">Bracket de ${bracketSize} times (potência de 2 perfeita)</p>
             </div>
 
-            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:1.5rem;margin-bottom:2rem;">
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center;">
-                    <div style="background:rgba(34,197,94,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(34,197,94,0.2);">
-                        <div style="font-size:1.4rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
-                        <div style="font-size:0.62rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_playinUnitStat}</div>
+            ${_byeNotice}
+
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:1rem;margin-bottom:1.25rem;">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+                    <div style="background:rgba(34,197,94,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(34,197,94,0.2);">
+                        <div style="font-size:1.3rem;font-weight:900;color:#4ade80;">${totalTeams}</div>
+                        <div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">${_playinUnitStat}</div>
                     </div>
-                    <div style="background:rgba(96,165,250,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(96,165,250,0.2);">
-                        <div style="font-size:1.4rem;font-weight:900;color:#60a5fa;">${matchesR1}</div>
-                        <div style="font-size:0.62rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatR1')}</div>
+                    <div style="background:rgba(96,165,250,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(96,165,250,0.2);">
+                        <div style="font-size:1.3rem;font-weight:900;color:#60a5fa;">${matchesR1}</div>
+                        <div style="font-size:0.6rem;color:#93c5fd;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Jogos R1</div>
                     </div>
-                    <div style="background:rgba(139,92,246,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(139,92,246,0.2);">
-                        <div style="font-size:1.4rem;font-weight:900;color:#8b5cf6;">${repechageMatches}</div>
-                        <div style="font-size:0.62rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatRepechage')}</div>
+                    <div style="background:rgba(34,197,94,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(34,197,94,0.2);">
+                        <div style="font-size:1.3rem;font-weight:900;color:#4ade80;">${totalAdvancing}</div>
+                        <div style="font-size:0.6rem;color:#86efac;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Passam${isOdd ? ' (+BYE)' : ''}</div>
                     </div>
-                    <div style="background:rgba(245,158,11,0.1);padding:0.8rem 0.5rem;border-radius:16px;border:1px solid rgba(245,158,11,0.2);">
-                        <div style="font-size:1.4rem;font-weight:900;color:#f59e0b;">${spotsFromRepechage}</div>
-                        <div style="font-size:0.62rem;color:#fbbf24;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:4px;">${_t('predraw.simStatRepSpots')}</div>
+                    <div style="background:rgba(167,139,250,0.1);padding:0.7rem 0.4rem;border-radius:14px;border:1px solid rgba(167,139,250,0.2);">
+                        <div style="font-size:1.3rem;font-weight:900;color:#a78bfa;">${excess}</div>
+                        <div style="font-size:0.6rem;color:#a78bfa;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;margin-top:3px;">Repescados</div>
                     </div>
                 </div>
             </div>
 
             <div style="max-height:500px;overflow-y:auto;padding-right:10px;padding-bottom:1rem;">
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simPlayinR1Header', {n: matchesR1, unit: _playinR1Unit})}</h4>
+                <h4 style="color:#38bdf8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 0.75rem;">R1 — ${matchesR1} ${matchesR1 === 1 ? 'jogo' : 'jogos'}${isOdd ? ' + 1 BYE' : ''}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r1Html}
                 </div>
 
-                <div style="text-align:center;margin:1.5rem 0;padding:10px;background:rgba(255,255,255,0.02);border-radius:12px;">
-                    <div style="font-size:0.7rem;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${_t('predraw.simPlayinWinnersGo', {n: winnersR1})}</div>
-                    <div style="font-size:0.7rem;color:#ef4444;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${_t('predraw.simPlayinLosersGo', {n: losersR1})}</div>
-                </div>
+                ${_excessNotice}
 
-                <h4 style="color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:0 0 1rem;">${_t('predraw.simRepHeader', {n: repechageMatches, unit: _playinRepUnit, s: spotsFromRepechage, slot: _playinRepSlot})}</h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                    ${repHtml}
-                </div>
-                ${tiebreakNote}
-
-                <h4 style="color:#38bdf8;font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin:1.5rem 0 1rem;">${_t('predraw.simPlayinR2Header', {n: r2Target, m: matchesR2, unit: _playinR2Unit})}</h4>
+                <h4 style="color:#38bdf8;font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 0.75rem;">Bracket — ${bracketSize} times · ${matchesR2} ${matchesR2 === 1 ? 'jogo' : 'jogos'} R1 do bracket</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     ${r2Html}
                 </div>

@@ -9,6 +9,20 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔁 v1.0.65-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Play-in reescrito conforme spec do user.</b> Algoritmo:</p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Se # times é ímpar → 1 BYE forçado (auto-win, conta como winner)</li>' +
+        '<li>R1: <code>(times - byes) / 2</code> jogos</li>' +
+        '<li><code>winners_total = R1 winners + BYE auto</code></li>' +
+        '<li><code>bracket = próxima P2 ≥ winners_total</code></li>' +
+        '<li><code>excess = bracket - winners_total</code></li>' +
+        '<li>Os <code>excess</code> melhores derrotados completam o bracket — <b>SEM jogos extras</b>, seleção direta por menor margem de derrota.</li>' +
+      '</ol>' +
+      '<p><b>Validação:</b> N=14 (7 times): 1 BYE + 6 jogam (3 jogos) → 4 winners → bracket=4, excess=0. N=20 (10 times): 10 jogam (5 jogos) → 5 winners → bracket=8, 3 best losers. N=50 (25 times): 1 BYE + 24 jogam (12 jogos) → 13 winners → bracket=16, 3 best losers.</p>' +
+      '<p><b>Esta release atualiza só a SIMULAÇÃO.</b> Draw real (tournaments-draw.js + bracket-logic.js) será atualizado na próxima — a UI da simulação reflete corretamente o algoritmo agora.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔢 v1.0.64-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Regressão corrigida: "Jogo N" duplicado em Rei/Rainha.</b> User: <i>"lembra que cada jogo em cada torneio não pode ter numero de jogo repetido? regredimos? quero que o jogo 1 seja sempre o jogo 1"</i>.</p>' +
       '<p><b>Causa-raiz:</b> em <code>bracket.js</code> linha 2206, o renderer dos grupos Rei/Rainha (Liga + monarch round) usava <code>renderMatchCard(m, ..., mi + 1)</code> onde <code>mi</code> era o índice do match DENTRO do grupo. Resultado: Grupo A tinha "Jogo 1, 2, 3", Grupo B também "Jogo 1, 2, 3", Grupo C idem — duplicatas em cada grupo.</p>' +
