@@ -320,11 +320,15 @@ window._toggleVip = function (tId, participantName) {
 
 // ── Declarar ausência de participante ──
 window._declareAbsent = function (tId, playerName) {
-  const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+  // v1.0.85-beta: t/partsArr/standby/matchEntry agora são `let` (não `const`)
+  // porque a confirm callback re-fetcha e re-deriva tudo a partir do t mais
+  // recente do AppStore — onSnapshot pode ter substituído store.tournaments
+  // entre dialog-open e confirm.
+  let t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
   if (!t) return;
 
   // Encontrar o time/entry e o match deste participante
-  const partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+  let partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
   let teamName = null;
   partsArr.forEach(p => {
     const pName = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
@@ -361,16 +365,16 @@ window._declareAbsent = function (tId, playerName) {
   const _sp = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
   const _wl = Array.isArray(t.waitlist) ? t.waitlist : [];
   const _spNames = new Set(_sp.map(_getName));
-  const standby = _sp.slice();
+  let standby = _sp.slice();
   _wl.forEach(w => { const wn = _getName(w); if (wn && !_spNames.has(wn)) standby.push(w); });
   const _removeFromWaitlists = (name) => {
     if (Array.isArray(t.standbyParticipants)) t.standbyParticipants = t.standbyParticipants.filter(p => _getName(p) !== name);
     if (Array.isArray(t.waitlist)) t.waitlist = t.waitlist.filter(p => _getName(p) !== name);
   };
-  const hasStandby = standby.length > 0;
-  const friendlyNum = matchIdx >= 0 ? matchIdx + 1 : '?';
-  const opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
-  const opponent = matchEntry ? matchEntry[opponentSide] : null;
+  let hasStandby = standby.length > 0;
+  let friendlyNum = matchIdx >= 0 ? matchIdx + 1 : '?';
+  let opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
+  let opponent = matchEntry ? matchEntry[opponentSide] : null;
 
   const woScope = t.woScope || 'individual';
   const isTeamEntry = teamName.includes('/') || teamName.includes(' / ');
@@ -393,6 +397,42 @@ window._declareAbsent = function (tId, playerName) {
   }
 
   showConfirmDialog(confirmTitle, confirmMsg, function () {
+    // v1.0.85-beta: RE-FETCH t fresh from AppStore. Entre o open do dialog e
+    // o confirm do usuário, o onSnapshot do Firestore pode ter substituído
+    // store.tournaments (toggle Presente do substituto, por exemplo, dispara
+    // write→snapshot→replace em ~200ms). Closure t do escopo externo fica
+    // detached — mutations não propagam pra store.tournaments[i] e o sync
+    // grava o objeto NOVO sem nossas mutations.
+    // Fix: pegar t mais recente AGORA, e re-derivar standby/checkedIn/etc.
+    // a partir dele. Match e teamName ainda são válidos (referenciamos por
+    // nome/id, não por ref de objeto).
+    const _tFresh = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
+    if (_tFresh) t = _tFresh;
+    // Re-derivar standby a partir do t fresh:
+    const _spFresh = Array.isArray(t.standbyParticipants) ? t.standbyParticipants : [];
+    const _wlFresh = Array.isArray(t.waitlist) ? t.waitlist : [];
+    const _spNamesFresh = new Set(_spFresh.map(_getName));
+    standby = _spFresh.slice();
+    _wlFresh.forEach(w => { const wn = _getName(w); if (wn && !_spNamesFresh.has(wn)) standby.push(w); });
+    // Re-find matchEntry no t fresh — match.p1/p2 podem ter mudado em snapshot
+    const _allFreshWO = (typeof window._collectAllMatches === 'function')
+      ? window._collectAllMatches(t)
+      : (Array.isArray(t.matches) ? t.matches.slice() : []);
+    matchEntry = null; matchIdx = -1; matchSide = null;
+    _allFreshWO.forEach((m, mi) => {
+      if (!m || m.winner) return;
+      if (matchEntry) return;
+      if (_normTeam(m.p1) === _teamNameNorm) { matchEntry = m; matchIdx = mi; matchSide = 'p1'; }
+      else if (_normTeam(m.p2) === _teamNameNorm) { matchEntry = m; matchIdx = mi; matchSide = 'p2'; }
+    });
+    // Re-derivar partsArr (alias t.participants atualizado)
+    partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+    // Recompute derived state que depende de matchEntry/matchSide/standby
+    hasStandby = standby.length > 0;
+    friendlyNum = matchIdx >= 0 ? matchIdx + 1 : '?';
+    opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
+    opponent = matchEntry ? matchEntry[opponentSide] : null;
+
     // Marcar o jogador como ausente confirmado
     if (!t.checkedIn) t.checkedIn = {};
     if (!t.absent) t.absent = {};
@@ -427,14 +467,52 @@ window._declareAbsent = function (tId, playerName) {
       // que estava em posição menor no array (mais antigo na lista).
       let nextStandby = null;
       let nextStandbyIdx = -1;
+      // v1.0.85-beta: filtro tolerante a TIMESTAMP (number) E TRUE (boolean).
+      // Antes só `> 0` aceitava number — mas `_toggleCheckIn` set Date.now()
+      // (number truthy >0), enquanto handlers de sub setam `t.checkedIn[x]=true`
+      // (boolean). Em filter `o.ts > 0`: number cumpre, boolean `true > 0` em
+      // teoria é true (true→1), MAS quando t.checkedIn[name] é STRING vazia
+      // ou outro falsy estranho, o `|| 0` mascara. Trocar pra check de
+      // TRUTHINESS direto cobre ambos os casos sem ambiguidade.
       const _presentSorted = standby
-        .map((p, idx) => ({ p, idx, ts: t.checkedIn[typeof p === 'string' ? p : (p.displayName || p.name || p.email || '')] || 0 }))
+        .map((p, idx) => {
+          const _name = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          const _ci = t.checkedIn[_name];
+          // ts numérico pra ordenar; truthy não-numérico (true) vira 1.
+          const ts = typeof _ci === 'number' ? _ci : (_ci ? 1 : 0);
+          return { p, idx, name: _name, ts, ciRaw: _ci };
+        })
         .filter(o => o.ts > 0)
         .sort((a, b) => a.ts - b.ts);
       if (_presentSorted.length > 0) {
         nextStandby = _presentSorted[0].p;
         nextStandbyIdx = _presentSorted[0].idx;
       }
+      // v1.0.85-beta: diagnóstico — snapshot ANTES da decisão de sub vs aguarda.
+      try {
+        window._lastDeclareAbsent = {
+          version: window.SCOREPLACE_VERSION,
+          at: new Date().toISOString(),
+          callOrder: (window._lastDeclareAbsent && window._lastDeclareAbsent.callOrder || 0) + 1,
+          playerName: playerName,
+          teamName: teamName,
+          matchSide: matchSide,
+          friendlyNum: friendlyNum,
+          isIndividualWO: isIndividualWO,
+          hasStandby: hasStandby,
+          standbyCount: standby.length,
+          standbyDetail: standby.map(p => {
+            const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+            return { name: _n, ci: t.checkedIn[_n] };
+          }),
+          presentSortedCount: _presentSorted.length,
+          presentSortedNames: _presentSorted.map(o => o.name + ' (ts=' + o.ts + ', ciRaw=' + JSON.stringify(o.ciRaw) + ')'),
+          nextStandby: nextStandby ? (typeof nextStandby === 'string' ? nextStandby : (nextStandby.displayName || nextStandby.name)) : null,
+          partsArrCount: partsArr.length,
+          waitlistCount: Array.isArray(t.waitlist) ? t.waitlist.length : 0,
+          standbyParticipantsCount: Array.isArray(t.standbyParticipants) ? t.standbyParticipants.length : 0
+        };
+      } catch (_e) {}
       if (!nextStandby) {
         // v1.0.82-beta: 2 cenários distintos quando não há substituto:
         // (a) waitlist NÃO vazia mas ninguém Presente → aguarda alguém da
@@ -446,9 +524,22 @@ window._declareAbsent = function (tId, playerName) {
         // de um time vira WO do time todo.'
         if (standby.length > 0) {
           // Cenário (a): aguarda
+          // v1.0.85-beta: snapshot pra diagnóstico
+          try {
+            window._lastDeclareAbsent = window._lastDeclareAbsent || {};
+            window._lastDeclareAbsent.outcome = 'waited_no_presente';
+          } catch (_e) {}
           window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto presente.`);
           window.AppStore.sync();
-          if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
+          // v1.0.85-beta: toast mais informativo — antes era genérico "ausência marcada".
+          // Agora explica: lista tem N pessoa(s), 0 Presente. Se usuário esperava sub
+          // automática (porque alguém ESTÁ Presente na lista), saberá que foi pra
+          // 'aguarda' e poderá investigar via window._lastDeclareAbsent no console.
+          if (typeof showNotification === 'function') {
+            showNotification('⚠️ Aguardando substituto presente',
+              `Lista de espera tem ${standby.length} pessoa(s), 0 Presente. ${playerName} marcado ausente. (debug: window._lastDeclareAbsent)`,
+              'warning');
+          }
           _reRenderParticipants();
           return;
         }
@@ -563,6 +654,25 @@ window._declareAbsent = function (tId, playerName) {
         replacedBy: nextName,
         timestamp: Date.now()
       };
+
+      // v1.0.85-beta: snapshot pós-sub pra diagnóstico (acumula sobre o
+      // snapshot pré-sub gravado mais cedo).
+      try {
+        window._lastDeclareAbsent = window._lastDeclareAbsent || {};
+        window._lastDeclareAbsent.outcome = 'individual_sub_done';
+        window._lastDeclareAbsent.newTeamName = newTeamName;
+        window._lastDeclareAbsent.matchAfter_p1 = matchEntry.p1;
+        window._lastDeclareAbsent.matchAfter_p2 = matchEntry.p2;
+        window._lastDeclareAbsent.partsArrAfterCount = partsArr.length;
+        window._lastDeclareAbsent.partsArrIncludesNew = partsArr.some(p => {
+          const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          return _n === nextName;
+        });
+        window._lastDeclareAbsent.partsArrIncludesNewTeam = partsArr.some(p => {
+          const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+          return _n === newTeamName;
+        });
+      } catch (_e) {}
 
       window.AppStore.logAction(tId, `Substituição individual: ${playerName} → ${nextName} (parceiro: ${partnerName}) — Jogo ${friendlyNum}`);
       window.AppStore.sync();
