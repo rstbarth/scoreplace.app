@@ -766,22 +766,25 @@ window.generateDrawFunction = function (tId) {
                         r2Slots.push({ tbd: true, type: 'bestloser' });
                     }
 
-                    // Pair R2 slots: cross-seed R1 winners vs repechage/bestloser qualifiers
-                    var r2WinSlots = r2Slots.filter(function(s) { return s.type === 'r1winner' || s.type === 'bye'; });
-                    var r2RepSlots = r2Slots.filter(function(s) { return s.type === 'repqualifier' || s.type === 'bestloser'; });
+                    // v1.0.71-beta: pareamento sequencial. Vencedor 1 vs
+                    // Vencedor 2, Vencedor 3 vs Vencedor 4, ... Best losers
+                    // preenchem em sequência. BYE sempre na ÚLTIMA posição.
+                    var r2OrderedSlots = [];
+                    // R1 winners primeiro (na ordem dos jogos)
+                    r2Slots.forEach(function(s) {
+                        if (s.type === 'r1winner') r2OrderedSlots.push(s);
+                    });
+                    // Best losers / repqualifier no meio
+                    r2Slots.forEach(function(s) {
+                        if (s.type === 'bestloser' || s.type === 'repqualifier') r2OrderedSlots.push(s);
+                    });
+                    // BYE no FINAL (última posição absoluta)
+                    r2Slots.forEach(function(s) {
+                        if (s.type === 'bye') r2OrderedSlots.push(s);
+                    });
                     var r2Pairs = [];
-                    var wIdx = 0, qIdx = 0;
-                    while (wIdx < r2WinSlots.length && qIdx < r2RepSlots.length) {
-                        r2Pairs.push({ p1: r2WinSlots[wIdx], p2: r2RepSlots[qIdx] });
-                        wIdx++; qIdx++;
-                    }
-                    while (wIdx + 1 < r2WinSlots.length) {
-                        r2Pairs.push({ p1: r2WinSlots[wIdx], p2: r2WinSlots[wIdx + 1] });
-                        wIdx += 2;
-                    }
-                    while (qIdx + 1 < r2RepSlots.length) {
-                        r2Pairs.push({ p1: r2RepSlots[qIdx], p2: r2RepSlots[qIdx + 1] });
-                        qIdx += 2;
+                    for (var pIdx = 0; pIdx + 1 < r2OrderedSlots.length; pIdx += 2) {
+                        r2Pairs.push({ p1: r2OrderedSlots[pIdx], p2: r2OrderedSlots[pIdx + 1] });
                     }
 
                     // Generate R2 match objects

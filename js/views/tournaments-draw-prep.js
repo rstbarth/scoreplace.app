@@ -2781,28 +2781,26 @@ window.showResolutionSimulationPanel = function (tId, option) {
         // R2 cards — CROSS-SEEDING: pair R1 winners vs repechage classified
         // For fairness, each R2 match should pit a direct qualifier (R1 winner)
         // against a repechage qualifier whenever possible.
+        // v1.0.71-beta: pareamento sequencial conforme spec do user.
+        // Vencedor 1 vs Vencedor 2, Vencedor 3 vs Vencedor 4, ...
+        // Melhores derrotados preenchem em sequência.
+        // BYE sempre na ÚLTIMA posição.
         let r2Html = '';
         let r2Slots = []; // build slot pairs first
-        let r1Pool = [];  // R1 winners (incl BYE auto)
-        let repPool = []; // melhores derrotados (selecionados direto)
+        let allSlots = [];
         for (let i = 1; i <= winnersR1; i++) {
-            r1Pool.push({ name: _t('predraw.simWinnerOfMatch') + ' ' + i, color: 'rgba(16,185,129,0.4)', isRep: false });
-        }
-        // v1.0.65-beta: BYE auto entra no pool de winners (avança como winner)
-        if (numByes > 0) {
-            r1Pool.push({ name: 'BYE auto', color: 'rgba(245,158,11,0.4)', isRep: false });
+            allSlots.push({ name: _t('predraw.simWinnerOfMatch') + ' ' + i, color: 'rgba(16,185,129,0.4)', isRep: false });
         }
         for (let i = 1; i <= spotsFromRepechage; i++) {
-            repPool.push({ name: 'Melhor derrotado ' + i, color: 'rgba(167,139,250,0.4)', isRep: true });
+            allSlots.push({ name: 'Melhor derrotado ' + i, color: 'rgba(167,139,250,0.4)', isRep: true });
         }
-        // Cross-seed: pair one from each pool as much as possible
-        while (r1Pool.length > 0 && repPool.length > 0) {
-            r2Slots.push([r1Pool.shift(), repPool.shift()]);
+        // BYE no final
+        if (numByes > 0) {
+            allSlots.push({ name: 'BYE auto', color: 'rgba(245,158,11,0.4)', isRep: false });
         }
-        // Remaining same-pool pairs (if pools are uneven)
-        let remaining = r1Pool.concat(repPool);
-        while (remaining.length >= 2) {
-            r2Slots.push([remaining.shift(), remaining.shift()]);
+        // Pareamento sequencial (1,2), (3,4), ...
+        while (allSlots.length >= 2) {
+            r2Slots.push([allSlots.shift(), allSlots.shift()]);
         }
         for (let i = 0; i < r2Slots.length; i++) {
             let s1 = r2Slots[i][0];
