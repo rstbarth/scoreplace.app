@@ -436,11 +436,40 @@ window._declareAbsent = function (tId, playerName) {
         nextStandbyIdx = _presentSorted[0].idx;
       }
       if (!nextStandby) {
-        // Sem substituto presente — apenas marca ausente e aguarda organizador
-        // (woHistory já foi populado acima — orphan card aparece desde já)
-        window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto.`);
+        // v1.0.82-beta: 2 cenários distintos quando não há substituto:
+        // (a) waitlist NÃO vazia mas ninguém Presente → aguarda alguém da
+        //     lista marcar Presente. Mantém comportamento atual.
+        // (b) waitlist VAZIA (todos já entraram ou tiveram WO) → W.O.
+        //     individual escala pra W.O. do TIME inteiro: oponente vence.
+        // User: 'aguarda alguem da lista de espera aparecer ou se não for
+        // mais possivel por estar vazia... dai então o WO de um membro
+        // de um time vira WO do time todo.'
+        if (standby.length > 0) {
+          // Cenário (a): aguarda
+          window.AppStore.logAction(tId, `Ausência marcada: ${playerName} (${teamName}) — Jogo ${friendlyNum}. Aguardando substituto presente.`);
+          window.AppStore.sync();
+          if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
+          _reRenderParticipants();
+          return;
+        }
+        // Cenário (b): waitlist vazia → escala pra W.O. de time
+        const _opponentSide = matchSide === 'p1' ? 'p2' : 'p1';
+        matchEntry.scoreP1 = matchSide === 'p1' ? 0 : 'W.O.';
+        matchEntry.scoreP2 = matchSide === 'p2' ? 0 : 'W.O.';
+        matchEntry.winner = matchEntry[_opponentSide];
+        matchEntry.wo = true;
+        if (typeof window._advanceWinner === 'function') {
+          try { window._advanceWinner(t, matchEntry); } catch (_e) {}
+        } else if (matchEntry.nextMatchId) {
+          const _next = (t.matches || []).find(_nm => _nm.id === matchEntry.nextMatchId);
+          if (_next) {
+            if (!_next.p1 || _next.p1 === 'TBD') _next.p1 = matchEntry.winner;
+            else if (!_next.p2 || _next.p2 === 'TBD') _next.p2 = matchEntry.winner;
+          }
+        }
+        window.AppStore.logAction(tId, `W.O. escalado: ${playerName} (${teamName}) ausente, lista de espera vazia → ${matchEntry.winner} vence Jogo ${friendlyNum} por W.O.`);
         window.AppStore.sync();
-        if (typeof showNotification === 'function') showNotification(_t('sub.absent'), _t('sub.absentMsg', { name: playerName }), 'warning');
+        if (typeof showNotification === 'function') showNotification(_t('sub.wo'), _t('sub.woMsg', { winner: matchEntry.winner, n: friendlyNum }), 'warning');
         _reRenderParticipants();
         return;
       }
