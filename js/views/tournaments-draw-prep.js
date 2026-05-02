@@ -2846,13 +2846,13 @@ window.showResolutionSimulationPanel = function (tId, option) {
                   <div style="font-size:0.78rem;color:#cbd5e1;line-height:1.5;">Os <b style="color:#a78bfa;">${excess} melhores derrotados</b> da R1 (por menor margem de derrota) completam o bracket — sem jogos extras.</div>
                </div>`
             : `<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:10px 14px;margin:1rem 0 1.25rem;">
-                  <div style="font-size:0.78rem;color:#4ade80;font-weight:700;">✓ Bracket P2 perfeito — todos os ${totalAdvancing} avançam direto</div>
+                  <div style="font-size:0.78rem;color:#4ade80;font-weight:700;">✓ Todos os ${totalAdvancing} avançam direto pra rodada 2</div>
                </div>`;
         simulationHtml = `
             <div style="text-align:center;margin-bottom:1.5rem;">
                 <span style="font-size:3rem;display:block;margin-bottom:0.75rem;">🔁</span>
                 <h3 style="color:white;font-size:1.4rem;font-weight:900;margin:0;">${_t('predraw.simPlayinTitle')}</h3>
-                <p style="color:#94a3b8;margin:6px 0 0;font-size:0.82rem;">Bracket de ${bracketSize} times (potência de 2 perfeita)</p>
+                <p style="color:#94a3b8;margin:6px 0 0;font-size:0.82rem;">Chaveamento de ${bracketSize} times na rodada 2</p>
             </div>
 
             ${_byeNotice}
