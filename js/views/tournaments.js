@@ -1332,6 +1332,8 @@ function renderTournaments(container, tournamentId = null) {
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
+                ${(!hasDraw && isOrg) ? `<button class="btn btn-danger-ghost hover-lift" title="🔧 TEST MODE — adiciona bots ao torneio pra testes" onclick="event.stopPropagation(); window.addBotsFunction('${t.id}')">🤖 Add Bot</button>` : ''}
+                ${(isOrg && window.AppStore.isCreator(t)) ? `<button class="btn btn-danger-ghost hover-lift" onclick="event.stopPropagation(); window.deleteTournamentFunction('${t.id}')">🗑️ ${_t('btn.deleteTournament') || 'Apagar Torneio'}</button>` : ''}
               </div>
             </div>` : ''}
 

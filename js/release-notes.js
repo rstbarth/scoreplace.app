@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🤖 v1.0.60-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Botões "Add Bot" e "Apagar Torneio" de volta nas Ferramentas do Organizador.</b> User: <i>"vamos devolver os botoes add bot e apagar torneio para eu testar mais o app"</i>. Funções (<code>addBotsFunction</code>, <code>deleteTournamentFunction</code>) sempre existiram — só não tinham botão na UI desde algum cleanup passado.</p>' +
+      '<p><b>Add Bot 🤖</b> — visível pra organizador antes do sorteio (depois do sorteio adicionar bot quebra a chave). Prompt pergunta quantos bots, popula com nomes "Bot 01", "Bot 02"… <code>btn-danger-ghost</code> pra sinalizar que é dev tool.</p>' +
+      '<p><b>Apagar Torneio 🗑️</b> — visível só pro <i>creator</i> do torneio (não basta ser organizer). Confirmação obrigatória antes de deletar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📊 v1.0.59-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Analytics (GA4) plugado pra entender uso real do app.</b> Pedido do user: <i>"seria legal monitorarmos o que as pessoas fazem no app, horários de maior uso etc, para podermos pensar depois em quais usos cobraremos e o que deixaremos de graça"</i>. Firebase Analytics inicializado (measurementId já existia no firebaseConfig). Sem PII nos eventos — apenas uid pseudonimizado + metadados de comportamento.</p>' +
       '<p><b>Eventos canônicos:</b> <code>signup</code>/<code>login</code> (param: method=google/sms/email_link), <code>tournament_created</code> (format/sport/drawMode), <code>casual_match_started</code>/<code>casual_match_finished</code> (sport, durationMin), <code>presence_checkin</code>/<code>presence_planned</code> (source=manual|auto_gps, sports_count), <code>venue_searched</code> (query_len, results_count), <code>friend_added</code>, <code>pro_upgrade_clicked</code> (source: tournaments/participants/logo/tv), <code>pix_support_clicked</code>, <code>free_tier_limit_hit</code> (limit_type).</p>' +
