@@ -71,18 +71,67 @@ window._markAbsent = function (tId, playerName) {
   if (!t) return;
   if (!t.absent) t.absent = {};
   if (!t.checkedIn) t.checkedIn = {};
-  if (t.absent[playerName]) {
+  // v1.0.79-beta: revert completo. Detecta orphan (W.O.'d via woHistory) e,
+  // se há replacedBy, desfaz substituição: restaura time original, remove
+  // substituto da chave, devolve ele à waitlist se aplicável.
+  const _woMeta = t.woHistory && t.woHistory[playerName];
+  if (t.absent[playerName] || _woMeta) {
     // Desmarcar ausência → volta ao estado "sem confirmação"
     delete t.absent[playerName];
-    // v0.17.35: se não houve substituição (replacedBy ausente), limpa
-    // woHistory também — o jogador volta ao time normal. Se substituição
-    // já rolou (replacedBy preenchido), woHistory permanece — não há como
-    // desfazer a substituição automaticamente, organizador precisa ajustar.
-    if (t.woHistory && t.woHistory[playerName]) {
-      const _meta = t.woHistory[playerName];
-      if (!_meta.replacedBy) {
-        delete t.woHistory[playerName];
+    if (_woMeta) {
+      const _replacedBy = _woMeta.replacedBy;
+      const _origTeam = _woMeta.originalTeam;
+      const _matchNum = _woMeta.matchNum;
+      if (_replacedBy && _origTeam && _matchNum) {
+        // Restaura time original em todas as estruturas
+        try {
+          const _allM = (typeof window._collectAllMatches === 'function')
+            ? window._collectAllMatches(t)
+            : (Array.isArray(t.matches) ? t.matches.slice() : []);
+          const _origMatch = _allM[_matchNum - 1];
+          if (_origMatch && !_origMatch.winner) {
+            // Substring "playerName" estava em substituto. Restaurar.
+            const _sep = _origTeam.includes(' / ') ? ' / ' : '/';
+            const _curTeam = _origMatch.p1 && _origMatch.p1.includes(_replacedBy) ? _origMatch.p1
+                          : (_origMatch.p2 && _origMatch.p2.includes(_replacedBy) ? _origMatch.p2 : null);
+            if (_curTeam) {
+              const _restoredTeam = _curTeam.split(_sep).map(n => n.trim() === _replacedBy ? playerName : n.trim()).join(' / ');
+              _allM.forEach(function(m) {
+                if (!m) return;
+                if (m.p1 === _curTeam) m.p1 = _restoredTeam;
+                if (m.p2 === _curTeam) m.p2 = _restoredTeam;
+                if (Array.isArray(m.team1)) {
+                  const ti = m.team1.indexOf(_replacedBy);
+                  if (ti !== -1) m.team1[ti] = playerName;
+                }
+                if (Array.isArray(m.team2)) {
+                  const ti2 = m.team2.indexOf(_replacedBy);
+                  if (ti2 !== -1) m.team2[ti2] = playerName;
+                }
+              });
+              // Substituto sai do checkedIn (já que volta ao standby)
+              delete t.checkedIn[_replacedBy];
+              // Devolve substituto à waitlist se ele veio de lá
+              const partsArr = Array.isArray(t.participants) ? t.participants : Object.values(t.participants || {});
+              const _subIdx = partsArr.findIndex(function(p) {
+                const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+                return _n === _replacedBy;
+              });
+              // Adiciona à waitlist (só se não tava lá)
+              if (!Array.isArray(t.waitlist)) t.waitlist = [];
+              const _alreadyInWaitlist = t.waitlist.some(function(w) {
+                const _wn = typeof w === 'string' ? w : (w.displayName || w.name || w.email || '');
+                return _wn === _replacedBy;
+              });
+              if (!_alreadyInWaitlist && _subIdx >= 0) {
+                t.waitlist.push(partsArr[_subIdx]);
+              }
+            }
+          }
+        } catch (_e) { console.warn('[markAbsent revert] failed:', _e); }
       }
+      // Sempre limpa woHistory após revert
+      delete t.woHistory[playerName];
     }
   } else {
     // Marcar ausente → limpa presença se existia
@@ -957,10 +1006,22 @@ function renderParticipants(container, tournamentId) {
       } else {
         infoBlock = nameCell;
       }
-      // v0.17.34: W.O. orphans não mostram toggle Presente nem botão W.O.
-      // Só badge + nota explicativa. Não há ação possível — eles foram
-      // substituídos e fora da chave.
-      const _showActions = !isWOOrphan;
+      // v0.17.34: W.O. orphans não mostravam ações.
+      // v1.0.79-beta: orphans agora mostram Reverter SE o jogo original
+      // ainda não começou. User: 'deve poder reverter desde o jogo não
+      // tenha começado'. Reverter completo desfaz substituição + restaura
+      // time original (handler em _markAbsent v1.0.79).
+      let _origMatchPending = true;
+      if (isWOOrphan && ind.woMeta && ind.woMeta.matchNum) {
+        try {
+          const _allM = (typeof window._collectAllMatches === 'function')
+            ? window._collectAllMatches(t)
+            : (Array.isArray(t.matches) ? t.matches.slice() : []);
+          const _origMatch = _allM[ind.woMeta.matchNum - 1];
+          _origMatchPending = !_origMatch || !_origMatch.winner;
+        } catch (_e) {}
+      }
+      const _showActions = !isWOOrphan || _origMatchPending;
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${cardBg};border:1px solid ${cardBorder};${isVipPlayer ? 'border-left:3px solid #fbbf24;' : ''}${isWOOrphan ? 'opacity:0.75;' : ''}transition:all 0.2s;">
             <img src="${_pAvatar}" ${_pAvatarErr} data-player-name="${_safeName}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${mc ? 'rgba(16,185,129,0.4)' : isAbsent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'};${isWOOrphan ? 'filter:grayscale(0.5);' : ''}" />
