@@ -975,21 +975,41 @@ function renderParticipants(container, tournamentId) {
       // Standby puro (ainda não substituiu ninguém) = sem parceiro/jogo/adversário
       const isStandbyPure = !!ind.isStandby && !ind.matchNum;
 
-      // Team members line (with dots) — ocultar para standby puro
+      // v1.0.84-beta: ordem padronizada — sempre p1 em cima, p2 embaixo,
+      // independente de qual time é o do jogador. Antes mostrava o time do
+      // jogador em cima e o oponente embaixo, gerando "inversão" do mesmo
+      // jogo entre cards. User: 'no card do bot02 consta bot02/bot31 vs
+      // bot27/bot04; mas no card do bot04 consta bot27/bot04 vs bot02/bot31
+      // (invertido). Vamos escolher uma forma de mostrar e mostrar sempre
+      // na mesma ordem em todos os cards dos participantes'.
+      // Cores das bolinhas continuam refletindo presença individual, então
+      // o jogador identifica seu time pelos nomes/dots — só a posição fica
+      // estável.
+      const _matchObj = (ind.matchNum && Array.isArray(_allForCheckin)) ? _allForCheckin[ind.matchNum - 1] : null;
+      const _p1Team = _matchObj && _matchObj.p1 && _matchObj.p1 !== 'TBD' && _matchObj.p1 !== 'BYE' ? _matchObj.p1 : null;
+      const _p2Team = _matchObj && _matchObj.p2 && _matchObj.p2 !== 'TBD' && _matchObj.p2 !== 'BYE' ? _matchObj.p2 : null;
+
       // v0.17.35: oculta membros W.O.'d do team line (se algum) — eles
       // aparecem como cards solo separados, não devem poluir time do parceiro.
-      let teamLine = '';
-      if (ind.teamName && !isStandbyPure) {
-        const members = ind.teamName.split('/').map(n => n.trim()).filter(n => n).filter(n => !_woHist[n]);
-        teamLine = members.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
-      }
+      const _renderTeamDots = (teamStr) => {
+        if (!teamStr) return '';
+        const members = teamStr.includes('/') ? teamStr.split('/').map(n => n.trim()).filter(n => n).filter(n => !_woHist[n]) : [teamStr];
+        return members.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
+      };
 
-      // Opponent line (with dots) — ocultar para standby puro
+      // Top line = p1, bottom line = p2. Standby puro continua sem times.
+      let teamLine = '';
       let opponentLine = '';
-      if (ind.opponent && !isStandbyPure) {
-        const oppMembersRaw = ind.opponent.includes('/') ? ind.opponent.split('/').map(n => n.trim()).filter(n => n) : [ind.opponent];
-        const oppMembers = oppMembersRaw.filter(n => !_woHist[n]);
-        opponentLine = oppMembers.map(n => dotHtml(n)).join('<span style="color:rgba(255,255,255,0.15);margin:0 2px;">/</span>');
+      if (!isStandbyPure) {
+        teamLine = _renderTeamDots(_p1Team);
+        opponentLine = _renderTeamDots(_p2Team);
+        // Fallback pra cards sem matchObj resolvido (ex: ind.teamName setado
+        // mas matchNum null por algum edge case): usa ind.teamName/ind.opponent
+        // como antes pra não regredir o display.
+        if (!teamLine && !opponentLine && ind.teamName) {
+          teamLine = _renderTeamDots(ind.teamName);
+          opponentLine = ind.opponent ? _renderTeamDots(ind.opponent) : '';
+        }
       }
 
       const matchLabel = (!isStandbyPure && ind.matchNum) ? `Jogo ${ind.matchNum}` : '';

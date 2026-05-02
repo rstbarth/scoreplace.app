@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🔁 v1.0.84-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Cards de inscritos: ordem dos times padronizada (p1 sempre em cima, p2 sempre embaixo).</b> User com screenshot: <i>"no card do bot02 consta bot02/bot31 vs bot27/bot04; mas no card do bot04 consta bot27/bot04 vs bot02/bot31 (invertido). Vamos escolher uma forma de mostrar e mostrar sempre na mesma ordem em todos os cards dos participantes"</i>.</p>' +
+      '<p>Antes, cada card do mesmo Jogo N mostrava o time DO JOGADOR em cima e o oponente embaixo — Bot 02 via "Bot 02/Bot 31 vs Bot 27/Bot 04" e Bot 04 via "Bot 27/Bot 04 vs Bot 02/Bot 31". Mesmo dado, ordenação invertida — confunde leitura cruzada do mesmo jogo entre cards.</p>' +
+      '<p><b>Fix em <code>participants.js</code>:</b> renderização agora resolve o match via <code>_allForCheckin[matchNum-1]</code> e usa <code>match.p1</code> como linha 1 (top) e <code>match.p2</code> como linha 2 (bottom) — ordem fixa, igual em todos os cards do mesmo jogo. Cores das bolinhas continuam refletindo presença individual, então o jogador identifica seu time pelos nomes/dots sem precisar do "meu time vem primeiro".</p>' +
+      '<p>Fallback pra <code>ind.teamName</code>/<code>ind.opponent</code> mantido caso o match não resolva (edge case com matchNum null) — não regride display de cards sem match associado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.0.83-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Substituto preserva posição alfabética na lista geral — safety net + diagnóstico.</b> User: <i>"o bot05 estava em sua posicao entre o 04 e 06 (em lista de espera) e sumiu quando decretei WO do bot06... na lista geral dos inscritos ele deve se manter em sua posição sempre"</i>.</p>' +
       '<p>v1.0.78 + v1.0.81 garantiram que o substituto seja adicionado a <code>t.participants</code> nos 2 caminhos conhecidos (ind W.O. e team scope), mas o card continuou sumindo no teste do user. Como análise teórica dizia que o card DEVERIA aparecer, virei a estratégia: <b>safety net empírica</b> em <code>renderParticipants</code>.</p>' +
