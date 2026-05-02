@@ -579,6 +579,18 @@ window._declareAbsent = function (tId, playerName) {
         return pn === teamName;
       });
       if (pIdx >= 0) partsArr[pIdx] = nextName;
+      // v1.0.81-beta: garante que substituto exista em t.participants
+      // como individual (modo Individual com sorteio em duplas). Mesmo
+      // bug do v1.0.78 mas em outro caminho — branch 'Team W.O. scope'.
+      // User: 'parece que o primeiro a substituir adota 1 caminho e os
+      // demais adotam outro... deveria haver apenas 1 caminho'.
+      const _hasNextEntryTeam = partsArr.some(function(p) {
+        const _n = typeof p === 'string' ? p : (p.displayName || p.name || p.email || '');
+        return _n === nextName;
+      });
+      if (!_hasNextEntryTeam) {
+        partsArr.push(typeof nextStandby === 'string' ? nextName : nextStandby);
+      }
       t.participants = partsArr;
       _removeFromWaitlists(nextName);
 
