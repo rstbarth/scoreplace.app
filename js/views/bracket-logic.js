@@ -1096,6 +1096,39 @@ function _updateProgressiveClassification(t) {
     var tp_loser = t.thirdPlaceMatch.winner === t.thirdPlaceMatch.p1 ? t.thirdPlaceMatch.p2 : t.thirdPlaceMatch.p1;
     if (tp_loser && tp_loser !== 'TBD') t.classification[tp_loser] = 4;
   }
+
+  // v1.0.89-beta: incluir times cortados na fase Suíça na classificação final.
+  // User: 'os 4 times que cairam antes das eliminatórias (nas rodadas suiças)
+  // deveriam aparecer ocupando 20o ao 17o lugar'.
+  // Quando p2Resolution='swiss', a transição Swiss→elim guarda em
+  // t.swissEliminated os times que NÃO avançaram. Eles têm rank pelo
+  // t.swissStandings (Buchholz/SB/etc). Aqui anexamos eles ao FINAL da
+  // classificação na ordem do swissStandings (melhor cortado primeiro).
+  // Mesma ideia se aplicaria a Reabrir/Play-in/Enquete/Lista no futuro,
+  // mas Suíço é o caso onde os cortados jogaram (têm dado de classificação
+  // real) — pra outros, o cut é arbitrário (alfabético, sorte) então
+  // não faz sentido posição numérica.
+  if (Array.isArray(t.swissEliminated) && t.swissEliminated.length > 0 &&
+      Array.isArray(t.swissStandings) && t.swissStandings.length > 0) {
+    // Encontra a maior posição já atribuída
+    var _maxPos = 0;
+    Object.keys(t.classification).forEach(function(name) {
+      if (t.classification[name] > _maxPos) _maxPos = t.classification[name];
+    });
+    // Times cortados em swissStandings: são os ÚLTIMOS N do array (já
+    // ordenado best→worst). swissStandings.length - swissEliminated.length
+    // = quantos avançaram.
+    var _advancedCount = t.swissStandings.length - t.swissEliminated.length;
+    var _eliminatedRanked = t.swissStandings.slice(_advancedCount);
+    // Atribui posições _maxPos+1, +2, ... (melhor cortado primeiro)
+    _eliminatedRanked.forEach(function(s, idx) {
+      if (!s || !s.name) return;
+      // Não sobrescrever se já tem posição (não deveria, mas defensive)
+      if (t.classification[s.name] === undefined) {
+        t.classification[s.name] = _maxPos + 1 + idx;
+      }
+    });
+  }
 }
 
 // ─── Auto-finish elimination tournament ──────────────────────────────────────

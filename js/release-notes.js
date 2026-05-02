@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏅 v1.0.89-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Classificação final inclui times cortados na fase Suíça.</b> User: <i>"os 4 times que cairam antes das eliminatórias (nas rodadas suiças) deveriam aparecer ocupando 20o ao 17o lugar"</i>.</p>' +
+      '<p>Antes <code>_updateProgressiveClassification</code> só populava <code>t.classification</code> a partir das partidas eliminatórias. Times que jogaram só Suíço e foram cortados sumiam da classificação final.</p>' +
+      '<p><b>Fix em <code>bracket-logic.js</code>:</b> ao final de <code>_updateProgressiveClassification</code>, se houver <code>t.swissEliminated</code> + <code>t.swissStandings</code> (preenchidos pela transição Swiss→elim), anexa eles à classificação na ordem do swissStandings — melhor cortado pega <code>maxPos+1</code> (17º), pior cortado pega <code>maxPos+N</code> (20º).</p>' +
+      '<p>Nota: aplicado só pra <i>Suíço</i> porque cortados realmente jogaram (têm rank por Buchholz/SB). Pra Reabrir/Play-in/Enquete/Lista de Espera, o cut é arbitrário (alfabético/sorte/voto) — atribuir posição numérica não faria sentido. Usuário pode ver Lista de Espera separadamente nesses casos.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">👁️ v1.0.88-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Botão W.O. omitido quando Presença confirmada.</b> User: <i>"na lista de inscritos, da mesma forma que o botão de presença do jogador é omitido quando damos WO para um participante, vamos omitir o botao de WO quando a presença for confirmada"</i>.</p>' +
       '<p>Simétrico ao comportamento da v1.0.80 (toggle Presença escondido pra W.O.\'d players). Lógica em <code>participants.js</code>: <code>_showWoBtn = isOrg && (isAbsent || !mc)</code>. Quando <code>isAbsent=true</code> mantém "Reverter" visível (única forma de desfazer W.O.). Quando <code>mc=true</code> (Presente) e não-absent, esconde W.O. Pra acessar W.O. de novo, usuário toggla Presença off → botão reaparece.</p>' +
