@@ -1200,7 +1200,12 @@ function setupCreateTournamentModal() {
     document.body.removeChild(a);
   };
 
-  window._generateTournamentLogo = function() {
+  // v1.0.74-beta: Pollinations.ai como path principal, canvas como fallback.
+  // User: 'criação desses logos está muito ruim. como podemos melhorar
+  // usando desenhos com base nas palavras do nome do torneio'.
+  // Estratégia: prompt enriquecido com keywords do nome + esporte → AI gera
+  // desenho temático. Fallback pra canvas se API falhar (offline, rate limit).
+  window._generateTournamentLogo = async function() {
     var nameEl = document.getElementById('tourn-name');
     var sportEl = document.getElementById('select-sport');
     var formatEl = document.getElementById('select-formato');
@@ -1210,6 +1215,76 @@ function setupCreateTournamentModal() {
     var sport = sportEl ? sportEl.options[sportEl.selectedIndex].text : '';
     var formatValue = formatEl ? formatEl.value : 'elim_simples';
     var venue = venueEl ? venueEl.value.trim() : '';
+
+    // ─── Try Pollinations.ai first ──────────────────────────────────────
+    var sportNameForAI = sport.replace(/^[^\wÀ-ɏ]+/u, '').trim();
+    // Extract meaningful keywords (skip stop words)
+    var stopWords = ['de','da','do','dos','das','a','o','os','as','e','em','na','no','torneio','copa','campeonato','liga','open'];
+    var keywordList = name.toLowerCase().split(/\s+/)
+      .filter(function(w) { return w.length > 2 && stopWords.indexOf(w) === -1; })
+      .slice(0, 4);
+    var keywordsStr = keywordList.join(' ');
+    var promptParts = [
+      'sports tournament emblem badge',
+      sportNameForAI ? sportNameForAI.toLowerCase() + ' theme' : '',
+      keywordsStr,
+      'minimalist flat design',
+      'vibrant colors',
+      'circular crest',
+      'professional sports logo',
+      'no text no letters no words'
+    ].filter(function(s) { return s; });
+    var aiPrompt = promptParts.join(', ');
+    var seed = Math.floor(Math.random() * 1000000);
+    var pollinationsUrl = 'https://image.pollinations.ai/prompt/' +
+      encodeURIComponent(aiPrompt) +
+      '?width=400&height=400&seed=' + seed + '&nologo=true&model=flux';
+
+    // Loading spinner no preview
+    var previewEl = document.getElementById('logo-preview');
+    if (previewEl) {
+      previewEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:8px;color:#a5b4fc;font-size:0.7rem;font-weight:600;text-align:center;padding:8px;">' +
+        '<div class="scoreplace-logo-spin" style="width:28px;height:28px;border:3px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:scoreplace-spin 0.8s linear infinite;"></div>' +
+        '<span>Gerando<br>logo IA…</span>' +
+      '</div>';
+      // Inject keyframes once
+      if (!document.getElementById('scoreplace-logo-keyframes')) {
+        var styleEl = document.createElement('style');
+        styleEl.id = 'scoreplace-logo-keyframes';
+        styleEl.textContent = '@keyframes scoreplace-spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(styleEl);
+      }
+    }
+
+    try {
+      var response = await fetch(pollinationsUrl);
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      var blob = await response.blob();
+      // Re-encode pra JPEG 400x400 (limite Firestore + consistência)
+      var objectUrl = URL.createObjectURL(blob);
+      var aiDataUrl = await new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          var c = document.createElement('canvas');
+          c.width = 400; c.height = 400;
+          var cctx = c.getContext('2d');
+          cctx.drawImage(img, 0, 0, 400, 400);
+          var url = c.toDataURL('image/jpeg', 0.85);
+          URL.revokeObjectURL(objectUrl);
+          resolve(url);
+        };
+        img.onerror = function() { URL.revokeObjectURL(objectUrl); reject(new Error('image load failed')); };
+        img.src = objectUrl;
+      });
+      window._applyTournamentLogo(aiDataUrl);
+      return; // sucesso — done
+    } catch (aiErr) {
+      console.warn('[logo] Pollinations.ai falhou, usando fallback canvas:', aiErr && aiErr.message);
+      // segue pro fallback abaixo
+    }
+
+    // ─── FALLBACK: canvas-based logo (lógica original) ──────────────────
 
     // Get sport emoji
     var sportEmoji = '🏆';
