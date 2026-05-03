@@ -975,6 +975,17 @@ function renderDoubleElimBracket(t, canEnterResult) {
   // Auto-reparação para dupla eliminatória também
   _ensureFutureRounds(t);
 
+  // v1.0.92-beta: classificação progressiva precisa rodar pra DE também.
+  // User: 'no caso de dupla eliminatória não há classificação personalizada.
+  // não há classificação alguma. quero que haja a classificação personalizada
+  // ou em grupos conforme escolha do organizador e que isso se revele
+  // conforme não tenha mais como alterar a posição do time.'
+  // _updateProgressiveClassification roteia internamente pra
+  // _updateDuplaElimClassification quando fmt='Dupla Eliminatória'.
+  if (typeof _updateProgressiveClassification === 'function') {
+    _updateProgressiveClassification(t);
+  }
+
   // Source per-bracket column layout from the unified adapter. Adapter emits
   // one column per (bracket, round) combo with bracket ∈ {upper, lower, grand}
   // for double-elim. When unavailable, fall back to manual partitioning of
@@ -1023,6 +1034,24 @@ function renderDoubleElimBracket(t, canEnterResult) {
 
   var grandMatches = grandCols.reduce(function(acc, c) { return acc.concat(c.matches || []); }, []);
 
+  // v1.0.92-beta: render classificação progressiva em DE
+  // Mostra posições conforme se tornam definitivas — quando o time não tem
+  // mais como mudar de posição (ex: perdeu na LR1 = 7º-8º definitivo;
+  // perdeu na LR Final = 3º definitivo; etc).
+  let _deClassifHtml = '';
+  if (t.classification && Object.keys(t.classification).length > 0) {
+    const _medals = {1: '🥇', 2: '🥈', 3: '🥉', 4: '4º'};
+    const _entries = Object.entries(t.classification).sort((a, b) => a[1] - b[1]);
+    const _rows = _entries.map(function(e) {
+      var pos = e[1];
+      var name = e[0];
+      var badge = _medals[pos] || pos + 'º';
+      var color = pos === 1 ? '#fbbf24' : pos === 2 ? '#94a3b8' : pos === 3 ? '#cd7f32' : 'var(--text-muted)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;">' + (typeof window._nameWithCrown === 'function' ? window._nameWithCrown(name, t) : window._safeHtml(name)) + '</span></div>';
+    }).join('');
+    _deClassifHtml = '<details style="margin-bottom:1rem;margin-top:1.5rem;" ' + (t.status === 'finished' ? 'open' : 'open') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">' + _t('bracket.classified', {n: _entries.length}) + '</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + _rows + '</div></details>';
+  }
+
   return `
     <div>
       ${renderSection(upperCols, 'Chaveamento Superior', '#10b981')}
@@ -1032,6 +1061,7 @@ function renderDoubleElimBracket(t, canEnterResult) {
           <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;border-left:3px solid #fbbf24;padding-left:10px;">🏆 ${_t('bracket.grandFinal')}</h4>
           <div style="max-width:280px;">${grandMatches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
         </div>` : ''}
+      ${_deClassifHtml}
     </div>`;
 }
 

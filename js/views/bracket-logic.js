@@ -1256,7 +1256,10 @@ function _maybeFinishElimination(t) {
   if (tbdMatches.length > 0) return;
 
   // Check 3rd place match if enabled
-  if (t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return;
+  // v1.0.92-beta: DE não usa thirdPlaceMatch (3º vem do Lower Final loser).
+  // Pra torneios velhos que tem t.thirdPlaceMatch fantasma criado por bug
+  // anterior, IGNORA esse check em DE — senão torneio nunca finaliza.
+  if (t.format !== 'Dupla Eliminatória' && t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return;
 
   // Check group stage completion (Fase de Grupos)
   if (Array.isArray(t.groups) && t.groups.length > 0) {
@@ -1299,7 +1302,22 @@ function _maybeFinishElimination(t) {
 // Garante que o thirdPlaceMatch existe com TBD e preenche progressivamente
 // com os perdedores das semifinais conforme os resultados são lançados
 function _maybeGenerate3rdPlace(t) {
-  // 3rd place match is always generated for elimination formats
+  // 3rd place match is always generated for elimination formats — EXCEPT
+  // Dupla Eliminatória.
+  // v1.0.92-beta: DE não tem match dedicado de 3º lugar — 3º vem do Lower
+  // Final loser. Antes este função criava t.thirdPlaceMatch{TBD,TBD} pra DE,
+  // causando 2 bugs: (1) total reportado virava 15 em vez de 14 pq ele era
+  // contado em _collectAllMatches, (2) _maybeFinishElimination travava em
+  // 'if (t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return' — torneio
+  // nunca finalizava. User: 'de novo diz que são 15 partidas mas só
+  // renderiza 14 delas. tudo preenchido e não termina'.
+  if (t && t.format === 'Dupla Eliminatória') {
+    // Cleanup: deleta thirdPlaceMatch fantasma criado por bug anterior em
+    // torneios velhos. Senão t.thirdPlaceMatch ainda aparece em
+    // _collectAllMatches inflando o total.
+    if (t.thirdPlaceMatch) delete t.thirdPlaceMatch;
+    return;
+  }
 
   const allMatches = t.matches || [];
 

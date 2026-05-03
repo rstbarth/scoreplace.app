@@ -9,6 +9,26 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏁 v1.0.92-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Dupla Eliminatória: termina, conta certo, mostra classificação progressiva.</b> User: <i>"de novo diz que são 15 partidas mas só renderiza 14 delas. tudo preenchido e não termina"</i> + <i>"no caso de dupla eliminatória não há classificação personalizada... quero que haja a classificação personalizada... e que isso se revele conforme não tenha mais como alterar a posição do time."</i></p>' +
+      '<p><b>3 bugs corrigidos:</b></p>' +
+      '<ol style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b><code>_maybeGenerate3rdPlace</code> criava t.thirdPlaceMatch fantasma pra DE.</b> DE não tem 3º lugar dedicado (3º vem do Lower Final loser). Esse match TBD inflava total reportado pra 15 e travava <code>_maybeFinishElimination</code> em <code>if (t.thirdPlaceMatch && !t.thirdPlaceMatch.winner) return</code> — torneio nunca finalizava. Fix: early-return em DE + cleanup de thirdPlaceMatch fantasma de torneios velhos.</li>' +
+        '<li><b><code>_maybeFinishElimination</code> bypassa check de thirdPlaceMatch em DE</b> (defesa pra torneios velhos que ainda tem o thirdPlaceMatch fantasma).</li>' +
+        '<li><b><code>renderDoubleElimBracket</code> não chamava <code>_updateProgressiveClassification</code> nem renderizava a tabela.</b> Fix: agora chama no topo e renderiza <code>&lt;details&gt;</code> com posições no fim do bracket — abre por default.</li>' +
+      '</ol>' +
+      '<p><b>Classificação progressiva em DE:</b> conforme rounds do Lower bracket completam, posições viram definitivas e aparecem:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>LR1 completa → 7º-8º (perdedores não podem mais subir)</li>' +
+        '<li>LR2 → 5º-6º</li>' +
+        '<li>LR3 → 4º</li>' +
+        '<li>LR4 (Lower Final) → 3º</li>' +
+        '<li>GF → 1º-2º</li>' +
+      '</ul>' +
+      '<p>Para 16 times: LR1→13-16, LR2→9-12, LR3→7-8, LR4→5-6, LR5→4, LR6→3.</p>' +
+      '<p><b>IMPORTANTE:</b> torneios criados antes da v1.0.91 estão estruturalmente quebrados (sem Lower Final). Pra validar, criar torneio NOVO. Torneios criados com v1.0.91+ funcionam corretamente.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🐛 v1.0.91-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>BUG estrutural na Dupla Eliminatória — Lower Final não era gerada.</b> User: <i>"deveria haver uma lower final? acho que é isso e essa não aparece no chaveamento."</i></p>' +
       '<p><b>Causa-raiz em <code>tournaments-draw.js</code>:</b> loop de geração do lower bracket usava <code>for (let ur = 1; ur < totalUpperRounds; ur++)</code> com <code>&lt;</code>. Para 8 times DE (totalUpperRounds=3), só rodava ur=1 e ur=2 — o merge round que pega o UR final loser e joga contra o LR winner (= a Lower Final) NUNCA era criado.</p>' +
