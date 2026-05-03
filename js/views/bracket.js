@@ -1716,9 +1716,12 @@ function renderGroupStage(t, isOrg, canEnterResult) {
     return (sg.matches || []).every(function(m) { return m.winner; });
   });
 
+  // v1.0.97-beta: faltava ')' fechando a chamada — onclick virava JS inválido
+  // 'window._advanceToElimination(\'id_123\'' sem o paren final, browser ignorava
+  // o clique. User: 'o botao avancar para fase eliminatoria nao faz nada'.
   const advanceBtn = (isOrg && allGroupsDone) ? `
     <div style="text-align:center;margin:2rem 0;">
-      <button class="btn btn-warning btn-lg hover-lift" onclick="window._advanceToElimination('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'">
+      <button class="btn btn-warning btn-lg hover-lift" onclick="window._advanceToElimination('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">
         ${_t('bracket.advanceToElim')}
       </button>
     </div>` : '';

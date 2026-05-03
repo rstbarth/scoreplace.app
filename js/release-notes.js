@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🐛 v1.0.97-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "Avançar para Fase Eliminatória" não fazia nada — typo no onclick.</b> User: <i>"o botao avancar para fase eliminatoria nao faz nada"</i>.</p>' +
+      '<p>Em <code>bracket.js</code> linha 1721, faltava o <code>)</code> fechando a chamada da função:</p>' +
+      '<pre style="font-size:0.78rem;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">// Antes\nonclick="window._advanceToElimination(\'${id}\'">\n//                                              ^^^ falta )\n\n// Depois\nonclick="window._advanceToElimination(\'${id}\')">\n//                                              ^^^^</pre>' +
+      '<p>Com JS inválido no onclick, browser silenciosamente ignorava o clique — botão visualmente clicável mas inerte. Fix: adicionado o <code>)</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎲 v1.0.96-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Sortear após cancelar painel de Grupos: agora reabre o painel em vez de sortear silenciosamente com defaults.</b> User: <i>"quando coloquei para sortear depois de ter cancelado ele sorteou direto sem me perguntar novamente a formação dos grupos."</i></p>' +
       '<p><b>Causa-raiz em <code>tournaments.js</code> linha 792:</b> botão Sortear tem 2 variantes (renderizadas por status):</p>' +
