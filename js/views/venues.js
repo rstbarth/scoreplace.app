@@ -492,6 +492,12 @@
     // (1) corpo do card abre Maps em nova aba (preserva comportamento antigo)
     // (2) botão "+ Cadastrar" stash no sessionStorage e navega pra #my-venues
     // (3) badge "Google" só visual (não clicável)
+    // v1.1.8-beta: NÃO usar .btn .btn-primary aqui — em mobile (≤767px) a
+    // CSS responsiva força width:100% nessas classes (.view-container
+    // .btn-primary), o botão ocupa o card inteiro e some o nome do local.
+    // Usa botão inline com estilo próprio que escapa da regra responsiva.
+    // User: 'no celular esse cadastrar ficou péssimo. ficou enorme e só
+    // se ve ele (nem dá pra saber qual o lugar).'
     var registerBtn = p.placeId
       ? '<button onclick="event.stopPropagation();event.preventDefault();window._venuesRegisterFromGoogle(' +
         '\'' + _safe(String(p.placeId).replace(/'/g, "\\'")) + '\',' +
@@ -499,7 +505,7 @@
         '\'' + _safe(String(p.address || '').replace(/'/g, "\\'")) + '\',' +
         (p.lat != null ? Number(p.lat) : 'null') + ',' +
         (p.lng != null ? Number(p.lng) : 'null') +
-        ')" class="btn btn-sm btn-primary hover-lift" style="flex-shrink:0;white-space:nowrap;font-size:0.7rem;padding:4px 10px;line-height:1.2;" title="Cadastrar este local no scoreplace">+ Cadastrar</button>'
+        ')" style="flex-shrink:0;white-space:nowrap;font-size:0.66rem;font-weight:700;padding:3px 9px;line-height:1.3;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.45);color:#a5b4fc;border-radius:999px;cursor:pointer;" title="Cadastrar este local no scoreplace">+ Cadastrar</button>'
       : '';
     return '<div onclick="window.open(\'' + _safe(mapsUrl) + '\', \'_blank\', \'noopener\')" style="display:flex;align-items:center;gap:10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;cursor:pointer;">' +
       '<div style="flex:1;min-width:0;">' +

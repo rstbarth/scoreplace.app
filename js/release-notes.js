@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📱 v1.1.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "+ Cadastrar" agora compacto em mobile.</b> User: <i>"no celular esse cadastrar ficou péssimo. ficou enorme e só se ve ele (nem dá pra saber qual o lugar)."</i></p>' +
+      '<p>Bug: <code>responsive.css</code> linha 159-162 força <code>width:100%</code> em <code>.view-container .btn-primary</code> em mobile (≤767px). O botão da v1.1.6-beta usava <code>class="btn btn-sm btn-primary"</code> e foi pego pela regra → ocupava todo o card → empurrava nome do local pra fora.</p>' +
+      '<p>Fix: trocou pelas classes por estilo inline pill — fundo índigo translúcido, borda sutil, padding compacto. Visualmente coerente com o badge "Google" ao lado, mas com cor de ação. Não dispara a regra responsiva.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🕐 v1.1.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Legenda do grid de Horário de Funcionamento agora explica a alternância.</b> User: <i>"e se errarmos e indicarmos aberto num horário que está fechado? o ideal seria tirar o dedo e clicar novamente alternaria entre aberto e fechado, ou tem forma melhor de fazer isso?"</i></p>' +
       '<p>O comportamento já era exatamente esse — <code>paintTo = current === 1 ? 0 : 1</code> em <code>_setupHoursGridListeners</code>: cada toque alterna a cor da célula inicial e o drag pinta tudo com essa cor. Mas a legenda só dizia "arraste o dedo pra pintar várias células", sem explicar o toggle.</p>' +
