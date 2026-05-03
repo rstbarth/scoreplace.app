@@ -9,6 +9,18 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📍 v1.1.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "+ Cadastrar" inline em cada card de Sugestões do Google.</b> User: <i>"onde está o botão para cadastrar locais? seria legal e intuitivo que ele ficasse na direita de cada local (ao lado da palavra google)."</i></p>' +
+      '<p>Antes: cada card era um <code>&lt;a href=maps...&gt;</code> wrapper, sem botão de cadastro. Pra registrar um local visto na lista, organizador tinha que abrir <code>#my-venues</code> e re-buscar.</p>' +
+      '<p><b>Agora:</b> card vira <code>&lt;div&gt;</code> com áreas clicáveis distintas:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Corpo do card → abre Google Maps em nova aba (preserva comportamento)</li>' +
+        '<li><b>+ Cadastrar</b> (gradient azul) → stash os dados em <code>sessionStorage</code> e navega pra <code>#my-venues</code> com formulário pré-preenchido (mesmo padrão do botão na seleção de busca)</li>' +
+        '<li>Badge "Google" só visual</li>' +
+      '</ul>' +
+      '<p>Reusa fluxo existente: <code>renderMyVenues</code> em <code>venue-owner.js</code> faz pickup automático do <code>scoreplace_pending_venue_registration</code> e abre <code>_renderForm</code> com placeId/name/address/lat/lon já preenchidos.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🤖 v1.1.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Fix reCAPTCHA reuso em SMS login após logoff.</b> Sentry SCOREPLACE-WEB-D: <code>Error: reCAPTCHA has already been rendered in this element</code> quando user fazia logoff e tentava login SMS de novo. Causa: <code>window._phoneRecaptchaVerifier</code> persistia entre sessões; reuso disparava render() interno do Firebase no elemento que já tinha conteúdo do render anterior.</p>' +
       '<p>Fix: SEMPRE reset+recreate o verifier antes de cada tentativa (em vez de checar truthy e reusar). <code>_resetPhoneRecaptcha()</code> limpa o container HTML + nullifica a referência. Custo: 1 instância nova de RecaptchaVerifier por SMS request — desprezível.</p>' +

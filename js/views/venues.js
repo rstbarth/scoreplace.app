@@ -483,14 +483,33 @@
       var d = _haversineKm(state.center, { lat: Number(p.lat), lng: Number(p.lng) });
       distText = d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
     }
-    return '<a href="' + _safe(mapsUrl) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;text-decoration:none;">' +
+    // v1.1.6-beta: botão "+ Cadastrar" inline no card pra que organizadores
+    // possam registrar o local diretamente da lista de Sugestões do Google,
+    // sem precisar abrir #my-venues e re-buscar. User: 'onde está o botão
+    // para cadastrar locais? seria legal e intuitivo que ele ficasse na
+    // direita de cada local (ao lado da palavra google).'
+    // Estrutura mudou de <a> wrapper pra <div> com áreas clicáveis distintas:
+    // (1) corpo do card abre Maps em nova aba (preserva comportamento antigo)
+    // (2) botão "+ Cadastrar" stash no sessionStorage e navega pra #my-venues
+    // (3) badge "Google" só visual (não clicável)
+    var registerBtn = p.placeId
+      ? '<button onclick="event.stopPropagation();event.preventDefault();window._venuesRegisterFromGoogle(' +
+        '\'' + _safe(String(p.placeId).replace(/'/g, "\\'")) + '\',' +
+        '\'' + _safe(String(p.name || '').replace(/'/g, "\\'")) + '\',' +
+        '\'' + _safe(String(p.address || '').replace(/'/g, "\\'")) + '\',' +
+        (p.lat != null ? Number(p.lat) : 'null') + ',' +
+        (p.lng != null ? Number(p.lng) : 'null') +
+        ')" class="btn btn-sm btn-primary hover-lift" style="flex-shrink:0;white-space:nowrap;font-size:0.7rem;padding:4px 10px;line-height:1.2;" title="Cadastrar este local no scoreplace">+ Cadastrar</button>'
+      : '';
+    return '<div onclick="window.open(\'' + _safe(mapsUrl) + '\', \'_blank\', \'noopener\')" style="display:flex;align-items:center;gap:10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;cursor:pointer;">' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-weight:600;color:var(--text-bright);font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">🗺️ ' + _safe(p.name) + '</div>' +
         (p.address ? '<div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _safe(p.address) + '</div>' : '') +
       '</div>' +
       (distText ? '<div style="flex-shrink:0;font-size:0.74rem;font-weight:600;color:var(--text-muted);min-width:36px;text-align:right;">' + _safe(distText) + '</div>' : '') +
+      registerBtn +
       '<span style="flex-shrink:0;font-size:0.64rem;background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.25);color:#94a3b8;padding:2px 8px;border-radius:999px;">Google</span>' +
-    '</a>';
+    '</div>';
   }
 
   function _selectedPlaceCard(p) {
@@ -1569,6 +1588,24 @@
         address: p.address || '',
         lat: (p.lat != null ? p.lat : null),
         lon: (p.lng != null ? p.lng : null)
+      }));
+    } catch (e) {}
+    window.location.hash = '#my-venues';
+  };
+
+  // v1.1.6-beta: variante que recebe dados inline via args (em vez de
+  // ler state.selectedPlace). Usado pelos cards de Sugestões do Google
+  // pra que cada card possa cadastrar SEU local sem precisar selecionar
+  // primeiro. Stash + redirect pra #my-venues mesmo padrão.
+  window._venuesRegisterFromGoogle = function(placeId, name, address, lat, lon) {
+    if (!placeId) return;
+    try {
+      sessionStorage.setItem('scoreplace_pending_venue_registration', JSON.stringify({
+        placeId: placeId,
+        name: name || '',
+        address: address || '',
+        lat: (lat != null ? lat : null),
+        lon: (lon != null ? lon : null)
       }));
     } catch (e) {}
     window.location.hash = '#my-venues';
