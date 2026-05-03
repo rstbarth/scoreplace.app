@@ -137,6 +137,75 @@ window._showGroupsConfigPanel = function(tId) {
         return configs;
     }
 
+    // v1.1.1-beta: helpers pra calcular matches + duração estimada por config.
+    // User: 'seria muito interessante diz quantas partidas e previsão de
+    // duração total do torneio de forma dinâmica a cada vez que uma opção
+    // é selecionada.'
+    var _gameDur = parseInt(t.gameDuration) || 30;
+    var _callT = parseInt(t.callTime) || 0;
+    var _warmT = parseInt(t.warmupTime) || 0;
+    var _courts = Math.max(parseInt(t.courtCount) || 1, 1);
+    var _slotMin = _gameDur + _callT + _warmT + 5; // +5min intervalo
+
+    // Conta partidas pra uma config específica
+    function _matchesForConfig(c) {
+        // Fase de grupos: round-robin dentro de cada grupo
+        var groupMatches = 0;
+        if (c.bigGroups > 0) {
+            groupMatches += c.bigGroups * (c.bigSize * (c.bigSize - 1) / 2);
+        }
+        groupMatches += c.smallGroups * (c.smallSize * (c.smallSize - 1) / 2);
+        // Fase eliminatória: assume bracket simples sobre totalAdvance
+        // Se P2: totalAdvance - 1 (sem 3o lugar) ou totalAdvance (com 3o)
+        // Se não-P2: precisa BYE/Reabrir/etc — aproxima como totalAdvance - 1
+        var elimMatches = Math.max(c.totalAdvance - 1, 0);
+        // +1 pra disputa de 3o lugar (sempre gerado em elim)
+        if (c.totalAdvance >= 4) elimMatches += 1;
+        return Math.round(groupMatches + elimMatches);
+    }
+
+    // Estima duração total em minutos
+    function _durationForConfig(c) {
+        // Fase de grupos: groupSize-1 rodadas, partidas paralelas em quadras
+        // Cada grupo joga sua rodada em paralelo (matches_per_round somados)
+        var maxGroupSize = Math.max(c.bigSize, c.smallSize);
+        var groupRounds = maxGroupSize - 1;
+        var groupTotalMin = 0;
+        for (var r = 0; r < groupRounds; r++) {
+            // Rodada r: grupos com size > r+1 jogam (round-robin)
+            var matchesThisRound = 0;
+            if (c.bigGroups > 0 && c.bigSize > r + 1) {
+                matchesThisRound += c.bigGroups * Math.floor(c.bigSize / 2);
+            }
+            if (c.smallSize > r + 1) {
+                matchesThisRound += c.smallGroups * Math.floor(c.smallSize / 2);
+            }
+            if (matchesThisRound > 0) {
+                groupTotalMin += Math.ceil(matchesThisRound / _courts) * _slotMin;
+            }
+        }
+        // Fase eliminatória: log2(totalAdvance) rodadas
+        var elimRounds = Math.ceil(Math.log2(Math.max(c.totalAdvance, 2)));
+        var elimTotalMin = 0;
+        for (var er = 0; er < elimRounds; er++) {
+            var mInR = Math.ceil(c.totalAdvance / Math.pow(2, er + 1));
+            elimTotalMin += Math.ceil(mInR / _courts) * _slotMin;
+        }
+        // Disputa de 3o lugar: 1 partida extra na fase final
+        if (c.totalAdvance >= 4) elimTotalMin += _slotMin;
+        // +15 min de intervalo entre fases
+        return groupTotalMin + elimTotalMin + 15;
+    }
+
+    function _formatDuration(min) {
+        if (min <= 0) return '';
+        var h = Math.floor(min / 60);
+        var m = min % 60;
+        if (h === 0) return '~' + m + 'min';
+        if (m === 0) return '~' + h + 'h';
+        return '~' + h + 'h' + (m < 10 ? '0' + m : m);
+    }
+
     function renderPanel(classPerGroup) {
         var configs = generateConfigs(N, classPerGroup);
 
@@ -220,6 +289,15 @@ window._showGroupsConfigPanel = function(tId) {
                 // Recommended badge
                 var recommendBadge = (idx === 0) ? '<div style="margin-bottom:4px;"><span style="background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.6rem;font-weight:800;text-transform:uppercase;">' + _t('predraw.nashRecommended') + '</span></div>' : '';
 
+                // v1.1.1-beta: matches + duração estimada por card
+                var _matches = _matchesForConfig(c);
+                var _durMin = _durationForConfig(c);
+                var _durText = _formatDuration(_durMin);
+                var statsHtml = '<div style="display:flex;align-items:center;gap:10px;margin-top:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);font-size:0.68rem;color:var(--text-muted);font-weight:600;">' +
+                    '<span style="color:#cbd5e1;">⚔️ ' + _matches + ' partidas</span>' +
+                    (_durText ? '<span style="color:#cbd5e1;">⏱️ ' + _durText + '</span>' : '') +
+                '</div>';
+
                 html += '<button onclick="window._selectGroupsConfig(\'' + tIdSafe + '\',' + c.groups + ',' + c.classPerGroup + ')" style="background:' + bgColor + ';border:2px solid ' + borderColor + ';box-shadow:' + glowColor + ';border-radius:16px;padding:14px 16px;cursor:pointer;transition:all 0.25s;text-align:center;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;align-items:center;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.filter=\'brightness(1.12)\'" onmouseout="this.style.transform=\'\';this.style.filter=\'\'">' +
                     recommendBadge +
                     '<div style="font-size:2rem;font-weight:950;color:#fff;line-height:1;">' + c.groups + '</div>' +
@@ -229,6 +307,7 @@ window._showGroupsConfigPanel = function(tId) {
                         '<span style="font-size:0.7rem;color:#93c5fd;font-weight:600;">' + advanceText + '</span>' +
                         pow2Badge +
                     '</div>' +
+                    statsHtml +
                 '</button>';
             });
             html += '</div>';

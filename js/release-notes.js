@@ -9,6 +9,25 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏱️ v1.1.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Painel de Configuração de Grupos: estimativa dinâmica de partidas + duração por opção.</b> User: <i>"seria muito interessante diz quantas partidas e previsão de duração total do torneio de forma dinamica a cada vez que uma opção é selecionada."</i></p>' +
+      '<p>Cada card de configuração agora mostra rodapé com:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>⚔️ N partidas</b>: round-robin de cada grupo + bracket de classificados (+1 disputa de 3º lugar quando ≥4)</li>' +
+        '<li><b>⏱️ ~Xh / ~Xmin</b>: duração estimada considerando <code>gameDuration</code>, <code>callTime</code>, <code>warmupTime</code>, <code>courtCount</code> e intervalos</li>' +
+      '</ul>' +
+      '<p>Cálculo:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Group rounds</b> = groupSize - 1 (round-robin completo)</li>' +
+        '<li><b>Group matches per round</b> = somado entre grupos (todos jogam em paralelo nas quadras)</li>' +
+        '<li><b>Elim rounds</b> = log2(totalAdvance)</li>' +
+        '<li><b>Slot</b> = gameDuration + callTime + warmupTime + 5min intervalo</li>' +
+        '<li><b>Per round</b> = ceil(matches / courts) × slotMin</li>' +
+        '<li><b>+15min</b> intervalo entre fase de grupos e elim</li>' +
+      '</ul>' +
+      '<p>Atualiza dinamicamente quando user troca o número de classificados (1/2/3/4) — <code>renderPanel</code> recalcula tudo a cada call de <code>_groupsRerenderPanel</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏅 v1.1.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>MINOR bump.</b> Classificação final em Grupos+Eliminatórias inclui TODOS os participantes (classificados + não-classificados de grupos), <b>respeitando os critérios de desempate configurados pelo organizador</b>.</p>' +
       '<p>User: <i>"a classificação não inclui os que participaram da primeira fase do torneio... aqui ficam os critérios de desempate e podem ser ordenados de forma diferente pelo organizador."</i></p>' +
