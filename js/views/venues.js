@@ -2563,26 +2563,36 @@
     // Callback do voltar — fecha overlay + restaura back-header da página.
     // Registrado em window._backNavCallbacks via _renderBackHeader.
     var backCb = function() { if (typeof window._venuesCloseDetail === 'function') window._venuesCloseDetail(); };
-    var titleHtml =
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:800;color:var(--text-bright);font-size:0.95rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏢 ' + _safe(v.name) + '</div>' +
-        (v.address ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ' + _safe(v.address) + '</div>' : '') +
-      '</div>';
+    // v1.1.11-beta: nome do venue agora vai numa linha SEPARADA abaixo do
+    // back-header. Antes ficava espremido entre Voltar e os botões Editar/
+    // Reivindicar — em mobile truncava sempre. User: 'aqui o nome do lugar
+    // poderia estar na linha de baixo (do voltar, editar e reinvindicar)
+    // assim esses botoes ficam mais claros e com uma linha inteira para
+    // o nome do lugar fica legal.'
+    // Header agora: ← Voltar | (espaço) | ✏️ Editar | 🏢 Reivindicar
+    // Logo abaixo: 🏢 Nome do Local em linha cheia + 📍 endereço
     var rightHtml = headerBtns
       ? '<div style="display:flex;gap:6px;flex-shrink:0;">' + headerBtns + '</div>'
       : '';
     var stdHeader = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({
           label: 'Voltar',
-          middleHtml: titleHtml,
+          middleHtml: '',
           rightHtml: rightHtml,
           extraStyle: 'background:var(--bg-card);padding:10px 14px;border-bottom:1px solid var(--border-color);',
           onClickOverride: backCb
         })
       : '';
+    // Nome + endereço em linha cheia logo abaixo do header
+    var nameRowHtml =
+      '<div style="background:var(--bg-card);padding:14px 18px 12px;border-bottom:1px solid var(--border-color);">' +
+        '<div style="font-weight:800;color:var(--text-bright);font-size:1.05rem;line-height:1.3;word-break:break-word;">🏢 ' + _safe(v.name) + '</div>' +
+        (v.address ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;line-height:1.4;word-break:break-word;">📍 ' + _safe(v.address) + '</div>' : '') +
+      '</div>';
     overlay.innerHTML =
       '<div id="venue-detail-card" style="background:var(--bg-card);width:100%;max-width:640px;min-height:100%;box-shadow:0 0 0 1px var(--border-color);">' +
         stdHeader +
+        nameRowHtml +
         '<div id="venue-detail-body" style="padding:16px 18px;">' +
           (ownershipTag ? '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;">' + ownershipTag + '</div>' : '') +
           (sportsHtml ? '<div style="margin-bottom:10px;">' + sportsHtml + '</div>' : '') +

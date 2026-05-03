@@ -161,12 +161,11 @@
     width: 100%;
   }
 
-  /* v1.1.9-beta: header da ficha do venue tem Voltar + nome + Editar +
-     Reivindicar — em mobile estreito, esconder os labels textuais dos
-     botões pra liberar espaço pro nome. Só ícones (✏️ / 🏢). */
-  .venue-detail-btn-label {
-    display: none;
-  }
+  /* v1.1.11-beta: nome do venue agora vai numa linha SEPARADA abaixo do
+     header (não compete mais com Voltar/Editar/Reivindicar). Labels dos
+     botões podem voltar a ser visíveis em mobile — header tem espaço
+     livre. Removida a regra .venue-detail-btn-label { display:none } da
+     v1.1.9. */
 
   /* v1.1.10-beta: botão "+ Cadastrar" nos cards de Sugestões do Google
      vira círculo só com "+" no mobile pra liberar espaço pro nome do

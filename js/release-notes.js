@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📝 v1.1.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Nome do venue agora em linha separada — header com Voltar/Editar/Reivindicar limpo, nome com largura cheia.</b> User: <i>"aqui o nome do lugar poderia estar na linha de baixo (do voltar, editar e reinvindicar) assim esses botoes ficam mais claros e com uma linha inteira para o nome do lugar fica legal."</i></p>' +
+      '<p>Antes:</p>' +
+      '<pre style="font-size:0.78rem;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">← Voltar | 🏢 Clube Pa... | ✏️ Editar | 🏢 Reivindicar</pre>' +
+      '<p>Agora:</p>' +
+      '<pre style="font-size:0.78rem;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">← Voltar |              | ✏️ Editar | 🏢 Reivindicar\n🏢 Clube Paineiras do Morumby\n📍 Av. Independência, 950</pre>' +
+      '<p>Linha do nome usa largura cheia (<code>word-break:break-word</code>) — nomes longos quebram em vez de truncar. Endereço aparece logo abaixo. Reverti também o <code>display:none</code> dos labels dos botões em mobile (v1.1.9) — agora cabem porque o nome não compete mais por espaço.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⊕ v1.1.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Botão "+ Cadastrar" vira círculo "+" só em mobile.</b> User: <i>"no celular por conta do tamanho da tela o botao cadastrar poderia ser apenas um circulo com + dentro na cor e estilo que está (só sem a palavra cadastrar dentro do botao)."</i></p>' +
       '<p>Mesma cor/borda da v1.1.8 (índigo translúcido pill). Só muda o formato em ≤767px:</p>' +
