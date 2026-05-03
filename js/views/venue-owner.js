@@ -121,8 +121,10 @@
              '</div>' +
              rows +
            '</div>' +
-           '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">' +
-             '🟢 aberto · 🟥 fechado · <b>arraste o dedo</b> pra pintar várias células' +
+           '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;line-height:1.5;">' +
+             '🟢 aberto · 🟥 fechado<br>' +
+             '<b>Toque</b> numa célula pra alternar a cor · <b>Arraste</b> pra pintar várias com a mesma cor (oposta à célula inicial)<br>' +
+             '<span style="opacity:0.8;">Errou? Toque de novo na célula errada — alterna pro lado certo. Arraste pra corrigir várias.</span>' +
            '</div>';
   }
 

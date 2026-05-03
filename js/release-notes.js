@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🕐 v1.1.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Legenda do grid de Horário de Funcionamento agora explica a alternância.</b> User: <i>"e se errarmos e indicarmos aberto num horário que está fechado? o ideal seria tirar o dedo e clicar novamente alternaria entre aberto e fechado, ou tem forma melhor de fazer isso?"</i></p>' +
+      '<p>O comportamento já era exatamente esse — <code>paintTo = current === 1 ? 0 : 1</code> em <code>_setupHoursGridListeners</code>: cada toque alterna a cor da célula inicial e o drag pinta tudo com essa cor. Mas a legenda só dizia "arraste o dedo pra pintar várias células", sem explicar o toggle.</p>' +
+      '<p>Nova legenda em 3 linhas:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>🟢 aberto · 🟥 fechado</li>' +
+        '<li><b>Toque</b> alterna a cor · <b>Arraste</b> pinta várias com a mesma cor</li>' +
+        '<li>Errou? Toque de novo na célula errada — alterna pro lado certo</li>' +
+      '</ul>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📍 v1.1.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Botão "+ Cadastrar" inline em cada card de Sugestões do Google.</b> User: <i>"onde está o botão para cadastrar locais? seria legal e intuitivo que ele ficasse na direita de cada local (ao lado da palavra google)."</i></p>' +
       '<p>Antes: cada card era um <code>&lt;a href=maps...&gt;</code> wrapper, sem botão de cadastro. Pra registrar um local visto na lista, organizador tinha que abrir <code>#my-venues</code> e re-buscar.</p>' +
