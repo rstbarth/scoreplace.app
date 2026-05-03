@@ -925,10 +925,113 @@ function _advanceBestLoser(t) {
 //   1. Score in the losing match (closer score = higher rank)
 //   2. Scores from previous rounds (accumulated)
 //   3. Alphabetical as ultimate tiebreaker
+// v1.0.90-beta: classificação específica para Dupla Eliminatória.
+// User: 'preenchido até a grande final ainda diz que falta um jogo. não está
+// informando a classificação personalizada. na verdade não dá classificação
+// alguma.' Bug: _updateProgressiveClassification foi escrita pra Single Elim.
+// Filtrava LOWER e GRAND brackets fora e tratava upper final winner=1º (errado:
+// ele vai pra GF). Em DE a posição final = ordem de eliminação no Lower bracket.
+//
+// Lógica:
+//   1º = GF winner, 2º = GF loser
+//   3º = Lower Final loser, 4º = Lower R(final-1) loser
+//   ...e assim sucessivamente até LR1 (primeiros eliminados = pior posição)
+//
+// Para 8 times DE: LR1(2 partidas)→pos 7-8, LR2(2)→5-6, LR3(1)→4, LR4(1)→3, GF→1-2.
+// Para 16 times DE: LR1(4)→13-16, LR2(4)→9-12, LR3(2)→7-8, LR4(2)→5-6, LR5(1)→4,
+//                   LR6(1)→3, GF→1-2.
+//
+// Suporta estado parcial (ex: GF pendente, LR4 não jogou ainda) — só atribui
+// posição quando o match tem winner. Slots de matches não-jogados ainda contam
+// pra deslocar nextPos (mantém numeração coerente quando completar).
+function _updateDuplaElimClassification(t) {
+  if (!Array.isArray(t.matches)) return;
+  t.classification = {};
+
+  var lowerMatches = [];
+  var grandFinal = null;
+  t.matches.forEach(function(m) {
+    if (!m) return;
+    if (m.bracket === 'grand') grandFinal = m;
+    else if (m.bracket === 'lower') lowerMatches.push(m);
+  });
+
+  // GF: 1º e 2º
+  if (grandFinal && grandFinal.winner && grandFinal.winner !== 'draw') {
+    var gfWinner = grandFinal.winner;
+    var gfLoser = gfWinner === grandFinal.p1 ? grandFinal.p2 : grandFinal.p1;
+    if (gfWinner && gfWinner !== 'TBD') t.classification[gfWinner] = 1;
+    if (gfLoser && gfLoser !== 'TBD') t.classification[gfLoser] = 2;
+  }
+
+  // Lower bracket: agrupa por round, processa de DESC (final = maior round = melhor pos)
+  var lowerByRound = {};
+  lowerMatches.forEach(function(m) {
+    if (m.round === undefined || m.round === null) return;
+    if (!lowerByRound[m.round]) lowerByRound[m.round] = [];
+    lowerByRound[m.round].push(m);
+  });
+  var roundNums = Object.keys(lowerByRound).map(Number).sort(function(a, b) { return b - a; });
+
+  var nextPos = 3;
+  roundNums.forEach(function(rn) {
+    var matchesInRound = lowerByRound[rn];
+    // Coleta perdedores (só matches com winner)
+    var losersWithMatch = [];
+    matchesInRound.forEach(function(m) {
+      if (!m.winner || m.winner === 'draw') return;
+      var loser = m.winner === m.p1 ? m.p2 : m.p1;
+      if (!loser || loser === 'TBD' || loser === 'BYE') return;
+      if (t.classification[loser] !== undefined) return; // já placed
+      losersWithMatch.push({ match: m, loser: loser });
+    });
+    // Sort by score margin (close = melhor posição dentro do bloco)
+    losersWithMatch.sort(function(a, b) {
+      var aLS = a.match.winner === a.match.p1 ? (parseInt(a.match.scoreP2) || 0) : (parseInt(a.match.scoreP1) || 0);
+      var aWS = a.match.winner === a.match.p1 ? (parseInt(a.match.scoreP1) || 0) : (parseInt(a.match.scoreP2) || 0);
+      var bLS = b.match.winner === b.match.p1 ? (parseInt(b.match.scoreP2) || 0) : (parseInt(b.match.scoreP1) || 0);
+      var bWS = b.match.winner === b.match.p1 ? (parseInt(b.match.scoreP1) || 0) : (parseInt(b.match.scoreP2) || 0);
+      return (bLS - bWS) - (aLS - aWS); // diff menos negativo (mais próximo) primeiro
+    });
+    // Atribui posições no bloco
+    losersWithMatch.forEach(function(e, idx) {
+      t.classification[e.loser] = nextPos + idx;
+    });
+    // Avança nextPos pelo TOTAL de matches do round (mesmo incompletos)
+    // pra que LR(n-1) loser caia no slot certo se LR(n) match incompleto
+    nextPos += matchesInRound.length;
+  });
+
+  // Suíço-cut times entram no FIM (mesma lógica da v1.0.89 pra Single Elim)
+  if (Array.isArray(t.swissEliminated) && t.swissEliminated.length > 0 &&
+      Array.isArray(t.swissStandings) && t.swissStandings.length > 0) {
+    var maxPos = nextPos - 1;
+    Object.keys(t.classification).forEach(function(name) {
+      if (t.classification[name] > maxPos) maxPos = t.classification[name];
+    });
+    var advancedCount = t.swissStandings.length - t.swissEliminated.length;
+    var eliminatedRanked = t.swissStandings.slice(advancedCount);
+    eliminatedRanked.forEach(function(s, idx) {
+      if (!s || !s.name) return;
+      if (t.classification[s.name] === undefined) {
+        t.classification[s.name] = maxPos + 1 + idx;
+      }
+    });
+  }
+}
+
 function _updateProgressiveClassification(t) {
   if (!t.matches || t.matches.length === 0) return;
   var fmt = t.format || '';
   if (fmt.indexOf('Elim') === -1 && fmt.indexOf('Fase') === -1) return;
+
+  // v1.0.90-beta: Dupla Eliminatória usa lógica DEDICADA (lower bracket + GF).
+  // A função abaixo (single-elim) trata upper-final winner=1º que é ERRADO em
+  // DE — winner do upper-final vai pra GF, ainda pode ser 2º.
+  if (fmt === 'Dupla Eliminatória') {
+    _updateDuplaElimClassification(t);
+    return;
+  }
 
   // Always recompute from scratch — incremental updates cause position
   // collisions because already-classified losers are skipped, making every

@@ -9,6 +9,23 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🥈 v1.0.90-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Classificação dedicada para Dupla Eliminatória (Lower bracket + GF aware).</b> User: <i>"preenchido até a grande final ainda diz que falta um jogo. não está informando a classificação personalizada. na verdade não dá classificação alguma."</i></p>' +
+      '<p><b>Causa-raiz:</b> <code>_updateProgressiveClassification</code> foi escrita pra Single Elim. Filtrava <code>m.bracket !== \'lower\' && m.bracket !== \'grand\'</code> — ignorava 100% do Lower bracket. Tratava upper-final winner como 1º (errado: em DE ele vai pra GF, pode ser 2º). Resultado: classificação vazia ou incorreta para qualquer DE.</p>' +
+      '<p><b>Fix em <code>bracket-logic.js</code>:</b> nova função <code>_updateDuplaElimClassification(t)</code> dedicada. Roteador detecta <code>fmt === \'Dupla Eliminatória\'</code> e delega.</p>' +
+      '<p><b>Lógica DE:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>1º</b> = GF winner, <b>2º</b> = GF loser</li>' +
+        '<li><b>3º</b> = Lower Final loser, <b>4º</b> = Lower R(final-1) loser, ...</li>' +
+        '<li>Posições atribuídas processando lower rounds em ordem DESCENDENTE (final = melhor pos)</li>' +
+        '<li>Bloco de posições por round = total de matches do round (8 times: LR1→7-8, LR2→5-6, LR3→4, LR4→3)</li>' +
+        '<li>Suporta estado parcial — só atribui posição quando match tem winner. nextPos avança pelo total do round (não só won) pra preservar slots</li>' +
+        '<li>Empate por margem de placar dentro do bloco (closer = melhor)</li>' +
+        '<li>Suíço-cut times anexados ao fim (consistente com v1.0.89 pra Single Elim)</li>' +
+      '</ul>' +
+      '<p><b>Validação para 8 times DE:</b> 14 matches total (UR 4+2+1, LR 2+2+1+1, GF 1). Quando GF pendente (13/14), positions 3-8 já visíveis. Fechado o GF, positions 1-2 entram.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏅 v1.0.89-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Classificação final inclui times cortados na fase Suíça.</b> User: <i>"os 4 times que cairam antes das eliminatórias (nas rodadas suiças) deveriam aparecer ocupando 20o ao 17o lugar"</i>.</p>' +
       '<p>Antes <code>_updateProgressiveClassification</code> só populava <code>t.classification</code> a partir das partidas eliminatórias. Times que jogaram só Suíço e foram cortados sumiam da classificação final.</p>' +
