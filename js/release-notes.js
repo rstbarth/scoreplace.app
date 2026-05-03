@@ -9,6 +9,21 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.1.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Validação no register/profile bloqueia nomes placeholder ("usuário", "teste", etc.).</b> User reportou via Sentry: pessoa cadastrada com nome "usuário" — provavelmente confundiu o campo "Nome" com "tipo de usuário" ou simplesmente preencheu com a label.</p>' +
+      '<p>Investigação no código: nenhum caminho persistia "Usuário" automaticamente (todas as 6 referências ao termo eram fallbacks de display, nunca de save). Conclusão: a pessoa digitou. Fix preventivo via validação client-side.</p>' +
+      '<p><b>Lista de placeholders bloqueados</b> (case-insensitive, exact match):</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>usuário</code>, <code>usuario</code>, <code>user</code></li>' +
+        '<li><code>name</code>, <code>nome</code></li>' +
+        '<li><code>teste</code>, <code>test</code>, <code>admin</code></li>' +
+        '<li><code>anonimo</code>, <code>anônimo</code></li>' +
+        '<li><code>sem nome</code>, <code>no name</code>, <code>unknown</code>, <code>desconhecido</code></li>' +
+      '</ul>' +
+      '<p>Aplicado em 2 lugares: <code>handleEmailRegister</code> (signup com email/senha) e <code>saveUserProfile</code> (edição de perfil). Toast: <i>"Por favor, digite seu nome real (não use \'X\' como nome)"</i> + foco automático no campo pra correção.</p>' +
+      '<p><b>Observabilidade Sentry:</b> resolvido issue <code>SCOREPLACE-WEB-K</code> (SyntaxError no botão Avançar pra Eliminação que estava em v1.0.96 — corrigido em v1.0.97). Issues Firebase auth/invalid-credential são benignas (senha errada, já tratadas com toast ao usuário).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⏱️ v1.1.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Painel de Configuração de Grupos: estimativa dinâmica de partidas + duração por opção.</b> User: <i>"seria muito interessante diz quantas partidas e previsão de duração total do torneio de forma dinamica a cada vez que uma opção é selecionada."</i></p>' +
       '<p>Cada card de configuração agora mostra rodapé com:</p>' +

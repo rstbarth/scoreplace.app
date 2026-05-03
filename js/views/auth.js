@@ -1218,6 +1218,19 @@ function handleEmailRegister() {
     showNotification(_t('auth.requiredFields'), _t('auth.fillNameEmailPassword'), 'warning');
     return;
   }
+  // v1.1.2-beta: bloquear nomes placeholder no register também
+  var _nameLowerReg = name.toLowerCase().trim();
+  var _placeholderRegNames = [
+    'usuário', 'usuario', 'user', 'name', 'nome',
+    'teste', 'test', 'admin', 'anonimo', 'anônimo',
+    'sem nome', 'no name', 'unknown', 'desconhecido'
+  ];
+  if (_placeholderRegNames.indexOf(_nameLowerReg) !== -1) {
+    showNotification('Nome inválido',
+      'Por favor, digite seu nome real (não use "' + name + '" como nome).',
+      'warning');
+    return;
+  }
   if (password.length < 6) {
     showNotification(_t('auth.weakPassword'), _t('auth.weakPasswordMsg'), 'warning');
     return;
@@ -4383,6 +4396,34 @@ function setupProfileModal() {
               : null;
             if (fbUser && fbUser.displayName) finalName = fbUser.displayName;
           } catch (e) {}
+        }
+      }
+
+      // v1.1.2-beta: rejeitar nomes obviamente placeholder/genéricos.
+      // Sentry surfaced person registrada como "usuário" — pessoa preencheu
+      // o campo com a label genérica em vez do próprio nome. Validação
+      // bloqueia e pede pra digitar nome real. Lista pequena, conservadora
+      // (não rejeita nomes legítimos curtos como "Ana", "Lu", etc.).
+      if (nameIn) {
+        var _nameLower = nameIn.toLowerCase().trim();
+        var _placeholderNames = [
+          'usuário', 'usuario', 'user', 'name', 'nome',
+          'teste', 'test', 'admin', 'anonimo', 'anônimo',
+          'sem nome', 'no name', 'unknown', 'desconhecido'
+        ];
+        if (_placeholderNames.indexOf(_nameLower) !== -1) {
+          if (typeof showNotification !== 'undefined') {
+            showNotification('Nome inválido',
+              'Por favor, digite seu nome real (não use "' + nameIn + '" como nome).',
+              'warning');
+          }
+          // Foca no campo pra user corrigir
+          var _nameElFocus = document.getElementById('profile-edit-name');
+          if (_nameElFocus) {
+            _nameElFocus.focus();
+            _nameElFocus.select();
+          }
+          return;
         }
       }
 
