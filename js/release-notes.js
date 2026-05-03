@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🧹 v1.0.93-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Cleanup automático de torneios DE velhos no render — não precisa apagar e recriar.</b> User: <i>"tenho que apagar e recriar o torneio? nao aparece o 15o jogo"</i>.</p>' +
+      '<p>v1.0.92 fixou o bug do thirdPlaceMatch fantasma em DE, mas o cleanup só rodava em <code>_advanceWinner</code> (quando placar é lançado). Se a GF já estava preenchida ANTES da v1.0.92 deployar, nenhuma mutação subsequente disparava o cleanup — torneio ficava preso em "15 partidas" eternamente.</p>' +
+      '<p><b>Fix em <code>renderDoubleElimBracket</code>:</b> no topo do render, força <code>delete t.thirdPlaceMatch</code> + <code>syncImmediate</code>. Também chama <code>_maybeFinishElimination</code> no render — se GF já tem winner, marca tournament como finished na hora.</p>' +
+      '<p>Auto-cura: ao recarregar a página do torneio bagunçado, ele se conserta sozinho — total volta pra 14, status vira "finished", classificação progressiva aparece.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏁 v1.0.92-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Dupla Eliminatória: termina, conta certo, mostra classificação progressiva.</b> User: <i>"de novo diz que são 15 partidas mas só renderiza 14 delas. tudo preenchido e não termina"</i> + <i>"no caso de dupla eliminatória não há classificação personalizada... quero que haja a classificação personalizada... e que isso se revele conforme não tenha mais como alterar a posição do time."</i></p>' +
       '<p><b>3 bugs corrigidos:</b></p>' +

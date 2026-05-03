@@ -975,6 +975,29 @@ function renderDoubleElimBracket(t, canEnterResult) {
   // Auto-reparação para dupla eliminatória também
   _ensureFutureRounds(t);
 
+  // v1.0.93-beta: cleanup forçado no render — torneios velhos têm
+  // t.thirdPlaceMatch fantasma criado por bug pré-v1.0.92. Cleanup só
+  // disparava em _advanceWinner (no próximo placar lançado), mas se
+  // GF já tava filled antes da v1.0.92 deployar, nunca mais dispararia.
+  // User: 'tenho que apagar e recriar o torneio? nao aparece o 15o jogo'.
+  // Fix: cleanup no render + persistir no Firestore.
+  if (t.thirdPlaceMatch) {
+    delete t.thirdPlaceMatch;
+    if (window.AppStore && typeof window.AppStore.syncImmediate === 'function') {
+      try { window.AppStore.syncImmediate(t.id); } catch (_e) {}
+    }
+  }
+  // v1.0.93-beta: também tenta finalizar o torneio aqui caso o GF já
+  // esteja completo. _maybeFinishElimination antes só era chamado via
+  // _advanceWinner; sem ele rodar no render, o torneio fica em status
+  // 'active' eternamente.
+  if (typeof _maybeFinishElimination === 'function' && t.status !== 'finished') {
+    _maybeFinishElimination(t);
+    if (t.status === 'finished' && window.AppStore && typeof window.AppStore.syncImmediate === 'function') {
+      try { window.AppStore.syncImmediate(t.id); } catch (_e) {}
+    }
+  }
+
   // v1.0.92-beta: classificação progressiva precisa rodar pra DE também.
   // User: 'no caso de dupla eliminatória não há classificação personalizada.
   // não há classificação alguma. quero que haja a classificação personalizada
