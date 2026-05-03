@@ -9,7 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
-      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.1.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.1.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Revert da validação anti-placeholder da v1.1.2.</b> User: <i>"as pessoas já tem dificuldade de entrar no programa (por incompetencia delas muitas vezes) e vc vai implementar uma trava? melhor deixar entrar e depois editamos o nome do usuário."</i></p>' +
+      '<p>Trade-off correto: friction no onboarding > qualidade do nome cadastrado. Organizadores corrigem manualmente nomes ruins via UI quando precisar.</p>' +
+      '<p>Removido em 2 lugares: <code>handleEmailRegister</code> (volta a aceitar qualquer nome não-vazio) e <code>saveUserProfile</code> (volta a aceitar qualquer string ou vazio com fallback).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🛡️ v1.1.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026 — REVERTIDO em v1.1.3)</span></div>' +
       '<p><b>Validação no register/profile bloqueia nomes placeholder ("usuário", "teste", etc.).</b> User reportou via Sentry: pessoa cadastrada com nome "usuário" — provavelmente confundiu o campo "Nome" com "tipo de usuário" ou simplesmente preencheu com a label.</p>' +
       '<p>Investigação no código: nenhum caminho persistia "Usuário" automaticamente (todas as 6 referências ao termo eram fallbacks de display, nunca de save). Conclusão: a pessoa digitou. Fix preventivo via validação client-side.</p>' +
       '<p><b>Lista de placeholders bloqueados</b> (case-insensitive, exact match):</p>' +
