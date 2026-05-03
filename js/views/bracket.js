@@ -1057,7 +1057,11 @@ function renderDoubleElimBracket(t, canEnterResult) {
 
   var grandMatches = grandCols.reduce(function(acc, c) { return acc.concat(c.matches || []); }, []);
 
-  // v1.0.92-beta: render classificação progressiva em DE
+  // v1.0.94-beta: render classificação progressiva em DE no MESMO LUGAR
+  // que Single Elim — TOPO do bracket — pra consistência visual entre
+  // formatos. User: 'coloque a classificação na mesma posição das
+  // eliminatórias simples (no topo do chaveamento se não me engano) para
+  // ficar consistente.'
   // Mostra posições conforme se tornam definitivas — quando o time não tem
   // mais como mudar de posição (ex: perdeu na LR1 = 7º-8º definitivo;
   // perdeu na LR Final = 3º definitivo; etc).
@@ -1072,11 +1076,12 @@ function renderDoubleElimBracket(t, canEnterResult) {
       var color = pos === 1 ? '#fbbf24' : pos === 2 ? '#94a3b8' : pos === 3 ? '#cd7f32' : 'var(--text-muted)';
       return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;"><span style="min-width:28px;text-align:center;font-size:0.9rem;">' + badge + '</span><span style="font-weight:600;color:' + color + ';font-size:0.85rem;">' + (typeof window._nameWithCrown === 'function' ? window._nameWithCrown(name, t) : window._safeHtml(name)) + '</span></div>';
     }).join('');
-    _deClassifHtml = '<details style="margin-bottom:1rem;margin-top:1.5rem;" ' + (t.status === 'finished' ? 'open' : 'open') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">' + _t('bracket.classified', {n: _entries.length}) + '</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + _rows + '</div></details>';
+    _deClassifHtml = '<details style="margin-bottom:1rem;" ' + (t.status === 'finished' ? 'open' : 'open') + '><summary style="cursor:pointer;font-weight:700;font-size:0.8rem;color:var(--text-bright);padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;user-select:none;">' + _t('bracket.classified', {n: _entries.length}) + '</summary><div style="margin-top:6px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:8px 0;">' + _rows + '</div></details>';
   }
 
   return `
     <div>
+      ${_deClassifHtml}
       ${renderSection(upperCols, 'Chaveamento Superior', '#10b981')}
       ${renderSection(lowerCols, 'Chaveamento Inferior', '#f59e0b')}
       ${grandMatches.length ? `
@@ -1084,7 +1089,6 @@ function renderDoubleElimBracket(t, canEnterResult) {
           <h4 style="color:#fbbf24;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;border-left:3px solid #fbbf24;padding-left:10px;">🏆 ${_t('bracket.grandFinal')}</h4>
           <div style="max-width:280px;">${grandMatches.map(m => { deGlobalNum++; return renderMatchCard(m, canEnterResult, t.id, deGlobalNum); }).join('')}</div>
         </div>` : ''}
-      ${_deClassifHtml}
     </div>`;
 }
 

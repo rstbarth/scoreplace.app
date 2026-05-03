@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📐 v1.0.94-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>Classificação DE no topo do bracket — consistente com Eliminatórias Simples.</b> User: <i>"coloque a classificação na mesma posição das eliminatórias simples (no topo do chaveamento se não me engano) para ficar consistente."</i></p>' +
+      '<p>Em Single Elim a classificação fica no <b>topo</b> (após banner do campeão). Em DE estava no fim — inconsistente. Movido pra mesma posição: bloco <code>&lt;details&gt;</code> aparece no topo do bracket DE, antes do Chaveamento Superior.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🧹 v1.0.93-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Cleanup automático de torneios DE velhos no render — não precisa apagar e recriar.</b> User: <i>"tenho que apagar e recriar o torneio? nao aparece o 15o jogo"</i>.</p>' +
       '<p>v1.0.92 fixou o bug do thirdPlaceMatch fantasma em DE, mas o cleanup só rodava em <code>_advanceWinner</code> (quando placar é lançado). Se a GF já estava preenchida ANTES da v1.0.92 deployar, nenhuma mutação subsequente disparava o cleanup — torneio ficava preso em "15 partidas" eternamente.</p>' +
