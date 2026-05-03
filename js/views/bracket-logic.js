@@ -1232,6 +1232,227 @@ function _updateProgressiveClassification(t) {
       }
     });
   }
+
+  // v1.1.0-beta: incluir não-classificados da Fase de Grupos na classificação
+  // final, USANDO os critérios de desempate configurados pelo organizador
+  // (t.tiebreakers). User: 'mais uma vez a classificação não inclui os que
+  // participaram da primeira fase do torneio... aqui ficam os critérios de
+  // desempate e podem ser ordenados de forma diferente pelo organizador.'
+  //
+  // Lógica:
+  //   1. Pra cada grupo, computa standings completas (points/wins/saldo +
+  //      sets/games/tiebreaks GSM + Buchholz + Sonneborn-Berger)
+  //   2. Skip top N (classificados pra elim — já têm posição da v1.0.97)
+  //   3. Junta todos os não-classificados num pool
+  //   4. Sort pool com tiebreakers do organizador (confronto_direto,
+  //      saldo_pontos, vitorias, buchholz, sonneborn_berger, sorteio, etc)
+  //   5. Atribui posições maxPos+1, +2, ... no fim da classificação
+  //
+  // Pra 20 times com 4 grupos × 5, top 2 = 8 elim. Posições 9-20: 12
+  // não-classificados ordenados pelos tiebreakers do organizador (cruzando
+  // entre grupos).
+  if (Array.isArray(t.groups) && t.groups.length > 0) {
+    // ─── Helper: compute standings for a group (same shape as _computeStandings) ───
+    var _computeGroupStandings = function(g) {
+      var participants = g.players || g.participants || [];
+      var groupMatches = (g.matches || []).slice();
+      (g.rounds || []).forEach(function(r) {
+        if (Array.isArray(r.matches)) groupMatches = groupMatches.concat(r.matches);
+      });
+      var smap = {};
+      var ensure = function(nm) {
+        if (!smap[nm]) smap[nm] = {
+          name: nm, points: 0, wins: 0, losses: 0, draws: 0, pointsDiff: 0, played: 0,
+          setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, tiebreaksWon: 0,
+          buchholz: 0, sonnebornBerger: 0
+        };
+      };
+      participants.forEach(function(name) {
+        var nm = typeof name === 'string' ? name : (name.displayName || name.name || '');
+        if (nm) ensure(nm);
+      });
+      groupMatches.forEach(function(m) {
+        if (!m.winner || m.isBye) return;
+        ensure(m.p1); ensure(m.p2);
+        var s1 = parseInt(m.scoreP1) || 0;
+        var s2 = parseInt(m.scoreP2) || 0;
+        smap[m.p1].played++; smap[m.p2].played++;
+        smap[m.p1].pointsDiff += (s1 - s2);
+        smap[m.p2].pointsDiff += (s2 - s1);
+        if (m.draw || m.winner === 'draw') {
+          smap[m.p1].draws++; smap[m.p1].points += 1;
+          smap[m.p2].draws++; smap[m.p2].points += 1;
+        } else {
+          var loser = m.winner === m.p1 ? m.p2 : m.p1;
+          if (smap[m.winner]) { smap[m.winner].wins++; smap[m.winner].points += 3; }
+          if (smap[loser]) smap[loser].losses++;
+        }
+        // GSM stats (sets/games/tiebreaks)
+        if (Array.isArray(m.sets) && m.sets.length > 0) {
+          var sw1=0, sw2=0, gw1=0, gw2=0, tb1=0, tb2=0;
+          m.sets.forEach(function(s) {
+            var g1 = parseInt(s.gamesP1) || 0;
+            var g2 = parseInt(s.gamesP2) || 0;
+            gw1 += g1; gw2 += g2;
+            if (g1 > g2) sw1++; else if (g2 > g1) sw2++;
+            if (s.tiebreak) {
+              var tp1 = parseInt(s.tiebreak.pointsP1) || 0;
+              var tp2 = parseInt(s.tiebreak.pointsP2) || 0;
+              if (tp1 > tp2) tb1++; else if (tp2 > tp1) tb2++;
+            }
+          });
+          smap[m.p1].setsWon += sw1; smap[m.p1].setsLost += sw2;
+          smap[m.p1].gamesWon += gw1; smap[m.p1].gamesLost += gw2;
+          smap[m.p1].tiebreaksWon += tb1;
+          smap[m.p2].setsWon += sw2; smap[m.p2].setsLost += sw1;
+          smap[m.p2].gamesWon += gw2; smap[m.p2].gamesLost += gw1;
+          smap[m.p2].tiebreaksWon += tb2;
+        }
+      });
+      // Buchholz: sum of opponents' points
+      Object.keys(smap).forEach(function(nm) {
+        var s = smap[nm];
+        groupMatches.forEach(function(m) {
+          if (!m.winner || m.isBye) return;
+          if (m.p1 === s.name && smap[m.p2]) s.buchholz += smap[m.p2].points;
+          if (m.p2 === s.name && smap[m.p1]) s.buchholz += smap[m.p1].points;
+        });
+      });
+      // Sonneborn-Berger: opponents.points × (won=1, draw=0.5, loss=0)
+      Object.keys(smap).forEach(function(nm) {
+        var s = smap[nm];
+        groupMatches.forEach(function(m) {
+          if (!m.winner || m.isBye) return;
+          var isDraw = m.draw || m.winner === 'draw';
+          var opp = m.p1 === s.name ? m.p2 : (m.p2 === s.name ? m.p1 : null);
+          if (!opp || !smap[opp]) return;
+          if (isDraw) s.sonnebornBerger += smap[opp].points * 0.5;
+          else if (m.winner === s.name) s.sonnebornBerger += smap[opp].points;
+        });
+      });
+      return smap;
+    };
+
+    // ─── Build h2h map from ALL group matches (cross-group h2h) ───
+    var _h2hAllGroups = {};
+    t.groups.forEach(function(g) {
+      var allM = (g.matches || []).slice();
+      (g.rounds || []).forEach(function(r) {
+        if (Array.isArray(r.matches)) allM = allM.concat(r.matches);
+      });
+      allM.forEach(function(m) {
+        if (!m.winner || m.isBye) return;
+        var isDraw = m.draw || m.winner === 'draw';
+        if (isDraw) {
+          _h2hAllGroups[m.p1 + '|||' + m.p2 + '|||d'] = (_h2hAllGroups[m.p1 + '|||' + m.p2 + '|||d'] || 0) + 1;
+          _h2hAllGroups[m.p2 + '|||' + m.p1 + '|||d'] = (_h2hAllGroups[m.p2 + '|||' + m.p1 + '|||d'] || 0) + 1;
+        } else {
+          var loser = m.winner === m.p1 ? m.p2 : m.p1;
+          _h2hAllGroups[m.winner + '|||' + loser] = (_h2hAllGroups[m.winner + '|||' + loser] || 0) + 1;
+        }
+      });
+    });
+
+    // ─── User's configured tiebreakers (or default) ───
+    // Mesma ordem default que _computeStandings (line 420): alinhada com a
+    // UI em create-tournament.js.
+    var _defaultTb = ['confronto_direto', 'saldo_pontos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
+    if (t.scoring && t.scoring.type === 'sets') {
+      _defaultTb = ['confronto_direto', 'saldo_sets', 'saldo_games', 'sets_vencidos', 'games_vencidos', 'tiebreaks_vencidos', 'vitorias', 'buchholz', 'sonneborn_berger', 'sorteio'];
+    }
+    if (t.advancedScoring && t.advancedScoring.enabled) {
+      _defaultTb = ['pontos_avancados'].concat(_defaultTb);
+    }
+    var _userTb = (Array.isArray(t.tiebreakers) && t.tiebreakers.length > 0) ? t.tiebreakers : _defaultTb;
+
+    // ─── Sort comparator: same logic as _computeStandings sort ───
+    var _applyTb = function(a, b) {
+      if (b.points !== a.points) return b.points - a.points;
+      for (var i = 0; i < _userTb.length; i++) {
+        var tb = _userTb[i];
+        var diff = 0;
+        switch (tb) {
+          case 'confronto_direto':
+            var aBeatsB = _h2hAllGroups[a.name + '|||' + b.name] || 0;
+            var bBeatsA = _h2hAllGroups[b.name + '|||' + a.name] || 0;
+            diff = bBeatsA - aBeatsB;
+            if (diff !== 0) return diff < 0 ? -1 : 1;
+            break;
+          case 'saldo_pontos':
+            diff = b.pointsDiff - a.pointsDiff;
+            if (diff !== 0) return diff;
+            break;
+          case 'vitorias':
+            diff = b.wins - a.wins;
+            if (diff !== 0) return diff;
+            break;
+          case 'buchholz':
+            diff = (b.buchholz || 0) - (a.buchholz || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'sonneborn_berger':
+            diff = (b.sonnebornBerger || 0) - (a.sonnebornBerger || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'saldo_sets':
+            diff = ((b.setsWon || 0) - (b.setsLost || 0)) - ((a.setsWon || 0) - (a.setsLost || 0));
+            if (diff !== 0) return diff;
+            break;
+          case 'saldo_games':
+            diff = ((b.gamesWon || 0) - (b.gamesLost || 0)) - ((a.gamesWon || 0) - (a.gamesLost || 0));
+            if (diff !== 0) return diff;
+            break;
+          case 'sets_vencidos':
+            diff = (b.setsWon || 0) - (a.setsWon || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'games_vencidos':
+            diff = (b.gamesWon || 0) - (a.gamesWon || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'tiebreaks_vencidos':
+            diff = (b.tiebreaksWon || 0) - (a.tiebreaksWon || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'pontos_avancados':
+            diff = (b.advancedPoints || 0) - (a.advancedPoints || 0);
+            if (diff !== 0) return diff;
+            break;
+          case 'sorteio':
+            return Math.random() - 0.5;
+        }
+      }
+      return 0;
+    };
+
+    // ─── Identify non-classified pool ───
+    var _classifiedPerGroup = parseInt(t.gruposClassified) || 2;
+    var _nonClassifiedPool = [];
+    t.groups.forEach(function(g) {
+      var smap = _computeGroupStandings(g);
+      var sorted = Object.values(smap).sort(_applyTb);
+      // Skip top N (classificados — já têm posição da elim)
+      sorted.slice(_classifiedPerGroup).forEach(function(s) {
+        if (!s || !s.name) return;
+        if (t.classification[s.name] !== undefined) return; // já placed
+        _nonClassifiedPool.push(s);
+      });
+    });
+
+    if (_nonClassifiedPool.length > 0) {
+      // Sort cross-group com tiebreakers do organizador
+      _nonClassifiedPool.sort(_applyTb);
+      var _maxPosG = 0;
+      Object.keys(t.classification).forEach(function(name) {
+        if (t.classification[name] > _maxPosG) _maxPosG = t.classification[name];
+      });
+      _nonClassifiedPool.forEach(function(s, idx) {
+        if (t.classification[s.name] === undefined) {
+          t.classification[s.name] = _maxPosG + 1 + idx;
+        }
+      });
+    }
+  }
 }
 
 // ─── Auto-finish elimination tournament ──────────────────────────────────────

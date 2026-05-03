@@ -9,6 +9,28 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🏅 v1.1.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>MINOR bump.</b> Classificação final em Grupos+Eliminatórias inclui TODOS os participantes (classificados + não-classificados de grupos), <b>respeitando os critérios de desempate configurados pelo organizador</b>.</p>' +
+      '<p>User: <i>"a classificação não inclui os que participaram da primeira fase do torneio... aqui ficam os critérios de desempate e podem ser ordenados de forma diferente pelo organizador."</i></p>' +
+      '<p><b>Antes:</b> <code>_updateProgressiveClassification</code> só processava <code>t.matches</code> (elim phase). Times que jogaram só fase de grupos e não classificaram pra elim sumiam da classificação. Mesmo bug que tinha pra Suíço (v1.0.89) e Dupla Elim (v1.0.90).</p>' +
+      '<p><b>Fix em <code>bracket-logic.js</code>:</b> no fim de <code>_updateProgressiveClassification</code>, scaneia <code>t.groups</code>:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Pra cada grupo, computa standings COMPLETAS (points/wins/saldo + sets/games/tiebreaks GSM + Buchholz + Sonneborn-Berger)</li>' +
+        '<li>Skip top N (classificados pra elim — já têm posição)</li>' +
+        '<li>Junta todos os não-classificados num pool cross-group</li>' +
+        '<li>Aplica <code>t.tiebreakers</code> (configurados pelo user) na mesma ordem de prioridade: <code>confronto_direto → saldo_pontos → vitorias → buchholz → sonneborn_berger → sorteio</code> (ou ordem custom)</li>' +
+        '<li>Atribui posições ao FIM (maxPos+1, +2, ...)</li>' +
+      '</ul>' +
+      '<p><b>Default fallback:</b> se <code>t.tiebreakers</code> vazio, usa default alinhado com UI:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Numérico: confronto direto, saldo, vitórias, Buchholz, Sonneborn, sorteio</li>' +
+        '<li>GSM (sets): + saldo_sets, saldo_games, sets_vencidos, games_vencidos, tiebreaks_vencidos</li>' +
+        '<li>Pontos avançados: vai pro topo se <code>t.advancedScoring.enabled</code></li>' +
+      '</ul>' +
+      '<p><b>Cross-group h2h:</b> mapa de confronto direto construído com matches de TODOS os grupos (não só dentro do mesmo grupo) — relevante quando dois jogadores de grupos diferentes empatam em pontos no pool de não-classificados (raro em round-robin puro, mas importante em formatos híbridos).</p>' +
+      '<p><b>Exemplo 20 times, 4 grupos × 5, top 2 = 8 elim:</b> posições 1-8 vêm da elim, 9-20 vêm dos 12 não-classificados ordenados pelos tiebreakers escolhidos pelo organizador.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🐛 v1.0.97-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Botão "Avançar para Fase Eliminatória" não fazia nada — typo no onclick.</b> User: <i>"o botao avancar para fase eliminatoria nao faz nada"</i>.</p>' +
       '<p>Em <code>bracket.js</code> linha 1721, faltava o <code>)</code> fechando a chamada da função:</p>' +
