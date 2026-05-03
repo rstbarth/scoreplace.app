@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🧹 v1.1.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Removidos botões "🤖 Add Bot" e "🗑️ Apagar Torneio" da toolbar do organizador.</b> User: <i>"adicionar bots nunca é uma opção (alias podemos retirar isso novamente do programa e também o apagar torneio)."</i></p>' +
+      '<p>Foram trazidos de volta na v1.0.59-beta especificamente pra ajudar nos testes da matriz de resolução. Testes terminados → removidos novamente. Painel de resolução pra times incompletos NÃO oferece "Adicionar Bots" como opção (só Reabrir, Lista de Espera, Excluir).</p>' +
+      '<p><b>Apagar Torneio</b>: ainda existe via Firebase console pelo dono do torneio se necessário, mas saiu da UI cotidiana — diminui chance de delete acidental + reduz ruído visual nos cards.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">↩️ v1.1.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Revert da validação anti-placeholder da v1.1.2.</b> User: <i>"as pessoas já tem dificuldade de entrar no programa (por incompetencia delas muitas vezes) e vc vai implementar uma trava? melhor deixar entrar e depois editamos o nome do usuário."</i></p>' +
       '<p>Trade-off correto: friction no onboarding > qualidade do nome cadastrado. Organizadores corrigem manualmente nomes ruins via UI quando precisar.</p>' +
